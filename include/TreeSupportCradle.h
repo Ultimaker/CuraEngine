@@ -2,19 +2,22 @@
 #define CURAENGINE_TREESUPPORTCRADLE_H
 #include <spdlog/spdlog.h>
 
+#include "TreeModelVolumes.h"
+#include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
+#include "mfem/mfem.hpp"
 #include "polyclipping/clipper.hpp"
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "TreeModelVolumes.h"
-#include "TreeSupportEnums.h"
-#include "mfem/mfem.hpp"
+#include "utils/MinimumBoundingBox.h"
 
 namespace cura
 {
 // todo rename file as now general TreeSupportTipDataStructures
 struct TreeSupportCradle;
+
+using CradleDeformationHalfCircle = std::array<double, 32>;
 
 struct OverhangInformation
 {
@@ -427,13 +430,14 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang, double deformation, Point2LL assumed_center)
+        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang,
+            CradleDeformationHalfCircle deformation, MinimumBoundingBox min_box)
             : area{ area }
             , layer_idx{ layer_idx }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
             , deformation{ deformation }
-            , assumed_center {assumed_center}
+            , min_box {min_box}
         {
         }
         const Shape area;
@@ -441,10 +445,10 @@ private:
         size_t height;
         coord_t accumulated_supportable_overhang;
         CradlePlacementMethod support_required = CradlePlacementMethod::NONE;
-        double deformation;
+        CradleDeformationHalfCircle deformation;
         double total_deformation_limit = -1;
-        double total_deformation = -1;
-        Point2LL assumed_center;
+        double total_deformation_maximum = -1;
+        MinimumBoundingBox min_box;
 
         // Contains identifiers of all cradles below
         std::vector<UnsupportedAreaInformation*> cradles_below;
@@ -452,9 +456,19 @@ private:
         std::vector<UnsupportedAreaInformation*> areas_below;
     };
 
-        // Contains identifiers of all cradles below
-        std::vector<UnsupportedAreaInformation*> cradles_below;
+    size_t getDirectionIdx(Point2LL a, Point2LL b) const;
 
+    CradleDeformationHalfCircle elementWiseSelect(CradleDeformationHalfCircle& a, CradleDeformationHalfCircle& b, std::function<double(double,double)> selector)
+    {
+        CradleDeformationHalfCircle result{};
+        for(int i = 0; i < a.size(); i++)
+        {
+            result[i]=selector(a[i],b[i]);
+        }
+        return result;
+    }
+
+    void getLayerDeformation(const SliceMeshStorage& mesh, MinimumBoundingBox& minimum_box, double assumed_part_thickness, CradleDeformationHalfCircle& deform_part);
     //todo doku
     double getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
 

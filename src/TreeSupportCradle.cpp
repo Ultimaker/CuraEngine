@@ -2,6 +2,7 @@
 #include "TreeSupportCradle.h"
 
 #include "TreeSupportUtils.h"
+#include "utils/MinimumBoundingBox.h"
 #include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h" //For round_up_divide and PI.
@@ -20,13 +21,81 @@ SupportCradleGeneration::SupportCradleGeneration(const SliceDataStorage& storage
 
 }
 
+size_t SupportCradleGeneration::getDirectionIdx(Point2LL a, Point2LL b) const
+{
+    size_t size = CradleDeformationHalfCircle().size();
+    Point2LL vector_direction = a.X > b.X ? a - b : b - a;
+    double best_angle = std::numbers::pi;
+    size_t best_idx = 0;
+    for (size_t direction_idx = 0; direction_idx < size; direction_idx++)
+    {
+        Point2LL direction(direction_idx % size / 2, direction_idx - size / 2);
+        double angle_vd = angle(vector_direction - normal(direction, vSize(vector_direction)));
+        if (angle_vd >= std::numbers::pi)
+        {
+            angle_vd -= std::numbers::pi;
+        }
+
+        if (angle_vd < best_angle)
+        {
+            best_angle = angle_vd;
+            best_idx = direction_idx;
+        }
+    }
+    return best_idx;
+}
+
+void SupportCradleGeneration::getLayerDeformation(
+    const SliceMeshStorage& mesh,
+    MinimumBoundingBox& minimum_box,
+    double assumed_part_thickness,
+    CradleDeformationHalfCircle& deform_part)
+{
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
+
+    Point2LL axis_min = minimum_box.extent.X < minimum_box.extent.Y ? minimum_box.axis[0] : minimum_box.axis[1];
+    Point2LL axis_max = minimum_box.extent.X < minimum_box.extent.Y ? minimum_box.axis[1] : minimum_box.axis[0];
+
+    for (size_t direction_idx = 0; direction_idx < deform_part.size(); direction_idx++)
+    {
+        Point2LL direction(direction_idx % deform_part.size() / 2, direction_idx - deform_part.size() / 2);
+        double dot_a = dot(axis_min, direction);
+        double det_a = cross(axis_min, direction);
+        double angle = std::atan2(det_a, dot_a);
+
+        if (angle < 0)
+        {
+            angle += 2 * std::numbers::pi;
+        }
+        if (angle >= std::numbers::pi)
+        {
+            angle -= std::numbers::pi;
+        }
+
+        if (angle >= std::numbers::pi / 2.0)
+        {
+            angle = std::numbers::pi / 2 - (angle - std::numbers::pi / 2.0);
+        }
+
+        double assumed_thickness_in_direction = angle / (std::numbers::pi / 2.0) * std::min(assumed_part_thickness, double(std::min(minimum_box.extent.X, minimum_box.extent.Y)))
+                                              + (1.0 - angle / (std::numbers::pi / 2.0)) * double(std::max(minimum_box.extent.X, minimum_box.extent.Y));
+        double assumed_thickness_opposite_direction
+            = angle / (std::numbers::pi / 2.0) * double(std::max(minimum_box.extent.X, minimum_box.extent.Y))
+            + (1.0 - angle / (std::numbers::pi / 2.0)) * std::min(assumed_part_thickness, double(std::min(minimum_box.extent.X, minimum_box.extent.Y)));
+
+        deform_part[direction_idx]
+            = tan(deformation_constant * layer_height / (assumed_thickness_in_direction * (1 + std::sqrt(std::max(0.0, assumed_thickness_opposite_direction)))));
+    }
+}
+
 double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element)
 {
-
-    if(element->total_deformation >= 0)
+    if (element->total_deformation_maximum >= 0)
     {
-        return element->total_deformation;
+        return element->total_deformation_maximum;
     }
+    const size_t cradle_deformation_half_circle_size = CradleDeformationHalfCircle().size();
 
     LayerIndex layer_idx = element->layer_idx;
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
@@ -34,6 +103,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
     std::unordered_set<UnsupportedAreaInformation*> elements_on_path_down {element};
     const double layer_per_mm = 1000.0 / double(layer_height);
     std::vector<std::vector<UnsupportedAreaInformation*>> root_areas(layer_idx + 1);
+
     {
         // Using a unordered_set to ensure no duplicates!
         std::unordered_set<UnsupportedAreaInformation*> all_scan_elements {element};
@@ -61,11 +131,58 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             all_scan_elements = next_scan_elements;
         }
     }
-    std::unordered_map<UnsupportedAreaInformation*, double> known_deformation_map;
-    std::unordered_map<UnsupportedAreaInformation*, coord_t> largest_center_distance_map;
+    std::unordered_map<UnsupportedAreaInformation*, std::unordered_set<UnsupportedAreaInformation*>> rests_on_root;
+    std::unordered_map<UnsupportedAreaInformation*, std::unordered_set<UnsupportedAreaInformation*>> rests_on_self;
 
     std::unordered_set<UnsupportedAreaInformation*> iterate_elements;
+
+    for (LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
+    {
+        std::unordered_set<UnsupportedAreaInformation*> next_iterate_elements;
+
+        for (UnsupportedAreaInformation* current_area : root_areas[iterate_layer_idx])
+        {
+            for (UnsupportedAreaInformation* element_above : current_area->areas_above)
+            {
+                rests_on_root[element_above].emplace(current_area);
+            }
+        }
+        for (UnsupportedAreaInformation* current_area : iterate_elements)
+        {
+            for (UnsupportedAreaInformation* element_above : current_area->areas_above)
+            {
+                if (current_area->areas_above.size() > 1)
+                {
+                    rests_on_self[element_above].emplace(current_area);
+                }
+                if (rests_on_self.contains(current_area))
+                {
+                    rests_on_self[element_above].insert(rests_on_self[current_area].begin(), rests_on_self[current_area].end());
+                }
+                if (rests_on_root.contains(current_area))
+                {
+                    rests_on_root[element_above].insert(rests_on_root[current_area].begin(), rests_on_root[current_area].end());
+                }
+                if (elements_on_path_down.contains(element_above))
+                {
+                    next_iterate_elements.emplace(element_above);
+                }
+            }
+        }
+        iterate_elements = next_iterate_elements;
+    }
+    iterate_elements.clear();
+
+    std::unordered_map<UnsupportedAreaInformation*, CradleDeformationHalfCircle> known_deformation_map; // todo remove if confirmed no longer needed
+    std::unordered_map<UnsupportedAreaInformation*, coord_t> largest_center_distance_map; // todo remove if confirmed no longer needed
+
     LayerIndex last_z_stable_layer = 0;
+
+    UnsupportedAreaInformation* largest_deformation_in_z_direction_element = element;
+    double largest_deformation_in_z_direction_deformation = 0;
+
+    UnsupportedAreaInformation* largest_deformation_in_xy_direction_element = element;
+    double largest_deformation_in_xy_direction_deformation = 0;
 
     for(LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
     {
@@ -74,13 +191,15 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         iterate_elements.insert(root_areas[iterate_layer_idx].begin(),root_areas[iterate_layer_idx].end());
         for(UnsupportedAreaInformation* current_area : iterate_elements)
         {
-            double element_deformation = 0;
-            coord_t distance_from_top_below = 0;
+            CradleDeformationHalfCircle total_element_deformation = {};
+            CradleDeformationHalfCircle element_deformation_layer = current_area->deformation;
+
+            coord_t distance_from_top_below = 0; // todo remove if confirmed no longer needed
             Polygon overhang_path = Polygon();
 
             for(UnsupportedAreaInformation* element_below: current_area->areas_below)
             {
-                double deformation_below = 0;
+                CradleDeformationHalfCircle deformation_below = {};
                 coord_t distance_below;
                 if(largest_center_distance_map.contains(element_below))
                 {
@@ -88,7 +207,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                 }
                 else
                 {
-                    distance_below = vSize(element->assumed_center - element_below->assumed_center);
+                    distance_below = vSize(element->min_box.center - element_below->min_box.center);
                 }
 
                 if(known_deformation_map.contains(element_below))
@@ -96,16 +215,73 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                     deformation_below = known_deformation_map[element_below];
                 }
 
-                //todo better merge
-                //todo Store direction vector. Then if two combine use this vector for better combine function?
-                if(element_deformation == 0)
+                if (total_element_deformation == CradleDeformationHalfCircle{})
                 {
-                    element_deformation = deformation_below;
+                    // if multiple connect to one each below should be similar (because of simulated_connection), still do a min in case it is not
+                    total_element_deformation = deformation_below;
                     distance_from_top_below = distance_below;
                 }
                 else
                 {
-                    element_deformation = std::min(element_deformation, deformation_below);
+                    //todo Is this working correctly or does this also simulate connections (wrongly) with parts of the model that dont increase stability?
+                    std::vector<UnsupportedAreaInformation*> connected_with_current;
+                    for (UnsupportedAreaInformation* element_below_check : current_area->areas_below)
+                    {
+                        if (element_below == element_below_check)
+                        {
+                            continue;
+                        }
+                        if (known_deformation_map.contains(element_below_check))
+                        {
+                            total_element_deformation = elementWiseSelect(
+                                known_deformation_map[element_below_check],
+                                total_element_deformation,
+                                [](double a, double b)
+                                {
+                                    return std::min(a, b);
+                                });
+                        }
+                        std::set_intersection(
+                            rests_on_root[element_below_check].begin(),
+                            rests_on_root[element_below_check].end(),
+                            rests_on_root[element_below].begin(),
+                            rests_on_root[element_below].end(),
+                            std::back_inserter(connected_with_current));
+                        if (rests_on_self.contains(element_below) && rests_on_self.contains(element_below_check))
+                        {
+                            std::set_intersection(
+                                rests_on_self[element_below_check].begin(),
+                                rests_on_self[element_below_check].end(),
+                                rests_on_self[element_below].begin(),
+                                rests_on_self[element_below].end(),
+                                std::back_inserter(connected_with_current));
+                        }
+                    }
+                    Shape simulated_connection;
+                    for (UnsupportedAreaInformation* element_connect : connected_with_current)
+                    {
+                        OpenLinesSet line;
+
+                        line.addSegment(element_below->min_box.center, element_connect->min_box.center);
+                        simulated_connection.push_back(line.offset(std::max(
+                            std::min(element_below->min_box.extent.X, element_below->min_box.extent.Y),
+                            std::min(element_connect->min_box.extent.X, element_connect->min_box.extent.Y))));
+                    }
+                    if (! simulated_connection.empty())
+                    {
+                        simulated_connection = simulated_connection.unionPolygons();
+                        CradleDeformationHalfCircle simulated_deform_part = {};
+                        MinimumBoundingBox simulated_connect_box(simulated_connection.getOutsidePolygons().splitIntoParts()[0]);
+                        getLayerDeformation(mesh, simulated_connect_box, layer_height * layer_idx, simulated_deform_part);
+
+                        element_deformation_layer = elementWiseSelect(
+                            simulated_deform_part,
+                            element_deformation_layer,
+                            [](double a, double b)
+                            {
+                                return std::min(a, b);
+                            });
+                    }
                     distance_from_top_below = std::min(distance_from_top_below, distance_below);
                 }
             }
@@ -116,15 +292,44 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                     next_iterate_elements.emplace(element_above);
                 }
             }
-            distance_from_top_below = std::max(distance_from_top_below, (vSize(element->assumed_center - current_area->assumed_center)));
-            element_deformation+=(tan(current_area->deformation) * (layer_idx - iterate_layer_idx + (horizontal_movement_weight*distance_from_top_below / layer_height)))/layer_per_mm;
+            distance_from_top_below = std::max(distance_from_top_below, (vSize(element->min_box.center - current_area->min_box.center)));
+            for (size_t direction_idx = 0; direction_idx < total_element_deformation.size(); direction_idx++)
+            {
+                double deformation_in_xy_direction = element_deformation_layer[direction_idx] * std::pow(double(layer_idx - iterate_layer_idx), 2) / (2 * layer_per_mm);
+                if (deformation_in_xy_direction > largest_deformation_in_xy_direction_deformation)
+                {
+                    largest_deformation_in_xy_direction_deformation = deformation_in_xy_direction;
+                    largest_deformation_in_xy_direction_element = current_area;
+                }
+                total_element_deformation[direction_idx] += (element_deformation_layer[direction_idx] * double(layer_idx - iterate_layer_idx)) / layer_per_mm;
+            }
+
+            // Estimate horizontal influence to deformation
+            coord_t horizontal_distance = vSize(element->min_box.center - current_area->min_box.center) * horizontal_movement_weight;
+            coord_t vertical_distance = (element->layer_idx - current_area->layer_idx) * layer_height;
+            coord_t total_distance = std::sqrt(horizontal_distance * horizontal_distance + vertical_distance * vertical_distance);
+
+            double h_distance_per_layer = horizontal_distance == 0 ? 0 : (horizontal_distance / (layer_height * double(layer_idx - iterate_layer_idx)));
+
+            double deformation_in_z_direction = current_area->deformation[getDirectionIdx(element->min_box.center, current_area->min_box.center)]
+                                              * std::pow(double(horizontal_distance / layer_height), 2) / (2 * layer_per_mm);
+            if (deformation_in_z_direction > largest_deformation_in_z_direction_deformation)
+            {
+                largest_deformation_in_z_direction_deformation = deformation_in_z_direction;
+                largest_deformation_in_z_direction_element = current_area;
+            }
             if(current_area->total_deformation_limit > 0)
             {
-                element_deformation = std::min(element_deformation, current_area->total_deformation_limit);
+                for (size_t direction_idx = 0; direction_idx < total_element_deformation.size(); direction_idx++)
+                {
+                    total_element_deformation[direction_idx] = std::min(total_element_deformation[direction_idx], current_area->total_deformation_limit);
+                }
+                largest_deformation_in_z_direction_deformation = std::min(largest_deformation_in_z_direction_deformation, current_area->total_deformation_limit);
+                largest_deformation_in_xy_direction_deformation = std::min(largest_deformation_in_xy_direction_deformation, current_area->total_deformation_limit);
                 distance_from_top_below = 0;
                 last_z_stable_layer = current_area->layer_idx;
             }
-            known_deformation_map[current_area] = element_deformation;
+            known_deformation_map[current_area] = total_element_deformation;
             largest_center_distance_map[current_area] = distance_from_top_below;
         }
         iterate_elements = next_iterate_elements;
@@ -140,9 +345,21 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         spdlog::error("Could not determine largest center distance at {}", layer_idx);
     }
 
-    element->total_deformation = known_deformation_map[element];
-    return known_deformation_map[element];
+    double result_deformation_xy
+        = largest_deformation_in_xy_direction_deformation; // *std::max_element( std::begin( known_deformation_map[element] ), std::end( known_deformation_map[element] ) );
+    coord_t horizontal_distance = vSize(element->min_box.center - largest_deformation_in_z_direction_element->min_box.center);
 
+    double result_deformation_z = largest_deformation_in_z_direction_deformation;
+    element->total_deformation_maximum = std::pow(sqrt(result_deformation_xy) + sqrt(result_deformation_z), 2);
+    printf(
+        "at %d layer xy %lf z %lf horizontal distance was %ld result is %lf\n",
+        element->layer_idx,
+        result_deformation_xy,
+        result_deformation_z,
+        horizontal_distance * horizontal_movement_weight,
+        element->total_deformation_maximum);
+
+    return element->total_deformation_maximum;
 }
 
 
@@ -182,9 +399,11 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                 bool has_support_below = ! PolygonUtils::clipPolygonWithAABB(storage.getLayerOutlines(layer_idx - 1, false, false), part_aabb).intersection(part).empty();
                 Shape overhang = mesh.overhang_areas[layer_idx].intersection(part);
                 coord_t overhang_area = std::max(overhang.area(), std::numbers::pi * min_wall_line_width * min_wall_line_width);
+                MinimumBoundingBox minimum_box(part);
+
                 if (! has_support_below || layer_idx == start_layer)
                 {
-                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, 0, overhang_area, 0, part.outerPolygon().centerOfMass());
+                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, 0, overhang_area, CradleDeformationHalfCircle{}, minimum_box);
                     bool add_manual_cradle = false;
                     if (! has_support_below)
                     {
@@ -217,59 +436,39 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                     return;
                 }
 
-                double deform_part = 0;
+                CradleDeformationHalfCircle deform_part = {};
                 double deform_radius = 0;
-                Point2LL assumed_center(-1,-1);
                 if(side_cradle_enabled)
                 {
-                    coord_t radius_min = 0;
-                    coord_t radius_max = 2 * part_stable_radius;
-                    assumed_center = part.outerPolygon().centerOfMass();
-                    Shape area_with_material_below = part.getOutsidePolygons().intersection(mesh.layers[layer_idx - 1].getOutlines());
-
-                    while(radius_max-radius_min > 500)
+                    deform_radius = std::min(minimum_box.extent.X, minimum_box.extent.Y);
+                    bool found_limit_down = false;
+                    double scan_height = std::max(minimum_box.extent.X, minimum_box.extent.Y);
+                    for (LayerIndex scan_down_layer_idx = layer_idx - 1; scan_down_layer_idx > 0 && (layer_idx - scan_down_layer_idx) * layer_height < 10 * deform_radius;
+                         scan_down_layer_idx--)
                     {
-                        coord_t offset_distance = (radius_min+radius_max)/2;
-                        Shape radius_estimate_polygon = area_with_material_below.offset(offset_distance).offset(-offset_distance * 2);
-                        if(radius_estimate_polygon.empty())
+                        if (mesh.layers[scan_down_layer_idx].getOutlines().intersection(part).empty())
                         {
-                            radius_max = (radius_min+radius_max)/2;
-                        }
-                        else
-                        {
-                            radius_min = (radius_min+radius_max)/2;
+                            scan_height = (layer_idx - scan_down_layer_idx) * layer_height;
+                            found_limit_down = true;
+                            break;
                         }
                     }
-                    deform_radius =  double(radius_max+radius_min) / 2.0;
-                    if(radius_max >= part_stable_radius)
+                    // assume 90° triangle, get thickness of part. Thats not exactly correct, but close enough for now. The error is at most x2. Error increases as angle decreases
+                    // (which means scan height will be larger anyway)
+                    double assumed_part_thickness = part_stable_radius;
+                    if (found_limit_down)
                     {
-                        deform_part = 0;
+                        // triangle sides
+                        double a = deform_radius * 2;
+                        double b = scan_height;
+                        double c = std::sqrt(a * a + b * b);
+                        double area = 0.5 * a * b;
+                        assumed_part_thickness = std::min(2 * area / c, scan_height) / 2; // /2 because all calculation works on radius
                     }
-                    else
-                    {
-                        double scan_height = deform_radius * 10;
-                        for(LayerIndex scan_down_layer_idx = layer_idx - 1; scan_down_layer_idx > 0 && (layer_idx - scan_down_layer_idx) * layer_height < deform_radius * 10; scan_down_layer_idx--)
-                        {
-                            if(mesh.layers[scan_down_layer_idx].getOutlines().intersection(part).empty())
-                            {
-                                scan_height = (layer_idx - scan_down_layer_idx) * layer_height;
-                                break;
-                            }
-                        }
-                        //assume 90° triangle, get thickness of part. Thats not exactly correct, but close enough for now.
-                        double assumed_part_thickness;
-                        {
-                            //triangle sides
-                            double a = deform_radius*2;
-                            double b = scan_height;
-                            double c = std::sqrt(a*a+b*b);
-                            double area = 0.25 * std::sqrt(a+b+c) * std::sqrt(-a+b+c) * std::sqrt(a-b+c) *std::sqrt(a+b-c);
-                            assumed_part_thickness = 2 * area;
-                        }
-                        deform_radius = std::min(assumed_part_thickness, std::min(scan_height, deform_radius));
 
-                        deform_part = (deformation_constant * layer_height)/(deform_radius * deform_radius);
-                        //todo need 2 deforms with direction. Need fill percent? Technically radius is 3 values, x y of a bounding box and and z
+                    if (std::min(deform_radius, assumed_part_thickness) < part_stable_radius)
+                    {
+                        getLayerDeformation(mesh, minimum_box, assumed_part_thickness, deform_part);
                     }
                 }
 
@@ -331,7 +530,8 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                 if (add)
                 {
                     std::lock_guard<std::mutex> critical_section_add(critical_floating_parts_cache);
-                    UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_part, assumed_center);
+                    UnsupportedAreaInformation* area_info
+                        = new UnsupportedAreaInformation(part, layer_idx, min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_part, minimum_box);
                     if (add_manual_cradle)
                     {
                         top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
@@ -353,14 +553,15 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
 
                     if(side_cradle_enabled)
                     {
-
-                        if(layer_idx * layer_height % 50000 == 0 && layer_idx > 20)
+                        if (layer_idx * layer_height % 50000 == 0 && layer_idx > 20 || layer_idx + 5 * (1000 / layer_height) == mesh.layers.size())
                         {
+                            /*
                             mfem::Mesh* mfem_mesh = toMfemMeshRasterized(mesh, mesh_idx, area_info);
                             std::ofstream mesh_ofs(std::to_string(layer_idx) + "gen.mesh");
                             mesh_ofs.precision(8);
                             mfem_mesh->Print(mesh_ofs);
                             runMfemExample(mfem_mesh, std::to_string(layer_idx), part.area()/(1000.0*1000.0*1000.0*1000.0), 0.0005); // Calculation uses meter I think
+                             */
                             double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
                             printf("My estimation was %lf layer is %d\n",estimated_deformation, layer_idx);
                         }
@@ -393,161 +594,11 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
     }
 }
 
-mfem::Mesh* SupportCradleGeneration::toMfemMesh(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element)
-{
-    mfem::Mesh* mfem_mesh = new mfem::Mesh(3,0,0);
-    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
-
-
-    // idea Every layer one square.
-    // splits: if below make current square two squares
-    // merges dont matter. we look at it top down!
-
-    int64_t last_added_vertex = -1;
-
-    {
-        std::vector<UnsupportedAreaInformation*> all_scan_elements {element};
-
-        std::unordered_map<UnsupportedAreaInformation*, std::vector<int>> square_element_map;// contains to which vertices the upside of the cube of said element should connect
-        LayerIndex scan_layer_idx = element->layer_idx;
-        while(!all_scan_elements.empty() && scan_layer_idx > 0)
-        {
-            std::vector<UnsupportedAreaInformation*> next_scan_elements;
-
-            for(UnsupportedAreaInformation* current_scan_element : all_scan_elements)
-            {
-
-                if(current_scan_element->height == 0)
-                {
-                    continue;
-                }
-
-                std::vector<int> top_vertices = square_element_map[current_scan_element]; //todo
-                std::vector<int> cube_vertices = top_vertices; //mirrored below!
-                bool add_top_bdr = top_vertices.empty();
-
-                for(int i = cube_vertices.size(); i<8; i++)
-                {
-                    cube_vertices.emplace_back(last_added_vertex+1);
-                    if(i<4)
-                    {
-                        top_vertices.emplace_back(last_added_vertex+1);
-                        Point2LL direction((i>0&& i<=2)?1:-1, i<=1?1:-1);
-                        double deform_radius = (2.0*deformation_constant * layer_height)/current_scan_element->deformation; // todo deformation 0
-                        Point2LL position = current_scan_element->assumed_center + direction * deform_radius;
-                        mfem_mesh->AddVertex(INT2MM2(position.X), INT2MM2(position.Y), INT2MM2(layer_height*(scan_layer_idx+1)));
-                    }
-                    else
-                    {
-                        Point2LL direction((i>4&& i<=6)?1:-1, i<=5?1:-1);
-                        double deform_radius = (2.0*deformation_constant * layer_height)/current_scan_element->deformation;
-                        Point2LL position = current_scan_element->assumed_center + direction * deform_radius;
-                        mfem_mesh->AddVertex(INT2MM2(position.X), INT2MM2(position.Y), INT2MM2(layer_height*(scan_layer_idx)));
-                    }
-                    mfem_mesh->SetNode(last_added_vertex+1, mfem_mesh->GetVertex(last_added_vertex+1));
-                    last_added_vertex = last_added_vertex+1;
-                }
-                mfem::Hexahedron* cube = new mfem::Hexahedron(cube_vertices.data(), current_scan_element->height >0 ? 2:1);
-                mfem_mesh->AddElement(cube);
-                if(add_top_bdr)
-                {
-                    //  top element, add top square as boundary
-                    mfem_mesh->AddBdrQuad(cube_vertices[0],cube_vertices[1],cube_vertices[2],cube_vertices[3], 2);
-                }
-                //add all sides as boundaries
-                for(size_t face = 0; face < 6; face++) //todo 1 to 5
-                {
-
-                    const int* face_verts = cube->GetFaceVertices(face);
-                    bool top = true;
-                    bool bottom = true;
-                    for(int vertex_pos = 0; vertex_pos < 4; vertex_pos ++)
-                    {
-                        int face_ver_iter = cube_vertices[face_verts[vertex_pos]];
-                        if(std::find(top_vertices.begin(), top_vertices.end(), face_ver_iter) != top_vertices.end())
-                        {
-                            bottom = false;
-                        }
-                        else
-                        {
-                            top = false;
-                        }
-                    }
-
-                    if(top == false && bottom == false)
-                    {
-                        printf("%d is %d %d %d %d\n", face, face_verts[0],face_verts[1],face_verts[2],face_verts[3]);
-                        mfem_mesh->AddBdrQuad(cube_vertices[face_verts[0]],cube_vertices[face_verts[1]],cube_vertices[face_verts[2]],cube_vertices[face_verts[3]], 3);
-                    }
-
-                }
-
-                if(current_scan_element->height == 1)
-                {
-                    //add bottom boundary
-                    mfem_mesh->AddBdrQuad(cube_vertices[4],cube_vertices[5],cube_vertices[6],cube_vertices[7],1);
-                }
-
-                for(UnsupportedAreaInformation* scan_element_below: current_scan_element->areas_below)
-                {
-                    next_scan_elements.emplace_back(scan_element_below);
-                    for(int i = 4; i<8; i++)
-                    {
-                        square_element_map[scan_element_below].emplace_back(cube_vertices[i]);
-                    }
-                }
-            }
-            scan_layer_idx--;
-            all_scan_elements = next_scan_elements;
-        }
-    }
-
-    //Rotate Mesh. Todo evaluate if required!
-
-    mfem::Mesh* mfem_mesh_rotated = new mfem::Mesh(3,0,0);
-
-    for(int elem_ctr = mfem_mesh->GetNE()-1; elem_ctr>=0;elem_ctr--)
-    {
-        int* verts = mfem_mesh->GetElement(elem_ctr)->GetVertices();
-        verts[0] = std::abs(verts[0]-last_added_vertex);
-        verts[1] = std::abs(verts[1]-last_added_vertex);
-        verts[2] = std::abs(verts[2]-last_added_vertex);
-        verts[3] = std::abs(verts[3]-last_added_vertex);
-        verts[4] = std::abs(verts[4]-last_added_vertex);
-        verts[5] = std::abs(verts[5]-last_added_vertex);
-        verts[6] = std::abs(verts[6]-last_added_vertex);
-        verts[7] = std::abs(verts[7]-last_added_vertex);
-        mfem::Hexahedron* rotated_element = new mfem::Hexahedron(verts,mfem_mesh->GetElement(elem_ctr)->GetAttribute());
-        mfem_mesh_rotated->AddElement(rotated_element);
-    }
-    for(int vert_ctr = last_added_vertex; vert_ctr>=0;vert_ctr--)
-    {
-        mfem_mesh_rotated->AddVertex(mfem_mesh->GetVertex(vert_ctr));
-        mfem_mesh_rotated->SetNode(std::abs(vert_ctr-last_added_vertex), mfem_mesh->GetVertex(vert_ctr));
-    }
-    for(int elem_ctr = mfem_mesh->GetNBE()-1; elem_ctr>=0;elem_ctr--)
-    {
-        int* verts = mfem_mesh->GetBdrElement(elem_ctr)->GetVertices();
-        verts[0] = std::abs(verts[0]-last_added_vertex);
-        verts[1] = std::abs(verts[1]-last_added_vertex);
-        verts[2] = std::abs(verts[2]-last_added_vertex);
-        verts[3] = std::abs(verts[3]-last_added_vertex);
-        mfem_mesh_rotated->AddBdrQuad(verts,mfem_mesh->GetBdrElement(elem_ctr)->GetAttribute());
-    }
-
-    mfem_mesh_rotated->FinalizeTopology();
-    mfem_mesh_rotated->Finalize(false,true);
-
-    return mfem_mesh_rotated;
-
-}
-
 mfem::Mesh* SupportCradleGeneration::toMfemMeshRasterized(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element)
 {
     mfem::Mesh* mfem_mesh = new mfem::Mesh(3,0,0);
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    const coord_t simulation_layer_height = layer_height * 20;
+    const coord_t simulation_layer_height = layer_height;
     const size_t layers_per_simulation_step = simulation_layer_height/layer_height;
     const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
     coord_t raster_size = 400;
