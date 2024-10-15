@@ -113,7 +113,8 @@ public:
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false,
-        const Shape& disallowed_areas_for_seams = {})
+        const Shape& disallowed_areas_for_seams = {},
+        const bool use_shortest_for_inner_walls = false)
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -122,7 +123,7 @@ public:
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
         , disallowed_area_for_seams{ disallowed_areas_for_seams }
-
+        , use_shortest_for_inner_walls_(use_shortest_for_inner_walls)
     {
     }
 
@@ -130,11 +131,12 @@ public:
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(const Path& polygon, std::optional<size_t> force_start_index = std::nullopt)
+    void addPolygon(const Path& polygon, std::optional<size_t> force_start_index = std::nullopt, const bool is_outer_wall = false)
     {
         constexpr bool is_closed = true;
         paths_.emplace_back(polygon, is_closed);
         paths_.back().force_start_index_ = force_start_index;
+        paths_.back().is_outer_wall = is_outer_wall;
     }
 
     /*!
@@ -180,6 +182,23 @@ public:
             }
         }
 
+        // Set actual used start point calculation strategy for each path
+        const OrderablePath* previous_path = nullptr;
+        for (auto& path : paths_)
+        {
+            if (use_shortest_for_inner_walls_ && previous_path && previous_path->is_outer_wall && ! path.is_outer_wall)
+            {
+                path.seam_config_ = ZSeamConfig(EZSeamType::SHORTEST);
+                path.force_start_index_ = std::nullopt;
+            }
+            else
+            {
+                path.seam_config_ = seam_config_;
+            }
+
+            previous_path = &path;
+        }
+
         // Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
@@ -205,16 +224,19 @@ public:
 
         // For some Z seam types the start position can be pre-computed.
         // This is faster since we don't need to re-compute the start position at each step then.
-        precompute_start &= seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
         if (precompute_start)
         {
             for (auto& path : paths_)
             {
-                if (! path.is_closed_ || path.converted_->empty())
+                if (path.seam_config_.type_ == EZSeamType::RANDOM || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED
+                    || path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
                 {
-                    continue; // Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
+                    if (! path.is_closed_ || path.converted_->empty())
+                    {
+                        continue; // Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
+                    }
+                    path.start_vertex_ = findStartLocation(path, path.seam_config_.pos_);
                 }
-                path.start_vertex_ = findStartLocation(path, seam_config_.pos_);
             }
         }
 
@@ -297,6 +319,12 @@ protected:
      * For each pair the first needs to be printe before the second.
      */
     const std::unordered_multimap<Path, Path>* order_requirements_;
+
+    /*!
+     * If true, we will compute the seam position of inner walls using a "shortest" seam configs, for inner walls that
+     * are directly following an outer wall.
+     */
+    const bool use_shortest_for_inner_walls_;
 
     std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
@@ -583,8 +611,8 @@ protected:
                 continue;
             }
 
-            const bool precompute_start
-                = seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
+            const bool precompute_start = path->seam_config_.type_ == EZSeamType::RANDOM || path->seam_config_.type_ == EZSeamType::USER_SPECIFIED
+                                       || path->seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
             if (! path->is_closed_ || ! precompute_start) // Find the start location unless we've already precomputed it.
             {
                 path->start_vertex_ = findStartLocation(*path, start_position);
@@ -690,7 +718,7 @@ protected:
 
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
 
-        if (seam_config_.type_ == EZSeamType::RANDOM)
+        if (path.seam_config_.type_ == EZSeamType::RANDOM)
         {
             size_t vert = getRandomPointInPolygon(*path.converted_);
             return vert;
@@ -720,9 +748,10 @@ protected:
         {
             // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
             // For SHARPEST_CORNER, use a fixed starting score of 0.
-            const double score_distance = (seam_config_.type_ == EZSeamType::SHARPEST_CORNER && seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
-                                            ? MM2INT(10)
-                                            : vSize2(here - target_pos);
+            const double score_distance
+                = (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+                    ? MM2INT(10)
+                    : vSize2(here - target_pos);
 
             double corner_angle = cornerAngle(path, i, segments_sizes, total_length);
             // angles < 0 are concave (left turning)
@@ -730,7 +759,7 @@ protected:
 
             double corner_shift;
 
-            if (seam_config_.type_ == EZSeamType::SHORTEST)
+            if (path.seam_config_.type_ == EZSeamType::SHORTEST)
             {
                 // the more a corner satisfies our criteria, the closer it appears to be
                 // shift 10mm for a very acute corner
@@ -746,7 +775,7 @@ protected:
             }
 
             double score = score_distance;
-            switch (seam_config_.corner_pref_)
+            switch (path.seam_config_.corner_pref_)
             {
             default:
             case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:

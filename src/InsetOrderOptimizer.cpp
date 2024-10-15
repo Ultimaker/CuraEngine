@@ -93,6 +93,7 @@ bool InsetOrderOptimizer::addToLayer()
     const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
 
     const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
+    const bool use_shortest_for_inner_walls = ! pack_by_inset && outer_to_inner;
     auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
 
     const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
@@ -114,7 +115,8 @@ bool InsetOrderOptimizer::addToLayer()
         reverse,
         order,
         group_outer_walls,
-        disallowed_areas_for_seams_);
+        disallowed_areas_for_seams_,
+        use_shortest_for_inner_walls);
 
     for (auto& line : walls_to_be_added)
     {
@@ -126,7 +128,7 @@ bool InsetOrderOptimizer::addToLayer()
                 // If the user indicated that we may deviate from the vertices for the seam, we can insert a seam point, if needed.
                 force_start = insertSeamPoint(line);
             }
-            order_optimizer.addPolygon(&line, force_start);
+            order_optimizer.addPolygon(&line, force_start, line.is_outer_wall());
         }
         else
         {
