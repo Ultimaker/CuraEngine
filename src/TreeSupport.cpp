@@ -2093,6 +2093,17 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             if (! found)
             {
                 next_removed_holes_by_idx.emplace(idx);
+
+                // Individual pieces of the hole could still be valid (if the 'hole' is made by branches surrounding others' for instance).
+                for (const auto& poly : hole)
+                {
+                    if (poly.area() < 0)
+                    {
+                        auto poly_copy = poly;
+                        poly_copy.reverse();
+                        valid_holes[layer_idx].push_back(poly_copy);
+                    }
+                }
             }
             else
             {
