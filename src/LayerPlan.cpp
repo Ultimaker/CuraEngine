@@ -2299,6 +2299,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             extruder_nr = extruder_plan.extruder_nr_;
 
             gcode.ResetLastEValueAfterWipe(prev_extruder);
+            gcode.writePrepareFansForNozzleSwitch();
 
             const RetractionAndWipeConfig& prev_retraction_config = storage_.retraction_wipe_config_per_extruder[prev_extruder];
             if (prev_retraction_config.retraction_hop_after_extruder_switch)
@@ -2310,8 +2311,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config);
             }
-
-            gcode.writePrepareFansForNozzleSwitch();
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
