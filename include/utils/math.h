@@ -25,6 +25,7 @@ template<utils::multipliable T>
 {
     return a * a;
 }
+
 /**
  * @brief Returns the quotient of the division of two signed integers, rounded to the nearest integer.
  *

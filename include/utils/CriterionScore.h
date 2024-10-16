@@ -4,10 +4,6 @@
 #ifndef UTILS_CRITERION_SCORE_H
 #define UTILS_CRITERION_SCORE_H
 
-#include <cassert>
-
-#include "SparsePointGrid.h"
-
 namespace cura
 {
 
