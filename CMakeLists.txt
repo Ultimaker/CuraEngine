@@ -215,9 +215,6 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
-find_package(mfem REQUIRED)
-
-message(STATUS "Found mfem config in: ${mfem_DIR} (version ${MFEM_VERSION})")
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)
@@ -238,7 +235,6 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        mfem::mfem
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>

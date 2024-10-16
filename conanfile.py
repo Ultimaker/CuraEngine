@@ -133,7 +133,6 @@ class CuraEngineConan(ConanFile):
         self.requires("zlib/1.2.12")
         self.requires("openssl/3.2.0")
         self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
-        self.requires("mfem/4.7@local/testing")
 
     def generate(self):
         deps = CMakeDeps(self)

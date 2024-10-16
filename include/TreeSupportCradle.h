@@ -5,7 +5,6 @@
 #include "TreeModelVolumes.h"
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
-#include "mfem/mfem.hpp"
 #include "polyclipping/clipper.hpp"
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
@@ -488,11 +487,6 @@ private:
      * \param mesh_idx[in] The idx of the mesh.
      */
     void calculateFloatingParts(const SliceDataStorage& storage, size_t mesh_idx);
-
-    mfem::Mesh* toMfemMesh(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element);
-mfem::Mesh* toMfemMeshRasterized(const SliceMeshStorage& mesh, size_t mesh_idx, UnsupportedAreaInformation* element);
-
-void runMfemExample(mfem::Mesh* mesh, std::string prefix_name, double top_area, double force);
 
 /*!
      * \brief Generate the center points of all generated cradles.
