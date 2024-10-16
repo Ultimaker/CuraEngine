@@ -296,7 +296,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             distance_from_top_below = std::max(distance_from_top_below, (vSize(element->min_box.center - current_area->min_box.center)));
             for (size_t direction_idx = 0; direction_idx < total_element_deformation.size(); direction_idx++)
             {
-                double deformation_in_xy_direction = element_deformation_layer[direction_idx] * std::pow(double(layer_idx - iterate_layer_idx), 2) / (2 * layer_per_mm);
+                double deformation_in_xy_direction = element_deformation_layer[direction_idx] * std::pow(double(layer_idx - iterate_layer_idx) / layer_per_mm, 2);
                 if (deformation_in_xy_direction > largest_deformation_in_xy_direction_deformation)
                 {
                     largest_deformation_in_xy_direction_deformation = deformation_in_xy_direction;
@@ -313,7 +313,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             double h_distance_per_layer = horizontal_distance == 0 ? 0 : (horizontal_distance / (layer_height * double(layer_idx - iterate_layer_idx)));
 
             double deformation_in_z_direction = current_area->deformation[getDirectionIdx(element->min_box.center, current_area->min_box.center)]
-                                              * std::pow(double(horizontal_distance / layer_height), 2) / (2 * layer_per_mm);
+                                              * std::pow(double(horizontal_distance / layer_height) / layer_per_mm, 2);
             if (deformation_in_z_direction > largest_deformation_in_z_direction_deformation)
             {
                 largest_deformation_in_z_direction_deformation = deformation_in_z_direction;
