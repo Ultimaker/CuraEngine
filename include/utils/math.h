@@ -25,7 +25,6 @@ template<utils::multipliable T>
 {
     return a * a;
 }
-
 /**
  * @brief Returns the quotient of the division of two signed integers, rounded to the nearest integer.
  *
@@ -106,6 +105,18 @@ template<utils::multipliable T>
 [[nodiscard]] inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor)
 {
     return (dividend + divisor - 1) / divisor;
+}
+
+[[nodiscard]] inline double inverse_lerp(double a, double b, double v)
+{
+    if (a == b)
+    {
+        return 0.0;
+    }
+    else
+    {
+        return (v - a) / (b - a);
+    }
 }
 
 } // namespace cura

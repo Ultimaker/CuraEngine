@@ -3148,7 +3148,8 @@ bool FffGcodeWriter::processInsets(
             mesh.bounding_box.flatten().getMiddle(),
             disallowed_areas_for_seams,
             scarf_seam,
-            smooth_speed);
+            smooth_speed,
+            gcode_layer.getAirBelowMask());
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;

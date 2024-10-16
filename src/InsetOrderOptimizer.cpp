@@ -54,7 +54,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const Point2LL& model_center_point,
     const Shape& disallowed_areas_for_seams,
     const bool scarf_seam,
-    const bool smooth_speed)
+    const bool smooth_speed,
+    const Shape& overhang_areas)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -78,6 +79,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
     , scarf_seam_(scarf_seam)
     , smooth_speed_(smooth_speed)
+    , overhang_areas_(overhang_areas)
 {
 }
 
@@ -116,7 +118,8 @@ bool InsetOrderOptimizer::addToLayer()
         order,
         group_outer_walls,
         disallowed_areas_for_seams_,
-        use_shortest_for_inner_walls);
+        use_shortest_for_inner_walls,
+        overhang_areas_);
 
     for (auto& line : walls_to_be_added)
     {

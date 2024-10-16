@@ -299,6 +299,11 @@ public:
     void setSeamOverhangMask(const Shape& polys);
 
     /*!
+     * Get the areas that are considered having air below, which is a unite between bridge and overhang masks
+     */
+    Shape getAirBelowMask() const;
+
+    /*!
      * Set roofing_mask.
      *
      * \param polys The areas of the part currently being processed that will require roofing.
@@ -676,50 +681,6 @@ public:
         int last_seam_vertex_idx,
         const bool is_top_layer,
         const bool is_bottom_layer);
-
-
-    /*!
-     * Given a wall polygon and a start vertex index, return the index of the first vertex that is supported (is not above air)
-     *
-     * Uses bridge_wall_mask and overhang_mask to determine where there is air below
-     *
-     * \param wall The wall polygon
-     * \param start_idx The index of the starting vertex of \p wall
-     * \return The index of the first supported vertex - if no vertices are supported, start_idx is returned
-     */
-    template<typename T>
-    size_t locateFirstSupportedVertex(const T& wall, const size_t start_idx) const
-    {
-        if (bridge_wall_mask_.empty() && seam_overhang_mask_.empty())
-        {
-            return start_idx;
-        }
-
-        const auto air_below = bridge_wall_mask_.unionPolygons(seam_overhang_mask_);
-
-        size_t curr_idx = start_idx;
-
-        while (true)
-        {
-            const Point2LL& vertex = cura::make_point(wall[curr_idx]);
-            if (! air_below.inside(vertex, true))
-            {
-                // vertex isn't above air so it's OK to use
-                return curr_idx;
-            }
-
-            if (++curr_idx >= wall.size())
-            {
-                curr_idx = 0;
-            }
-
-            if (curr_idx == start_idx)
-            {
-                // no vertices are supported so just return the original index
-                return start_idx;
-            }
-        }
-    }
 
     /*!
      * Write the planned paths to gcode
