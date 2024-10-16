@@ -57,9 +57,9 @@ void SupportCradleGeneration::getLayerDeformation(
     Point2LL axis_min = minimum_box.extent.X < minimum_box.extent.Y ? minimum_box.axis[0] : minimum_box.axis[1];
     Point2LL axis_max = minimum_box.extent.X < minimum_box.extent.Y ? minimum_box.axis[1] : minimum_box.axis[0];
 
-    for (size_t direction_idx = 0; direction_idx < deform_part.size(); direction_idx++)
+    for (int64_t direction_idx = 0; direction_idx < deform_part.size(); direction_idx++)
     {
-        Point2LL direction(direction_idx % deform_part.size() / 2, direction_idx - deform_part.size() / 2);
+        Point2LL direction(direction_idx > deform_part.size() / 2 ? std::abs(int64_t(deform_part.size()) - direction_idx) : direction_idx, direction_idx - deform_part.size() / 2);
         double dot_a = dot(axis_min, direction);
         double det_a = cross(axis_min, direction);
         double angle = std::atan2(det_a, dot_a);
@@ -77,12 +77,13 @@ void SupportCradleGeneration::getLayerDeformation(
         {
             angle = std::numbers::pi / 2 - (angle - std::numbers::pi / 2.0);
         }
+        double percent_angle = 1 - angle / (std::numbers::pi / 2);
 
-        double assumed_thickness_in_direction = angle / (std::numbers::pi / 2.0) * std::min(assumed_part_thickness, double(std::min(minimum_box.extent.X, minimum_box.extent.Y)))
-                                              + (1.0 - angle / (std::numbers::pi / 2.0)) * double(std::max(minimum_box.extent.X, minimum_box.extent.Y));
+        double assumed_thickness_in_direction = percent_angle * std::min(assumed_part_thickness, double(std::min(minimum_box.extent.X, minimum_box.extent.Y)))
+                                              + (1.0 - percent_angle) * double(std::max(minimum_box.extent.X, minimum_box.extent.Y));
         double assumed_thickness_opposite_direction
-            = angle / (std::numbers::pi / 2.0) * double(std::max(minimum_box.extent.X, minimum_box.extent.Y))
-            + (1.0 - angle / (std::numbers::pi / 2.0)) * std::min(assumed_part_thickness, double(std::min(minimum_box.extent.X, minimum_box.extent.Y)));
+            = percent_angle * double(std::max(minimum_box.extent.X, minimum_box.extent.Y))
+            + (1.0 - percent_angle) * std::min(assumed_part_thickness, double(std::min(minimum_box.extent.X, minimum_box.extent.Y)));
 
         deform_part[direction_idx]
             = tan(deformation_constant * layer_height / (assumed_thickness_in_direction * (1 + std::sqrt(std::max(0.0, assumed_thickness_opposite_direction)))));
