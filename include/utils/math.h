@@ -107,16 +107,23 @@ template<utils::multipliable T>
     return (dividend + divisor - 1) / divisor;
 }
 
-[[nodiscard]] inline double inverse_lerp(double a, double b, double v)
+/*!
+ * \brief Calculates the "inverse linear interpolation" of a value over a range, i.e. given a range [min, max] the
+ *        value "min" would give a result of 0.0 and the value "max" would give a result of 1.0, values in between will
+ *        be interpolated linearly.
+ * \note The returned value may be out of the [0.0, 1.0] range if the given value is outside the [min, max] range, it is
+ *       up to the caller to clamp the result if required
+ * \note The range_min value may be greater than the range_max, inverting the interpolation logic
+ */
+template<utils::numeric T>
+[[nodiscard]] inline double inverse_lerp(T range_min, T range_max, T value)
 {
-    if (a == b)
+    if (range_min == range_max)
     {
         return 0.0;
     }
-    else
-    {
-        return (v - a) / (b - a);
-    }
+
+    return static_cast<double>(value - range_min) / (range_max - range_min);
 }
 
 } // namespace cura

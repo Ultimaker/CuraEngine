@@ -759,8 +759,8 @@ protected:
         constexpr double weight_consistency_x = 0.05;
         constexpr double weight_consistency_y = weight_consistency_x / 2.0; // Less weight on Y to avoid symmetry effects
 
-        // Fixed divider for shortests distances computation. The divider should be set so that the minimum encountered
-        // distance gives a score very close to 1.0
+        // Fixed divider for shortest distances computation. The divider should be set so that the minimum encountered
+        // distance gives a score very close to 1.0, and a medium-far distance gives a score close to 0.5
         constexpr double distance_divider = 20.0;
 
         const AABB path_bounding_box(*path.converted_);
@@ -787,7 +787,6 @@ protected:
             else
             {
                 // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
-                // For SHARPEST_CORNER, use a fixed score of 0.
                 if (path.seam_config_.type_ != EZSeamType::SHARPEST_CORNER || path.seam_config_.corner_pref_ == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
                 {
                     vertex_score += CriterionScore{ .score = scoreFromDistance(here, target_pos), .weight = weight_distance };
