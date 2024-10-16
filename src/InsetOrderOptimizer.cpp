@@ -207,7 +207,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     Point2LL closest_point;
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
-    bool should_reclaculate_closest = false;
+    bool should_recalculate_closest = false;
     if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
     {
         // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
@@ -253,24 +253,27 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
                 closest_junction_idx = i;
             }
         }
-        should_reclaculate_closest = true;
+        should_recalculate_closest = true;
     }
 
     const auto& start_pt = closed_line.junctions_[closest_junction_idx];
     const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
-    if (should_reclaculate_closest)
+    if (should_recalculate_closest)
     {
         // In the second case (see above) the closest point hasn't actually been calculated yet,
         // since in that case we'de need the start and end points. So do that here.
         closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     }
     constexpr coord_t smallest_dist_sqd = 25;
-    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
     {
-        // Early out if the closest point is too close to the start or end point.
-        // NOTE: Maybe return the index here anyway, since this is the point the current caller would want to force the seam to.
-        //       However, then the index returned would have a caveat that it _can_ point to an already exisiting point then.
-        return std::nullopt;
+        // If the closest point is very close to the start point, just use it instead.
+        return closest_junction_idx;
+    }
+    if (vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    {
+        // If the closest point is very close to the end point, just use it instead.
+        return (closest_junction_idx + 1) % closed_line.junctions_.size();
     }
 
     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.

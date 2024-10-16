@@ -730,12 +730,6 @@ protected:
             return vert;
         }
 
-        if (path.force_start_index_.has_value())
-        {
-            // Start index already known, since we forced it, return.
-            return path.force_start_index_.value();
-        }
-
         // Precompute segments lengths because we are going to need them multiple times
         std::vector<coord_t> segments_sizes(path.converted_->size());
         coord_t total_length = 0;
@@ -754,6 +748,9 @@ protected:
         // Corner strategy has a standard weight
         constexpr double weight_corner = 1.0;
 
+        // User-set position has a standard weight
+        constexpr double weight_user_position = 1.0;
+
         // Avoiding overhangs is more important than the rest
         constexpr double weight_exclude_overhang = 2.0;
 
@@ -767,6 +764,15 @@ protected:
         constexpr double distance_divider = 20.0;
 
         const AABB path_bounding_box(*path.converted_);
+        const Point2LL forced_start_pos = path.force_start_index_.has_value() ? path.converted_->at(path.force_start_index_.value()) : Point2LL();
+
+        auto scoreFromDistance = [&distance_divider](const Point2LL& here, const Point2LL& remote_pos) -> double
+        {
+            // Use actual (non-squared) distance to ensure a proper scoring distribution
+            const double distance = vSizeMM(here - remote_pos);
+            // Use reciprocal function to normalize distance score decreasingly
+            return 1.0 / (1.0 + (distance / distance_divider));
+        };
 
         std::optional<size_t> best_i;
         Score best_score;
@@ -774,68 +780,69 @@ protected:
         {
             Score vertex_score;
 
-            // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
-            // For SHARPEST_CORNER, use a fixed score of 0.
-            if (path.seam_config_.type_ != EZSeamType::SHARPEST_CORNER || path.seam_config_.corner_pref_ == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+            if (path.force_start_index_.has_value())
             {
-                CriterionScore score_distance{ .weight = weight_distance };
-
-                // Use actual (non-squared) distance to ensure a proper scoring distribution
-                const double distance = vSizeMM(here - target_pos);
-                // Use reciprocal function to normalize distance score decreasingly
-                score_distance.score = 1.0 / (1.0 + (distance / distance_divider));
-
-                vertex_score += score_distance;
+                vertex_score += CriterionScore{ .score = scoreFromDistance(here, forced_start_pos), .weight = weight_user_position };
             }
-
-            if (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN)
+            else
             {
-                double corner_angle = cornerAngle(path, i, segments_sizes, total_length);
-                // angles < 0 are concave (left turning)
-                // angles > 0 are convex (right turning)
-
-                CriterionScore score_corner{ .weight = weight_corner };
-
-                switch (path.seam_config_.corner_pref_)
+                // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
+                // For SHARPEST_CORNER, use a fixed score of 0.
+                if (path.seam_config_.type_ != EZSeamType::SHARPEST_CORNER || path.seam_config_.corner_pref_ == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
                 {
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                    // Give advantage to concave corners. More advantage for sharper corners.
-                    score_corner.score = cura::inverse_lerp(1.0, -1.0, corner_angle);
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                    // Give advantage to convex corners. More advantage for sharper corners.
-                    score_corner.score = cura::inverse_lerp(-1.0, 1.0, corner_angle);
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                    // Still give sharper corners more advantage.
-                    score_corner.score = std::abs(corner_angle);
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
-                    // Give sharper corners some advantage, but sharper concave corners even more.
-                    if (corner_angle < 0)
-                    {
-                        score_corner.score = -corner_angle;
-                    }
-                    else
-                    {
-                        score_corner.score = corner_angle / 2.0;
-                    }
-                    break;
-                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
-                case EZSeamCornerPrefType::PLUGIN:
-                    break;
+                    vertex_score += CriterionScore{ .score = scoreFromDistance(here, target_pos), .weight = weight_distance };
                 }
 
-                vertex_score += score_corner;
+                if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
+                    && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN))
+                {
+                    double corner_angle = cornerAngle(path, i, segments_sizes, total_length);
+                    // angles < 0 are concave (left turning)
+                    // angles > 0 are convex (right turning)
+
+                    CriterionScore score_corner{ .weight = weight_corner };
+
+                    switch (path.seam_config_.corner_pref_)
+                    {
+                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+                        // Give advantage to concave corners. More advantage for sharper corners.
+                        score_corner.score = cura::inverse_lerp(1.0, -1.0, corner_angle);
+                        break;
+                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                        // Give advantage to convex corners. More advantage for sharper corners.
+                        score_corner.score = cura::inverse_lerp(-1.0, 1.0, corner_angle);
+                        break;
+                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+                        // Still give sharper corners more advantage.
+                        score_corner.score = std::abs(corner_angle);
+                        break;
+                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
+                        // Give sharper corners some advantage, but sharper concave corners even more.
+                        if (corner_angle < 0)
+                        {
+                            score_corner.score = -corner_angle;
+                        }
+                        else
+                        {
+                            score_corner.score = corner_angle / 2.0;
+                        }
+                        break;
+                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
+                    case EZSeamCornerPrefType::PLUGIN:
+                        break;
+                    }
+
+                    vertex_score += score_corner;
+                }
+
+                CriterionScore score_consistency_x{ .weight = weight_consistency_x };
+                score_consistency_x.score = cura::inverse_lerp(path_bounding_box.min_.X, path_bounding_box.max_.X, here.X);
+                vertex_score += score_consistency_x;
+
+                CriterionScore score_consistency_y{ .weight = weight_consistency_y };
+                score_consistency_y.score = cura::inverse_lerp(path_bounding_box.min_.Y, path_bounding_box.max_.Y, here.Y);
+                vertex_score += score_consistency_y;
             }
-
-            CriterionScore score_consistency_x{ .weight = weight_consistency_x };
-            score_consistency_x.score = cura::inverse_lerp(path_bounding_box.min_.X, path_bounding_box.max_.X, here.X);
-            vertex_score += score_consistency_x;
-
-            CriterionScore score_consistency_y{ .weight = weight_consistency_y };
-            score_consistency_y.score = cura::inverse_lerp(path_bounding_box.min_.Y, path_bounding_box.max_.Y, here.Y);
-            vertex_score += score_consistency_y;
 
             if (! overhang_areas_.empty())
             {

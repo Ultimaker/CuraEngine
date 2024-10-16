@@ -130,7 +130,7 @@ private:
      *
      * \param closed_line The polygon to insert the seam point in. (It's assumed to be closed at least.)
      *
-     * \return The index of the inserted seam point, or std::nullopt if no seam point was inserted.
+     * \return The index of the inserted seam point, or the index of the closest point if an existing one can be used.
      */
     std::optional<size_t> insertSeamPoint(ExtrusionLine& closed_line);
 
