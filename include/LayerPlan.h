@@ -299,7 +299,7 @@ public:
     void setSeamOverhangMask(const Shape& polys);
 
     /*!
-     * Get the areas that are considered having air below, which is a unite between bridge and overhang masks
+     * Get the areas that are considered having air below, which is a union between bridge and overhang masks
      */
     Shape getAirBelowMask() const;
 
