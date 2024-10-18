@@ -173,7 +173,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             if (extruder_is_used_in_filler_layers)
             {
-                process_layer_starting_layer_nr = -Raft::getFillerLayerCount();
+                process_layer_starting_layer_nr = -static_cast<int>(Raft::getFillerLayerCount());
                 break;
             }
         }
@@ -2860,7 +2860,7 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
     {
         return last ? extruder_use.back().extruder_nr : extruder_use.front().extruder_nr;
     }
-    else if (layer_nr <= -Raft::getTotalExtraLayers())
+    else if (layer_nr <= -LayerIndex(Raft::getTotalExtraLayers()))
     {
         // Asking for extruder use below first layer, give first extruder
         return getStartExtruder(storage);

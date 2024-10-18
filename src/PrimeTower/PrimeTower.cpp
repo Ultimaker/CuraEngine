@@ -351,7 +351,7 @@ bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
     LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr != -Raft::getTotalExtraLayers())
+    if (layer_nr != -LayerIndex(Raft::getTotalExtraLayers()))
     {
         coord_t wipe_radius;
         auto iterator = base_occupied_outline_.iterator_at(gcode_layer.getLayerNr());
