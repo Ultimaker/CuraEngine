@@ -133,7 +133,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         }
     }
     std::unordered_map<UnsupportedAreaInformation*, std::unordered_set<UnsupportedAreaInformation*>> rests_on_root;
-    std::unordered_map<UnsupportedAreaInformation*, std::unordered_set<UnsupportedAreaInformation*>> rests_on_self;
 
     std::unordered_set<UnsupportedAreaInformation*> iterate_elements;
 
@@ -152,14 +151,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         {
             for (UnsupportedAreaInformation* element_above : current_area->areas_above)
             {
-                if (current_area->areas_above.size() > 1)
-                {
-                    rests_on_self[element_above].emplace(current_area);
-                }
-                if (rests_on_self.contains(current_area))
-                {
-                    rests_on_self[element_above].insert(rests_on_self[current_area].begin(), rests_on_self[current_area].end());
-                }
                 if (rests_on_root.contains(current_area))
                 {
                     rests_on_root[element_above].insert(rests_on_root[current_area].begin(), rests_on_root[current_area].end());
@@ -188,15 +179,63 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
     for(LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
     {
         std::unordered_set<UnsupportedAreaInformation*> next_iterate_elements;
-
         iterate_elements.insert(root_areas[iterate_layer_idx].begin(),root_areas[iterate_layer_idx].end());
+
+        std::unordered_set<UnsupportedAreaInformation*> simulate_elements_as_connected;
+
+        //todo add all elements that connect with anything in elements_on_path_down further down, as well as connect with another part of the model further up that could provide stability.
         for(UnsupportedAreaInformation* current_area : iterate_elements)
         {
-            CradleDeformationHalfCircle total_element_deformation = {};
+            if(elements_on_path_down.contains(current_area))
+            {
+                simulate_elements_as_connected.emplace(current_area);
+            }
+            else
+            {
+                // todo If any element rests on at least one identical roots than another, but are not on the direct path down, they have to be connected further up
+            }
+        }
+
+        for(UnsupportedAreaInformation* current_area : iterate_elements)
+        {
+            CradleDeformationHalfCircle total_element_deformation = {}; // todo remove if confirmed no longer needed
             CradleDeformationHalfCircle element_deformation_layer = current_area->deformation;
 
             coord_t distance_from_top_below = 0; // todo remove if confirmed no longer needed
-            Polygon overhang_path = Polygon();
+
+            Shape simulated_connection;
+            if(simulate_elements_as_connected.contains(current_area))
+            {
+                for (UnsupportedAreaInformation* element_connect : simulate_elements_as_connected)
+                {
+                    if(current_area == element_connect)
+                    {
+                        continue;
+                    }
+                    OpenLinesSet line;
+
+                    line.addSegment(current_area->min_box.center, element_connect->min_box.center);
+                    //todo that line thickness calculation needs improvement.
+                    simulated_connection.push_back(line.offset(std::max(
+                        std::min(current_area->min_box.extent.X, current_area->min_box.extent.Y),
+                        std::min(element_connect->min_box.extent.X, element_connect->min_box.extent.Y))));
+                }
+            }
+            if (! simulated_connection.empty())
+            {
+                simulated_connection = simulated_connection.unionPolygons();
+                CradleDeformationHalfCircle simulated_deform_part = {};
+                MinimumBoundingBox simulated_connect_box(simulated_connection.getOutsidePolygons().splitIntoParts()[0]);
+                getLayerDeformation(mesh, simulated_connect_box, layer_height * layer_idx, simulated_deform_part);
+
+                element_deformation_layer = elementWiseSelect(
+                    simulated_deform_part,
+                    element_deformation_layer,
+                    [](double a, double b)
+                    {
+                        return std::min(a, b);
+                    });
+            }
 
             for(UnsupportedAreaInformation* element_below: current_area->areas_below)
             {
@@ -224,66 +263,15 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                 }
                 else
                 {
-                    //todo Is this working correctly or does this also simulate connections (wrongly) with parts of the model that dont increase stability?
-                    std::vector<UnsupportedAreaInformation*> connected_with_current;
-                    for (UnsupportedAreaInformation* element_below_check : current_area->areas_below)
-                    {
-                        if (element_below == element_below_check)
+                    total_element_deformation = elementWiseSelect(
+                        deformation_below,
+                        total_element_deformation,
+                        [](double a, double b)
                         {
-                            continue;
-                        }
-                        if (known_deformation_map.contains(element_below_check))
-                        {
-                            total_element_deformation = elementWiseSelect(
-                                known_deformation_map[element_below_check],
-                                total_element_deformation,
-                                [](double a, double b)
-                                {
-                                    return std::min(a, b);
-                                });
-                        }
-                        std::set_intersection(
-                            rests_on_root[element_below_check].begin(),
-                            rests_on_root[element_below_check].end(),
-                            rests_on_root[element_below].begin(),
-                            rests_on_root[element_below].end(),
-                            std::back_inserter(connected_with_current));
-                        if (rests_on_self.contains(element_below) && rests_on_self.contains(element_below_check))
-                        {
-                            std::set_intersection(
-                                rests_on_self[element_below_check].begin(),
-                                rests_on_self[element_below_check].end(),
-                                rests_on_self[element_below].begin(),
-                                rests_on_self[element_below].end(),
-                                std::back_inserter(connected_with_current));
-                        }
-                    }
-                    Shape simulated_connection;
-                    for (UnsupportedAreaInformation* element_connect : connected_with_current)
-                    {
-                        OpenLinesSet line;
+                            return std::min(a, b);
+                        });
+                    distance_from_top_below = std::min(distance_below,distance_from_top_below);
 
-                        line.addSegment(element_below->min_box.center, element_connect->min_box.center);
-                        simulated_connection.push_back(line.offset(std::max(
-                            std::min(element_below->min_box.extent.X, element_below->min_box.extent.Y),
-                            std::min(element_connect->min_box.extent.X, element_connect->min_box.extent.Y))));
-                    }
-                    if (! simulated_connection.empty())
-                    {
-                        simulated_connection = simulated_connection.unionPolygons();
-                        CradleDeformationHalfCircle simulated_deform_part = {};
-                        MinimumBoundingBox simulated_connect_box(simulated_connection.getOutsidePolygons().splitIntoParts()[0]);
-                        getLayerDeformation(mesh, simulated_connect_box, layer_height * layer_idx, simulated_deform_part);
-
-                        element_deformation_layer = elementWiseSelect(
-                            simulated_deform_part,
-                            element_deformation_layer,
-                            [](double a, double b)
-                            {
-                                return std::min(a, b);
-                            });
-                    }
-                    distance_from_top_below = std::min(distance_from_top_below, distance_below);
                 }
             }
             for(UnsupportedAreaInformation* element_above: current_area->areas_above)
@@ -306,9 +294,9 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             }
 
             // Estimate horizontal influence to deformation
-            coord_t horizontal_distance = vSize(element->min_box.center - current_area->min_box.center) * horizontal_movement_weight;
-            coord_t vertical_distance = (element->layer_idx - current_area->layer_idx) * layer_height;
-            coord_t total_distance = std::sqrt(horizontal_distance * horizontal_distance + vertical_distance * vertical_distance);
+            double horizontal_distance = vSize(element->min_box.center - current_area->min_box.center) * horizontal_movement_weight;
+            double vertical_distance = (element->layer_idx - current_area->layer_idx) * layer_height;
+            double total_distance = std::sqrt(horizontal_distance * horizontal_distance + vertical_distance * vertical_distance);
 
             double h_distance_per_layer = horizontal_distance == 0 ? 0 : (horizontal_distance / (layer_height * double(layer_idx - iterate_layer_idx)));
 
@@ -348,17 +336,18 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
     double result_deformation_xy
         = largest_deformation_in_xy_direction_deformation; // *std::max_element( std::begin( known_deformation_map[element] ), std::end( known_deformation_map[element] ) );
-    coord_t horizontal_distance = vSize(element->min_box.center - largest_deformation_in_z_direction_element->min_box.center);
+    double horizontal_distance = vSize(element->min_box.center - largest_deformation_in_z_direction_element->min_box.center);
 
     double result_deformation_z = largest_deformation_in_z_direction_deformation;
     element->total_deformation_maximum = std::pow(sqrt(result_deformation_xy) + sqrt(result_deformation_z), 2);
     printf(
-        "at %d layer xy %lf z %lf horizontal distance was %ld result is %lf\n",
+        "at %d layer xy %lf z %lf horizontal distance was %lf result is %lf, most xy deform on layer %d\n",
         element->layer_idx,
         result_deformation_xy,
         result_deformation_z,
         horizontal_distance * horizontal_movement_weight,
-        element->total_deformation_maximum);
+        element->total_deformation_maximum,
+        largest_deformation_in_xy_direction_element->layer_idx);
 
     return element->total_deformation_maximum;
 }
