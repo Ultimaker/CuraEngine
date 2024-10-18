@@ -724,32 +724,13 @@ protected:
 
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
 
-        if (path.seam_config_.type_ == EZSeamType::RANDOM)
-        {
-            size_t vert = getRandomPointInPolygon(*path.converted_);
-            return vert;
-        }
-
-        // Precompute segments lengths because we are going to need them multiple times
-        std::vector<coord_t> segments_sizes(path.converted_->size());
-        coord_t total_length = 0;
-        for (size_t i = 0; i < path.converted_->size(); ++i)
-        {
-            const Point2LL& here = path.converted_->at(i);
-            const Point2LL& next = path.converted_->at((i + 1) % path.converted_->size());
-            const coord_t segment_size = vSize(next - here);
-            segments_sizes[i] = segment_size;
-            total_length += segment_size;
-        }
+        // ########## Step 1: define the weighs of each criterion
+        // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
+        // exactly one calculation using this criterion.
+        constexpr double weight_main_criterion = 1.0;
 
         // If seam is not "shortest", we still compute the shortest distance score but with a very low weight
-        const double weight_distance = path.seam_config_.type_ == EZSeamType::SHORTEST ? 1.0 : 0.02;
-
-        // Corner strategy has a standard weight
-        constexpr double weight_corner = 1.0;
-
-        // User-set position has a standard weight
-        constexpr double weight_user_position = 1.0;
+        const double weight_distance = path.seam_config_.type_ == EZSeamType::SHORTEST ? weight_main_criterion : 0.02;
 
         // Avoiding overhangs is more important than the rest
         constexpr double weight_exclude_overhang = 2.0;
@@ -759,81 +740,124 @@ protected:
         constexpr double weight_consistency_x = 0.05;
         constexpr double weight_consistency_y = weight_consistency_x / 2.0; // Less weight on Y to avoid symmetry effects
 
-        // Fixed divider for shortest distances computation. The divider should be set so that the minimum encountered
-        // distance gives a score very close to 1.0, and a medium-far distance gives a score close to 0.5
-        constexpr double distance_divider = 20.0;
+        // ########## Step 2: define which criteria should be taken into account in the total score
+        const bool calculate_forced_pos_score = path.force_start_index_.has_value();
 
-        const AABB path_bounding_box(*path.converted_);
+        // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
+        const bool calculate_distance_score
+            = ! calculate_forced_pos_score
+           && (path.seam_config_.type_ != EZSeamType::SHARPEST_CORNER || path.seam_config_.corner_pref_ == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE);
+
+        const bool calculate_corner_score
+            = ! calculate_forced_pos_score
+           && (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
+               && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN));
+
+        const bool calculate_random_score = ! calculate_forced_pos_score && (path.seam_config_.type_ == EZSeamType::RANDOM);
+
+        const bool calculate_consistency_score = calculate_distance_score || calculate_corner_score;
+
+        // Whatever the strategy, always avoid overhang
+        const bool calculate_overhang_score = ! overhang_areas_.empty();
+
+        // ########## Step 3: calculate some values that we are going to need multiple times, depending on which scoring is active
+        const AABB path_bounding_box = calculate_consistency_score ? AABB(*path.converted_) : AABB();
+
         const Point2LL forced_start_pos = path.force_start_index_.has_value() ? path.converted_->at(path.force_start_index_.value()) : Point2LL();
 
-        auto scoreFromDistance = [&distance_divider](const Point2LL& here, const Point2LL& remote_pos) -> double
+        std::vector<coord_t> segments_sizes;
+        coord_t total_length = 0;
+        if (calculate_corner_score)
         {
+            segments_sizes.resize(path.converted_->size());
+            for (size_t i = 0; i < path.converted_->size(); ++i)
+            {
+                const Point2LL& here = path.converted_->at(i);
+                const Point2LL& next = path.converted_->at((i + 1) % path.converted_->size());
+                const coord_t segment_size = vSize(next - here);
+                segments_sizes[i] = segment_size;
+                total_length += segment_size;
+            }
+        }
+
+        auto scoreFromDistance = [](const Point2LL& here, const Point2LL& remote_pos) -> double
+        {
+            // Fixed divider for shortest distances computation. The divider should be set so that the minimum encountered
+            // distance gives a score very close to 1.0, and a medium-far distance gives a score close to 0.5
+            constexpr double distance_divider = 20.0;
+
             // Use actual (non-squared) distance to ensure a proper scoring distribution
             const double distance = vSizeMM(here - remote_pos);
+
             // Use reciprocal function to normalize distance score decreasingly
             return 1.0 / (1.0 + (distance / distance_divider));
         };
 
+        // ########## Step 4: now calculate the total score of each vertex and select the best one
         std::optional<size_t> best_i;
         Score best_score;
         for (const auto& [i, here] : *path.converted_ | ranges::views::drop_last(1) | ranges::views::enumerate)
         {
             Score vertex_score;
 
-            if (path.force_start_index_.has_value())
+            if (calculate_forced_pos_score)
             {
-                vertex_score += CriterionScore{ .score = scoreFromDistance(here, forced_start_pos), .weight = weight_user_position };
+                vertex_score += CriterionScore{ .score = scoreFromDistance(here, forced_start_pos), .weight = weight_main_criterion };
             }
-            else
+
+            if (calculate_distance_score)
             {
-                // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
-                if (path.seam_config_.type_ != EZSeamType::SHARPEST_CORNER || path.seam_config_.corner_pref_ == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
+                vertex_score += CriterionScore{ .score = scoreFromDistance(here, target_pos), .weight = weight_distance };
+            }
+
+            if (calculate_corner_score)
+            {
+                double corner_angle = cornerAngle(path, i, segments_sizes, total_length);
+                // angles < 0 are concave (left turning)
+                // angles > 0 are convex (right turning)
+
+                CriterionScore score_corner{ .weight = weight_main_criterion };
+
+                switch (path.seam_config_.corner_pref_)
                 {
-                    vertex_score += CriterionScore{ .score = scoreFromDistance(here, target_pos), .weight = weight_distance };
-                }
-
-                if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
-                    && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN))
-                {
-                    double corner_angle = cornerAngle(path, i, segments_sizes, total_length);
-                    // angles < 0 are concave (left turning)
-                    // angles > 0 are convex (right turning)
-
-                    CriterionScore score_corner{ .weight = weight_corner };
-
-                    switch (path.seam_config_.corner_pref_)
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+                    // Give advantage to concave corners. More advantage for sharper corners.
+                    score_corner.score = cura::inverse_lerp(1.0, -1.0, corner_angle);
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+                    // Give advantage to convex corners. More advantage for sharper corners.
+                    score_corner.score = cura::inverse_lerp(-1.0, 1.0, corner_angle);
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+                    // Still give sharper corners more advantage.
+                    score_corner.score = std::abs(corner_angle);
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
+                    // Give sharper corners some advantage, but sharper concave corners even more.
+                    if (corner_angle < 0)
                     {
-                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                        // Give advantage to concave corners. More advantage for sharper corners.
-                        score_corner.score = cura::inverse_lerp(1.0, -1.0, corner_angle);
-                        break;
-                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                        // Give advantage to convex corners. More advantage for sharper corners.
-                        score_corner.score = cura::inverse_lerp(-1.0, 1.0, corner_angle);
-                        break;
-                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                        // Still give sharper corners more advantage.
-                        score_corner.score = std::abs(corner_angle);
-                        break;
-                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
-                        // Give sharper corners some advantage, but sharper concave corners even more.
-                        if (corner_angle < 0)
-                        {
-                            score_corner.score = -corner_angle;
-                        }
-                        else
-                        {
-                            score_corner.score = corner_angle / 2.0;
-                        }
-                        break;
-                    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
-                    case EZSeamCornerPrefType::PLUGIN:
-                        break;
+                        score_corner.score = -corner_angle;
                     }
-
-                    vertex_score += score_corner;
+                    else
+                    {
+                        score_corner.score = corner_angle / 2.0;
+                    }
+                    break;
+                case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
+                case EZSeamCornerPrefType::PLUGIN:
+                    break;
                 }
 
+                vertex_score += score_corner;
+            }
+
+            if (calculate_random_score)
+            {
+                vertex_score += CriterionScore{ .score = cura::randf<double>(), .weight = weight_main_criterion };
+            }
+
+            if (calculate_consistency_score)
+            {
                 CriterionScore score_consistency_x{ .weight = weight_consistency_x };
                 score_consistency_x.score = cura::inverse_lerp(path_bounding_box.min_.X, path_bounding_box.max_.X, here.X);
                 vertex_score += score_consistency_x;
@@ -843,7 +867,7 @@ protected:
                 vertex_score += score_consistency_y;
             }
 
-            if (! overhang_areas_.empty())
+            if (calculate_overhang_score)
             {
                 CriterionScore score_exclude_overhang{ .weight = weight_exclude_overhang };
                 score_exclude_overhang.score = overhang_areas_.inside(here, true) ? 0.0 : 1.0;
@@ -998,16 +1022,6 @@ protected:
             last_point = point;
         }
         return sum * sum; // Squared distance, for fair comparison with direct distance.
-    }
-
-    /*!
-     * Get a random vertex of a polygon.
-     * \param polygon A polygon to get a random vertex of.
-     * \return A random index in that polygon.
-     */
-    size_t getRandomPointInPolygon(const PointsSet& polygon) const
-    {
-        return rand() % polygon.size();
     }
 
     bool isLoopingPolyline(const OrderablePath& path)
