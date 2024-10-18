@@ -299,9 +299,9 @@ public:
     void setSeamOverhangMask(const Shape& polys);
 
     /*!
-     * Get the areas that are considered having air below, which is a union between bridge and overhang masks
+     * Get the seam overhang mask, which contains the areas where we don't want to place the seam because they are overhanding
      */
-    Shape getAirBelowMask() const;
+    const Shape& getSeamOverhangMask() const;
 
     /*!
      * Set roofing_mask.

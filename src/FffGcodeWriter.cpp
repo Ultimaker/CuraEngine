@@ -3149,7 +3149,7 @@ bool FffGcodeWriter::processInsets(
             disallowed_areas_for_seams,
             scarf_seam,
             smooth_speed,
-            gcode_layer.getAirBelowMask());
+            gcode_layer.getSeamOverhangMask());
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;

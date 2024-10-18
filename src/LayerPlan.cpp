@@ -2381,7 +2381,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                                   | ranges::views::chunk_by(
-                                                      [](const auto&path_a, const auto&path_b)
+                                                      [](const auto& path_a, const auto& path_b)
                                                       {
                                                           return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                       }))
@@ -3044,9 +3044,9 @@ void LayerPlan::setSeamOverhangMask(const Shape& polys)
     seam_overhang_mask_ = polys;
 }
 
-Shape LayerPlan::getAirBelowMask() const
+const Shape& LayerPlan::getSeamOverhangMask() const
 {
-    return bridge_wall_mask_.unionPolygons(seam_overhang_mask_);
+    return seam_overhang_mask_;
 }
 
 void LayerPlan::setRoofingMask(const Shape& polys)
