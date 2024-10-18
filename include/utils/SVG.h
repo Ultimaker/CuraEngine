@@ -62,6 +62,7 @@ public:
 private:
     std::string toString(const Color color) const;
     std::string toString(const ColorObject& color) const;
+    void handleFlush(const bool flush) const;
 
     FILE* out_; // the output file
     const AABB aabb_; // the boundary box to display
@@ -122,7 +123,7 @@ public:
      */
     void writeLines(const std::vector<Point2LL>& polyline, const ColorObject color = Color::BLACK) const;
 
-    void writeLine(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writeLine(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
     void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
 
@@ -148,9 +149,11 @@ public:
 
     void writePolygon(Polygon poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
-    void writePolylines(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+    void writePolylines(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
     void writePolyline(const Polygon& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+
+    void writePolyline(const Polyline& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
     /*!
      * Draw variable-width paths into the image.
@@ -183,7 +186,7 @@ public:
      * \param color The color to draw the line with.
      * \param width_factor A multiplicative factor on the line width.
      */
-    void writeLine(const ExtrusionLine& line, const ColorObject color = Color::BLACK, const double width_factor = 1.0) const;
+    void writeLine(const ExtrusionLine& line, const ColorObject color = Color::BLACK, const double width_factor = 1.0, const bool flush = true) const;
 
     /*!
      * Draws a grid across the image and writes down coordinates.
