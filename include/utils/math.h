@@ -130,7 +130,7 @@ template<utils::numeric T>
 /*!
  * \brief Get a random floating point number in the range [0.0, 1.0]
  */
-template<std::floating_point T>
+template<utils::floating_point T>
 [[nodiscard]] inline T randf()
 {
     return static_cast<T>(std::rand()) / static_cast<T>(RAND_MAX);
