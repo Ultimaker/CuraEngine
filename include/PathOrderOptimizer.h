@@ -743,17 +743,20 @@ protected:
         // ########## Step 2: define which criteria should be taken into account in the total score
         const bool calculate_forced_pos_score = path.force_start_index_.has_value();
 
-        // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
-        const bool calculate_distance_score
-            = ! calculate_forced_pos_score
-           && (path.seam_config_.type_ != EZSeamType::SHARPEST_CORNER || path.seam_config_.corner_pref_ == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE);
+        bool calculate_distance_score = false;
+        bool calculate_corner_score = false;
+        bool calculate_random_score = false;
+        if (! calculate_forced_pos_score)
+        {
+            // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
+            calculate_distance_score = path.seam_config_.type_ != EZSeamType::SHARPEST_CORNER || path.seam_config_.corner_pref_ == EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
 
-        const bool calculate_corner_score
-            = ! calculate_forced_pos_score
-           && (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
-               && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN));
+            calculate_corner_score
+                = path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
+               && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN);
 
-        const bool calculate_random_score = ! calculate_forced_pos_score && (path.seam_config_.type_ == EZSeamType::RANDOM);
+            calculate_random_score = path.seam_config_.type_ == EZSeamType::RANDOM;
+        }
 
         const bool calculate_consistency_score = calculate_distance_score || calculate_corner_score;
 
