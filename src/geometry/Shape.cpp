@@ -124,8 +124,7 @@ void Shape::makeConvex()
             }
         }
 
-        while (convexified.size() >= 2
-               && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
+        while (convexified.size() >= 2 && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
         {
             convexified.pop_back();
         }
