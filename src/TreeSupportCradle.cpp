@@ -27,10 +27,16 @@ size_t SupportCradleGeneration::getDirectionIdx(Point2LL a, Point2LL b) const
     Point2LL vector_direction = a.X > b.X ? a - b : b - a;
     double best_angle = std::numbers::pi;
     size_t best_idx = 0;
-    for (size_t direction_idx = 0; direction_idx < size; direction_idx++)
+    for (int64_t direction_idx = 0; direction_idx < size; direction_idx++)
     {
-        Point2LL direction(direction_idx % size / 2, direction_idx - size / 2);
-        double angle_vd = angle(vector_direction - normal(direction, vSize(vector_direction)));
+        Point2LL direction(direction_idx > size / 2 ? std::abs(int64_t(size) - direction_idx) : direction_idx, direction_idx - size / 2);
+        double dot_a = dot(vector_direction, direction);
+        double det_a = cross(vector_direction, direction);
+        double angle_vd = std::atan2(det_a, dot_a);
+        if (angle_vd < 0)
+        {
+            angle_vd += 2 * std::numbers::pi;
+        }
         if (angle_vd >= std::numbers::pi)
         {
             angle_vd -= std::numbers::pi;
@@ -53,13 +59,18 @@ void SupportCradleGeneration::getLayerDeformation(
 {
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
+    const coord_t min_wall_line_width = mesh.settings.get<coord_t>("min_wall_line_width");
 
-    Point2LL axis_min = minimum_box.extent.X < minimum_box.extent.Y ? minimum_box.axis[0] : minimum_box.axis[1];
-    Point2LL axis_max = minimum_box.extent.X < minimum_box.extent.Y ? minimum_box.axis[1] : minimum_box.axis[0];
+    coord_t extent_x = std::max(min_wall_line_width / 2, minimum_box.extent.X);
+    coord_t extent_y = std::max(min_wall_line_width / 2, minimum_box.extent.Y);
+
+    Point2LL axis_min = extent_x < extent_y ? minimum_box.axis[0] : minimum_box.axis[1];
+    Point2LL axis_max = extent_x < extent_y ? minimum_box.axis[1] : minimum_box.axis[0];
 
     for (int64_t direction_idx = 0; direction_idx < deform_part.size(); direction_idx++)
     {
         Point2LL direction(direction_idx > deform_part.size() / 2 ? std::abs(int64_t(deform_part.size()) - direction_idx) : direction_idx, direction_idx - deform_part.size() / 2);
+        assert(direction_idx == getDirectionIdx(Point2LL(0, 0), direction));
         double dot_a = dot(axis_min, direction);
         double det_a = cross(axis_min, direction);
         double angle = std::atan2(det_a, dot_a);
@@ -77,16 +88,16 @@ void SupportCradleGeneration::getLayerDeformation(
         {
             angle = std::numbers::pi / 2 - (angle - std::numbers::pi / 2.0);
         }
-        double percent_angle = 1 - angle / (std::numbers::pi / 2);
+        double percent_angle = 1 - angle / (std::numbers::pi / 2.0);
 
-        double assumed_thickness_in_direction = percent_angle * std::min(assumed_part_thickness, double(std::min(minimum_box.extent.X, minimum_box.extent.Y)))
-                                              + (1.0 - percent_angle) * double(std::max(minimum_box.extent.X, minimum_box.extent.Y));
+        double assumed_thickness_in_direction
+            = percent_angle * std::min(assumed_part_thickness, double(std::min(extent_x, extent_y))) + (1.0 - percent_angle) * double(std::max(extent_x, extent_y));
         double assumed_thickness_opposite_direction
-            = percent_angle * double(std::max(minimum_box.extent.X, minimum_box.extent.Y))
-            + (1.0 - percent_angle) * std::min(assumed_part_thickness, double(std::min(minimum_box.extent.X, minimum_box.extent.Y)));
+            = percent_angle * double(std::max(extent_x, extent_y)) + (1.0 - percent_angle) * std::min(assumed_part_thickness, double(std::min(extent_x, extent_y)));
 
+        // todo tan did make more sense but as values are small, it should be similar to linear
         deform_part[direction_idx]
-            = tan(deformation_constant * layer_height / (assumed_thickness_in_direction * (1 + std::sqrt(std::max(0.0, assumed_thickness_opposite_direction)))));
+            = (deformation_constant * layer_height / (assumed_thickness_in_direction * (1 + std::sqrt(std::max(0.0, assumed_thickness_opposite_direction)))));
     }
 }
 
@@ -133,7 +144,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         }
     }
     std::unordered_map<UnsupportedAreaInformation*, std::unordered_set<UnsupportedAreaInformation*>> rests_on_root;
-
+    std::vector<std::vector<UnsupportedAreaInformation*>> all_elements_not_in_path_down(layer_idx + 1);
     std::unordered_set<UnsupportedAreaInformation*> iterate_elements;
 
     for (LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
@@ -142,13 +153,22 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
         for (UnsupportedAreaInformation* current_area : root_areas[iterate_layer_idx])
         {
+            if (! elements_on_path_down.contains(current_area))
+            {
+                all_elements_not_in_path_down[iterate_layer_idx].emplace_back(current_area);
+            }
             for (UnsupportedAreaInformation* element_above : current_area->areas_above)
             {
                 rests_on_root[element_above].emplace(current_area);
+                next_iterate_elements.emplace(element_above);
             }
         }
         for (UnsupportedAreaInformation* current_area : iterate_elements)
         {
+            if (! elements_on_path_down.contains(current_area))
+            {
+                all_elements_not_in_path_down[iterate_layer_idx].emplace_back(current_area);
+            }
             for (UnsupportedAreaInformation* element_above : current_area->areas_above)
             {
                 if (rests_on_root.contains(current_area))
@@ -170,6 +190,8 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
     LayerIndex last_z_stable_layer = 0;
 
+    // todo instead of doing a single maximum, do a window over a few mm ?
+
     UnsupportedAreaInformation* largest_deformation_in_z_direction_element = element;
     double largest_deformation_in_z_direction_deformation = 0;
 
@@ -184,7 +206,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         std::unordered_set<UnsupportedAreaInformation*> simulate_elements_as_connected;
 
         //todo add all elements that connect with anything in elements_on_path_down further down, as well as connect with another part of the model further up that could provide stability.
-        for(UnsupportedAreaInformation* current_area : iterate_elements)
+        for (UnsupportedAreaInformation* current_area : iterate_elements)
         {
             if(elements_on_path_down.contains(current_area))
             {
@@ -192,7 +214,24 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             }
             else
             {
-                // todo If any element rests on at least one identical roots than another, but are not on the direct path down, they have to be connected further up
+                // If any element rests on at least one identical roots than another, but are not on the direct path down, they have to be connected further up
+                for (UnsupportedAreaInformation* not_in_path_area : all_elements_not_in_path_down[iterate_layer_idx])
+                {
+                    bool connected = false;
+                    for (UnsupportedAreaInformation* current_rests_on : rests_on_root[current_area])
+                    {
+                        for (UnsupportedAreaInformation* not_in_path_area_rests_on : rests_on_root[not_in_path_area])
+                        {
+                            simulate_elements_as_connected.emplace(not_in_path_area);
+                            connected = true;
+                            break;
+                        }
+                        if (connected)
+                        {
+                            break;
+                        }
+                    }
+                }
             }
         }
 
@@ -206,6 +245,14 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             Shape simulated_connection;
             if(simulate_elements_as_connected.contains(current_area))
             {
+                // One cant be sure that the center of the min box is actually inside the polygon, e.g. a U shape
+                // This may cause some inaccuracies, but better than issues later on.
+                Point2LL current_inside = current_area->min_box.center;
+                if (! current_area->area.inside(current_inside))
+                {
+                    PolygonUtils::moveInside(current_area->area, current_inside);
+                }
+
                 for (UnsupportedAreaInformation* element_connect : simulate_elements_as_connected)
                 {
                     if(current_area == element_connect)
@@ -213,16 +260,22 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                         continue;
                     }
                     OpenLinesSet line;
-
-                    line.addSegment(current_area->min_box.center, element_connect->min_box.center);
+                    Point2LL connect_inside = element_connect->min_box.center;
+                    if (! element_connect->area.inside(connect_inside))
+                    {
+                        PolygonUtils::moveInside(element_connect->area, connect_inside);
+                    }
+                    line.addSegment(current_inside, connect_inside);
                     //todo that line thickness calculation needs improvement.
                     simulated_connection.push_back(line.offset(std::max(
                         std::min(current_area->min_box.extent.X, current_area->min_box.extent.Y),
                         std::min(element_connect->min_box.extent.X, element_connect->min_box.extent.Y))));
+                    simulated_connection.push_back(element_connect->area);
                 }
             }
             if (! simulated_connection.empty())
             {
+                simulated_connection.push_back(current_area->area);
                 simulated_connection = simulated_connection.unionPolygons();
                 CradleDeformationHalfCircle simulated_deform_part = {};
                 MinimumBoundingBox simulated_connect_box(simulated_connection.getOutsidePolygons().splitIntoParts()[0]);
@@ -294,14 +347,14 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             }
 
             // Estimate horizontal influence to deformation
-            double horizontal_distance = vSize(element->min_box.center - current_area->min_box.center) * horizontal_movement_weight;
+            double horizontal_distance = element->min_box.minimumDistance(current_area->min_box) * horizontal_movement_weight;
             double vertical_distance = (element->layer_idx - current_area->layer_idx) * layer_height;
             double total_distance = std::sqrt(horizontal_distance * horizontal_distance + vertical_distance * vertical_distance);
 
             double h_distance_per_layer = horizontal_distance == 0 ? 0 : (horizontal_distance / (layer_height * double(layer_idx - iterate_layer_idx)));
+            size_t direction_z_idx = getDirectionIdx(element->min_box.center, current_area->min_box.center);
+            double deformation_in_z_direction = element_deformation_layer[direction_z_idx] * std::pow(double(horizontal_distance / layer_height) / layer_per_mm, 2);
 
-            double deformation_in_z_direction = current_area->deformation[getDirectionIdx(element->min_box.center, current_area->min_box.center)]
-                                              * std::pow(double(horizontal_distance / layer_height) / layer_per_mm, 2);
             if (deformation_in_z_direction > largest_deformation_in_z_direction_deformation)
             {
                 largest_deformation_in_z_direction_deformation = deformation_in_z_direction;
@@ -336,18 +389,18 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
     double result_deformation_xy
         = largest_deformation_in_xy_direction_deformation; // *std::max_element( std::begin( known_deformation_map[element] ), std::end( known_deformation_map[element] ) );
-    double horizontal_distance = vSize(element->min_box.center - largest_deformation_in_z_direction_element->min_box.center);
-
+    double horizontal_distance = element->min_box.minimumDistance(largest_deformation_in_z_direction_element->min_box) * horizontal_movement_weight;
     double result_deformation_z = largest_deformation_in_z_direction_deformation;
     element->total_deformation_maximum = std::pow(sqrt(result_deformation_xy) + sqrt(result_deformation_z), 2);
     printf(
-        "at %d layer xy %lf z %lf horizontal distance was %lf result is %lf, most xy deform on layer %d\n",
-        element->layer_idx,
+        "at %d layer xy %lf z %lf horizontal distance was %lf result is %lf, most xy deform on layer %d most z on layer %d\n",
+        layer_idx,
         result_deformation_xy,
         result_deformation_z,
-        horizontal_distance * horizontal_movement_weight,
+        horizontal_distance,
         element->total_deformation_maximum,
-        largest_deformation_in_xy_direction_element->layer_idx);
+        largest_deformation_in_xy_direction_element->layer_idx,
+        largest_deformation_in_z_direction_element->layer_idx);
 
     return element->total_deformation_maximum;
 }
@@ -543,6 +596,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
 
                     if(side_cradle_enabled)
                     {
+                        //Ensures output for testing purposes. TODO remove
                         if (layer_idx * layer_height % 50000 == 0 && layer_idx > 20 || layer_idx + 5 * (1000 / layer_height) == mesh.layers.size())
                         {
 

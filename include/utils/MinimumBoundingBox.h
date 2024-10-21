@@ -8,6 +8,7 @@
 #define CURAENGINE_MINIMUMBOUNDINGBOX_H
 #include "geometry/Point2LL.h"
 #include "geometry/SingleShape.h"
+#include "linearAlg2D.h"
 #include "utils/Coord_t.h"
 
 namespace cura
@@ -26,7 +27,7 @@ struct MinimumBoundingBox
     {
         //Simplify ensures no unnecessary points on a line are present.
         Simplify simplify(50,5,100);
-        simplify.polygon(shape);
+        shape = simplify.polygon(shape);
 
         shape.makeConvex();
         Polygon polygon = shape.outerPolygon();
@@ -36,6 +37,52 @@ struct MinimumBoundingBox
         size2_u0_ = box.size2_u0_;
         area = box.area;
         Finalize(polygon);
+    }
+
+    std::array<Point2LL, 4> getVertices() const
+    {
+        return { center + axis[0] + axis[1],
+                 center + axis[0] - axis[1],
+                 center - axis[0] - axis[1],
+                 center - axis[0] + axis[1]
+        };
+    }
+
+    bool inside(Point2LL p)
+    {
+        Point2LL direction = center - p;
+        Point2LL direction_local = Point2LL(dot(direction, axis[0]) / vSize(axis[0]), dot(direction, axis[1]) / vSize(axis[1]));
+        return std::abs(direction_local.X) <= extent.X && std::abs(direction_local.Y) <= extent.Y;
+    }
+
+    coord_t minimumDistance(MinimumBoundingBox& other)
+    {
+        std::array<Point2LL, 4> vertices_me = getVertices();
+        std::array<Point2LL, 4> vertices_other = other.getVertices();
+
+        coord_t min_dist2 = std::numeric_limits<coord_t>::max();
+
+        // Check all edge pairs from both squares
+        for (int i = 0; i < 4; ++i)
+        {
+            Point2LL a1 = vertices_me[i];
+            Point2LL a2 = vertices_me[(i + 1) % 4];
+
+            for (int j = 0; j < 4; ++j)
+            {
+                Point2LL b1 = vertices_other[j];
+                Point2LL b2 = vertices_other[(j + 1) % 4];
+                if (inside(b1))
+                {
+                    return 0;
+                }
+                coord_t dist2_here = LinearAlg2D::getDist2BetweenLineSegments(a1, a2, b1, b2);
+                // Check the distance from each vertex of square1 to each edge of square2
+                min_dist2 = std::min(min_dist2, dist2_here);
+            }
+        }
+
+        return sqrt(min_dist2);
     }
 
     Point2LL center;
