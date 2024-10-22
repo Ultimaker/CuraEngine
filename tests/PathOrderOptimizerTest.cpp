@@ -13,24 +13,16 @@ class PathOrderOptimizerTest : public testing::Test
 {
 public:
     /*!
-     * A blank optimizer with no polygons added yet. Fresh and virgin.
-     */
-    PathOrderOptimizer<const Polygon*> optimizer;
-
-    /*!
      * A simple isosceles triangle. Base length and height 50.
      */
     Polygon triangle;
 
     PathOrderOptimizerTest()
-        : optimizer(Point2LL(0, 0))
     {
     }
 
     void SetUp() override
     {
-        optimizer = PathOrderOptimizer<const Polygon*>(Point2LL(0, 0));
-
         triangle.clear();
         triangle.push_back(Point2LL(0, 0));
         triangle.push_back(Point2LL(50, 0));
@@ -44,6 +36,7 @@ public:
  */
 TEST_F(PathOrderOptimizerTest, OptimizeWhileEmpty)
 {
+    PathOrderOptimizer<const Polygon*> optimizer(Point2LL(0, 0));
     optimizer.optimize(); // Don't crash.
     EXPECT_EQ(optimizer.paths_.size(), 0) << "Still empty!";
 }
@@ -54,6 +47,8 @@ TEST_F(PathOrderOptimizerTest, OptimizeWhileEmpty)
  */
 TEST_F(PathOrderOptimizerTest, ThreeTrianglesShortestOrder)
 {
+    PathOrderOptimizer<const Polygon*> optimizer(Point2LL(0, 0));
+
     Polygon near = triangle; // Copy, then translate.
     near.translate(Point2LL(100, 100));
     Polygon middle = triangle;

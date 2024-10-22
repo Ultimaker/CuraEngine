@@ -743,8 +743,7 @@ void LayerPlan::addWallLine(
                         segment_flow,
                         width_factor,
                         spiralize,
-                        (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor
-                                                                                                                                                       : overhang_speed_factor,
+                        segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
                         GCodePathConfig::FAN_SPEED_DEFAULT,
                         travel_to_z);
                 }
@@ -761,8 +760,7 @@ void LayerPlan::addWallLine(
                     segment_flow,
                     width_factor,
                     spiralize,
-                    (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor
-                                                                                                                                                   : overhang_speed_factor,
+                    segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
                     GCodePathConfig::FAN_SPEED_DEFAULT,
                     travel_to_z);
             }
@@ -867,7 +865,7 @@ void LayerPlan::addWallLine(
             flow,
             width_factor,
             spiralize,
-            (overhang_mask_.empty() || (! overhang_mask_.inside(p0.toPoint2LL(), true) && ! overhang_mask_.inside(p1.toPoint2LL(), true))) ? speed_factor : overhang_speed_factor,
+            segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : 1.0_r,
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
@@ -1330,11 +1328,6 @@ void LayerPlan::addWall(
     {
         return;
     }
-    if (is_closed)
-    {
-        // make sure wall start point is not above air!
-        start_idx = locateFirstSupportedVertex(wall, start_idx);
-    }
     const bool actual_scarf_seam = scarf_seam && is_closed;
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
@@ -1723,6 +1716,13 @@ void LayerPlan::addLinesInGivenOrder(
             }
         }
     }
+}
+
+bool LayerPlan::segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const
+{
+    const OpenPolyline segment{ p0.toPoint2LL(), p1.toPoint2LL() };
+    const OpenLinesSet intersected_lines = overhang_mask_.intersection(OpenLinesSet{ segment });
+    return ! intersected_lines.empty() && (static_cast<double>(intersected_lines.length()) / segment.length()) > 0.5;
 }
 
 void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed)
@@ -2294,6 +2294,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             extruder_nr = extruder_plan.extruder_nr_;
 
             gcode.ResetLastEValueAfterWipe(prev_extruder);
+            gcode.writePrepareFansForNozzleSwitch();
 
             const RetractionAndWipeConfig& prev_retraction_config = storage_.retraction_wipe_config_per_extruder[prev_extruder];
             if (prev_retraction_config.retraction_hop_after_extruder_switch)
@@ -2305,8 +2306,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             {
                 gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config);
             }
-
-            gcode.writePrepareFansForNozzleSwitch();
 
             { // require printing temperature to be met
                 constexpr bool wait = true;
@@ -3043,6 +3042,11 @@ void LayerPlan::setOverhangMask(const Shape& polys)
 void LayerPlan::setSeamOverhangMask(const Shape& polys)
 {
     seam_overhang_mask_ = polys;
+}
+
+const Shape& LayerPlan::getSeamOverhangMask() const
+{
+    return seam_overhang_mask_;
 }
 
 void LayerPlan::setRoofingMask(const Shape& polys)

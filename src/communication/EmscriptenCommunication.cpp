@@ -38,6 +38,10 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
     {
         gcode_header_handler_ = *ranges::next(gcode_header_flag);
     }
+    if (auto engine_info_flag = ranges::find(arguments_, "--engine_info_cb"); engine_info_flag != arguments_.end())
+    {
+        engine_info_handler_ = *ranges::next(engine_info_flag);
+    }
 }
 
 void EmscriptenCommunication::sendGCodePrefix(const std::string& prefix) const
@@ -109,6 +113,35 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
     return buffer.GetString();
 }
 
+std::string EmscriptenCommunication::createEngineInfoMessage()
+{
+    // Construct a string with rapidjson containing the engine information
+    rapidjson::Document doc;
+    auto& allocator = doc.GetAllocator();
+    doc.SetObject();
+
+    // Set the slicer version
+    rapidjson::Value version("version", allocator);
+    rapidjson::Value version_value(CURA_ENGINE_VERSION, allocator);
+    doc.AddMember(version, version_value, allocator);
+
+    // Set the hash
+    rapidjson::Value hash("hash", allocator);
+    rapidjson::Value hash_value(CURA_ENGINE_HASH, allocator);
+    doc.AddMember(hash, hash_value, allocator);
+
+    // Serialize the JSON document to a string
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    doc.Accept(writer);
+    return buffer.GetString();
+}
+
+void EmscriptenCommunication::beginGCode()
+{
+    auto engine_info = createEngineInfoMessage();
+    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
+}
 void EmscriptenCommunication::sliceNext()
 {
     CommandLine::sliceNext();

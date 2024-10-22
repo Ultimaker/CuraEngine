@@ -173,7 +173,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             if (extruder_is_used_in_filler_layers)
             {
-                process_layer_starting_layer_nr = -Raft::getFillerLayerCount();
+                process_layer_starting_layer_nr = -static_cast<int>(Raft::getFillerLayerCount());
                 break;
             }
         }
@@ -2064,14 +2064,10 @@ void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& 
 // We do this because supporting lines are hanging over air,
 // and therefore print best as part of a continuous print move,
 // rather than having a travel move before and after them.
-//
-// We also double-insert most lines, since that allows the
-// elimination of all travel moves, and overlap isn't an issue
-// because the lines are hanging.
 void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& line_to_add)
 {
     // Returns the line index and the index of the point within an infill_line, null for no match found.
-    const auto findMatchingSegment = [&](Point2LL p) -> std::optional<std::tuple<int, int>>
+    const auto findMatchingSegment = [&](Point2LL p) -> std::optional<std::tuple<size_t, size_t>>
     {
         for (size_t i = 0; i < infill_lines.size(); ++i)
         {
@@ -2101,59 +2097,76 @@ void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& lin
         {
             /* both ends intersect with the same line.
              * If the inserted line has ends x, y
-             * and the original line was A--(x)--B---C--(y)--D
-             * Then the new line will be A--x--y--C---B--x--y--D
-             * Note that the middle part of the line is reversed.
+             * and the original line was  ...--A--(x)--B--...--C--(y)--D--...
+             * Then the new lines will be ...--A--x--y--C--...--B--x
+             * And line                   y--D--...
+             * Note that some parts of the line are reversed,
+             * and the last one is completly split apart.
              */
             OpenPolyline& old_line = infill_lines[front_line_index];
-            OpenPolyline new_line;
+            OpenPolyline new_line_start;
+            OpenPolyline new_line_end;
             Point2LL x, y;
-            size_t x_index, y_index;
+            std::ptrdiff_t x_index, y_index;
             if (front_point_index < back_point_index)
             {
                 x = line_to_add.front();
                 y = line_to_add.back();
-                x_index = front_point_index;
-                y_index = back_point_index;
+                x_index = static_cast<std::ptrdiff_t>(front_point_index);
+                y_index = static_cast<std::ptrdiff_t>(back_point_index);
             }
             else
             {
                 y = line_to_add.front();
                 x = line_to_add.back();
-                y_index = front_point_index;
-                x_index = back_point_index;
+                y_index = static_cast<std::ptrdiff_t>(front_point_index);
+                x_index = static_cast<std::ptrdiff_t>(back_point_index);
             }
-            new_line.insert(new_line.end(), old_line.begin(), old_line.begin() + x_index);
-            new_line.push_back(x);
-            new_line.push_back(y);
-            new_line.insert(new_line.end(), old_line.rend() - y_index, old_line.rend() - x_index);
-            new_line.push_back(x);
-            new_line.push_back(y);
-            new_line.insert(new_line.end(), old_line.begin() + y_index, old_line.end());
-            old_line.setPoints(std::move(new_line.getPoints()));
+
+            new_line_start.insert(new_line_start.end(), old_line.begin(), old_line.begin() + x_index);
+            new_line_start.push_back(x);
+            new_line_start.push_back(y);
+            new_line_start.insert(new_line_start.end(), old_line.rend() - y_index, old_line.rend() - x_index);
+            new_line_start.push_back(x);
+
+            new_line_end.push_back(y);
+            new_line_end.insert(new_line_end.end(), old_line.begin() + y_index, old_line.end());
+
+            old_line.setPoints(std::move(new_line_start.getPoints()));
+            infill_lines.push_back(new_line_end);
         }
         else
         {
             /* Different lines
              * If the line_to_add has ends [front, back]
-             * Existing line (intersects front):       A B front C D E
-             * Other existing line (intersects back):  M N back O P Q
-             * Result is Line:   A B front back O P Q
-             * And line:         M N back front C D E
+             * Existing line (intersects front):       ...--A--(x)--B--...
+             * Other existing line (intersects back):  ...--C--(y)--D--...
+             * Result is Line:   ...--A--x--y--D--...
+             * And line:         x--B--...
+             * And line:         ...--C--y
              */
             OpenPolyline& old_front = infill_lines[front_line_index];
             OpenPolyline& old_back = infill_lines[back_line_index];
-            OpenPolyline new_front, new_back;
-            new_front.insert(new_front.end(), old_front.begin(), old_front.begin() + front_point_index);
-            new_front.push_back(line_to_add.front());
-            new_front.push_back(line_to_add.back());
-            new_front.insert(new_front.end(), old_back.begin() + back_point_index, old_back.end());
-            new_back.insert(new_back.end(), old_back.begin(), old_back.begin() + back_point_index);
-            new_back.push_back(line_to_add.back());
-            new_back.push_back(line_to_add.front());
-            new_back.insert(new_back.end(), old_front.begin() + front_point_index, old_front.end());
+            OpenPolyline full_line, new_front, new_back;
+            const Point2LL x = line_to_add.front();
+            const Point2LL y = line_to_add.back();
+            const auto x_index = static_cast<std::ptrdiff_t>(front_point_index);
+            const auto y_index = static_cast<std::ptrdiff_t>(back_point_index);
+
+            new_front.push_back(x);
+            new_front.insert(new_front.end(), old_front.begin() + x_index, old_front.end());
+
+            new_back.insert(new_back.end(), old_back.begin(), old_back.begin() + y_index);
+            new_back.push_back(y);
+
+            full_line.insert(full_line.end(), old_front.begin(), old_front.begin() + x_index);
+            full_line.push_back(x);
+            full_line.push_back(y);
+            full_line.insert(full_line.end(), old_back.begin() + y_index, old_back.end());
+
             old_front.setPoints(std::move(new_front.getPoints()));
             old_back.setPoints(std::move(new_back.getPoints()));
+            infill_lines.push_back(full_line);
         }
     }
     else
@@ -2860,7 +2873,7 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
     {
         return last ? extruder_use.back().extruder_nr : extruder_use.front().extruder_nr;
     }
-    else if (layer_nr <= -Raft::getTotalExtraLayers())
+    else if (layer_nr <= -LayerIndex(Raft::getTotalExtraLayers()))
     {
         // Asking for extruder use below first layer, give first extruder
         return getStartExtruder(storage);
@@ -3148,7 +3161,8 @@ bool FffGcodeWriter::processInsets(
             mesh.bounding_box.flatten().getMiddle(),
             disallowed_areas_for_seams,
             scarf_seam,
-            smooth_speed);
+            smooth_speed,
+            gcode_layer.getSeamOverhangMask());
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;

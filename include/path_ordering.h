@@ -83,6 +83,16 @@ struct PathOrdering
     std::optional<size_t> force_start_index_;
 
     /*!
+     * The start point calculation strategy to be used for this path
+     */
+    ZSeamConfig seam_config_;
+
+    /*!
+     * Indicates whether this path is an outer (or inner) wall
+     */
+    bool is_outer_wall{ false };
+
+    /*!
      * Get vertex data from the custom path type.
      *
      * This is a function that allows the reordering algorithm to work with any
