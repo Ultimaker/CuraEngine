@@ -2024,10 +2024,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             }
 
             Shape relevant_forbidden = volumes_.getCollision(0, layer_idx, true);
-            Shape outer_walls = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons())
-                                    .createTubeShape(
-                                        closing_dist,
-                                        0); //.unionPolygons(volumes_.getCollision(0, layer_idx - 1, true).offset(-(config.support_line_width+config.xy_min_distance)));
+            Shape outer_walls = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).createTubeShape(closing_dist, 0);
 
             Shape holes_below;
 
@@ -2040,7 +2037,13 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             {
                 AABB hole_aabb = AABB(hole);
                 hole_aabb.expand(EPSILON);
-                if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
+                if(hole.size() > 1)
+                {
+                    // The hole contains other branches! It can not be fully removed.
+                    // This may not fully handle this case as there could be a situation where such a hole becomes invalid, but for now this is the best solution not requiring larger changes.
+                    holes_resting_outside[layer_idx].emplace(idx);
+                }
+                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
                 {
                     holes_resting_outside[layer_idx].emplace(idx);
                 }
@@ -2053,8 +2056,9 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
                 {
                     for (auto [idx2, hole2] : holeparts[layer_idx - 1] | ranges::views::enumerate)
                     {
+                        // TODO should technically be outline: Check if this is fine either way as it would save an offset
                         if (hole_aabb.hit(AABB(hole2))
-                            && ! hole.intersection(hole2).empty()) // TODO should technically be outline: Check if this is fine either way as it would save an offset
+                            && ! hole.intersection(PolygonUtils::clipPolygonWithAABB(hole2, hole_aabb)).empty())
                         {
                             hole_rest_map[layer_idx][idx].emplace_back(idx2);
                         }
