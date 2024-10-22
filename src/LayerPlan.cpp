@@ -1328,11 +1328,6 @@ void LayerPlan::addWall(
     {
         return;
     }
-    if (is_closed)
-    {
-        // make sure wall start point is not above air!
-        start_idx = locateFirstSupportedVertex(wall, start_idx);
-    }
     const bool actual_scarf_seam = scarf_seam && is_closed;
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
@@ -3047,6 +3042,11 @@ void LayerPlan::setOverhangMask(const Shape& polys)
 void LayerPlan::setSeamOverhangMask(const Shape& polys)
 {
     seam_overhang_mask_ = polys;
+}
+
+const Shape& LayerPlan::getSeamOverhangMask() const
+{
+    return seam_overhang_mask_;
 }
 
 void LayerPlan::setRoofingMask(const Shape& polys)
