@@ -337,44 +337,27 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
 
 static bool retractConfigIsSame(const RetractionConfig& a, const RetractionConfig& b)
 {
-    return a.distance == b.distance
-        && a.prime_volume == b.prime_volume
-        && a.speed == b.speed
-        && a.primeSpeed == b.primeSpeed
-        && a.zHop == b.zHop
-        && a.retraction_min_travel_distance == b.retraction_min_travel_distance
-        && a.retraction_extrusion_window == b.retraction_extrusion_window
+    return a.distance == b.distance && a.prime_volume == b.prime_volume && a.speed == b.speed && a.primeSpeed == b.primeSpeed && a.zHop == b.zHop
+        && a.retraction_min_travel_distance == b.retraction_min_travel_distance && a.retraction_extrusion_window == b.retraction_extrusion_window
         && a.retraction_count_max == b.retraction_count_max;
 }
 
 static bool switchRetractConfigIsSame(const RetractionAndWipeConfig& a, const RetractionAndWipeConfig& b)
 {
     return retractConfigIsSame(a.extruder_switch_retraction_config, b.extruder_switch_retraction_config)
-        && a.retraction_hop_after_extruder_switch == b.retraction_hop_after_extruder_switch
-        && a.switch_extruder_extra_prime_amount == b.switch_extruder_extra_prime_amount;
+        && a.retraction_hop_after_extruder_switch == b.retraction_hop_after_extruder_switch && a.switch_extruder_extra_prime_amount == b.switch_extruder_extra_prime_amount;
 }
 
 static bool wipeConfigIsSame(const WipeScriptConfig& a, const WipeScriptConfig& b)
 {
-    return retractConfigIsSame(a.retraction_config, b.retraction_config)
-        && a.retraction_enable == b.retraction_enable
-        && a.pause == b.pause
-        && a.hop_enable == b.hop_enable
-        && a.hop_amount == b.hop_amount
-        && a.hop_speed == b.hop_speed
-        && a.brush_pos_x == b.brush_pos_x
-        && a.repeat_count == b.repeat_count
-        && a.move_distance == b.move_distance
-        && a.move_speed == b.move_speed
-        && a.max_extrusion_mm3 == b.max_extrusion_mm3
-        && a.clean_between_layers == b.clean_between_layers;
+    return retractConfigIsSame(a.retraction_config, b.retraction_config) && a.retraction_enable == b.retraction_enable && a.pause == b.pause && a.hop_enable == b.hop_enable
+        && a.hop_amount == b.hop_amount && a.hop_speed == b.hop_speed && a.brush_pos_x == b.brush_pos_x && a.repeat_count == b.repeat_count && a.move_distance == b.move_distance
+        && a.move_speed == b.move_speed && a.max_extrusion_mm3 == b.max_extrusion_mm3 && a.clean_between_layers == b.clean_between_layers;
 }
 
 static bool retractAndWipeConfigIsSame(const RetractionAndWipeConfig& a, const RetractionAndWipeConfig& b)
 {
-    return retractConfigIsSame(a.retraction_config, b.retraction_config)
-        && switchRetractConfigIsSame(a, b)
-        && wipeConfigIsSame(a.wipe_config, b.wipe_config);
+    return retractConfigIsSame(a.retraction_config, b.retraction_config) && switchRetractConfigIsSame(a, b) && wipeConfigIsSame(a.wipe_config, b.wipe_config);
 }
 
 static void retractionConfigFromSettings(const Settings& settings, RetractionAndWipeConfig* config)
@@ -451,8 +434,12 @@ void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
     // This has potential conflicts with per-extruder retract/wipe settings.
     // So, only override the settings on a per-object basis if all extruder retract/wipe settings are the same.
     const auto& compare_with_first = storage.retraction_wipe_config_per_extruder[0];
-    const bool mesh_overrides_extruder_retraction_and_wipe = ranges::all_of(storage.retraction_wipe_config_per_extruder,
-        [&compare_with_first](const auto& config) { return retractAndWipeConfigIsSame(compare_with_first, config); });
+    const bool mesh_overrides_extruder_retraction_and_wipe = ranges::all_of(
+        storage.retraction_wipe_config_per_extruder,
+        [&compare_with_first](const auto& config)
+        {
+            return retractAndWipeConfigIsSame(compare_with_first, config);
+        });
     for (std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
     {
         retractionAndWipeConfigFromSettings(mesh->settings, &mesh->retraction_wipe_config);
