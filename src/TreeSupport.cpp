@@ -2037,21 +2037,28 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             {
                 AABB hole_aabb = AABB(hole);
                 hole_aabb.expand(EPSILON);
-                if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
+                if(hole.size() > 1)
+                {
+                    // The hole contains other branches! It can not be fully removed.
+                    // This may not fully handle this case as there could be a situation where such a hole becomes invalid, but for now this is the best solution not requiring larger changes.
+                    holes_resting_outside[layer_idx].emplace(idx);
+                }
+                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(outer_walls, hole_aabb)).empty())
                 {
                     holes_resting_outside[layer_idx].emplace(idx);
                 }
-                else if (hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).area() > hole.length() * EPSILON)
+                else if (! hole.intersection(PolygonUtils::clipPolygonWithAABB(relevant_forbidden, hole_aabb)).offset(-config.xy_min_distance / 2).empty())
                 {
-                    holes_resting_outside[layer_idx].emplace(
-                        idx); // technically not resting outside, also not valid, but the alternative is potentially having lines go though the model
+                    // technically not resting outside, also not valid, but the alternative is potentially having lines go through the model
+                    holes_resting_outside[layer_idx].emplace(idx);
                 }
                 else
                 {
                     for (auto [idx2, hole2] : holeparts[layer_idx - 1] | ranges::views::enumerate)
                     {
+                        // TODO should technically be outline: Check if this is fine either way as it would save an offset
                         if (hole_aabb.hit(AABB(hole2))
-                            && ! hole.intersection(hole2).empty()) // TODO should technically be outline: Check if this is fine either way as it would save an offset
+                            && ! hole.intersection(PolygonUtils::clipPolygonWithAABB(hole2, hole_aabb)).empty())
                         {
                             hole_rest_map[layer_idx][idx].emplace_back(idx2);
                         }
@@ -2093,17 +2100,6 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             if (! found)
             {
                 next_removed_holes_by_idx.emplace(idx);
-
-                // Individual pieces of the hole could still be valid (if the 'hole' is made by branches surrounding others' for instance).
-                for (const auto& poly : hole)
-                {
-                    if (poly.area() < 0)
-                    {
-                        auto poly_copy = poly;
-                        poly_copy.reverse();
-                        valid_holes[layer_idx].push_back(poly_copy);
-                    }
-                }
             }
             else
             {
