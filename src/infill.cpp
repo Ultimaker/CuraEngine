@@ -938,8 +938,7 @@ void Infill::connectLines(OpenLinesSet& result_lines)
                         if (vSize2(previous_point - next_point) < half_line_distance_squared
                             && LinearAlg2D::lineLineIntersection(previous_segment->start_, previous_segment->end_, crossing->start_, crossing->end_, intersect)
                             && LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start_, previous_segment->end_) == 0
-                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0
-                            && vSize2(previous_point - intersect) > epsilon_sqd
+                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0 && vSize2(previous_point - intersect) > epsilon_sqd
                             && vSize2(next_point - intersect) > epsilon_sqd)
                         {
                             resolveIntersection(infill_line_width_, intersect, previous_point, next_point, previous_segment, crossing);
