@@ -12,7 +12,9 @@
 #include <optional>
 #include <unordered_set>
 
+#include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/view/concat.hpp>
+#include <range/v3/view/zip.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
@@ -333,7 +335,49 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
     }
 }
 
-static void retractionAndWipeConfigFromSettings(const Settings& settings, RetractionAndWipeConfig* config)
+static bool retractConfigIsSame(const RetractionConfig& a, const RetractionConfig& b)
+{
+    return a.distance == b.distance
+        && a.prime_volume == b.prime_volume
+        && a.speed == b.speed
+        && a.primeSpeed == b.primeSpeed
+        && a.zHop == b.zHop
+        && a.retraction_min_travel_distance == b.retraction_min_travel_distance
+        && a.retraction_extrusion_window == b.retraction_extrusion_window
+        && a.retraction_count_max == b.retraction_count_max;
+}
+
+static bool switchRetractConfigIsSame(const RetractionAndWipeConfig& a, const RetractionAndWipeConfig& b)
+{
+    return retractConfigIsSame(a.extruder_switch_retraction_config, b.extruder_switch_retraction_config)
+        && a.retraction_hop_after_extruder_switch == b.retraction_hop_after_extruder_switch
+        && a.switch_extruder_extra_prime_amount == b.switch_extruder_extra_prime_amount;
+}
+
+static bool wipeConfigIsSame(const WipeScriptConfig& a, const WipeScriptConfig& b)
+{
+    return retractConfigIsSame(a.retraction_config, b.retraction_config)
+        && a.retraction_enable == b.retraction_enable
+        && a.pause == b.pause
+        && a.hop_enable == b.hop_enable
+        && a.hop_amount == b.hop_amount
+        && a.hop_speed == b.hop_speed
+        && a.brush_pos_x == b.brush_pos_x
+        && a.repeat_count == b.repeat_count
+        && a.move_distance == b.move_distance
+        && a.move_speed == b.move_speed
+        && a.max_extrusion_mm3 == b.max_extrusion_mm3
+        && a.clean_between_layers == b.clean_between_layers;
+}
+
+static bool retractAndWipeConfigIsSame(const RetractionAndWipeConfig& a, const RetractionAndWipeConfig& b)
+{
+    return retractConfigIsSame(a.retraction_config, b.retraction_config)
+        && switchRetractConfigIsSame(a, b)
+        && wipeConfigIsSame(a.wipe_config, b.wipe_config);
+}
+
+static void retractionConfigFromSettings(const Settings& settings, RetractionAndWipeConfig* config)
 {
     RetractionConfig& retraction_config = config->retraction_config;
     retraction_config.distance = (settings.get<bool>("retraction_enable")) ? settings.get<double>("retraction_amount") : 0; // Retraction distance in mm.
@@ -344,7 +388,10 @@ static void retractionAndWipeConfigFromSettings(const Settings& settings, Retrac
     retraction_config.retraction_min_travel_distance = settings.get<coord_t>("retraction_min_travel");
     retraction_config.retraction_extrusion_window = settings.get<double>("retraction_extrusion_window"); // Window to count retractions in in mm of extruded filament.
     retraction_config.retraction_count_max = settings.get<size_t>("retraction_count_max");
+}
 
+static void switchRetractionConfigFromSettings(const Settings& settings, RetractionAndWipeConfig* config)
+{
     config->retraction_hop_after_extruder_switch = settings.get<bool>("retraction_hop_after_extruder_switch");
     config->switch_extruder_extra_prime_amount = settings.get<double>("switch_extruder_extra_prime_amount");
     RetractionConfig& switch_retraction_config = config->extruder_switch_retraction_config;
@@ -357,7 +404,10 @@ static void retractionAndWipeConfigFromSettings(const Settings& settings, Retrac
     switch_retraction_config.retraction_extrusion_window
         = 99999.9; // So that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions).
     switch_retraction_config.retraction_count_max = 9999999; // Extruder switch retraction is never limited.
+}
 
+static void wipeScriptConfigFromSettings(const Settings& settings, RetractionAndWipeConfig* config)
+{
     WipeScriptConfig& wipe_config = config->wipe_config;
 
     wipe_config.retraction_enable = settings.get<bool>("wipe_retraction_enable");
@@ -383,17 +433,30 @@ static void retractionAndWipeConfigFromSettings(const Settings& settings, Retrac
     wipe_config.clean_between_layers = settings.get<bool>("clean_between_layers");
 }
 
+static void retractionAndWipeConfigFromSettings(const Settings& settings, RetractionAndWipeConfig* config)
+{
+    retractionConfigFromSettings(settings, config);
+    switchRetractionConfigFromSettings(settings, config);
+    wipeScriptConfigFromSettings(settings, config);
+}
+
 void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
-    for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
+    for (auto [train, retraction_wipe_config] : ranges::views::zip(scene.extruders, storage.retraction_wipe_config_per_extruder))
     {
-        ExtruderTrain& train = scene.extruders[extruder_index];
-        retractionAndWipeConfigFromSettings(train.settings_, &storage.retraction_wipe_config_per_extruder[extruder_index]);
+        retractionAndWipeConfigFromSettings(train.settings_, &retraction_wipe_config);
     }
+    // The 'per-object' retraction and wipe settings are currently always filled, even if not overridden.
+    // This has potential conflicts with per-extruder retract/wipe settings.
+    // So, only override the settings on a per-object basis if all extruder retract/wipe settings are the same.
+    const auto& compare_with_first = storage.retraction_wipe_config_per_extruder[0];
+    const bool mesh_overrides_extruder_retraction_and_wipe = ranges::all_of(storage.retraction_wipe_config_per_extruder,
+        [&compare_with_first](const auto& config) { return retractAndWipeConfigIsSame(compare_with_first, config); });
     for (std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
     {
         retractionAndWipeConfigFromSettings(mesh->settings, &mesh->retraction_wipe_config);
+        mesh->override_extruder_retract_settings = mesh_overrides_extruder_retraction_and_wipe;
     }
 }
 

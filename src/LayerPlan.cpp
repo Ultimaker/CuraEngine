@@ -356,15 +356,14 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
     const GCodePathConfig& travel_config = configs_storage_.travel_config_per_extruder[getExtruder()];
 
     const RetractionConfig& retraction_config
-        = current_mesh_ ? current_mesh_->retraction_wipe_config.retraction_config : storage_.retraction_wipe_config_per_extruder[getExtruder()].retraction_config;
+        = current_mesh_ && current_mesh_->override_extruder_retract_settings ? current_mesh_->retraction_wipe_config.retraction_config : storage_.retraction_wipe_config_per_extruder[getExtruder()].retraction_config;
 
     GCodePath* path = getLatestPathWithConfig(travel_config, SpaceFillType::None, z_offset);
 
     bool combed = false;
 
     const ExtruderTrain* extruder = getLastPlannedExtruderTrain();
-    const Settings& mesh_or_extruder_settings = current_mesh_ ? current_mesh_->settings : extruder->settings_;
-
+    const Settings& mesh_or_extruder_settings = current_mesh_ && current_mesh_->override_extruder_retract_settings ? current_mesh_->settings : extruder->settings_;
 
     const bool is_first_travel_of_extruder_after_switch
         = extruder_plans_.back().paths_.size() == 1 && (extruder_plans_.size() > 1 || last_extruder_previous_layer_ != getExtruder());
@@ -2268,7 +2267,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         }
     }
 
-
     gcode.setZ(z_);
 
     std::optional<GCodePathConfig> last_extrusion_config = std::nullopt; // used to check whether we need to insert a TYPE comment in the gcode.
@@ -2285,7 +2283,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
 
         const RetractionAndWipeConfig* retraction_config
-            = current_mesh ? &current_mesh->retraction_wipe_config : &storage_.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_];
+            = current_mesh && current_mesh->override_extruder_retract_settings ? &current_mesh->retraction_wipe_config : &storage_.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_];
         coord_t z_hop_height = retraction_config->retraction_config.zHop;
 
         if (extruder_nr != extruder_plan.extruder_nr_)
@@ -2696,7 +2694,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         {
             gcode.writeComment("Small layer, adding delay");
             const RetractionAndWipeConfig& actual_retraction_config
-                = current_mesh ? current_mesh->retraction_wipe_config : storage_.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
+                = current_mesh && current_mesh->override_extruder_retract_settings ? current_mesh->retraction_wipe_config : storage_.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(actual_retraction_config.retraction_config);
             if (extruder_plan_idx == extruder_plans_.size() - 1 || ! extruder.settings_.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
