@@ -417,7 +417,7 @@ const Point3LL& GCodeExport::getPosition() const
 }
 Point2LL GCodeExport::getPositionXY() const
 {
-    return Point2LL(current_position_.x_, current_position_.y_);
+    return current_position_.toPoint2LL();
 }
 
 int GCodeExport::getPositionZ() const

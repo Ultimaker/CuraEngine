@@ -57,20 +57,27 @@ class LayerPlan : public NoCopy
 #endif
 
 public:
-    // 'AdjustCoasting'; because split-up paths from the same extruder (with no travel moves between them) should count as the same path w.r.t. coasting.
-    enum class AdjustCoasting
-    {
-        AsNormal,
-        CoastEntirePath,
-        ContinueCoasting
-    };
-
     const PathConfigStorage configs_storage_; //!< The line configs for this layer for each feature type
     const coord_t z_;
     coord_t final_travel_z_;
     bool mode_skip_agressive_merge_; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
+    // Indicates how coasting should be processed on the given path.
+    enum class ApplyCoasting
+    {
+        NoCoasting, // Do not apply coasting on this path, extrude it normally
+        CoastEntirePath, // Fully coast this path, i.e. replace it by travel moves
+        PartialCoasting // Extrude the first part of the path and coast the end
+    };
+
+    struct PathCoasting
+    {
+        ApplyCoasting apply_coasting{ ApplyCoasting::NoCoasting };
+        size_t coasting_start_index{ 0 };
+        Point3LL coasting_start_pos;
+    };
+
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr_; //!< The layer number of this layer plan
     const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
@@ -700,28 +707,6 @@ public:
     bool makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx);
 
     /*!
-     * Writes a path to GCode and performs coasting, or returns false if it did nothing.
-     *
-     * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
-     *
-     * \param gcode The gcode to write the planned paths to.
-     * \param extruder_plan_idx The index of the current extruder plan.
-     * \param path_idx The index into LayerPlan::paths for the next path to be
-     * written to GCode.
-     * \param layer_thickness The height of the current layer.
-     * \param insertTempOnTime A function that inserts temperature changes at a given time.
-     * \param coasting_adjust Paths can be split up, so we need to know when to continue coasting from last, or even coast the entire path.
-     * \return Whether any GCode has been written for the path.
-     */
-    bool writePathWithCoasting(
-        GCodeExport& gcode,
-        const size_t extruder_plan_idx,
-        const size_t path_idx,
-        const coord_t layer_thickness,
-        const std::function<void(const double, const int64_t)> insertTempOnTime,
-        const std::pair<AdjustCoasting, double> coasting_adjust);
-
-    /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed.
      *
      * \param starting_position The position of the print head when the first extruder plan of this layer starts
@@ -894,6 +879,37 @@ private:
         const Ratio end_speed_ratio,
         const coord_t decelerate_length,
         const bool is_scarf_closure);
+
+    /*!
+     * Pre-calculates the coasting to be applied on the paths
+     *
+     * \param extruder_settings The current extruder settings
+     * \param paths The current set of paths to be written to GCode
+     * \param current_position The last position set in the gcode writer
+     * \return The list of coasting settings to be applied on the paths. It will always have the same size as paths.
+     */
+    std::vector<PathCoasting> calculatePathsCoasting(const Settings& extruder_settings, const std::vector<GCodePath>& paths, const Point3LL& current_position) const;
+
+    /*!
+     * Writes a path to GCode and performs coasting, or returns false if it did nothing.
+     *
+     * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
+     *
+     * \param gcode The gcode to write the planned paths to.
+     * \param extruder_plan_idx The index of the current extruder plan.
+     * \param path_idx The index into LayerPlan::paths for the next path to be
+     * written to GCode.
+     * \param layer_thickness The height of the current layer.
+     * \param insertTempOnTime A function that inserts temperature changes at a given time.
+     * \param path_coasting The actual coasting to be applied to the path.
+     * \return Whether any GCode has been written for the path.
+     */
+    bool writePathWithCoasting(
+        GCodeExport& gcode,
+        const size_t extruder_plan_idx,
+        const size_t path_idx,
+        const std::function<void(const double, const int64_t)> insertTempOnTime,
+        const PathCoasting& path_coasting);
 
     /*!
      * \brief Helper function to calculate the distance from the start of the current wall line to the first bridge segment
