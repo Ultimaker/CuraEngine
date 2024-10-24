@@ -530,7 +530,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
                 const Shape more_dense_infill = infill_area.difference(less_dense_infill);
                 infill_area_per_combine_current_density.push_back(
-                    simplifier.polygon(more_dense_infill.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
+                    simplifier.polygon(more_dense_infill.difference(sum_more_dense)));
                 if (is_connected)
                 {
                     sum_more_dense = sum_more_dense.unionPolygons(more_dense_infill);
@@ -538,7 +538,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
             }
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-            infill_area_per_combine_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
+            infill_area_per_combine_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense)));
             part.infill_area_own = std::nullopt; // clear infill_area_own, it's not needed any more.
             assert(! part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
         }
