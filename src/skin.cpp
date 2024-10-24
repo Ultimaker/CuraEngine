@@ -529,8 +529,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 part.infill_area_per_combine_per_density.emplace_back();
                 std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
                 const Shape more_dense_infill = infill_area.difference(less_dense_infill);
-                infill_area_per_combine_current_density.push_back(
-                    simplifier.polygon(more_dense_infill.difference(sum_more_dense)));
+                infill_area_per_combine_current_density.push_back(simplifier.polygon(more_dense_infill.difference(sum_more_dense)));
                 if (is_connected)
                 {
                     sum_more_dense = sum_more_dense.unionPolygons(more_dense_infill);
