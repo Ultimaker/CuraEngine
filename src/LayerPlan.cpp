@@ -1244,7 +1244,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -1293,7 +1293,7 @@ std::vector<LayerPlan::PathCoasting>
                             path_coasting = { ApplyCoasting::PartialCoasting, point_idx, coasting_start_pos };
                             chunk_coasting_point_reached = true;
                         }
-                        else if (point_idx == 0)
+                        else if (point_idx == 0) // End of path reached (reverse iteration), coasting not fulfilled
                         {
                             path_coasting.apply_coasting = ApplyCoasting::CoastEntirePath;
                         }
