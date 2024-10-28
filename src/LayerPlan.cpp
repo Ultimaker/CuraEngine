@@ -14,6 +14,7 @@
 
 #include "Application.h" //To communicate layer view data.
 #include "ExtruderTrain.h"
+#include "PathAdapter.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
 #include "Slice.h"
 #include "WipeScriptConfig.h"
@@ -557,29 +558,54 @@ void LayerPlan::addPolygon(
     const Polygon& polygon,
     int start_idx,
     const bool backwards,
+    const Settings& settings,
     const GCodePathConfig& config,
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio& flow_ratio,
-    bool always_retract)
+    bool always_retract,
+    bool scarf_seam,
+    bool smooth_speed,
+    bool is_candidate_small_feature)
 {
-    constexpr Ratio width_ratio = 1.0_r; // Not printed with variable line width.
+    constexpr bool is_closed = true;
+
     Point2LL p0 = polygon[start_idx];
     addTravel(p0, always_retract, config.z_offset);
-    const int direction = backwards ? -1 : 1;
-    for (size_t point_idx = 1; point_idx < polygon.size(); point_idx++)
-    {
-        Point2LL p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, width_ratio, spiralize);
-        p0 = p1;
-    }
+
+    addWallWithScarfSeam(
+        PathAdapter(polygon, config.getLineWidth()),
+        start_idx,
+        settings,
+        config,
+        flow_ratio,
+        always_retract,
+        is_closed,
+        backwards,
+        is_candidate_small_feature,
+        scarf_seam,
+        smooth_speed,
+        [this, &config, &spiralize](
+            const Point3LL& /*start*/,
+            const Point3LL& end,
+            const Ratio& speed_factor,
+            const Ratio& actual_flow_ratio,
+            const Ratio& line_width_ratio,
+            const coord_t /*distance_to_bridge_start*/)
+        {
+            constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+            constexpr bool travel_to_z = false;
+
+            addExtrusionMove(end, config, SpaceFillType::Polygons, actual_flow_ratio, line_width_ratio, spiralize, speed_factor, fan_speed, travel_to_z);
+        });
+
+
     if (polygon.size() > 2)
     {
-        addExtrusionMove(polygon[start_idx], config, SpaceFillType::Polygons, flow_ratio, width_ratio, spiralize);
-
         if (wall_0_wipe_dist > 0)
         { // apply outer wall wipe
             p0 = polygon[start_idx];
+            const int direction = backwards ? -1 : 1;
             int distance_traversed = 0;
             for (size_t point_idx = 1;; point_idx++)
             {
@@ -611,13 +637,16 @@ void LayerPlan::addPolygon(
 void LayerPlan::addPolygonsByOptimizer(
     const Shape& polygons,
     const GCodePathConfig& config,
+    const Settings& settings,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio flow_ratio,
     bool always_retract,
     bool reverse_order,
-    const std::optional<Point2LL> start_near_location)
+    const std::optional<Point2LL> start_near_location,
+    bool scarf_seam,
+    bool smooth_speed)
 {
     if (polygons.empty())
     {
@@ -630,20 +659,33 @@ void LayerPlan::addPolygonsByOptimizer(
     }
     orderOptimizer.optimize();
 
+    auto add_polygons
+        = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &always_retract, &scarf_seam, &smooth_speed](const auto& iterator_begin, const auto& iterator_end)
+    {
+        for (auto iterator = iterator_begin; iterator != iterator_end; ++iterator)
+        {
+            addPolygon(
+                *iterator->vertices_,
+                iterator->start_vertex_,
+                iterator->backwards_,
+                settings,
+                config,
+                wall_0_wipe_dist,
+                spiralize,
+                flow_ratio,
+                always_retract,
+                scarf_seam,
+                smooth_speed);
+        }
+    };
+
     if (! reverse_order)
     {
-        for (const PathOrdering<const Polygon*>& path : orderOptimizer.paths_)
-        {
-            addPolygon(*path.vertices_, path.start_vertex_, path.backwards_, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
-        }
+        add_polygons(orderOptimizer.paths_.begin(), orderOptimizer.paths_.end());
     }
     else
     {
-        for (int index = orderOptimizer.paths_.size() - 1; index >= 0; --index)
-        {
-            const PathOrdering<const Polygon*>& path = orderOptimizer.paths_[index];
-            addPolygon(*path.vertices_, path.start_vertex_, path.backwards_, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
-        }
+        add_polygons(orderOptimizer.paths_.rbegin(), orderOptimizer.paths_.rend());
     }
 }
 
@@ -865,7 +907,7 @@ void LayerPlan::addWallLine(
             flow,
             width_factor,
             spiralize,
-            segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : 1.0_r,
+            segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
@@ -996,25 +1038,22 @@ void LayerPlan::addWall(
     addWall(ewall, start_idx, settings, default_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
 }
 
+template<class PathType>
 void LayerPlan::addSplitWall(
-    const ExtrusionLine& wall,
+    const PathAdapter<PathType>& wall,
     const coord_t wall_length,
-    size_t start_idx,
-    const int direction,
+    const size_t start_idx,
     const size_t max_index,
-    const Settings& settings,
+    const int direction,
     const GCodePathConfig& default_config,
-    const GCodePathConfig& roofing_config,
-    const GCodePathConfig& bridge_config,
-    const double flow_ratio,
-    const Ratio line_width_ratio,
-    double& non_bridge_line_volume,
-    const coord_t min_bridge_line_len,
     const bool always_retract,
     const bool is_small_feature,
     Ratio small_feature_speed_factor,
     const coord_t max_area_deviation,
     const auto max_resolution,
+    const double flow_ratio,
+    const coord_t nominal_line_width,
+    const coord_t min_bridge_line_len,
     const auto scarf_seam_length,
     const auto scarf_seam_start_ratio,
     const auto scarf_split_distance,
@@ -1024,13 +1063,22 @@ void LayerPlan::addSplitWall(
     const coord_t accelerate_length,
     const Ratio end_speed_ratio,
     const coord_t decelerate_length,
-    const bool is_scarf_closure)
+    const bool is_scarf_closure,
+    const bool compute_distance_to_bridge_start,
+    const std::function<void(
+        const Point3LL& start,
+        const Point3LL& end,
+        const Ratio& speed_factor,
+        const Ratio& flow_ratio,
+        const Ratio& line_width_ratio,
+        const coord_t distance_to_bridge_start)>& func_add_segment)
 {
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
-    ExtrusionJunction p0 = wall[start_idx];
+    Point2LL p0 = wall.pointAt(start_idx);
+    coord_t w0 = wall.lineWidthAt(start_idx);
     bool first_line = ! is_scarf_closure;
     bool first_split = ! is_scarf_closure;
-    Point3LL split_origin = p0.p_;
+    Point3LL split_origin = p0;
     if (! is_scarf_closure && scarf_seam_length > 0)
     {
         split_origin.z_ = scarf_max_z_offset;
@@ -1044,16 +1092,21 @@ void LayerPlan::addSplitWall(
 
     for (size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
-        const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
+        const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
+        const Point2LL& p1 = wall.pointAt(actual_point_index);
+        const coord_t w1 = wall.lineWidthAt(actual_point_index);
 
-        if (! bridge_wall_mask_.empty())
+        if constexpr (std::is_same_v<PathType, ExtrusionLine>)
         {
-            distance_to_bridge_start = computeDistanceToBridgeStart(wall, (wall.size() + start_idx + point_idx * direction - 1) % wall.size(), min_bridge_line_len);
+            if (compute_distance_to_bridge_start && ! bridge_wall_mask_.empty())
+            {
+                distance_to_bridge_start = computeDistanceToBridgeStart(wall.getPath(), (wall.size() + start_idx + point_idx * direction - 1) % wall.size(), min_bridge_line_len);
+            }
         }
 
         if (first_line)
         {
-            addTravel(p0.p_, always_retract);
+            addTravel(p0, always_retract);
             first_line = false;
         }
 
@@ -1069,8 +1122,8 @@ void LayerPlan::addSplitWall(
         pieces we'd want to get low enough deviation, then check if each piece
         is not too short at the end.
         */
-        const coord_t delta_line_width = p1.w_ - p0.w_;
-        const Point2LL line_vector = p1.p_ - p0.p_;
+        const coord_t delta_line_width = w1 - w0;
+        const Point2LL line_vector = p1 - p0;
         const coord_t line_length = vSize(line_vector);
         /*
         Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
@@ -1091,12 +1144,13 @@ void LayerPlan::addSplitWall(
             const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
             // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
             // and the generated GCodePath objects will not be merged together, which some subsequent algorithms rely on (e.g. coasting)
-            const coord_t line_width = std::lrint(static_cast<double>(p0.w_) + average_progress * static_cast<double>(delta_line_width));
-            const Point2LL destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
+            const coord_t line_width = std::lrint(static_cast<double>(w0) + average_progress * static_cast<double>(delta_line_width));
+            const Ratio line_width_ratio = static_cast<double>(line_width) / nominal_line_width;
+            const Point2LL destination = p0 + normal(line_vector, piece_length * (piece + 1));
             if (is_small_feature && ! is_scarf_closure)
             {
                 constexpr bool spiralize = false;
-                addExtrusionMove(destination, default_config, SpaceFillType::Polygons, flow_ratio, line_width * line_width_ratio, spiralize, small_feature_speed_factor);
+                addExtrusionMove(destination, default_config, SpaceFillType::Polygons, flow_ratio, line_width_ratio, spiralize, small_feature_speed_factor);
             }
             else
             {
@@ -1170,7 +1224,7 @@ void LayerPlan::addSplitWall(
                         if (first_split)
                         {
                             // Manually add a Z-only travel move to set the nozzle at the height of the first point
-                            addTravel(p0.p_, always_retract, split_origin.z_);
+                            addTravel(p0, always_retract, split_origin.z_);
                             first_split = false;
                         }
                     }
@@ -1198,20 +1252,13 @@ void LayerPlan::addSplitWall(
                     }
 
                     // now add the (sub-)segment
-                    constexpr bool travel_to_z = false;
-                    addWallLine(
+                    func_add_segment(
                         split_origin,
                         split_destination,
-                        settings,
-                        default_config,
-                        roofing_config,
-                        bridge_config,
-                        flow_ratio * scarf_segment_flow_ratio,
-                        line_width * line_width_ratio,
-                        non_bridge_line_volume,
                         accelerate_speed_factor * decelerate_speed_factor,
-                        distance_to_bridge_start,
-                        travel_to_z);
+                        flow_ratio * scarf_segment_flow_ratio,
+                        line_width_ratio,
+                        distance_to_bridge_start);
 
                     wall_processed_distance = destination_position;
                     piece_remaining_distance -= length_to_process;
@@ -1308,39 +1355,41 @@ coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const
     return distance_to_bridge_start;
 }
 
-void LayerPlan::addWall(
-    const ExtrusionLine& wall,
+template<class PathType>
+void LayerPlan::addWallWithScarfSeam(
+    const PathAdapter<PathType>& wall,
     size_t start_idx,
     const Settings& settings,
     const GCodePathConfig& default_config,
-    const GCodePathConfig& roofing_config,
-    const GCodePathConfig& bridge_config,
-    coord_t wall_0_wipe_dist,
     const double flow_ratio,
     bool always_retract,
     const bool is_closed,
     const bool is_reversed,
-    const bool is_linked_path,
+    const bool is_candidate_small_feature,
     const bool scarf_seam,
-    const bool smooth_speed)
+    const bool smooth_speed,
+    const std::function<void(
+        const Point3LL& start,
+        const Point3LL& end,
+        const Ratio& speed_factor,
+        const Ratio& flow_ratio,
+        const Ratio& line_width_ratio,
+        const coord_t distance_to_bridge_start)>& func_add_segment)
 {
     if (wall.empty())
     {
         return;
     }
-    const bool actual_scarf_seam = scarf_seam && is_closed;
 
-    double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
+    const bool actual_scarf_seam = scarf_seam && is_closed;
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
 
-    const Ratio nominal_line_width_multiplier{
-        1.0 / Ratio{ static_cast<Ratio::value_type>(default_config.getLineWidth()) }
-    }; // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
+    const coord_t nominal_line_width = default_config.getLineWidth();
 
     const coord_t wall_length = wall.length();
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall_length < small_feature_max_length;
+    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || is_candidate_small_feature) && wall_length < small_feature_max_length;
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     small_feature_speed_factor = std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()));
@@ -1368,25 +1417,23 @@ void LayerPlan::addWall(
 
     auto addSplitWallPass = [&](bool is_scarf_closure)
     {
+        constexpr bool compute_distance_to_bridge_start = true;
+
         addSplitWall(
-            wall,
+            PathAdapter(wall),
             wall_length,
             start_idx,
-            direction,
             max_index,
-            settings,
+            direction,
             default_config,
-            roofing_config,
-            bridge_config,
-            flow_ratio,
-            nominal_line_width_multiplier,
-            non_bridge_line_volume,
-            min_bridge_line_len,
             always_retract,
             is_small_feature,
             small_feature_speed_factor,
             max_area_deviation,
             max_resolution,
+            flow_ratio,
+            nominal_line_width,
+            min_bridge_line_len,
             layer_nr_ > 0 ? scarf_seam_length : 0,
             scarf_seam_start_ratio,
             scarf_split_distance,
@@ -1396,7 +1443,9 @@ void LayerPlan::addWall(
             accelerate_length,
             end_speed_ratio,
             decelerate_length,
-            is_scarf_closure);
+            is_scarf_closure,
+            compute_distance_to_bridge_start,
+            func_add_segment);
     };
 
     // First pass to add the wall with the scarf beginning and acceleration
@@ -1407,6 +1456,68 @@ void LayerPlan::addWall(
         // Second pass to add the scarf closure
         addSplitWallPass(true);
     }
+}
+
+void LayerPlan::addWall(
+    const ExtrusionLine& wall,
+    size_t start_idx,
+    const Settings& settings,
+    const GCodePathConfig& default_config,
+    const GCodePathConfig& roofing_config,
+    const GCodePathConfig& bridge_config,
+    coord_t wall_0_wipe_dist,
+    const double flow_ratio,
+    bool always_retract,
+    const bool is_closed,
+    const bool is_reversed,
+    const bool is_linked_path,
+    const bool scarf_seam,
+    const bool smooth_speed)
+{
+    if (wall.empty())
+    {
+        return;
+    }
+
+    double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
+    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+
+    addWallWithScarfSeam(
+        PathAdapter(wall),
+        start_idx,
+        settings,
+        default_config,
+        flow_ratio,
+        always_retract,
+        is_closed,
+        is_reversed,
+        wall.inset_idx_ == 0,
+        scarf_seam,
+        smooth_speed,
+        [this, &settings, &default_config, &roofing_config, &bridge_config, &non_bridge_line_volume](
+            const Point3LL& start,
+            const Point3LL& end,
+            const Ratio& speed_factor,
+            const Ratio& actual_flow_ratio,
+            const Ratio& line_width_ratio,
+            const coord_t distance_to_bridge_start)
+        {
+            constexpr bool travel_to_z = false;
+
+            addWallLine(
+                start,
+                end,
+                settings,
+                default_config,
+                roofing_config,
+                bridge_config,
+                actual_flow_ratio,
+                line_width_ratio,
+                non_bridge_line_volume,
+                speed_factor,
+                distance_to_bridge_start,
+                travel_to_z);
+        });
 
     if (wall.size() >= 2)
     {
@@ -2381,7 +2492,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                                   | ranges::views::chunk_by(
-                                                      [](const auto&path_a, const auto&path_b)
+                                                      [](const auto& path_a, const auto& path_b)
                                                       {
                                                           return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                       }))
