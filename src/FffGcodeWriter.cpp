@@ -1730,7 +1730,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     constexpr Ratio flow_ratio = 1.0;
     constexpr bool always_retract = false;
     constexpr bool reverse_order = false;
-    constexpr std::optional<Point2LL> start_near_location = std::nullopt;
+    const std::optional<Point2LL> start_near_location = std::nullopt;
     constexpr bool scarf_seam = true;
     constexpr bool smooth_speed = true;
 
