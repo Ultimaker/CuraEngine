@@ -409,6 +409,8 @@ public:
      */
     bool needPrimeBlob() const;
 
+    void writeGcodeFile();
+
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.

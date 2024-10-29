@@ -1726,8 +1726,13 @@ void GCodeExport::finalize(const char* endCode)
     for (int n = 1; n < MAX_EXTRUDERS; n++)
         if (getTotalFilamentUsed(n) > 0)
             spdlog::info("Filament {}: {}", n + 1, int(getTotalFilamentUsed(n)));
+}
+
+void GCodeExport::writeGcodeFile()
+{
     output_stream_->flush();
 }
+
 
 double GCodeExport::getExtrudedVolumeAfterLastWipe(size_t extruder)
 {
