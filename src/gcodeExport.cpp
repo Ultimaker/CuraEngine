@@ -1733,7 +1733,6 @@ void GCodeExport::writeGcodeFile()
     output_stream_->flush();
 }
 
-
 double GCodeExport::getExtrudedVolumeAfterLastWipe(size_t extruder)
 {
     return eToMm3(extruder_attr_[extruder].last_e_value_after_wipe_, extruder);
