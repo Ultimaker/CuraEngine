@@ -3,6 +3,8 @@
 
 #include "utils/scoring/BestElementFinder.h"
 
+#include <limits>
+
 #include "utils/scoring/ScoringCriterion.h"
 
 namespace cura
@@ -10,25 +12,21 @@ namespace cura
 
 std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t candidates_count)
 {
-    if (candidates_count == 0)
-    {
-        return std::nullopt;
-    }
-
     // Start by initializing the candidates list in natural order
-    std::vector<Candidate> candidates(candidates_count);
+    std::vector<Candidate> best_candidates(candidates_count);
     for (size_t i = 0; i < candidates_count; ++i)
     {
-        candidates[i].candidate_index = i;
+        best_candidates[i].candidate_index = i;
     }
 
-    const auto begin = candidates.begin();
-    auto end = candidates.end();
+    const auto begin = best_candidates.begin();
+    auto end = best_candidates.end();
 
     // Now run the criteria passes until we have a single outsider or no more cirteria
     for (const CriteriaPass& criteria_pass : criteria_)
     {
-        // For each element, reset score, process each criterion and apply wweights to get the global score
+        // For each element, reset score, process each criterion and apply weights to get the global score
+        double best_score = 0.0;
         for (auto iterator = begin; iterator != end; ++iterator)
         {
             iterator->score = 0.0;
@@ -37,38 +35,28 @@ std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t cand
             {
                 iterator->score += weighed_criterion.criterion->computeScore(iterator->candidate_index) * weighed_criterion.weight;
             }
+
+            best_score = std::max(best_score, iterator->score);
         }
 
-        // Now sort the candiates (sub)list to get the best candidates first
-        std::sort(
+        // Skip candidates that have a score too far from the actual best one
+        const double delta_threshold = criteria_pass.outsider_delta_threshold + std::numeric_limits<double>::epsilon();
+        end = std::remove_if(
             begin,
             end,
-            [](const Candidate& candidate1, const Candidate& candidate2)
+            [&best_score, &delta_threshold](const Candidate& candidate)
             {
-                return candidate1.score > candidate2.score;
+                return best_score - candidate.score > delta_threshold;
             });
 
-        // Check whether the following candidates have a score similar enough to the actual best one, and skip others
-        if (criteria_pass.outsider_delta_threshold > 0.0)
-        {
-            const double highest_score = candidates.front().score;
-            auto iterator = std::next(begin);
-            while (iterator != end && (highest_score - iterator->score) <= criteria_pass.outsider_delta_threshold)
-            {
-                ++iterator;
-            }
-
-            end = iterator;
-        }
-
-        if (std::distance(begin, end) <= 1)
+        if (std::distance(begin, end) == 1)
         {
             // We have a single outsider, don't go further
-            break;
+            return begin->candidate_index;
         }
     }
 
-    return begin->candidate_index;
+    return begin != end ? std::make_optional(begin->candidate_index) : std::nullopt;
 }
 
 } // namespace cura
