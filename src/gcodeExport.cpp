@@ -1726,9 +1726,10 @@ void GCodeExport::finalize(const char* endCode)
     for (int n = 1; n < MAX_EXTRUDERS; n++)
         if (getTotalFilamentUsed(n) > 0)
             spdlog::info("Filament {}: {}", n + 1, int(getTotalFilamentUsed(n)));
+    flushOutputStream();
 }
 
-void GCodeExport::writeGcodeFile()
+void GCodeExport::flushOutputStream()
 {
     output_stream_->flush();
 }

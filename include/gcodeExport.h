@@ -409,7 +409,10 @@ public:
      */
     bool needPrimeBlob() const;
 
-    void writeGcodeFile();
+    /*
+     *  Function is used to write the content of output_stream to the gcode file
+     */
+    void flushOutputStream();
 
 private:
     /*!

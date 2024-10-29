@@ -4437,7 +4437,7 @@ void FffGcodeWriter::finalize()
     }
 
     gcode.writeComment("End of Gcode");
-    gcode.writeGcodeFile();
+    gcode.flushOutputStream();
     /*
     the profile string below can be executed since the M25 doesn't end the gcode on an UMO and when printing via USB.
     gcode.writeCode("M25 ;Stop reading from this point on.");
