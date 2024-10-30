@@ -2381,7 +2381,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                                   | ranges::views::chunk_by(
-                                                      [](const auto&path_a, const auto&path_b)
+                                                      [](const auto& path_a, const auto& path_b)
                                                       {
                                                           return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                       }))
@@ -2664,14 +2664,14 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         const Point2LL p1 = spiral_path.points[point_idx].toPoint2LL();
                         length += vSizeMM(p0 - p1);
                         p0 = p1;
-                        gcode.setZ(std::round(z_ + layer_thickness_ * length / totalLength));
 
+                        const coord_t z_offset = std::round(layer_thickness_ * length / totalLength);
                         const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
                         writeExtrusionRelativeZ(
                             gcode,
                             spiral_path.points[point_idx],
                             extrude_speed,
-                            path.z_offset,
+                            path.z_offset + z_offset,
                             spiral_path.getExtrusionMM3perMM(),
                             spiral_path.config.type,
                             update_extrusion_offset);
