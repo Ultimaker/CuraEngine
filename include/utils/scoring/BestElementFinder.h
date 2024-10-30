@@ -16,8 +16,9 @@ class ScoringCriterion;
 /*!
  * This class implements an algorithm to find an element amongst a list, regarding one or multiple scoring criteria. The
  * criteria are implemented by subclassing the CriterionScoring class. It is also possible to setup multiple passes of
- * criteria. Thus, if the first pass gives a few best results that are too close to each other, a new pass is processed
- * with different criteria, and so on until we have a single outsider or no more criteria.
+ * criteria. Thus, if the first pass gives a few best candidates that are too close to each other, we keep only the best
+ * candidates and process a second pass with different criteria, and so on until we have a single outsider, or no more
+ * criteria.
  */
 class BestElementFinder
 {
@@ -73,6 +74,11 @@ public:
     {
         criteria_.push_back(pass);
     }
+
+    /*!
+     * Convenience method to add a pass with a single criterion
+     */
+    void appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const double outsider_delta_threshold = 0.0);
 
     std::optional<size_t> findBestElement(const size_t candidates_count);
 };

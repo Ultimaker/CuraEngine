@@ -17,12 +17,21 @@ class PointsSet;
  */
 class DistanceScoringCriterion : public ScoringCriterion
 {
+public:
+    enum class DistanceType
+    {
+        Euclidian, // Classic euclidian distance between the points
+        XOnly, // Only difference on X coordinate
+        YOnly, // Only difference on Y coordinate
+    };
+
 private:
     const PointsSet& points_;
     const Point2LL& target_pos_;
+    const DistanceType distance_type_;
 
 public:
-    explicit DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos);
+    explicit DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type = DistanceType::Euclidian);
 
     virtual double computeScore(const size_t candidate_index) const override;
 };

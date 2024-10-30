@@ -780,18 +780,19 @@ protected:
 
         best_candidate_finder.appendCriteriaPass(main_criteria_pass);
 
-        // ########## Step 2: add a second pass for criteria with very similar scores (e.g. corner on a cylinder)
-        BestElementFinder::CriteriaPass fallback_criteria_pass;
-
-        BestElementFinder::WeighedCriterion fallback_criterion;
-        // fallback strategy is to take points on the back-most position, relative to the path
+        // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
         const AABB path_bounding_box(points);
-        Point2LL fallback_position = path_bounding_box.max_;
-        fallback_position.X -= (path_bounding_box.max_.X - path_bounding_box.min_.X) / 2.0;
-        fallback_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, fallback_position);
 
-        fallback_criteria_pass.criteria.push_back(fallback_criterion);
-        best_candidate_finder.appendCriteriaPass(fallback_criteria_pass);
+        { // First fallback strategy is to take points on the back-most position
+            auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+            constexpr double outsider_delta_threshold = 0.01;
+            best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
+        }
+
+        { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
+            auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+            best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
+        }
 
         // ########## Step 3: apply the criteria to find the vertex with the best global score
         std::optional<size_t> best_i = best_candidate_finder.findBestElement(points.size());

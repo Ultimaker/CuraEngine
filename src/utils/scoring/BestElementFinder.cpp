@@ -10,6 +10,17 @@
 namespace cura
 {
 
+void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const double outsider_delta_threshold)
+{
+    WeighedCriterion weighed_criterion;
+    weighed_criterion.criterion = criterion;
+
+    CriteriaPass criteria_pass;
+    criteria_pass.outsider_delta_threshold = outsider_delta_threshold;
+    criteria_pass.criteria.push_back(weighed_criterion);
+    appendCriteriaPass(criteria_pass);
+}
+
 std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t candidates_count)
 {
     // Start by initializing the candidates list in natural order
