@@ -2186,7 +2186,7 @@ void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& w
         {
             for (const ExtrusionLine& c : b)
             {
-                const Polygon& poly = c.toPolygon();
+                const Polygon poly = c.toPolygon();
                 if (c.is_closed_)
                 {
                     result.push_back(poly.toPseudoOpenPolyline());
@@ -2343,12 +2343,12 @@ void addExtraLinesToSupportSurfacesAbove(
     // invert the supported_area by adding one huge polygon around the outside
     supported_area.push_back(AABB{ supported_area }.toPolygon());
 
-    const Shape& inv_supported_area = supported_area.intersection(part.getOwnInfillArea());
+    const Shape inv_supported_area = supported_area.intersection(part.getOwnInfillArea());
 
     OpenLinesSet unsupported_line_segments = inv_supported_area.intersection(printed_lines_on_layer_above);
 
     // This is to work around a rounding issue in the shape library with border points.
-    const Shape& expanded_inv_supported_area = inv_supported_area.offset(-EPSILON);
+    const Shape expanded_inv_supported_area = inv_supported_area.offset(-EPSILON);
 
     Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
                 infill_line_width,
@@ -2358,7 +2358,7 @@ void addExtraLinesToSupportSurfacesAbove(
 
     for (const OpenPolyline& a : unsupported_line_segments)
     {
-        const OpenPolyline& simplified = s.polyline(a);
+        const OpenPolyline simplified = s.polyline(a);
         for (const Point2LL& point : simplified)
         {
             size_t idx = expanded_inv_supported_area.findInside(point);
