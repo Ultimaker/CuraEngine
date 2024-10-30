@@ -2067,7 +2067,7 @@ void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& 
 void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& line_to_add)
 {
     // Returns the line index and the index of the point within an infill_line, null for no match found.
-    const auto findMatchingSegment = [&](Point2LL p) -> std::optional<std::tuple<size_t, size_t>>
+    const auto findMatchingSegment = [&](const Point2LL& p) -> std::optional<std::tuple<size_t, size_t>>
     {
         for (size_t i = 0; i < infill_lines.size(); ++i)
         {
