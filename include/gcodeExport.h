@@ -409,6 +409,11 @@ public:
      */
     bool needPrimeBlob() const;
 
+    /*
+     *  Function is used to write the content of output_stream to the gcode file
+     */
+    void flushOutputStream();
+
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
