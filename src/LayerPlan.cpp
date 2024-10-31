@@ -565,10 +565,10 @@ void LayerPlan::addPolygon(
     const Ratio& flow_ratio,
     bool always_retract,
     bool scarf_seam,
-    bool smooth_speed,
-    bool is_candidate_small_feature)
+    bool smooth_speed)
 {
     constexpr bool is_closed = true;
+    constexpr bool is_candidate_small_feature = false;
 
     Point2LL p0 = polygon[start_idx];
     addTravel(p0, always_retract, config.z_offset);
@@ -659,7 +659,7 @@ void LayerPlan::addPolygonsByOptimizer(
     }
     orderOptimizer.optimize();
 
-    auto add_polygons
+    const auto add_polygons
         = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &always_retract, &scarf_seam, &smooth_speed](const auto& iterator_begin, const auto& iterator_end)
     {
         for (auto iterator = iterator_begin; iterator != iterator_end; ++iterator)
@@ -1065,13 +1065,7 @@ void LayerPlan::addSplitWall(
     const coord_t decelerate_length,
     const bool is_scarf_closure,
     const bool compute_distance_to_bridge_start,
-    const std::function<void(
-        const Point3LL& start,
-        const Point3LL& end,
-        const Ratio& speed_factor,
-        const Ratio& flow_ratio,
-        const Ratio& line_width_ratio,
-        const coord_t distance_to_bridge_start)>& func_add_segment)
+    const AddExtrusionSegmentFunction& func_add_segment)
 {
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
     Point2LL p0 = wall.pointAt(start_idx);
@@ -1098,6 +1092,9 @@ void LayerPlan::addSplitWall(
 
         if constexpr (std::is_same_v<PathType, ExtrusionLine>)
         {
+            // The bridging functionality has not been designed to work with anything else than ExtrusionLine objects,
+            // and there is no need to do it otherwise yet. So the compute_distance_to_bridge_start argument will
+            // just be ignored if using an other PathType (e.g. Polygon)
             if (compute_distance_to_bridge_start && ! bridge_wall_mask_.empty())
             {
                 distance_to_bridge_start = computeDistanceToBridgeStart(wall.getPath(), (wall.size() + start_idx + point_idx * direction - 1) % wall.size(), min_bridge_line_len);
@@ -1368,13 +1365,7 @@ void LayerPlan::addWallWithScarfSeam(
     const bool is_candidate_small_feature,
     const bool scarf_seam,
     const bool smooth_speed,
-    const std::function<void(
-        const Point3LL& start,
-        const Point3LL& end,
-        const Ratio& speed_factor,
-        const Ratio& flow_ratio,
-        const Ratio& line_width_ratio,
-        const coord_t distance_to_bridge_start)>& func_add_segment)
+    const AddExtrusionSegmentFunction& func_add_segment)
 {
     if (wall.empty())
     {
@@ -1494,8 +1485,7 @@ void LayerPlan::addWall(
         wall.inset_idx_ == 0,
         scarf_seam,
         smooth_speed,
-        [this, &settings, &default_config, &roofing_config, &bridge_config, &non_bridge_line_volume](
-            const Point3LL& start,
+        [&](const Point3LL& start,
             const Point3LL& end,
             const Ratio& speed_factor,
             const Ratio& actual_flow_ratio,
@@ -2492,7 +2482,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                                   | ranges::views::chunk_by(
-                                                      [](const auto&path_a, const auto&path_b)
+                                                      [](const auto& path_a, const auto& path_b)
                                                       {
                                                           return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                       }))

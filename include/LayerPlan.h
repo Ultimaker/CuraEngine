@@ -396,6 +396,8 @@ public:
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addPolygon(
         const Polygon& polygon,
@@ -408,8 +410,7 @@ public:
         const Ratio& flow_ratio = 1.0_r,
         bool always_retract = false,
         bool scarf_seam = false,
-        bool smooth_speed = false,
-        bool is_candidate_small_feature = false);
+        bool smooth_speed = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -438,6 +439,8 @@ public:
      * \param reverse_order Adds polygons in reverse order.
      * \param start_near_location Start optimising the path near this location.
      * If unset, this causes it to start near the last planned location.
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addPolygonsByOptimizer(
         const Shape& polygons,
@@ -535,6 +538,8 @@ public:
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
      * \param is_linked_path Whether the path is a continuation off the previous path
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addWall(
         const ExtrusionLine& wall,
@@ -845,6 +850,23 @@ private:
         bool update_extrusion_offset = false);
 
     /*!
+     * \brief Alias for a function definition that adds an extrusion segment
+     * \param start The start position of the segment
+     * \param end The end position of the segment
+     * \param speed_factor The speed factor to be applied when extruding this specific segment (relative to nominal speed for the entire path)
+     * \param flow_ratio The flow ratio to be applied when extruding this specific segment (relative to nominal flow for the entire path)
+     * \param line_width_ratio The line width ratio to be applied when extruding this specific segment (relative to nominal line width for the entire path)
+     * \param distance_to_bridge_start The calculate distance to the next bridge start, which may be irrelevant in some cases
+     */
+    using AddExtrusionSegmentFunction = std::function<void(
+        const Point3LL& start,
+        const Point3LL& end,
+        const Ratio& speed_factor,
+        const Ratio& flow_ratio,
+        const Ratio& line_width_ratio,
+        const coord_t distance_to_bridge_start)>;
+
+    /*!
      * \brief Add a wall to the gcode with optimized order, but split into pieces in order to facilitate the scarf seam and/or speed gradient.
      * \tparam PathType The type of path to be processed, either ExtrusionLine or some subclass of Polyline
      * \param wall The full wall to be added
@@ -902,13 +924,7 @@ private:
         const coord_t decelerate_length,
         const bool is_scarf_closure,
         const bool compute_distance_to_bridge_start,
-        const std::function<void(
-            const Point3LL& start,
-            const Point3LL& end,
-            const Ratio& speed_factor,
-            const Ratio& flow_ratio,
-            const Ratio& line_width_ratio,
-            const coord_t distance_to_bridge_start)>& func_add_segment);
+        const AddExtrusionSegmentFunction& func_add_segment);
 
     /*!
      * \brief Add a wall to the gcode with optimized order, possibly adding a scarf seam / speed gradient according to settings
@@ -922,8 +938,8 @@ private:
      * \param is_closed Indicates whether the path is closed (or open)
      * \param is_reversed Indicates if the path is to be processed backwards
      * \param is_candidate_small_feature Indicates whether the path should be tested for being treated as a smell feature
-     * \param scarf_seam Indicates whether we may set a scraf seam to the path
-     * \param smooth_speed Indicates whether we may set a speed gradient to the path
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      * \param func_add_segment The function to be called to actually add an extrusion segment with the given parameters
      */
     template<class PathType>
@@ -939,13 +955,7 @@ private:
         const bool is_candidate_small_feature,
         const bool scarf_seam,
         const bool smooth_speed,
-        const std::function<void(
-            const Point3LL& start,
-            const Point3LL& end,
-            const Ratio& speed_factor,
-            const Ratio& flow_ratio,
-            const Ratio& line_width_ratio,
-            const coord_t distance_to_bridge_start)>& func_add_segment);
+        const AddExtrusionSegmentFunction& func_add_segment);
 
     /*!
      * \brief Helper function to calculate the distance from the start of the current wall line to the first bridge segment
