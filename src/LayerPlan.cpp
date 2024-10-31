@@ -1271,6 +1271,109 @@ void LayerPlan::addSplitWall(
     }
 }
 
+std::vector<LayerPlan::PathCoasting>
+    LayerPlan::calculatePathsCoasting(const Settings& extruder_settings, const std::vector<GCodePath>& paths, const Point3LL& current_position) const
+{
+    std::vector<LayerPlan::PathCoasting> path_coastings;
+    path_coastings.resize(paths.size());
+
+    if (extruder_settings.get<bool>("coasting_enable"))
+    {
+        // Chunk paths by travel paths, and find out which paths are a 'continuation' w.r.t. coasting (and which need to be 'coasted away' entirely).
+        // Note that this doesn't perform the coasting itself, it just calculates the coasting values which will be applied by the 'writePathWithCoasting' func.
+        // All of this is necessary since we split up paths because of scarf and acceleration-adjustments (start/end), so we need to have adjacency info.
+
+        const double coasting_volume = extruder_settings.get<double>("coasting_volume");
+        const double coasting_min_volume = extruder_settings.get<double>("coasting_min_volume");
+
+        for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
+                                              | ranges::views::chunk_by(
+                                                  [](const auto&path_a, const auto&path_b)
+                                                  {
+                                                      return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
+                                                  }))
+        {
+            double accumulated_volume = 0.0;
+            bool chunk_coasting_point_reached = false;
+            bool chunk_min_volume_reached = false;
+
+            for (const auto& [path_idx, path] : reversed_chunk)
+            {
+                if (path.isTravelPath())
+                {
+                    continue;
+                }
+
+                PathCoasting& path_coasting = path_coastings[path_idx];
+                const double path_extrusion_per_length = path.config.extrusion_mm3_per_mm * path.flow;
+
+                for (const auto& [point_idx, point] : path.points | ranges::views::enumerate | ranges::views::reverse)
+                {
+                    Point3LL previous_point;
+                    if (point_idx > 0)
+                    {
+                        previous_point = path.points[point_idx - 1];
+                    }
+                    else if (path_idx > 0)
+                    {
+                        previous_point = paths[path_idx - 1].points.back();
+                    }
+                    else
+                    {
+                        previous_point = current_position;
+                    }
+
+                    const double segment_length = INT2MM((point - previous_point).vSize());
+                    const double segment_volume = segment_length * path_extrusion_per_length;
+
+                    accumulated_volume += segment_volume;
+
+                    if (! chunk_coasting_point_reached && path_coasting.apply_coasting == ApplyCoasting::NoCoasting)
+                    {
+                        if (accumulated_volume >= coasting_volume)
+                        {
+                            const double start_pos_factor = (accumulated_volume - coasting_volume) / segment_volume;
+                            Point3LL coasting_start_pos = cura::lerp(previous_point, point, start_pos_factor);
+                            path_coasting = { ApplyCoasting::PartialCoasting, point_idx, coasting_start_pos };
+                            chunk_coasting_point_reached = true;
+                        }
+                        else if (point_idx == 0) // End of path reached (reverse iteration), coasting not fulfilled
+                        {
+                            path_coasting.apply_coasting = ApplyCoasting::CoastEntirePath;
+                        }
+                    }
+
+                    if (accumulated_volume >= coasting_min_volume)
+                    {
+                        chunk_min_volume_reached = true;
+                    }
+
+                    if (chunk_min_volume_reached && chunk_coasting_point_reached)
+                    {
+                        break;
+                    }
+                }
+
+                if (chunk_min_volume_reached && chunk_coasting_point_reached)
+                {
+                    break;
+                }
+            }
+
+            if (! chunk_min_volume_reached)
+            {
+                // It turns out this chunk doesn't fit the minimum requirements for coasting, so skip it
+                for (const auto& [path_idx, path] : reversed_chunk)
+                {
+                    path_coastings[path_idx].apply_coasting = ApplyCoasting::NoCoasting;
+                }
+            }
+        }
+    }
+
+    return path_coastings;
+}
+
 coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const
 {
     coord_t distance_to_bridge_start = 0;
@@ -2155,7 +2258,7 @@ double ExtruderPlan::getRetractTime(const GCodePath& path)
     return retraction_config_.distance / (path.retract ? retraction_config_.speed : retraction_config_.primeSpeed);
 }
 
-std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path)
+std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path) const
 {
     const double length = (p0 - p1).vSizeMM();
     return { length, length / (path.config.getSpeed() * path.speed_factor) };
@@ -2470,57 +2573,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
         };
 
-        std::vector<std::pair<AdjustCoasting, double>> coasting_adjust_per_path;
-        if (extruder.settings_.get<bool>("coasting_enable"))
-        {
-            // Chunk paths by travel paths, and find out which paths are a 'continuation' w.r.t. coasting (and which need to be 'coasted away' entirely).
-            // Note that this doesn't perform the coasting itself, it just calculates the 'adjust coasting' vector needed by the 'writePathWithCoasting' func.
-            // All of this is nescesary since we split up paths because of scarf and accelleration-adjustments (start/end), so we need to have adjacency info.
+        const std::vector<PathCoasting> coasting_per_path = calculatePathsCoasting(extruder.settings_, paths, gcode.getPosition());
 
-            const double coasting_volume = extruder.settings_.get<double>("coasting_volume");
-            coasting_adjust_per_path.assign(paths.size(), { AdjustCoasting::AsNormal, coasting_volume });
-
-            for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
-                                                  | ranges::views::chunk_by(
-                                                      [](const auto&path_a, const auto&path_b)
-                                                      {
-                                                          return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
-                                                      }))
-            {
-                double coasting_left = coasting_volume;
-                for (const auto& [path_idx, path] : reversed_chunk)
-                {
-                    if (path.isTravelPath())
-                    {
-                        break;
-                    }
-
-                    coord_t accumulated_length = 0;
-                    for (size_t i_pt = 1; i_pt < path.points.size(); i_pt++)
-                    {
-                        accumulated_length += (path.points[i_pt - 1] - path.points[i_pt]).vSize();
-                    }
-                    const double path_volume = INT2MM2(INT2MM(accumulated_length * path.config.getLineWidth()) * layer_thickness_);
-
-                    if (path_volume < coasting_left)
-                    {
-                        coasting_adjust_per_path[path_idx].first = AdjustCoasting::CoastEntirePath;
-                    }
-                    else
-                    {
-                        coasting_adjust_per_path[path_idx] = { AdjustCoasting::ContinueCoasting, coasting_left };
-                    }
-
-                    coasting_left -= path_volume;
-                    if (coasting_left <= 0)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (int64_t path_idx = 0; path_idx < paths.size(); path_idx++)
+        for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
             cumulative_path_time = 0.; // reset to 0 for current path.
@@ -2713,7 +2768,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 bool coasting = extruder.settings_.get<bool>("coasting_enable");
                 if (coasting)
                 {
-                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness_, insertTempOnTime, coasting_adjust_per_path[path_idx]);
+                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, insertTempOnTime, coasting_per_path[path_idx]);
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
@@ -2870,133 +2925,58 @@ bool LayerPlan::writePathWithCoasting(
     GCodeExport& gcode,
     const size_t extruder_plan_idx,
     const size_t path_idx,
-    const coord_t layer_thickness,
     const std::function<void(const double, const int64_t)> insertTempOnTime,
-    const std::pair<AdjustCoasting, double> coasting_adjust)
+    const PathCoasting& path_coasting)
 {
-    ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
-    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
-    const double coasting_volume = std::min(extruder.settings_.get<double>("coasting_volume"), coasting_adjust.second);
-    if (coasting_volume <= 0)
+    if (path_coasting.apply_coasting == ApplyCoasting::NoCoasting)
     {
         return false;
     }
+
+    size_t coasting_start_index;
+    Point3LL previous_position = gcode.getPosition();
+    const ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
     const std::vector<GCodePath>& paths = extruder_plan.paths_;
     const GCodePath& path = paths[path_idx];
-    if (path_idx + 1 >= paths.size() || (path.isTravelPath() || ! (paths[path_idx + 1].config.isTravelPath() || coasting_adjust.first == AdjustCoasting::ContinueCoasting))
-        || path.points.size() < 2)
+    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
+
+    if (path_coasting.apply_coasting == ApplyCoasting::CoastEntirePath)
     {
-        return false;
+        coasting_start_index = 0;
     }
-
-    coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
-
-    const double extrude_speed = path.config.getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
-
-    coord_t coasting_dist = coasting_adjust.first == AdjustCoasting::CoastEntirePath
-                              ? std::numeric_limits<coord_t>::max() / 2
-                              : MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    const double coasting_min_volume = extruder.settings_.get<double>("coasting_min_volume");
-    const coord_t coasting_min_dist
-        = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    //           /\ the minimal distance when coasting will coast the full coasting volume instead of linearly less with linearly smaller paths
-
-    std::vector<coord_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
-    accumulated_dist_per_point.push_back(0);
-
-    coord_t accumulated_dist = 0;
-
-    bool length_is_less_than_min_dist = true;
-
-    std::optional<size_t> acc_dist_idx_gt_coast_dist; // the index of the first point with accumulated_dist more than coasting_dist (= index into accumulated_dist_per_point)
-                                                      // == the point printed BEFORE the start point for coasting
-
-    const Point3LL* last = &path.points[path.points.size() - 1];
-    for (unsigned int backward_point_idx = 1; backward_point_idx < path.points.size(); backward_point_idx++)
+    else
     {
-        const Point3LL& point = path.points[path.points.size() - 1 - backward_point_idx];
-        const coord_t distance = (point - *last).vSize();
-        accumulated_dist += distance;
-        accumulated_dist_per_point.push_back(accumulated_dist);
+        const double extrude_speed = path.config.getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+        coasting_start_index = path_coasting.coasting_start_index;
 
-        if (! acc_dist_idx_gt_coast_dist.has_value() && accumulated_dist >= coasting_dist)
+        // write normal extrude path, followed by split extrusion to coasting starting point
+        for (size_t point_idx = 0; point_idx < coasting_start_index; point_idx++)
         {
-            acc_dist_idx_gt_coast_dist = backward_point_idx; // the newly added point
-        }
-
-        if (accumulated_dist >= coasting_min_dist)
-        {
-            length_is_less_than_min_dist = false;
-            break;
-        }
-
-        last = &point;
-    }
-    coasting_dist = std::min(coasting_dist, accumulated_dist); // if the path is shorter than coasting_dist, we should coast the whole path
-
-    if (accumulated_dist < coasting_min_dist_considered)
-    {
-        return false;
-    }
-    coord_t actual_coasting_dist = coasting_dist;
-    if (length_is_less_than_min_dist)
-    {
-        // in this case accumulated_dist is the length of the whole path
-        actual_coasting_dist = accumulated_dist * coasting_dist / coasting_min_dist;
-        if (actual_coasting_dist == 0) // Downscaling due to Minimum Coasting Distance reduces coasting to less than 1 micron.
-        {
-            return false; // Skip coasting at all then.
-        }
-        for (acc_dist_idx_gt_coast_dist = 1; acc_dist_idx_gt_coast_dist.value() < accumulated_dist_per_point.size(); acc_dist_idx_gt_coast_dist.value()++)
-        { // search for the correct coast_dist_idx
-            if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist.value()] >= actual_coasting_dist)
-            {
-                break;
-            }
-        }
-    }
-
-    assert(
-        acc_dist_idx_gt_coast_dist.has_value() && acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size()); // something has gone wrong; coasting_min_dist < coasting_dist ?
-
-    const size_t point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist.value();
-
-    Point3LL start;
-    { // computation of begin point of coasting
-        const coord_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist.value() - 1];
-        const Point3LL& a = path.points[point_idx_before_start];
-        const Point3LL& b = path.points[point_idx_before_start + 1];
-        start = b + (a - b).resized(residual_dist);
-    }
-
-    Point3LL prev_pt = gcode.getPositionXY();
-    { // write normal extrude path:
-        for (size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
-        {
-            auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
+            auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
             writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
             sendLineTo(path, path.points[point_idx], extrude_speed);
 
-            prev_pt = path.points[point_idx];
+            previous_position = path.points[point_idx];
         }
-        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
-        sendLineTo(path, start, extrude_speed);
+        gcode.writeExtrusion(path_coasting.coasting_start_pos, extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
+        sendLineTo(path, path_coasting.coasting_start_pos, extrude_speed);
     }
 
     // write coasting path
-    for (size_t point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
+    for (size_t point_idx = coasting_start_index; point_idx < path.points.size(); point_idx++)
     {
-        auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
+        auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
         insertTempOnTime(time, path_idx);
 
         const Ratio coasting_speed_modifier = extruder.settings_.get<Ratio>("coasting_speed");
         const Velocity speed = Velocity(coasting_speed_modifier * path.config.getSpeed());
         writeTravelRelativeZ(gcode, path.points[point_idx], speed, path.z_offset);
 
-        prev_pt = path.points[point_idx];
+        previous_position = path.points[point_idx];
     }
+
     return true;
 }
 

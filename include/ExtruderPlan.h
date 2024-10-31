@@ -191,7 +191,7 @@ private:
     /*!
      * @return distance between p0 and p1 as well as the time spend on the segment
      */
-    std::pair<double, double> getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path);
+    std::pair<double, double> getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path) const;
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
