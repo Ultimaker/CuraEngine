@@ -2381,7 +2381,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                                   | ranges::views::chunk_by(
-                                                      [](const auto&path_a, const auto&path_b)
+                                                      [](const auto& path_a, const auto& path_b)
                                                       {
                                                           return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                       }))
@@ -2880,7 +2880,7 @@ bool LayerPlan::writePathWithCoasting(
 
             prev_pt = path.points[point_idx];
         }
-        gcode.writeExtrusion(start, extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
+        writeExtrusionRelativeZ(gcode, start, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
         sendLineTo(path, start, extrude_speed);
     }
 
