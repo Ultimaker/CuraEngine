@@ -14,6 +14,7 @@
 
 #include "Application.h" //To communicate layer view data.
 #include "ExtruderTrain.h"
+#include "PathAdapter.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
 #include "Slice.h"
 #include "WipeScriptConfig.h"
@@ -557,29 +558,54 @@ void LayerPlan::addPolygon(
     const Polygon& polygon,
     int start_idx,
     const bool backwards,
+    const Settings& settings,
     const GCodePathConfig& config,
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio& flow_ratio,
-    bool always_retract)
+    bool always_retract,
+    bool scarf_seam,
+    bool smooth_speed)
 {
-    constexpr Ratio width_ratio = 1.0_r; // Not printed with variable line width.
+    constexpr bool is_closed = true;
+    constexpr bool is_candidate_small_feature = false;
+
     Point2LL p0 = polygon[start_idx];
     addTravel(p0, always_retract, config.z_offset);
-    const int direction = backwards ? -1 : 1;
-    for (size_t point_idx = 1; point_idx < polygon.size(); point_idx++)
-    {
-        Point2LL p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
-        addExtrusionMove(p1, config, SpaceFillType::Polygons, flow_ratio, width_ratio, spiralize);
-        p0 = p1;
-    }
+
+    addWallWithScarfSeam(
+        PathAdapter(polygon, config.getLineWidth()),
+        start_idx,
+        settings,
+        config,
+        flow_ratio,
+        always_retract,
+        is_closed,
+        backwards,
+        is_candidate_small_feature,
+        scarf_seam,
+        smooth_speed,
+        [this, &config, &spiralize](
+            const Point3LL& /*start*/,
+            const Point3LL& end,
+            const Ratio& speed_factor,
+            const Ratio& actual_flow_ratio,
+            const Ratio& line_width_ratio,
+            const coord_t /*distance_to_bridge_start*/)
+        {
+            constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+            constexpr bool travel_to_z = false;
+
+            addExtrusionMove(end, config, SpaceFillType::Polygons, actual_flow_ratio, line_width_ratio, spiralize, speed_factor, fan_speed, travel_to_z);
+        });
+
+
     if (polygon.size() > 2)
     {
-        addExtrusionMove(polygon[start_idx], config, SpaceFillType::Polygons, flow_ratio, width_ratio, spiralize);
-
         if (wall_0_wipe_dist > 0)
         { // apply outer wall wipe
             p0 = polygon[start_idx];
+            const int direction = backwards ? -1 : 1;
             int distance_traversed = 0;
             for (size_t point_idx = 1;; point_idx++)
             {
@@ -611,13 +637,16 @@ void LayerPlan::addPolygon(
 void LayerPlan::addPolygonsByOptimizer(
     const Shape& polygons,
     const GCodePathConfig& config,
+    const Settings& settings,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio flow_ratio,
     bool always_retract,
     bool reverse_order,
-    const std::optional<Point2LL> start_near_location)
+    const std::optional<Point2LL> start_near_location,
+    bool scarf_seam,
+    bool smooth_speed)
 {
     if (polygons.empty())
     {
@@ -630,20 +659,33 @@ void LayerPlan::addPolygonsByOptimizer(
     }
     orderOptimizer.optimize();
 
+    const auto add_polygons
+        = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &always_retract, &scarf_seam, &smooth_speed](const auto& iterator_begin, const auto& iterator_end)
+    {
+        for (auto iterator = iterator_begin; iterator != iterator_end; ++iterator)
+        {
+            addPolygon(
+                *iterator->vertices_,
+                iterator->start_vertex_,
+                iterator->backwards_,
+                settings,
+                config,
+                wall_0_wipe_dist,
+                spiralize,
+                flow_ratio,
+                always_retract,
+                scarf_seam,
+                smooth_speed);
+        }
+    };
+
     if (! reverse_order)
     {
-        for (const PathOrdering<const Polygon*>& path : orderOptimizer.paths_)
-        {
-            addPolygon(*path.vertices_, path.start_vertex_, path.backwards_, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
-        }
+        add_polygons(orderOptimizer.paths_.begin(), orderOptimizer.paths_.end());
     }
     else
     {
-        for (int index = orderOptimizer.paths_.size() - 1; index >= 0; --index)
-        {
-            const PathOrdering<const Polygon*>& path = orderOptimizer.paths_[index];
-            addPolygon(*path.vertices_, path.start_vertex_, path.backwards_, config, wall_0_wipe_dist, spiralize, flow_ratio, always_retract);
-        }
+        add_polygons(orderOptimizer.paths_.rbegin(), orderOptimizer.paths_.rend());
     }
 }
 
@@ -865,7 +907,7 @@ void LayerPlan::addWallLine(
             flow,
             width_factor,
             spiralize,
-            segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : 1.0_r,
+            segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
@@ -996,25 +1038,22 @@ void LayerPlan::addWall(
     addWall(ewall, start_idx, settings, default_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
 }
 
+template<class PathType>
 void LayerPlan::addSplitWall(
-    const ExtrusionLine& wall,
+    const PathAdapter<PathType>& wall,
     const coord_t wall_length,
-    size_t start_idx,
-    const int direction,
+    const size_t start_idx,
     const size_t max_index,
-    const Settings& settings,
+    const int direction,
     const GCodePathConfig& default_config,
-    const GCodePathConfig& roofing_config,
-    const GCodePathConfig& bridge_config,
-    const double flow_ratio,
-    const Ratio line_width_ratio,
-    double& non_bridge_line_volume,
-    const coord_t min_bridge_line_len,
     const bool always_retract,
     const bool is_small_feature,
     Ratio small_feature_speed_factor,
     const coord_t max_area_deviation,
     const auto max_resolution,
+    const double flow_ratio,
+    const coord_t nominal_line_width,
+    const coord_t min_bridge_line_len,
     const auto scarf_seam_length,
     const auto scarf_seam_start_ratio,
     const auto scarf_split_distance,
@@ -1024,13 +1063,16 @@ void LayerPlan::addSplitWall(
     const coord_t accelerate_length,
     const Ratio end_speed_ratio,
     const coord_t decelerate_length,
-    const bool is_scarf_closure)
+    const bool is_scarf_closure,
+    const bool compute_distance_to_bridge_start,
+    const AddExtrusionSegmentFunction& func_add_segment)
 {
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
-    ExtrusionJunction p0 = wall[start_idx];
+    Point2LL p0 = wall.pointAt(start_idx);
+    coord_t w0 = wall.lineWidthAt(start_idx);
     bool first_line = ! is_scarf_closure;
     bool first_split = ! is_scarf_closure;
-    Point3LL split_origin = p0.p_;
+    Point3LL split_origin = p0;
     if (! is_scarf_closure && scarf_seam_length > 0)
     {
         split_origin.z_ = scarf_max_z_offset;
@@ -1044,16 +1086,24 @@ void LayerPlan::addSplitWall(
 
     for (size_t point_idx = 1; point_idx < max_index; point_idx++)
     {
-        const ExtrusionJunction& p1 = wall[(wall.size() + start_idx + point_idx * direction) % wall.size()];
+        const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
+        const Point2LL& p1 = wall.pointAt(actual_point_index);
+        const coord_t w1 = wall.lineWidthAt(actual_point_index);
 
-        if (! bridge_wall_mask_.empty())
+        if constexpr (std::is_same_v<PathType, ExtrusionLine>)
         {
-            distance_to_bridge_start = computeDistanceToBridgeStart(wall, (wall.size() + start_idx + point_idx * direction - 1) % wall.size(), min_bridge_line_len);
+            // The bridging functionality has not been designed to work with anything else than ExtrusionLine objects,
+            // and there is no need to do it otherwise yet. So the compute_distance_to_bridge_start argument will
+            // just be ignored if using an other PathType (e.g. Polygon)
+            if (compute_distance_to_bridge_start && ! bridge_wall_mask_.empty())
+            {
+                distance_to_bridge_start = computeDistanceToBridgeStart(wall.getPath(), (wall.size() + start_idx + point_idx * direction - 1) % wall.size(), min_bridge_line_len);
+            }
         }
 
         if (first_line)
         {
-            addTravel(p0.p_, always_retract);
+            addTravel(p0, always_retract);
             first_line = false;
         }
 
@@ -1069,8 +1119,8 @@ void LayerPlan::addSplitWall(
         pieces we'd want to get low enough deviation, then check if each piece
         is not too short at the end.
         */
-        const coord_t delta_line_width = p1.w_ - p0.w_;
-        const Point2LL line_vector = p1.p_ - p0.p_;
+        const coord_t delta_line_width = w1 - w0;
+        const Point2LL line_vector = p1 - p0;
         const coord_t line_length = vSize(line_vector);
         /*
         Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
@@ -1091,12 +1141,13 @@ void LayerPlan::addSplitWall(
             const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
             // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
             // and the generated GCodePath objects will not be merged together, which some subsequent algorithms rely on (e.g. coasting)
-            const coord_t line_width = std::lrint(static_cast<double>(p0.w_) + average_progress * static_cast<double>(delta_line_width));
-            const Point2LL destination = p0.p_ + normal(line_vector, piece_length * (piece + 1));
+            const coord_t line_width = std::lrint(static_cast<double>(w0) + average_progress * static_cast<double>(delta_line_width));
+            const Ratio line_width_ratio = static_cast<double>(line_width) / nominal_line_width;
+            const Point2LL destination = p0 + normal(line_vector, piece_length * (piece + 1));
             if (is_small_feature && ! is_scarf_closure)
             {
                 constexpr bool spiralize = false;
-                addExtrusionMove(destination, default_config, SpaceFillType::Polygons, flow_ratio, line_width * line_width_ratio, spiralize, small_feature_speed_factor);
+                addExtrusionMove(destination, default_config, SpaceFillType::Polygons, flow_ratio, line_width_ratio, spiralize, small_feature_speed_factor);
             }
             else
             {
@@ -1170,7 +1221,7 @@ void LayerPlan::addSplitWall(
                         if (first_split)
                         {
                             // Manually add a Z-only travel move to set the nozzle at the height of the first point
-                            addTravel(p0.p_, always_retract, split_origin.z_);
+                            addTravel(p0, always_retract, split_origin.z_);
                             first_split = false;
                         }
                     }
@@ -1198,20 +1249,13 @@ void LayerPlan::addSplitWall(
                     }
 
                     // now add the (sub-)segment
-                    constexpr bool travel_to_z = false;
-                    addWallLine(
+                    func_add_segment(
                         split_origin,
                         split_destination,
-                        settings,
-                        default_config,
-                        roofing_config,
-                        bridge_config,
-                        flow_ratio * scarf_segment_flow_ratio,
-                        line_width * line_width_ratio,
-                        non_bridge_line_volume,
                         accelerate_speed_factor * decelerate_speed_factor,
-                        distance_to_bridge_start,
-                        travel_to_z);
+                        flow_ratio * scarf_segment_flow_ratio,
+                        line_width_ratio,
+                        distance_to_bridge_start);
 
                     wall_processed_distance = destination_position;
                     piece_remaining_distance -= length_to_process;
@@ -1225,6 +1269,109 @@ void LayerPlan::addSplitWall(
 
         p0 = p1;
     }
+}
+
+std::vector<LayerPlan::PathCoasting>
+    LayerPlan::calculatePathsCoasting(const Settings& extruder_settings, const std::vector<GCodePath>& paths, const Point3LL& current_position) const
+{
+    std::vector<LayerPlan::PathCoasting> path_coastings;
+    path_coastings.resize(paths.size());
+
+    if (extruder_settings.get<bool>("coasting_enable"))
+    {
+        // Chunk paths by travel paths, and find out which paths are a 'continuation' w.r.t. coasting (and which need to be 'coasted away' entirely).
+        // Note that this doesn't perform the coasting itself, it just calculates the coasting values which will be applied by the 'writePathWithCoasting' func.
+        // All of this is necessary since we split up paths because of scarf and acceleration-adjustments (start/end), so we need to have adjacency info.
+
+        const double coasting_volume = extruder_settings.get<double>("coasting_volume");
+        const double coasting_min_volume = extruder_settings.get<double>("coasting_min_volume");
+
+        for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
+                                              | ranges::views::chunk_by(
+                                                  [](const auto&path_a, const auto&path_b)
+                                                  {
+                                                      return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
+                                                  }))
+        {
+            double accumulated_volume = 0.0;
+            bool chunk_coasting_point_reached = false;
+            bool chunk_min_volume_reached = false;
+
+            for (const auto& [path_idx, path] : reversed_chunk)
+            {
+                if (path.isTravelPath())
+                {
+                    continue;
+                }
+
+                PathCoasting& path_coasting = path_coastings[path_idx];
+                const double path_extrusion_per_length = path.config.extrusion_mm3_per_mm * path.flow;
+
+                for (const auto& [point_idx, point] : path.points | ranges::views::enumerate | ranges::views::reverse)
+                {
+                    Point3LL previous_point;
+                    if (point_idx > 0)
+                    {
+                        previous_point = path.points[point_idx - 1];
+                    }
+                    else if (path_idx > 0)
+                    {
+                        previous_point = paths[path_idx - 1].points.back();
+                    }
+                    else
+                    {
+                        previous_point = current_position;
+                    }
+
+                    const double segment_length = INT2MM((point - previous_point).vSize());
+                    const double segment_volume = segment_length * path_extrusion_per_length;
+
+                    accumulated_volume += segment_volume;
+
+                    if (! chunk_coasting_point_reached && path_coasting.apply_coasting == ApplyCoasting::NoCoasting)
+                    {
+                        if (accumulated_volume >= coasting_volume)
+                        {
+                            const double start_pos_factor = (accumulated_volume - coasting_volume) / segment_volume;
+                            Point3LL coasting_start_pos = cura::lerp(previous_point, point, start_pos_factor);
+                            path_coasting = { ApplyCoasting::PartialCoasting, point_idx, coasting_start_pos };
+                            chunk_coasting_point_reached = true;
+                        }
+                        else if (point_idx == 0) // End of path reached (reverse iteration), coasting not fulfilled
+                        {
+                            path_coasting.apply_coasting = ApplyCoasting::CoastEntirePath;
+                        }
+                    }
+
+                    if (accumulated_volume >= coasting_min_volume)
+                    {
+                        chunk_min_volume_reached = true;
+                    }
+
+                    if (chunk_min_volume_reached && chunk_coasting_point_reached)
+                    {
+                        break;
+                    }
+                }
+
+                if (chunk_min_volume_reached && chunk_coasting_point_reached)
+                {
+                    break;
+                }
+            }
+
+            if (! chunk_min_volume_reached)
+            {
+                // It turns out this chunk doesn't fit the minimum requirements for coasting, so skip it
+                for (const auto& [path_idx, path] : reversed_chunk)
+                {
+                    path_coastings[path_idx].apply_coasting = ApplyCoasting::NoCoasting;
+                }
+            }
+        }
+    }
+
+    return path_coastings;
 }
 
 coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const
@@ -1308,39 +1455,35 @@ coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const
     return distance_to_bridge_start;
 }
 
-void LayerPlan::addWall(
-    const ExtrusionLine& wall,
+template<class PathType>
+void LayerPlan::addWallWithScarfSeam(
+    const PathAdapter<PathType>& wall,
     size_t start_idx,
     const Settings& settings,
     const GCodePathConfig& default_config,
-    const GCodePathConfig& roofing_config,
-    const GCodePathConfig& bridge_config,
-    coord_t wall_0_wipe_dist,
     const double flow_ratio,
     bool always_retract,
     const bool is_closed,
     const bool is_reversed,
-    const bool is_linked_path,
+    const bool is_candidate_small_feature,
     const bool scarf_seam,
-    const bool smooth_speed)
+    const bool smooth_speed,
+    const AddExtrusionSegmentFunction& func_add_segment)
 {
     if (wall.empty())
     {
         return;
     }
-    const bool actual_scarf_seam = scarf_seam && is_closed;
 
-    double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
+    const bool actual_scarf_seam = scarf_seam && is_closed;
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
 
-    const Ratio nominal_line_width_multiplier{
-        1.0 / Ratio{ static_cast<Ratio::value_type>(default_config.getLineWidth()) }
-    }; // we multiply the flow with the actual wanted line width (for that junction), and then multiply with this
+    const coord_t nominal_line_width = default_config.getLineWidth();
 
     const coord_t wall_length = wall.length();
     const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
-    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || wall.inset_idx_ == 0) && wall_length < small_feature_max_length;
+    const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || is_candidate_small_feature) && wall_length < small_feature_max_length;
     const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
     Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     small_feature_speed_factor = std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()));
@@ -1368,25 +1511,23 @@ void LayerPlan::addWall(
 
     auto addSplitWallPass = [&](bool is_scarf_closure)
     {
+        constexpr bool compute_distance_to_bridge_start = true;
+
         addSplitWall(
-            wall,
+            PathAdapter(wall),
             wall_length,
             start_idx,
-            direction,
             max_index,
-            settings,
+            direction,
             default_config,
-            roofing_config,
-            bridge_config,
-            flow_ratio,
-            nominal_line_width_multiplier,
-            non_bridge_line_volume,
-            min_bridge_line_len,
             always_retract,
             is_small_feature,
             small_feature_speed_factor,
             max_area_deviation,
             max_resolution,
+            flow_ratio,
+            nominal_line_width,
+            min_bridge_line_len,
             layer_nr_ > 0 ? scarf_seam_length : 0,
             scarf_seam_start_ratio,
             scarf_split_distance,
@@ -1396,7 +1537,9 @@ void LayerPlan::addWall(
             accelerate_length,
             end_speed_ratio,
             decelerate_length,
-            is_scarf_closure);
+            is_scarf_closure,
+            compute_distance_to_bridge_start,
+            func_add_segment);
     };
 
     // First pass to add the wall with the scarf beginning and acceleration
@@ -1407,6 +1550,67 @@ void LayerPlan::addWall(
         // Second pass to add the scarf closure
         addSplitWallPass(true);
     }
+}
+
+void LayerPlan::addWall(
+    const ExtrusionLine& wall,
+    size_t start_idx,
+    const Settings& settings,
+    const GCodePathConfig& default_config,
+    const GCodePathConfig& roofing_config,
+    const GCodePathConfig& bridge_config,
+    coord_t wall_0_wipe_dist,
+    const double flow_ratio,
+    bool always_retract,
+    const bool is_closed,
+    const bool is_reversed,
+    const bool is_linked_path,
+    const bool scarf_seam,
+    const bool smooth_speed)
+{
+    if (wall.empty())
+    {
+        return;
+    }
+
+    double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
+    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+
+    addWallWithScarfSeam(
+        PathAdapter(wall),
+        start_idx,
+        settings,
+        default_config,
+        flow_ratio,
+        always_retract,
+        is_closed,
+        is_reversed,
+        wall.inset_idx_ == 0,
+        scarf_seam,
+        smooth_speed,
+        [&](const Point3LL& start,
+            const Point3LL& end,
+            const Ratio& speed_factor,
+            const Ratio& actual_flow_ratio,
+            const Ratio& line_width_ratio,
+            const coord_t distance_to_bridge_start)
+        {
+            constexpr bool travel_to_z = false;
+
+            addWallLine(
+                start,
+                end,
+                settings,
+                default_config,
+                roofing_config,
+                bridge_config,
+                actual_flow_ratio,
+                line_width_ratio,
+                non_bridge_line_volume,
+                speed_factor,
+                distance_to_bridge_start,
+                travel_to_z);
+        });
 
     if (wall.size() >= 2)
     {
@@ -2054,7 +2258,7 @@ double ExtruderPlan::getRetractTime(const GCodePath& path)
     return retraction_config_.distance / (path.retract ? retraction_config_.speed : retraction_config_.primeSpeed);
 }
 
-std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path)
+std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path) const
 {
     const double length = (p0 - p1).vSizeMM();
     return { length, length / (path.config.getSpeed() * path.speed_factor) };
@@ -2369,57 +2573,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
         };
 
-        std::vector<std::pair<AdjustCoasting, double>> coasting_adjust_per_path;
-        if (extruder.settings_.get<bool>("coasting_enable"))
-        {
-            // Chunk paths by travel paths, and find out which paths are a 'continuation' w.r.t. coasting (and which need to be 'coasted away' entirely).
-            // Note that this doesn't perform the coasting itself, it just calculates the 'adjust coasting' vector needed by the 'writePathWithCoasting' func.
-            // All of this is nescesary since we split up paths because of scarf and accelleration-adjustments (start/end), so we need to have adjacency info.
+        const std::vector<PathCoasting> coasting_per_path = calculatePathsCoasting(extruder.settings_, paths, gcode.getPosition());
 
-            const double coasting_volume = extruder.settings_.get<double>("coasting_volume");
-            coasting_adjust_per_path.assign(paths.size(), { AdjustCoasting::AsNormal, coasting_volume });
-
-            for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
-                                                  | ranges::views::chunk_by(
-                                                      [](const auto&path_a, const auto&path_b)
-                                                      {
-                                                          return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
-                                                      }))
-            {
-                double coasting_left = coasting_volume;
-                for (const auto& [path_idx, path] : reversed_chunk)
-                {
-                    if (path.isTravelPath())
-                    {
-                        break;
-                    }
-
-                    coord_t accumulated_length = 0;
-                    for (size_t i_pt = 1; i_pt < path.points.size(); i_pt++)
-                    {
-                        accumulated_length += (path.points[i_pt - 1] - path.points[i_pt]).vSize();
-                    }
-                    const double path_volume = INT2MM2(INT2MM(accumulated_length * path.config.getLineWidth()) * layer_thickness_);
-
-                    if (path_volume < coasting_left)
-                    {
-                        coasting_adjust_per_path[path_idx].first = AdjustCoasting::CoastEntirePath;
-                    }
-                    else
-                    {
-                        coasting_adjust_per_path[path_idx] = { AdjustCoasting::ContinueCoasting, coasting_left };
-                    }
-
-                    coasting_left -= path_volume;
-                    if (coasting_left <= 0)
-                    {
-                        break;
-                    }
-                }
-            }
-        }
-
-        for (int64_t path_idx = 0; path_idx < paths.size(); path_idx++)
+        for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             extruder_plan.handleInserts(path_idx, gcode);
             cumulative_path_time = 0.; // reset to 0 for current path.
@@ -2612,7 +2768,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 bool coasting = extruder.settings_.get<bool>("coasting_enable");
                 if (coasting)
                 {
-                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, layer_thickness_, insertTempOnTime, coasting_adjust_per_path[path_idx]);
+                    coasting = writePathWithCoasting(gcode, extruder_plan_idx, path_idx, insertTempOnTime, coasting_per_path[path_idx]);
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
@@ -2769,133 +2925,59 @@ bool LayerPlan::writePathWithCoasting(
     GCodeExport& gcode,
     const size_t extruder_plan_idx,
     const size_t path_idx,
-    const coord_t layer_thickness,
     const std::function<void(const double, const int64_t)> insertTempOnTime,
-    const std::pair<AdjustCoasting, double> coasting_adjust)
+    const PathCoasting& path_coasting)
 {
-    ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
-    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
-    const double coasting_volume = std::min(extruder.settings_.get<double>("coasting_volume"), coasting_adjust.second);
-    if (coasting_volume <= 0)
+    if (path_coasting.apply_coasting == ApplyCoasting::NoCoasting)
     {
         return false;
     }
+
+    size_t coasting_start_index;
+    Point3LL previous_position = gcode.getPosition();
+    const ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
     const std::vector<GCodePath>& paths = extruder_plan.paths_;
     const GCodePath& path = paths[path_idx];
-    if (path_idx + 1 >= paths.size() || (path.isTravelPath() || ! (paths[path_idx + 1].config.isTravelPath() || coasting_adjust.first == AdjustCoasting::ContinueCoasting))
-        || path.points.size() < 2)
+    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
+
+    if (path_coasting.apply_coasting == ApplyCoasting::CoastEntirePath)
     {
-        return false;
+        coasting_start_index = 0;
     }
-
-    coord_t coasting_min_dist_considered = MM2INT(0.1); // hardcoded setting for when to not perform coasting
-
-    const double extrude_speed = path.config.getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
-
-    coord_t coasting_dist = coasting_adjust.first == AdjustCoasting::CoastEntirePath
-                              ? std::numeric_limits<coord_t>::max() / 2
-                              : MM2INT(MM2_2INT(coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    const double coasting_min_volume = extruder.settings_.get<double>("coasting_min_volume");
-    const coord_t coasting_min_dist
-        = MM2INT(MM2_2INT(coasting_min_volume + coasting_volume) / layer_thickness) / path.config.getLineWidth(); // closing brackets of MM2INT at weird places for precision issues
-    //           /\ the minimal distance when coasting will coast the full coasting volume instead of linearly less with linearly smaller paths
-
-    std::vector<coord_t> accumulated_dist_per_point; // the first accumulated dist is that of the last point! (that of the last point is always zero...)
-    accumulated_dist_per_point.push_back(0);
-
-    coord_t accumulated_dist = 0;
-
-    bool length_is_less_than_min_dist = true;
-
-    std::optional<size_t> acc_dist_idx_gt_coast_dist; // the index of the first point with accumulated_dist more than coasting_dist (= index into accumulated_dist_per_point)
-                                                      // == the point printed BEFORE the start point for coasting
-
-    const Point3LL* last = &path.points[path.points.size() - 1];
-    for (unsigned int backward_point_idx = 1; backward_point_idx < path.points.size(); backward_point_idx++)
+    else
     {
-        const Point3LL& point = path.points[path.points.size() - 1 - backward_point_idx];
-        const coord_t distance = (point - *last).vSize();
-        accumulated_dist += distance;
-        accumulated_dist_per_point.push_back(accumulated_dist);
+        const double extrude_speed = path.config.getSpeed() * path.speed_factor * path.speed_back_pressure_factor;
+        coasting_start_index = path_coasting.coasting_start_index;
 
-        if (! acc_dist_idx_gt_coast_dist.has_value() && accumulated_dist >= coasting_dist)
+        // write normal extrude path, followed by split extrusion to coasting starting point
+        for (size_t point_idx = 0; point_idx < coasting_start_index; point_idx++)
         {
-            acc_dist_idx_gt_coast_dist = backward_point_idx; // the newly added point
-        }
-
-        if (accumulated_dist >= coasting_min_dist)
-        {
-            length_is_less_than_min_dist = false;
-            break;
-        }
-
-        last = &point;
-    }
-    coasting_dist = std::min(coasting_dist, accumulated_dist); // if the path is shorter than coasting_dist, we should coast the whole path
-
-    if (accumulated_dist < coasting_min_dist_considered)
-    {
-        return false;
-    }
-    coord_t actual_coasting_dist = coasting_dist;
-    if (length_is_less_than_min_dist)
-    {
-        // in this case accumulated_dist is the length of the whole path
-        actual_coasting_dist = accumulated_dist * coasting_dist / coasting_min_dist;
-        if (actual_coasting_dist == 0) // Downscaling due to Minimum Coasting Distance reduces coasting to less than 1 micron.
-        {
-            return false; // Skip coasting at all then.
-        }
-        for (acc_dist_idx_gt_coast_dist = 1; acc_dist_idx_gt_coast_dist.value() < accumulated_dist_per_point.size(); acc_dist_idx_gt_coast_dist.value()++)
-        { // search for the correct coast_dist_idx
-            if (accumulated_dist_per_point[acc_dist_idx_gt_coast_dist.value()] >= actual_coasting_dist)
-            {
-                break;
-            }
-        }
-    }
-
-    assert(
-        acc_dist_idx_gt_coast_dist.has_value() && acc_dist_idx_gt_coast_dist < accumulated_dist_per_point.size()); // something has gone wrong; coasting_min_dist < coasting_dist ?
-
-    const size_t point_idx_before_start = path.points.size() - 1 - acc_dist_idx_gt_coast_dist.value();
-
-    Point3LL start;
-    { // computation of begin point of coasting
-        const coord_t residual_dist = actual_coasting_dist - accumulated_dist_per_point[acc_dist_idx_gt_coast_dist.value() - 1];
-        const Point3LL& a = path.points[point_idx_before_start];
-        const Point3LL& b = path.points[point_idx_before_start + 1];
-        start = b + (a - b).resized(residual_dist);
-    }
-
-    Point3LL prev_pt = gcode.getPositionXY();
-    { // write normal extrude path:
-        for (size_t point_idx = 0; point_idx <= point_idx_before_start; point_idx++)
-        {
-            auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
+            auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
             writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
             sendLineTo(path, path.points[point_idx], extrude_speed);
 
-            prev_pt = path.points[point_idx];
+            previous_position = path.points[point_idx];
         }
+
         writeExtrusionRelativeZ(gcode, start, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
-        sendLineTo(path, start, extrude_speed);
+        sendLineTo(path, path_coasting.coasting_start_pos, extrude_speed);
     }
 
     // write coasting path
-    for (size_t point_idx = point_idx_before_start + 1; point_idx < path.points.size(); point_idx++)
+    for (size_t point_idx = coasting_start_index; point_idx < path.points.size(); point_idx++)
     {
-        auto [_, time] = extruder_plan.getPointToPointTime(prev_pt, path.points[point_idx], path);
+        auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
         insertTempOnTime(time, path_idx);
 
         const Ratio coasting_speed_modifier = extruder.settings_.get<Ratio>("coasting_speed");
         const Velocity speed = Velocity(coasting_speed_modifier * path.config.getSpeed());
         writeTravelRelativeZ(gcode, path.points[point_idx], speed, path.z_offset);
 
-        prev_pt = path.points[point_idx];
+        previous_position = path.points[point_idx];
     }
+
     return true;
 }
 

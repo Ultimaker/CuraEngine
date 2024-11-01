@@ -38,6 +38,9 @@ class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
 
+template<typename PathType>
+class PathAdapter;
+
 /*!
  * The LayerPlan class stores multiple moves that are planned.
  *
@@ -57,20 +60,27 @@ class LayerPlan : public NoCopy
 #endif
 
 public:
-    // 'AdjustCoasting'; because split-up paths from the same extruder (with no travel moves between them) should count as the same path w.r.t. coasting.
-    enum class AdjustCoasting
-    {
-        AsNormal,
-        CoastEntirePath,
-        ContinueCoasting
-    };
-
     const PathConfigStorage configs_storage_; //!< The line configs for this layer for each feature type
     const coord_t z_;
     coord_t final_travel_z_;
     bool mode_skip_agressive_merge_; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
+    // Indicates how coasting should be processed on the given path.
+    enum class ApplyCoasting
+    {
+        NoCoasting, // Do not apply coasting on this path, extrude it normally
+        CoastEntirePath, // Fully coast this path, i.e. replace it by travel moves
+        PartialCoasting // Extrude the first part of the path and coast the end
+    };
+
+    struct PathCoasting
+    {
+        ApplyCoasting apply_coasting{ ApplyCoasting::NoCoasting };
+        size_t coasting_start_index{ 0 };
+        Point3LL coasting_start_pos;
+    };
+
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr_; //!< The layer number of this layer plan
     const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
@@ -393,16 +403,21 @@ public:
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addPolygon(
         const Polygon& polygon,
         int startIdx,
         const bool reverse,
+        const Settings& settings,
         const GCodePathConfig& config,
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio& flow_ratio = 1.0_r,
-        bool always_retract = false);
+        bool always_retract = false,
+        bool scarf_seam = false,
+        bool smooth_speed = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -431,17 +446,22 @@ public:
      * \param reverse_order Adds polygons in reverse order.
      * \param start_near_location Start optimising the path near this location.
      * If unset, this causes it to start near the last planned location.
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addPolygonsByOptimizer(
         const Shape& polygons,
         const GCodePathConfig& config,
+        const Settings& settings,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio flow_ratio = 1.0_r,
         bool always_retract = false,
         bool reverse_order = false,
-        const std::optional<Point2LL> start_near_location = std::optional<Point2LL>());
+        const std::optional<Point2LL> start_near_location = std::optional<Point2LL>(),
+        bool scarf_seam = false,
+        bool smooth_acceleration = false);
 
     /*!
      * Add a single line that is part of a wall to the gcode.
@@ -525,6 +545,8 @@ public:
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
      * \param is_linked_path Whether the path is a continuation off the previous path
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addWall(
         const ExtrusionLine& wall,
@@ -700,28 +722,6 @@ public:
     bool makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx);
 
     /*!
-     * Writes a path to GCode and performs coasting, or returns false if it did nothing.
-     *
-     * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
-     *
-     * \param gcode The gcode to write the planned paths to.
-     * \param extruder_plan_idx The index of the current extruder plan.
-     * \param path_idx The index into LayerPlan::paths for the next path to be
-     * written to GCode.
-     * \param layer_thickness The height of the current layer.
-     * \param insertTempOnTime A function that inserts temperature changes at a given time.
-     * \param coasting_adjust Paths can be split up, so we need to know when to continue coasting from last, or even coast the entire path.
-     * \return Whether any GCode has been written for the path.
-     */
-    bool writePathWithCoasting(
-        GCodeExport& gcode,
-        const size_t extruder_plan_idx,
-        const size_t path_idx,
-        const coord_t layer_thickness,
-        const std::function<void(const double, const int64_t)> insertTempOnTime,
-        const std::pair<AdjustCoasting, double> coasting_adjust);
-
-    /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed.
      *
      * \param starting_position The position of the print head when the first extruder plan of this layer starts
@@ -835,19 +835,33 @@ private:
         bool update_extrusion_offset = false);
 
     /*!
+     * \brief Alias for a function definition that adds an extrusion segment
+     * \param start The start position of the segment
+     * \param end The end position of the segment
+     * \param speed_factor The speed factor to be applied when extruding this specific segment (relative to nominal speed for the entire path)
+     * \param flow_ratio The flow ratio to be applied when extruding this specific segment (relative to nominal flow for the entire path)
+     * \param line_width_ratio The line width ratio to be applied when extruding this specific segment (relative to nominal line width for the entire path)
+     * \param distance_to_bridge_start The calculate distance to the next bridge start, which may be irrelevant in some cases
+     */
+    using AddExtrusionSegmentFunction = std::function<void(
+        const Point3LL& start,
+        const Point3LL& end,
+        const Ratio& speed_factor,
+        const Ratio& flow_ratio,
+        const Ratio& line_width_ratio,
+        const coord_t distance_to_bridge_start)>;
+
+    /*!
      * \brief Add a wall to the gcode with optimized order, but split into pieces in order to facilitate the scarf seam and/or speed gradient.
+     * \tparam PathType The type of path to be processed, either ExtrusionLine or some subclass of Polyline
      * \param wall The full wall to be added
      * \param wall_length The pre-calculated full wall length
      * \param start_idx The index of the point where to start printing the wall
      * \param direction The direction along which to print the wall, which should be 1 or -1
      * \param max_index The last index to be used when iterating over the wall segments
-     * \param settings The settings which should apply to this wall added to the layer plan
      * \param default_config The config with which to print the wall lines that are not spanning a bridge or are exposed to air
-     * \param roofing_config The config with which to print the wall lines that are exposed to air
-     * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param flow_ratio The ratio with which to multiply the extrusion amount
-     * \param line_width_ratio The line width ratio to be applied
-     * \param non_bridge_line_volume A pseudo-volume that is derived from the print speed and flow of the non-bridge lines that have preceded this lin
+     * \param nominal_line_width The nominal line width for the wall
      * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      * \param is_small_feature Indicates whether the wall is so small that it should be processed differently
@@ -864,26 +878,26 @@ private:
      * \param end_speed_ratio The ratio of the top speed to be applied when finishing a segment
      * \param decelerate_length The pre-calculated length of the deceleration phase
      * \param is_scarf_closure Indicates whether this function is called to make the scarf closure (overlap over the first scarf pass) or the normal first pass of the wall
+     * \param compute_distance_to_bridge_start Whether we should compute the distance to start of bridge. This is
+     *                                         possible only if PathType is ExtrusionLine and will be ignored otherwise.
+     * \param func_add_segment The function to be called to actually add an extrusion segment with the given parameters
      */
+    template<class PathType>
     void addSplitWall(
-        const ExtrusionLine& wall,
+        const PathAdapter<PathType>& wall,
         const coord_t wall_length,
-        size_t start_idx,
-        const int direction,
+        const size_t start_idx,
         const size_t max_index,
-        const Settings& settings,
+        const int direction,
         const GCodePathConfig& default_config,
-        const GCodePathConfig& roofing_config,
-        const GCodePathConfig& bridge_config,
-        const double flow_ratio,
-        const Ratio line_width_ratio,
-        double& non_bridge_line_volume,
-        const coord_t min_bridge_line_len,
         const bool always_retract,
         const bool is_small_feature,
         Ratio small_feature_speed_factor,
         const coord_t max_area_deviation,
         const auto max_resolution,
+        const double flow_ratio,
+        const coord_t nominal_line_width,
+        const coord_t min_bridge_line_len,
         const auto scarf_seam_length,
         const auto scarf_seam_start_ratio,
         const auto scarf_split_distance,
@@ -893,7 +907,71 @@ private:
         const coord_t accelerate_length,
         const Ratio end_speed_ratio,
         const coord_t decelerate_length,
-        const bool is_scarf_closure);
+        const bool is_scarf_closure,
+        const bool compute_distance_to_bridge_start,
+        const AddExtrusionSegmentFunction& func_add_segment);
+
+    /*!
+     * \brief Add a wall to the gcode with optimized order, possibly adding a scarf seam / speed gradient according to settings
+     * \tparam PathType The type of path to be processed, either ExtrusionLine or some subclass of Polyline
+     * \param wall The full wall to be added
+     * \param start_idx The index of the point where to start printing the wall
+     * \param settings The settings which should apply to this wall added to the layer plan
+     * \param default_config The config with which to print the wall lines that are not spanning a bridge or are exposed to air
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param is_closed Indicates whether the path is closed (or open)
+     * \param is_reversed Indicates if the path is to be processed backwards
+     * \param is_candidate_small_feature Indicates whether the path should be tested for being treated as a smell feature
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
+     * \param func_add_segment The function to be called to actually add an extrusion segment with the given parameters
+     */
+    template<class PathType>
+    void addWallWithScarfSeam(
+        const PathAdapter<PathType>& wall,
+        size_t start_idx,
+        const Settings& settings,
+        const GCodePathConfig& default_config,
+        const double flow_ratio,
+        bool always_retract,
+        const bool is_closed,
+        const bool is_reversed,
+        const bool is_candidate_small_feature,
+        const bool scarf_seam,
+        const bool smooth_speed,
+        const AddExtrusionSegmentFunction& func_add_segment);
+
+    /*!
+     * Pre-calculates the coasting to be applied on the paths
+     *
+     * \param extruder_settings The current extruder settings
+     * \param paths The current set of paths to be written to GCode
+     * \param current_position The last position set in the gcode writer
+     * \return The list of coasting settings to be applied on the paths. It will always have the same size as paths.
+     */
+    std::vector<PathCoasting> calculatePathsCoasting(const Settings& extruder_settings, const std::vector<GCodePath>& paths, const Point3LL& current_position) const;
+
+    /*!
+     * Writes a path to GCode and performs coasting, or returns false if it did nothing.
+     *
+     * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
+     *
+     * \param gcode The gcode to write the planned paths to.
+     * \param extruder_plan_idx The index of the current extruder plan.
+     * \param path_idx The index into LayerPlan::paths for the next path to be
+     * written to GCode.
+     * \param layer_thickness The height of the current layer.
+     * \param insertTempOnTime A function that inserts temperature changes at a given time.
+     * \param path_coasting The actual coasting to be applied to the path.
+     * \return Whether any GCode has been written for the path.
+     */
+    bool writePathWithCoasting(
+        GCodeExport& gcode,
+        const size_t extruder_plan_idx,
+        const size_t path_idx,
+        const std::function<void(const double, const int64_t)> insertTempOnTime,
+        const PathCoasting& path_coasting);
 
     /*!
      * \brief Helper function to calculate the distance from the start of the current wall line to the first bridge segment
