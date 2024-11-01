@@ -2960,7 +2960,8 @@ bool LayerPlan::writePathWithCoasting(
 
             previous_position = path.points[point_idx];
         }
-        gcode.writeExtrusion(path_coasting.coasting_start_pos, extrude_speed, path.getExtrusionMM3perMM(), path.config.type);
+
+        writeExtrusionRelativeZ(gcode, path_coasting.coasting_start_pos, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
         sendLineTo(path, path_coasting.coasting_start_pos, extrude_speed);
     }
 
