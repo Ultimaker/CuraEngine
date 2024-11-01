@@ -1089,6 +1089,7 @@ void LayerPlan::addSplitWall(
         const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
         const Point2LL& p1 = wall.pointAt(actual_point_index);
         const coord_t w1 = wall.lineWidthAt(actual_point_index);
+        coord_t segment_processed_distance = 0;
 
         if constexpr (std::is_same_v<PathType, ExtrusionLine>)
         {
@@ -1191,7 +1192,8 @@ void LayerPlan::addSplitWall(
                     // Now take the closest position candidate and make a sub-segment to it
                     const coord_t destination_position = *std::min_element(split_positions.begin(), split_positions.end());
                     const coord_t length_to_process = destination_position - wall_processed_distance;
-                    Point3LL split_destination = split_origin + normal(line_vector, length_to_process);
+                    const double destination_factor = static_cast<double>(segment_processed_distance + length_to_process) / line_length;
+                    Point3LL split_destination = cura::lerp(p0, p1, destination_factor);
 
                     double scarf_segment_flow_ratio = 1.0;
                     double scarf_factor_destination = 1.0; // Out of range, scarf is done => 1.0
@@ -1258,6 +1260,7 @@ void LayerPlan::addSplitWall(
                         distance_to_bridge_start);
 
                     wall_processed_distance = destination_position;
+                    segment_processed_distance += length_to_process;
                     piece_remaining_distance -= length_to_process;
                     split_origin = split_destination;
                     scarf_factor_origin = scarf_factor_destination;
@@ -1288,7 +1291,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
