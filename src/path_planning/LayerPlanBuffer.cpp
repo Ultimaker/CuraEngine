@@ -1,14 +1,14 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "LayerPlanBuffer.h"
+#include "path_planning/LayerPlanBuffer.h"
 
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To flush g-code through the communication channel.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
-#include "LayerPlan.h"
+#include "path_planning/LayerPlan.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "gcodeExport.h"

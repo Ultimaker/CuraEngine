@@ -11,7 +11,7 @@
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "LayerPlan.h"
+#include "path_planning/LayerPlan.h"
 #include "PrimeTower/PrimeTowerInterleaved.h"
 #include "PrimeTower/PrimeTowerNormal.h"
 #include "Scene.h"

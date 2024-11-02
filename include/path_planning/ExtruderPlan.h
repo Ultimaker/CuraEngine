@@ -8,9 +8,9 @@
 #include "RetractionConfig.h"
 #include "gcodeExport.h"
 #include "geometry/Point2LL.h"
-#include "pathPlanning/GCodePath.h"
-#include "pathPlanning/NozzleTempInsert.h"
-#include "pathPlanning/TimeMaterialEstimates.h"
+#include "path_planning/GCodePath.h"
+#include "path_planning/NozzleTempInsert.h"
+#include "path_planning/TimeMaterialEstimates.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
 

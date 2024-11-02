@@ -1,15 +1,15 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "LayerPlan.h" //The code under test.
+#include "path_planning/LayerPlan.h" //The code under test.
 
 #include <gtest/gtest.h>
 
 #include "Application.h" //To provide settings for the layer plan.
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
-#include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
-#include "pathPlanning/NozzleTempInsert.h" //To provide nozzle temperature commands.
+#include "path_planning/Comb.h" //To create a combing path around the layer plan.
+#include "path_planning/NozzleTempInsert.h" //To provide nozzle temperature commands.
 #include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "utils/Coord_t.h"
 

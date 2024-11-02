@@ -15,7 +15,7 @@
 
 #include "geometry/PointsSet.h"
 #include "gradual_flow/Utils.h"
-#include "pathPlanning/GCodePath.h"
+#include "path_planning/GCodePath.h"
 
 namespace cura::gradual_flow
 {

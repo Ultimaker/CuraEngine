@@ -22,7 +22,7 @@
 
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
-#include "LayerPlan.h"
+#include "path_planning/LayerPlan.h"
 #include "utils/views/convert.h"
 #include "utils/views/dfs.h"
 

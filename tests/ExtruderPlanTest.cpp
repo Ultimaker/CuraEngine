@@ -5,8 +5,8 @@
 
 #include <gtest/gtest.h>
 
-#include "LayerPlan.h" //Code under test.
-#include "pathPlanning/SpeedDerivatives.h"
+#include "path_planning/LayerPlan.h" //Code under test.
+#include "path_planning/SpeedDerivatives.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura

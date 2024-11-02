@@ -1,7 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "ExtruderPlan.h"
+#include "path_planning/ExtruderPlan.h"
 
 namespace cura
 {

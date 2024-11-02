@@ -5,7 +5,7 @@
 #define GRADUAL_FLOW_PROCESSOR_H
 
 #include "Application.h"
-#include "LayerPlan.h"
+#include "path_planning/LayerPlan.h"
 #include "Scene.h"
 #include "gradual_flow/FlowLimitedPath.h"
 

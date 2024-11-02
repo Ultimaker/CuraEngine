@@ -19,7 +19,7 @@
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
 #include "InsetOrderOptimizer.h"
-#include "LayerPlan.h"
+#include "path_planning/LayerPlan.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
 #include "PrimeTower/PrimeTower.h"
 #include "Slice.h"

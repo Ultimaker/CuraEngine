@@ -4,7 +4,7 @@
 #include "TopSurface.h"
 
 #include "ExtruderTrain.h"
-#include "LayerPlan.h"
+#include "path_planning/LayerPlan.h"
 #include "geometry/OpenPolyline.h"
 #include "infill.h"
 #include "sliceDataStorage.h"

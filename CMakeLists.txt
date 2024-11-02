@@ -45,7 +45,6 @@ set(engine_SRCS # Except main.cpp.
         src/Application.cpp
         src/bridge.cpp
         src/ConicalOverhang.cpp
-        src/ExtruderPlan.cpp
         src/ExtruderTrain.cpp
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
@@ -56,8 +55,6 @@ set(engine_SRCS # Except main.cpp.
         src/InterlockingGenerator.cpp
         src/InsetOrderOptimizer.cpp
         src/layerPart.cpp
-        src/LayerPlan.cpp
-        src/LayerPlanBuffer.cpp
         src/mesh.cpp
         src/MeshGroup.cpp
         src/Mold.cpp
@@ -113,11 +110,14 @@ set(engine_SRCS # Except main.cpp.
         src/infill/SubDivCube.cpp
         src/infill/GyroidInfill.cpp
 
-        src/pathPlanning/Comb.cpp
-        src/pathPlanning/GCodePath.cpp
-        src/pathPlanning/LinePolygonsCrossings.cpp
-        src/pathPlanning/NozzleTempInsert.cpp
-        src/pathPlanning/SpeedDerivatives.cpp
+        src/path_planning/Comb.cpp
+        src/path_planning/ExtruderPlan.cpp
+        src/path_planning/GCodePath.cpp
+        src/path_planning/LayerPlan.cpp
+        src/path_planning/LayerPlanBuffer.cpp
+        src/path_planning/LinePolygonsCrossings.cpp
+        src/path_planning/NozzleTempInsert.cpp
+        src/path_planning/SpeedDerivatives.cpp
 
         src/plugins/converters.cpp
 

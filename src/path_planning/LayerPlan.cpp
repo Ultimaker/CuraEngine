@@ -1,7 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "LayerPlan.h"
+#include "path_planning/LayerPlan.h"
 
 #include <algorithm>
 #include <cstring>
@@ -21,8 +21,8 @@
 #include "communication/Communication.h"
 #include "geometry/OpenPolyline.h"
 #include "gradual_flow/Processor.h"
-#include "pathPlanning/Comb.h"
-#include "pathPlanning/CombPaths.h"
+#include "path_planning/Comb.h"
+#include "path_planning/CombPaths.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"

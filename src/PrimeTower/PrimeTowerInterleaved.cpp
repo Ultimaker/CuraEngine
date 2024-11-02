@@ -4,7 +4,7 @@
 #include "PrimeTower/PrimeTowerInterleaved.h"
 
 #include "Application.h"
-#include "LayerPlan.h"
+#include "path_planning/LayerPlan.h"
 #include "Scene.h"
 #include "Slice.h"
 #include "sliceDataStorage.h"

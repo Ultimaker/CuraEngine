@@ -1,7 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "pathPlanning/Comb.h"
+#include "path_planning/Comb.h"
 
 #include <algorithm>
 #include <functional> // function
@@ -10,8 +10,8 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "pathPlanning/CombPaths.h"
-#include "pathPlanning/LinePolygonsCrossings.h"
+#include "path_planning/CombPaths.h"
+#include "path_planning/LinePolygonsCrossings.h"
 #include "sliceDataStorage.h"
 #include "utils/PolygonsPointIndex.h"
 #include "utils/SVG.h"

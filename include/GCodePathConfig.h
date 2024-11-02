@@ -5,7 +5,7 @@
 #define G_CODE_PATH_CONFIG_H
 
 #include "PrintFeature.h"
-#include "pathPlanning/SpeedDerivatives.h"
+#include "path_planning/SpeedDerivatives.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"

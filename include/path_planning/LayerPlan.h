@@ -4,7 +4,7 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
-#include "ExtruderPlan.h"
+#include "path_planning/ExtruderPlan.h"
 #include "FanSpeedLayerTime.h"
 #include "InsetOrderOptimizer.h"
 #include "PathOrderOptimizer.h"
@@ -13,9 +13,9 @@
 #include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
-#include "pathPlanning/GCodePath.h"
-#include "pathPlanning/NozzleTempInsert.h"
-#include "pathPlanning/TimeMaterialEstimates.h"
+#include "path_planning/GCodePath.h"
+#include "path_planning/NozzleTempInsert.h"
+#include "path_planning/TimeMaterialEstimates.h"
 #include "raft.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"

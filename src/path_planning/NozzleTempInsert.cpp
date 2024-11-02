@@ -2,7 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "gcodeExport.h"
-#include "pathPlanning/NozzleTempInsert.h"
+#include "path_planning/NozzleTempInsert.h"
 
 namespace cura
 {

@@ -7,7 +7,7 @@
 #include <vector>
 
 #include "GCodePathConfig.h"
-#include "pathPlanning/SpeedDerivatives.h"
+#include "path_planning/SpeedDerivatives.h"
 #include "settings/MeshPathConfigs.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
