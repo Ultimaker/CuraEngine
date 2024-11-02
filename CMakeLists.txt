@@ -63,6 +63,7 @@ set(engine_SRCS # Except main.cpp.
         src/Mold.cpp
         src/multiVolumes.cpp
         src/path_ordering.cpp
+        src/PathAdapter.cpp
         src/Preheat.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
