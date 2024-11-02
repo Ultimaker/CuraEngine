@@ -8,7 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
-#include "PrintFeature.h"
+#include "PrintFeatureType.h"
 #include "settings/types/Duration.h" //Print time estimates.
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h" //Speeds and accelerations at which we print.

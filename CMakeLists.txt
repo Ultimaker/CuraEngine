@@ -49,7 +49,6 @@ set(engine_SRCS # Except main.cpp.
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
         src/FffProcessor.cpp
-        src/gcodeExport.cpp
         src/GCodePathConfig.cpp
         src/infill.cpp
         src/InterlockingGenerator.cpp
@@ -110,14 +109,24 @@ set(engine_SRCS # Except main.cpp.
         src/infill/SubDivCube.cpp
         src/infill/GyroidInfill.cpp
 
-        src/path_planning/Comb.cpp
-        src/path_planning/ExtruderPlan.cpp
-        src/path_planning/GCodePath.cpp
-        src/path_planning/LayerPlan.cpp
-        src/path_planning/LayerPlanBuffer.cpp
+        src/path_export/ConsoleExporter.cpp include/path_export/ConsoleExporter.h
+        src/path_export/GCodeExporter.cpp   include/path_export/GCodeExporter.h
+        src/path_export/PathExporter.cpp    include/path_export/PathExporter.h
+
+        src/path_planning/Comb.cpp             include/path_planning/Comb.h
+        src/path_planning/ExtruderMove.cpp     include/path_planning/ExtruderMove.h
+        src/path_planning/ExtruderMoveSet.cpp  include/path_planning/ExtruderMoveSet.h
+        src/path_planning/ExtruderPlan.cpp     include/path_planning/ExtruderPlan.h
+        src/path_planning/ExtrusionMove.cpp    include/path_planning/ExtrusionMove.h
+        src/path_planning/FeatureExtrusion.cpp include/path_planning/FeatureExtrusion.h
+        src/path_planning/GCodePath.cpp        include/path_planning/GCodePath.h
+        src/path_planning/LayerPlan.cpp        include/path_planning/LayerPlan.h
+        src/path_planning/LayerPlanBuffer.cpp  include/path_planning/LayerPlanBuffer.h
         src/path_planning/LinePolygonsCrossings.cpp
-        src/path_planning/NozzleTempInsert.cpp
-        src/path_planning/SpeedDerivatives.cpp
+        src/path_planning/NozzleTempInsert.cpp include/path_planning/NozzleTempInsert.h
+        src/path_planning/SpeedDerivatives.cpp include/path_planning/SpeedDerivatives.h
+        src/path_planning/TravelMove.cpp       include/path_planning/TravelMove.h
+        src/path_planning/TravelRoute.cpp      include/path_planning/TravelRoute.h
 
         src/plugins/converters.cpp
 

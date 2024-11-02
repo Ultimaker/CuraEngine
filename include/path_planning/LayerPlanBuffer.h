@@ -16,7 +16,7 @@ namespace cura
 
 class LayerPlan;
 class ExtruderPlan;
-class GCodeExport;
+class GCodeExporter;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
@@ -35,7 +35,7 @@ class LayerPlanBuffer
 {
     friend class LayerPlan;
 
-    GCodeExport& gcode_;
+    GCodeExporter& gcode_;
 
     Preheat preheat_config_; //!< the nozzle and material temperature settings for each extruder train.
 
@@ -58,7 +58,7 @@ class LayerPlanBuffer
     std::list<LayerPlan*> buffer_;
 
 public:
-    LayerPlanBuffer(GCodeExport& gcode)
+    LayerPlanBuffer(GCodeExporter& gcode)
         : gcode_(gcode)
         , extruder_used_in_meshgroup_(MAX_EXTRUDERS, false)
     {
@@ -78,7 +78,7 @@ public:
      * \param layer_plan The layer to handle
      * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
      */
-    void handle(LayerPlan& layer_plan, GCodeExport& gcode);
+    void handle(LayerPlan& layer_plan, GCodeExporter& gcode);
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.

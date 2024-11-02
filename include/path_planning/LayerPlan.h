@@ -4,15 +4,15 @@
 #ifndef LAYER_PLAN_H
 #define LAYER_PLAN_H
 
-#include "path_planning/ExtruderPlan.h"
 #include "FanSpeedLayerTime.h"
 #include "InsetOrderOptimizer.h"
 #include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
-#include "gcodeExport.h"
 #include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
+#include "path_export/GCodeExporter.h"
+#include "path_planning/ExtruderPlan.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
 #include "path_planning/TimeMaterialEstimates.h"
@@ -709,7 +709,7 @@ public:
      *
      * \param gcode The gcode to write the planned paths to
      */
-    void writeGCode(GCodeExport& gcode);
+    void writeGCode(GCodeExporter& gcode);
 
     /*!
      * Whether the current retracted path is to be an extruder switch retraction.
@@ -760,6 +760,8 @@ public:
      * especially with a bowden extruder.
      */
     void applyGradualFlow();
+
+    coord_t getZ() const;
 
 private:
     /*!
@@ -813,7 +815,7 @@ private:
      *  @param path_z_offset The global path Z offset to be applied
      *  @note This function is to be used when dealing with 3D coordinates. If you have 2D coordinates, just call gcode.writeTravel()
      */
-    void writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset);
+    void writeTravelRelativeZ(GCodeExporter& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset);
 
     /*!
      * \brief Write an extrusion move and properly apply the various Z offsets
@@ -826,7 +828,7 @@ private:
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
     void writeExtrusionRelativeZ(
-        GCodeExport& gcode,
+        GCodeExporter& gcode,
         const Point3LL& position,
         const Velocity& speed,
         const coord_t path_z_offset,
@@ -967,7 +969,7 @@ private:
      * \return Whether any GCode has been written for the path.
      */
     bool writePathWithCoasting(
-        GCodeExport& gcode,
+        GCodeExporter& gcode,
         const size_t extruder_plan_idx,
         const size_t path_idx,
         const std::function<void(const double, const int64_t)> insertTempOnTime,

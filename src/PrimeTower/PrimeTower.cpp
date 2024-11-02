@@ -16,7 +16,7 @@
 #include "PrimeTower/PrimeTowerNormal.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "gcodeExport.h"
+#include "path_export/GCodeExporter.h"
 #include "infill.h"
 #include "raft.h"
 #include "sliceDataStorage.h"

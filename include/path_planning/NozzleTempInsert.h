@@ -10,7 +10,7 @@
 namespace cura
 {
 
-class GCodeExport;
+class GCodeExporter;
 
 /*!
  * A gcode command to insert before a specific path.
@@ -38,7 +38,7 @@ struct NozzleTempInsert
      * Write the temperature command at the current position in the gcode.
      * \param gcode The actual gcode writer
      */
-    void write(GCodeExport& gcode);
+    void write(GCodeExporter& gcode);
 
 };
 

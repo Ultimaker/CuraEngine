@@ -11,7 +11,7 @@
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
 #include "path_planning/LayerPlanBuffer.h"
-#include "gcodeExport.h"
+#include "path_export/GCodeExporter.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
@@ -56,7 +56,7 @@ private:
      *
      * It holds information such as the last written position etc.
      */
-    GCodeExport gcode;
+    GCodeExporter gcode;
 
     /*!
      * The gcode file to write to when using CuraEngine as command line tool.

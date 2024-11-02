@@ -10,6 +10,8 @@
 #include <limits> //For numeric_limits::min and max.
 #include <type_traits> // for operations on any arithmetic number type
 
+#include <fmt/format.h>
+
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 #include "utils/types/generic.h"
@@ -217,5 +219,18 @@ struct hash<cura::Point3LL>
 };
 } // namespace std
 
+namespace fmt
+{
+
+template<>
+struct formatter<cura::Point3LL> : formatter<std::string>
+{
+    auto format(const cura::Point3LL& point, format_context& ctx)
+    {
+        return fmt::format_to(ctx.out(), "(X{}, Y{}, Z{})", point.x_, point.y_, point.z_);
+    }
+};
+
+} // namespace fmt
 
 #endif // GEOMETRY_POINT3LL_H

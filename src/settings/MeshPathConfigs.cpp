@@ -6,7 +6,7 @@
 #include <range/v3/view/iota.hpp>
 
 #include "ExtruderTrain.h"
-#include "PrintFeature.h"
+#include "PrintFeatureType.h"
 
 namespace cura
 {

@@ -6,7 +6,7 @@
 
 #include "FanSpeedLayerTime.h"
 #include "RetractionConfig.h"
-#include "gcodeExport.h"
+#include "path_export/GCodeExporter.h"
 #include "geometry/Point2LL.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
@@ -78,7 +78,7 @@ public:
      * \param gcode The gcode exporter to which to write the temperature command.
      * \param cumulative_path_time The time spend on this path up to this point.
      */
-    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time = std::numeric_limits<double>::infinity());
+    void handleInserts(const size_t path_idx, GCodeExporter& gcode, const double cumulative_path_time = std::numeric_limits<double>::infinity());
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
@@ -89,7 +89,7 @@ public:
      *
      * \param gcode The gcode exporter to which to write the temperature command.
      */
-    void handleAllRemainingInserts(GCodeExport& gcode);
+    void handleAllRemainingInserts(GCodeExporter& gcode);
 
     /*!
      * Applying fan speed changes for minimal layer times.

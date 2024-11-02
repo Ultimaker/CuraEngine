@@ -1,7 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcodeExport.h" // The unit under test.
+#include "path_export/GCodeExporter.h" // The unit under test.
 
 #include <gtest/gtest.h>
 
@@ -27,7 +27,7 @@ public:
     /*
      * An export class to test with.
      */
-    GCodeExport gcode;
+    GCodeExporter gcode;
 
     /*
      * A stream to capture the output of the g-code export.
@@ -190,7 +190,7 @@ public:
     /*
      * An export class to test with.
      */
-    GCodeExport gcode;
+    GCodeExporter gcode;
 
     /*
      * A stream to capture the output of the g-code export.

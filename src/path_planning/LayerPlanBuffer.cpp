@@ -11,7 +11,7 @@
 #include "path_planning/LayerPlan.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
-#include "gcodeExport.h"
+#include "path_export/GCodeExporter.h"
 
 namespace cura
 {
@@ -24,7 +24,7 @@ void LayerPlanBuffer::push(LayerPlan& layer_plan)
     buffer_.push_back(&layer_plan);
 }
 
-void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
+void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExporter& gcode)
 {
     push(layer_plan);
 

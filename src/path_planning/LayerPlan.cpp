@@ -1288,7 +1288,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -1939,13 +1939,13 @@ void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, cons
         extrude_speed);
 }
 
-void LayerPlan::writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset)
+void LayerPlan::writeTravelRelativeZ(GCodeExporter& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset)
 {
     gcode.writeTravel(position + Point3LL(0, 0, z_ + path_z_offset), speed);
 }
 
 void LayerPlan::writeExtrusionRelativeZ(
-    GCodeExport& gcode,
+    GCodeExporter& gcode,
     const Point3LL& position,
     const Velocity& speed,
     const coord_t path_z_offset,
@@ -2438,7 +2438,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
-void LayerPlan::writeGCode(GCodeExport& gcode)
+void LayerPlan::writeGCode(GCodeExporter& gcode)
 {
     auto communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr_);
@@ -2922,7 +2922,7 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
 }
 
 bool LayerPlan::writePathWithCoasting(
-    GCodeExport& gcode,
+    GCodeExporter& gcode,
     const size_t extruder_plan_idx,
     const size_t path_idx,
     const std::function<void(const double, const int64_t)> insertTempOnTime,
@@ -3079,6 +3079,11 @@ void LayerPlan::applyGradualFlow()
     {
         gradual_flow::Processor::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
     }
+}
+
+coord_t LayerPlan::getZ() const
+{
+    return z_;
 }
 
 LayerIndex LayerPlan::getLayerNr() const

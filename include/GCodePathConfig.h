@@ -4,7 +4,7 @@
 #ifndef G_CODE_PATH_CONFIG_H
 #define G_CODE_PATH_CONFIG_H
 
-#include "PrintFeature.h"
+#include "PrintFeatureType.h"
 #include "path_planning/SpeedDerivatives.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h"

@@ -31,7 +31,7 @@ struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //   Any customizations on GCodes flavors are done in this class.
-class GCodeExport : public NoCopy
+class GCodeExporter : public NoCopy
 {
 #ifdef BUILD_TESTS
     friend class GCodeExportTest;
@@ -217,8 +217,8 @@ protected:
     double eToMm3(double e, size_t extruder);
 
 public:
-    GCodeExport();
-    ~GCodeExport();
+    GCodeExporter();
+    ~GCodeExporter();
 
     /*
      * \brief Converts the g-code flavor to a string as it must be printed in

@@ -28,7 +28,7 @@
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
-#include "PrintFeature.h"
+#include "PrintFeatureType.h"
 #include "Slice.h" //To process slices.
 #include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "communication/Listener.h" //To listen to the Arcus socket.

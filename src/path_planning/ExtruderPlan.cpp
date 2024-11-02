@@ -28,7 +28,7 @@ void ExtruderPlan::insertCommand(NozzleTempInsert&& insert)
     inserts_.emplace_back(insert);
 }
 
-void ExtruderPlan::handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time)
+void ExtruderPlan::handleInserts(const size_t path_idx, GCodeExporter& gcode, const double cumulative_path_time)
 {
     while (! inserts_.empty() && path_idx >= inserts_.front().path_idx && inserts_.front().time_after_path_start < cumulative_path_time)
     { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
@@ -37,7 +37,7 @@ void ExtruderPlan::handleInserts(const size_t path_idx, GCodeExport& gcode, cons
     }
 }
 
-void ExtruderPlan::handleAllRemainingInserts(GCodeExport& gcode)
+void ExtruderPlan::handleAllRemainingInserts(GCodeExporter& gcode)
 {
     while (! inserts_.empty())
     { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)

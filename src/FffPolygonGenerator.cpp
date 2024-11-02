@@ -21,7 +21,7 @@
 #include "MeshGroup.h"
 #include "Mold.h"
 #include "multiVolumes.h"
-#include "PrintFeature.h"
+#include "PrintFeatureType.h"
 #include "raft.h"
 #include "skin.h"
 #include "SkirtBrim.h"
