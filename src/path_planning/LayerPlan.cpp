@@ -2446,7 +2446,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
-void LayerPlan::writeGCode(GCodeExporter& gcode)
+void LayerPlan::writeGCode(GCodeExporter& gcode, PathExporter& exporter)
 {
     auto communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr_);
@@ -2481,14 +2481,13 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
     }
 
 #if 1
-    ConsoleExporter exporter;
     for (const ExtruderPlan& extruder_plan : extruder_plans_)
     {
         extruder_plan.write(exporter, *this);
     }
 #endif
 
-#if 1
+#if 0
     gcode.setZ(z_);
 
     std::optional<GCodePathConfig> last_extrusion_config = std::nullopt; // used to check whether we need to insert a TYPE comment in the gcode.

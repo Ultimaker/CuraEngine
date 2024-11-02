@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 #include "geometry/Point2LL.h"
+#include "path_export/PathExporter.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/LayerIndex.h"
@@ -31,7 +32,7 @@ struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //   Any customizations on GCodes flavors are done in this class.
-class GCodeExporter : public NoCopy
+class GCodeExporter : public NoCopy, public PathExporter
 {
 #ifdef BUILD_TESTS
     friend class GCodeExportTest;
@@ -383,7 +384,19 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    virtual void writeExtrusion(
+        const Point3LL& p,
+        const Velocity& speed,
+        double extrusion_mm3_per_mm,
+        const coord_t line_width,
+        const coord_t line_thickness,
+        PrintFeatureType feature,
+        bool update_extrusion_offset = false) override;
+
+    void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false)
+    {
+        return writeExtrusion(p, speed, extrusion_mm3_per_mm, 0, 0, feature, update_extrusion_offset);
+    }
 
     /*!
      * Initialize the extruder trains.

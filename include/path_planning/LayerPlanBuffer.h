@@ -17,6 +17,7 @@ namespace cura
 class LayerPlan;
 class ExtruderPlan;
 class GCodeExporter;
+class PathExporter;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
@@ -78,12 +79,12 @@ public:
      * \param layer_plan The layer to handle
      * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
      */
-    void handle(LayerPlan& layer_plan, GCodeExporter& gcode);
+    void handle(LayerPlan& layer_plan, GCodeExporter& gcode, PathExporter& exporter);
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
-    void flush();
+    void flush(PathExporter &exporter);
 
 private:
     /*!

@@ -16,8 +16,7 @@ ExtrusionMove::ExtrusionMove(const Point3LL& position)
 {
 }
 
-void ExtrusionMove::write(PathExporter& exporter, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set)
-    const
+void ExtrusionMove::write(PathExporter& exporter, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const
 {
     auto feature_extrusion = dynamic_cast<const FeatureExtrusion*>(&extruder_move_set);
     if (feature_extrusion == nullptr)
@@ -27,12 +26,13 @@ void ExtrusionMove::write(PathExporter& exporter, const LayerPlan& layer_plan, c
     }
 
     const Point3LL position = getAbsolutePosition(layer_plan, extruder_move_set);
-    const Velocity velocity = feature_extrusion->getSpeed() * feature_extrusion->getSpeedFactor()
-                            * feature_extrusion->getSpeedBackPressureFactor();
+    const Velocity velocity = feature_extrusion->getSpeed() * feature_extrusion->getSpeedFactor() * feature_extrusion->getSpeedBackPressureFactor();
     const double extrusion_mm3_per_mm = feature_extrusion->getExtrusionMM3perMM();
+    const coord_t line_width = feature_extrusion->getLineWidth();
+    const coord_t line_thickness = feature_extrusion->getLayerThickness() + feature_extrusion->getZOffset() + getPosition().z_;
     const PrintFeatureType print_feature_type = feature_extrusion->getPrintFeatureType();
 
-    exporter.writeExtrusion(position, velocity, extrusion_mm3_per_mm, print_feature_type, false);
+    exporter.writeExtrusion(position, velocity, extrusion_mm3_per_mm, line_width, line_thickness, print_feature_type, false);
 }
 
 } // namespace cura

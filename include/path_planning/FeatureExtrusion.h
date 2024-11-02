@@ -24,6 +24,10 @@ public:
 
     PrintFeatureType getPrintFeatureType() const;
 
+    coord_t getLineWidth() const;
+
+    coord_t getLayerThickness() const;
+
 private:
     GCodePathConfig config_; //!< The configuration settings of the path.
 };

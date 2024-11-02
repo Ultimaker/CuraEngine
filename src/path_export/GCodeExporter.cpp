@@ -889,7 +889,14 @@ void GCodeExporter::writeTravel(const Point3LL& p, const Velocity& speed)
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed);
 }
 
-void GCodeExporter::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExporter::writeExtrusion(
+    const Point3LL& p,
+    const Velocity& speed,
+    double extrusion_mm3_per_mm,
+    const coord_t line_width,
+    const coord_t line_thickness,
+    PrintFeatureType feature,
+    bool update_extrusion_offset)
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {

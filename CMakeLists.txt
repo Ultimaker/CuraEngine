@@ -109,9 +109,11 @@ set(engine_SRCS # Except main.cpp.
         src/infill/SubDivCube.cpp
         src/infill/GyroidInfill.cpp
 
-        src/path_export/ConsoleExporter.cpp include/path_export/ConsoleExporter.h
-        src/path_export/GCodeExporter.cpp   include/path_export/GCodeExporter.h
-        src/path_export/PathExporter.cpp    include/path_export/PathExporter.h
+        src/path_export/ConsoleExporter.cpp       include/path_export/ConsoleExporter.h
+        src/path_export/GCodeExporter.cpp         include/path_export/GCodeExporter.h
+        src/path_export/MultiExporter.cpp         include/path_export/MultiExporter.h
+        src/path_export/PathExporter.cpp          include/path_export/PathExporter.h
+        src/path_export/CommunicationExporter.cpp include/path_export/CommunicationExporter.h
 
         src/path_planning/Comb.cpp             include/path_planning/Comb.h
         src/path_planning/ExtruderMove.cpp     include/path_planning/ExtruderMove.h

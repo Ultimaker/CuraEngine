@@ -202,7 +202,7 @@ private:
      *
      * \param[in,out] storage where the slice data is stored.
      */
-    void processRaft(const SliceDataStorage& storage);
+    void processRaft(const SliceDataStorage& storage, PathExporter &exporter);
 
     void startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder);
 

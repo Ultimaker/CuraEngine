@@ -710,7 +710,7 @@ public:
      *
      * \param gcode The gcode to write the planned paths to
      */
-    void writeGCode(GCodeExporter& gcode);
+    void writeGCode(GCodeExporter& gcode, PathExporter& exporter);
 
     /*!
      * Whether the current retracted path is to be an extruder switch retraction.

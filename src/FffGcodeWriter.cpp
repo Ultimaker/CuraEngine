@@ -19,7 +19,6 @@
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
 #include "InsetOrderOptimizer.h"
-#include "path_planning/LayerPlan.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
 #include "PrimeTower/PrimeTower.h"
 #include "Slice.h"
@@ -30,6 +29,10 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
 #include "infill.h"
+#include "path_export/CommunicationExporter.h"
+#include "path_export/ConsoleExporter.h"
+#include "path_export/MultiExporter.h"
+#include "path_planning/LayerPlan.h"
 #include "progress/Progress.h"
 #include "raft.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
@@ -162,11 +165,15 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         findLayerSeamsForSpiralize(storage, total_layers);
     }
 
+    MultiExporter exporter;
+    exporter.appendExporter(std::make_shared<ConsoleExporter>());
+    exporter.appendExporter(std::make_shared<CommunicationExporter>(Application::getInstance().communication_));
+
     int process_layer_starting_layer_nr = 0;
     const bool has_raft = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
     {
-        processRaft(storage);
+        processRaft(storage, exporter);
         // process filler layers to fill the airgap with helper object (support etc) so that they stick better to the raft.
         // only process the filler layers if there is anything to print in them.
         for (bool extruder_is_used_in_filler_layers : storage.getExtrudersUsed(-1))
@@ -182,18 +189,18 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
         total_layers,
-        [&storage, total_layers, this](int layer_nr)
+        [&storage, total_layers, &exporter, this](int layer_nr)
         {
             return std::make_optional(processLayer(storage, layer_nr, total_layers));
         },
-        [this, total_layers](std::optional<ProcessLayerResult> result_opt)
+        [this, total_layers, &exporter](std::optional<ProcessLayerResult> result_opt)
         {
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
-            layer_plan_buffer.handle(*result.layer_plan, gcode);
+            layer_plan_buffer.handle(*result.layer_plan, gcode, exporter);
         });
 
-    layer_plan_buffer.flush();
+    layer_plan_buffer.flush(exporter);
 
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
@@ -567,7 +574,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
 
-void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
+void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PathExporter& exporter)
 {
     Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
@@ -750,7 +757,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr, false);
 
-        layer_plan_buffer.handle(gcode_layer, gcode);
+        layer_plan_buffer.handle(gcode_layer, gcode, exporter);
     }
 
     const coord_t interface_layer_height = interface_settings.get<coord_t>("raft_interface_thickness");
@@ -910,7 +917,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr);
 
-        layer_plan_buffer.handle(gcode_layer, gcode);
+        layer_plan_buffer.handle(gcode_layer, gcode, exporter);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
@@ -1092,7 +1099,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr);
 
-        layer_plan_buffer.handle(gcode_layer, gcode);
+        layer_plan_buffer.handle(gcode_layer, gcode, exporter);
     }
 }
 

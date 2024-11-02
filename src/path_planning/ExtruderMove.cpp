@@ -4,6 +4,7 @@
 #include "path_planning/ExtruderMove.h"
 
 #include "path_planning/ExtruderMoveSet.h"
+#include "path_planning/FeatureExtrusion.h"
 #include "path_planning/LayerPlan.h"
 
 namespace cura
@@ -19,6 +20,11 @@ Point3LL ExtruderMove::getAbsolutePosition(const LayerPlan& layer_plan, const Ex
     Point3LL absolute_position = position_;
     absolute_position.z_ += layer_plan.getZ() + extruder_move_set.getZOffset();
     return absolute_position;
+}
+
+const Point3LL& ExtruderMove::getPosition() const
+{
+    return position_;
 }
 
 } // namespace cura

@@ -23,11 +23,12 @@ public:
      *
      * \param gcode The gcode to write the planned paths to
      */
-    virtual void
-        write(PathExporter& exporter, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const = 0;
+    virtual void write(PathExporter& exporter, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const = 0;
 
 protected:
     Point3LL getAbsolutePosition(const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const;
+
+    const Point3LL& getPosition() const;
 
 private:
     /*!

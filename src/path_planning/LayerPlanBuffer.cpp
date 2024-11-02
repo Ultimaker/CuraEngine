@@ -8,10 +8,10 @@
 #include "Application.h" //To flush g-code through the communication channel.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
-#include "path_planning/LayerPlan.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "path_export/GCodeExporter.h"
+#include "path_planning/LayerPlan.h"
 
 namespace cura
 {
@@ -24,14 +24,14 @@ void LayerPlanBuffer::push(LayerPlan& layer_plan)
     buffer_.push_back(&layer_plan);
 }
 
-void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExporter& gcode)
+void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExporter& gcode, PathExporter& exporter)
 {
     push(layer_plan);
 
     LayerPlan* to_be_written = processBuffer();
     if (to_be_written)
     {
-        to_be_written->writeGCode(gcode);
+        to_be_written->writeGCode(gcode, exporter);
         delete to_be_written;
     }
 }
@@ -61,7 +61,7 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     return nullptr;
 }
 
-void LayerPlanBuffer::flush()
+void LayerPlanBuffer::flush(PathExporter& exporter)
 {
     Application::getInstance()
         .communication_->flushGCode(); // If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
@@ -71,7 +71,7 @@ void LayerPlanBuffer::flush()
     }
     while (! buffer_.empty())
     {
-        buffer_.front()->writeGCode(gcode_);
+        buffer_.front()->writeGCode(gcode_, exporter);
         Application::getInstance().communication_->flushGCode();
         delete buffer_.front();
         buffer_.pop_front();

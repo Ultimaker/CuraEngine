@@ -14,8 +14,7 @@ class ExtrusionMove : public ExtruderMove
 public:
     explicit ExtrusionMove(const Point3LL& position);
 
-    void write(PathExporter& gcode, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set)
-        const override;
+    void write(PathExporter& gcode, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const override;
 };
 
 } // namespace cura

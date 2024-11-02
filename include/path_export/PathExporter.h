@@ -5,6 +5,7 @@
 #define PATHEXPORT_PATHEXPORTER_H
 
 #include "PrintFeatureType.h"
+#include "utils/Coord_t.h"
 
 namespace cura
 {
@@ -18,6 +19,8 @@ public:
         const Point3LL& p,
         const Velocity& speed,
         const double extrusion_mm3_per_mm,
+        const coord_t line_width,
+        const coord_t line_thickness,
         const PrintFeatureType feature,
         const bool update_extrusion_offset)
         = 0;
