@@ -13,17 +13,17 @@ namespace cura
     return extrusion_mm3_per_mm;
 }
 
-[[nodiscard]] Velocity GCodePathConfig::getSpeed() const noexcept
+[[nodiscard]] const Velocity& GCodePathConfig::getSpeed() const noexcept
 {
     return speed_derivatives.speed;
 }
 
-[[nodiscard]] Acceleration GCodePathConfig::getAcceleration() const noexcept
+[[nodiscard]] const Acceleration& GCodePathConfig::getAcceleration() const noexcept
 {
     return speed_derivatives.acceleration;
 }
 
-[[nodiscard]] Velocity GCodePathConfig::getJerk() const noexcept
+[[nodiscard]] const Velocity& GCodePathConfig::getJerk() const noexcept
 {
     return speed_derivatives.jerk;
 }
@@ -58,7 +58,7 @@ namespace cura
     return fan_speed;
 }
 
-[[nodiscard]] Ratio GCodePathConfig::getFlowRatio() const noexcept
+[[nodiscard]] const Ratio& GCodePathConfig::getFlowRatio() const noexcept
 {
     return flow;
 }

@@ -41,17 +41,17 @@ struct GCodePathConfig
     /*!
      * Get the movement speed in mm/s
      */
-    [[nodiscard]] Velocity getSpeed() const noexcept;
+    [[nodiscard]] const Velocity& getSpeed() const noexcept;
 
     /*!
      * Get the current acceleration of this config
      */
-    [[nodiscard]] Acceleration getAcceleration() const noexcept;
+    [[nodiscard]] const Acceleration& getAcceleration() const noexcept;
 
     /*!
      * Get the current jerk of this config
      */
-    [[nodiscard]] Velocity getJerk() const noexcept;
+    [[nodiscard]] const Velocity& getJerk() const noexcept;
 
     [[nodiscard]] coord_t getLineWidth() const noexcept;
 
@@ -61,7 +61,7 @@ struct GCodePathConfig
 
     [[nodiscard]] double getFanSpeed() const noexcept;
 
-    [[nodiscard]] Ratio getFlowRatio() const noexcept;
+    [[nodiscard]] const Ratio& getFlowRatio() const noexcept;
 
     [[nodiscard]] coord_t getLayerThickness() const noexcept;
 

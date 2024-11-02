@@ -37,6 +37,7 @@ namespace cura
 class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
+class ExtruderMoveSet;
 
 template<typename PathType>
 class PathAdapter;
@@ -990,6 +991,8 @@ private:
      * \param p1 The end point of the segment
      */
     bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
+
+    void addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSet>& extruder_move_set, const bool check_non_empty = true);
 };
 
 } // namespace cura

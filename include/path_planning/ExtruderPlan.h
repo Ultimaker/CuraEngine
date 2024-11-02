@@ -6,8 +6,8 @@
 
 #include "FanSpeedLayerTime.h"
 #include "RetractionConfig.h"
-#include "path_export/GCodeExporter.h"
 #include "geometry/Point2LL.h"
+#include "path_export/GCodeExporter.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
 #include "path_planning/TimeMaterialEstimates.h"
@@ -27,6 +27,9 @@ namespace cura
 {
 class LayerPlanBuffer;
 class LayerPlan;
+class ExtruderMoveSet;
+class PathExporter;
+
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
  *
@@ -124,6 +127,10 @@ public:
      */
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
+    void addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSet>& extruder_move_set);
+
+    void write(PathExporter& exporter, const LayerPlan& layer_plan) const;
+
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
     bool is_initial_layer_{ false }; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
@@ -167,6 +174,8 @@ private:
     double fan_speed{ 0.0 }; //!< The fan speed to be used during this extruder plan
 
     double temperature_factor_{ 0.0 }; //!< Temperature reduction factor for small layers
+
+    std::vector<std::shared_ptr<ExtruderMoveSet>> extruder_move_sets_;
 
     /*!
      * Set the fan speed to be used while printing this extruder plan

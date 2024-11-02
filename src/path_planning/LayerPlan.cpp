@@ -21,8 +21,11 @@
 #include "communication/Communication.h"
 #include "geometry/OpenPolyline.h"
 #include "gradual_flow/Processor.h"
+#include "path_export/ConsoleExporter.h"
 #include "path_planning/Comb.h"
 #include "path_planning/CombPaths.h"
+#include "path_planning/ExtruderMoveSet.h"
+#include "path_planning/FeatureExtrusion.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
@@ -1067,6 +1070,8 @@ void LayerPlan::addSplitWall(
     const bool compute_distance_to_bridge_start,
     const AddExtrusionSegmentFunction& func_add_segment)
 {
+    auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config);
+
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
     Point2LL p0 = wall.pointAt(start_idx);
     coord_t w0 = wall.lineWidthAt(start_idx);
@@ -1089,6 +1094,7 @@ void LayerPlan::addSplitWall(
         const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
         const Point2LL& p1 = wall.pointAt(actual_point_index);
         const coord_t w1 = wall.lineWidthAt(actual_point_index);
+        feature_extrusion->addExtrusionMove(p1);
 
         if constexpr (std::is_same_v<PathType, ExtrusionLine>)
         {
@@ -1269,6 +1275,8 @@ void LayerPlan::addSplitWall(
 
         p0 = p1;
     }
+
+    addExtruderMoveSet(feature_extrusion);
 }
 
 std::vector<LayerPlan::PathCoasting>
@@ -2472,7 +2480,15 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
         }
     }
 
+#if 1
+    ConsoleExporter exporter;
+    for (const ExtruderPlan& extruder_plan : extruder_plans_)
+    {
+        extruder_plan.write(exporter, *this);
+    }
+#endif
 
+#if 1
     gcode.setZ(z_);
 
     std::optional<GCodePathConfig> last_extrusion_config = std::nullopt; // used to check whether we need to insert a TYPE comment in the gcode.
@@ -2881,6 +2897,7 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
             scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
     } // extruder plans /\  .
+#endif
 
     communication->sendLayerComplete(layer_nr_, z_, layer_thickness_);
     gcode.updateTotalPrintTime();
@@ -3139,6 +3156,14 @@ const Shape& LayerPlan::getSeamOverhangMask() const
 void LayerPlan::setRoofingMask(const Shape& polys)
 {
     roofing_mask_ = polys;
+}
+
+void LayerPlan::addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSet>& extruder_move_set, const bool check_non_empty)
+{
+    if (! check_non_empty || ! extruder_move_set->empty())
+    {
+        extruder_plans_.back().addExtruderMoveSet(extruder_move_set);
+    }
 }
 
 template void LayerPlan::addLinesByOptimizer(
