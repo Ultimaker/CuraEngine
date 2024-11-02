@@ -84,7 +84,7 @@ public:
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
-    void flush(PathExporter &exporter);
+    void flush(PathExporter& exporter);
 
 private:
     /*!
