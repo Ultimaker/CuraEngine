@@ -190,14 +190,16 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 {
                     continue;
                 }
+
+                constexpr coord_t extra_offset = 10; // Additional offset to avoid zero-width polygons remains
                 coord_t offset;
                 switch (boundary_type)
                 {
                 case CombBoundary::MINIMUM:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
                     break;
                 case CombBoundary::PREFERRED:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
                     break;
                 default:
                     offset = 0;
@@ -227,6 +229,7 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                                 top_and_bottom_most_fill.push_back(skin_part.bottom_most_surface_fill);
                             }
                         }
+
                         comb_boundary.push_back(part.outline.offset(offset).difference(top_and_bottom_most_fill));
                     }
                     else if (combing_mode == CombingMode::INFILL) // Add the infill (infill only)
@@ -1291,7 +1294,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
