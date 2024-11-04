@@ -5,6 +5,7 @@
 #define PATHPLANNING_EXTRUSIONMOVE_H
 
 #include "path_planning/ExtruderMove.h"
+#include "settings/types/Ratio.h"
 
 namespace cura
 {
@@ -12,9 +13,12 @@ namespace cura
 class ExtrusionMove : public ExtruderMove
 {
 public:
-    explicit ExtrusionMove(const Point3LL& position);
+    explicit ExtrusionMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
 
     void write(PathExporter& gcode, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const override;
+
+private:
+    Ratio line_width_ratio_{ 1.0 };
 };
 
 } // namespace cura

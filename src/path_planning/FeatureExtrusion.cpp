@@ -13,9 +13,9 @@ FeatureExtrusion::FeatureExtrusion(const GCodePathConfig& config)
 {
 }
 
-void FeatureExtrusion::addExtrusionMove(const Point3LL& position)
+void FeatureExtrusion::addExtrusionMove(const Point3LL& position, const Ratio& line_width_ratio)
 {
-    auto extrusion_move = std::make_shared<ExtrusionMove>(position);
+    auto extrusion_move = std::make_shared<ExtrusionMove>(position, line_width_ratio);
     appendExtruderMove(extrusion_move);
 }
 
@@ -42,6 +42,16 @@ coord_t FeatureExtrusion::getLayerThickness() const
 double FeatureExtrusion::getExtrusionMM3perMM() const
 {
     return config_.getExtrusionMM3perMM();
+}
+
+const Ratio& FeatureExtrusion::getFlow() const
+{
+    return flow_;
+}
+
+const Ratio& FeatureExtrusion::getWidthFactor() const
+{
+    return width_factor_;
 }
 
 } // namespace cura

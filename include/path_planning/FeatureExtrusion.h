@@ -16,7 +16,7 @@ class FeatureExtrusion : public ExtruderMoveSet
 public:
     explicit FeatureExtrusion(const GCodePathConfig& config);
 
-    void addExtrusionMove(const Point3LL& position);
+    void addExtrusionMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
 
     const Velocity& getSpeed() const;
 
@@ -29,7 +29,14 @@ public:
     coord_t getLayerThickness() const;
 
 private:
+    const Ratio& getFlow() const;
+
+    const Ratio& getWidthFactor() const;
+
+private:
     GCodePathConfig config_; //!< The configuration settings of the path.
+    Ratio flow_{ 1.0 }; //!< A type-independent flow configuration
+    Ratio width_factor_{ 1.0 }; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.
 };
 
 } // namespace cura

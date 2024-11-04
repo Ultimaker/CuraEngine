@@ -11,8 +11,9 @@
 namespace cura
 {
 
-ExtrusionMove::ExtrusionMove(const Point3LL& position)
+ExtrusionMove::ExtrusionMove(const Point3LL& position, const Ratio& line_width_ratio)
     : ExtruderMove(position)
+    , line_width_ratio_(line_width_ratio)
 {
 }
 
@@ -28,7 +29,7 @@ void ExtrusionMove::write(PathExporter& exporter, const LayerPlan& layer_plan, c
     const Point3LL position = getAbsolutePosition(layer_plan, extruder_move_set);
     const Velocity velocity = feature_extrusion->getSpeed() * feature_extrusion->getSpeedFactor() * feature_extrusion->getSpeedBackPressureFactor();
     const double extrusion_mm3_per_mm = feature_extrusion->getExtrusionMM3perMM();
-    const coord_t line_width = feature_extrusion->getLineWidth();
+    const coord_t line_width = std::llrint(feature_extrusion->getLineWidth() * static_cast<double>(line_width_ratio_));
     const coord_t line_thickness = feature_extrusion->getLayerThickness() + feature_extrusion->getZOffset() + getPosition().z_;
     const PrintFeatureType print_feature_type = feature_extrusion->getPrintFeatureType();
 

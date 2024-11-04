@@ -1070,8 +1070,6 @@ void LayerPlan::addSplitWall(
     const bool compute_distance_to_bridge_start,
     const AddExtrusionSegmentFunction& func_add_segment)
 {
-    auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config);
-
     coord_t distance_to_bridge_start = 0; // will be updated before each line is processed
     Point2LL p0 = wall.pointAt(start_idx);
     coord_t w0 = wall.lineWidthAt(start_idx);
@@ -1094,7 +1092,6 @@ void LayerPlan::addSplitWall(
         const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
         const Point2LL& p1 = wall.pointAt(actual_point_index);
         const coord_t w1 = wall.lineWidthAt(actual_point_index);
-        feature_extrusion->addExtrusionMove(p1);
 
         if constexpr (std::is_same_v<PathType, ExtrusionLine>)
         {
@@ -1275,8 +1272,6 @@ void LayerPlan::addSplitWall(
 
         p0 = p1;
     }
-
-    addExtruderMoveSet(feature_extrusion);
 }
 
 std::vector<LayerPlan::PathCoasting>
@@ -1580,6 +1575,16 @@ void LayerPlan::addWall(
     {
         return;
     }
+
+    auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config);
+
+    for (const auto& segment : wall.junctions_ | ranges::views::sliding(2))
+    {
+        const coord_t average_line_width = (segment[0].w_ + segment[1].w_) / 2;
+        feature_extrusion->addExtrusionMove(segment[1].p_, static_cast<double>(average_line_width) / static_cast<double>(default_config.getLineWidth()));
+    }
+
+    addExtruderMoveSet(feature_extrusion);
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");

@@ -36,16 +36,6 @@ const Ratio& ExtruderMoveSet::getSpeedBackPressureFactor() const
     return speed_back_pressure_factor_;
 }
 
-const Ratio& ExtruderMoveSet::getFlow() const
-{
-    return flow_;
-}
-
-const Ratio& ExtruderMoveSet::getWidthFactor() const
-{
-    return width_factor_;
-}
-
 void ExtruderMoveSet::appendExtruderMove(const std::shared_ptr<ExtruderMove>& extruder_move)
 {
     extruder_moves_.push_back(extruder_move);
