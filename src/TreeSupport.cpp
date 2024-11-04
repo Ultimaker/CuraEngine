@@ -2399,11 +2399,14 @@ void TreeSupport::prepareSupportAreas(
     SliceDataStorage& storage,
     std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
 {
+    using ShapeWithStart = std::pair<SingleShape,Point2LL>;
     const auto t_start = std::chrono::high_resolution_clock::now();
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
+    const bool print_cradle_towards_model = true; //todo make setting
 
-    std::vector<Shape> cradle_support_line_roof_areas(support_layer_storage.size()); // All cradle lines that have to be added as roof
+    std::vector<std::vector<ShapeWithStart>> cradle_support_line_roof_areas_with_start(support_layer_storage.size()); // All cradle lines that have to be added as roof
+    std::vector<std::vector<ShapeWithStart>> cradle_support_line_areas_with_start(support_layer_storage.size()); // All cradle lines that have to be added as roof
 
     std::vector<Shape> cradle_line_xy_distance_areas(support_layer_storage.size()); // All cradle lines offset by xy distance.
     std::vector<Shape> missing_cradle_line_xy_distance_areas(support_layer_storage.size()); // All missing (because of cradle z distance) cradle lines offset by xy distance.
@@ -2453,12 +2456,20 @@ void TreeSupport::prepareSupportAreas(
                         LayerIndex previous_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].back().layer_idx_;
                         for (int64_t height_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - 1; height_idx >= 0; height_idx--)
                         {
-                            Shape line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_;
+                            if(cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_.empty())
+                            {
+                                continue;
+                            }
+
+                            SingleShape line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_.splitIntoParts(false).front(); //todo prettier.
                             bool is_roof = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
                             LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
                             bool is_base = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_;
                             bool was_line_above = height_idx + 1 < cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() &&
                                                   ! cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx + 1].is_base_;
+                            Point2LL front = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].line_.front();
+                            Point2LL back = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].line_.back();
+
                             if (was_line_above)
                             {
                                 for (LayerIndex xy_dist_layer_idx = previous_layer_idx - 1; xy_dist_layer_idx > cradle_line_layer_idx; xy_dist_layer_idx--)
@@ -2481,11 +2492,11 @@ void TreeSupport::prepareSupportAreas(
                             {
                                 std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
 
-                                if (cradle_support_line_roof_areas.size() <= layer_idx)
+                                if (cradle_support_line_roof_areas_with_start.size() <= layer_idx)
                                 {
-                                    cradle_support_line_roof_areas.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
+                                    cradle_support_line_roof_areas_with_start.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
                                 }
-                                cradle_support_line_roof_areas[cradle_line_layer_idx].push_back(line_area);
+                                cradle_support_line_roof_areas_with_start[cradle_line_layer_idx].emplace_back(line_area, print_cradle_towards_model ? back : front);
                             }
                             else
                             {
@@ -2496,6 +2507,12 @@ void TreeSupport::prepareSupportAreas(
                                     cradle_support_line_areas.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
                                 }
                                 cradle_support_line_areas[cradle_line_layer_idx].push_back(line_area);
+
+                                if (cradle_support_line_areas_with_start.size() <= layer_idx)
+                                {
+                                    cradle_support_line_areas_with_start.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
+                                }
+                                cradle_support_line_areas_with_start[cradle_line_layer_idx].emplace_back(line_area, print_cradle_towards_model ? back : front);
                             }
                             if (! is_base)
                             {
@@ -2569,7 +2586,6 @@ void TreeSupport::prepareSupportAreas(
 
             cradle_line_xy_distance_areas[layer_idx] = cradle_line_xy_distance_areas[layer_idx].unionPolygons();
             cradle_base_areas[layer_idx] = cradle_base_areas[layer_idx].unionPolygons();
-            cradle_support_line_roof_areas[layer_idx] = cradle_support_line_roof_areas[layer_idx].unionPolygons();
             // If areas are overwriting others in can will influence where support skin will be generated. So the differences have to be calculated here.
             if (! storage.support.supportLayers[layer_idx].support_roof.empty())
             {
@@ -2605,14 +2621,24 @@ void TreeSupport::prepareSupportAreas(
                     break;
                 }
             }
-            Shape cradle_lines_roof = cradle_support_line_roof_areas[layer_idx].unionPolygons();
             Shape remove_from_next_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof).unionPolygons();
             if (! support_free_areas[layer_idx].empty())
             {
                 remove_from_next_roof.push_back(support_free_areas[layer_idx]);
             }
-            //Remove only already added roof from line areas. Should not be needed, but better safe than sorry.
-            cradle_lines_roof = cradle_lines_roof.difference(remove_from_next_roof);
+
+            //Add cradle lines. These need start hints, so its best done early!
+            for(ShapeWithStart& line : cradle_support_line_roof_areas_with_start[layer_idx])
+            {
+                storage.support.supportLayers[layer_idx].support_roof.emplace_back(line.first, config.support_roof_line_width, false, std::min(1, config.support_roof_wall_count), 0, EFillMethod::NONE, std::optional<Point2LL>(line.second));
+                remove_from_next_roof.push_back(line.first);
+            }
+
+            for(ShapeWithStart& line : cradle_support_line_areas_with_start[layer_idx])
+            {
+                storage.support.supportLayers[layer_idx].support_infill_parts.emplace_back(line.first, config.support_line_width, false, std::min(1, config.support_wall_count), 0, EFillMethod::NONE, std::optional<Point2LL>(line.second));
+            }
+
             cradle_support_line_areas[layer_idx] = cradle_support_line_areas[layer_idx].unionPolygons().difference(remove_from_next_roof);
 
             //Collect remaining parts that non cradle line roof areas may not intersect with.
@@ -2627,11 +2653,10 @@ void TreeSupport::prepareSupportAreas(
             if (config.support_roof_wall_count)
             {
                 roof = roof.difference(remove_from_next_roof);
-                roof = roof.unionPolygons(cradle_lines_roof);
             }
             else
             {
-                roof_extra_wall = roof_extra_wall.unionPolygons(cradle_lines_roof);
+                roof_extra_wall = roof_extra_wall.unionPolygons();
                 roof = roof.difference(remove_from_next_roof.unionPolygons(roof_extra_wall));
             }
 
@@ -2959,7 +2984,7 @@ void TreeSupport::generateSupportSkin(
         [&](const LayerIndex layer_idx)
         {
             support_skin_storage[layer_idx] = support_skin_storage[layer_idx].unionPolygons();
-            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons(cradle_support_line_areas[layer_idx]).difference(support_skin_storage[layer_idx]);
+            support_layer_storage[layer_idx] = support_layer_storage[layer_idx].unionPolygons().difference(support_skin_storage[layer_idx]);
 
             if(layer_idx > 0)
             {

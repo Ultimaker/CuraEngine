@@ -3425,8 +3425,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             constexpr bool retract_before_outer_wall = false;
             constexpr coord_t wipe_dist = 0;
             const LayerIndex layer_nr = gcode_layer.getLayerNr();
-            ZSeamConfig z_seam_config
-                = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            const ZSeamConfig z_seam_config(part.start_near_location.has_value() ? EZSeamType::INTERNAL_SPECIFIED : EZSeamType::SHORTEST,
+                                            part.start_near_location.has_value() ? part.start_near_location.value() : gcode_layer.getLastPlannedPositionOrStartingPosition(),
+                                            EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
+                                            false);
             Shape disallowed_area_for_seams{};
             if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model") && (layer_nr >= 0))
             {
@@ -3580,7 +3582,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr bool spiralize = false;
                 constexpr Ratio flow_ratio = 1.0_r;
                 constexpr bool always_retract = false;
-                const std::optional<Point2LL> start_near_location = std::optional<Point2LL>();
 
                 gcode_layer.addPolygonsByOptimizer(
                     support_polygons,
@@ -3591,7 +3592,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     flow_ratio,
                     always_retract,
                     alternate_layer_print_direction,
-                    start_near_location);
+                    part.start_near_location);
                 added_something = true;
             }
 
@@ -3600,7 +3601,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 constexpr bool enable_travel_optimization = false;
                 constexpr coord_t wipe_dist = 0;
                 constexpr Ratio flow_ratio = 1.0;
-                const std::optional<Point2LL> near_start_location = std::optional<Point2LL>();
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
 
                 gcode_layer.addLinesByOptimizer(
@@ -3610,7 +3610,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     enable_travel_optimization,
                     wipe_dist,
                     flow_ratio,
-                    near_start_location,
+                    part.start_near_location,
                     fan_speed,
                     alternate_layer_print_direction);
 
@@ -3715,6 +3715,10 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
             constexpr coord_t pocket_size = 0;
             const coord_t max_resolution = roof_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
             const coord_t max_deviation = roof_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
+            const ZSeamConfig z_seam_config(roof_part.start_near_location.has_value() ? EZSeamType::INTERNAL_SPECIFIED : EZSeamType::SHORTEST,
+                                            roof_part.start_near_location.has_value() ? roof_part.start_near_location.value() : gcode_layer.getLastPlannedPositionOrStartingPosition(),
+                                            EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
+                                            false);
 
             coord_t support_roof_line_distance = roof_part.custom_line_distance_ == 0 ? roof_extruder.settings_.get<coord_t>("support_roof_line_distance") : roof_part.custom_line_distance_;
             const coord_t support_roof_line_width = roof_extruder.settings_.get<coord_t>("support_roof_line_width");
@@ -3772,20 +3776,19 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
             if (gcode_layer.getLayerNr() == 0)
             {
-                gcode_layer.addPolygonsByOptimizer(wall, current_roof_config);
+                gcode_layer.addPolygonsByOptimizer(wall, current_roof_config, z_seam_config);
             }
             if (! roof_polygons.empty())
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config);
+                gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config, z_seam_config);
             }
             if (! roof_paths.empty())
             {
                 const GCodePathConfig& config = current_roof_config;
                 constexpr bool retract_before_outer_wall = false;
                 constexpr coord_t wipe_dist = 0;
-                const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
 
                 InsetOrderOptimizer wall_orderer(
                     *this,
@@ -3808,7 +3811,10 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
                     roof_paths,
                 storage.getModelBoundingBox().flatten().getMiddle());wall_orderer.addToLayer();
             }
-            gcode_layer.addLinesByOptimizer(roof_lines, current_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+            constexpr bool enable_travel_optimization = false;
+            constexpr coord_t wipe_dist = 0;
+            constexpr Ratio flow_ratio = 1.0;
+            gcode_layer.addLinesByOptimizer(roof_lines, current_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines, enable_travel_optimization, wipe_dist, flow_ratio, roof_part.start_near_location);
         }
     }
     return added_support;
