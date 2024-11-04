@@ -756,7 +756,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(std::vector<SupportInfillP
         for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
         {
             const SingleShape& smaller_island = smaller_support_islands[support_island_idx];
-            parts.emplace_back(smaller_island, support_infill_part.support_line_width_, support_infill_part.inset_count_to_generate_);
+            parts.emplace_back(smaller_island, support_infill_part.support_line_width_, support_infill_part.use_fractional_config_, support_infill_part.inset_count_to_generate_, support_infill_part.custom_line_distance_, support_infill_part.custom_line_pattern_, support_infill_part.start_near_location);
         }
     }
 

@@ -332,7 +332,7 @@ private:
      * \param support_roof_extra_wall_storage_fractional[in] Areas of roof that were projected one layer up, but roofs need to have a wall to print correctly.
      * \param fake_roof_areas_combined[out] All areas that contain the fake roofs.
      * \param cradle_base_areas[out] Copy of all cradle base areas. Already added to correct storage.
-     * \param cradle_support_line_areas[out] All cradle lines consisting of regular support. Will still have to be added as support (Done in generateSupportSkin)
+     * \param cradle_support_line_areas[out] All cradle lines consisting of regular support. Already added as support.
      * \param storage[in,out] The storage where the support should be stored.
      * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
      */
@@ -371,7 +371,7 @@ private:
      * \param support_skin_storage[out] Areas where high density support should be generated.
      * \param fake_roof_areas_combined[in] All areas that contain the fake roofs.
      * \param cradle_base_areas[in] Copy of all cradle base areas. Already added to correct storage.
-     * \param cradle_support_line_areas[in] All cradle lines consisting of regular support. Will be to be added as support.
+     * \param cradle_support_line_areas[in] All cradle lines consisting of regular support. Already added as support.
      * \param hole_parts[in] Parts of holes, ordered by layer.
      * \param valid_holes[in] Indices of holes that rest on outer wall, by layer.
      * \param non_removable_holes[in] Indices of holes that can not be removed, by layer.

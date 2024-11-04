@@ -205,7 +205,7 @@ public:
 
         // For some Z seam types the start position can be pre-computed.
         // This is faster since we don't need to re-compute the start position at each step then.
-        precompute_start &= seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
+        precompute_start &= seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::INTERNAL_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
         if (precompute_start)
         {
             for (auto& path : paths_)
@@ -584,7 +584,7 @@ protected:
             }
 
             const bool precompute_start
-                = seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
+                = seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::INTERNAL_SPECIFIED ||seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
             if (! path->is_closed_ || ! precompute_start) // Find the start location unless we've already precomputed it.
             {
                 path->start_vertex_ = findStartLocation(*path, start_position);
@@ -676,6 +676,14 @@ protected:
     {
         if (! path.is_closed_)
         {
+            if (seam_config_.type_ == EZSeamType::INTERNAL_SPECIFIED)
+            {
+                if(getDirectDistance(path.converted_->back(), seam_config_.pos_) < getDirectDistance(path.converted_->front(), seam_config_.pos_))
+                {
+                    return path.converted_->size() - 1; // Back end is closer.
+                }
+                return 0;
+            }
             // For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
             const coord_t back_distance
                 = (combing_boundary_ == nullptr) ? getDirectDistance(path.converted_->back(), target_pos) : getCombingDistance(path.converted_->back(), target_pos);
