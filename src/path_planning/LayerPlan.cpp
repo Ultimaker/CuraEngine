@@ -2453,12 +2453,12 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
 
 void LayerPlan::writeGCode(GCodeExporter& gcode)
 {
-    auto communication = Application::getInstance().communication_;
-    communication->setLayerForSend(layer_nr_);
-    communication->sendCurrentPosition(gcode.getPosition());
+    // auto communication = Application::getInstance().communication_;
+    // communication->setLayerForSend(layer_nr_);
+    // communication->sendCurrentPosition(gcode.getPosition());
     gcode.setLayerNr(layer_nr_);
 
-    gcode.writeLayerComment(layer_nr_);
+    // gcode.writeLayerComment(layer_nr_);
     if (min_layer_time_used)
     {
         gcode.writeComment("note -- min layer time used");
@@ -2896,8 +2896,17 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
     } // extruder plans /\  .
 #endif
 
-    communication->sendLayerComplete(layer_nr_, z_, layer_thickness_);
+    // communication->sendLayerComplete(layer_nr_, z_, layer_thickness_);
     gcode.updateTotalPrintTime();
+}
+
+void LayerPlan::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
+{
+    exporter.writeLayerStart(layer_nr_);
+
+    PrintOperationSequence::write(exporter, parents);
+
+    exporter.writeLayerEnd(layer_nr_, z_, layer_thickness_);
 }
 
 void LayerPlan::overrideFanSpeeds(double speed)
@@ -2907,7 +2916,6 @@ void LayerPlan::overrideFanSpeeds(double speed)
         extruder_plan.setFanSpeed(speed);
     }
 }
-
 
 bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx)
 {

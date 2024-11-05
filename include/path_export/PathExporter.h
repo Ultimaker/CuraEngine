@@ -11,6 +11,7 @@ namespace cura
 {
 class Point3LL;
 class Velocity;
+class LayerIndex;
 
 class PathExporter
 {
@@ -24,6 +25,10 @@ public:
         const PrintFeatureType feature,
         const bool update_extrusion_offset)
         = 0;
+
+    virtual void writeLayerStart(const LayerIndex& layer_index) = 0;
+
+    virtual void writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness) = 0;
 };
 
 } // namespace cura

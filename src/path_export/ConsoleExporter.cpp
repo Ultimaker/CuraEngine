@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include "geometry/Point3LL.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
@@ -20,6 +21,16 @@ void ConsoleExporter::writeExtrusion(
     const bool update_extrusion_offset)
 {
     spdlog::info("EXTRUSION {}", p);
+}
+
+void ConsoleExporter::writeLayerStart(const LayerIndex& layer_index)
+{
+    spdlog::info("######## START NEW LAYER {}", layer_index.value);
+}
+
+void ConsoleExporter::writeLayerEnd(const LayerIndex& layer_index, const coord_t /*z*/, const coord_t /*layer_thickness*/)
+{
+    spdlog::info("######## LAYER END {}", layer_index.value);
 }
 
 } // namespace cura

@@ -21,6 +21,22 @@ void MultiExporter::writeExtrusion(
     }
 }
 
+void MultiExporter::writeLayerStart(const LayerIndex& layer_index)
+{
+    for (const std::shared_ptr<PathExporter>& exporter : exporters_)
+    {
+        exporter->writeLayerStart(layer_index);
+    }
+}
+
+void MultiExporter::writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness)
+{
+    for (const std::shared_ptr<PathExporter>& exporter : exporters_)
+    {
+        exporter->writeLayerEnd(layer_index, z, layer_thickness);
+    }
+}
+
 void MultiExporter::appendExporter(const std::shared_ptr<PathExporter> exporter)
 {
     exporters_.push_back(exporter);

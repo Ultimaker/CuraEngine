@@ -27,6 +27,10 @@ public:
         const PrintFeatureType feature,
         const bool update_extrusion_offset) override;
 
+    virtual void writeLayerStart(const LayerIndex& layer_index) override;
+
+    virtual void writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness) override;
+
 private:
     std::shared_ptr<Communication> communication_;
 };

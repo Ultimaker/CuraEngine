@@ -906,6 +906,16 @@ void GCodeExporter::writeExtrusion(
     writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
+void GCodeExporter::writeLayerStart(const LayerIndex& layer_index)
+{
+    writeLayerComment(layer_index);
+#warning restore comment for minimum layer time
+}
+
+void GCodeExporter::writeLayerEnd(const LayerIndex& /*layer_index*/, const coord_t /*z*/, const coord_t /*layer_thickness*/)
+{
+}
+
 void GCodeExporter::writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
     if (std::isinf(extrusion_mm3_per_mm))

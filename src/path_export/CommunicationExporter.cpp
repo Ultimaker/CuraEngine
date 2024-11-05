@@ -25,4 +25,14 @@ void CommunicationExporter::writeExtrusion(
     communication_->sendLineTo(feature, p, line_width, line_thickness, speed);
 }
 
+void CommunicationExporter::writeLayerStart(const LayerIndex& layer_index)
+{
+    communication_->setLayerForSend(layer_index);
+}
+
+void CommunicationExporter::writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness)
+{
+    communication_->sendLayerComplete(layer_index, z, layer_thickness);
+}
+
 } // namespace cura

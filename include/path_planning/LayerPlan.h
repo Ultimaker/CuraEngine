@@ -760,6 +760,8 @@ public:
 
     void writeGCode(GCodeExporter& gcode);
 
+    virtual void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const override;
+
 private:
     /*!
      * \brief Compute the preferred or minimum combing boundary

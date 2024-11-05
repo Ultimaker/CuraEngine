@@ -20,6 +20,10 @@ public:
         const coord_t line_thickness,
         const PrintFeatureType feature,
         const bool update_extrusion_offset) override;
+
+    virtual void writeLayerStart(const LayerIndex& layer_index) override;
+
+    virtual void writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness) override;
 };
 
 } // namespace cura
