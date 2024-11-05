@@ -31,7 +31,8 @@ void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExporter& gcode, PathEx
     LayerPlan* to_be_written = processBuffer();
     if (to_be_written)
     {
-        to_be_written->writeGCode(gcode, exporter);
+        to_be_written->writeGCode(gcode);
+        to_be_written->write(exporter, { this });
         delete to_be_written;
     }
 }
@@ -71,7 +72,8 @@ void LayerPlanBuffer::flush(PathExporter& exporter)
     }
     while (! buffer_.empty())
     {
-        buffer_.front()->writeGCode(gcode_, exporter);
+        buffer_.front()->writeGCode(gcode_);
+        buffer_.front()->write(exporter, { this });
         Application::getInstance().communication_->flushGCode();
         delete buffer_.front();
         buffer_.pop_front();

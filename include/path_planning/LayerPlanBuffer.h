@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "Preheat.h"
+#include "path_planning/PrintOperationSequence.h"
 #include "settings/Settings.h"
 #include "settings/types/Duration.h"
 
@@ -32,7 +33,7 @@ class PathExporter;
  * \image latex assets/precool.png "Temperature Regulation" width=10cm
  *
  */
-class LayerPlanBuffer
+class LayerPlanBuffer : public PrintOperationSequence
 {
     friend class LayerPlan;
 

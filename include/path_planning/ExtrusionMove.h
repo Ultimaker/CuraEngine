@@ -15,7 +15,7 @@ class ExtrusionMove : public ExtruderMove
 public:
     explicit ExtrusionMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
 
-    void write(PathExporter& gcode, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const override;
+    void write(PathExporter& exporter, const std::vector<const PrintOperation *> &parents) const override;
 
 private:
     Ratio line_width_ratio_{ 1.0 };

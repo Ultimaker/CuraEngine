@@ -24,7 +24,7 @@
 #include "path_export/ConsoleExporter.h"
 #include "path_planning/Comb.h"
 #include "path_planning/CombPaths.h"
-#include "path_planning/ExtruderMoveSet.h"
+#include "path_planning/ExtruderMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
@@ -1291,7 +1291,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -2451,7 +2451,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
-void LayerPlan::writeGCode(GCodeExporter& gcode, PathExporter& exporter)
+void LayerPlan::writeGCode(GCodeExporter& gcode)
 {
     auto communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr_);
@@ -2484,13 +2484,6 @@ void LayerPlan::writeGCode(GCodeExporter& gcode, PathExporter& exporter)
             gcode.writeSpecificFanCommand(100, mesh_group_settings.get<size_t>("build_volume_fan_nr"));
         }
     }
-
-#if 1
-    for (const ExtruderPlan& extruder_plan : extruder_plans_)
-    {
-        extruder_plan.write(exporter, *this);
-    }
-#endif
 
 #if 0
     gcode.setZ(z_);
@@ -3162,11 +3155,11 @@ void LayerPlan::setRoofingMask(const Shape& polys)
     roofing_mask_ = polys;
 }
 
-void LayerPlan::addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSet>& extruder_move_set, const bool check_non_empty)
+void LayerPlan::addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set, const bool check_non_empty)
 {
     if (! check_non_empty || ! extruder_move_set->empty())
     {
-        extruder_plans_.back().addExtruderMoveSet(extruder_move_set);
+        appendOperation(extruder_move_set);
     }
 }
 

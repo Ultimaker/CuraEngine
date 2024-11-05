@@ -5,28 +5,22 @@
 #define PATHPLANNING_EXTRUDERMOVE_H
 
 #include "geometry/Point3LL.h"
+#include "path_planning/PrintOperation.h"
 
 namespace cura
 {
 
 class PathExporter;
 class LayerPlan;
-class ExtruderMoveSet;
+class ExtruderMoveSequence;
 
-class ExtruderMove
+class ExtruderMove : public PrintOperation
 {
 public:
     explicit ExtruderMove(const Point3LL& position);
 
-    /*!
-     * Write the planned paths to gcode
-     *
-     * \param gcode The gcode to write the planned paths to
-     */
-    virtual void write(PathExporter& exporter, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const = 0;
-
 protected:
-    Point3LL getAbsolutePosition(const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const;
+    Point3LL getAbsolutePosition(const LayerPlan& layer_plan, const ExtruderMoveSequence& extruder_move_set) const;
 
     const Point3LL& getPosition() const;
 

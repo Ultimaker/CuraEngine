@@ -10,6 +10,7 @@
 #include "path_export/GCodeExporter.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
+#include "path_planning/PrintOperationSequence.h"
 #include "path_planning/TimeMaterialEstimates.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
@@ -27,7 +28,7 @@ namespace cura
 {
 class LayerPlanBuffer;
 class LayerPlan;
-class ExtruderMoveSet;
+class ExtruderMoveSequence;
 class PathExporter;
 
 /*!
@@ -35,7 +36,7 @@ class PathExporter;
  *
  * It allows for temperature command inserts which can be inserted in between paths.
  */
-class ExtruderPlan
+class ExtruderPlan : public PrintOperationSequence
 {
     friend class LayerPlanBuffer;
     friend class LayerPlan;
@@ -127,9 +128,7 @@ public:
      */
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
-    void addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSet>& extruder_move_set);
-
-    void write(PathExporter& exporter, const LayerPlan& layer_plan) const;
+    void addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set);
 
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
@@ -175,7 +174,7 @@ private:
 
     double temperature_factor_{ 0.0 }; //!< Temperature reduction factor for small layers
 
-    std::vector<std::shared_ptr<ExtruderMoveSet>> extruder_move_sets_;
+    std::vector<std::shared_ptr<ExtruderMoveSequence>> extruder_move_sets_;
 
     /*!
      * Set the fan speed to be used while printing this extruder plan

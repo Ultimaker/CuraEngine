@@ -5,13 +5,13 @@
 #define PATHPLANNING_FEATUREEXTRUSION_H
 
 #include "GCodePathConfig.h"
-#include "path_planning/ExtruderMoveSet.h"
+#include "path_planning/ExtruderMoveSequence.h"
 
 namespace cura
 {
 class Point3LL;
 
-class FeatureExtrusion : public ExtruderMoveSet
+class FeatureExtrusion : public ExtruderMoveSequence
 {
 public:
     explicit FeatureExtrusion(const GCodePathConfig& config);

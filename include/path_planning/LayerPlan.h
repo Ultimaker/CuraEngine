@@ -15,6 +15,7 @@
 #include "path_planning/ExtruderPlan.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
+#include "path_planning/PrintOperationSequence.h"
 #include "path_planning/TimeMaterialEstimates.h"
 #include "raft.h"
 #include "settings/PathConfigStorage.h"
@@ -37,7 +38,7 @@ namespace cura
 class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
-class ExtruderMoveSet;
+class ExtruderMoveSequence;
 
 template<typename PathType>
 class PathAdapter;
@@ -52,7 +53,7 @@ class PathAdapter;
  * A LayerPlan is also knows as a 'layer plan'.
  *
  */
-class LayerPlan : public NoCopy
+class LayerPlan : public NoCopy, public PrintOperationSequence
 {
     friend class LayerPlanBuffer;
 #ifdef BUILD_TESTS
@@ -706,13 +707,6 @@ public:
         const bool is_bottom_layer);
 
     /*!
-     * Write the planned paths to gcode
-     *
-     * \param gcode The gcode to write the planned paths to
-     */
-    void writeGCode(GCodeExporter& gcode, PathExporter& exporter);
-
-    /*!
      * Whether the current retracted path is to be an extruder switch retraction.
      * This function is used to avoid a G10 S1 after a G10.
      *
@@ -763,6 +757,8 @@ public:
     void applyGradualFlow();
 
     coord_t getZ() const;
+
+    void writeGCode(GCodeExporter& gcode);
 
 private:
     /*!
@@ -992,7 +988,7 @@ private:
      */
     bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
 
-    void addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSet>& extruder_move_set, const bool check_non_empty = true);
+    void addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set, const bool check_non_empty = true);
 };
 
 } // namespace cura

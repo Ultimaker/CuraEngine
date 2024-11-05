@@ -7,6 +7,7 @@
 
 #include "path_export/PathExporter.h"
 #include "path_planning/FeatureExtrusion.h"
+#include "path_planning/LayerPlan.h"
 
 namespace cura
 {
@@ -17,16 +18,18 @@ ExtrusionMove::ExtrusionMove(const Point3LL& position, const Ratio& line_width_r
 {
 }
 
-void ExtrusionMove::write(PathExporter& exporter, const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const
+void ExtrusionMove::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
 {
-    auto feature_extrusion = dynamic_cast<const FeatureExtrusion*>(&extruder_move_set);
-    if (feature_extrusion == nullptr)
+    auto extruder_move_set = findParent<ExtruderMoveSequence>(parents);
+    auto feature_extrusion = findParent<FeatureExtrusion>(parents);
+    auto layer_plan = findParent<LayerPlan>(parents);
+
+    if (! feature_extrusion || ! layer_plan || ! extruder_move_set)
     {
-        spdlog::warn("Unable to export extrusion move because it is not part of a FeatureExtrusion");
         return;
     }
 
-    const Point3LL position = getAbsolutePosition(layer_plan, extruder_move_set);
+    const Point3LL position = getAbsolutePosition(*layer_plan, *extruder_move_set);
     const Velocity velocity = feature_extrusion->getSpeed() * feature_extrusion->getSpeedFactor() * feature_extrusion->getSpeedBackPressureFactor();
     const double extrusion_mm3_per_mm = feature_extrusion->getExtrusionMM3perMM();
     const coord_t line_width = std::llrint(feature_extrusion->getLineWidth() * static_cast<double>(line_width_ratio_));

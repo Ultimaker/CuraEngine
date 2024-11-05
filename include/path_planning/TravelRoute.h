@@ -4,12 +4,12 @@
 #ifndef PATHPLANNING_TRAVELROUTE_H
 #define PATHPLANNING_TRAVELROUTE_H
 
-#include "path_planning/ExtruderMoveSet.h"
+#include "path_planning/ExtruderMoveSequence.h"
 
 namespace cura
 {
 
-class TravelRoute : public ExtruderMoveSet
+class TravelRoute : public ExtruderMoveSequence
 {
 };
 

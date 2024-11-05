@@ -3,7 +3,7 @@
 
 #include "path_planning/ExtruderPlan.h"
 
-#include "path_planning/ExtruderMoveSet.h"
+#include "path_planning/ExtruderMoveSequence.h"
 
 namespace cura
 {
@@ -73,17 +73,9 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
     }
 }
 
-void ExtruderPlan::addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSet>& extruder_move_set)
+void ExtruderPlan::addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set)
 {
-    extruder_move_sets_.push_back(extruder_move_set);
-}
-
-void ExtruderPlan::write(PathExporter& exporter, const LayerPlan& layer_plan) const
-{
-    for (const std::shared_ptr<ExtruderMoveSet>& extruder_move_set : extruder_move_sets_)
-    {
-        extruder_move_set->write(exporter, layer_plan);
-    }
+    appendOperation(extruder_move_set);
 }
 
 } // namespace cura

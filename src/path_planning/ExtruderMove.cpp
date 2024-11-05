@@ -3,7 +3,7 @@
 
 #include "path_planning/ExtruderMove.h"
 
-#include "path_planning/ExtruderMoveSet.h"
+#include "path_planning/ExtruderMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
 #include "path_planning/LayerPlan.h"
 
@@ -15,7 +15,7 @@ ExtruderMove::ExtruderMove(const Point3LL& position)
 {
 }
 
-Point3LL ExtruderMove::getAbsolutePosition(const LayerPlan& layer_plan, const ExtruderMoveSet& extruder_move_set) const
+Point3LL ExtruderMove::getAbsolutePosition(const LayerPlan& layer_plan, const ExtruderMoveSequence& extruder_move_set) const
 {
     Point3LL absolute_position = position_;
     absolute_position.z_ += layer_plan.getZ() + extruder_move_set.getZOffset();
