@@ -1274,6 +1274,7 @@ void LayerPlan::addSplitWall(
         }
 
         p0 = p1;
+        w0 = w1;
     }
 }
 
