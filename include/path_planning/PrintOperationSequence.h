@@ -26,12 +26,34 @@ public:
      */
     virtual void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents = {}) const override;
 
+    std::shared_ptr<PrintOperation> findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function) const;
+
+    template<class OperationType>
+    std::shared_ptr<OperationType> findOperationByType() const;
+
 protected:
     void appendOperation(const std::shared_ptr<PrintOperation>& operation);
 
 private:
     std::vector<std::shared_ptr<PrintOperation>> operations_;
 };
+
+template<class OperationType>
+std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType() const
+{
+    std::shared_ptr<PrintOperation> found_operation = findOperation(
+        [](const std::shared_ptr<PrintOperation>& operation)
+        {
+            return static_cast<bool>(std::dynamic_pointer_cast<OperationType>(operation));
+        });
+
+    if (found_operation)
+    {
+        return std::static_pointer_cast<OperationType>(found_operation);
+    }
+
+    return nullptr;
+}
 
 } // namespace cura
 

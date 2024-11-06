@@ -16,18 +16,19 @@ CommunicationExporter::CommunicationExporter(const std::shared_ptr<Communication
 void CommunicationExporter::writeExtrusion(
     const Point3LL& p,
     const Velocity& speed,
-    const double extrusion_mm3_per_mm,
+    const double /*extrusion_mm3_per_mm*/,
     const coord_t line_width,
     const coord_t line_thickness,
     const PrintFeatureType feature,
-    const bool update_extrusion_offset)
+    const bool /*update_extrusion_offset*/)
 {
     communication_->sendLineTo(feature, p, line_width, line_thickness, speed);
 }
 
-void CommunicationExporter::writeLayerStart(const LayerIndex& layer_index)
+void CommunicationExporter::writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position)
 {
     communication_->setLayerForSend(layer_index);
+    communication_->sendCurrentPosition(start_position);
 }
 
 void CommunicationExporter::writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness)

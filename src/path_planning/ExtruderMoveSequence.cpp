@@ -3,7 +3,7 @@
 
 #include "path_planning/ExtruderMoveSequence.h"
 
-#include "path_planning/ExtruderMove.h"
+#include "path_planning/ExtrusionMove.h"
 
 namespace cura
 {
@@ -23,9 +23,9 @@ const Ratio& ExtruderMoveSequence::getSpeedBackPressureFactor() const
     return speed_back_pressure_factor_;
 }
 
-void ExtruderMoveSequence::appendExtruderMove(const std::shared_ptr<ExtruderMove>& extruder_move)
+void ExtruderMoveSequence::appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio)
 {
-    appendOperation(extruder_move);
+    appendOperation(std::make_shared<ExtrusionMove>(position, line_width_ratio));
 }
 
 } // namespace cura

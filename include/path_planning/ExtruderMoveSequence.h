@@ -18,18 +18,18 @@ class ExtruderMove;
 class SliceMeshStorage;
 class PathExporter;
 class LayerPlan;
+class Point3LL;
 
 class ExtruderMoveSequence : public PrintOperationSequence
 {
 public:
+    void appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
+
     coord_t getZOffset() const;
 
     const Ratio& getSpeedFactor() const;
 
     const Ratio& getSpeedBackPressureFactor() const;
-
-protected:
-    void appendExtruderMove(const std::shared_ptr<ExtruderMove>& extruder_move);
 
 private:
     coord_t z_offset_{ 0 }; //<! Vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)

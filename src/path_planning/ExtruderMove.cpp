@@ -15,13 +15,6 @@ ExtruderMove::ExtruderMove(const Point3LL& position)
 {
 }
 
-Point3LL ExtruderMove::getAbsolutePosition(const LayerPlan& layer_plan, const ExtruderMoveSequence& extruder_move_set) const
-{
-    Point3LL absolute_position = position_;
-    absolute_position.z_ += layer_plan.getZ() + extruder_move_set.getZOffset();
-    return absolute_position;
-}
-
 const Point3LL& ExtruderMove::getPosition() const
 {
     return position_;

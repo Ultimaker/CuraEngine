@@ -393,7 +393,7 @@ public:
         PrintFeatureType feature,
         bool update_extrusion_offset = false) override;
 
-    virtual void writeLayerStart(const LayerIndex& layer_index) override;
+    virtual void writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position) override;
 
     virtual void writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness) override;
 

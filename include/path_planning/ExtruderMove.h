@@ -20,8 +20,6 @@ public:
     explicit ExtruderMove(const Point3LL& position);
 
 protected:
-    Point3LL getAbsolutePosition(const LayerPlan& layer_plan, const ExtruderMoveSequence& extruder_move_set) const;
-
     const Point3LL& getPosition() const;
 
 private:

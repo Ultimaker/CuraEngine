@@ -5,18 +5,20 @@
 #define PATHPLANNING_FEATUREEXTRUSION_H
 
 #include "GCodePathConfig.h"
-#include "path_planning/ExtruderMoveSequence.h"
+#include "geometry/Point3LL.h"
+#include "path_planning/PrintOperationSequence.h"
 
 namespace cura
 {
-class Point3LL;
 
-class FeatureExtrusion : public ExtruderMoveSequence
+class FeatureExtrusion : public PrintOperationSequence
 {
 public:
-    explicit FeatureExtrusion(const GCodePathConfig& config);
+    explicit FeatureExtrusion(const GCodePathConfig& config, const Point3LL& start_position);
 
-    void addExtrusionMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
+    void appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence);
+
+    const Point3LL& getStartPosition();
 
     const Velocity& getSpeed() const;
 
@@ -34,6 +36,7 @@ private:
     const Ratio& getWidthFactor() const;
 
 private:
+    Point3LL start_position_;
     GCodePathConfig config_; //!< The configuration settings of the path.
     Ratio flow_{ 1.0 }; //!< A type-independent flow configuration
     Ratio width_factor_{ 1.0 }; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.

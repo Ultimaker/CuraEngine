@@ -21,11 +21,11 @@ void MultiExporter::writeExtrusion(
     }
 }
 
-void MultiExporter::writeLayerStart(const LayerIndex& layer_index)
+void MultiExporter::writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position)
 {
     for (const std::shared_ptr<PathExporter>& exporter : exporters_)
     {
-        exporter->writeLayerStart(layer_index);
+        exporter->writeLayerStart(layer_index, start_position);
     }
 }
 

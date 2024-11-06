@@ -906,9 +906,10 @@ void GCodeExporter::writeExtrusion(
     writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
-void GCodeExporter::writeLayerStart(const LayerIndex& layer_index)
+void GCodeExporter::writeLayerStart(const LayerIndex& layer_index, const Point3LL& /*start_position*/)
 {
     writeLayerComment(layer_index);
+    setLayerNr(layer_index);
 #warning restore comment for minimum layer time
 }
 

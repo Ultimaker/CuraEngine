@@ -1576,15 +1576,17 @@ void LayerPlan::addWall(
         return;
     }
 
-    auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config);
+    auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config, wall.junctions_.front().p_);
+    auto extruder_move_sequence = std::make_shared<ExtruderMoveSequence>();
 
     for (const auto& segment : wall.junctions_ | ranges::views::sliding(2))
     {
         const coord_t average_line_width = (segment[0].w_ + segment[1].w_) / 2;
-        feature_extrusion->addExtrusionMove(segment[1].p_, static_cast<double>(average_line_width) / static_cast<double>(default_config.getLineWidth()));
+        extruder_move_sequence->appendExtruderMove(segment[1].p_, static_cast<double>(average_line_width) / static_cast<double>(default_config.getLineWidth()));
     }
 
-    addExtruderMoveSet(feature_extrusion);
+    feature_extrusion->appendExtruderMoveSequence(extruder_move_sequence);
+    appendOperation(feature_extrusion);
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
@@ -2456,7 +2458,7 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
     // auto communication = Application::getInstance().communication_;
     // communication->setLayerForSend(layer_nr_);
     // communication->sendCurrentPosition(gcode.getPosition());
-    gcode.setLayerNr(layer_nr_);
+    // gcode.setLayerNr(layer_nr_);
 
     // gcode.writeLayerComment(layer_nr_);
     if (min_layer_time_used)
@@ -2902,11 +2904,27 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
 
 void LayerPlan::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
 {
-    exporter.writeLayerStart(layer_nr_);
+    std::optional<Point3LL> start_position = findExtruderStartPosition();
+    exporter.writeLayerStart(layer_nr_, start_position.value_or(Point3LL()));
 
     PrintOperationSequence::write(exporter, parents);
 
     exporter.writeLayerEnd(layer_nr_, z_, layer_thickness_);
+}
+
+std::optional<Point3LL> LayerPlan::findExtruderStartPosition() const
+{
+    std::shared_ptr<FeatureExtrusion> feature_extrusion = findOperationByType<FeatureExtrusion>();
+    if (feature_extrusion)
+    {
+        std::shared_ptr<ExtruderMoveSequence> extruder_move_sequence = feature_extrusion->findOperationByType<ExtruderMoveSequence>();
+        if (extruder_move_sequence)
+        {
+            return getAbsolutePosition(*extruder_move_sequence, feature_extrusion->getStartPosition());
+        }
+    }
+
+    return std::nullopt;
 }
 
 void LayerPlan::overrideFanSpeeds(double speed)
@@ -3169,6 +3187,13 @@ void LayerPlan::addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& 
     {
         appendOperation(extruder_move_set);
     }
+}
+
+Point3LL LayerPlan::getAbsolutePosition(const ExtruderMoveSequence& extruder_move_sequence, const Point3LL& relative_position) const
+{
+    Point3LL absolute_position = relative_position;
+    absolute_position.z_ += getZ() + extruder_move_sequence.getZOffset();
+    return absolute_position;
 }
 
 template void LayerPlan::addLinesByOptimizer(

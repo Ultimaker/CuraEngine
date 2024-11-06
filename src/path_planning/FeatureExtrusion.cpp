@@ -3,20 +3,26 @@
 
 #include "path_planning/FeatureExtrusion.h"
 
+#include "path_planning/ExtruderMoveSequence.h"
 #include "path_planning/ExtrusionMove.h"
 
 namespace cura
 {
 
-FeatureExtrusion::FeatureExtrusion(const GCodePathConfig& config)
+FeatureExtrusion::FeatureExtrusion(const GCodePathConfig& config, const Point3LL& start_position)
     : config_(config)
+    , start_position_(start_position)
 {
 }
 
-void FeatureExtrusion::addExtrusionMove(const Point3LL& position, const Ratio& line_width_ratio)
+void FeatureExtrusion::appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence)
 {
-    auto extrusion_move = std::make_shared<ExtrusionMove>(position, line_width_ratio);
-    appendExtruderMove(extrusion_move);
+    appendOperation(extruder_move_sequence);
+}
+
+const Point3LL& FeatureExtrusion::getStartPosition()
+{
+    return start_position_;
 }
 
 const Velocity& FeatureExtrusion::getSpeed() const

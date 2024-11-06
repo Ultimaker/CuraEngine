@@ -27,4 +27,16 @@ void PrintOperationSequence::appendOperation(const std::shared_ptr<PrintOperatio
     operations_.push_back(operation);
 }
 
+std::shared_ptr<PrintOperation> PrintOperationSequence::findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function) const
+{
+#warning We should iterator over all children in the tree, depth first
+    auto iterator = std::find_if(operations_.begin(), operations_.end(), search_function);
+    if (iterator != operations_.end())
+    {
+        return *iterator;
+    }
+
+    return nullptr;
+}
+
 } // namespace cura

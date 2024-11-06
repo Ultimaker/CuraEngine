@@ -6,6 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include "path_export/PathExporter.h"
+#include "path_planning/ExtruderMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
 #include "path_planning/LayerPlan.h"
 
@@ -20,20 +21,20 @@ ExtrusionMove::ExtrusionMove(const Point3LL& position, const Ratio& line_width_r
 
 void ExtrusionMove::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
 {
-    auto extruder_move_set = findParent<ExtruderMoveSequence>(parents);
+    auto extruder_move_sequence = findParent<ExtruderMoveSequence>(parents);
     auto feature_extrusion = findParent<FeatureExtrusion>(parents);
     auto layer_plan = findParent<LayerPlan>(parents);
 
-    if (! feature_extrusion || ! layer_plan || ! extruder_move_set)
+    if (! feature_extrusion || ! layer_plan || ! extruder_move_sequence)
     {
         return;
     }
 
-    const Point3LL position = getAbsolutePosition(*layer_plan, *extruder_move_set);
-    const Velocity velocity = feature_extrusion->getSpeed() * feature_extrusion->getSpeedFactor() * feature_extrusion->getSpeedBackPressureFactor();
+    const Point3LL position = layer_plan->getAbsolutePosition(*extruder_move_sequence, getPosition());
+    const Velocity velocity = feature_extrusion->getSpeed() * extruder_move_sequence->getSpeedFactor() * extruder_move_sequence->getSpeedBackPressureFactor();
     const double extrusion_mm3_per_mm = feature_extrusion->getExtrusionMM3perMM();
     const coord_t line_width = std::llrint(feature_extrusion->getLineWidth() * static_cast<double>(line_width_ratio_));
-    const coord_t line_thickness = feature_extrusion->getLayerThickness() + feature_extrusion->getZOffset() + getPosition().z_;
+    const coord_t line_thickness = feature_extrusion->getLayerThickness() + extruder_move_sequence->getZOffset() + getPosition().z_;
     const PrintFeatureType print_feature_type = feature_extrusion->getPrintFeatureType();
 
     exporter.writeExtrusion(position, velocity, extrusion_mm3_per_mm, line_width, line_thickness, print_feature_type, false);

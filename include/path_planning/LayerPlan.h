@@ -762,6 +762,10 @@ public:
 
     virtual void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const override;
 
+    std::optional<Point3LL> findExtruderStartPosition() const;
+
+    Point3LL getAbsolutePosition(const ExtruderMoveSequence& extruder_move_set, const Point3LL& relative_position) const;
+
 private:
     /*!
      * \brief Compute the preferred or minimum combing boundary
