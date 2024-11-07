@@ -2903,10 +2903,10 @@ void LayerPlan::write(PathExporter& exporter, const std::vector<const PrintOpera
 
 std::optional<Point3LL> LayerPlan::findExtruderStartPosition() const
 {
-    std::shared_ptr<FeatureExtrusion> feature_extrusion = findOperationByType<FeatureExtrusion>();
+    const auto feature_extrusion = findOperationByType<FeatureExtrusion>(SearchOrder::DepthFirst);
     if (feature_extrusion)
     {
-        std::shared_ptr<ExtruderMoveSequence> extruder_move_sequence = feature_extrusion->findOperationByType<ExtruderMoveSequence>();
+        const auto extruder_move_sequence = feature_extrusion->findOperationByType<ExtruderMoveSequence>(SearchOrder::DepthFirst);
         if (extruder_move_sequence)
         {
             return getAbsolutePosition(*extruder_move_sequence, feature_extrusion->getStartPosition());

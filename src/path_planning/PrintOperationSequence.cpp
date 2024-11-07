@@ -58,6 +58,24 @@ std::shared_ptr<PrintOperation>
         return find_in(operations_.begin(), operations_.end());
     case SearchOrder::Backward:
         return find_in(operations_.rbegin(), operations_.rend());
+    case SearchOrder::DepthFirst:
+        for (const std::shared_ptr<PrintOperation>& operation : operations_)
+        {
+            if (search_function(operation))
+            {
+                return operation;
+            }
+
+            if (const auto operation_sequence = std::dynamic_pointer_cast<PrintOperationSequence>(operation))
+            {
+                if (auto result = operation_sequence->findOperation(search_function, search_order))
+                {
+                    return result;
+                }
+            }
+        }
+
+        return nullptr;
     }
 
     return nullptr;

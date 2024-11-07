@@ -19,8 +19,9 @@ class PrintOperationSequence : public PrintOperation
 public:
     enum class SearchOrder
     {
-        Forward,
-        Backward
+        Forward, // Only search in direct children, forwards
+        Backward, // Only search in direct children, backwards
+        DepthFirst, // Search in children tree, depth-first
     };
 
 public:
