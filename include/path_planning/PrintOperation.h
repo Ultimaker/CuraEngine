@@ -29,7 +29,7 @@ public:
      */
     virtual void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const = 0;
 
-    virtual void applyProcessors();
+    virtual void applyProcessors(const std::vector<const PrintOperation*>& parents = {});
 
 protected:
     template<class ParentType>

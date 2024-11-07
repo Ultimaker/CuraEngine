@@ -34,7 +34,7 @@ public:
      */
     void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents = {}) const override;
 
-    void applyProcessors() override;
+    void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
 
     std::shared_ptr<PrintOperation>
         findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function, const SearchOrder search_order = SearchOrder::Forward) const;

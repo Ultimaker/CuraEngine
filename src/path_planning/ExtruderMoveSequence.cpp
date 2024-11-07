@@ -8,6 +8,16 @@
 namespace cura
 {
 
+ExtruderMoveSequence::ExtruderMoveSequence(const Point3LL& start_position)
+    : start_position_(start_position)
+{
+}
+
+const Point3LL& ExtruderMoveSequence::getStartPosition() const
+{
+    return start_position_;
+}
+
 coord_t ExtruderMoveSequence::getZOffset() const
 {
     return z_offset_;
@@ -25,8 +35,7 @@ const Ratio& ExtruderMoveSequence::getSpeedBackPressureFactor() const
 
 std::optional<Point3LL> ExtruderMoveSequence::findEndPosition() const
 {
-    auto last_extrusion_move = findOperationByType<ExtrusionMove>(SearchOrder::Backward);
-    if (last_extrusion_move)
+    if (auto last_extrusion_move = findOperationByType<ExtrusionMove>(SearchOrder::Backward))
     {
         return last_extrusion_move->getPosition();
     }

@@ -14,7 +14,7 @@ class TravelMove;
 class TravelRoute : public ExtruderMoveSequence
 {
 public:
-    explicit TravelRoute(const PrintFeatureType feature, const SpeedDerivatives& speed);
+    explicit TravelRoute(const PrintFeatureType feature, const SpeedDerivatives& speed, const Point3LL& start_position);
 
     void appendTravelMove(const std::shared_ptr<TravelMove>& travel_move);
 

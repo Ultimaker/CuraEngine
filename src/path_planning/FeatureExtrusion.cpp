@@ -4,31 +4,49 @@
 #include "path_planning/FeatureExtrusion.h"
 
 #include "path_planning/ExtruderMoveSequence.h"
+#include "path_planning/ExtruderPlan.h"
 #include "path_planning/ExtrusionMove.h"
+#include "path_processing/AddTravelMovesProcessor.h"
 
 namespace cura
 {
 
-FeatureExtrusion::FeatureExtrusion(const GCodePathConfig& config, const Point3LL& start_position)
+FeatureExtrusion::FeatureExtrusion(const GCodePathConfig& config)
     : config_(config)
-    , start_position_(start_position)
 {
 }
 
-void FeatureExtrusion::appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence)
+void FeatureExtrusion::appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence, bool check_non_empty)
 {
-    appendOperation(extruder_move_sequence);
+    if (! check_non_empty || ! extruder_move_sequence->empty())
+    {
+        appendOperation(extruder_move_sequence);
+    }
 }
 
-const Point3LL& FeatureExtrusion::getStartPosition() const
+void FeatureExtrusion::applyProcessors(const std::vector<const PrintOperation*>& parents)
 {
-    return start_position_;
+    PrintOperationSequence::applyProcessors(parents);
+
+    if (const auto extruder_plan = findParent<ExtruderPlan>(parents))
+    {
+        AddTravelMovesProcessor<FeatureExtrusion, ExtruderMoveSequence> add_travel_moves_processor(extruder_plan->getTravelSpeed());
+        add_travel_moves_processor.process(this);
+    }
+}
+std::optional<Point3LL> FeatureExtrusion::findStartPosition() const
+{
+    if (const auto first_move_sequence = findOperationByType<ExtruderMoveSequence>(SearchOrder::Forward))
+    {
+        return first_move_sequence->getStartPosition();
+    }
+
+    return std::nullopt;
 }
 
 std::optional<Point3LL> FeatureExtrusion::findEndPosition() const
 {
-    auto last_move_sequence = findOperationByType<ExtruderMoveSequence>(SearchOrder::Backward);
-    if (last_move_sequence)
+    if (const auto last_move_sequence = findOperationByType<ExtruderMoveSequence>(SearchOrder::Backward))
     {
         return last_move_sequence->findEndPosition();
     }

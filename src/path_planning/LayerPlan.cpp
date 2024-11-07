@@ -40,7 +40,6 @@
 
 namespace cura
 {
-
 constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
 constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
 
@@ -1565,8 +1564,8 @@ void LayerPlan::addWall(
         return;
     }
 
-    auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config, wall.junctions_.front().p_);
-    auto extruder_move_sequence = std::make_shared<ExtruderMoveSequence>();
+    auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config);
+    auto extruder_move_sequence = std::make_shared<ExtruderMoveSequence>(wall.junctions_.front().p_);
 
     for (const auto& segment : wall.junctions_ | ranges::views::sliding(2))
     {
@@ -1711,6 +1710,24 @@ void LayerPlan::addLinesByOptimizer(
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements)
 {
+    auto feature_extrusion = std::make_shared<FeatureExtrusion>(config);
+    for (const LineType& line : lines)
+    {
+        if (! line.empty())
+        {
+            auto extruder_move_sequence = std::make_shared<ExtruderMoveSequence>(line.front());
+
+            for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
+            {
+                extruder_move_sequence->appendExtruderMove(Point3LL((*iterator).end));
+            }
+
+            feature_extrusion->appendExtruderMoveSequence(extruder_move_sequence);
+        }
+    }
+
+    getLastExtruderPlan().appendFeatureExtrusion(feature_extrusion);
+
     Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
     {
@@ -1772,6 +1789,24 @@ void LayerPlan::addLinesByOptimizer(
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements)
 {
+    auto feature_extrusion = std::make_shared<FeatureExtrusion>(config);
+    for (const PolylinePtr& line : lines)
+    {
+        if (! line->empty())
+        {
+            auto extruder_move_sequence = std::make_shared<ExtruderMoveSequence>(line->front());
+
+            for (auto iterator = line->beginSegments(); iterator != line->endSegments(); ++iterator)
+            {
+                extruder_move_sequence->appendExtruderMove(Point3LL((*iterator).end));
+            }
+
+            feature_extrusion->appendExtruderMoveSequence(extruder_move_sequence);
+        }
+    }
+
+    getLastExtruderPlan().appendFeatureExtrusion(feature_extrusion);
+
     Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
     {
@@ -2903,14 +2938,9 @@ void LayerPlan::write(PathExporter& exporter, const std::vector<const PrintOpera
 
 std::optional<Point3LL> LayerPlan::findExtruderStartPosition() const
 {
-    const auto feature_extrusion = findOperationByType<FeatureExtrusion>(SearchOrder::DepthFirst);
-    if (feature_extrusion)
+    if (const auto extruder_move_sequence = findOperationByType<ExtruderMoveSequence>(SearchOrder::DepthFirst))
     {
-        const auto extruder_move_sequence = feature_extrusion->findOperationByType<ExtruderMoveSequence>(SearchOrder::DepthFirst);
-        if (extruder_move_sequence)
-        {
-            return getAbsolutePosition(*extruder_move_sequence, feature_extrusion->getStartPosition());
-        }
+        return getAbsolutePosition(*extruder_move_sequence, extruder_move_sequence->getStartPosition());
     }
 
     return std::nullopt;

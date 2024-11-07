@@ -14,11 +14,13 @@ namespace cura
 class FeatureExtrusion : public PrintOperationSequence
 {
 public:
-    explicit FeatureExtrusion(const GCodePathConfig& config, const Point3LL& start_position);
+    explicit FeatureExtrusion(const GCodePathConfig& config);
 
-    void appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence);
+    void appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence, bool check_non_empty = true);
 
-    const Point3LL& getStartPosition() const;
+    void applyProcessors(const std::vector<const PrintOperation*>& parents) override;
+
+    std::optional<Point3LL> findStartPosition() const;
 
     std::optional<Point3LL> findEndPosition() const;
 
@@ -38,7 +40,6 @@ private:
     const Ratio& getWidthFactor() const;
 
 private:
-    Point3LL start_position_;
     GCodePathConfig config_; //!< The configuration settings of the path.
     Ratio flow_{ 1.0 }; //!< A type-independent flow configuration
     Ratio width_factor_{ 1.0 }; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.

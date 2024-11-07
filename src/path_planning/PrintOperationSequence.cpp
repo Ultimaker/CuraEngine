@@ -22,13 +22,16 @@ void PrintOperationSequence::write(PathExporter& exporter, const std::vector<con
     }
 }
 
-void PrintOperationSequence::applyProcessors()
+void PrintOperationSequence::applyProcessors(const std::vector<const PrintOperation*>& parents)
 {
-    PrintOperation::applyProcessors();
+    PrintOperation::applyProcessors(parents);
+
+    std::vector<const PrintOperation*> new_parents = parents;
+    new_parents.push_back(this);
 
     for (const std::shared_ptr<PrintOperation>& operation : operations_)
     {
-        operation->applyProcessors();
+        operation->applyProcessors(new_parents);
     }
 }
 

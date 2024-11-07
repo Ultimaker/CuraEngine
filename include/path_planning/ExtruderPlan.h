@@ -28,7 +28,7 @@ namespace cura
 {
 class LayerPlanBuffer;
 class LayerPlan;
-class ExtruderMoveSequence;
+class FeatureExtrusion;
 class PathExporter;
 
 /*!
@@ -118,6 +118,8 @@ public:
      */
     double getFanSpeed();
 
+    const SpeedDerivatives& getTravelSpeed() const;
+
     /*!
      * Apply back-pressure compensation to this path.
      * Since the total (filament) pressure in a feeder-system is not only dependent on the pressure that exists between the nozzle and the
@@ -129,9 +131,9 @@ public:
      */
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
-    void appendExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set, const bool check_non_empty = true);
+    void appendFeatureExtrusion(const std::shared_ptr<FeatureExtrusion>& feature_extrusion, const bool check_non_empty = true);
 
-    void applyProcessors() override;
+    void applyProcessors(const std::vector<const PrintOperation*>& parents) override;
 
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.

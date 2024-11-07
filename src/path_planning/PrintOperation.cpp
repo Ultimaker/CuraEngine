@@ -6,7 +6,7 @@
 namespace cura
 {
 
-void PrintOperation::applyProcessors()
+void PrintOperation::applyProcessors(const std::vector<const PrintOperation*>& /*parents*/)
 {
     // Default behavior is do nothing
 }

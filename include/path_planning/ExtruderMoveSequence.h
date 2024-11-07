@@ -6,6 +6,7 @@
 
 #include "GCodePathConfig.h"
 #include "SpaceFillType.h"
+#include "geometry/Point3LL.h"
 #include "path_planning/PrintOperationSequence.h"
 #include "path_planning/TimeMaterialEstimates.h"
 #include "settings/types/Ratio.h"
@@ -23,7 +24,11 @@ class Point3LL;
 class ExtruderMoveSequence : public PrintOperationSequence
 {
 public:
+    explicit ExtruderMoveSequence(const Point3LL& start_position);
+
     void appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
+
+    const Point3LL& getStartPosition() const;
 
     coord_t getZOffset() const;
 
@@ -34,6 +39,7 @@ public:
     std::optional<Point3LL> findEndPosition() const;
 
 private:
+    Point3LL start_position_;
     coord_t z_offset_{ 0 }; //<! Vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
     std::shared_ptr<const SliceMeshStorage> mesh_; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type_{ SpaceFillType::None }; //!< The type of space filling of which this path is a part

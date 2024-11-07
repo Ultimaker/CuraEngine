@@ -14,9 +14,9 @@ DirectTravelMoveGenerator::DirectTravelMoveGenerator(const SpeedDerivatives& spe
 {
 }
 
-std::shared_ptr<TravelRoute> DirectTravelMoveGenerator::generateTravelRoute(const Point3LL& /*start*/, const Point3LL& end, const SpeedDerivatives& speed) const
+std::shared_ptr<TravelRoute> DirectTravelMoveGenerator::generateTravelRoute(const Point3LL& start, const Point3LL& end, const SpeedDerivatives& speed) const
 {
-    auto route = std::make_shared<TravelRoute>(PrintFeatureType::MoveRetraction, speed);
+    auto route = std::make_shared<TravelRoute>(PrintFeatureType::MoveRetraction, speed, start);
     route->appendTravelMove(std::make_shared<TravelMove>(end));
     return route;
 }

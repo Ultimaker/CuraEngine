@@ -3,7 +3,7 @@
 
 #include "path_planning/ExtruderPlan.h"
 
-#include "path_planning/ExtruderMoveSequence.h"
+#include "path_planning/FeatureExtrusion.h"
 #include "path_processing/AddTravelMovesProcessor.h"
 
 namespace cura
@@ -61,6 +61,11 @@ double ExtruderPlan::getFanSpeed()
     return fan_speed;
 }
 
+const SpeedDerivatives& ExtruderPlan::getTravelSpeed() const
+{
+    return travel_speed_;
+}
+
 void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compensation)
 {
     constexpr double epsilon_speed_factor = 0.001; // Don't put on actual 'limit double minimum', because we don't want printers to stall.
@@ -76,19 +81,19 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
     }
 }
 
-void ExtruderPlan::appendExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set, const bool check_non_empty)
+void ExtruderPlan::appendFeatureExtrusion(const std::shared_ptr<FeatureExtrusion>& feature_extrusion, const bool check_non_empty)
 {
-    if (! check_non_empty || ! extruder_move_set->empty())
+    if (! check_non_empty || ! feature_extrusion->empty())
     {
-        appendOperation(extruder_move_set);
+        appendOperation(feature_extrusion);
     }
 }
 
-void ExtruderPlan::applyProcessors()
+void ExtruderPlan::applyProcessors(const std::vector<const PrintOperation*>& parents)
 {
-    PrintOperationSequence::applyProcessors();
+    PrintOperationSequence::applyProcessors(parents);
 
-    AddTravelMovesProcessor add_travel_moves_processor(travel_speed_);
+    AddTravelMovesProcessor<ExtruderPlan, FeatureExtrusion> add_travel_moves_processor(travel_speed_);
     add_travel_moves_processor.process(this);
 }
 
