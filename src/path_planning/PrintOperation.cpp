@@ -6,4 +6,9 @@
 namespace cura
 {
 
+void PrintOperation::applyProcessors()
+{
+    // Default behavior is do nothing
+}
+
 } // namespace cura

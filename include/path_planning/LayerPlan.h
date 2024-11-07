@@ -760,7 +760,7 @@ public:
 
     void writeGCode(GCodeExporter& gcode);
 
-    virtual void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const override;
+    void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents = {}) const override;
 
     std::optional<Point3LL> findExtruderStartPosition() const;
 
@@ -994,7 +994,9 @@ private:
      */
     bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
 
-    void addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set, const bool check_non_empty = true);
+    void appendExtruderPlan(const size_t extruder);
+
+    ExtruderPlan& getLastExtruderPlan();
 };
 
 } // namespace cura

@@ -26,6 +26,7 @@
 #include "path_planning/CombPaths.h"
 #include "path_planning/ExtruderMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
+#include "path_processing/AddTravelMovesProcessor.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
@@ -133,14 +134,8 @@ LayerPlan::LayerPlan(
     }
     extruder_plans_.reserve(Application::getInstance().current_slice_->scene.extruders.size());
     const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
-    extruder_plans_.emplace_back(
-        current_extruder,
-        layer_nr,
-        is_initial_layer_,
-        is_raft_layer,
-        layer_thickness,
-        fan_speed_layer_time_settings_per_extruder[current_extruder],
-        storage.retraction_wipe_config_per_extruder[current_extruder].retraction_config);
+
+    appendExtruderPlan(current_extruder);
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     { // Skirt and brim.
@@ -281,14 +276,8 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
 
     const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
-    extruder_plans_.emplace_back(
-        extruder_nr,
-        layer_nr_,
-        is_initial_layer_,
-        is_raft_layer,
-        layer_thickness_,
-        fan_speed_layer_time_settings_per_extruder_[extruder_nr],
-        storage_.retraction_wipe_config_per_extruder[extruder_nr].retraction_config);
+    appendExtruderPlan(extruder_nr);
+
     assert(extruder_plans_.size() <= Application::getInstance().current_slice_->scene.extruders.size() && "Never use the same extruder twice on one layer!");
     last_planned_extruder_ = &Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 
@@ -1586,7 +1575,7 @@ void LayerPlan::addWall(
     }
 
     feature_extrusion->appendExtruderMoveSequence(extruder_move_sequence);
-    appendOperation(feature_extrusion);
+    getLastExtruderPlan().appendOperation(feature_extrusion);
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
@@ -3181,12 +3170,22 @@ void LayerPlan::setRoofingMask(const Shape& polys)
     roofing_mask_ = polys;
 }
 
-void LayerPlan::addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set, const bool check_non_empty)
+void LayerPlan::appendExtruderPlan(const size_t extruder)
 {
-    if (! check_non_empty || ! extruder_move_set->empty())
-    {
-        appendOperation(extruder_move_set);
-    }
+    const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
+    const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings_per_extruder_[extruder];
+    const RetractionConfig& retraction_config = storage_.retraction_wipe_config_per_extruder[extruder].retraction_config;
+    const SpeedDerivatives& travel_speed = configs_storage_.travel_config_per_extruder[extruder].speed_derivatives;
+
+    extruder_plans_.emplace_back(extruder, layer_nr_, is_initial_layer_, is_raft_layer, layer_thickness_, fan_speed_layer_time_settings, retraction_config, travel_speed);
+
+    appendOperation(
+        std::make_shared<ExtruderPlan>(extruder, layer_nr_, is_initial_layer_, is_raft_layer, layer_thickness_, fan_speed_layer_time_settings, retraction_config, travel_speed));
+}
+
+ExtruderPlan& LayerPlan::getLastExtruderPlan()
+{
+    return *findOperationByType<ExtruderPlan>(SearchOrder::Backward);
 }
 
 Point3LL LayerPlan::getAbsolutePosition(const ExtruderMoveSequence& extruder_move_sequence, const Point3LL& relative_position) const

@@ -906,6 +906,11 @@ void GCodeExporter::writeExtrusion(
     writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
+void GCodeExporter::writeTravelMove(const Point3LL& position, const Velocity& speed, const PrintFeatureType /*feature*/)
+{
+    writeTravel(position.x_, position.y_, position.z_, speed);
+}
+
 void GCodeExporter::writeLayerStart(const LayerIndex& layer_index, const Point3LL& /*start_position*/)
 {
     writeLayerComment(layer_index);

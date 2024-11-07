@@ -19,7 +19,6 @@ class ExtruderMove : public PrintOperation
 public:
     explicit ExtruderMove(const Point3LL& position);
 
-protected:
     const Point3LL& getPosition() const;
 
 private:

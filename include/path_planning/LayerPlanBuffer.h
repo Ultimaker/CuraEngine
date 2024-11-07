@@ -33,7 +33,7 @@ class PathExporter;
  * \image latex assets/precool.png "Temperature Regulation" width=10cm
  *
  */
-class LayerPlanBuffer : public PrintOperationSequence
+class LayerPlanBuffer
 {
     friend class LayerPlan;
 

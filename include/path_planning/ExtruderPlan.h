@@ -70,7 +70,8 @@ public:
         const bool is_raft_layer,
         const coord_t layer_thickness,
         const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
-        const RetractionConfig& retraction_config);
+        const RetractionConfig& retraction_config,
+        const SpeedDerivatives& travel_speed);
 
 
     void insertCommand(NozzleTempInsert&& insert);
@@ -128,7 +129,9 @@ public:
      */
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
-    void addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set);
+    void appendExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set, const bool check_non_empty = true);
+
+    void applyProcessors() override;
 
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
@@ -140,7 +143,7 @@ private:
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings_{}; //!< The fan speed and layer time settings used to limit this extruder plan
 
     RetractionConfig retraction_config_{}; //!< The retraction settings for the extruder of this plan
-
+    const SpeedDerivatives& travel_speed_;
 
     std::vector<GCodePath> paths_; //!< The paths planned for this extruder
     std::list<NozzleTempInsert> inserts_; //!< The nozzle temperature command inserts, to be inserted in between segments

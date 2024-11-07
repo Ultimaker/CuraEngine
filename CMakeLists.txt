@@ -109,28 +109,33 @@ set(engine_SRCS # Except main.cpp.
         src/infill/SubDivCube.cpp
         src/infill/GyroidInfill.cpp
 
-        src/path_export/ConsoleExporter.cpp       include/path_export/ConsoleExporter.h
-        src/path_export/GCodeExporter.cpp         include/path_export/GCodeExporter.h
-        src/path_export/MultiExporter.cpp         include/path_export/MultiExporter.h
-        src/path_export/PathExporter.cpp          include/path_export/PathExporter.h
+        src/path_export/ConsoleExporter.cpp include/path_export/ConsoleExporter.h
+        src/path_export/GCodeExporter.cpp include/path_export/GCodeExporter.h
+        src/path_export/MultiExporter.cpp include/path_export/MultiExporter.h
+        src/path_export/PathExporter.cpp include/path_export/PathExporter.h
         src/path_export/CommunicationExporter.cpp include/path_export/CommunicationExporter.h
 
-        src/path_planning/Comb.cpp                   include/path_planning/Comb.h
-        src/path_planning/ExtruderMove.cpp           include/path_planning/ExtruderMove.h
-        src/path_planning/ExtruderMoveSequence.cpp   include/path_planning/ExtruderMoveSequence.h
-        src/path_planning/ExtruderPlan.cpp           include/path_planning/ExtruderPlan.h
-        src/path_planning/ExtrusionMove.cpp          include/path_planning/ExtrusionMove.h
-        src/path_planning/FeatureExtrusion.cpp       include/path_planning/FeatureExtrusion.h
-        src/path_planning/GCodePath.cpp              include/path_planning/GCodePath.h
-        src/path_planning/LayerPlan.cpp              include/path_planning/LayerPlan.h
-        src/path_planning/LayerPlanBuffer.cpp        include/path_planning/LayerPlanBuffer.h
+        src/path_planning/Comb.cpp include/path_planning/Comb.h
+        src/path_planning/ExtruderMove.cpp include/path_planning/ExtruderMove.h
+        src/path_planning/ExtruderMoveSequence.cpp include/path_planning/ExtruderMoveSequence.h
+        src/path_planning/ExtruderPlan.cpp include/path_planning/ExtruderPlan.h
+        src/path_planning/ExtrusionMove.cpp include/path_planning/ExtrusionMove.h
+        src/path_planning/FeatureExtrusion.cpp include/path_planning/FeatureExtrusion.h
+        src/path_planning/GCodePath.cpp include/path_planning/GCodePath.h
+        src/path_planning/LayerPlan.cpp include/path_planning/LayerPlan.h
+        src/path_planning/LayerPlanBuffer.cpp include/path_planning/LayerPlanBuffer.h
         src/path_planning/LinePolygonsCrossings.cpp
-        src/path_planning/NozzleTempInsert.cpp       include/path_planning/NozzleTempInsert.h
-        src/path_planning/PrintOperation.cpp         include/path_planning/PrintOperation.h
+        src/path_planning/NozzleTempInsert.cpp include/path_planning/NozzleTempInsert.h
+        src/path_planning/PrintOperation.cpp include/path_planning/PrintOperation.h
         src/path_planning/PrintOperationSequence.cpp include/path_planning/PrintOperationSequence.h
-        src/path_planning/SpeedDerivatives.cpp       include/path_planning/SpeedDerivatives.h
-        src/path_planning/TravelMove.cpp             include/path_planning/TravelMove.h
-        src/path_planning/TravelRoute.cpp            include/path_planning/TravelRoute.h
+        src/path_planning/SpeedDerivatives.cpp include/path_planning/SpeedDerivatives.h
+        src/path_planning/TravelMove.cpp include/path_planning/TravelMove.h
+        src/path_planning/TravelRoute.cpp include/path_planning/TravelRoute.h
+
+        src/path_processing/PrintOperationProcessor.cpp include/path_processing/PrintOperationProcessor.h
+        src/path_processing/AddTravelMovesProcessor.cpp include/path_processing/AddTravelMovesProcessor.h
+        src/path_processing/TravelMoveGenerator.cpp include/path_processing/TravelMoveGenerator.h
+        src/path_processing/DirectTravelMoveGenerator.cpp include/path_processing/DirectTravelMoveGenerator.h
 
         src/plugins/converters.cpp
 
@@ -301,7 +306,7 @@ if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
             "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
             "SHELL:-sWASM_BIGINT=1"
             "SHELL:-sSTACK_SIZE=196608"
-           $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
+            $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
             $<$<CONFIG:Debug>:SHELL:-sSAFE_HEAP=1>
             $<$<CONFIG:Debug>:SHELL:-sSTACK_OVERFLOW_CHECK=2>
             $<$<CONFIG:Debug>:SHELL:-g3>

@@ -9,8 +9,22 @@
 namespace cura
 {
 
+class TravelMove;
+
 class TravelRoute : public ExtruderMoveSequence
 {
+public:
+    explicit TravelRoute(const PrintFeatureType feature, const SpeedDerivatives& speed);
+
+    void appendTravelMove(const std::shared_ptr<TravelMove>& travel_move);
+
+    const Velocity& getSpeed() const;
+
+    PrintFeatureType getFeatureType() const;
+
+private:
+    const PrintFeatureType feature_;
+    const SpeedDerivatives speed_;
 };
 
 } // namespace cura

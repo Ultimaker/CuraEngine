@@ -22,21 +22,55 @@ void PrintOperationSequence::write(PathExporter& exporter, const std::vector<con
     }
 }
 
+void PrintOperationSequence::applyProcessors()
+{
+    PrintOperation::applyProcessors();
+
+    for (const std::shared_ptr<PrintOperation>& operation : operations_)
+    {
+        operation->applyProcessors();
+    }
+}
+
 void PrintOperationSequence::appendOperation(const std::shared_ptr<PrintOperation>& operation)
 {
     operations_.push_back(operation);
 }
 
-std::shared_ptr<PrintOperation> PrintOperationSequence::findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function) const
+std::shared_ptr<PrintOperation>
+    PrintOperationSequence::findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function, const SearchOrder search_order) const
 {
 #warning We should iterator over all children in the tree, depth first
-    auto iterator = std::find_if(operations_.begin(), operations_.end(), search_function);
-    if (iterator != operations_.end())
+    auto find_in = [&search_function](auto begin, auto end) -> std::shared_ptr<PrintOperation>
     {
-        return *iterator;
+        auto iterator = std::find_if(begin, end, search_function);
+        if (iterator != end)
+        {
+            return *iterator;
+        }
+
+        return nullptr;
+    };
+
+    switch (search_order)
+    {
+    case SearchOrder::Forward:
+        return find_in(operations_.begin(), operations_.end());
+    case SearchOrder::Backward:
+        return find_in(operations_.rbegin(), operations_.rend());
     }
 
     return nullptr;
+}
+
+const std::vector<std::shared_ptr<PrintOperation>>& PrintOperationSequence::getOperations() const noexcept
+{
+    return operations_;
+}
+
+std::vector<std::shared_ptr<PrintOperation>>& PrintOperationSequence::getOperations() noexcept
+{
+    return operations_;
 }
 
 } // namespace cura

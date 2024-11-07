@@ -25,6 +25,11 @@ void CommunicationExporter::writeExtrusion(
     communication_->sendLineTo(feature, p, line_width, line_thickness, speed);
 }
 
+void CommunicationExporter::writeTravelMove(const Point3LL& position, const Velocity& speed, const PrintFeatureType feature)
+{
+    communication_->sendLineTo(feature, position, 0, 0, speed);
+}
+
 void CommunicationExporter::writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position)
 {
     communication_->setLayerForSend(layer_index);

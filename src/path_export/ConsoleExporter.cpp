@@ -23,6 +23,11 @@ void ConsoleExporter::writeExtrusion(
     spdlog::info("EXTRUSION {}", p);
 }
 
+void ConsoleExporter::writeTravelMove(const Point3LL& position, const Velocity& /*speed*/, const PrintFeatureType /*feature*/)
+{
+    spdlog::info("TRAVEL {}", position);
+}
+
 void ConsoleExporter::writeLayerStart(const LayerIndex& layer_index, const Point3LL& /*start_position*/)
 {
     spdlog::info("######## START NEW LAYER {}", layer_index.value);

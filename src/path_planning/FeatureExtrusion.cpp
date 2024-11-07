@@ -20,9 +20,20 @@ void FeatureExtrusion::appendExtruderMoveSequence(const std::shared_ptr<Extruder
     appendOperation(extruder_move_sequence);
 }
 
-const Point3LL& FeatureExtrusion::getStartPosition()
+const Point3LL& FeatureExtrusion::getStartPosition() const
 {
     return start_position_;
+}
+
+std::optional<Point3LL> FeatureExtrusion::findEndPosition() const
+{
+    auto last_move_sequence = findOperationByType<ExtruderMoveSequence>(SearchOrder::Backward);
+    if (last_move_sequence)
+    {
+        return last_move_sequence->findEndPosition();
+    }
+
+    return std::nullopt;
 }
 
 const Velocity& FeatureExtrusion::getSpeed() const

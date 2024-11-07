@@ -21,6 +21,14 @@ void MultiExporter::writeExtrusion(
     }
 }
 
+void MultiExporter::writeTravelMove(const Point3LL& position, const Velocity& speed, const PrintFeatureType feature)
+{
+    for (const std::shared_ptr<PathExporter>& exporter : exporters_)
+    {
+        exporter->writeTravelMove(position, speed, feature);
+    }
+}
+
 void MultiExporter::writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position)
 {
     for (const std::shared_ptr<PathExporter>& exporter : exporters_)

@@ -31,6 +31,8 @@ public:
 
     const Ratio& getSpeedBackPressureFactor() const;
 
+    std::optional<Point3LL> findEndPosition() const;
+
 private:
     coord_t z_offset_{ 0 }; //<! Vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
     std::shared_ptr<const SliceMeshStorage> mesh_; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;

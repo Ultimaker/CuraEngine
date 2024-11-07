@@ -23,6 +23,17 @@ const Ratio& ExtruderMoveSequence::getSpeedBackPressureFactor() const
     return speed_back_pressure_factor_;
 }
 
+std::optional<Point3LL> ExtruderMoveSequence::findEndPosition() const
+{
+    auto last_extrusion_move = findOperationByType<ExtrusionMove>(SearchOrder::Backward);
+    if (last_extrusion_move)
+    {
+        return last_extrusion_move->getPosition();
+    }
+
+    return std::nullopt;
+}
+
 void ExtruderMoveSequence::appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio)
 {
     appendOperation(std::make_shared<ExtrusionMove>(position, line_width_ratio));

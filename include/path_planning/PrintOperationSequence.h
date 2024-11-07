@@ -17,6 +17,13 @@ class LayerPlan;
 class PrintOperationSequence : public PrintOperation
 {
 public:
+    enum class SearchOrder
+    {
+        Forward,
+        Backward
+    };
+
+public:
     bool empty() const noexcept;
 
     /*!
@@ -24,12 +31,19 @@ public:
      *
      * \param gcode The gcode to write the planned paths to
      */
-    virtual void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents = {}) const override;
+    void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents = {}) const override;
 
-    std::shared_ptr<PrintOperation> findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function) const;
+    void applyProcessors() override;
+
+    std::shared_ptr<PrintOperation>
+        findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function, const SearchOrder search_order = SearchOrder::Forward) const;
 
     template<class OperationType>
-    std::shared_ptr<OperationType> findOperationByType() const;
+    std::shared_ptr<OperationType> findOperationByType(const SearchOrder search_order = SearchOrder::Forward) const;
+
+    const std::vector<std::shared_ptr<PrintOperation>>& getOperations() const noexcept;
+
+    std::vector<std::shared_ptr<PrintOperation>>& getOperations() noexcept;
 
 protected:
     void appendOperation(const std::shared_ptr<PrintOperation>& operation);
@@ -39,13 +53,14 @@ private:
 };
 
 template<class OperationType>
-std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType() const
+std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(const SearchOrder search_order) const
 {
     std::shared_ptr<PrintOperation> found_operation = findOperation(
         [](const std::shared_ptr<PrintOperation>& operation)
         {
             return static_cast<bool>(std::dynamic_pointer_cast<OperationType>(operation));
-        });
+        },
+        search_order);
 
     if (found_operation)
     {

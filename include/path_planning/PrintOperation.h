@@ -29,6 +29,8 @@ public:
      */
     virtual void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const = 0;
 
+    virtual void applyProcessors();
+
 protected:
     template<class ParentType>
     static const ParentType* findParent(const std::vector<const PrintOperation*>& parents, bool warn_not_found = true);

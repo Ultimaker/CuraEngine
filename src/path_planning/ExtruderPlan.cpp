@@ -4,6 +4,7 @@
 #include "path_planning/ExtruderPlan.h"
 
 #include "path_planning/ExtruderMoveSequence.h"
+#include "path_processing/AddTravelMovesProcessor.h"
 
 namespace cura
 {
@@ -14,7 +15,8 @@ ExtruderPlan::ExtruderPlan(
     const bool is_raft_layer,
     const coord_t layer_thickness,
     const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
-    const RetractionConfig& retraction_config)
+    const RetractionConfig& retraction_config,
+    const SpeedDerivatives& travel_speed)
     : extruder_nr_(extruder)
     , layer_nr_(layer_nr)
     , is_initial_layer_(is_initial_layer)
@@ -22,6 +24,7 @@ ExtruderPlan::ExtruderPlan(
     , layer_thickness_(layer_thickness)
     , fan_speed_layer_time_settings_(fan_speed_layer_time_settings)
     , retraction_config_(retraction_config)
+    , travel_speed_(travel_speed)
 {
 }
 
@@ -73,9 +76,20 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
     }
 }
 
-void ExtruderPlan::addExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set)
+void ExtruderPlan::appendExtruderMoveSet(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_set, const bool check_non_empty)
 {
-    appendOperation(extruder_move_set);
+    if (! check_non_empty || ! extruder_move_set->empty())
+    {
+        appendOperation(extruder_move_set);
+    }
+}
+
+void ExtruderPlan::applyProcessors()
+{
+    PrintOperationSequence::applyProcessors();
+
+    AddTravelMovesProcessor add_travel_moves_processor(travel_speed_);
+    add_travel_moves_processor.process(this);
 }
 
 } // namespace cura

@@ -18,7 +18,9 @@ public:
 
     void appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence);
 
-    const Point3LL& getStartPosition();
+    const Point3LL& getStartPosition() const;
+
+    std::optional<Point3LL> findEndPosition() const;
 
     const Velocity& getSpeed() const;
 

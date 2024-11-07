@@ -12,9 +12,9 @@ namespace cura
 
 struct SpeedDerivatives
 {
-    Velocity speed{}; //!< movement speed (mm/s)
-    Acceleration acceleration{}; //!< acceleration of head movement (mm/s^2)
-    Velocity jerk{}; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
+    Velocity speed; //!< movement speed (mm/s)
+    Acceleration acceleration; //!< acceleration of head movement (mm/s^2)
+    Velocity jerk; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
 
     constexpr bool operator==(const SpeedDerivatives& other) const noexcept = default;
     constexpr auto operator<=>(const SpeedDerivatives& other) const noexcept = default;

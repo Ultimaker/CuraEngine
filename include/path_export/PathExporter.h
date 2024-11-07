@@ -4,6 +4,8 @@
 #ifndef PATHEXPORT_PATHEXPORTER_H
 #define PATHEXPORT_PATHEXPORTER_H
 
+#include <geometry/Point3LL.h>
+
 #include "PrintFeatureType.h"
 #include "utils/Coord_t.h"
 
@@ -26,9 +28,11 @@ public:
         const bool update_extrusion_offset)
         = 0;
 
-    virtual void writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position) = 0;
+    virtual void writeTravelMove(const Point3LL& position, const Velocity& speed, const PrintFeatureType feature) = 0;
 
     virtual void writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness) = 0;
+
+    virtual void writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position) = 0;
 };
 
 } // namespace cura
