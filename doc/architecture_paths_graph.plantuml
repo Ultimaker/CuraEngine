@@ -1,0 +1,87 @@
+@startuml
+package "path_planning" {
+  LayerPlanBuffer *-- "*" LayerPlan
+  FffGCodeWriter *-- "1" LayerPlanBuffer
+
+  abstract class PrintOperation {
+    {abstract} write(PathExporter)
+    applyProcessors()
+  }
+
+  abstract PrintOperationSequence
+  abstract ExtruderMove
+
+  PrintOperationSequence -left-|> PrintOperation
+  PrintOperationSequence *-- "*" PrintOperation
+
+  LayerPlan -up-|> PrintOperationSequence
+  ExtruderPlan -up-|> PrintOperationSequence
+  ExtruderMoveSequence -up-|> PrintOperationSequence
+
+  ExtruderMove -up-|> PrintOperation
+  ExtrusionMove -up-|> ExtruderMove
+  TravelMove -up-|> ExtruderMove
+
+  SetNozzleTemperatureCommand -up-|> PrintOperation
+  SetCoolingFanCommand -up-|> PrintOperation
+
+  FeatureExtrusion -up-|> PrintOperationSequence
+  TravelRoute -up-|> PrintOperationSequence
+}
+package "path_export" {
+  abstract PathExporter {
+      {abstract} void writeExtrusionMove(...)
+      {abstract} void writeTravelMove(...)
+      {abstract} void writeSetNozzleTemperature(...)
+      {abstract} void writeSetBedTemperature(...)
+      {abstract} void writeSetCoolingFanSpeed(...)
+  }
+
+  GCodeExporter -up-|> PathExporter
+  ArcusExporter -up-|> PathExporter
+  MultiExporter -up-|> PathExporter
+  TimeEstimateCalculator -up-|> PathExporter
+  MakerBotExporter -up-|> PathExporter
+
+  MultiExporter *-- "*" PathExporter
+}
+
+ExtruderMove : Point end
+ExtruderMove : double speed
+
+ExtrusionMove : coord_t line_width
+ExtrusionMove : coord_t line_height
+ExtrusionMove : double flow
+
+FeatureExtrusion : FeatureType type
+
+package "path_processing" {
+  abstract PrintOperationProcessor {
+    {abstract} void process(PrintOperation)
+  }
+
+  InsertBetweenOperationProcessor -up-|> PrintOperationProcessor
+  AddTravelMovesProcessor -up-|> InsertBetweenOperationProcessor
+  PrimeTowerProcessor -up-|> InsertBetweenOperationProcessor
+  MinimumLayerTimeProcessor -up-|> PrintOperationProcessor
+  CoastingProcessor -up-|> PrintOperationProcessor
+  BackPressureCompensationProcessor -up-|> PrintOperationProcessor
+  SplitterProcessor -up-|> PrintOperationProcessor
+  NozzleTemperatureCommandsProcessor -up-|> InsertOperationOnTimeProcessor
+  BedTemperatureCommandsProcessor -up-|> InsertOperationOnTimeProcessor
+  CoolingFanCommandsProcessor -up-|> InsertOperationOnTimeProcessor
+  InsertOperationOnTimeProcessor -up-|> PrintOperationProcessor
+
+  AddTravelMovesProcessor *-- "*" TravelMoveGenerator
+  abstract TravelMoveGenerator
+  DirectTravelMoveGenerator -up-|> TravelMoveGenerator
+  CombingTravelMoveGenerator -up-|> TravelMoveGenerator
+
+  SplitterProcessor *-- "*" PathSplitter
+
+  abstract PathSplitter
+  GradualFlowSplitter -up-|> PathSplitter
+  ScarfSeamSplitter -up-|> PathSplitter
+  SmoothSpeedSplitter -up-|> PathSplitter
+}
+@enduml
