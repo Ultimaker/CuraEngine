@@ -63,6 +63,7 @@ set(engine_SRCS # Except main.cpp.
         src/Mold.cpp
         src/multiVolumes.cpp
         src/path_ordering.cpp
+        src/PathAdapter.cpp
         src/Preheat.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
@@ -155,6 +156,12 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
         src/utils/MixedPolylineStitcher.cpp
+
+        src/utils/scoring/BestElementFinder.cpp
+        src/utils/scoring/CornerScoringCriterion.cpp
+        src/utils/scoring/DistanceScoringCriterion.cpp
+        src/utils/scoring/ExclusionAreaScoringCriterion.cpp
+        src/utils/scoring/RandomScoringCriterion.cpp
 
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp

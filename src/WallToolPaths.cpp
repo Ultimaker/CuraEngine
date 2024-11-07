@@ -436,6 +436,19 @@ const Shape& WallToolPaths::getInnerContour()
 
 bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpaths)
 {
+    for (VariableWidthLines& toolpath : toolpaths)
+    {
+        toolpath.erase(
+            std::remove_if(
+                toolpath.begin(),
+                toolpath.end(),
+                [](const ExtrusionLine& line)
+                {
+                    return line.junctions_.empty();
+                }),
+            toolpath.end());
+    }
+
     toolpaths.erase(
         std::remove_if(
             toolpaths.begin(),
