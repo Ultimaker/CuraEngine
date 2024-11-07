@@ -18,6 +18,8 @@ class LayerIndex;
 class PathExporter
 {
 public:
+    virtual ~PathExporter() = default; // Force class being polymorphic
+
     virtual void writeExtrusion(
         const Point3LL& p,
         const Velocity& speed,

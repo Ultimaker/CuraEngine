@@ -132,10 +132,11 @@ set(engine_SRCS # Except main.cpp.
         src/path_planning/TravelMove.cpp include/path_planning/TravelMove.h
         src/path_planning/TravelRoute.cpp include/path_planning/TravelRoute.h
 
-        src/path_processing/PrintOperationProcessor.cpp include/path_processing/PrintOperationProcessor.h
         src/path_processing/AddTravelMovesProcessor.cpp include/path_processing/AddTravelMovesProcessor.h
-        src/path_processing/TravelMoveGenerator.cpp include/path_processing/TravelMoveGenerator.h
         src/path_processing/DirectTravelMoveGenerator.cpp include/path_processing/DirectTravelMoveGenerator.h
+        src/path_processing/InsertOperationsProcessor.cpp include/path_processing/InsertOperationsProcessor.h
+        src/path_processing/PrintOperationProcessor.cpp include/path_processing/PrintOperationProcessor.h
+        src/path_processing/TravelMoveGenerator.cpp include/path_processing/TravelMoveGenerator.h
 
         src/plugins/converters.cpp
 
