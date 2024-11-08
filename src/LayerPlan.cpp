@@ -555,12 +555,12 @@ void LayerPlan::addExtrusionMove(
 }
 
 template<class PathType>
-void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const coord_t scarf_seam_length)
+void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const Point2LL& last_path_position)
 {
     if (path.size() >= 2 && wipe_distance > 0)
     {
         const int direction = backwards ? -1 : 1;
-        Point2LL p0 = path.pointAt(start_index);
+        Point2LL p0 = last_path_position;
         int distance_traversed = 0;
         size_t index = start_index;
         while (distance_traversed < wipe_distance)
@@ -613,7 +613,7 @@ void LayerPlan::addPolygon(
     Point2LL p0 = polygon[start_idx];
     addTravel(p0, always_retract, config.z_offset);
 
-    const coord_t scarf_seam_length = addWallWithScarfSeam(
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam(
         path_adapter,
         start_idx,
         settings,
@@ -642,7 +642,7 @@ void LayerPlan::addPolygon(
 
     if (polygon.size() > 2)
     {
-        addWipeTravel(path_adapter, wall_0_wipe_dist, backwards, start_idx, scarf_seam_length);
+        addWipeTravel(path_adapter, wall_0_wipe_dist, backwards, get<0>(add_wall_result), get<1>(add_wall_result));
     }
     else
     {
@@ -1055,7 +1055,7 @@ void LayerPlan::addWall(
 }
 
 template<class PathType>
-void LayerPlan::addSplitWall(
+std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const PathAdapter<PathType>& wall,
     const coord_t wall_length,
     const size_t start_idx,
@@ -1099,10 +1099,14 @@ void LayerPlan::addSplitWall(
     double accelerate_factor_origin = 0.0; // Interpolation factor at the current point for the acceleration
     double decelerate_factor_origin = 0.0; // Interpolation factor at the current point for the deceleration
     const coord_t start_decelerate_position = wall_length - decelerate_length;
+    Point3LL split_destination = p0;
+    size_t previous_point_index = start_idx;
+    bool keep_processing = true;
 
-    for (size_t point_idx = 1; point_idx < max_index; point_idx++)
+    for (size_t point_idx = 1; point_idx < max_index && keep_processing; point_idx++)
     {
         const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
+        previous_point_index = (wall.size() + start_idx + (point_idx - 1) * direction) % wall.size();
         const Point2LL& p1 = wall.pointAt(actual_point_index);
         const coord_t w1 = wall.lineWidthAt(actual_point_index);
         coord_t segment_processed_distance = 0;
@@ -1153,7 +1157,7 @@ void LayerPlan::addSplitWall(
         const size_t pieces = std::max(size_t(1), std::min(pieces_limit_deviation, pieces_limit_resolution)); // Resolution overrides deviation, if resolution is a constraint.
         const coord_t piece_length = round_divide(line_length, pieces);
 
-        for (size_t piece = 0; piece < pieces; ++piece)
+        for (size_t piece = 0; piece < pieces && keep_processing; ++piece)
         {
             const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
             // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
@@ -1171,7 +1175,7 @@ void LayerPlan::addSplitWall(
                 coord_t piece_remaining_distance = piece_length;
 
                 // Cut piece into smaller parts for scarf seam and acceleration/deceleration
-                while (piece_remaining_distance > 0 && (! is_scarf_closure || wall_processed_distance < scarf_seam_length))
+                while (piece_remaining_distance > 0 && keep_processing)
                 {
                     // Make a list of all the possible incoming positions where we would eventually want to stop next
                     // The positions are expressed in distance from wall start along the wall segments
@@ -1209,7 +1213,7 @@ void LayerPlan::addSplitWall(
                     const coord_t destination_position = *std::min_element(split_positions.begin(), split_positions.end());
                     const coord_t length_to_process = destination_position - wall_processed_distance;
                     const double destination_factor = static_cast<double>(segment_processed_distance + length_to_process) / line_length;
-                    Point3LL split_destination = cura::lerp(p0, p1, destination_factor);
+                    split_destination = cura::lerp(p0, p1, destination_factor);
 
                     double scarf_segment_flow_ratio = 1.0;
                     double scarf_factor_destination = 1.0; // Out of range, scarf is done => 1.0
@@ -1282,6 +1286,11 @@ void LayerPlan::addSplitWall(
                     scarf_factor_origin = scarf_factor_destination;
                     accelerate_factor_origin = accelerate_factor_destination;
                     decelerate_factor_origin = decelerate_factor_destination;
+
+                    if (is_scarf_closure)
+                    {
+                        keep_processing = wall_processed_distance < scarf_seam_length;
+                    }
                 }
             }
         }
@@ -1289,6 +1298,8 @@ void LayerPlan::addSplitWall(
         p0 = p1;
         w0 = w1;
     }
+
+    return { previous_point_index, split_destination.toPoint2LL() };
 }
 
 std::vector<LayerPlan::PathCoasting>
@@ -1476,7 +1487,7 @@ coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const
 }
 
 template<class PathType>
-coord_t LayerPlan::addWallWithScarfSeam(
+std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const PathAdapter<PathType>& wall,
     size_t start_idx,
     const Settings& settings,
@@ -1492,10 +1503,10 @@ coord_t LayerPlan::addWallWithScarfSeam(
 {
     if (wall.empty())
     {
-        return 0;
+        return { start_idx, Point2LL() };
     }
 
-    const bool actual_scarf_seam = scarf_seam && is_closed;
+    const bool actual_scarf_seam = scarf_seam && is_closed && layer_nr_ > 0;
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
 
@@ -1529,11 +1540,11 @@ coord_t LayerPlan::addWallWithScarfSeam(
     const Velocity end_speed = top_speed * end_speed_ratio; // mm/s
     const coord_t decelerate_length = (smooth_speed && end_speed_ratio < 1.0) ? MM2INT((square(top_speed) - square(end_speed)) / (2.0 * deceleration)) : 0; // µm
 
-    auto addSplitWallPass = [&](bool is_scarf_closure)
+    auto addSplitWallPass = [&](bool is_scarf_closure) -> std::tuple<size_t, Point2LL>
     {
         constexpr bool compute_distance_to_bridge_start = true;
 
-        addSplitWall(
+        return addSplitWall(
             PathAdapter(wall),
             wall_length,
             start_idx,
@@ -1548,7 +1559,7 @@ coord_t LayerPlan::addWallWithScarfSeam(
             flow_ratio,
             nominal_line_width,
             min_bridge_line_len,
-            layer_nr_ > 0 ? scarf_seam_length : 0,
+            scarf_seam_length,
             scarf_seam_start_ratio,
             scarf_split_distance,
             scarf_max_z_offset,
@@ -1563,15 +1574,15 @@ coord_t LayerPlan::addWallWithScarfSeam(
     };
 
     // First pass to add the wall with the scarf beginning and acceleration
-    addSplitWallPass(false);
+    std::tuple<size_t, Point2LL> result = addSplitWallPass(false);
 
     if (scarf_seam_length > 0)
     {
         // Second pass to add the scarf closure
-        addSplitWallPass(true);
+        result = addSplitWallPass(true);
     }
 
-    return scarf_seam_length;
+    return result;
 }
 
 void LayerPlan::addWall(
@@ -1599,7 +1610,7 @@ void LayerPlan::addWall(
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
     const PathAdapter path_adapter(wall);
 
-    const coord_t scarf_seam_length = addWallWithScarfSeam(
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam(
         path_adapter,
         start_idx,
         settings,
@@ -1644,7 +1655,7 @@ void LayerPlan::addWall(
 
         if (! is_linked_path)
         {
-            addWipeTravel(path_adapter, wall_0_wipe_dist, is_reversed, start_idx, scarf_seam_length);
+            addWipeTravel(path_adapter, wall_0_wipe_dist, is_reversed, get<0>(add_wall_result), get<1>(add_wall_result));
         }
     }
     else
