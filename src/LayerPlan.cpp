@@ -554,6 +554,45 @@ void LayerPlan::addExtrusionMove(
     last_planned_position_ = p.toPoint2LL();
 }
 
+template<class PathType>
+void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const coord_t scarf_seam_length)
+{
+    if (path.size() >= 2 && wipe_distance > 0)
+    {
+        const int direction = backwards ? -1 : 1;
+        Point2LL p0 = path.pointAt(start_index);
+        int distance_traversed = 0;
+        size_t index = start_index;
+        while (distance_traversed < wipe_distance)
+        {
+            index = static_cast<size_t>((index + direction + path.size()) % path.size());
+            if (index == start_index && distance_traversed == 0)
+            {
+                // Wall has a total circumference of 0. This loop would never end.
+                break;
+            }
+
+            const Point2LL& p1 = path.pointAt(index);
+            const int p0p1_dist = vSize(p1 - p0);
+            if (distance_traversed + p0p1_dist >= wipe_distance)
+            {
+                Point2LL vector = p1 - p0;
+                Point2LL half_way = p0 + normal(vector, wipe_distance - distance_traversed);
+                addTravel_simple(half_way);
+            }
+            else
+            {
+                addTravel_simple(p1);
+            }
+
+            distance_traversed += p0p1_dist;
+            p0 = p1;
+        }
+
+        forceNewPathStart();
+    }
+}
+
 void LayerPlan::addPolygon(
     const Polygon& polygon,
     int start_idx,
@@ -569,12 +608,13 @@ void LayerPlan::addPolygon(
 {
     constexpr bool is_closed = true;
     constexpr bool is_candidate_small_feature = false;
+    const PathAdapter path_adapter(polygon, config.getLineWidth());
 
     Point2LL p0 = polygon[start_idx];
     addTravel(p0, always_retract, config.z_offset);
 
-    addWallWithScarfSeam(
-        PathAdapter(polygon, config.getLineWidth()),
+    const coord_t scarf_seam_length = addWallWithScarfSeam(
+        path_adapter,
         start_idx,
         settings,
         config,
@@ -602,31 +642,7 @@ void LayerPlan::addPolygon(
 
     if (polygon.size() > 2)
     {
-        if (wall_0_wipe_dist > 0)
-        { // apply outer wall wipe
-            p0 = polygon[start_idx];
-            const int direction = backwards ? -1 : 1;
-            int distance_traversed = 0;
-            for (size_t point_idx = 1;; point_idx++)
-            {
-                Point2LL p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
-                int p0p1_dist = vSize(p1 - p0);
-                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-                {
-                    Point2LL vector = p1 - p0;
-                    Point2LL half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
-                    addTravel_simple(half_way);
-                    break;
-                }
-                else
-                {
-                    addTravel_simple(p1);
-                    distance_traversed += p0p1_dist;
-                }
-                p0 = p1;
-            }
-            forceNewPathStart();
-        }
+        addWipeTravel(path_adapter, wall_0_wipe_dist, backwards, start_idx, scarf_seam_length);
     }
     else
     {
@@ -1460,7 +1476,7 @@ coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const
 }
 
 template<class PathType>
-void LayerPlan::addWallWithScarfSeam(
+coord_t LayerPlan::addWallWithScarfSeam(
     const PathAdapter<PathType>& wall,
     size_t start_idx,
     const Settings& settings,
@@ -1476,7 +1492,7 @@ void LayerPlan::addWallWithScarfSeam(
 {
     if (wall.empty())
     {
-        return;
+        return 0;
     }
 
     const bool actual_scarf_seam = scarf_seam && is_closed;
@@ -1496,7 +1512,7 @@ void LayerPlan::addWallWithScarfSeam(
     const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
 
-    const auto scarf_seam_length = std::min(wall_length, actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
+    const coord_t scarf_seam_length = std::min(wall_length, actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
     const auto scarf_seam_start_ratio = actual_scarf_seam ? settings.get<Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
     const auto scarf_split_distance = settings.get<coord_t>("scarf_split_distance");
     const coord_t scarf_max_z_offset = static_cast<coord_t>(-(1.0 - scarf_seam_start_ratio) * static_cast<double>(layer_thickness_));
@@ -1554,6 +1570,8 @@ void LayerPlan::addWallWithScarfSeam(
         // Second pass to add the scarf closure
         addSplitWallPass(true);
     }
+
+    return scarf_seam_length;
 }
 
 void LayerPlan::addWall(
@@ -1579,9 +1597,10 @@ void LayerPlan::addWall(
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const PathAdapter path_adapter(wall);
 
-    addWallWithScarfSeam(
-        PathAdapter(wall),
+    const coord_t scarf_seam_length = addWallWithScarfSeam(
+        path_adapter,
         start_idx,
         settings,
         default_config,
@@ -1623,57 +1642,9 @@ void LayerPlan::addWall(
             computeDistanceToBridgeStart(wall, (start_idx + wall.size() - 1) % wall.size(), min_bridge_line_len);
         }
 
-        if (wall_0_wipe_dist > 0 && ! is_linked_path)
-        { // apply outer wall wipe
-            const auto add_wipe = [this, &wall_0_wipe_dist](const auto begin, const auto end, const auto start)
-            {
-                auto iterator = start;
-                ExtrusionJunction p0 = *iterator;
-                coord_t distance_traversed = 0;
-
-                while (distance_traversed < wall_0_wipe_dist)
-                {
-                    ++iterator;
-                    if (iterator == end)
-                    {
-                        if (distance_traversed == 0)
-                        {
-                            // Wall has a total circumference of 0. This loop would never end.
-                            break;
-                        }
-
-                        iterator = begin; // Loop until we have reached the wipe distance
-                    }
-
-                    ExtrusionJunction p1 = *iterator;
-                    coord_t p0p1_dist = vSize(p1 - p0);
-                    if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-                    {
-                        Point2LL vector = p1.p_ - p0.p_;
-                        Point2LL half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
-                        addTravel_simple(half_way);
-                    }
-                    else
-                    {
-                        addTravel_simple(p1.p_);
-                    }
-
-                    distance_traversed += p0p1_dist;
-                    p0 = p1;
-                }
-            };
-
-            const auto iterator_start = wall.begin() + start_idx;
-            if (is_reversed)
-            {
-                add_wipe(wall.rbegin(), wall.rend(), std::make_reverse_iterator(iterator_start + 1));
-            }
-            else
-            {
-                add_wipe(wall.begin(), wall.end(), iterator_start);
-            }
-
-            forceNewPathStart();
+        if (! is_linked_path)
+        {
+            addWipeTravel(path_adapter, wall_0_wipe_dist, is_reversed, start_idx, scarf_seam_length);
         }
     }
     else

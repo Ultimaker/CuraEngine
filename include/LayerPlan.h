@@ -926,9 +926,10 @@ private:
      * \param scarf_seam Indicates whether we may use a scarf seam for the path
      * \param smooth_speed Indicates whether we may use a speed gradient for the path
      * \param func_add_segment The function to be called to actually add an extrusion segment with the given parameters
+     * \return The actual length of the added scarf seam
      */
     template<class PathType>
-    void addWallWithScarfSeam(
+    coord_t addWallWithScarfSeam(
         const PathAdapter<PathType>& wall,
         size_t start_idx,
         const Settings& settings,
@@ -941,6 +942,18 @@ private:
         const bool scarf_seam,
         const bool smooth_speed,
         const AddExtrusionSegmentFunction& func_add_segment);
+
+    /*!
+     * \brief Add a wipe travel after the given path has been extruded
+     * \tparam PathType The type of path to be processed, either ExtrusionLine or some subclass of Polyline
+     * \param path The path that has just been extruded
+     * \param wipe_distance The length of the wipe move to be added
+     * \param backwards Indicates if the path has been processed backwards
+     * \param start_index The index of the point where o start printing the path
+     * \param scarf_seam_length The length of the scarf seat that has been added to the path
+     */
+    template<class PathType>
+    void addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const coord_t scarf_seam_length);
 
     /*!
      * Pre-calculates the coasting to be applied on the paths
