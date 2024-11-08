@@ -210,27 +210,31 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
                 for (const SliceLayerPart& part : layer.parts)
                 {
+                    Shape part_combing_boundary;
+
                     if (combing_mode == CombingMode::INFILL)
                     {
-                        comb_boundary = part.infill_area;
+                        part_combing_boundary = part.infill_area;
                     }
                     else
                     {
-                        comb_boundary = part.outline.offset(offset);
+                        part_combing_boundary = part.outline.offset(offset);
 
                         if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
                         {
-                            comb_boundary = comb_boundary.difference(part.inner_area.difference(part.infill_area));
+                            part_combing_boundary = part_combing_boundary.difference(part.inner_area.difference(part.infill_area));
                         }
                         else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
                         {
                             for (const SliceLayerPart& outer_surface_part : layer.parts)
                             {
-                                comb_boundary = comb_boundary.difference(outer_surface_part.top_most_surface);
-                                comb_boundary = comb_boundary.difference(outer_surface_part.bottom_most_surface);
+                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.top_most_surface);
+                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.bottom_most_surface);
                             }
                         }
                     }
+
+                    comb_boundary.push_back(part_combing_boundary);
                 }
             }
             break;
@@ -1291,7 +1295,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
