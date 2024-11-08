@@ -1,0 +1,87 @@
+@startuml
+object print_plan
+object layer_plan_0
+object travel_route_plan_0 #palegreen
+object layer_plan_1
+object travel_route_plan_1 #palegreen
+object layer_plan_2
+
+print_plan --> layer_plan_0
+print_plan --> travel_route_plan_0
+print_plan --> layer_plan_1
+print_plan --> travel_route_plan_1
+print_plan --> layer_plan_2
+
+object extruder_plan_0_0
+object travel_route_layer_0_0 #palegreen
+map feature_extrusion_prime_tower_0 #paleturquoise {
+    type => PrimeTower
+}
+object travel_route_layer_0_1 #palegreen
+object extruder_plan_0_1
+
+layer_plan_0 --> extruder_plan_0_0
+layer_plan_0 --> travel_route_layer_0_0
+layer_plan_0 --> feature_extrusion_prime_tower_0
+layer_plan_0 --> travel_route_layer_0_1
+layer_plan_0 --> extruder_plan_0_1
+
+object retract #lightcoral
+object travel_move_1 #lawngreen
+object travel_move_2 #lawngreen
+object travel_move_3 #lawngreen
+object unretract #lightcoral
+
+travel_route_layer_0_1 --> retract
+travel_route_layer_0_1 --> travel_move_1
+travel_route_layer_0_1 --> travel_move_2
+travel_route_layer_0_1 --> travel_move_3
+travel_route_layer_0_1 --> unretract
+
+map feature_extrusion_brim {
+    type => Brim
+}
+
+object travel_route_extruder_0_0_0 #palegreen
+
+map feature_extrusion_wall_0 {
+    type => OuterWall
+}
+
+object travel_route_extruder_0_0_1 #palegreen
+
+map feature_extrusion_wall_1 {
+    type => InnerWall
+}
+
+extruder_plan_0_0 --> feature_extrusion_brim
+extruder_plan_0_0 --> travel_route_extruder_0_0_0
+extruder_plan_0_0 --> feature_extrusion_wall_0
+extruder_plan_0_0 --> travel_route_extruder_0_0_1
+extruder_plan_0_0 --> feature_extrusion_wall_1
+
+object extruder_move_set_line_0
+object travel_route_brim_0 #palegreen
+object extruder_move_set_line_1
+object travel_route_brim_1 #palegreen
+object extruder_move_set_line_N
+
+feature_extrusion_brim --> extruder_move_set_line_0
+feature_extrusion_brim --> travel_route_brim_0
+feature_extrusion_brim --> extruder_move_set_line_1
+feature_extrusion_brim --> travel_route_brim_1
+feature_extrusion_brim --> extruder_move_set_line_N
+
+object travel_move_0 #lawngreen
+
+travel_route_brim_0 --> travel_move_0
+
+object extrusion_move_0
+object extrusion_move_1
+object extrusion_move_N
+
+extruder_move_set_line_0 --> extrusion_move_0
+extruder_move_set_line_0 --> extrusion_move_1
+extruder_move_set_line_0 --> extrusion_move_N
+
+@enduml
