@@ -93,7 +93,8 @@ void ExtruderPlan::applyProcessors(const std::vector<const PrintOperation*>& par
 {
     PrintOperationSequence::applyProcessors(parents);
 
-    AddTravelMovesProcessor<ExtruderPlan, FeatureExtrusion> add_travel_moves_processor(travel_speed_);
+    AddTravelMovesProcessor add_travel_moves_processor(travel_speed_);
+    applyProcessorToOperationsRecursively(add_travel_moves_processor);
     add_travel_moves_processor.process(this);
 }
 

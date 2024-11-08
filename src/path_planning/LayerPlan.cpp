@@ -26,7 +26,6 @@
 #include "path_planning/CombPaths.h"
 #include "path_planning/ExtruderMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
-#include "path_processing/AddTravelMovesProcessor.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
@@ -1279,7 +1278,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))

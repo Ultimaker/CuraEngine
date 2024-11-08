@@ -6,7 +6,6 @@
 #include "path_planning/ExtruderMoveSequence.h"
 #include "path_planning/ExtruderPlan.h"
 #include "path_planning/ExtrusionMove.h"
-#include "path_processing/AddTravelMovesProcessor.h"
 
 namespace cura
 {
@@ -22,36 +21,6 @@ void FeatureExtrusion::appendExtruderMoveSequence(const std::shared_ptr<Extruder
     {
         appendOperation(extruder_move_sequence);
     }
-}
-
-void FeatureExtrusion::applyProcessors(const std::vector<const PrintOperation*>& parents)
-{
-    PrintOperationSequence::applyProcessors(parents);
-
-    if (const auto extruder_plan = findParent<ExtruderPlan>(parents))
-    {
-        AddTravelMovesProcessor<FeatureExtrusion, ExtruderMoveSequence> add_travel_moves_processor(extruder_plan->getTravelSpeed());
-        add_travel_moves_processor.process(this);
-    }
-}
-std::optional<Point3LL> FeatureExtrusion::findStartPosition() const
-{
-    if (const auto first_move_sequence = findOperationByType<ExtruderMoveSequence>(SearchOrder::Forward))
-    {
-        return first_move_sequence->getStartPosition();
-    }
-
-    return std::nullopt;
-}
-
-std::optional<Point3LL> FeatureExtrusion::findEndPosition() const
-{
-    if (const auto last_move_sequence = findOperationByType<ExtruderMoveSequence>(SearchOrder::Backward))
-    {
-        return last_move_sequence->findEndPosition();
-    }
-
-    return std::nullopt;
 }
 
 const Velocity& FeatureExtrusion::getSpeed() const

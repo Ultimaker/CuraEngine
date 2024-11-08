@@ -35,6 +35,34 @@ void PrintOperationSequence::applyProcessors(const std::vector<const PrintOperat
     }
 }
 
+std::optional<Point3LL> PrintOperationSequence::findStartPosition() const
+{
+    for (const std::shared_ptr<PrintOperation>& operation : operations_)
+    {
+        std::optional<Point3LL> start_position = operation->findStartPosition();
+        if (start_position.has_value())
+        {
+            return start_position;
+        }
+    }
+
+    return std::nullopt;
+}
+
+std::optional<Point3LL> PrintOperationSequence::findEndPosition() const
+{
+    for (const std::shared_ptr<PrintOperation>& operation : operations_ | ranges::views::reverse)
+    {
+        std::optional<Point3LL> end_position = operation->findEndPosition();
+        if (end_position.has_value())
+        {
+            return end_position;
+        }
+    }
+
+    return std::nullopt;
+}
+
 void PrintOperationSequence::appendOperation(const std::shared_ptr<PrintOperation>& operation)
 {
     operations_.push_back(operation);

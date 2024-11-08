@@ -18,12 +18,6 @@ public:
 
     void appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence, bool check_non_empty = true);
 
-    void applyProcessors(const std::vector<const PrintOperation*>& parents) override;
-
-    std::optional<Point3LL> findStartPosition() const;
-
-    std::optional<Point3LL> findEndPosition() const;
-
     const Velocity& getSpeed() const;
 
     double getExtrusionMM3perMM() const;

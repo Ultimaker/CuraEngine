@@ -4,7 +4,9 @@
 #ifndef PATHPLANNING_PRINTOPERATIONSEQUENCE_H
 #define PATHPLANNING_PRINTOPERATIONSEQUENCE_H
 
+#include "geometry/Point3LL.h"
 #include "path_planning/PrintOperation.h"
+#include "path_processing/PrintOperationProcessor.h"
 
 namespace cura
 {
@@ -36,6 +38,10 @@ public:
 
     void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
 
+    std::optional<Point3LL> findStartPosition() const override;
+
+    std::optional<Point3LL> findEndPosition() const override;
+
     std::shared_ptr<PrintOperation>
         findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function, const SearchOrder search_order = SearchOrder::Forward) const;
 
@@ -48,6 +54,9 @@ public:
 
 protected:
     void appendOperation(const std::shared_ptr<PrintOperation>& operation);
+
+    template<class ChildType>
+    void applyProcessorToOperationsRecursively(PrintOperationProcessor<ChildType>& processor);
 
 private:
     std::vector<std::shared_ptr<PrintOperation>> operations_;
@@ -69,6 +78,23 @@ std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(const
     }
 
     return nullptr;
+}
+
+template<class ChildType>
+void PrintOperationSequence::applyProcessorToOperationsRecursively(PrintOperationProcessor<ChildType>& processor)
+{
+    for (const auto& operation : operations_)
+    {
+        if (auto operation_sequence = std::dynamic_pointer_cast<PrintOperationSequence>(operation))
+        {
+            operation_sequence->applyProcessorToOperationsRecursively(processor);
+        }
+
+        if (auto casted_child = std::dynamic_pointer_cast<ChildType>(operation))
+        {
+            processor.process(casted_child.get());
+        }
+    }
 }
 
 } // namespace cura

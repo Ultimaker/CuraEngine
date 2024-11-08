@@ -18,6 +18,11 @@ const Point3LL& ExtruderMoveSequence::getStartPosition() const
     return start_position_;
 }
 
+std::optional<Point3LL> ExtruderMoveSequence::findStartPosition() const
+{
+    return start_position_;
+}
+
 coord_t ExtruderMoveSequence::getZOffset() const
 {
     return z_offset_;
@@ -31,16 +36,6 @@ const Ratio& ExtruderMoveSequence::getSpeedFactor() const
 const Ratio& ExtruderMoveSequence::getSpeedBackPressureFactor() const
 {
     return speed_back_pressure_factor_;
-}
-
-std::optional<Point3LL> ExtruderMoveSequence::findEndPosition() const
-{
-    if (auto last_extrusion_move = findOperationByType<ExtrusionMove>(SearchOrder::Backward))
-    {
-        return last_extrusion_move->getPosition();
-    }
-
-    return std::nullopt;
 }
 
 void ExtruderMoveSequence::appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio)

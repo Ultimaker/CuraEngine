@@ -17,19 +17,17 @@ class ExtruderPlan;
 class TravelMoveGenerator;
 class Point3LL;
 
-template<class OperationType, class ChildOperationType>
-class AddTravelMovesProcessor : public InsertOperationsProcessor<OperationType, ChildOperationType>
+class AddTravelMovesProcessor : public InsertOperationsProcessor
 {
 public:
     explicit AddTravelMovesProcessor(const SpeedDerivatives& speed);
 
 protected:
-    std::shared_ptr<PrintOperation> makeOperation(const std::shared_ptr<ChildOperationType>& operation_before, const std::shared_ptr<ChildOperationType>& operation_after) override;
+    bool firstOperationMatches(const std::shared_ptr<PrintOperation>& operation) override;
 
-private:
-    static std::optional<Point3LL> findStartPosition(const std::shared_ptr<ChildOperationType>& operation);
+    bool secondOperationMatches(const std::shared_ptr<PrintOperation>& first_operation, const std::shared_ptr<PrintOperation>& operation) override;
 
-    static std::optional<Point3LL> findEndPosition(const std::shared_ptr<ChildOperationType>& operation);
+    std::shared_ptr<PrintOperation> makeOperation(const std::shared_ptr<PrintOperation>& operation_first, const std::shared_ptr<PrintOperation>& operation_second) override;
 
 private:
     const SpeedDerivatives& speed_;

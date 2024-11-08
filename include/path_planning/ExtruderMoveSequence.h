@@ -30,13 +30,13 @@ public:
 
     const Point3LL& getStartPosition() const;
 
+    std::optional<Point3LL> findStartPosition() const override;
+
     coord_t getZOffset() const;
 
     const Ratio& getSpeedFactor() const;
 
     const Ratio& getSpeedBackPressureFactor() const;
-
-    std::optional<Point3LL> findEndPosition() const;
 
 private:
     Point3LL start_position_;

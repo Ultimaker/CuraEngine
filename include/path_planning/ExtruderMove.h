@@ -21,6 +21,8 @@ public:
 
     const Point3LL& getPosition() const;
 
+    std::optional<Point3LL> findEndPosition() const override;
+
 private:
     /*!
      * The target position to move the extruder to. The X and Y coordinates are absolute positions, and the Z coordinate

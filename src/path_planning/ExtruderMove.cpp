@@ -20,4 +20,9 @@ const Point3LL& ExtruderMove::getPosition() const
     return position_;
 }
 
+std::optional<Point3LL> ExtruderMove::findEndPosition() const
+{
+    return position_;
+}
+
 } // namespace cura

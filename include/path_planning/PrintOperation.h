@@ -16,6 +16,7 @@ namespace cura
 class PathExporter;
 class LayerPlan;
 class ExtruderMoveSequence;
+class Point3LL;
 
 class PrintOperation
 {
@@ -30,6 +31,10 @@ public:
     virtual void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const = 0;
 
     virtual void applyProcessors(const std::vector<const PrintOperation*>& parents = {});
+
+    virtual std::optional<Point3LL> findStartPosition() const;
+
+    virtual std::optional<Point3LL> findEndPosition() const;
 
 protected:
     template<class ParentType>

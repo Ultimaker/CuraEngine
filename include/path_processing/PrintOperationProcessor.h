@@ -11,7 +11,7 @@ namespace cura
 
 class PrintOperation;
 
-template<class OperationType>
+template<class OperationType = PrintOperation>
 class PrintOperationProcessor
 {
 public:
