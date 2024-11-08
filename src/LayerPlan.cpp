@@ -1292,7 +1292,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -1625,30 +1625,54 @@ void LayerPlan::addWall(
 
         if (wall_0_wipe_dist > 0 && ! is_linked_path)
         { // apply outer wall wipe
-            ExtrusionJunction p0 = wall[start_idx];
-            coord_t distance_traversed = 0;
-            for (unsigned int point_idx = 1;; point_idx++)
+            const auto add_wipe = [this, &wall_0_wipe_dist](const auto begin, const auto end, const auto start)
             {
-                if (point_idx > wall.size() && distance_traversed == 0) // Wall has a total circumference of 0. This loop would never end.
+                auto iterator = start;
+                ExtrusionJunction p0 = *iterator;
+                coord_t distance_traversed = 0;
+
+                while (distance_traversed < wall_0_wipe_dist)
                 {
-                    break; // No wipe if the wall has no circumference.
-                }
-                ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
-                coord_t p0p1_dist = vSize(p1 - p0);
-                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-                {
-                    Point2LL vector = p1.p_ - p0.p_;
-                    Point2LL half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
-                    addTravel_simple(half_way);
-                    break;
-                }
-                else
-                {
-                    addTravel_simple(p1.p_);
+                    ++iterator;
+                    if (iterator == end)
+                    {
+                        if (distance_traversed == 0)
+                        {
+                            // Wall has a total circumference of 0. This loop would never end.
+                            break;
+                        }
+
+                        iterator = begin; // Loop until we have reached the wipe distance
+                    }
+
+                    ExtrusionJunction p1 = *iterator;
+                    coord_t p0p1_dist = vSize(p1 - p0);
+                    if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
+                    {
+                        Point2LL vector = p1.p_ - p0.p_;
+                        Point2LL half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
+                        addTravel_simple(half_way);
+                    }
+                    else
+                    {
+                        addTravel_simple(p1.p_);
+                    }
+
                     distance_traversed += p0p1_dist;
+                    p0 = p1;
                 }
-                p0 = p1;
+            };
+
+            const auto iterator_start = wall.begin() + start_idx;
+            if (is_reversed)
+            {
+                add_wipe(wall.rbegin(), wall.rend(), std::make_reverse_iterator(iterator_start + 1));
             }
+            else
+            {
+                add_wipe(wall.begin(), wall.end(), iterator_start);
+            }
+
             forceNewPathStart();
         }
     }
