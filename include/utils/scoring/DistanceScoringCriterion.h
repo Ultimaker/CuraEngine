@@ -30,8 +30,18 @@ private:
     const Point2LL& target_pos_;
     const DistanceType distance_type_;
 
+    /*!
+     * Fixed divider for shortest distances computation. The divider should be set so that the minimum encountered
+     * distance gives a score very close to 1.0, and a medium-far distance gives a score close to 0.5
+     */
+    const double distance_divider_;
+
 public:
-    explicit DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type = DistanceType::Euclidian);
+    explicit DistanceScoringCriterion(
+        const PointsSet& points,
+        const Point2LL& target_pos,
+        DistanceType distance_type = DistanceType::Euclidian,
+        const double distance_divider = 20.0);
 
     virtual double computeScore(const size_t candidate_index) const override;
 };

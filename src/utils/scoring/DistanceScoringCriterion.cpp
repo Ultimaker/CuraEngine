@@ -9,20 +9,17 @@
 namespace cura
 {
 
-DistanceScoringCriterion::DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type)
+DistanceScoringCriterion::DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type, const double distance_divider)
     : points_(points)
     , target_pos_(target_pos)
     , distance_type_(distance_type)
+    , distance_divider_(distance_divider)
 {
 }
 
 double DistanceScoringCriterion::computeScore(const size_t candidate_index) const
 {
     const Point2LL& candidate_position = points_.at(candidate_index);
-
-    // Fixed divider for shortest distances computation. The divider should be set so that the minimum encountered
-    // distance gives a score very close to 1.0, and a medium-far distance gives a score close to 0.5
-    constexpr double distance_divider = 20.0;
 
     double distance = 0.0;
     switch (distance_type_)
@@ -40,7 +37,7 @@ double DistanceScoringCriterion::computeScore(const size_t candidate_index) cons
     }
 
     // Use reciprocal function to normalize distance score decreasingly
-    return 1.0 / (1.0 + (distance / distance_divider));
+    return 1.0 / (1.0 + (distance / distance_divider_));
 }
 
 } // namespace cura
