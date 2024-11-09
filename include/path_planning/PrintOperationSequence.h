@@ -23,7 +23,8 @@ public:
     {
         Forward, // Only search in direct children, forwards
         Backward, // Only search in direct children, backwards
-        DepthFirst, // Search in children tree, depth-first
+        DepthFirstForward, // Search in children tree, depth-first forwards
+        DepthFirstBackward, // Search in children tree, depth-first backwards
     };
 
 public:
@@ -48,9 +49,17 @@ public:
     template<class OperationType>
     std::shared_ptr<OperationType> findOperationByType(const SearchOrder search_order = SearchOrder::Forward) const;
 
+    std::shared_ptr<PrintOperation>
+        findOperation(const std::vector<const PrintOperation*>& parents, const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function) const;
+
     const std::vector<std::shared_ptr<PrintOperation>>& getOperations() const noexcept;
 
     std::vector<std::shared_ptr<PrintOperation>>& getOperations() noexcept;
+
+    template<class OperationType>
+    std::vector<std::shared_ptr<OperationType>> getOperationsAs() noexcept;
+
+    void setOperations(std::vector<std::shared_ptr<PrintOperation>>& operations) noexcept;
 
 protected:
     void appendOperation(const std::shared_ptr<PrintOperation>& operation);
@@ -78,6 +87,27 @@ std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(const
     }
 
     return nullptr;
+}
+
+template<class OperationType>
+std::vector<std::shared_ptr<OperationType>> PrintOperationSequence::getOperationsAs() noexcept
+{
+    std::vector<std::shared_ptr<OperationType>> result;
+    result.reserve(operations_.size());
+
+    for (const std::shared_ptr<PrintOperation>& operation : operations_)
+    {
+        if (auto operation_as = std::dynamic_pointer_cast<OperationType>(operation)) [[likely]]
+        {
+            result.push_back(operation_as);
+        }
+        else
+        {
+            spdlog::error("Found an child operation which is not of expected type {}, it will be discarded", typeid(operation).name());
+        }
+    }
+
+    return result;
 }
 
 template<class ChildType>

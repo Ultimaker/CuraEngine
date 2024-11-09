@@ -1,8 +1,8 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATHPLANNING_EXTRUDERMOVESEQUENCE_H
-#define PATHPLANNING_EXTRUDERMOVESEQUENCE_H
+#ifndef PATHPLANNING_CONTINUOUSEXTRUDERMOVESEQUENCE_H
+#define PATHPLANNING_CONTINUOUSEXTRUDERMOVESEQUENCE_H
 
 #include "GCodePathConfig.h"
 #include "SpaceFillType.h"
@@ -21,14 +21,12 @@ class PathExporter;
 class LayerPlan;
 class Point3LL;
 
-class ExtruderMoveSequence : public PrintOperationSequence
+class ContinuousExtruderMoveSequence : public PrintOperationSequence
 {
 public:
-    explicit ExtruderMoveSequence(const Point3LL& start_position);
+    explicit ContinuousExtruderMoveSequence(bool closed, const Point3LL& start_position = Point3LL());
 
     void appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
-
-    const Point3LL& getStartPosition() const;
 
     std::optional<Point3LL> findStartPosition() const override;
 
@@ -38,8 +36,15 @@ public:
 
     const Ratio& getSpeedBackPressureFactor() const;
 
+    bool isClosed() const;
+
+    void reorderToEndWith(const std::shared_ptr<ExtruderMove>& extruder_move);
+
+    void reverse();
+
 private:
     Point3LL start_position_;
+    bool closed_;
     coord_t z_offset_{ 0 }; //<! Vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
     std::shared_ptr<const SliceMeshStorage> mesh_; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type_{ SpaceFillType::None }; //!< The type of space filling of which this path is a part
@@ -50,4 +55,4 @@ private:
 
 } // namespace cura
 
-#endif // PATHPLANNING_EXTRUDERMOVESEQUENCE_H
+#endif // PATHPLANNING_CONTINUOUSEXTRUDERMOVESEQUENCE_H

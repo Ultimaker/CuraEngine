@@ -24,7 +24,7 @@
 #include "path_export/ConsoleExporter.h"
 #include "path_planning/Comb.h"
 #include "path_planning/CombPaths.h"
-#include "path_planning/ExtruderMoveSequence.h"
+#include "path_planning/ContinuousExtruderMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
@@ -1564,7 +1564,7 @@ void LayerPlan::addWall(
     }
 
     auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config);
-    auto extruder_move_sequence = std::make_shared<ExtruderMoveSequence>(wall.junctions_.front().p_);
+    auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(is_closed, wall.junctions_.front().p_);
 
     for (const auto& segment : wall.junctions_ | ranges::views::sliding(2))
     {
@@ -1714,7 +1714,12 @@ void LayerPlan::addLinesByOptimizer(
     {
         if (! line.empty())
         {
-            auto extruder_move_sequence = std::make_shared<ExtruderMoveSequence>(line.front());
+            bool closed = false;
+            if constexpr (std::is_same_v<LineType, ClosedPolyline> || std::is_same_v<LineType, Polygon>)
+            {
+                closed = true;
+            }
+            auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(closed, line.front());
 
             for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
             {
@@ -1793,7 +1798,7 @@ void LayerPlan::addLinesByOptimizer(
     {
         if (! line->empty())
         {
-            auto extruder_move_sequence = std::make_shared<ExtruderMoveSequence>(line->front());
+            auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(bool(std::dynamic_pointer_cast<ClosedPolyline>(line)), line->front());
 
             for (auto iterator = line->beginSegments(); iterator != line->endSegments(); ++iterator)
             {
@@ -2937,9 +2942,13 @@ void LayerPlan::write(PathExporter& exporter, const std::vector<const PrintOpera
 
 std::optional<Point3LL> LayerPlan::findExtruderStartPosition() const
 {
-    if (const auto extruder_move_sequence = findOperationByType<ExtruderMoveSequence>(SearchOrder::DepthFirst))
+    if (const auto extruder_move_sequence = findOperationByType<ContinuousExtruderMoveSequence>(SearchOrder::DepthFirstForward))
     {
-        return getAbsolutePosition(*extruder_move_sequence, extruder_move_sequence->getStartPosition());
+        std::optional<Point3LL> start_position = extruder_move_sequence->findStartPosition();
+        if (start_position.has_value())
+        {
+            return getAbsolutePosition(*extruder_move_sequence, start_position.value());
+        }
     }
 
     return std::nullopt;
@@ -3217,7 +3226,7 @@ ExtruderPlan& LayerPlan::getLastExtruderPlan()
     return *findOperationByType<ExtruderPlan>(SearchOrder::Backward);
 }
 
-Point3LL LayerPlan::getAbsolutePosition(const ExtruderMoveSequence& extruder_move_sequence, const Point3LL& relative_position) const
+Point3LL LayerPlan::getAbsolutePosition(const ContinuousExtruderMoveSequence& extruder_move_sequence, const Point3LL& relative_position) const
 {
     Point3LL absolute_position = relative_position;
     absolute_position.z_ += getZ() + extruder_move_sequence.getZOffset();

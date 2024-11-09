@@ -5,6 +5,7 @@
 
 #include "path_planning/FeatureExtrusion.h"
 #include "path_processing/AddTravelMovesProcessor.h"
+#include "path_processing/FeatureExtrusionsOrderOptimizer.h"
 
 namespace cura
 {
@@ -92,6 +93,20 @@ void ExtruderPlan::appendFeatureExtrusion(const std::shared_ptr<FeatureExtrusion
 void ExtruderPlan::applyProcessors(const std::vector<const PrintOperation*>& parents)
 {
     PrintOperationSequence::applyProcessors(parents);
+
+    std::optional<Point3LL> last_position;
+#warning This is quite unoptimized as the tree will be traversed multiple times, but the findEndPosition method and the actual finding
+#warning This is not really tested, do some tests !!!
+    findOperation(
+        parents,
+        [&last_position](const std::shared_ptr<PrintOperation>& operation)
+        {
+            last_position = operation->findEndPosition();
+            return last_position.has_value();
+        });
+
+#warning use start layer position as default value
+    FeatureExtrusionsOrderOptimizer(last_position.value_or(Point3LL())).process(this);
 
     AddTravelMovesProcessor add_travel_moves_processor(travel_speed_);
     applyProcessorToOperationsRecursively(add_travel_moves_processor);

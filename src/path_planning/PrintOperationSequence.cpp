@@ -83,15 +83,11 @@ std::shared_ptr<PrintOperation>
         return nullptr;
     };
 
-    switch (search_order)
+    auto find_depth_first = [&search_function, &search_order](auto begin, auto end) -> std::shared_ptr<PrintOperation>
     {
-    case SearchOrder::Forward:
-        return find_in(operations_.begin(), operations_.end());
-    case SearchOrder::Backward:
-        return find_in(operations_.rbegin(), operations_.rend());
-    case SearchOrder::DepthFirst:
-        for (const std::shared_ptr<PrintOperation>& operation : operations_)
+        for (auto iterator = begin; iterator != end; ++iterator)
         {
+            const std::shared_ptr<PrintOperation>& operation = *iterator;
             if (search_function(operation))
             {
                 return operation;
@@ -107,9 +103,65 @@ std::shared_ptr<PrintOperation>
         }
 
         return nullptr;
+    };
+
+    switch (search_order)
+    {
+    case SearchOrder::Forward:
+        return find_in(operations_.begin(), operations_.end());
+    case SearchOrder::Backward:
+        return find_in(operations_.rbegin(), operations_.rend());
+    case SearchOrder::DepthFirstForward:
+        return find_depth_first(operations_.begin(), operations_.end());
+    case SearchOrder::DepthFirstBackward:
+        return find_depth_first(operations_.rbegin(), operations_.rend());
     }
 
     return nullptr;
+}
+
+std::shared_ptr<PrintOperation> PrintOperationSequence::findOperation(
+    const std::vector<const PrintOperation*>& parents,
+    const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function) const
+{
+    if (! parents.empty())
+    {
+        const PrintOperation* child = this;
+
+        for (const PrintOperation* parent : parents | ranges::views::reverse)
+        {
+            if (const auto* parent_as_sequence = dynamic_cast<const PrintOperationSequence*>(parent))
+            {
+                const std::vector<std::shared_ptr<PrintOperation>>& children = parent_as_sequence->getOperations();
+                auto iterator_child = std::find_if(
+                    children.begin(),
+                    children.end(),
+                    [&child](const std::shared_ptr<PrintOperation>& operation)
+                    {
+                        return operation.get() == child;
+                    });
+                if (iterator_child != children.begin())
+                {
+                    for (auto iterator = iterator_child - 1; iterator != children.begin(); --iterator)
+                    {
+                        if (search_function(*iterator))
+                        {
+                            return *iterator;
+                        }
+
+                        if (const auto child_as_sequence = std::dynamic_pointer_cast<const PrintOperationSequence>(*iterator))
+                        {
+                            child_as_sequence->findOperation(search_function, SearchOrder::DepthFirstBackward);
+                        }
+                    }
+                }
+
+                child = parent;
+            }
+        }
+
+        return nullptr;
+    }
 }
 
 const std::vector<std::shared_ptr<PrintOperation>>& PrintOperationSequence::getOperations() const noexcept
@@ -120,6 +172,11 @@ const std::vector<std::shared_ptr<PrintOperation>>& PrintOperationSequence::getO
 std::vector<std::shared_ptr<PrintOperation>>& PrintOperationSequence::getOperations() noexcept
 {
     return operations_;
+}
+
+void PrintOperationSequence::setOperations(std::vector<std::shared_ptr<PrintOperation>>& operations) noexcept
+{
+    operations_ = operations;
 }
 
 } // namespace cura

@@ -15,7 +15,7 @@ namespace cura
 
 class PathExporter;
 class LayerPlan;
-class ExtruderMoveSequence;
+class ContinuousExtruderMoveSequence;
 class Point3LL;
 
 class PrintOperation

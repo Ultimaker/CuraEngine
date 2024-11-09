@@ -117,7 +117,7 @@ set(engine_SRCS # Except main.cpp.
 
         src/path_planning/Comb.cpp include/path_planning/Comb.h
         src/path_planning/ExtruderMove.cpp include/path_planning/ExtruderMove.h
-        src/path_planning/ExtruderMoveSequence.cpp include/path_planning/ExtruderMoveSequence.h
+        src/path_planning/ContinuousExtruderMoveSequence.cpp include/path_planning/ContinuousExtruderMoveSequence.h
         src/path_planning/ExtruderPlan.cpp include/path_planning/ExtruderPlan.h
         src/path_planning/ExtrusionMove.cpp include/path_planning/ExtrusionMove.h
         src/path_planning/FeatureExtrusion.cpp include/path_planning/FeatureExtrusion.h
@@ -137,6 +137,7 @@ set(engine_SRCS # Except main.cpp.
         src/path_processing/InsertOperationsProcessor.cpp include/path_processing/InsertOperationsProcessor.h
         src/path_processing/PrintOperationProcessor.cpp include/path_processing/PrintOperationProcessor.h
         src/path_processing/TravelMoveGenerator.cpp include/path_processing/TravelMoveGenerator.h
+        src/path_processing/FeatureExtrusionsOrderOptimizer.cpp include/path_processing/FeatureExtrusionsOrderOptimizer.h
 
         src/plugins/converters.cpp
 

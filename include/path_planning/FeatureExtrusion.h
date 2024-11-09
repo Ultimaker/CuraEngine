@@ -16,7 +16,7 @@ class FeatureExtrusion : public PrintOperationSequence
 public:
     explicit FeatureExtrusion(const GCodePathConfig& config);
 
-    void appendExtruderMoveSequence(const std::shared_ptr<ExtruderMoveSequence>& extruder_move_sequence, bool check_non_empty = true);
+    void appendExtruderMoveSequence(const std::shared_ptr<ContinuousExtruderMoveSequence>& extruder_move_sequence, bool check_non_empty = true);
 
     const Velocity& getSpeed() const;
 

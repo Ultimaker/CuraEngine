@@ -12,7 +12,7 @@ namespace cura
 
 class PathExporter;
 class LayerPlan;
-class ExtruderMoveSequence;
+class ContinuousExtruderMoveSequence;
 
 class ExtruderMove : public PrintOperation
 {
@@ -20,6 +20,8 @@ public:
     explicit ExtruderMove(const Point3LL& position);
 
     const Point3LL& getPosition() const;
+
+    void setPosition(const Point3LL& position);
 
     std::optional<Point3LL> findEndPosition() const override;
 

@@ -3,7 +3,7 @@
 
 #include "path_planning/ExtruderMove.h"
 
-#include "path_planning/ExtruderMoveSequence.h"
+#include "path_planning/ContinuousExtruderMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
 #include "path_planning/LayerPlan.h"
 
@@ -18,6 +18,11 @@ ExtruderMove::ExtruderMove(const Point3LL& position)
 const Point3LL& ExtruderMove::getPosition() const
 {
     return position_;
+}
+
+void ExtruderMove::setPosition(const Point3LL& position)
+{
+    position_ = position;
 }
 
 std::optional<Point3LL> ExtruderMove::findEndPosition() const

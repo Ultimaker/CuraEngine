@@ -4,8 +4,6 @@
 #ifndef PATHPROCESSING_PRINTOPERATIONPROCESSOR_H
 #define PATHPROCESSING_PRINTOPERATIONPROCESSOR_H
 
-#include <memory>
-
 namespace cura
 {
 
