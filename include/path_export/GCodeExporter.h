@@ -387,6 +387,7 @@ public:
     virtual void writeExtrusion(
         const Point3LL& p,
         const Velocity& speed,
+        const size_t extruder_nr,
         double extrusion_mm3_per_mm,
         const coord_t line_width,
         const coord_t line_thickness,
@@ -401,7 +402,7 @@ public:
 
     void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false)
     {
-        return writeExtrusion(p, speed, extrusion_mm3_per_mm, 0, 0, feature, update_extrusion_offset);
+        return writeExtrusion(p, speed, current_extruder_, extrusion_mm3_per_mm, 0, 0, feature, update_extrusion_offset);
     }
 
     /*!

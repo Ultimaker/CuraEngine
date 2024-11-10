@@ -1,6 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include "path_export/ConsumptionEstimationExporter.h"
 #ifdef ARCUS
 
 #include "communication/ArcusCommunication.h"
@@ -438,6 +439,36 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     spdlog::debug("Done sending print time and material estimates.");
 }
 
+void ArcusCommunication::sendPrintTimeMaterialEstimates(const std::shared_ptr<ConsumptionEstimationExporter>& exporter) const
+{
+    spdlog::debug("Sending print time and material estimates.");
+    std::shared_ptr<proto::PrintTimeMaterialEstimates> message = std::make_shared<proto::PrintTimeMaterialEstimates>();
+
+    std::map<PrintFeatureType, Duration> time_estimates = exporter->getDurations();
+    message->set_time_infill(time_estimates[PrintFeatureType::Infill]);
+    message->set_time_inset_0(time_estimates[PrintFeatureType::OuterWall]);
+    message->set_time_inset_x(time_estimates[PrintFeatureType::InnerWall]);
+    message->set_time_none(time_estimates[PrintFeatureType::NoneType]);
+    message->set_time_retract(time_estimates[PrintFeatureType::MoveRetraction]);
+    message->set_time_skin(time_estimates[PrintFeatureType::Skin]);
+    message->set_time_skirt(time_estimates[PrintFeatureType::SkirtBrim]);
+    message->set_time_support(time_estimates[PrintFeatureType::Support]);
+    message->set_time_support_infill(time_estimates[PrintFeatureType::SupportInfill]);
+    message->set_time_support_interface(time_estimates[PrintFeatureType::SupportInterface]);
+    message->set_time_travel(time_estimates[PrintFeatureType::MoveCombing]);
+    message->set_time_prime_tower(time_estimates[PrintFeatureType::PrimeTower]);
+
+    for (const auto& [extruder_nr, amount] : exporter->getExtrusionAmounts())
+    {
+        proto::MaterialEstimates* material_message = message->add_materialestimates();
+        material_message->set_id(extruder_nr);
+        material_message->set_material_amount(amount);
+    }
+
+    private_data->socket->sendMessage(message);
+    spdlog::debug("Done sending print time and material estimates.");
+}
+
 void ArcusCommunication::sendProgress(double progress) const
 {
     const int rounded_amount = 1000 * progress;
@@ -540,7 +571,7 @@ void ArcusCommunication::sliceNext()
         slice->compute();
         FffProcessor::getInstance()->finalize();
         flushGCode();
-        sendPrintTimeMaterialEstimates();
+        // sendPrintTimeMaterialEstimates();
         sendFinishedSlicing();
         slice.reset();
         private_data->slice_count++;

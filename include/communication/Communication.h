@@ -6,7 +6,6 @@
 
 #include "geometry/Point2LL.h"
 #include "settings/types/LayerIndex.h"
-#include "settings/types/Velocity.h"
 
 namespace cura
 {
@@ -15,6 +14,8 @@ enum class PrintFeatureType : unsigned char;
 class Shape;
 class Polygon;
 class ExtruderTrain;
+class ConsumptionEstimationExporter;
+class Velocity;
 
 /*
  * An abstract class to provide a common interface for all methods of
@@ -114,6 +115,8 @@ public:
      * material it would use.
      */
     virtual void sendPrintTimeMaterialEstimates() const = 0;
+
+    virtual void sendPrintTimeMaterialEstimates(const std::shared_ptr<ConsumptionEstimationExporter>& exporter) const = 0;
 
     /*
      * \brief Indicate that we're beginning to send g-code.

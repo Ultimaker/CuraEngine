@@ -148,6 +148,8 @@ public:
      */
     void sendPrintTimeMaterialEstimates() const override;
 
+    void sendPrintTimeMaterialEstimates(const std::shared_ptr<ConsumptionEstimationExporter>& exporter) const override;
+
     /*
      * \brief Communicate to Arcus what our progress is.
      */

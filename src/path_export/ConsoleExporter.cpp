@@ -14,6 +14,7 @@ namespace cura
 void ConsoleExporter::writeExtrusion(
     const Point3LL& p,
     const Velocity& speed,
+    const size_t extruder_nr,
     const double extrusion_mm3_per_mm,
     const coord_t line_width,
     const coord_t line_thickness,

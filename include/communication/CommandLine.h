@@ -115,6 +115,8 @@ public:
      */
     void sendPrintTimeMaterialEstimates() const override;
 
+    void sendPrintTimeMaterialEstimates(const std::shared_ptr<ConsumptionEstimationExporter>& exporter) const override;
+
     /*
      * \brief Show an update of our slicing progress.
      */

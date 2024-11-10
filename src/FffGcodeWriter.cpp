@@ -31,6 +31,7 @@
 #include "infill.h"
 #include "path_export/CommunicationExporter.h"
 #include "path_export/ConsoleExporter.h"
+#include "path_export/ConsumptionEstimationExporter.h"
 #include "path_export/MultiExporter.h"
 #include "path_planning/LayerPlan.h"
 #include "progress/Progress.h"
@@ -168,6 +169,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     MultiExporter exporter;
     exporter.appendExporter(std::make_shared<ConsoleExporter>());
     exporter.appendExporter(std::make_shared<CommunicationExporter>(Application::getInstance().communication_));
+    auto consumption_estimator = std::make_shared<ConsumptionEstimationExporter>();
+    exporter.appendExporter(consumption_estimator);
 
     int process_layer_starting_layer_nr = 0;
     const bool has_raft = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
@@ -210,6 +213,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     constexpr bool force = true;
     gcode.writeRetraction(storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()].retraction_config, force); // retract after finishing each meshgroup
+
+    Application::getInstance().communication_->sendPrintTimeMaterialEstimates(consumption_estimator);
 }
 
 unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr)

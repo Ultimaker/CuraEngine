@@ -41,7 +41,7 @@ void FeatureExtrusionsOrderOptimizer::process(ExtruderPlan* extruder_plan)
         feature_extrusions.erase(feature_extrusions.begin(), iterator_end);
     }
 
-    // For now, just add the others while just optimizing their sequences
+#warning finish this
     for (const std::shared_ptr<FeatureExtrusion>& operation : feature_extrusions)
     {
         optimizeExtruderSequencesOrder(operation, current_position);

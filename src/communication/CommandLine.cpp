@@ -107,6 +107,10 @@ void CommandLine::sendPrintTimeMaterialEstimates() const
     }
 }
 
+void CommandLine::sendPrintTimeMaterialEstimates(const std::shared_ptr<ConsumptionEstimationExporter>& exporter) const
+{
+}
+
 void CommandLine::sendProgress(double progress) const
 {
     const unsigned int rounded_amount = 100 * progress;

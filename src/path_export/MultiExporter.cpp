@@ -9,6 +9,7 @@ namespace cura
 void MultiExporter::writeExtrusion(
     const Point3LL& p,
     const Velocity& speed,
+    const size_t extruder_nr,
     const double extrusion_mm3_per_mm,
     const coord_t line_width,
     const coord_t line_thickness,
@@ -17,7 +18,7 @@ void MultiExporter::writeExtrusion(
 {
     for (const std::shared_ptr<PathExporter>& exporter : exporters_)
     {
-        exporter->writeExtrusion(p, speed, extrusion_mm3_per_mm, line_width, line_thickness, feature, update_extrusion_offset);
+        exporter->writeExtrusion(p, speed, extruder_nr, extrusion_mm3_per_mm, line_width, line_thickness, feature, update_extrusion_offset);
     }
 }
 
