@@ -10,6 +10,8 @@
 namespace cura
 {
 
+class ExtrusionMove;
+
 class FeatureExtrusionsOrderOptimizer final : public PrintOperationProcessor<ExtruderPlan>
 {
 public:
@@ -17,9 +19,48 @@ public:
 
     void process(ExtruderPlan* extruder_plan) override;
 
+private:
+    enum class ChangeSequenceAction
+    {
+        None, // Nothing to do, point is already the start point
+        Reverse, // Reverse the (open) extrusion sequence, point is the last one
+        Reorder // Reorder the (closed) extrusion sequence so that it starts/ends with the point
+    };
+
+    struct StartCandidatePoint
+    {
+        Point3LL position;
+        std::shared_ptr<FeatureExtrusion> feature_extrusion;
+        std::shared_ptr<ContinuousExtruderMoveSequence> move_sequence;
+        std::shared_ptr<ExtrusionMove> move; // The move containing the target position, or null for the actual starting point
+        ChangeSequenceAction action; // The action to be applied if starting by this point
+    };
+
+    struct ClosestPoint
+    {
+        coord_t distance_squared;
+        const StartCandidatePoint* point;
+    };
+
+    struct FeatureExtrusionOrderingConstraint
+    {
+        std::shared_ptr<FeatureExtrusion> feature_before;
+        std::shared_ptr<FeatureExtrusion> feature_after;
+    };
+
+    struct MoveSequenceOrderingConstraint
+    {
+        std::shared_ptr<ContinuousExtruderMoveSequence> sequence_before;
+        std::shared_ptr<ContinuousExtruderMoveSequence> sequence_after;
+    };
 
 private:
-    void optimizeExtruderSequencesOrder(const std::shared_ptr<FeatureExtrusion>& feature, Point3LL& current_position);
+    std::map<std::shared_ptr<FeatureExtrusion>, std::vector<StartCandidatePoint>>
+        makeStartCandidates(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const;
+
+    std::vector<FeatureExtrusionOrderingConstraint> makeFeatureExtrusionOrderingConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const;
+
+    std::vector<MoveSequenceOrderingConstraint> makeMoveSequenceOrderingConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const;
 
 private:
     const Point3LL previous_position_;

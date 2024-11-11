@@ -3,6 +3,9 @@
 
 #include "path_processing/FeatureExtrusionsOrderOptimizer.h"
 
+#include <algorithm>
+
+#include <range/v3/view/filter.hpp>
 #include <spdlog/spdlog.h>
 
 #include "path_planning/ContinuousExtruderMoveSequence.h"
@@ -24,115 +27,80 @@ void FeatureExtrusionsOrderOptimizer::process(ExtruderPlan* extruder_plan)
     ordered_operations.reserve(feature_extrusions.size());
     Point3LL current_position = previous_position_;
 
-    { // First process the bed adhesion features
-        auto iterator_end = std::partition(
-            feature_extrusions.begin(),
-            feature_extrusions.end(),
-            [](const std::shared_ptr<FeatureExtrusion>& feature_extrusion)
-            {
-                return feature_extrusion->getPrintFeatureType() == PrintFeatureType::SkirtBrim;
-            });
+    // First, register all the possible starting positions amongst all the extrusion features
+    std::map<std::shared_ptr<FeatureExtrusion>, std::vector<StartCandidatePoint>> start_candidates = makeStartCandidates(feature_extrusions);
 
-        for (auto iterator = feature_extrusions.begin(); iterator != iterator_end; ++iterator)
-        {
-            optimizeExtruderSequencesOrder(*iterator, current_position);
-            ordered_operations.push_back(*iterator);
-        }
-        feature_extrusions.erase(feature_extrusions.begin(), iterator_end);
-    }
+    // Now create the ordering constraints
+    std::vector<FeatureExtrusionOrderingConstraint> feature_extrusions_constraints = makeFeatureExtrusionOrderingConstraints(feature_extrusions);
+    // std::vector<MoveSequenceOrderingConstraint> move_sequences_constraints = makeMoveSequenceOrderingConstraints(feature_extrusions);
 
-#warning finish this
-    for (const std::shared_ptr<FeatureExtrusion>& operation : feature_extrusions)
+    const auto is_feature_doable_now = [&feature_extrusions_constraints](const std::shared_ptr<FeatureExtrusion>& feature_extrusion)
     {
-        optimizeExtruderSequencesOrder(operation, current_position);
-        ordered_operations.push_back(operation);
-    }
-    extruder_plan->setOperations(ordered_operations);
-}
-
-void FeatureExtrusionsOrderOptimizer::optimizeExtruderSequencesOrder(const std::shared_ptr<FeatureExtrusion>& feature, Point3LL& current_position)
-{
-    std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>> moves_sequences = feature->getOperationsAs<ContinuousExtruderMoveSequence>();
-    std::vector<std::shared_ptr<PrintOperation>> ordered_sequences;
-    ordered_sequences.reserve(moves_sequences.size());
-
-    enum class ChangeSequenceAction
-    {
-        None,
-        Reverse,
-        Reorder
+        return std::ranges::find_if(
+                   feature_extrusions_constraints,
+                   [&feature_extrusion](const FeatureExtrusionOrderingConstraint& constraint)
+                   {
+                       return constraint.feature_after == feature_extrusion;
+                   })
+            == feature_extrusions_constraints.end();
     };
 
-    struct ClosestPoint
+    // Now loop until we have ordered all the features
+    while (! feature_extrusions.empty())
     {
-        coord_t distance_squared;
-        std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>>::iterator move_sequence_iterator;
-        std::shared_ptr<ExtrusionMove> move; // The move containing the target position, or null for the actual starting point
-        ChangeSequenceAction action;
-    };
-
-    auto evaluate_closest_point = [&current_position](
-                                      const Point3LL& point,
-                                      std::optional<ClosestPoint>& closest_point,
-                                      const std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>>::iterator& move_sequence,
-                                      const std::shared_ptr<ExtrusionMove>& move,
-                                      const ChangeSequenceAction action)
-    {
-        const coord_t distance_squared = (point - current_position).vSize2();
-        if (! closest_point.has_value() || distance_squared < closest_point->distance_squared)
-        {
-            closest_point = ClosestPoint{ distance_squared, move_sequence, move, action };
-        }
-    };
-
-#warning This is extremely unoptimized, just good enough for the POC
-    while (! moves_sequences.empty())
-    {
+#warning This can probably be optimized, but good enough for the POC
+        // Evaluate the candidate points for every feature that can be processed now
         std::optional<ClosestPoint> closest_point;
-
-        for (auto iterator = moves_sequences.begin(); moves_sequences.end() != iterator; ++iterator)
+        for (const std::shared_ptr<FeatureExtrusion>& feature_extrusion : feature_extrusions | ranges::views::filter(is_feature_doable_now))
         {
-            const std::shared_ptr<ContinuousExtruderMoveSequence>& move_sequence = *iterator;
-            if (move_sequence->isClosed())
+            for (const StartCandidatePoint& start_candidate : start_candidates[feature_extrusion])
             {
-                for (const std::shared_ptr<ExtrusionMove>& extrusion_move : move_sequence->getOperationsAs<ExtrusionMove>())
+                const coord_t distance_squared = (start_candidate.position - current_position).vSize2();
+                if (! closest_point.has_value() || distance_squared < closest_point->distance_squared)
                 {
-                    evaluate_closest_point(extrusion_move->getPosition(), closest_point, iterator, extrusion_move, ChangeSequenceAction::Reorder);
-                }
-            }
-            else
-            {
-                if (std::optional<Point3LL> start_position = move_sequence->findStartPosition(); start_position.has_value())
-                {
-                    evaluate_closest_point(start_position.value(), closest_point, iterator, nullptr, ChangeSequenceAction::None);
-                }
-
-                if (std::optional<Point3LL> end_position = move_sequence->findEndPosition(); end_position.has_value())
-                {
-                    evaluate_closest_point(end_position.value(), closest_point, iterator, nullptr, ChangeSequenceAction::Reverse);
+                    closest_point = ClosestPoint{ distance_squared, &start_candidate };
                 }
             }
         }
 
         if (closest_point.has_value())
         {
-            switch (closest_point->action)
+            // Now apply the change to the move sequence to have it start with the given point
+            const StartCandidatePoint* best_candidate = closest_point->point;
+
+            switch (best_candidate->action)
             {
             case ChangeSequenceAction::None:
                 break;
             case ChangeSequenceAction::Reorder:
-                if (closest_point->move)
+                if (best_candidate->move)
                 {
-                    (*closest_point->move_sequence_iterator)->reorderToEndWith(closest_point->move);
+                    best_candidate->move_sequence->reorderToEndWith(best_candidate->move);
                 }
                 break;
             case ChangeSequenceAction::Reverse:
-                (*closest_point->move_sequence_iterator)->reverse();
+                best_candidate->move_sequence->reverse();
             }
 
-            current_position = (*closest_point->move_sequence_iterator)->findEndPosition().value();
-            ordered_sequences.push_back(*closest_point->move_sequence_iterator);
-            moves_sequences.erase(closest_point->move_sequence_iterator);
+            // Update current position for next candidate selection
+            const std::optional<Point3LL> new_end_position = best_candidate->move_sequence->findEndPosition();
+            assert(new_end_position.has_value() && "The new move sequence doesn't have an end position ?!");
+            current_position = best_candidate->move_sequence->findEndPosition().value();
+
+            // Register this feature as being processed next
+            ordered_operations.push_back(best_candidate->feature_extrusion);
+
+            // Remove processed feature from processing list
+            std::erase(feature_extrusions, best_candidate->feature_extrusion);
+
+            // Remove constraints related to this feature
+            std::erase_if(
+                feature_extrusions_constraints,
+                [&best_candidate](const FeatureExtrusionOrderingConstraint& constraint)
+                {
+                    return constraint.feature_before == best_candidate->feature_extrusion;
+                });
+            ;
         }
         else
         {
@@ -142,7 +110,87 @@ void FeatureExtrusionsOrderOptimizer::optimizeExtruderSequencesOrder(const std::
         }
     }
 
-    feature->setOperations(ordered_sequences);
+    extruder_plan->setOperations(ordered_operations);
+}
+
+std::map<std::shared_ptr<FeatureExtrusion>, std::vector<FeatureExtrusionsOrderOptimizer::StartCandidatePoint>>
+    FeatureExtrusionsOrderOptimizer::makeStartCandidates(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const
+{
+    std::map<std::shared_ptr<FeatureExtrusion>, std::vector<StartCandidatePoint>> start_candidates;
+
+    for (const std::shared_ptr<FeatureExtrusion>& feature_extrusion : feature_extrusions)
+    {
+        std::vector<StartCandidatePoint> feature_start_candidates;
+
+        for (const std::shared_ptr<ContinuousExtruderMoveSequence>& move_sequence : feature_extrusion->getOperationsAs<ContinuousExtruderMoveSequence>())
+        {
+            if (move_sequence->isClosed())
+            {
+                for (const std::shared_ptr<ExtrusionMove>& extrusion_move : move_sequence->getOperationsAs<ExtrusionMove>())
+                {
+                    feature_start_candidates.emplace_back(extrusion_move->getPosition(), feature_extrusion, move_sequence, extrusion_move, ChangeSequenceAction::Reorder);
+                }
+            }
+            else
+            {
+                if (const std::optional<Point3LL> start_position = move_sequence->findStartPosition(); start_position.has_value())
+                {
+                    feature_start_candidates.emplace_back(start_position.value(), feature_extrusion, move_sequence, nullptr, ChangeSequenceAction::None);
+                }
+
+                if (const std::optional<Point3LL> end_position = move_sequence->findEndPosition(); end_position.has_value())
+                {
+                    feature_start_candidates.emplace_back(end_position.value(), feature_extrusion, move_sequence, nullptr, ChangeSequenceAction::Reverse);
+                }
+            }
+        }
+
+        start_candidates[feature_extrusion] = feature_start_candidates;
+    }
+
+    return start_candidates;
+}
+
+std::vector<FeatureExtrusionsOrderOptimizer::FeatureExtrusionOrderingConstraint>
+    FeatureExtrusionsOrderOptimizer::makeFeatureExtrusionOrderingConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const
+{
+    std::vector<FeatureExtrusionOrderingConstraint> constraints;
+
+    // Helper functions to iterate on features by type
+    auto type_is = [](PrintFeatureType feature_type)
+    {
+        return [&feature_type](const std::shared_ptr<FeatureExtrusion>& feature_extrusion)
+        {
+            return feature_extrusion->getPrintFeatureType() == feature_type;
+        };
+    };
+
+    auto type_is_not = [](PrintFeatureType feature_type)
+    {
+        return [&feature_type](const std::shared_ptr<FeatureExtrusion>& feature_extrusion)
+        {
+            return feature_extrusion->getPrintFeatureType() != feature_type;
+        };
+    };
+
+    {
+        // First process the bed adhesion features
+        for (const std::shared_ptr<FeatureExtrusion>& adhesion_feature_extrusion : feature_extrusions | ranges::views::filter(type_is(PrintFeatureType::SkirtBrim)))
+        {
+            for (const std::shared_ptr<FeatureExtrusion>& non_adhesion_feature_extrusion : feature_extrusions | ranges::views::filter(type_is_not(PrintFeatureType::SkirtBrim)))
+            {
+                constraints.emplace_back(adhesion_feature_extrusion, non_adhesion_feature_extrusion);
+            }
+        }
+    }
+
+    return constraints;
+}
+
+std::vector<FeatureExtrusionsOrderOptimizer::MoveSequenceOrderingConstraint>
+    FeatureExtrusionsOrderOptimizer::makeMoveSequenceOrderingConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const
+{
+    return {};
 }
 
 } // namespace cura
