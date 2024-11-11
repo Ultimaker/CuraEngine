@@ -190,14 +190,16 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 {
                     continue;
                 }
+
+                constexpr coord_t extra_offset = 10; // Additional offset to avoid zero-width polygons remains
                 coord_t offset;
                 switch (boundary_type)
                 {
                 case CombBoundary::MINIMUM:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
                     break;
                 case CombBoundary::PREFERRED:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
                     break;
                 default:
                     offset = 0;
@@ -208,36 +210,37 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
                 for (const SliceLayerPart& part : layer.parts)
                 {
-                    if (combing_mode == CombingMode::ALL) // Add the increased outline offset (skin, infill and part of the inner walls)
+                    Shape part_combing_boundary;
+
+                    if (combing_mode == CombingMode::INFILL)
                     {
-                        comb_boundary.push_back(part.outline.offset(offset));
+                        part_combing_boundary = part.infill_area;
                     }
-                    else if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
+                    else
                     {
-                        comb_boundary.push_back(part.outline.offset(offset).difference(part.inner_area.difference(part.infill_area)));
-                    }
-                    else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
-                    {
-                        Shape top_and_bottom_most_fill;
-                        for (const SliceLayerPart& outer_surface_part : layer.parts)
+                        part_combing_boundary = part.outline.offset(offset);
+
+                        if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
                         {
-                            for (const SkinPart& skin_part : outer_surface_part.skin_parts)
+                            part_combing_boundary = part_combing_boundary.difference(part.inner_area.difference(part.infill_area));
+                        }
+                        else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
+                        {
+                            for (const SliceLayerPart& outer_surface_part : layer.parts)
                             {
-                                top_and_bottom_most_fill.push_back(skin_part.top_most_surface_fill);
-                                top_and_bottom_most_fill.push_back(skin_part.bottom_most_surface_fill);
+                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.top_most_surface);
+                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.bottom_most_surface);
                             }
                         }
-                        comb_boundary.push_back(part.outline.offset(offset).difference(top_and_bottom_most_fill));
                     }
-                    else if (combing_mode == CombingMode::INFILL) // Add the infill (infill only)
-                    {
-                        comb_boundary.push_back(part.infill_area);
-                    }
+
+                    comb_boundary.push_back(part_combing_boundary);
                 }
             }
             break;
         }
     }
+
     return comb_boundary;
 }
 
