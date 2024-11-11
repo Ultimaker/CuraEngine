@@ -2751,6 +2751,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     gcode.writeTravel(current_position, extruder.settings_.get<Velocity>("speed_z_hop"));
 
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
+                    path.z_offset = final_travel_z_ - z_;
                     gcode.setZ(final_travel_z_);
                 }
                 for (size_t point_idx = 0; point_idx + 1 < path.points.size(); point_idx++)
