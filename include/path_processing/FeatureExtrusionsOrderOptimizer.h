@@ -39,7 +39,7 @@ private:
     struct ClosestPoint
     {
         coord_t distance_squared;
-        const StartCandidatePoint* point;
+        StartCandidatePoint point;
     };
 
     struct FeatureExtrusionOrderingConstraint
@@ -61,6 +61,16 @@ private:
     std::vector<FeatureExtrusionOrderingConstraint> makeFeatureExtrusionOrderingConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const;
 
     std::vector<MoveSequenceOrderingConstraint> makeMoveSequenceOrderingConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const;
+
+    static void applyMoveSequenceAction(
+        const std::shared_ptr<ContinuousExtruderMoveSequence>& move_sequence,
+        const std::shared_ptr<ExtrusionMove>& move,
+        const ChangeSequenceAction action);
+
+    Point3LL optimizeExtruderSequencesOrder(
+        const std::shared_ptr<FeatureExtrusion>& feature,
+        const std::shared_ptr<ContinuousExtruderMoveSequence>& start_sequence,
+        std::vector<StartCandidatePoint> start_candidates) const;
 
 private:
     const Point3LL previous_position_;

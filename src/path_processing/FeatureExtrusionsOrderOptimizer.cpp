@@ -58,7 +58,7 @@ void FeatureExtrusionsOrderOptimizer::process(ExtruderPlan* extruder_plan)
                 const coord_t distance_squared = (start_candidate.position - current_position).vSize2();
                 if (! closest_point.has_value() || distance_squared < closest_point->distance_squared)
                 {
-                    closest_point = ClosestPoint{ distance_squared, &start_candidate };
+                    closest_point = ClosestPoint{ distance_squared, start_candidate };
                 }
             }
         }
@@ -66,41 +66,32 @@ void FeatureExtrusionsOrderOptimizer::process(ExtruderPlan* extruder_plan)
         if (closest_point.has_value())
         {
             // Now apply the change to the move sequence to have it start with the given point
-            const StartCandidatePoint* best_candidate = closest_point->point;
+            const StartCandidatePoint& best_candidate = closest_point->point;
+            applyMoveSequenceAction(best_candidate.move_sequence, best_candidate.move, best_candidate.action);
 
-            switch (best_candidate->action)
-            {
-            case ChangeSequenceAction::None:
-                break;
-            case ChangeSequenceAction::Reorder:
-                if (best_candidate->move)
-                {
-                    best_candidate->move_sequence->reorderToEndWith(best_candidate->move);
-                }
-                break;
-            case ChangeSequenceAction::Reverse:
-                best_candidate->move_sequence->reverse();
-            }
-
-            // Update current position for next candidate selection
-            const std::optional<Point3LL> new_end_position = best_candidate->move_sequence->findEndPosition();
-            assert(new_end_position.has_value() && "The new move sequence doesn't have an end position ?!");
-            current_position = best_candidate->move_sequence->findEndPosition().value();
+            // Optimizer inner sequences or feature, starting by the sequence holding the best candidate, and update current position for next candidate selection
+            current_position = optimizeExtruderSequencesOrder(best_candidate.feature_extrusion, best_candidate.move_sequence, start_candidates[best_candidate.feature_extrusion]);
 
             // Register this feature as being processed next
-            ordered_operations.push_back(best_candidate->feature_extrusion);
+            ordered_operations.push_back(best_candidate.feature_extrusion);
 
             // Remove processed feature from processing list
-            std::erase(feature_extrusions, best_candidate->feature_extrusion);
+            std::erase(feature_extrusions, best_candidate.feature_extrusion);
 
             // Remove constraints related to this feature
             std::erase_if(
                 feature_extrusions_constraints,
                 [&best_candidate](const FeatureExtrusionOrderingConstraint& constraint)
                 {
-                    return constraint.feature_before == best_candidate->feature_extrusion;
+                    return constraint.feature_before == best_candidate.feature_extrusion;
                 });
-            ;
+
+            // Remove start candidates from this feature
+            auto iterator = start_candidates.find(best_candidate.feature_extrusion);
+            if (iterator != start_candidates.end())
+            {
+                start_candidates.erase(iterator);
+            }
         }
         else
         {
@@ -191,6 +182,93 @@ std::vector<FeatureExtrusionsOrderOptimizer::MoveSequenceOrderingConstraint>
     FeatureExtrusionsOrderOptimizer::makeMoveSequenceOrderingConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const
 {
     return {};
+}
+
+void FeatureExtrusionsOrderOptimizer::applyMoveSequenceAction(
+    const std::shared_ptr<ContinuousExtruderMoveSequence>& move_sequence,
+    const std::shared_ptr<ExtrusionMove>& move,
+    const ChangeSequenceAction action)
+{
+    switch (action)
+    {
+    case ChangeSequenceAction::None:
+        break;
+    case ChangeSequenceAction::Reorder:
+        if (move)
+        {
+            move_sequence->reorderToEndWith(move);
+        }
+        break;
+    case ChangeSequenceAction::Reverse:
+        move_sequence->reverse();
+        break;
+    }
+}
+
+Point3LL FeatureExtrusionsOrderOptimizer::optimizeExtruderSequencesOrder(
+    const std::shared_ptr<FeatureExtrusion>& feature,
+    const std::shared_ptr<ContinuousExtruderMoveSequence>& start_sequence,
+    std::vector<StartCandidatePoint> start_candidates) const
+{
+    std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>> moves_sequences = feature->getOperationsAs<ContinuousExtruderMoveSequence>();
+    std::vector<std::shared_ptr<PrintOperation>> ordered_sequences;
+    ordered_sequences.reserve(moves_sequences.size());
+    ordered_sequences.push_back(start_sequence);
+    std::erase(moves_sequences, start_sequence);
+    std::erase_if(
+        start_candidates,
+        [&start_sequence](const StartCandidatePoint& candidate_point)
+        {
+            return candidate_point.move_sequence == start_sequence;
+        });
+
+    std::optional<Point3LL> start_sequence_end_position = start_sequence->findEndPosition();
+    assert(start_sequence_end_position.has_value() && "Unable to find the end position of the given start sequence");
+    Point3LL current_position = start_sequence_end_position.value();
+
+#warning This is extremely unoptimized, just good enough for the POC
+    while (! moves_sequences.empty())
+    {
+        std::optional<ClosestPoint> closest_point;
+
+        for (const StartCandidatePoint& start_candidate : start_candidates)
+        {
+            const coord_t distance_squared = (start_candidate.position - current_position).vSize2();
+            if (! closest_point.has_value() || distance_squared < closest_point->distance_squared)
+            {
+                closest_point = ClosestPoint{ distance_squared, start_candidate };
+            }
+        }
+
+        if (closest_point.has_value())
+        {
+            const StartCandidatePoint& best_candidate = closest_point->point;
+            applyMoveSequenceAction(best_candidate.move_sequence, best_candidate.move, best_candidate.action);
+
+            std::optional<Point3LL> end_position = best_candidate.move_sequence->findEndPosition().value();
+            assert(end_position.has_value() && "The move sequence doesn't have an end position");
+            current_position = end_position.value();
+            ordered_sequences.push_back(best_candidate.move_sequence);
+            std::erase(moves_sequences, best_candidate.move_sequence);
+
+            std::erase_if(
+                start_candidates,
+                [&best_candidate](const StartCandidatePoint& candidate_point)
+                {
+                    return candidate_point.move_sequence == best_candidate.move_sequence;
+                });
+        }
+        else
+        {
+            spdlog::error("If this happens, we are all gonna die quite soon, call your family and tell them you love them. Well, do it anyway, we are still gonna die someday, so "
+                          "take care and enjoy.");
+            break; // Try to save the world anyway, it's worth it
+        }
+    }
+
+    feature->setOperations(ordered_sequences);
+
+    return current_position;
 }
 
 } // namespace cura
