@@ -1292,7 +1292,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -3084,6 +3084,19 @@ void LayerPlan::applyGradualFlow()
     {
         gradual_flow::Processor::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
     }
+}
+
+std::shared_ptr<const SliceMeshStorage> LayerPlan::findFirstPrintedMesh() const
+{
+    for (const ExtruderPlan& extruder_plan : extruder_plans_)
+    {
+        if (std::shared_ptr<const SliceMeshStorage> mesh = extruder_plan.findFirstPrintedMesh())
+        {
+            return mesh;
+        }
+    }
+
+    return nullptr;
 }
 
 LayerIndex LayerPlan::getLayerNr() const
