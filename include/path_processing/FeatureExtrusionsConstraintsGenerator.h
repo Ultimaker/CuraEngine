@@ -16,8 +16,8 @@ struct FeatureExtrusionOrderingConstraint;
 class FeatureExtrusionsConstraintsGenerator
 {
 public:
-    virtual void appendConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints) const
-        = 0;
+    virtual void
+        appendConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints) const = 0;
 };
 
 } // namespace cura
