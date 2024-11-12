@@ -3095,6 +3095,19 @@ void LayerPlan::applyGradualFlow()
     }
 }
 
+std::shared_ptr<const SliceMeshStorage> LayerPlan::findFirstPrintedMesh() const
+{
+    for (const ExtruderPlan& extruder_plan : extruder_plans_)
+    {
+        if (std::shared_ptr<const SliceMeshStorage> mesh = extruder_plan.findFirstPrintedMesh())
+        {
+            return mesh;
+        }
+    }
+
+    return nullptr;
+}
+
 LayerIndex LayerPlan::getLayerNr() const
 {
     return layer_nr_;

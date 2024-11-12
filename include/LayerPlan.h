@@ -761,6 +761,11 @@ public:
      */
     void applyGradualFlow();
 
+    /*!
+     * Gets the mesh being printed first on this layer
+     */
+    std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+
 private:
     /*!
      * \brief Compute the preferred or minimum combing boundary
