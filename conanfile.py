@@ -221,7 +221,7 @@ class CuraEngineConan(ConanFile):
                     f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
 
     def deploy(self):
-        copy(self, "CuraEngine*", src=os.path.join(self.package_folder, "bin"), dst=self.install_folder)
+        copy(self, "CuraEngine*", src=os.path.join(self.package_folder, "bin"), dst=self.deploy_folder)
 
     def package(self):
         match self.settings.os:
