@@ -126,6 +126,7 @@ set(engine_SRCS # Except main.cpp.
         src/path_planning/LayerPlan.cpp include/path_planning/LayerPlan.h
         src/path_planning/LayerPlanBuffer.cpp include/path_planning/LayerPlanBuffer.h
         src/path_planning/LinePolygonsCrossings.cpp
+        src/path_planning/MeshFeatureExtrusion.cpp include/path_planning/MeshFeatureExtrusion.h
         src/path_planning/NozzleTempInsert.cpp include/path_planning/NozzleTempInsert.h
         src/path_planning/PrintOperation.cpp include/path_planning/PrintOperation.h
         src/path_planning/PrintOperationSequence.cpp include/path_planning/PrintOperationSequence.h
@@ -135,11 +136,15 @@ set(engine_SRCS # Except main.cpp.
 
         src/path_processing/AddLayerPlanTravelMovesProcessor.cpp include/path_processing/AddLayerPlanTravelMovesProcessor.h
         src/path_processing/AddTravelMovesProcessor.cpp include/path_processing/AddTravelMovesProcessor.h
+        src/path_processing/BedAdhesionConstraintsGenerator.cpp include/path_processing/BedAdhesionConstraintsGenerator.h
         src/path_processing/DirectTravelMoveGenerator.cpp include/path_processing/DirectTravelMoveGenerator.h
+        src/path_processing/FeatureExtrusionsConstraintsGenerator.cpp include/path_processing/FeatureExtrusionsConstraintsGenerator.h
+        include/path_processing/FeatureExtrusionOrderingConstraint.h
+        src/path_processing/FeatureExtrusionsOrderOptimizer.cpp include/path_processing/FeatureExtrusionsOrderOptimizer.h
         src/path_processing/InsertOperationsProcessor.cpp include/path_processing/InsertOperationsProcessor.h
+        src/path_processing/MeshFeaturesConstraintsGenerator.cpp include/path_processing/MeshFeaturesConstraintsGenerator.h
         src/path_processing/PrintOperationProcessor.cpp include/path_processing/PrintOperationProcessor.h
         src/path_processing/TravelMoveGenerator.cpp include/path_processing/TravelMoveGenerator.h
-        src/path_processing/FeatureExtrusionsOrderOptimizer.cpp include/path_processing/FeatureExtrusionsOrderOptimizer.h
 
         src/plugins/converters.cpp
 

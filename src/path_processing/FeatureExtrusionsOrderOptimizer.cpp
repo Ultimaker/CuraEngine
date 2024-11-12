@@ -11,9 +11,18 @@
 #include "path_planning/ContinuousExtruderMoveSequence.h"
 #include "path_planning/ExtrusionMove.h"
 #include "path_planning/FeatureExtrusion.h"
+#include "path_processing/BedAdhesionConstraintsGenerator.h"
+#include "path_processing/FeatureExtrusionOrderingConstraint.h"
+#include "path_processing/MeshFeaturesConstraintsGenerator.h"
 
 namespace cura
 {
+
+FeatureExtrusionsOrderOptimizer::FeatureExtrusionsOrderOptimizer()
+{
+    constraints_generators_.push_back(std::make_shared<BedAdhesionConstraintsGenerator>());
+    constraints_generators_.push_back(std::make_shared<MeshFeaturesConstraintsGenerator>());
+}
 
 void FeatureExtrusionsOrderOptimizer::process(ExtruderPlan* extruder_plan)
 {
@@ -136,37 +145,14 @@ std::map<std::shared_ptr<FeatureExtrusion>, std::vector<FeatureExtrusionsOrderOp
     return start_candidates;
 }
 
-std::vector<FeatureExtrusionsOrderOptimizer::FeatureExtrusionOrderingConstraint>
+std::vector<FeatureExtrusionOrderingConstraint>
     FeatureExtrusionsOrderOptimizer::makeFeatureExtrusionOrderingConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions) const
 {
     std::vector<FeatureExtrusionOrderingConstraint> constraints;
 
-    // Helper functions to iterate on features by type
-    auto type_is = [](PrintFeatureType feature_type)
+    for (const std::shared_ptr<FeatureExtrusionsConstraintsGenerator>& constraints_generator : constraints_generators_)
     {
-        return [&feature_type](const std::shared_ptr<FeatureExtrusion>& feature_extrusion)
-        {
-            return feature_extrusion->getPrintFeatureType() == feature_type;
-        };
-    };
-
-    auto type_is_not = [](PrintFeatureType feature_type)
-    {
-        return [&feature_type](const std::shared_ptr<FeatureExtrusion>& feature_extrusion)
-        {
-            return feature_extrusion->getPrintFeatureType() != feature_type;
-        };
-    };
-
-    {
-        // First process the bed adhesion features
-        for (const std::shared_ptr<FeatureExtrusion>& adhesion_feature_extrusion : feature_extrusions | ranges::views::filter(type_is(PrintFeatureType::SkirtBrim)))
-        {
-            for (const std::shared_ptr<FeatureExtrusion>& non_adhesion_feature_extrusion : feature_extrusions | ranges::views::filter(type_is_not(PrintFeatureType::SkirtBrim)))
-            {
-                constraints.emplace_back(adhesion_feature_extrusion, non_adhesion_feature_extrusion);
-            }
-        }
+        constraints_generator->appendConstraints(feature_extrusions, constraints);
     }
 
     return constraints;

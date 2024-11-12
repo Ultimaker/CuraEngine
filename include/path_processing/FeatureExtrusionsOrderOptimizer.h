@@ -11,10 +11,14 @@ namespace cura
 {
 
 class ExtrusionMove;
+class FeatureExtrusionsConstraintsGenerator;
+struct FeatureExtrusionOrderingConstraint;
 
 class FeatureExtrusionsOrderOptimizer final : public PrintOperationProcessor<ExtruderPlan>
 {
 public:
+    explicit FeatureExtrusionsOrderOptimizer();
+
     void process(ExtruderPlan* extruder_plan) override;
 
 private:
@@ -38,12 +42,6 @@ private:
     {
         coord_t distance_squared;
         StartCandidatePoint point;
-    };
-
-    struct FeatureExtrusionOrderingConstraint
-    {
-        std::shared_ptr<FeatureExtrusion> feature_before;
-        std::shared_ptr<FeatureExtrusion> feature_after;
     };
 
     struct MoveSequenceOrderingConstraint
@@ -73,6 +71,7 @@ private:
 private:
 #warning initialize with extruder start position
     Point3LL current_position_;
+    std::vector<std::shared_ptr<FeatureExtrusionsConstraintsGenerator>> constraints_generators_;
 };
 
 } // namespace cura

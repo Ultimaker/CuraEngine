@@ -997,6 +997,8 @@ private:
     void appendExtruderPlan(const size_t extruder);
 
     ExtruderPlan& getLastExtruderPlan();
+
+    std::shared_ptr<FeatureExtrusion> makeFeatureExtrusion(const GCodePathConfig& config) const;
 };
 
 } // namespace cura

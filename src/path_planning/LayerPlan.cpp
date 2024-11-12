@@ -25,7 +25,7 @@
 #include "path_planning/Comb.h"
 #include "path_planning/CombPaths.h"
 #include "path_planning/ContinuousExtruderMoveSequence.h"
-#include "path_planning/FeatureExtrusion.h"
+#include "path_planning/MeshFeatureExtrusion.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
@@ -1278,7 +1278,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -1563,7 +1563,7 @@ void LayerPlan::addWall(
         return;
     }
 
-    auto feature_extrusion = std::make_shared<FeatureExtrusion>(default_config);
+    auto feature_extrusion = makeFeatureExtrusion(default_config);
     auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(is_closed, wall.junctions_.front().p_);
 
     for (const auto& segment : wall.junctions_ | ranges::views::sliding(2))
@@ -1709,7 +1709,7 @@ void LayerPlan::addLinesByOptimizer(
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements)
 {
-    auto feature_extrusion = std::make_shared<FeatureExtrusion>(config);
+    std::shared_ptr<FeatureExtrusion> feature_extrusion = makeFeatureExtrusion(config);
     for (const LineType& line : lines)
     {
         if (! line.empty())
@@ -1793,7 +1793,7 @@ void LayerPlan::addLinesByOptimizer(
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements)
 {
-    auto feature_extrusion = std::make_shared<FeatureExtrusion>(config);
+    std::shared_ptr<FeatureExtrusion> feature_extrusion = makeFeatureExtrusion(config);
     for (const PolylinePtr& line : lines)
     {
         if (! line->empty())
@@ -3224,6 +3224,16 @@ void LayerPlan::appendExtruderPlan(const size_t extruder)
 ExtruderPlan& LayerPlan::getLastExtruderPlan()
 {
     return *findOperationByType<ExtruderPlan>(SearchOrder::Backward);
+}
+
+std::shared_ptr<FeatureExtrusion> LayerPlan::makeFeatureExtrusion(const GCodePathConfig& config) const
+{
+    if (current_mesh_)
+    {
+        return std::make_shared<MeshFeatureExtrusion>(config, current_mesh_);
+    }
+
+    return std::make_shared<FeatureExtrusion>(config);
 }
 
 Point3LL LayerPlan::getAbsolutePosition(const ContinuousExtruderMoveSequence& extruder_move_sequence, const Point3LL& relative_position) const
