@@ -37,6 +37,16 @@ void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExporter& gcode, PathEx
     }
 }
 
+void LayerPlanBuffer::appendLayerPlan(const std::shared_ptr<LayerPlan>& layer_plan)
+{
+    appendOperation(layer_plan);
+}
+
+void LayerPlanBuffer::applyProcessors(const std::vector<const PrintOperation*>& parents)
+{
+    // Do not apply processors to children, they have been done separately
+}
+
 LayerPlan* LayerPlanBuffer::processBuffer()
 {
     if (buffer_.empty())

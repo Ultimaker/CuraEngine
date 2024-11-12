@@ -9,11 +9,6 @@
 namespace cura
 {
 
-DirectTravelMoveGenerator::DirectTravelMoveGenerator(const SpeedDerivatives& speed)
-    : TravelMoveGenerator(speed)
-{
-}
-
 std::shared_ptr<TravelRoute> DirectTravelMoveGenerator::generateTravelRoute(const Point3LL& start, const Point3LL& end, const SpeedDerivatives& speed) const
 {
     auto route = std::make_shared<TravelRoute>(PrintFeatureType::MoveRetraction, speed, start);

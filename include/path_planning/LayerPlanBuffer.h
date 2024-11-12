@@ -33,7 +33,7 @@ class PathExporter;
  * \image latex assets/precool.png "Temperature Regulation" width=10cm
  *
  */
-class LayerPlanBuffer
+class LayerPlanBuffer : public PrintOperationSequence
 {
     friend class LayerPlan;
 
@@ -81,6 +81,10 @@ public:
      * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
      */
     void handle(LayerPlan& layer_plan, GCodeExporter& gcode, PathExporter& exporter);
+
+    void appendLayerPlan(const std::shared_ptr<LayerPlan>& layer_plan);
+
+    void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.

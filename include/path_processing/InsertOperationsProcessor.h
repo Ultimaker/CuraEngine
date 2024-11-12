@@ -14,10 +14,11 @@ namespace cura
 
 class PrintOperation;
 
+#warning obsolete for now, but contains some code that may be reused at some point
 class InsertOperationsProcessor : public PrintOperationProcessor<PrintOperationSequence>
 {
 public:
-    void process(PrintOperationSequence* operation) final;
+    void process(PrintOperationSequence* operation) override;
 
 protected:
     virtual bool firstOperationMatches(const std::shared_ptr<PrintOperation>& operation) = 0;

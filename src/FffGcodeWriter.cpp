@@ -34,6 +34,8 @@
 #include "path_export/ConsumptionEstimationExporter.h"
 #include "path_export/MultiExporter.h"
 #include "path_planning/LayerPlan.h"
+#include "path_processing/AddLayerPlanTravelMovesProcessor.h"
+#include "path_processing/FeatureExtrusionsOrderOptimizer.h"
 #include "progress/Progress.h"
 #include "raft.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
@@ -200,11 +202,26 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
-            layer_plan_buffer.handle(*result.layer_plan, gcode, exporter);
+            // layer_plan_buffer.handle(*result.layer_plan, gcode, exporter);
+            layer_plan_buffer.appendLayerPlan(result.layer_plan);
         });
 
-    layer_plan_buffer.flush(exporter);
+    // layer_plan_buffer.flush(exporter);
+    // layer_plan_buffer.applyProcessors();
 
+    AddLayerPlanTravelMovesProcessor layer_plan_travel_moves_processor;
+    FeatureExtrusionsOrderOptimizer order_optimizer;
+    for (const std::shared_ptr<LayerPlan>& layer_plan : layer_plan_buffer.getOperationsAs<LayerPlan>())
+    {
+        for (const std::shared_ptr<ExtruderPlan>& extruder_plan : layer_plan->getOperationsAs<ExtruderPlan>())
+        {
+            order_optimizer.process(extruder_plan.get());
+        }
+
+        layer_plan_travel_moves_processor.process(layer_plan.get());
+    }
+
+    layer_plan_buffer.write(exporter);
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
     // Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
@@ -1215,7 +1232,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     const std::vector<ExtruderUse> extruder_order = extruder_order_per_layer.get(layer_nr);
 
     const coord_t first_outer_wall_line_width = scene.extruders[first_extruder].settings_.get<coord_t>("wall_line_width_0");
-    LayerPlan& gcode_layer = *new LayerPlan(
+    auto gcode_layer = std::make_shared<LayerPlan>(
         storage,
         layer_nr,
         z,
@@ -1230,18 +1247,18 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     if (include_helper_parts)
     {
         // process the skirt or the brim of the starting extruder.
-        auto extruder_nr = gcode_layer.getExtruder();
+        auto extruder_nr = gcode_layer->getExtruder();
         if (storage.skirt_brim[extruder_nr].size() > 0)
         {
-            processSkirtBrim(storage, gcode_layer, extruder_nr, layer_nr);
+            processSkirtBrim(storage, *gcode_layer.get(), extruder_nr, layer_nr);
             time_keeper.registerTime("Skirt/brim");
         }
 
         // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
-        processOozeShield(storage, gcode_layer);
+        processOozeShield(storage, *gcode_layer.get());
         time_keeper.registerTime("Ooze shield");
 
-        processDraftShield(storage, gcode_layer);
+        processDraftShield(storage, *gcode_layer.get());
         time_keeper.registerTime("Draft shield");
     }
 
@@ -1255,12 +1272,12 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
         const size_t extruder_nr = extruder_use.extruder_nr;
 
         // Set extruder (if needed) and prime (if needed)
-        setExtruder_addPrime(storage, gcode_layer, extruder_nr);
+        setExtruder_addPrime(storage, *gcode_layer.get(), extruder_nr);
         time_keeper.registerTime("Prime tower");
 
         if (include_helper_parts && (extruder_nr == support_infill_extruder_nr || extruder_nr == support_roof_extruder_nr || extruder_nr == support_bottom_extruder_nr))
         {
-            addSupportToGCode(storage, gcode_layer, extruder_nr);
+            addSupportToGCode(storage, *gcode_layer.get(), extruder_nr);
             time_keeper.registerTime("Supports");
         }
         if (layer_nr >= 0)
@@ -1269,34 +1286,34 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             for (size_t mesh_idx : mesh_order)
             {
                 const std::shared_ptr<SliceMeshStorage>& mesh = storage.meshes[mesh_idx];
-                const MeshPathConfigs& mesh_config = gcode_layer.configs_storage_.mesh_configs[mesh_idx];
+                const MeshPathConfigs& mesh_config = gcode_layer.get()->configs_storage_.mesh_configs[mesh_idx];
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
                            == mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ // mesh surface mode should always only be printed with the outer wall extruder!
                 )
                 {
-                    addMeshLayerToGCode_meshSurfaceMode(*mesh, mesh_config, gcode_layer);
+                    addMeshLayerToGCode_meshSurfaceMode(*mesh, mesh_config, *gcode_layer.get());
                 }
                 else
                 {
-                    addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer);
+                    addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, *gcode_layer.get());
                 }
                 time_keeper.registerTime(fmt::format("Mesh {}", mesh_idx));
             }
         }
     }
 
-    gcode_layer.applyGradualFlow();
+    // gcode_layer.applyGradualFlow();
 
-    gcode_layer.applyModifyPlugin();
-    time_keeper.registerTime("Modify plugin");
+    // gcode_layer.applyModifyPlugin();
+    // time_keeper.registerTime("Modify plugin");
 
-    gcode_layer.applyBackPressureCompensation();
-    time_keeper.registerTime("Back pressure comp.");
+    // gcode_layer.applyBackPressureCompensation();
+    // time_keeper.registerTime("Back pressure comp.");
 
-    gcode_layer.applyProcessors();
+    gcode_layer->applyProcessors();
 
-    return { &gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
+    return { gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
 }
 
 bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const

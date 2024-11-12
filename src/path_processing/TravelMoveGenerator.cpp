@@ -5,15 +5,4 @@
 
 namespace cura
 {
-
-TravelMoveGenerator::TravelMoveGenerator(const SpeedDerivatives& speed)
-    : speed_(speed)
-{
-}
-
-std::shared_ptr<TravelRoute> TravelMoveGenerator::generateTravelRoute(const Point3LL& start, const Point3LL& end) const
-{
-    return generateTravelRoute(start, end, speed_);
-}
-
 } // namespace cura

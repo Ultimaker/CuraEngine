@@ -17,6 +17,7 @@ class ExtruderPlan;
 class TravelMoveGenerator;
 class Point3LL;
 
+#warning obsolete for now, but contains some code that may be reused at some point
 class AddTravelMovesProcessor : public InsertOperationsProcessor
 {
 public:

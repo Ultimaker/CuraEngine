@@ -139,7 +139,7 @@ public:
 private:
     struct ProcessLayerResult
     {
-        LayerPlan* layer_plan;
+        std::shared_ptr<LayerPlan> layer_plan;
         double total_elapsed_time;
         TimeKeeper::RegisteredTimes stages_times;
     };

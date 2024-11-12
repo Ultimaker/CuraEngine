@@ -15,7 +15,7 @@ namespace cura
 AddTravelMovesProcessor::AddTravelMovesProcessor(const SpeedDerivatives& speed)
     : speed_(speed)
 {
-    generators_.push_back(std::make_unique<DirectTravelMoveGenerator>(speed));
+    // generators_.push_back(std::make_unique<DirectTravelMoveGenerator>(speed));
 }
 
 bool AddTravelMovesProcessor::firstOperationMatches(const std::shared_ptr<PrintOperation>& operation)
@@ -37,10 +37,10 @@ std::shared_ptr<PrintOperation>
     {
         for (const std::shared_ptr<TravelMoveGenerator>& generator : generators_)
         {
-            if (std::shared_ptr<TravelRoute> travel_route = generator->generateTravelRoute(start, end))
-            {
-                return travel_route;
-            }
+            // if (std::shared_ptr<TravelRoute> travel_route = generator->generateTravelRoute(start, end))
+            // {
+            //     return travel_route;
+            // }
         }
     }
 

@@ -12,9 +12,6 @@ namespace cura
 class DirectTravelMoveGenerator : public TravelMoveGenerator
 {
 public:
-    DirectTravelMoveGenerator(const SpeedDerivatives& speed);
-
-protected:
     std::shared_ptr<TravelRoute> generateTravelRoute(const Point3LL& start, const Point3LL& end, const SpeedDerivatives& speed) const override;
 };
 

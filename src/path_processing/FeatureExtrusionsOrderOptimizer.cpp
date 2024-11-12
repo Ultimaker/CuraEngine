@@ -15,17 +15,11 @@
 namespace cura
 {
 
-FeatureExtrusionsOrderOptimizer::FeatureExtrusionsOrderOptimizer(const Point3LL& previous_position)
-    : previous_position_(previous_position)
-{
-}
-
 void FeatureExtrusionsOrderOptimizer::process(ExtruderPlan* extruder_plan)
 {
     std::vector<std::shared_ptr<FeatureExtrusion>> feature_extrusions = extruder_plan->getOperationsAs<FeatureExtrusion>();
     std::vector<std::shared_ptr<PrintOperation>> ordered_operations;
     ordered_operations.reserve(feature_extrusions.size());
-    Point3LL current_position = previous_position_;
 
     // First, register all the possible starting positions amongst all the extrusion features
     std::map<std::shared_ptr<FeatureExtrusion>, std::vector<StartCandidatePoint>> start_candidates = makeStartCandidates(feature_extrusions);
@@ -55,7 +49,7 @@ void FeatureExtrusionsOrderOptimizer::process(ExtruderPlan* extruder_plan)
         {
             for (const StartCandidatePoint& start_candidate : start_candidates[feature_extrusion])
             {
-                const coord_t distance_squared = (start_candidate.position - current_position).vSize2();
+                const coord_t distance_squared = (start_candidate.position - current_position_).vSize2();
                 if (! closest_point.has_value() || distance_squared < closest_point->distance_squared)
                 {
                     closest_point = ClosestPoint{ distance_squared, start_candidate };
@@ -70,7 +64,7 @@ void FeatureExtrusionsOrderOptimizer::process(ExtruderPlan* extruder_plan)
             applyMoveSequenceAction(best_candidate.move_sequence, best_candidate.move, best_candidate.action);
 
             // Optimizer inner sequences or feature, starting by the sequence holding the best candidate, and update current position for next candidate selection
-            current_position = optimizeExtruderSequencesOrder(best_candidate.feature_extrusion, best_candidate.move_sequence, start_candidates[best_candidate.feature_extrusion]);
+            current_position_ = optimizeExtruderSequencesOrder(best_candidate.feature_extrusion, best_candidate.move_sequence, start_candidates[best_candidate.feature_extrusion]);
 
             // Register this feature as being processed next
             ordered_operations.push_back(best_candidate.feature_extrusion);

@@ -15,8 +15,6 @@ class ExtrusionMove;
 class FeatureExtrusionsOrderOptimizer final : public PrintOperationProcessor<ExtruderPlan>
 {
 public:
-    explicit FeatureExtrusionsOrderOptimizer(const Point3LL& previous_position);
-
     void process(ExtruderPlan* extruder_plan) override;
 
 private:
@@ -73,7 +71,8 @@ private:
         std::vector<StartCandidatePoint> start_candidates) const;
 
 private:
-    const Point3LL previous_position_;
+#warning initialize with extruder start position
+    Point3LL current_position_;
 };
 
 } // namespace cura
