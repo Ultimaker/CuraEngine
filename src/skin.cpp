@@ -93,7 +93,7 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
     {
         generateRoofingFillAndSkinFill(part);
 
-        generateTopAndBottomMostSkinFill(part);
+        generateTopAndBottomMostSurfaces(part);
     }
 }
 
@@ -340,6 +340,22 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
         // Otherwise, adjacent skin_fill and roofing_fill would have doubled offset areas. Since they both offset into each other.
         skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap).difference(skin_part.roofing_fill);
         skin_part.roofing_fill = skin_part.roofing_fill.offset(skin_overlap);
+    }
+}
+
+void SkinInfillAreaComputation::generateTopAndBottomMostSurfaces(SliceLayerPart& part)
+{
+    const Shape outline_above = getOutlineOnLayer(part, layer_nr_ + 1);
+    part.top_most_surface = part.outline.difference(outline_above);
+
+    if (layer_nr_ > 0)
+    {
+        const Shape outline_below = getOutlineOnLayer(part, layer_nr_ + 1);
+        part.bottom_most_surface = part.outline.difference(outline_below);
+    }
+    else
+    {
+        part.bottom_most_surface = part.outline;
     }
 }
 
@@ -632,25 +648,5 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
         }
     }
 }
-
-/*
- * This function is executed in a parallel region based on layer_nr.
- * When modifying make sure any changes does not introduce data races.
- *
- * this function may only read/write the skin and infill from the *current* layer.
- */
-
-void SkinInfillAreaComputation::generateTopAndBottomMostSkinFill(SliceLayerPart& part)
-{
-    for (SkinPart& skin_part : part.skin_parts)
-    {
-        Shape filled_area_above = generateFilledAreaAbove(part, 1);
-        skin_part.top_most_surface_fill = skin_part.outline.difference(filled_area_above);
-
-        Shape filled_area_below = generateFilledAreaBelow(part, 1);
-        skin_part.bottom_most_surface_fill = skin_part.skin_fill.difference(filled_area_below);
-    }
-}
-
 
 } // namespace cura

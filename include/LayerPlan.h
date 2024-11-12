@@ -886,9 +886,10 @@ private:
      * \param compute_distance_to_bridge_start Whether we should compute the distance to start of bridge. This is
      *                                         possible only if PathType is ExtrusionLine and will be ignored otherwise.
      * \param func_add_segment The function to be called to actually add an extrusion segment with the given parameters
+     * \return The index of the last traversed point, and the final position with the scarf seam
      */
     template<class PathType>
-    void addSplitWall(
+    std::tuple<size_t, Point2LL> addSplitWall(
         const PathAdapter<PathType>& wall,
         const coord_t wall_length,
         const size_t start_idx,
@@ -931,9 +932,10 @@ private:
      * \param scarf_seam Indicates whether we may use a scarf seam for the path
      * \param smooth_speed Indicates whether we may use a speed gradient for the path
      * \param func_add_segment The function to be called to actually add an extrusion segment with the given parameters
+     * \return The index of the last traversed point, and the final position with the scarf seam
      */
     template<class PathType>
-    void addWallWithScarfSeam(
+    std::tuple<size_t, Point2LL> addWallWithScarfSeam(
         const PathAdapter<PathType>& wall,
         size_t start_idx,
         const Settings& settings,
@@ -946,6 +948,18 @@ private:
         const bool scarf_seam,
         const bool smooth_speed,
         const AddExtrusionSegmentFunction& func_add_segment);
+
+    /*!
+     * \brief Add a wipe travel after the given path has been extruded
+     * \tparam PathType The type of path to be processed, either ExtrusionLine or some subclass of Polyline
+     * \param path The path that has just been extruded
+     * \param wipe_distance The length of the wipe move to be added
+     * \param backwards Indicates if the path has been processed backwards
+     * \param start_index The index of the point where o start printing the path
+     * \param last_path_position The actual last position of the extruder, which may be slightly forwards on the last printed segment
+     */
+    template<class PathType>
+    void addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const Point2LL& last_path_position);
 
     /*!
      * Pre-calculates the coasting to be applied on the paths
