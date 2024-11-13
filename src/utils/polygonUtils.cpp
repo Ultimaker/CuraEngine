@@ -1420,7 +1420,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
                 {
                     const Point2LL& other = polygon[poly_idx][(point_idx + 1) % pathlen];
                     const Point2LL vec = LinearAlg2D::pointIsLeftOfLine(other, a, b) > 0 ? b - a : a - b;
-                    const coord_t len = vSize(vec);
+                    const coord_t len = std::max(vSize(vec), 1LL);
                     pt.X += (-vec.Y * move_dist) / len;
                     pt.Y += (vec.X * move_dist) / len;
                 }
