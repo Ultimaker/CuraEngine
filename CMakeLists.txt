@@ -122,6 +122,7 @@ set(engine_SRCS # Except main.cpp.
         src/path_planning/ExtruderPlan.cpp include/path_planning/ExtruderPlan.h
         src/path_planning/ExtrusionMove.cpp include/path_planning/ExtrusionMove.h
         src/path_planning/FeatureExtrusion.cpp include/path_planning/FeatureExtrusion.h
+        include/path_planning/FeatureExtrusionsPtr.h
         src/path_planning/GCodePath.cpp include/path_planning/GCodePath.h
         src/path_planning/LayerPlan.cpp include/path_planning/LayerPlan.h
         src/path_planning/LayerPlanBuffer.cpp include/path_planning/LayerPlanBuffer.h

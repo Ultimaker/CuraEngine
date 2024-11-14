@@ -12,9 +12,8 @@
 namespace cura
 {
 
-void BedAdhesionConstraintsGenerator::appendConstraints(
-    const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions,
-    std::vector<FeatureExtrusionOrderingConstraint>& constraints) const
+void BedAdhesionConstraintsGenerator::appendConstraints(const std::vector<FeatureExtrusionPtr>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints)
+    const
 {
     // Helper functions to iterate on features by type
     auto type_is = [](PrintFeatureType feature_type)

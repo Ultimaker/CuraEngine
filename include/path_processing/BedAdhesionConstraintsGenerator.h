@@ -12,7 +12,7 @@ namespace cura
 class BedAdhesionConstraintsGenerator : public FeatureExtrusionsConstraintsGenerator
 {
 public:
-    void appendConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints) const override;
+    void appendConstraints(const std::vector<FeatureExtrusionPtr>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints) const override;
 };
 
 } // namespace cura

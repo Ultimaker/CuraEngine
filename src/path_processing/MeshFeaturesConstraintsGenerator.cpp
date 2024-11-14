@@ -11,9 +11,8 @@
 namespace cura
 {
 
-void MeshFeaturesConstraintsGenerator::appendConstraints(
-    const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions,
-    std::vector<FeatureExtrusionOrderingConstraint>& constraints) const
+void MeshFeaturesConstraintsGenerator::appendConstraints(const std::vector<FeatureExtrusionPtr>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints)
+    const
 {
     using FeatureByType = std::map<PrintFeatureType, std::vector<std::shared_ptr<FeatureExtrusion>>>;
     std::map<std::shared_ptr<const SliceMeshStorage>, FeatureByType> features_by_mesh;

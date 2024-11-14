@@ -4,8 +4,9 @@
 #ifndef PATHPROCESSING_FEATUREEXTRUSIONSCONSTRAINTSGENERATOR_H
 #define PATHPROCESSING_FEATUREEXTRUSIONSCONSTRAINTSGENERATOR_H
 
-#include <memory>
 #include <vector>
+
+#include "path_planning/FeatureExtrusionsPtr.h"
 
 namespace cura
 {
@@ -16,8 +17,7 @@ struct FeatureExtrusionOrderingConstraint;
 class FeatureExtrusionsConstraintsGenerator
 {
 public:
-    virtual void appendConstraints(const std::vector<std::shared_ptr<FeatureExtrusion>>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints) const
-        = 0;
+    virtual void appendConstraints(const std::vector<FeatureExtrusionPtr>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints) const = 0;
 };
 
 } // namespace cura
