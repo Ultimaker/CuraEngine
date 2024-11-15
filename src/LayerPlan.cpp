@@ -1308,7 +1308,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
 std::vector<LayerPlan::PathCoasting>
     LayerPlan::calculatePathsCoasting(const Settings& extruder_settings, const std::vector<GCodePath>& paths, const Point3LL& current_position) const
 {
-    std::vector<LayerPlan::PathCoasting> path_coastings;
+    std::vector<PathCoasting> path_coastings;
     path_coastings.resize(paths.size());
 
     if (extruder_settings.get<bool>("coasting_enable"))
@@ -1327,6 +1327,17 @@ std::vector<LayerPlan::PathCoasting>
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
         {
+            if (reversed_chunk.empty())
+            {
+                continue;
+            }
+
+            const PrintFeatureType type = reversed_chunk.front().second.config.getPrintFeatureType();
+            if (type != PrintFeatureType::OuterWall && type != PrintFeatureType::InnerWall)
+            {
+                continue;
+            }
+
             double accumulated_volume = 0.0;
             bool chunk_coasting_point_reached = false;
             bool chunk_min_volume_reached = false;
