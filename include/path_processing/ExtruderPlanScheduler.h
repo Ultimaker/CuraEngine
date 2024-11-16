@@ -15,8 +15,6 @@ namespace cura
 class ExtruderPlanScheduler final : public PrintOperationProcessor<ExtruderPlan>
 {
 public:
-    explicit ExtruderPlanScheduler();
-
     void process(ExtruderPlan* extruder_plan) override;
 
 private:

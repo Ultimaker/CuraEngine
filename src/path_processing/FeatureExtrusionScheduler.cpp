@@ -61,20 +61,7 @@ void FeatureExtrusionScheduler::optimizeExtruderSequencesOrder(const StartCandid
         std::vector<std::shared_ptr<PrintOperation>> ordered_sequences;
         ordered_sequences.reserve(moves_sequences.size());
 
-        applyMoveSequenceAction(start_point);
-        std::shared_ptr<ContinuousExtruderMoveSequence> start_move_sequence = start_point.move_sequence;
-        ordered_sequences.push_back(start_move_sequence);
-        std::erase(moves_sequences, start_move_sequence);
-        std::erase_if(
-            start_candidates_,
-            [&start_move_sequence](const StartCandidatePoint& candidate_point)
-            {
-                return candidate_point.move_sequence == start_move_sequence;
-            });
-
-        std::optional<Point3LL> start_sequence_end_position = start_move_sequence->findEndPosition();
-        assert(start_sequence_end_position.has_value() && "Unable to find the end position of the given start sequence");
-        current_position = start_sequence_end_position.value();
+        appendNextProcessedSequence(start_point, ordered_sequences, moves_sequences, current_position);
 
         // TODO: this can probably be optimized
         while (! moves_sequences.empty())
@@ -84,28 +71,12 @@ void FeatureExtrusionScheduler::optimizeExtruderSequencesOrder(const StartCandid
 
             if (closest_point.has_value())
             {
-                const StartCandidatePoint& best_candidate = closest_point->point;
-                applyMoveSequenceAction(best_candidate);
-
-                std::optional<Point3LL> end_position = best_candidate.move_sequence->findEndPosition().value();
-                assert(end_position.has_value() && "The move sequence doesn't have an end position");
-                current_position = end_position.value();
-                ordered_sequences.push_back(best_candidate.move_sequence);
-                std::erase(moves_sequences, best_candidate.move_sequence);
-
-                std::erase_if(
-                    start_candidates_,
-                    [&best_candidate](const StartCandidatePoint& candidate_point)
-                    {
-                        return candidate_point.move_sequence == best_candidate.move_sequence;
-                    });
+                appendNextProcessedSequence(closest_point->point, ordered_sequences, moves_sequences, current_position);
             }
             else
             {
-                spdlog::error(
-                    "If this happens, we are all gonna die quite soon, call your family and tell them you love them. Well, do it anyway, we are still gonna die someday, so "
-                    "take care and enjoy.");
-                break; // Try to save the world anyway, it's worth it
+                spdlog::error("Unable to find a start candidates amongst move sequences, some constraints must be contradictory to each other");
+                break;
             }
         }
 
@@ -155,7 +126,7 @@ std::vector<FeatureExtrusionPtr>
     return extrusions_after;
 }
 
-std::vector<FeatureExtrusionScheduler::MoveSequenceOrderingConstraint> FeatureExtrusionScheduler::makeMoveSequencesConstraints(const FeatureExtrusionPtr& feature_extrusion)
+FeatureExtrusionScheduler::SequencesConstraintsMap FeatureExtrusionScheduler::makeMoveSequencesConstraints(const FeatureExtrusionPtr& feature_extrusion)
 {
     return {};
 }
@@ -167,12 +138,7 @@ void FeatureExtrusionScheduler::makeStartCandidates(const FeatureExtrusionPtr& f
         // First, build a list of all the possible candidates, taking ordering constraints into account but not the seam settings and other criteria
         for (const auto& move_sequence : feature_extrusion->getOperationsAs<ContinuousExtruderMoveSequence>())
         {
-            if (ranges::any_of(
-                    sequences_constraints_,
-                    [&move_sequence](const MoveSequenceOrderingConstraint& constraint)
-                    {
-                        return constraint.sequence_after == move_sequence;
-                    }))
+            if (! moveSequenceProcessableNow(move_sequence))
             {
                 continue;
             }
@@ -306,7 +272,7 @@ void FeatureExtrusionScheduler::makeStartCandidates(const FeatureExtrusionPtr& f
             start_candidates_ = std::move(new_start_candidates);
         }
 
-#warning restore this
+#warning restore this (by adding a criterion)
         // if (! disallowed_area_for_seams.empty())
         // {
         //     best_i = pathIfZseamIsInDisallowedArea(best_i.value_or(0), path, 0);
@@ -343,6 +309,46 @@ void FeatureExtrusionScheduler::applyMoveSequenceAction(const StartCandidatePoin
         start_point.move_sequence->reverse();
         break;
     }
+}
+
+bool FeatureExtrusionScheduler::moveSequenceProcessableNow(const std::shared_ptr<ContinuousExtruderMoveSequence>& move_sequence) const
+{
+    return std::ranges::all_of(
+        sequences_constraints_,
+        [&move_sequence](const auto& constraint)
+        {
+            return ! ranges::contains(constraint.second, move_sequence);
+        });
+}
+
+void FeatureExtrusionScheduler::appendNextProcessedSequence(
+    const StartCandidatePoint& start_point,
+    std::vector<std::shared_ptr<PrintOperation>>& ordered_sequences,
+    std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>>& moves_sequences,
+    Point3LL& current_position)
+{
+    applyMoveSequenceAction(start_point);
+
+    const std::shared_ptr<ContinuousExtruderMoveSequence>& start_move_sequence = start_point.move_sequence;
+    ordered_sequences.push_back(start_move_sequence);
+
+    std::erase(moves_sequences, start_move_sequence);
+
+    std::erase_if(
+        start_candidates_,
+        [&start_move_sequence](const StartCandidatePoint& candidate_point)
+        {
+            return candidate_point.move_sequence == start_move_sequence;
+        });
+
+    if (auto iterator = sequences_constraints_.find(start_move_sequence); iterator != sequences_constraints_.end())
+    {
+        sequences_constraints_.erase(iterator);
+    }
+
+    std::optional<Point3LL> start_sequence_end_position = start_move_sequence->findEndPosition();
+    assert(start_sequence_end_position.has_value() && "Unable to find the end position of the given start sequence");
+    current_position = start_sequence_end_position.value();
 }
 
 std::shared_ptr<ZSeamConfig> FeatureExtrusionScheduler::getZSeamConfig(const FeatureExtrusionPtr& feature_extrusion)
