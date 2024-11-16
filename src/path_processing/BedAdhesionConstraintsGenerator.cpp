@@ -7,37 +7,20 @@
 
 #include "PrintFeatureType.h"
 #include "path_planning/FeatureExtrusion.h"
-#include "path_processing/FeatureExtrusionOrderingConstraint.h"
 
 namespace cura
 {
 
-void BedAdhesionConstraintsGenerator::appendConstraints(const std::vector<FeatureExtrusionPtr>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints)
-    const
+void BedAdhesionConstraintsGenerator::appendConstraints(
+    const FeatureExtrusionPtr& feature_extrusion,
+    const std::vector<FeatureExtrusionPtr>& all_feature_extrusions,
+    std::vector<FeatureExtrusionPtr>& extrusions_after) const
 {
-    // Helper functions to iterate on features by type
-    auto type_is = [](PrintFeatureType feature_type)
+    for (const std::shared_ptr<FeatureExtrusion>& other_feature_extrusion : all_feature_extrusions)
     {
-        return [&feature_type](const std::shared_ptr<FeatureExtrusion>& feature_extrusion)
+        if (other_feature_extrusion != feature_extrusion && other_feature_extrusion->getPrintFeatureType() != PrintFeatureType::SkirtBrim)
         {
-            return feature_extrusion->getPrintFeatureType() == feature_type;
-        };
-    };
-
-    auto type_is_not = [](PrintFeatureType feature_type)
-    {
-        return [&feature_type](const std::shared_ptr<FeatureExtrusion>& feature_extrusion)
-        {
-            return feature_extrusion->getPrintFeatureType() != feature_type;
-        };
-    };
-
-    // First process the bed adhesion features
-    for (const std::shared_ptr<FeatureExtrusion>& adhesion_feature_extrusion : feature_extrusions | ranges::views::filter(type_is(PrintFeatureType::SkirtBrim)))
-    {
-        for (const std::shared_ptr<FeatureExtrusion>& non_adhesion_feature_extrusion : feature_extrusions | ranges::views::filter(type_is_not(PrintFeatureType::SkirtBrim)))
-        {
-            constraints.emplace_back(adhesion_feature_extrusion, non_adhesion_feature_extrusion);
+            extrusions_after.push_back(other_feature_extrusion);
         }
     }
 }

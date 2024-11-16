@@ -18,6 +18,7 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h" // For the destructor
 #include "raft.h"
+#include "settings/ZSeamConfig.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/math.h" //For PI.
 
@@ -102,6 +103,11 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     , base_subdiv_cube(nullptr)
     , cross_fill_provider(nullptr)
     , lightning_generator(nullptr)
+    , seam_config(std::make_shared<ZSeamConfig>(
+          settings.get<EZSeamType>("z_seam_type"),
+          getZSeamHint(),
+          settings.get<EZSeamCornerPrefType>("z_seam_corner"),
+          settings.get<coord_t>("wall_line_width_0") * 2))
 {
     layers.resize(slice_layer_count);
 }

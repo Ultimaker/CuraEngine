@@ -84,9 +84,10 @@ enum class EZSeamType
     USER_SPECIFIED,
     SHARPEST_CORNER,
 
-    /* The 'Skirt/brim' type behaves like shortest, except it doesn't try to do tie-breaking for similar locations to
-     * the last attempt, as that gives a different result when the seams are next to each other instead of on top.
-     */
+/* The 'Skirt/brim' type behaves like shortest, except it doesn't try to do tie-breaking for similar locations to
+ * the last attempt, as that gives a different result when the seams are next to each other instead of on top.
+ */
+#warning This seems never to be used, try removing it when we have a stable base
     SKIRT_BRIM,
     PLUGIN,
 };

@@ -35,7 +35,7 @@
 #include "path_export/MultiExporter.h"
 #include "path_planning/LayerPlan.h"
 #include "path_processing/AddLayerPlanTravelMovesProcessor.h"
-#include "path_processing/FeatureExtrusionsOrderOptimizer.h"
+#include "path_processing/ExtruderPlanScheduler.h"
 #include "progress/Progress.h"
 #include "raft.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
@@ -210,7 +210,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     // layer_plan_buffer.applyProcessors();
 
     AddLayerPlanTravelMovesProcessor layer_plan_travel_moves_processor;
-    FeatureExtrusionsOrderOptimizer order_optimizer;
+    ExtruderPlanScheduler order_optimizer;
     for (const std::shared_ptr<LayerPlan>& layer_plan : layer_plan_buffer.getOperationsAs<LayerPlan>())
     {
         for (const std::shared_ptr<ExtruderPlan>& extruder_plan : layer_plan->getOperationsAs<ExtruderPlan>())

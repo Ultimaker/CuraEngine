@@ -297,6 +297,7 @@ public:
 /******************/
 
 class SubDivCube; // forward declaration to prevent dependency loop
+struct ZSeamConfig;
 
 class SliceMeshStorage
 {
@@ -323,6 +324,7 @@ public:
     std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     RetractionAndWipeConfig retraction_wipe_config; //!< Per-Object retraction and wipe settings.
+    std::shared_ptr<ZSeamConfig> seam_config;
 
     /*!
      * \brief Creates a storage space for slice results of a mesh.

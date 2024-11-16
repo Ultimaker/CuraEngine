@@ -11,13 +11,14 @@
 namespace cura
 {
 
-class FeatureExtrusion;
-struct FeatureExtrusionOrderingConstraint;
-
 class FeatureExtrusionsConstraintsGenerator
 {
 public:
-    virtual void appendConstraints(const std::vector<FeatureExtrusionPtr>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints) const = 0;
+    virtual void appendConstraints(
+        const FeatureExtrusionPtr& feature_extrusion,
+        const std::vector<FeatureExtrusionPtr>& all_feature_extrusions,
+        std::vector<FeatureExtrusionPtr>& extrusions_after) const
+        = 0;
 };
 
 } // namespace cura

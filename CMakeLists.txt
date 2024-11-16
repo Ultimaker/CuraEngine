@@ -135,13 +135,17 @@ set(engine_SRCS # Except main.cpp.
         src/path_planning/TravelMove.cpp include/path_planning/TravelMove.h
         src/path_planning/TravelRoute.cpp include/path_planning/TravelRoute.h
 
+        include/path_processing/ChangeSequenceAction.h
+        include/path_processing/ClosestStartPoint.h
+        include/path_processing/FeatureExtrusionOrderingConstraint.h
+        include/path_processing/StartCandidatePoint.h
         src/path_processing/AddLayerPlanTravelMovesProcessor.cpp include/path_processing/AddLayerPlanTravelMovesProcessor.h
         src/path_processing/AddTravelMovesProcessor.cpp include/path_processing/AddTravelMovesProcessor.h
         src/path_processing/BedAdhesionConstraintsGenerator.cpp include/path_processing/BedAdhesionConstraintsGenerator.h
         src/path_processing/DirectTravelMoveGenerator.cpp include/path_processing/DirectTravelMoveGenerator.h
+        src/path_processing/ExtruderPlanScheduler.cpp include/path_processing/ExtruderPlanScheduler.h
         src/path_processing/FeatureExtrusionsConstraintsGenerator.cpp include/path_processing/FeatureExtrusionsConstraintsGenerator.h
-        include/path_processing/FeatureExtrusionOrderingConstraint.h
-        src/path_processing/FeatureExtrusionsOrderOptimizer.cpp include/path_processing/FeatureExtrusionsOrderOptimizer.h
+        src/path_processing/FeatureExtrusionScheduler.cpp include/path_processing/FeatureExtrusionScheduler.h
         src/path_processing/InsertOperationsProcessor.cpp include/path_processing/InsertOperationsProcessor.h
         src/path_processing/MeshFeaturesConstraintsGenerator.cpp include/path_processing/MeshFeaturesConstraintsGenerator.h
         src/path_processing/PrintOperationProcessor.cpp include/path_processing/PrintOperationProcessor.h
@@ -184,6 +188,11 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoronoiUtils.cpp
         src/utils/VoxelUtils.cpp
         src/utils/MixedPolylineStitcher.cpp
+        src/utils/scoring/BestElementFinder.cpp
+        src/utils/scoring/CornerScoringCriterion.cpp
+        src/utils/scoring/DistanceScoringCriterion.cpp
+        src/utils/scoring/ExclusionAreaScoringCriterion.cpp
+        src/utils/scoring/RandomScoringCriterion.cpp
 
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp

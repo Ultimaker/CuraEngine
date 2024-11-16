@@ -5,47 +5,67 @@
 
 #include <map>
 
+#include <range/v3/algorithm/contains.hpp>
+
 #include "path_planning/MeshFeatureExtrusion.h"
-#include "path_processing/FeatureExtrusionOrderingConstraint.h"
 
 namespace cura
 {
 
-void MeshFeaturesConstraintsGenerator::appendConstraints(const std::vector<FeatureExtrusionPtr>& feature_extrusions, std::vector<FeatureExtrusionOrderingConstraint>& constraints)
-    const
+void MeshFeaturesConstraintsGenerator::appendConstraints(
+    const FeatureExtrusionPtr& feature_extrusion,
+    const std::vector<FeatureExtrusionPtr>& all_feature_extrusions,
+    std::vector<FeatureExtrusionPtr>& extrusions_after) const
 {
-    using FeatureByType = std::map<PrintFeatureType, std::vector<std::shared_ptr<FeatureExtrusion>>>;
-    std::map<std::shared_ptr<const SliceMeshStorage>, FeatureByType> features_by_mesh;
-    struct FeatureTypeOrderingConstraint
+    auto mesh_feature_extrusion = std::dynamic_pointer_cast<MeshFeatureExtrusion>(feature_extrusion);
+    if (! mesh_feature_extrusion)
     {
-        PrintFeatureType type_before;
-        PrintFeatureType type_after;
-    };
-
-    std::vector<FeatureTypeOrderingConstraint> types_constraints;
-    types_constraints.push_back(FeatureTypeOrderingConstraint{ .type_before = PrintFeatureType::OuterWall, .type_after = PrintFeatureType::InnerWall });
-    types_constraints.push_back(FeatureTypeOrderingConstraint{ .type_before = PrintFeatureType::Infill, .type_after = PrintFeatureType::OuterWall });
-    types_constraints.push_back(FeatureTypeOrderingConstraint{ .type_before = PrintFeatureType::Skin, .type_after = PrintFeatureType::OuterWall });
-
-    for (const std::shared_ptr<FeatureExtrusion>& feature_extrusion : feature_extrusions)
-    {
-        if (const auto mesh_feature = std::dynamic_pointer_cast<MeshFeatureExtrusion>(feature_extrusion))
-        {
-            features_by_mesh[mesh_feature->getMesh()][mesh_feature->getPrintFeatureType()].push_back(feature_extrusion);
-        }
+        spdlog::error("The given feature extrusion is not a mesh feature extrusion");
+        return;
     }
 
-    for (auto& [mesh, mesh_feature_extrusions] : features_by_mesh)
+    std::vector<PrintFeatureType> types_after;
+    switch (feature_extrusion->getPrintFeatureType())
     {
-        for (const FeatureTypeOrderingConstraint& constraint : types_constraints)
+    case PrintFeatureType::OuterWall:
+        types_after.push_back(PrintFeatureType::InnerWall);
+        break;
+    case PrintFeatureType::InnerWall:
+        break;
+    case PrintFeatureType::Infill:
+        types_after.push_back(PrintFeatureType::OuterWall);
+        break;
+    case PrintFeatureType::Skin:
+        types_after.push_back(PrintFeatureType::OuterWall);
+        break;
+    case PrintFeatureType::SkirtBrim:
+    case PrintFeatureType::Support:
+    case PrintFeatureType::MoveCombing:
+    case PrintFeatureType::MoveRetraction:
+    case PrintFeatureType::NoneType:
+    case PrintFeatureType::PrimeTower:
+    case PrintFeatureType::SupportInfill:
+    case PrintFeatureType::SupportInterface:
+    case PrintFeatureType::NumPrintFeatureTypes:
+        break;
+    }
+
+    if (types_after.empty())
+    {
+        return;
+    }
+
+    for (const std::shared_ptr<FeatureExtrusion>& other_feature_extrusion : all_feature_extrusions)
+    {
+        if (other_feature_extrusion == feature_extrusion)
         {
-            for (const std::shared_ptr<FeatureExtrusion>& mesh_feature_extrusion_before : mesh_feature_extrusions[constraint.type_before])
-            {
-                for (const std::shared_ptr<FeatureExtrusion>& mesh_feature_extrusion_after : mesh_feature_extrusions[constraint.type_after])
-                {
-                    constraints.emplace_back(mesh_feature_extrusion_before, mesh_feature_extrusion_after);
-                }
-            }
+            continue;
+        }
+
+        const auto other_mesh_feature = std::dynamic_pointer_cast<MeshFeatureExtrusion>(other_feature_extrusion);
+        if (other_mesh_feature && other_mesh_feature->getMesh() == mesh_feature_extrusion->getMesh() && ranges::contains(types_after, other_mesh_feature->getPrintFeatureType()))
+        {
+            extrusions_after.push_back(other_feature_extrusion);
         }
     }
 }
