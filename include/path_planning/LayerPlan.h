@@ -38,7 +38,7 @@ namespace cura
 class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
-class ContinuousExtruderMoveSequence;
+class ContinuousExtrusionMoveSequence;
 
 template<typename PathType>
 class PathAdapter;
@@ -764,7 +764,7 @@ public:
 
     std::optional<Point3LL> findExtruderStartPosition() const;
 
-    Point3LL getAbsolutePosition(const ContinuousExtruderMoveSequence& extruder_move_set, const Point3LL& relative_position) const;
+    Point3LL getAbsolutePosition(const ContinuousExtrusionMoveSequence& extruder_move_set, const Point3LL& relative_position) const;
 
 private:
     /*!

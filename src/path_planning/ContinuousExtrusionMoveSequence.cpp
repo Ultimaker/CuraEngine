@@ -1,45 +1,44 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "path_planning/ContinuousExtruderMoveSequence.h"
-
+#include "path_planning/ContinuousExtrusionMoveSequence.h"
 #include "path_planning/ExtrusionMove.h"
 
 namespace cura
 {
 
-ContinuousExtruderMoveSequence::ContinuousExtruderMoveSequence(bool closed, const Point3LL& start_position)
+ContinuousExtrusionMoveSequence::ContinuousExtrusionMoveSequence(bool closed, const Point3LL& start_position)
     : start_position_(start_position)
     , closed_(closed)
 {
 }
 
-std::optional<Point3LL> ContinuousExtruderMoveSequence::findStartPosition() const
+std::optional<Point3LL> ContinuousExtrusionMoveSequence::findStartPosition() const
 {
     return closed_ ? PrintOperationSequence::findEndPosition() : start_position_;
 }
 
-coord_t ContinuousExtruderMoveSequence::getZOffset() const
+coord_t ContinuousExtrusionMoveSequence::getZOffset() const
 {
     return z_offset_;
 }
 
-const Ratio& ContinuousExtruderMoveSequence::getSpeedFactor() const
+const Ratio& ContinuousExtrusionMoveSequence::getSpeedFactor() const
 {
     return speed_factor_;
 }
 
-const Ratio& ContinuousExtruderMoveSequence::getSpeedBackPressureFactor() const
+const Ratio& ContinuousExtrusionMoveSequence::getSpeedBackPressureFactor() const
 {
     return speed_back_pressure_factor_;
 }
 
-bool ContinuousExtruderMoveSequence::isClosed() const
+bool ContinuousExtrusionMoveSequence::isClosed() const
 {
     return closed_;
 }
 
-void ContinuousExtruderMoveSequence::reorderToEndWith(const std::shared_ptr<ExtruderMove>& extruder_move)
+void ContinuousExtrusionMoveSequence::reorderToEndWith(const std::shared_ptr<ExtruderMove>& extruder_move)
 {
     if (closed_)
     {
@@ -67,7 +66,7 @@ void ContinuousExtruderMoveSequence::reorderToEndWith(const std::shared_ptr<Extr
     }
 }
 
-void ContinuousExtruderMoveSequence::reverse()
+void ContinuousExtrusionMoveSequence::reverse()
 {
     if (closed_)
     {
@@ -99,7 +98,7 @@ void ContinuousExtruderMoveSequence::reverse()
     }
 }
 
-void ContinuousExtruderMoveSequence::appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio)
+void ContinuousExtrusionMoveSequence::appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio)
 {
     appendOperation(std::make_shared<ExtrusionMove>(position, line_width_ratio));
 }

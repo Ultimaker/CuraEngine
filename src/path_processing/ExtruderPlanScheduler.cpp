@@ -5,6 +5,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "path_planning/FeatureExtrusion.h"
 #include "path_processing/ClosestStartPoint.h"
 #include "path_processing/FeatureExtrusionScheduler.h"
 

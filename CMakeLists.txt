@@ -116,13 +116,14 @@ set(engine_SRCS # Except main.cpp.
         src/path_export/MultiExporter.cpp include/path_export/MultiExporter.h
         src/path_export/PathExporter.cpp include/path_export/PathExporter.h
 
+        include/path_planning/ContinuousExtrusionMoveSequencePtr.h
+        include/path_planning/FeatureExtrusionPtr.h
         src/path_planning/Comb.cpp include/path_planning/Comb.h
         src/path_planning/ExtruderMove.cpp include/path_planning/ExtruderMove.h
-        src/path_planning/ContinuousExtruderMoveSequence.cpp include/path_planning/ContinuousExtruderMoveSequence.h
+        src/path_planning/ContinuousExtrusionMoveSequence.cpp include/path_planning/ContinuousExtrusionMoveSequence.h
         src/path_planning/ExtruderPlan.cpp include/path_planning/ExtruderPlan.h
         src/path_planning/ExtrusionMove.cpp include/path_planning/ExtrusionMove.h
         src/path_planning/FeatureExtrusion.cpp include/path_planning/FeatureExtrusion.h
-        include/path_planning/FeatureExtrusionsPtr.h
         src/path_planning/GCodePath.cpp include/path_planning/GCodePath.h
         src/path_planning/LayerPlan.cpp include/path_planning/LayerPlan.h
         src/path_planning/LayerPlanBuffer.cpp include/path_planning/LayerPlanBuffer.h
@@ -137,7 +138,6 @@ set(engine_SRCS # Except main.cpp.
 
         include/path_processing/ChangeSequenceAction.h
         include/path_processing/ClosestStartPoint.h
-        include/path_processing/FeatureExtrusionOrderingConstraint.h
         include/path_processing/StartCandidatePoint.h
         src/path_processing/AddLayerPlanTravelMovesProcessor.cpp include/path_processing/AddLayerPlanTravelMovesProcessor.h
         src/path_processing/AddTravelMovesProcessor.cpp include/path_processing/AddTravelMovesProcessor.h

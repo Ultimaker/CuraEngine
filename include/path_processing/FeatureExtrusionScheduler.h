@@ -5,18 +5,17 @@
 #define PATHPROCESSING_FEATUREEXTRUSIONCHEDULER_H
 
 #include <map>
+#include <optional>
 
-#include "path_planning/FeatureExtrusion.h"
-#include "path_planning/FeatureExtrusionsPtr.h"
+#include "path_planning/ContinuousExtrusionMoveSequencePtr.h"
+#include "path_planning/FeatureExtrusionPtr.h"
 #include "path_processing/StartCandidatePoint.h"
 
 namespace cura
 {
 
-class ExtrusionMove;
-class FeatureExtrusionsConstraintsGenerator;
 class Shape;
-struct FeatureExtrusionOrderingConstraint;
+class PrintOperation;
 struct ZSeamConfig;
 struct ClosestStartPoint;
 
@@ -32,7 +31,9 @@ public:
     void optimizeExtruderSequencesOrder(const StartCandidatePoint& start_point, Point3LL& current_position);
 
 private:
-    using SequencesConstraintsMap = std::map<std::shared_ptr<ContinuousExtruderMoveSequence>, std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>>>;
+    using SequencesConstraintsMap = std::map<std::shared_ptr<ContinuousExtrusionMoveSequence>, std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>>>;
+
+    using StartCandidatesBySequenceMap = std::map<ContinuousExtrusionMoveSequencePtr, std::vector<StartCandidatePoint>>;
 
 private:
     static std::vector<FeatureExtrusionPtr> makeOrderingContraints(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions);
@@ -45,19 +46,23 @@ private:
 
     static void applyMoveSequenceAction(const StartCandidatePoint& start_point);
 
-    bool moveSequenceProcessableNow(const std::shared_ptr<ContinuousExtruderMoveSequence>& move_sequence) const;
+    bool moveSequenceProcessableNow(const std::shared_ptr<ContinuousExtrusionMoveSequence>& move_sequence) const;
 
     void appendNextProcessedSequence(
         const StartCandidatePoint& start_point,
         std::vector<std::shared_ptr<PrintOperation>>& ordered_sequences,
-        std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>>& moves_sequences,
+        std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>>& moves_sequences,
         Point3LL& current_position);
+
+    static std::vector<StartCandidatePoint> makeBaseStartCandidates(const FeatureExtrusionPtr& feature, const ContinuousExtrusionMoveSequencePtr& move_sequence);
+
+    void preFilterStartCandidates(std::vector<StartCandidatePoint>& start_candidates);
 
 private:
     const std::shared_ptr<ZSeamConfig> seam_config_;
     const std::vector<FeatureExtrusionPtr> extrusions_after_;
     SequencesConstraintsMap sequences_constraints_;
-    std::vector<StartCandidatePoint> start_candidates_;
+    StartCandidatesBySequenceMap start_candidates_;
     const std::shared_ptr<Shape> overhang_areas_;
     bool optimize_extrusion_sequences_{ true };
 };

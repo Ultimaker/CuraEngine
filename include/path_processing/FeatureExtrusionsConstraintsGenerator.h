@@ -6,7 +6,7 @@
 
 #include <vector>
 
-#include "path_planning/FeatureExtrusionsPtr.h"
+#include "path_planning/FeatureExtrusionPtr.h"
 
 namespace cura
 {

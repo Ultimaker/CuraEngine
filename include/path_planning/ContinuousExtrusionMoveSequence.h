@@ -1,14 +1,13 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATHPLANNING_CONTINUOUSEXTRUDERMOVESEQUENCE_H
-#define PATHPLANNING_CONTINUOUSEXTRUDERMOVESEQUENCE_H
+#ifndef PATHPLANNING_CONTINUOUSEXTRUSIONMOVESEQUENCE_H
+#define PATHPLANNING_CONTINUOUSEXTRUSIONMOVESEQUENCE_H
 
 #include "GCodePathConfig.h"
 #include "SpaceFillType.h"
 #include "geometry/Point3LL.h"
 #include "path_planning/PrintOperationSequence.h"
-#include "path_planning/TimeMaterialEstimates.h"
 #include "settings/types/Ratio.h"
 #include "utils/Coord_t.h"
 
@@ -21,10 +20,10 @@ class PathExporter;
 class LayerPlan;
 class Point3LL;
 
-class ContinuousExtruderMoveSequence : public PrintOperationSequence
+class ContinuousExtrusionMoveSequence : public PrintOperationSequence
 {
 public:
-    explicit ContinuousExtruderMoveSequence(bool closed, const Point3LL& start_position = Point3LL());
+    explicit ContinuousExtrusionMoveSequence(bool closed, const Point3LL& start_position = Point3LL());
 
     void appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
 
@@ -55,4 +54,4 @@ private:
 
 } // namespace cura
 
-#endif // PATHPLANNING_CONTINUOUSEXTRUDERMOVESEQUENCE_H
+#endif // PATHPLANNING_CONTINUOUSEXTRUSIONMOVESEQUENCE_H

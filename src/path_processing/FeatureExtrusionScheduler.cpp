@@ -8,18 +8,15 @@
 #include <utils/scoring/ExclusionAreaScoringCriterion.h>
 #include <utils/scoring/RandomScoringCriterion.h>
 
-#include <range/v3/algorithm/any_of.hpp>
 #include <range/v3/algorithm/contains.hpp>
-#include <range/v3/view/filter.hpp>
 #include <spdlog/spdlog.h>
 
-#include "path_planning/ContinuousExtruderMoveSequence.h"
+#include "path_planning/ContinuousExtrusionMoveSequence.h"
 #include "path_planning/ExtrusionMove.h"
 #include "path_planning/MeshFeatureExtrusion.h"
 #include "path_processing/BedAdhesionConstraintsGenerator.h"
 #include "path_processing/ClosestStartPoint.h"
 #include "path_processing/ExtruderPlanScheduler.h"
-#include "path_processing/FeatureExtrusionOrderingConstraint.h"
 #include "path_processing/MeshFeaturesConstraintsGenerator.h"
 #include "settings/ZSeamConfig.h"
 #include "utils/scoring/BestElementFinder.h"
@@ -42,12 +39,18 @@ bool FeatureExtrusionScheduler::isFeatureProcessableNow(const FeatureExtrusionPt
 
 void FeatureExtrusionScheduler::evaluateClosestPoint(std::optional<ClosestStartPoint>& closest_point, const Point3LL& last_position) const
 {
-    for (const StartCandidatePoint& start_candidate : start_candidates_)
+    for (const auto& [move_sequence, start_candidates] : start_candidates_)
     {
-        const coord_t distance_squared = (start_candidate.position - last_position).vSize2();
-        if (! closest_point.has_value() || distance_squared < closest_point->distance_squared)
+        if (! move_sequence || moveSequenceProcessableNow(move_sequence))
         {
-            closest_point = ClosestStartPoint{ distance_squared, start_candidate };
+            for (const StartCandidatePoint& start_candidate : start_candidates)
+            {
+                const coord_t distance_squared = (start_candidate.position - last_position).vSize2();
+                if (! closest_point.has_value() || distance_squared < closest_point->distance_squared)
+                {
+                    closest_point = ClosestStartPoint{ distance_squared, start_candidate };
+                }
+            }
         }
     }
 }
@@ -57,7 +60,7 @@ void FeatureExtrusionScheduler::optimizeExtruderSequencesOrder(const StartCandid
     if (optimize_extrusion_sequences_)
     {
         const FeatureExtrusionPtr& feature = start_point.feature_extrusion;
-        std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>> moves_sequences = feature->getOperationsAs<ContinuousExtruderMoveSequence>();
+        std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>> moves_sequences = feature->getOperationsAs<ContinuousExtrusionMoveSequence>();
         std::vector<std::shared_ptr<PrintOperation>> ordered_sequences;
         ordered_sequences.reserve(moves_sequences.size());
 
@@ -135,148 +138,16 @@ void FeatureExtrusionScheduler::makeStartCandidates(const FeatureExtrusionPtr& f
 {
     if (seam_config_)
     {
-        // First, build a list of all the possible candidates, taking ordering constraints into account but not the seam settings and other criteria
-        for (const auto& move_sequence : feature_extrusion->getOperationsAs<ContinuousExtruderMoveSequence>())
+        for (const auto& move_sequence : feature_extrusion->getOperationsAs<ContinuousExtrusionMoveSequence>())
         {
-            if (! moveSequenceProcessableNow(move_sequence))
-            {
-                continue;
-            }
+            // First, build a list of all the possible candidates, taking ordering constraints into account but not the seam settings and other criteria
+            std::vector<StartCandidatePoint> start_candidates = makeBaseStartCandidates(feature_extrusion, move_sequence);
 
-            if (move_sequence->isClosed())
-            {
-                for (const std::shared_ptr<ExtrusionMove>& extrusion_move : move_sequence->getOperationsAs<ExtrusionMove>())
-                {
-                    start_candidates_.emplace_back(extrusion_move->getPosition(), feature_extrusion, move_sequence, extrusion_move, ChangeSequenceAction::Reorder);
-                }
-            }
-            else
-            {
-                if (const std::optional<Point3LL> start_position = move_sequence->findStartPosition(); start_position.has_value())
-                {
-                    start_candidates_.emplace_back(start_position.value(), feature_extrusion, move_sequence, nullptr, ChangeSequenceAction::None);
-                }
+            // Now pre-filter the start candidates according to the seam configuration
+            preFilterStartCandidates(start_candidates);
 
-                if (const std::optional<Point3LL> end_position = move_sequence->findEndPosition(); end_position.has_value())
-                {
-                    start_candidates_.emplace_back(end_position.value(), feature_extrusion, move_sequence, nullptr, ChangeSequenceAction::Reverse);
-                }
-            }
+            start_candidates_[move_sequence] = start_candidates;
         }
-
-        // Now evaluate them according to the seam configuration
-        // ########## Step 1: define the main criteria to be applied and their weights
-        // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
-        // exactly one calculation using this criterion.
-        BestElementFinder best_candidate_finder;
-        BestElementFinder::CriteriaPass main_criteria_pass;
-        main_criteria_pass.outsider_delta_threshold = 0.05;
-
-        // Indicates whether we want a single static point at the end of the selection, or a shortlist of equally good points
-        bool unique_selected_point = false;
-
-        BestElementFinder::WeighedCriterion main_criterion;
-
-        switch (seam_config_->type_)
-        {
-        case EZSeamType::SHORTEST:
-        case EZSeamType::SKIRT_BRIM:
-            // Do not set a main criterion for those, we just try to filter out very bad elements (like overhanging)
-            break;
-
-        case EZSeamType::RANDOM:
-            unique_selected_point = true;
-            main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
-            break;
-
-        case EZSeamType::PLUGIN:
-            break;
-
-        case EZSeamType::USER_SPECIFIED:
-#warning restore this
-            // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
-            //             constexpr double distance_divider = 1.0;
-            // constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
-            // main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
-            break;
-
-        case EZSeamType::SHARPEST_CORNER:
-            unique_selected_point = true;
-            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(start_candidates_, seam_config_->corner_pref_);
-            break;
-        }
-
-        if (main_criterion.criterion)
-        {
-            main_criteria_pass.criteria.push_back(main_criterion);
-        }
-
-        // Second criterion with higher weight to avoid overhanging areas
-        if (overhang_areas_ && ! overhang_areas_->empty())
-        {
-#warning give an actual area
-            BestElementFinder::WeighedCriterion overhang_criterion;
-            overhang_criterion.weight = 2.0;
-            overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(start_candidates_, overhang_areas_);
-            main_criteria_pass.criteria.push_back(overhang_criterion);
-        }
-
-        best_candidate_finder.appendCriteriaPass(main_criteria_pass);
-
-        // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
-        if (seam_config_->type_ == EZSeamType::SHARPEST_CORNER)
-        {
-            std::optional<Point3LL> position_max;
-            for (const StartCandidatePoint& start_candidate : start_candidates_)
-            {
-                if (! position_max.has_value())
-                {
-                    position_max = start_candidate.position;
-                }
-                else
-                {
-                    position_max.value().x_ = std::max(position_max.value().x_, start_candidate.position.x_);
-                    position_max.value().y_ = std::max(position_max.value().y_, start_candidate.position.y_);
-                }
-            }
-
-            { // First fallback strategy is to take points on the back-most position
-                auto fallback_criterion
-                    = std::make_shared<DistanceScoringCriterion>(start_candidates_, position_max.value_or(Point3LL()), DistanceScoringCriterion::DistanceType::YOnly);
-                constexpr double outsider_delta_threshold = 0.01;
-                best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
-            }
-
-            { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-                auto fallback_criterion
-                    = std::make_shared<DistanceScoringCriterion>(start_candidates_, position_max.value_or(Point3LL()), DistanceScoringCriterion::DistanceType::XOnly);
-                best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
-            }
-        }
-
-        // ########## Step 3: apply the criteria to find the vertex with the best global score
-        std::vector<size_t> best_elements = best_candidate_finder.findBestElements(start_candidates_.size());
-
-        if ((unique_selected_point && ! best_elements.empty()) || best_elements.size() == 1)
-        {
-            start_candidates_ = { start_candidates_[best_elements.front()] };
-        }
-        else
-        {
-            std::vector<StartCandidatePoint> new_start_candidates;
-            new_start_candidates.reserve(best_elements.size());
-            for (size_t best_element_index : best_elements)
-            {
-                new_start_candidates.push_back(start_candidates_[best_element_index]);
-            }
-            start_candidates_ = std::move(new_start_candidates);
-        }
-
-#warning restore this (by adding a criterion)
-        // if (! disallowed_area_for_seams.empty())
-        // {
-        //     best_i = pathIfZseamIsInDisallowedArea(best_i.value_or(0), path, 0);
-        // }
     }
     else
     {
@@ -284,7 +155,7 @@ void FeatureExtrusionScheduler::makeStartCandidates(const FeatureExtrusionPtr& f
         optimize_extrusion_sequences_ = false;
         if (const auto start_position = feature_extrusion->findStartPosition(); start_position.has_value())
         {
-            start_candidates_.emplace_back(start_position.value(), feature_extrusion, nullptr, nullptr, ChangeSequenceAction::None);
+            start_candidates_[nullptr].emplace_back(start_position.value(), feature_extrusion, nullptr, nullptr, ChangeSequenceAction::None);
         }
         else
         {
@@ -311,7 +182,7 @@ void FeatureExtrusionScheduler::applyMoveSequenceAction(const StartCandidatePoin
     }
 }
 
-bool FeatureExtrusionScheduler::moveSequenceProcessableNow(const std::shared_ptr<ContinuousExtruderMoveSequence>& move_sequence) const
+bool FeatureExtrusionScheduler::moveSequenceProcessableNow(const std::shared_ptr<ContinuousExtrusionMoveSequence>& move_sequence) const
 {
     return std::ranges::all_of(
         sequences_constraints_,
@@ -324,22 +195,20 @@ bool FeatureExtrusionScheduler::moveSequenceProcessableNow(const std::shared_ptr
 void FeatureExtrusionScheduler::appendNextProcessedSequence(
     const StartCandidatePoint& start_point,
     std::vector<std::shared_ptr<PrintOperation>>& ordered_sequences,
-    std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>>& moves_sequences,
+    std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>>& moves_sequences,
     Point3LL& current_position)
 {
     applyMoveSequenceAction(start_point);
 
-    const std::shared_ptr<ContinuousExtruderMoveSequence>& start_move_sequence = start_point.move_sequence;
+    const std::shared_ptr<ContinuousExtrusionMoveSequence>& start_move_sequence = start_point.move_sequence;
     ordered_sequences.push_back(start_move_sequence);
 
     std::erase(moves_sequences, start_move_sequence);
 
-    std::erase_if(
-        start_candidates_,
-        [&start_move_sequence](const StartCandidatePoint& candidate_point)
-        {
-            return candidate_point.move_sequence == start_move_sequence;
-        });
+    if (auto iterator = start_candidates_.find(start_move_sequence); iterator != start_candidates_.end())
+    {
+        start_candidates_.erase(iterator);
+    }
 
     if (auto iterator = sequences_constraints_.find(start_move_sequence); iterator != sequences_constraints_.end())
     {
@@ -349,6 +218,150 @@ void FeatureExtrusionScheduler::appendNextProcessedSequence(
     std::optional<Point3LL> start_sequence_end_position = start_move_sequence->findEndPosition();
     assert(start_sequence_end_position.has_value() && "Unable to find the end position of the given start sequence");
     current_position = start_sequence_end_position.value();
+}
+
+std::vector<StartCandidatePoint> FeatureExtrusionScheduler::makeBaseStartCandidates(const FeatureExtrusionPtr& feature, const ContinuousExtrusionMoveSequencePtr& move_sequence)
+{
+    std::vector<StartCandidatePoint> start_candidates;
+
+    if (move_sequence->isClosed())
+    {
+        for (const std::shared_ptr<ExtrusionMove>& extrusion_move : move_sequence->getOperationsAs<ExtrusionMove>())
+        {
+            start_candidates.emplace_back(extrusion_move->getPosition(), feature, move_sequence, extrusion_move, ChangeSequenceAction::Reorder);
+        }
+    }
+    else
+    {
+        if (const std::optional<Point3LL> start_position = move_sequence->findStartPosition(); start_position.has_value())
+        {
+            start_candidates.emplace_back(start_position.value(), feature, move_sequence, nullptr, ChangeSequenceAction::None);
+        }
+
+        if (const std::optional<Point3LL> end_position = move_sequence->findEndPosition(); end_position.has_value())
+        {
+            start_candidates.emplace_back(end_position.value(), feature, move_sequence, nullptr, ChangeSequenceAction::Reverse);
+        }
+    }
+
+    return start_candidates;
+}
+
+void FeatureExtrusionScheduler::preFilterStartCandidates(std::vector<StartCandidatePoint>& start_candidates)
+{
+    // Now evaluate them according to the seam configuration
+    // ########## Step 1: define the main criteria to be applied and their weights
+    // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
+    // exactly one calculation using this criterion.
+    BestElementFinder best_candidate_finder;
+    BestElementFinder::CriteriaPass main_criteria_pass;
+    main_criteria_pass.outsider_delta_threshold = 0.05;
+
+    // Indicates whether we want a single static point at the end of the selection, or a shortlist of equally good points
+    bool unique_selected_point = false;
+
+    BestElementFinder::WeighedCriterion main_criterion;
+
+    switch (seam_config_->type_)
+    {
+    case EZSeamType::SHORTEST:
+    case EZSeamType::SKIRT_BRIM:
+        // Do not set a main criterion for those, we just try to filter out very bad elements (like overhanging)
+        break;
+
+    case EZSeamType::RANDOM:
+        unique_selected_point = true;
+        main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
+        break;
+
+    case EZSeamType::PLUGIN:
+        break;
+
+    case EZSeamType::USER_SPECIFIED:
+#warning restore this
+        // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
+        //             constexpr double distance_divider = 1.0;
+        // constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
+        // main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
+        break;
+
+    case EZSeamType::SHARPEST_CORNER:
+        unique_selected_point = true;
+        main_criterion.criterion = std::make_shared<CornerScoringCriterion>(start_candidates, seam_config_->corner_pref_);
+        break;
+    }
+
+    if (main_criterion.criterion)
+    {
+        main_criteria_pass.criteria.push_back(main_criterion);
+    }
+
+    // Second criterion with higher weight to avoid overhanging areas
+    if (overhang_areas_ && ! overhang_areas_->empty())
+    {
+#warning give an actual area
+        BestElementFinder::WeighedCriterion overhang_criterion;
+        overhang_criterion.weight = 2.0;
+        overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(start_candidates, overhang_areas_);
+        main_criteria_pass.criteria.push_back(overhang_criterion);
+    }
+
+    best_candidate_finder.appendCriteriaPass(main_criteria_pass);
+
+    // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
+    if (seam_config_->type_ == EZSeamType::SHARPEST_CORNER)
+    {
+        std::optional<Point3LL> position_max;
+        for (const StartCandidatePoint& start_candidate : start_candidates)
+        {
+            if (! position_max.has_value())
+            {
+                position_max = start_candidate.position;
+            }
+            else
+            {
+                position_max.value().x_ = std::max(position_max.value().x_, start_candidate.position.x_);
+                position_max.value().y_ = std::max(position_max.value().y_, start_candidate.position.y_);
+            }
+        }
+
+        { // First fallback strategy is to take points on the back-most position
+            auto fallback_criterion
+                = std::make_shared<DistanceScoringCriterion>(start_candidates, position_max.value_or(Point3LL()), DistanceScoringCriterion::DistanceType::YOnly);
+            constexpr double outsider_delta_threshold = 0.01;
+            best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
+        }
+
+        { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
+            auto fallback_criterion
+                = std::make_shared<DistanceScoringCriterion>(start_candidates, position_max.value_or(Point3LL()), DistanceScoringCriterion::DistanceType::XOnly);
+            best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
+        }
+    }
+
+    // ########## Step 3: apply the criteria to find the vertex with the best global score
+    std::vector<size_t> best_elements = best_candidate_finder.findBestElements(start_candidates.size());
+
+    if ((unique_selected_point && ! best_elements.empty()) || best_elements.size() == 1)
+    {
+        start_candidates = { start_candidates[best_elements.front()] };
+    }
+    else
+    {
+        std::vector<StartCandidatePoint> new_start_candidates;
+        new_start_candidates.reserve(best_elements.size());
+        for (size_t best_element_index : best_elements)
+        {
+            new_start_candidates.push_back(start_candidates[best_element_index]);
+        }
+        start_candidates = std::move(new_start_candidates);
+    }
+
+#warning restore this (by adding a criterion)
+    // if (! disallowed_area_for_seams.empty())
+    // {
+    //     best_i = pathIfZseamIsInDisallowedArea(best_i.value_or(0), path, 0);
+    // }
 }
 
 std::shared_ptr<ZSeamConfig> FeatureExtrusionScheduler::getZSeamConfig(const FeatureExtrusionPtr& feature_extrusion)

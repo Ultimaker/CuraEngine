@@ -179,7 +179,7 @@ private:
 
     double temperature_factor_{ 0.0 }; //!< Temperature reduction factor for small layers
 
-    std::vector<std::shared_ptr<ContinuousExtruderMoveSequence>> extruder_move_sets_;
+    std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>> extruder_move_sets_;
 
     /*!
      * Set the fan speed to be used while printing this extruder plan

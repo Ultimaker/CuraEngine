@@ -24,7 +24,7 @@
 #include "path_export/ConsoleExporter.h"
 #include "path_planning/Comb.h"
 #include "path_planning/CombPaths.h"
-#include "path_planning/ContinuousExtruderMoveSequence.h"
+#include "path_planning/ContinuousExtrusionMoveSequence.h"
 #include "path_planning/MeshFeatureExtrusion.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
@@ -1564,7 +1564,7 @@ void LayerPlan::addWall(
     }
 
     auto feature_extrusion = makeFeatureExtrusion(default_config);
-    auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(is_closed, wall.junctions_.front().p_);
+    auto extruder_move_sequence = std::make_shared<ContinuousExtrusionMoveSequence>(is_closed, wall.junctions_.front().p_);
 
     for (const auto& segment : wall.junctions_ | ranges::views::sliding(2))
     {
@@ -1719,7 +1719,7 @@ void LayerPlan::addLinesByOptimizer(
             {
                 closed = true;
             }
-            auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(closed, line.front());
+            auto extruder_move_sequence = std::make_shared<ContinuousExtrusionMoveSequence>(closed, line.front());
 
             for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
             {
@@ -1798,7 +1798,7 @@ void LayerPlan::addLinesByOptimizer(
     {
         if (! line->empty())
         {
-            auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(bool(std::dynamic_pointer_cast<ClosedPolyline>(line)), line->front());
+            auto extruder_move_sequence = std::make_shared<ContinuousExtrusionMoveSequence>(bool(std::dynamic_pointer_cast<ClosedPolyline>(line)), line->front());
 
             for (auto iterator = line->beginSegments(); iterator != line->endSegments(); ++iterator)
             {
@@ -2942,7 +2942,7 @@ void LayerPlan::write(PathExporter& exporter, const std::vector<const PrintOpera
 
 std::optional<Point3LL> LayerPlan::findExtruderStartPosition() const
 {
-    if (const auto extruder_move_sequence = findOperationByType<ContinuousExtruderMoveSequence>(SearchOrder::DepthFirstForward))
+    if (const auto extruder_move_sequence = findOperationByType<ContinuousExtrusionMoveSequence>(SearchOrder::DepthFirstForward))
     {
         std::optional<Point3LL> start_position = extruder_move_sequence->findStartPosition();
         if (start_position.has_value())
@@ -3236,7 +3236,7 @@ std::shared_ptr<FeatureExtrusion> LayerPlan::makeFeatureExtrusion(const GCodePat
     return std::make_shared<FeatureExtrusion>(config);
 }
 
-Point3LL LayerPlan::getAbsolutePosition(const ContinuousExtruderMoveSequence& extruder_move_sequence, const Point3LL& relative_position) const
+Point3LL LayerPlan::getAbsolutePosition(const ContinuousExtrusionMoveSequence& extruder_move_sequence, const Point3LL& relative_position) const
 {
     Point3LL absolute_position = relative_position;
     absolute_position.z_ += getZ() + extruder_move_sequence.getZOffset();

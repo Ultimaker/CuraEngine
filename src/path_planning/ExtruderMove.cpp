@@ -3,7 +3,7 @@
 
 #include "path_planning/ExtruderMove.h"
 
-#include "path_planning/ContinuousExtruderMoveSequence.h"
+#include "path_planning/ContinuousExtrusionMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
 #include "path_planning/LayerPlan.h"
 
