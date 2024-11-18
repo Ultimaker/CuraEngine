@@ -135,6 +135,7 @@ set(engine_SRCS # Except main.cpp.
         src/path_planning/SpeedDerivatives.cpp include/path_planning/SpeedDerivatives.h
         src/path_planning/TravelMove.cpp include/path_planning/TravelMove.h
         src/path_planning/TravelRoute.cpp include/path_planning/TravelRoute.h
+        src/path_planning/WallFeatureExtrusion.cpp include/path_planning/WallFeatureExtrusion.h
 
         include/path_processing/ChangeSequenceAction.h
         include/path_processing/ClosestStartPoint.h

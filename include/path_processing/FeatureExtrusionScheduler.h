@@ -36,7 +36,7 @@ private:
     using StartCandidatesBySequenceMap = std::map<ContinuousExtruderMoveSequencePtr, std::vector<StartCandidatePoint>>;
 
 private:
-    static std::vector<FeatureExtrusionPtr> makeOrderingContraints(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions);
+    static std::vector<FeatureExtrusionPtr> makeOrderingConstraints(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions);
 
     SequencesConstraintsMap makeMoveSequencesConstraints(const FeatureExtrusionPtr& feature_extrusion);
 

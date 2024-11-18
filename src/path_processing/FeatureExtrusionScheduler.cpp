@@ -26,7 +26,7 @@ namespace cura
 
 FeatureExtrusionScheduler::FeatureExtrusionScheduler(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions)
     : seam_config_(getZSeamConfig(feature_extrusion))
-    , extrusions_after_(makeOrderingContraints(feature_extrusion, all_feature_extrusions))
+    , extrusions_after_(makeOrderingConstraints(feature_extrusion, all_feature_extrusions))
     , sequences_constraints_(makeMoveSequencesConstraints(feature_extrusion))
 {
     makeStartCandidates(feature_extrusion);
@@ -92,7 +92,7 @@ void FeatureExtrusionScheduler::optimizeExtruderSequencesOrder(const StartCandid
 }
 
 std::vector<FeatureExtrusionPtr>
-    FeatureExtrusionScheduler::makeOrderingContraints(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions)
+    FeatureExtrusionScheduler::makeOrderingConstraints(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions)
 {
     std::vector<FeatureExtrusionPtr> extrusions_after;
     std::vector<std::shared_ptr<FeatureExtrusionsConstraintsGenerator>> constraints_generators;

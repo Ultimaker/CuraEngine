@@ -25,7 +25,7 @@
 #include "path_planning/Comb.h"
 #include "path_planning/CombPaths.h"
 #include "path_planning/ContinuousExtruderMoveSequence.h"
-#include "path_planning/MeshFeatureExtrusion.h"
+#include "path_planning/WallFeatureExtrusion.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
@@ -1278,7 +1278,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -1563,7 +1563,7 @@ void LayerPlan::addWall(
         return;
     }
 
-    auto feature_extrusion = makeFeatureExtrusion(default_config);
+    auto feature_extrusion = makeFeatureExtrusion(default_config, wall.inset_idx_);
     auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(is_closed, wall.junctions_.front().p_);
 
     for (const auto& segment : wall.junctions_ | ranges::views::sliding(2))
@@ -3226,11 +3226,18 @@ ExtruderPlan& LayerPlan::getLastExtruderPlan()
     return *findOperationByType<ExtruderPlan>(SearchOrder::Backward);
 }
 
-std::shared_ptr<FeatureExtrusion> LayerPlan::makeFeatureExtrusion(const GCodePathConfig& config) const
+std::shared_ptr<FeatureExtrusion> LayerPlan::makeFeatureExtrusion(const GCodePathConfig& config, std::optional<size_t> inset_index) const
 {
     if (current_mesh_)
     {
-        return std::make_shared<MeshFeatureExtrusion>(config, current_mesh_);
+        if (inset_index.has_value())
+        {
+            return std::make_shared<WallFeatureExtrusion>(config, current_mesh_, inset_index.value());
+        }
+        else
+        {
+            return std::make_shared<MeshFeatureExtrusion>(config, current_mesh_);
+        }
     }
 
     return std::make_shared<FeatureExtrusion>(config);

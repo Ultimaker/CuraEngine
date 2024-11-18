@@ -251,10 +251,11 @@ enum class InsetDirection
      */
     OUTSIDE_IN,
 
-    /*!
-     * If the innermost wall is a central wall, it is printed last. Otherwise
-     * prints the same as inside out.
-     */
+/*!
+ * If the innermost wall is a central wall, it is printed last. Otherwise
+ * prints the same as inside out.
+ */
+#warning This seems to be unused, consider removing
     CENTER_LAST,
     PLUGIN,
 };
