@@ -7,7 +7,7 @@
 #include <map>
 #include <optional>
 
-#include "path_planning/ContinuousExtrusionMoveSequencePtr.h"
+#include "path_planning/ContinuousExtruderMoveSequencePtr.h"
 #include "path_planning/FeatureExtrusionPtr.h"
 #include "path_processing/StartCandidatePoint.h"
 
@@ -19,7 +19,7 @@ class PrintOperation;
 struct ZSeamConfig;
 struct ClosestStartPoint;
 
-class FeatureExtrusionScheduler final
+class FeatureExtrusionScheduler
 {
 public:
     explicit FeatureExtrusionScheduler(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions);
@@ -31,9 +31,9 @@ public:
     void optimizeExtruderSequencesOrder(const StartCandidatePoint& start_point, Point3LL& current_position);
 
 private:
-    using SequencesConstraintsMap = std::map<std::shared_ptr<ContinuousExtrusionMoveSequence>, std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>>>;
+    using SequencesConstraintsMap = std::map<ContinuousExtruderMoveSequencePtr, std::vector<ContinuousExtruderMoveSequencePtr>>;
 
-    using StartCandidatesBySequenceMap = std::map<ContinuousExtrusionMoveSequencePtr, std::vector<StartCandidatePoint>>;
+    using StartCandidatesBySequenceMap = std::map<ContinuousExtruderMoveSequencePtr, std::vector<StartCandidatePoint>>;
 
 private:
     static std::vector<FeatureExtrusionPtr> makeOrderingContraints(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions);
@@ -46,15 +46,15 @@ private:
 
     static void applyMoveSequenceAction(const StartCandidatePoint& start_point);
 
-    bool moveSequenceProcessableNow(const std::shared_ptr<ContinuousExtrusionMoveSequence>& move_sequence) const;
+    bool moveSequenceProcessableNow(const ContinuousExtruderMoveSequencePtr& move_sequence) const;
 
     void appendNextProcessedSequence(
         const StartCandidatePoint& start_point,
         std::vector<std::shared_ptr<PrintOperation>>& ordered_sequences,
-        std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>>& moves_sequences,
+        std::vector<ContinuousExtruderMoveSequencePtr>& moves_sequences,
         Point3LL& current_position);
 
-    static std::vector<StartCandidatePoint> makeBaseStartCandidates(const FeatureExtrusionPtr& feature, const ContinuousExtrusionMoveSequencePtr& move_sequence);
+    static std::vector<StartCandidatePoint> makeBaseStartCandidates(const FeatureExtrusionPtr& feature, const ContinuousExtruderMoveSequencePtr& move_sequence);
 
     void preFilterStartCandidates(std::vector<StartCandidatePoint>& start_candidates);
 

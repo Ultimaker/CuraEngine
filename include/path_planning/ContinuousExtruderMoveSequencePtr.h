@@ -9,10 +9,10 @@
 namespace cura
 {
 
-class ContinuousExtrusionMoveSequence;
+class ContinuousExtruderMoveSequence;
 
-using ContinuousExtrusionMoveSequencePtr = std::shared_ptr<ContinuousExtrusionMoveSequence>;
-using ConstContinuousExtrusionMoveSequencePtr = std::shared_ptr<const ContinuousExtrusionMoveSequence>;
+using ContinuousExtruderMoveSequencePtr = std::shared_ptr<ContinuousExtruderMoveSequence>;
+using ConstContinuousExtruderMoveSequencePtr = std::shared_ptr<const ContinuousExtruderMoveSequence>;
 
 } // namespace cura
 

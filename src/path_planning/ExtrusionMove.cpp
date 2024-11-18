@@ -6,7 +6,7 @@
 #include <spdlog/spdlog.h>
 
 #include "path_export/PathExporter.h"
-#include "path_planning/ContinuousExtrusionMoveSequence.h"
+#include "path_planning/ContinuousExtruderMoveSequence.h"
 #include "path_planning/FeatureExtrusion.h"
 #include "path_planning/LayerPlan.h"
 
@@ -21,7 +21,7 @@ ExtrusionMove::ExtrusionMove(const Point3LL& position, const Ratio& line_width_r
 
 void ExtrusionMove::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
 {
-    const auto* extruder_move_sequence = findParent<ContinuousExtrusionMoveSequence>(parents);
+    const auto* extruder_move_sequence = findParent<ContinuousExtruderMoveSequence>(parents);
     const auto* feature_extrusion = findParent<FeatureExtrusion>(parents);
     const auto* layer_plan = findParent<LayerPlan>(parents);
     const auto* extruder_plan = findParent<ExtruderPlan>(parents);

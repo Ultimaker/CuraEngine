@@ -4,14 +4,14 @@
 #ifndef PATHPLANNING_TRAVELROUTE_H
 #define PATHPLANNING_TRAVELROUTE_H
 
-#include "path_planning/ContinuousExtrusionMoveSequence.h"
+#include "path_planning/ContinuousExtruderMoveSequence.h"
 
 namespace cura
 {
 
 class TravelMove;
 
-class TravelRoute : public ContinuousExtrusionMoveSequence
+class TravelRoute : public ContinuousExtruderMoveSequence
 {
 public:
     explicit TravelRoute(const PrintFeatureType feature, const SpeedDerivatives& speed, const Point3LL& start_position);

@@ -11,7 +11,7 @@
 #include <range/v3/algorithm/contains.hpp>
 #include <spdlog/spdlog.h>
 
-#include "path_planning/ContinuousExtrusionMoveSequence.h"
+#include "path_planning/ContinuousExtruderMoveSequence.h"
 #include "path_planning/ExtrusionMove.h"
 #include "path_planning/MeshFeatureExtrusion.h"
 #include "path_processing/BedAdhesionConstraintsGenerator.h"
@@ -60,7 +60,7 @@ void FeatureExtrusionScheduler::optimizeExtruderSequencesOrder(const StartCandid
     if (optimize_extrusion_sequences_)
     {
         const FeatureExtrusionPtr& feature = start_point.feature_extrusion;
-        std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>> moves_sequences = feature->getOperationsAs<ContinuousExtrusionMoveSequence>();
+        auto moves_sequences = feature->getOperationsAs<ContinuousExtruderMoveSequence>();
         std::vector<std::shared_ptr<PrintOperation>> ordered_sequences;
         ordered_sequences.reserve(moves_sequences.size());
 
@@ -138,7 +138,7 @@ void FeatureExtrusionScheduler::makeStartCandidates(const FeatureExtrusionPtr& f
 {
     if (seam_config_)
     {
-        for (const auto& move_sequence : feature_extrusion->getOperationsAs<ContinuousExtrusionMoveSequence>())
+        for (const auto& move_sequence : feature_extrusion->getOperationsAs<ContinuousExtruderMoveSequence>())
         {
             // First, build a list of all the possible candidates, taking ordering constraints into account but not the seam settings and other criteria
             std::vector<StartCandidatePoint> start_candidates = makeBaseStartCandidates(feature_extrusion, move_sequence);
@@ -182,7 +182,7 @@ void FeatureExtrusionScheduler::applyMoveSequenceAction(const StartCandidatePoin
     }
 }
 
-bool FeatureExtrusionScheduler::moveSequenceProcessableNow(const std::shared_ptr<ContinuousExtrusionMoveSequence>& move_sequence) const
+bool FeatureExtrusionScheduler::moveSequenceProcessableNow(const ContinuousExtruderMoveSequencePtr& move_sequence) const
 {
     return std::ranges::all_of(
         sequences_constraints_,
@@ -195,12 +195,12 @@ bool FeatureExtrusionScheduler::moveSequenceProcessableNow(const std::shared_ptr
 void FeatureExtrusionScheduler::appendNextProcessedSequence(
     const StartCandidatePoint& start_point,
     std::vector<std::shared_ptr<PrintOperation>>& ordered_sequences,
-    std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>>& moves_sequences,
+    std::vector<ContinuousExtruderMoveSequencePtr>& moves_sequences,
     Point3LL& current_position)
 {
     applyMoveSequenceAction(start_point);
 
-    const std::shared_ptr<ContinuousExtrusionMoveSequence>& start_move_sequence = start_point.move_sequence;
+    const ContinuousExtruderMoveSequencePtr& start_move_sequence = start_point.move_sequence;
     ordered_sequences.push_back(start_move_sequence);
 
     std::erase(moves_sequences, start_move_sequence);
@@ -220,7 +220,7 @@ void FeatureExtrusionScheduler::appendNextProcessedSequence(
     current_position = start_sequence_end_position.value();
 }
 
-std::vector<StartCandidatePoint> FeatureExtrusionScheduler::makeBaseStartCandidates(const FeatureExtrusionPtr& feature, const ContinuousExtrusionMoveSequencePtr& move_sequence)
+std::vector<StartCandidatePoint> FeatureExtrusionScheduler::makeBaseStartCandidates(const FeatureExtrusionPtr& feature, const ContinuousExtruderMoveSequencePtr& move_sequence)
 {
     std::vector<StartCandidatePoint> start_candidates;
 

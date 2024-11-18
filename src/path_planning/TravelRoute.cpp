@@ -9,7 +9,7 @@ namespace cura
 {
 
 TravelRoute::TravelRoute(const PrintFeatureType feature, const SpeedDerivatives& speed, const Point3LL& start_position)
-    : ContinuousExtrusionMoveSequence(false, start_position)
+    : ContinuousExtruderMoveSequence(false, start_position)
     , feature_(feature)
     , speed_(speed)
 {

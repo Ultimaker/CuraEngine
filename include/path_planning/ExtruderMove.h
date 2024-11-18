@@ -12,7 +12,7 @@ namespace cura
 
 class PathExporter;
 class LayerPlan;
-class ContinuousExtrusionMoveSequence;
+class ContinuousExtruderMoveSequence;
 
 class ExtruderMove : public PrintOperation
 {

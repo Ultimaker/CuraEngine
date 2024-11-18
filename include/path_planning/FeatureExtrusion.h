@@ -6,6 +6,7 @@
 
 #include "GCodePathConfig.h"
 #include "geometry/Point3LL.h"
+#include "path_planning/ContinuousExtruderMoveSequencePtr.h"
 #include "path_planning/PrintOperationSequence.h"
 
 namespace cura
@@ -16,7 +17,7 @@ class FeatureExtrusion : public PrintOperationSequence
 public:
     explicit FeatureExtrusion(const GCodePathConfig& config);
 
-    void appendExtruderMoveSequence(const std::shared_ptr<ContinuousExtrusionMoveSequence>& extruder_move_sequence, bool check_non_empty = true);
+    void appendExtruderMoveSequence(const ContinuousExtruderMoveSequencePtr& extruder_move_sequence, bool check_non_empty = true);
 
     const Velocity& getSpeed() const;
 

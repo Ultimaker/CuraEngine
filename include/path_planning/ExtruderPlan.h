@@ -8,6 +8,7 @@
 #include "RetractionConfig.h"
 #include "geometry/Point2LL.h"
 #include "path_export/GCodeExporter.h"
+#include "path_planning/ContinuousExtruderMoveSequencePtr.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
 #include "path_planning/PrintOperationSequence.h"
@@ -179,7 +180,7 @@ private:
 
     double temperature_factor_{ 0.0 }; //!< Temperature reduction factor for small layers
 
-    std::vector<std::shared_ptr<ContinuousExtrusionMoveSequence>> extruder_move_sets_;
+    std::vector<ContinuousExtruderMoveSequencePtr> extruder_move_sets_;
 
     /*!
      * Set the fan speed to be used while printing this extruder plan

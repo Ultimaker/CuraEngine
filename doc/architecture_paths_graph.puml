@@ -1,6 +1,5 @@
 @startuml
 package "path_planning" {
-  LayerPlanBuffer *-- "*" LayerPlan
   FffGCodeWriter *-- "1" LayerPlanBuffer
 
   abstract class PrintOperation {
@@ -16,17 +15,21 @@ package "path_planning" {
 
   LayerPlan -up-|> PrintOperationSequence
   ExtruderPlan -up-|> PrintOperationSequence
-  ExtruderMoveSequence -up-|> PrintOperationSequence
+  ContinuousExtruderMoveSequence -up-|> PrintOperationSequence
+  LayerPlanBuffer -up-|> PrintOperationSequence
+  MeshFeatureExtrusion -up-|> FeatureExtrusion
 
   ExtruderMove -up-|> PrintOperation
   ExtrusionMove -up-|> ExtruderMove
   TravelMove -up-|> ExtruderMove
 
+  class SetNozzleTemperatureCommand #paleturquoise
   SetNozzleTemperatureCommand -up-|> PrintOperation
+  class SetCoolingFanCommand #paleturquoise
   SetCoolingFanCommand -up-|> PrintOperation
 
   FeatureExtrusion -up-|> PrintOperationSequence
-  TravelRoute -up-|> PrintOperationSequence
+  TravelRoute -up-|> ContinuousExtruderMoveSequence
 }
 package "path_export" {
   abstract PathExporter {
@@ -38,10 +41,10 @@ package "path_export" {
   }
 
   GCodeExporter -up-|> PathExporter
-  ArcusExporter -up-|> PathExporter
-  MultiExporter -up-|> PathExporter
-  TimeEstimateCalculator -up-|> PathExporter
-  MakerBotExporter -up-|> PathExporter
+  CommunicationExporter -up-|> PathExporter
+  MultiExporter -right-|> PathExporter
+  ConsumptionEstimationExporter -up-|> PathExporter
+  ConsoleExporter -up-|> PathExporter
 
   MultiExporter *-- "*" PathExporter
 }
@@ -55,14 +58,18 @@ ExtrusionMove : double flow
 
 FeatureExtrusion : FeatureType type
 
+MeshFeatureExtrusion : SliceMeshStorage mesh
+
+ContinuousExtruderMoveSequence : bool closed
+ContinuousExtruderMoveSequence : double speed_factor
+
 package "path_processing" {
-  abstract PrintOperationProcessor {
-    {abstract} void process(PrintOperation)
+  abstract PrintOperationProcessor << template<class OperationType> >> {
+    {abstract} void process(OperationType operation)
   }
 
-  InsertBetweenOperationProcessor -up-|> PrintOperationProcessor
-  AddTravelMovesProcessor -up-|> InsertBetweenOperationProcessor
-  PrimeTowerProcessor -up-|> InsertBetweenOperationProcessor
+  AddLayerPlanTravelMovesProcessor -up-|> PrintOperationProcessor
+  PrimeTowerProcessor -up-|> PrintOperationProcessor
   MinimumLayerTimeProcessor -up-|> PrintOperationProcessor
   CoastingProcessor -up-|> PrintOperationProcessor
   BackPressureCompensationProcessor -up-|> PrintOperationProcessor
@@ -72,10 +79,18 @@ package "path_processing" {
   CoolingFanCommandsProcessor -up-|> InsertOperationOnTimeProcessor
   InsertOperationOnTimeProcessor -up-|> PrintOperationProcessor
 
-  AddTravelMovesProcessor *-- "*" TravelMoveGenerator
+  AddLayerPlanTravelMovesProcessor *-- "*" TravelMoveGenerator
   abstract TravelMoveGenerator
   DirectTravelMoveGenerator -up-|> TravelMoveGenerator
   CombingTravelMoveGenerator -up-|> TravelMoveGenerator
+
+  BedAdhesionConstraintsGenerator -up-|> FeatureExtrusionsConstraintsGenerator
+  MeshFeaturesConstraintsGenerator -up-|> FeatureExtrusionsConstraintsGenerator
+
+  ExtruderPlanScheduler -up-|> PrintOperationProcessor
+  class FeatureExtrusionScheduler
+  ExtruderPlanScheduler *-- "*" FeatureExtrusionScheduler
+  FeatureExtrusionScheduler *-- "*" FeatureExtrusionsConstraintsGenerator
 
   SplitterProcessor *-- "*" PathSplitter
 
@@ -83,5 +98,20 @@ package "path_processing" {
   GradualFlowSplitter -up-|> PathSplitter
   ScarfSeamSplitter -up-|> PathSplitter
   SmoothSpeedSplitter -up-|> PathSplitter
+
+  class InsertOperationOnTimeProcessor #paleturquoise
+  class NozzleTemperatureCommandsProcessor #paleturquoise
+  class BedTemperatureCommandsProcessor #paleturquoise
+  class CoolingFanCommandsProcessor #paleturquoise
+  class PrimeTowerProcessor #paleturquoise
+  class CombingTravelMoveGenerator #paleturquoise
+  class MinimumLayerTimeProcessor #paleturquoise
+  class CoastingProcessor #paleturquoise
+  class BackPressureCompensationProcessor #paleturquoise
+  class SplitterProcessor #paleturquoise
+  class PathSplitter #paleturquoise
+  class GradualFlowSplitter #paleturquoise
+  class ScarfSeamSplitter #paleturquoise
+  class SmoothSpeedSplitter #paleturquoise
 }
 @enduml

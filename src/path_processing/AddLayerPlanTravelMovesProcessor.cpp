@@ -3,7 +3,7 @@
 
 #include "path_processing/AddLayerPlanTravelMovesProcessor.h"
 
-#include "path_planning/ContinuousExtrusionMoveSequence.h"
+#include "path_planning/ContinuousExtruderMoveSequence.h"
 #include "path_planning/ExtruderPlan.h"
 #include "path_planning/FeatureExtrusion.h"
 #include "path_planning/TravelRoute.h"

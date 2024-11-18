@@ -3,7 +3,7 @@
 
 #include "path_planning/FeatureExtrusion.h"
 
-#include "path_planning/ContinuousExtrusionMoveSequence.h"
+#include "path_planning/ContinuousExtruderMoveSequence.h"
 #include "path_planning/ExtruderPlan.h"
 #include "path_planning/ExtrusionMove.h"
 
@@ -15,7 +15,7 @@ FeatureExtrusion::FeatureExtrusion(const GCodePathConfig& config)
 {
 }
 
-void FeatureExtrusion::appendExtruderMoveSequence(const std::shared_ptr<ContinuousExtrusionMoveSequence>& extruder_move_sequence, bool check_non_empty)
+void FeatureExtrusion::appendExtruderMoveSequence(const ContinuousExtruderMoveSequencePtr& extruder_move_sequence, bool check_non_empty)
 {
     if (! check_non_empty || ! extruder_move_sequence->empty())
     {
