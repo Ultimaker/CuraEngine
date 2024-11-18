@@ -17,8 +17,7 @@ public:
     virtual void appendConstraints(
         const FeatureExtrusionPtr& feature_extrusion,
         const std::vector<FeatureExtrusionPtr>& all_feature_extrusions,
-        std::vector<FeatureExtrusionPtr>& extrusions_after) const
-        = 0;
+        std::vector<FeatureExtrusionPtr>& extrusions_after) const = 0;
 };
 
 } // namespace cura
