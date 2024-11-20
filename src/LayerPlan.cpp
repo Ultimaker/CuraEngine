@@ -190,14 +190,16 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 {
                     continue;
                 }
+
+                constexpr coord_t extra_offset = 10; // Additional offset to avoid zero-width polygons remains
                 coord_t offset;
                 switch (boundary_type)
                 {
                 case CombBoundary::MINIMUM:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
                     break;
                 case CombBoundary::PREFERRED:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2;
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
                     break;
                 default:
                     offset = 0;
@@ -208,36 +210,37 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
                 for (const SliceLayerPart& part : layer.parts)
                 {
-                    if (combing_mode == CombingMode::ALL) // Add the increased outline offset (skin, infill and part of the inner walls)
+                    Shape part_combing_boundary;
+
+                    if (combing_mode == CombingMode::INFILL)
                     {
-                        comb_boundary.push_back(part.outline.offset(offset));
+                        part_combing_boundary = part.infill_area;
                     }
-                    else if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
+                    else
                     {
-                        comb_boundary.push_back(part.outline.offset(offset).difference(part.inner_area.difference(part.infill_area)));
-                    }
-                    else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
-                    {
-                        Shape top_and_bottom_most_fill;
-                        for (const SliceLayerPart& outer_surface_part : layer.parts)
+                        part_combing_boundary = part.outline.offset(offset);
+
+                        if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
                         {
-                            for (const SkinPart& skin_part : outer_surface_part.skin_parts)
+                            part_combing_boundary = part_combing_boundary.difference(part.inner_area.difference(part.infill_area));
+                        }
+                        else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
+                        {
+                            for (const SliceLayerPart& outer_surface_part : layer.parts)
                             {
-                                top_and_bottom_most_fill.push_back(skin_part.top_most_surface_fill);
-                                top_and_bottom_most_fill.push_back(skin_part.bottom_most_surface_fill);
+                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.top_most_surface);
+                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.bottom_most_surface);
                             }
                         }
-                        comb_boundary.push_back(part.outline.offset(offset).difference(top_and_bottom_most_fill));
                     }
-                    else if (combing_mode == CombingMode::INFILL) // Add the infill (infill only)
-                    {
-                        comb_boundary.push_back(part.infill_area);
-                    }
+
+                    comb_boundary.push_back(part_combing_boundary);
                 }
             }
             break;
         }
     }
+
     return comb_boundary;
 }
 
@@ -554,6 +557,45 @@ void LayerPlan::addExtrusionMove(
     last_planned_position_ = p.toPoint2LL();
 }
 
+template<class PathType>
+void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const Point2LL& last_path_position)
+{
+    if (path.size() >= 2 && wipe_distance > 0)
+    {
+        const int direction = backwards ? -1 : 1;
+        Point2LL p0 = last_path_position;
+        int distance_traversed = 0;
+        size_t index = start_index;
+        while (distance_traversed < wipe_distance)
+        {
+            index = static_cast<size_t>((index + direction + path.size()) % path.size());
+            if (index == start_index && distance_traversed == 0)
+            {
+                // Wall has a total circumference of 0. This loop would never end.
+                break;
+            }
+
+            const Point2LL& p1 = path.pointAt(index);
+            const int p0p1_dist = vSize(p1 - p0);
+            if (distance_traversed + p0p1_dist >= wipe_distance)
+            {
+                Point2LL vector = p1 - p0;
+                Point2LL half_way = p0 + normal(vector, wipe_distance - distance_traversed);
+                addTravel_simple(half_way);
+            }
+            else
+            {
+                addTravel_simple(p1);
+            }
+
+            distance_traversed += p0p1_dist;
+            p0 = p1;
+        }
+
+        forceNewPathStart();
+    }
+}
+
 void LayerPlan::addPolygon(
     const Polygon& polygon,
     int start_idx,
@@ -569,12 +611,13 @@ void LayerPlan::addPolygon(
 {
     constexpr bool is_closed = true;
     constexpr bool is_candidate_small_feature = false;
+    const PathAdapter path_adapter(polygon, config.getLineWidth());
 
     Point2LL p0 = polygon[start_idx];
     addTravel(p0, always_retract, config.z_offset);
 
-    addWallWithScarfSeam(
-        PathAdapter(polygon, config.getLineWidth()),
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam(
+        path_adapter,
         start_idx,
         settings,
         config,
@@ -602,31 +645,7 @@ void LayerPlan::addPolygon(
 
     if (polygon.size() > 2)
     {
-        if (wall_0_wipe_dist > 0)
-        { // apply outer wall wipe
-            p0 = polygon[start_idx];
-            const int direction = backwards ? -1 : 1;
-            int distance_traversed = 0;
-            for (size_t point_idx = 1;; point_idx++)
-            {
-                Point2LL p1 = polygon[(start_idx + point_idx * direction + polygon.size()) % polygon.size()];
-                int p0p1_dist = vSize(p1 - p0);
-                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-                {
-                    Point2LL vector = p1 - p0;
-                    Point2LL half_way = p0 + normal(vector, wall_0_wipe_dist - distance_traversed);
-                    addTravel_simple(half_way);
-                    break;
-                }
-                else
-                {
-                    addTravel_simple(p1);
-                    distance_traversed += p0p1_dist;
-                }
-                p0 = p1;
-            }
-            forceNewPathStart();
-        }
+        addWipeTravel(path_adapter, wall_0_wipe_dist, backwards, get<0>(add_wall_result), get<1>(add_wall_result));
     }
     else
     {
@@ -1039,7 +1058,7 @@ void LayerPlan::addWall(
 }
 
 template<class PathType>
-void LayerPlan::addSplitWall(
+std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const PathAdapter<PathType>& wall,
     const coord_t wall_length,
     const size_t start_idx,
@@ -1083,10 +1102,14 @@ void LayerPlan::addSplitWall(
     double accelerate_factor_origin = 0.0; // Interpolation factor at the current point for the acceleration
     double decelerate_factor_origin = 0.0; // Interpolation factor at the current point for the deceleration
     const coord_t start_decelerate_position = wall_length - decelerate_length;
+    Point3LL split_destination = p0;
+    size_t previous_point_index = start_idx;
+    bool keep_processing = true;
 
-    for (size_t point_idx = 1; point_idx < max_index; point_idx++)
+    for (size_t point_idx = 1; point_idx < max_index && keep_processing; point_idx++)
     {
         const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
+        previous_point_index = (wall.size() + start_idx + (point_idx - 1) * direction) % wall.size();
         const Point2LL& p1 = wall.pointAt(actual_point_index);
         const coord_t w1 = wall.lineWidthAt(actual_point_index);
         coord_t segment_processed_distance = 0;
@@ -1137,7 +1160,7 @@ void LayerPlan::addSplitWall(
         const size_t pieces = std::max(size_t(1), std::min(pieces_limit_deviation, pieces_limit_resolution)); // Resolution overrides deviation, if resolution is a constraint.
         const coord_t piece_length = round_divide(line_length, pieces);
 
-        for (size_t piece = 0; piece < pieces; ++piece)
+        for (size_t piece = 0; piece < pieces && keep_processing; ++piece)
         {
             const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
             // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
@@ -1155,7 +1178,7 @@ void LayerPlan::addSplitWall(
                 coord_t piece_remaining_distance = piece_length;
 
                 // Cut piece into smaller parts for scarf seam and acceleration/deceleration
-                while (piece_remaining_distance > 0 && (! is_scarf_closure || wall_processed_distance < scarf_seam_length))
+                while (piece_remaining_distance > 0 && keep_processing)
                 {
                     // Make a list of all the possible incoming positions where we would eventually want to stop next
                     // The positions are expressed in distance from wall start along the wall segments
@@ -1193,7 +1216,7 @@ void LayerPlan::addSplitWall(
                     const coord_t destination_position = *std::min_element(split_positions.begin(), split_positions.end());
                     const coord_t length_to_process = destination_position - wall_processed_distance;
                     const double destination_factor = static_cast<double>(segment_processed_distance + length_to_process) / line_length;
-                    Point3LL split_destination = cura::lerp(p0, p1, destination_factor);
+                    split_destination = cura::lerp(p0, p1, destination_factor);
 
                     double scarf_segment_flow_ratio = 1.0;
                     double scarf_factor_destination = 1.0; // Out of range, scarf is done => 1.0
@@ -1266,6 +1289,11 @@ void LayerPlan::addSplitWall(
                     scarf_factor_origin = scarf_factor_destination;
                     accelerate_factor_origin = accelerate_factor_destination;
                     decelerate_factor_origin = decelerate_factor_destination;
+
+                    if (is_scarf_closure)
+                    {
+                        keep_processing = wall_processed_distance < scarf_seam_length;
+                    }
                 }
             }
         }
@@ -1273,12 +1301,14 @@ void LayerPlan::addSplitWall(
         p0 = p1;
         w0 = w1;
     }
+
+    return { previous_point_index, split_destination.toPoint2LL() };
 }
 
 std::vector<LayerPlan::PathCoasting>
     LayerPlan::calculatePathsCoasting(const Settings& extruder_settings, const std::vector<GCodePath>& paths, const Point3LL& current_position) const
 {
-    std::vector<LayerPlan::PathCoasting> path_coastings;
+    std::vector<PathCoasting> path_coastings;
     path_coastings.resize(paths.size());
 
     if (extruder_settings.get<bool>("coasting_enable"))
@@ -1297,6 +1327,17 @@ std::vector<LayerPlan::PathCoasting>
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
         {
+            if (reversed_chunk.empty())
+            {
+                continue;
+            }
+
+            const PrintFeatureType type = reversed_chunk.front().second.config.getPrintFeatureType();
+            if (type != PrintFeatureType::OuterWall && type != PrintFeatureType::InnerWall)
+            {
+                continue;
+            }
+
             double accumulated_volume = 0.0;
             bool chunk_coasting_point_reached = false;
             bool chunk_min_volume_reached = false;
@@ -1460,7 +1501,7 @@ coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const
 }
 
 template<class PathType>
-void LayerPlan::addWallWithScarfSeam(
+std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const PathAdapter<PathType>& wall,
     size_t start_idx,
     const Settings& settings,
@@ -1476,10 +1517,10 @@ void LayerPlan::addWallWithScarfSeam(
 {
     if (wall.empty())
     {
-        return;
+        return { start_idx, Point2LL() };
     }
 
-    const bool actual_scarf_seam = scarf_seam && is_closed;
+    const bool actual_scarf_seam = scarf_seam && is_closed && layer_nr_ > 0;
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
 
@@ -1496,7 +1537,7 @@ void LayerPlan::addWallWithScarfSeam(
     const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
 
-    const auto scarf_seam_length = std::min(wall_length, actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
+    const coord_t scarf_seam_length = std::min(wall_length, actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
     const auto scarf_seam_start_ratio = actual_scarf_seam ? settings.get<Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
     const auto scarf_split_distance = settings.get<coord_t>("scarf_split_distance");
     const coord_t scarf_max_z_offset = static_cast<coord_t>(-(1.0 - scarf_seam_start_ratio) * static_cast<double>(layer_thickness_));
@@ -1513,11 +1554,11 @@ void LayerPlan::addWallWithScarfSeam(
     const Velocity end_speed = top_speed * end_speed_ratio; // mm/s
     const coord_t decelerate_length = (smooth_speed && end_speed_ratio < 1.0) ? MM2INT((square(top_speed) - square(end_speed)) / (2.0 * deceleration)) : 0; // µm
 
-    auto addSplitWallPass = [&](bool is_scarf_closure)
+    auto addSplitWallPass = [&](bool is_scarf_closure) -> std::tuple<size_t, Point2LL>
     {
         constexpr bool compute_distance_to_bridge_start = true;
 
-        addSplitWall(
+        return addSplitWall(
             PathAdapter(wall),
             wall_length,
             start_idx,
@@ -1532,7 +1573,7 @@ void LayerPlan::addWallWithScarfSeam(
             flow_ratio,
             nominal_line_width,
             min_bridge_line_len,
-            layer_nr_ > 0 ? scarf_seam_length : 0,
+            scarf_seam_length,
             scarf_seam_start_ratio,
             scarf_split_distance,
             scarf_max_z_offset,
@@ -1547,13 +1588,15 @@ void LayerPlan::addWallWithScarfSeam(
     };
 
     // First pass to add the wall with the scarf beginning and acceleration
-    addSplitWallPass(false);
+    std::tuple<size_t, Point2LL> result = addSplitWallPass(false);
 
     if (scarf_seam_length > 0)
     {
         // Second pass to add the scarf closure
-        addSplitWallPass(true);
+        result = addSplitWallPass(true);
     }
+
+    return result;
 }
 
 void LayerPlan::addWall(
@@ -1579,9 +1622,10 @@ void LayerPlan::addWall(
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const PathAdapter path_adapter(wall);
 
-    addWallWithScarfSeam(
-        PathAdapter(wall),
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam(
+        path_adapter,
         start_idx,
         settings,
         default_config,
@@ -1623,33 +1667,9 @@ void LayerPlan::addWall(
             computeDistanceToBridgeStart(wall, (start_idx + wall.size() - 1) % wall.size(), min_bridge_line_len);
         }
 
-        if (wall_0_wipe_dist > 0 && ! is_linked_path)
-        { // apply outer wall wipe
-            ExtrusionJunction p0 = wall[start_idx];
-            coord_t distance_traversed = 0;
-            for (unsigned int point_idx = 1;; point_idx++)
-            {
-                if (point_idx > wall.size() && distance_traversed == 0) // Wall has a total circumference of 0. This loop would never end.
-                {
-                    break; // No wipe if the wall has no circumference.
-                }
-                ExtrusionJunction p1 = wall[(start_idx + point_idx) % wall.size()];
-                coord_t p0p1_dist = vSize(p1 - p0);
-                if (distance_traversed + p0p1_dist >= wall_0_wipe_dist)
-                {
-                    Point2LL vector = p1.p_ - p0.p_;
-                    Point2LL half_way = p0.p_ + normal(vector, wall_0_wipe_dist - distance_traversed);
-                    addTravel_simple(half_way);
-                    break;
-                }
-                else
-                {
-                    addTravel_simple(p1.p_);
-                    distance_traversed += p0p1_dist;
-                }
-                p0 = p1;
-            }
-            forceNewPathStart();
+        if (! is_linked_path)
+        {
+            addWipeTravel(path_adapter, wall_0_wipe_dist, is_reversed, get<0>(add_wall_result), get<1>(add_wall_result));
         }
     }
     else
@@ -2748,6 +2768,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     gcode.writeTravel(current_position, extruder.settings_.get<Velocity>("speed_z_hop"));
 
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
+                    path.z_offset = final_travel_z_ - z_;
                     gcode.setZ(final_travel_z_);
                 }
                 for (size_t point_idx = 0; point_idx + 1 < path.points.size(); point_idx++)
@@ -3083,6 +3104,19 @@ void LayerPlan::applyGradualFlow()
     {
         gradual_flow::Processor::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
     }
+}
+
+std::shared_ptr<const SliceMeshStorage> LayerPlan::findFirstPrintedMesh() const
+{
+    for (const ExtruderPlan& extruder_plan : extruder_plans_)
+    {
+        if (std::shared_ptr<const SliceMeshStorage> mesh = extruder_plan.findFirstPrintedMesh())
+        {
+            return mesh;
+        }
+    }
+
+    return nullptr;
 }
 
 LayerIndex LayerPlan::getLayerNr() const

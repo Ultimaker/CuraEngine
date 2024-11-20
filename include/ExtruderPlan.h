@@ -124,6 +124,11 @@ public:
      */
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
+    /*!
+     * Gets the mesh being printed first on this plan
+     */
+    std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
     bool is_initial_layer_{ false }; //!< Whether this extruder plan is printed on the very first layer (which might be raft)

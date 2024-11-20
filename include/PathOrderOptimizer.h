@@ -740,7 +740,10 @@ protected:
 
         if (path.force_start_index_.has_value()) // Actually handles EZSeamType::USER_SPECIFIED
         {
-            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()));
+            // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
+            constexpr double distance_divider = 1.0;
+            constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
+            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
         }
         else
         {
