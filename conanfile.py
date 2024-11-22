@@ -4,7 +4,7 @@ import os
 from shutil import which
 
 from conan import ConanFile
-from conan.errors import ConanInvalidConfiguration
+from conan.errors import ConanInvalidConfiguration, ConanException
 from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
@@ -32,6 +32,7 @@ class CuraEngineConan(ConanFile):
         "enable_sentry": [True, False],
         "enable_remote_plugins": [True, False],
         "with_cura_resources": [True, False],
+        "sentry_project": ["ANY"],
     }
     default_options = {
         "enable_arcus": True,
@@ -41,6 +42,7 @@ class CuraEngineConan(ConanFile):
         "enable_sentry": False,
         "enable_remote_plugins": False,
         "with_cura_resources": False,
+        "sentry_project": name,
     }
 
     def set_version(self):
@@ -67,10 +69,6 @@ class CuraEngineConan(ConanFile):
     def config_options(self):
         if not self.options.enable_plugins:
             del self.options.enable_remote_plugins
-        sentry_project = self.conf.get("user.curaengine:sentry_project", "", check_type=str)
-        sentry_org = self.conf.get("user.curaengine:sentry_org", "", check_type=str)
-        if os.environ.get('SENTRY_TOKEN', None) is None or sentry_project == "" or sentry_org == "":
-            del self.options.enable_sentry
 
     def configure(self):
         if self.options.enable_arcus or self.options.enable_plugins:
@@ -79,17 +77,21 @@ class CuraEngineConan(ConanFile):
             self.options["arcus"].shared = True
         if self.settings.os == "Linux":
             self.options["openssl"].shared = True
-        if self.options.get_safe("enable_sentry", False):
+        if self.options.enable_sentry:
             self.options["sentry-native"].backend = "breakpad"
-            self.options["arcus"].enable_sentry = True
-            self.options["clipper"].enable_sentry = True
 
     def validate(self):
         if self.settings.compiler.get_safe("cppstd"):
             check_min_cppstd(self, 20)
+
         if self.version:
             if Version(self.version) <= Version("4"):
                 raise ConanInvalidConfiguration("only versions 5+ are supported")
+
+        if self.options.get_safe("enable_sentry", False):
+            for sentry_setting in ["organization", "url", "token"]:
+                if self.conf.get(f"user.sentry:{sentry_setting}", "", check_type=str) == "":
+                    raise ConanInvalidConfiguration(f"Unable to enable Sentry because no {sentry_setting} was configured")
 
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.2.0]@ultimaker/cura_11622")  # FIXME: use stable after merge
@@ -107,7 +109,7 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_arcus:
             for req in self.conan_data["requirements_arcus"]:
                 self.requires(req)
-        if self.options.get_safe("enable_sentry", False):
+        if self.options.enable_sentry:
             self.requires("sentry-native/0.7.0")
         if self.options.enable_plugins:
             self.requires("neargye-semver/0.3.0")
@@ -142,9 +144,9 @@ class CuraEngineConan(ConanFile):
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
         tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
         tc.variables["ENABLE_THREADING"] = not (self.settings.arch == "wasm" and self.settings.os == "Emscripten")
-        if self.options.get_safe("enable_sentry", False):
+        if self.options.enable_sentry:
             tc.variables["ENABLE_SENTRY"] = True
-            tc.variables["SENTRY_URL"] = self.conf.get("user.curaengine:sentry_url", "", check_type=str)
+            tc.variables["SENTRY_URL"] = self.conf.get("user.sentry:url", "", check_type=str)
         if self.options.enable_plugins:
             tc.variables["ENABLE_PLUGINS"] = True
             tc.variables["ENABLE_REMOTE_PLUGINS"] = self.options.enable_remote_plugins
@@ -186,39 +188,37 @@ class CuraEngineConan(ConanFile):
         cmake.configure()
         cmake.build()
 
-        if self.options.get_safe("enable_sentry", False):
+        if self.options.enable_sentry:
             # Upload debug symbols to sentry
-            sentry_project = self.conf.get("user.curaengine:sentry_project", "", check_type=str)
-            sentry_org = self.conf.get("user.curaengine:sentry_org", "", check_type=str)
-            if sentry_project == "" or sentry_org == "":
-                raise ConanInvalidConfiguration("sentry_project or sentry_org is not set")
+            sentry_project = self.options.sentry_project
+            sentry_organization = self.conf.get("user.sentry:organization", "", check_type=str)
+            sentry_token = self.conf.get("user.sentry:token", "", check_type=str)
 
             if which("sentry-cli") is None:
-                self.output.warn("sentry-cli is not installed, skipping uploading debug symbols")
-                self.output.warn("sentry-cli is not installed, skipping release creation")
-            else:
-                if self.settings.os == "Linux":
-                    self.output.info("Stripping debug symbols from binary")
-                    self.run("objcopy --only-keep-debug --compress-debug-sections=zlib CuraEngine CuraEngine.debug")
-                    self.run("objcopy --strip-debug --strip-unneeded CuraEngine")
-                    self.run("objcopy --add-gnu-debuglink=CuraEngine.debug CuraEngine")
-                elif self.settings.os == "Macos":
-                    self.run("dsymutil CuraEngine")
+                raise ConanException("sentry-cli is not installed, unable to upload debug symbols")
 
-                self.output.info("Uploading debug symbols to sentry")
-                build_source_dir = self.build_path.parent.parent.as_posix()
-                self.run(
-                    f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} debug-files upload --include-sources -o {sentry_org} -p {sentry_project} {build_source_dir}")
+            if self.settings.os == "Linux":
+                self.output.info("Stripping debug symbols from binary")
+                self.run("objcopy --only-keep-debug --compress-debug-sections=zlib CuraEngine CuraEngine.debug")
+                self.run("objcopy --strip-debug --strip-unneeded CuraEngine")
+                self.run("objcopy --add-gnu-debuglink=CuraEngine.debug CuraEngine")
+            elif self.settings.os == "Macos":
+                self.run("dsymutil CuraEngine")
 
-                # create a sentry release and link it to the commit this is based upon
-                self.output.info(
-                    f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
-                self.run(
-                    f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases new -o {sentry_org} -p {sentry_project} {self.version}")
-                self.run(
-                    f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases set-commits -o {sentry_org} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
-                self.run(
-                    f"sentry-cli --auth-token {os.environ['SENTRY_TOKEN']} releases finalize -o {sentry_org} -p {sentry_project} {self.version}")
+            self.output.info("Uploading debug symbols to sentry")
+            build_source_dir = self.build_path.parent.parent.as_posix()
+            self.run(
+                f"sentry-cli --auth-token {sentry_token} debug-files upload --include-sources -o {sentry_organization} -p {sentry_project} {build_source_dir}")
+
+            # create a sentry release and link it to the commit this is based upon
+            self.output.info(
+                f"Creating a new release {self.version} in Sentry and linking it to the current commit {self.conan_data['commit']}")
+            self.run(
+                f"sentry-cli --auth-token {sentry_token} releases new -o {sentry_organization} -p {sentry_project} {self.version}")
+            self.run(
+                f"sentry-cli --auth-token {sentry_token} releases set-commits -o {sentry_organization} -p {sentry_project} --commit \"Ultimaker/CuraEngine@{self.conan_data['commit']}\" {self.version}")
+            self.run(
+                f"sentry-cli --auth-token {sentry_token} releases finalize -o {sentry_organization} -p {sentry_project} {self.version}")
 
     def deploy(self):
         copy(self, "CuraEngine*", src=os.path.join(self.package_folder, "bin"), dst=self.deploy_folder)
