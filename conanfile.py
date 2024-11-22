@@ -22,7 +22,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "application"
-    python_requires = "sentrylibrary/1.0@ultimaker/cura_11622" # FIXME: use main after merge
+    python_requires = "sentrylibrary/1.0.0@ultimaker/cura_11622" # FIXME: use main after merge
     python_requires_extend = "sentrylibrary.SentryLibrary"
 
     options = {
