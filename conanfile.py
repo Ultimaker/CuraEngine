@@ -186,7 +186,7 @@ class CuraEngineConan(ConanFile):
         cmake.configure()
         cmake.build()
 
-        self.send_sentry_debug_files()
+        self.send_sentry_debug_files(binary_basename = "CuraEngine")
 
     def deploy(self):
         copy(self, "CuraEngine*", src=os.path.join(self.package_folder, "bin"), dst=self.deploy_folder)
