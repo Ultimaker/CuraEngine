@@ -83,12 +83,6 @@ enum class EZSeamType
     SHORTEST,
     USER_SPECIFIED,
     SHARPEST_CORNER,
-
-/* The 'Skirt/brim' type behaves like shortest, except it doesn't try to do tie-breaking for similar locations to
- * the last attempt, as that gives a different result when the seams are next to each other instead of on top.
- */
-#warning This seems never to be used, try removing it when we have a stable base
-    SKIRT_BRIM,
     PLUGIN,
 };
 
@@ -251,12 +245,10 @@ enum class InsetDirection
      */
     OUTSIDE_IN,
 
-/*!
- * If the innermost wall is a central wall, it is printed last. Otherwise
- * prints the same as inside out.
- */
-#warning This seems to be unused, consider removing
-    CENTER_LAST,
+    /*!
+     * If the innermost wall is a central wall, it is printed last. Otherwise
+     * prints the same as inside out.
+     */
     PLUGIN,
 };
 

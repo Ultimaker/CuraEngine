@@ -265,7 +265,6 @@ void FeatureExtrusionScheduler::preFilterStartCandidates(std::vector<StartCandid
     switch (seam_config_->type_)
     {
     case EZSeamType::SHORTEST:
-    case EZSeamType::SKIRT_BRIM:
         // Do not set a main criterion for those, we just try to filter out very bad elements (like overhanging)
         break;
 
