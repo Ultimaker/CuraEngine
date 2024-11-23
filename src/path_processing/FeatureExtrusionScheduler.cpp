@@ -18,6 +18,7 @@
 #include "path_processing/ClosestStartPoint.h"
 #include "path_processing/ExtruderPlanScheduler.h"
 #include "path_processing/MeshFeaturesConstraintsGenerator.h"
+#include "path_processing/MonotonicConstraintsGenerator.h"
 #include "settings/ZSeamConfig.h"
 #include "utils/scoring/BestElementFinder.h"
 
@@ -27,7 +28,7 @@ namespace cura
 FeatureExtrusionScheduler::FeatureExtrusionScheduler(const FeatureExtrusionPtr& feature_extrusion, const std::vector<FeatureExtrusionPtr>& all_feature_extrusions)
     : seam_config_(getZSeamConfig(feature_extrusion))
     , extrusions_after_(makeOrderingConstraints(feature_extrusion, all_feature_extrusions))
-    , sequences_constraints_(makeMoveSequencesConstraints(feature_extrusion))
+    , moves_constraints_(makeMoveSequencesConstraints(feature_extrusion))
 {
     makeStartCandidates(feature_extrusion);
 }
@@ -106,6 +107,7 @@ std::vector<FeatureExtrusionPtr>
     case PrintFeatureType::OuterWall:
     case PrintFeatureType::InnerWall:
     case PrintFeatureType::Skin:
+    case PrintFeatureType::Roof:
     case PrintFeatureType::Infill:
         constraints_generators.push_back(std::make_shared<MeshFeaturesConstraintsGenerator>());
         break;
@@ -131,7 +133,17 @@ std::vector<FeatureExtrusionPtr>
 
 FeatureExtrusionScheduler::SequencesConstraintsMap FeatureExtrusionScheduler::makeMoveSequencesConstraints(const FeatureExtrusionPtr& feature_extrusion)
 {
-    return {};
+    SequencesConstraintsMap constraints;
+
+    std::vector<std::shared_ptr<MoveSequencesConstraintsGenerator>> moves_constraints_generators;
+    moves_constraints_generators.push_back(std::make_shared<MonotonicConstraintsGenerator>());
+
+    for (const std::shared_ptr<MoveSequencesConstraintsGenerator>& constraints_generator : moves_constraints_generators)
+    {
+        constraints_generator->appendConstraints(feature_extrusion, constraints);
+    }
+
+    return constraints;
 }
 
 void FeatureExtrusionScheduler::makeStartCandidates(const FeatureExtrusionPtr& feature_extrusion)
@@ -185,7 +197,7 @@ void FeatureExtrusionScheduler::applyMoveSequenceAction(const StartCandidatePoin
 bool FeatureExtrusionScheduler::moveSequenceProcessableNow(const ContinuousExtruderMoveSequencePtr& move_sequence) const
 {
     return std::ranges::all_of(
-        sequences_constraints_,
+        moves_constraints_,
         [&move_sequence](const auto& constraint)
         {
             return ! ranges::contains(constraint.second, move_sequence);
@@ -210,9 +222,9 @@ void FeatureExtrusionScheduler::appendNextProcessedSequence(
         start_candidates_.erase(iterator);
     }
 
-    if (auto iterator = sequences_constraints_.find(start_move_sequence); iterator != sequences_constraints_.end())
+    if (auto iterator = moves_constraints_.find(start_move_sequence); iterator != moves_constraints_.end())
     {
-        sequences_constraints_.erase(iterator);
+        moves_constraints_.erase(iterator);
     }
 
     std::optional<Point3LL> start_sequence_end_position = start_move_sequence->findEndPosition();
@@ -376,6 +388,7 @@ std::shared_ptr<ZSeamConfig> FeatureExtrusionScheduler::getZSeamConfig(const Fea
 
     case PrintFeatureType::InnerWall:
     case PrintFeatureType::Skin:
+    case PrintFeatureType::Roof:
     case PrintFeatureType::Support:
     case PrintFeatureType::SkirtBrim:
     case PrintFeatureType::Infill:

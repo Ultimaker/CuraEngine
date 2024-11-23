@@ -18,7 +18,6 @@ class ExtrusionMove;
 struct StartCandidatePoint
 {
     Point3LL position;
-#warning This value may be useless now, check
     FeatureExtrusionPtr feature_extrusion;
     ContinuousExtruderMoveSequencePtr move_sequence;
     std::shared_ptr<ExtrusionMove> move; // The move containing the target position, or null for the actual starting point

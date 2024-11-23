@@ -16,6 +16,7 @@ namespace cura
 
 class Shape;
 class PrintOperation;
+class MoveSequencesConstraintsGenerator;
 struct ZSeamConfig;
 struct ClosestStartPoint;
 
@@ -61,7 +62,7 @@ private:
 private:
     const std::shared_ptr<ZSeamConfig> seam_config_;
     const std::vector<FeatureExtrusionPtr> extrusions_after_;
-    SequencesConstraintsMap sequences_constraints_;
+    SequencesConstraintsMap moves_constraints_;
     StartCandidatesBySequenceMap start_candidates_;
     const std::shared_ptr<Shape> overhang_areas_;
     bool optimize_extrusion_sequences_{ true };

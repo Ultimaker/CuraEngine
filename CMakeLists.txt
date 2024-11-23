@@ -149,6 +149,8 @@ set(engine_SRCS # Except main.cpp.
         src/path_processing/FeatureExtrusionScheduler.cpp include/path_processing/FeatureExtrusionScheduler.h
         src/path_processing/InsertOperationsProcessor.cpp include/path_processing/InsertOperationsProcessor.h
         src/path_processing/MeshFeaturesConstraintsGenerator.cpp include/path_processing/MeshFeaturesConstraintsGenerator.h
+        src/path_processing/MonotonicConstraintsGenerator.cpp include/path_processing/MonotonicConstraintsGenerator.h
+        src/path_processing/MoveSequencesConstraintsGenerator.cpp include/path_processing/MoveSequencesConstraintsGenerator.h
         src/path_processing/PrintOperationProcessor.cpp include/path_processing/PrintOperationProcessor.h
         src/path_processing/TravelMoveGenerator.cpp include/path_processing/TravelMoveGenerator.h
 

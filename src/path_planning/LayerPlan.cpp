@@ -59,14 +59,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
@@ -1278,7 +1279,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -2011,6 +2012,26 @@ void LayerPlan::addLinesMonotonic(
     const Ratio flow_ratio,
     const double fan_speed)
 {
+    auto feature_extrusion = makeFeatureExtrusion(config);
+
+    for (const OpenPolyline& line : lines)
+    {
+        if (! line.isValid())
+        {
+            continue;
+        }
+
+        auto extruder_move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(false, line.front());
+        for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
+        {
+            extruder_move_sequence->appendExtruderMove((*iterator).end);
+        }
+        feature_extrusion->appendExtruderMoveSequence(extruder_move_sequence);
+    }
+
+    getLastExtruderPlan().appendOperation(feature_extrusion);
+    return;
+
     const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
     const coord_t exclude_dist2 = exclude_distance * exclude_distance;
     const Point2LL last_position = getLastPlannedPositionOrStartingPosition();

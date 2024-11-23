@@ -84,4 +84,5 @@ public:
 };
 
 } // namespace cura
+
 #endif // UTILS_SCORING_BESTCANDIDATEFINDER_H

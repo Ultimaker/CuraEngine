@@ -87,10 +87,13 @@ package "path_processing" {
   BedAdhesionConstraintsGenerator -up-|> FeatureExtrusionsConstraintsGenerator
   MeshFeaturesConstraintsGenerator -up-|> FeatureExtrusionsConstraintsGenerator
 
+  MonotonicConstraintsGenerator -up-|> MoveSequencesConstraintsGenerator
+
   ExtruderPlanScheduler -up-|> PrintOperationProcessor
   class FeatureExtrusionScheduler
   ExtruderPlanScheduler *-- "*" FeatureExtrusionScheduler
   FeatureExtrusionScheduler *-- "*" FeatureExtrusionsConstraintsGenerator
+  FeatureExtrusionScheduler *-- "*" MoveSequencesConstraintsGenerator
 
   SplitterProcessor *-- "*" PathSplitter
 
