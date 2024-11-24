@@ -31,6 +31,7 @@ FeatureExtrusionScheduler::FeatureExtrusionScheduler(const FeatureExtrusionPtr& 
     , moves_constraints_(makeMoveSequencesConstraints(feature_extrusion))
 {
     makeStartCandidates(feature_extrusion);
+    assert(! start_candidates_.empty() && "Unable to find any start candidate for the feature");
 }
 
 bool FeatureExtrusionScheduler::isFeatureProcessableNow(const FeatureExtrusionPtr& feature_extrusion) const
@@ -79,7 +80,7 @@ void FeatureExtrusionScheduler::optimizeExtruderSequencesOrder(const StartCandid
             }
             else
             {
-                spdlog::error("Unable to find a start candidates amongst move sequences, some constraints must be contradictory to each other");
+                spdlog::error("Unable to find a start candidate amongst move sequences, some constraints must be contradictory to each other");
                 break;
             }
         }

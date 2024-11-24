@@ -1574,7 +1574,7 @@ void LayerPlan::addWall(
     }
 
     feature_extrusion->appendExtruderMoveSequence(extruder_move_sequence);
-    getLastExtruderPlan().appendOperation(feature_extrusion);
+    getLastExtruderPlan().appendFeatureExtrusion(feature_extrusion);
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
@@ -2029,7 +2029,7 @@ void LayerPlan::addLinesMonotonic(
         feature_extrusion->appendExtruderMoveSequence(extruder_move_sequence);
     }
 
-    getLastExtruderPlan().appendOperation(feature_extrusion);
+    getLastExtruderPlan().appendFeatureExtrusion(feature_extrusion);
     return;
 
     const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);

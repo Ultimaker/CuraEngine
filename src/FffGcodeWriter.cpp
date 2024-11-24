@@ -169,7 +169,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
 
     MultiExporter exporter;
-    exporter.appendExporter(std::make_shared<ConsoleExporter>());
+    // exporter.appendExporter(std::make_shared<ConsoleExporter>());
     exporter.appendExporter(std::make_shared<CommunicationExporter>(Application::getInstance().communication_));
     auto consumption_estimator = std::make_shared<ConsumptionEstimationExporter>();
     exporter.appendExporter(consumption_estimator);

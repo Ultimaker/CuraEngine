@@ -12,6 +12,7 @@ namespace cura
 {
 
 class AngleDegrees;
+class Point2D;
 
 class MonotonicConstraintsGenerator : public MoveSequencesConstraintsGenerator
 {
@@ -19,11 +20,12 @@ public:
     void appendConstraints(const FeatureExtrusionPtr& feature_extrusion, SequencesConstraintsMap& constraints) const override;
 
 private:
-    void appendMonotonicConstraints(
+    static void appendMonotonicConstraints(
         const std::vector<ContinuousExtruderMoveSequencePtr>& moves,
         const AngleDegrees& angle,
-        const coord_t same_line_distance,
-        SequencesConstraintsMap& constraints) const;
+        const double same_line_distance,
+        const double max_adjacent_distance,
+        SequencesConstraintsMap& constraints);
 };
 
 } // namespace cura
