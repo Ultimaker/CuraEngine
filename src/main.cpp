@@ -79,19 +79,13 @@ int main(int argc, char** argv)
 #endif
         spdlog::info("Sentry config path: {}", config_path);
         sentry_options_set_database_path(options, std::filesystem::absolute(config_path).generic_string().c_str());
-        constexpr std::string_view cura_engine_version{ CURA_ENGINE_VERSION };
-        const auto version = semver::from_string(cura_engine_version.substr(0, cura_engine_version.find_first_of('+')));
-        if (ranges::contains(cura_engine_version, '+') || version.prerelease_type == semver::prerelease::alpha)
-        {
-            // Not a production build
-            sentry_options_set_environment(options, "development");
-        }
-        else
-        {
-            sentry_options_set_environment(options, "production");
-        }
+
+#ifdef SENTRY_ENVIRONMENT
+        sentry_options_set_environment(options, std::string(SENTRY_ENVIRONMENT).c_str());
+#endif
 
         // Set the actual CuraEngine version
+        constexpr std::string_view cura_engine_version{ CURA_ENGINE_VERSION };
         sentry_options_set_release(options, fmt::format("curaengine@{}", cura_engine_version).c_str());
         spdlog::info("Starting sentry");
         sentry_init(options);
