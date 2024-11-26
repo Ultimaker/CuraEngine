@@ -1,0 +1,100 @@
+name: NPM package
+
+on:
+  workflow_dispatch:
+    inputs:
+      branch:
+        description: 'Branch to build'
+        required: true
+        default: 'main'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+
+    permissions:
+      contents: read
+      packages: write
+
+    steps:
+      - name: Checkout code
+        uses: actions/checkout@v4
+        with:
+            ref: ${{ github.event.inputs.branch }}
+
+      - name: Sync pip requirements
+        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
+        working-directory: .github/workflows
+
+      - name: Setup Python and pip
+        uses: actions/setup-python@v4
+        with:
+          python-version: 3.11.x
+          cache: pip
+          cache-dependency-path: .github/workflows/requirements-runner.txt
+
+      - name: Install Python requirements and Create default Conan profile
+        run: pip install -r .github/workflows/requirements-runner.txt
+
+      - name: Install Linux system requirements for building
+        run: |
+          mkdir runner_scripts
+          cd runner_scripts
+          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh
+          chmod +x ubuntu_setup.sh
+          sudo ./ubuntu_setup.sh
+
+      - name: Setup pipeline caches
+        run: |
+          mkdir -p /home/runner/.conan/downloads
+          mkdir -p /home/runner/.conan/data
+
+      - name: Create default Conan profile
+        run: conan profile new default --detect
+
+      # FIXME: Once merged to main: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
+      - name: Get Conan configuration
+        run: |
+          conan config install https://github.com/Ultimaker/conan-config.git
+          conan config install https://github.com/Ultimaker/conan-config.git -a "-b NP-419"
+
+      - name: Add runner credentials to cura remote
+        run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
+
+      - name: Cache Conan packages
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.conan/data
+          key: ${{ runner.os }}-conan-data-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-data-
+
+      - name: Cache Conan downloads
+        uses: actions/cache@v3
+        with:
+          path: /home/runner/.conan/downloads
+          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
+          restore-keys: |
+            ${{ runner.os }}-conan-downloads-
+
+      - name: Use Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version-file: .nvmrc
+          registry-url: 'https://npm.pkg.github.com'
+          scope: '@ultimaker'
+
+      - name: Set npm config
+        run: |
+          npm run install_curaengine
+          npm ci
+          npm publish
+        env:
+          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+
+      - name: Upload the Package(s)
+        if: ${{ always() }}
+        run: |
+          conan remove "cura_private_data/*" --force
+          conan remove "fdm_materials/*" --force
+          conan upload "*" -r cura --all -c
