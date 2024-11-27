@@ -89,10 +89,6 @@ class CuraEngineConan(ConanFile):
         if self.settings.compiler.get_safe("cppstd"):
             check_min_cppstd(self, 20)
 
-        if self.version:
-            if Version(self.version) <= Version("4"):
-                raise ConanInvalidConfiguration("only versions 5+ are supported")
-
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.2.0]@ultimaker/cura_11622")  # FIXME: use stable after merge
         if self.options.enable_arcus or self.options.enable_plugins:
