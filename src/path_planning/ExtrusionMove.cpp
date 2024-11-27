@@ -19,12 +19,12 @@ ExtrusionMove::ExtrusionMove(const Point3LL& position, const Ratio& line_width_r
 {
 }
 
-void ExtrusionMove::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
+void ExtrusionMove::write(PathExporter& exporter) const
 {
-    const auto* extruder_move_sequence = findParent<ContinuousExtruderMoveSequence>(parents);
-    const auto* feature_extrusion = findParent<FeatureExtrusion>(parents);
-    const auto* layer_plan = findParent<LayerPlan>(parents);
-    const auto* extruder_plan = findParent<ExtruderPlan>(parents);
+    const auto extruder_move_sequence = findParentByType<ContinuousExtruderMoveSequence>();
+    const auto feature_extrusion = findParentByType<FeatureExtrusion>();
+    const auto layer_plan = findParentByType<LayerPlan>();
+    const auto extruder_plan = findParentByType<ExtruderPlan>();
 
     if (! feature_extrusion || ! layer_plan || ! extruder_move_sequence || ! extruder_plan)
     {

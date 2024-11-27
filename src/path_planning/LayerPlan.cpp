@@ -2951,12 +2951,12 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
     gcode.updateTotalPrintTime();
 }
 
-void LayerPlan::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
+void LayerPlan::write(PathExporter& exporter) const
 {
     std::optional<Point3LL> start_position = findExtruderStartPosition();
     exporter.writeLayerStart(layer_nr_, start_position.value_or(Point3LL()));
 
-    PrintOperationSequence::write(exporter, parents);
+    PrintOperationSequence::write(exporter);
 
     exporter.writeLayerEnd(layer_nr_, z_, layer_thickness_);
 }

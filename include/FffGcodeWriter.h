@@ -49,7 +49,7 @@ private:
      * The layer plans are buffered so that we can start heating up a nozzle several layers before it needs to be used.
      * Another reason is to perform Auto Temperature.
      */
-    LayerPlanBuffer layer_plan_buffer;
+    std::shared_ptr<LayerPlanBuffer> layer_plan_buffer;
 
     /*!
      * The class holding the current state of the gcode being written.

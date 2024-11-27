@@ -51,7 +51,7 @@ constexpr coord_t EPSILON = 5;
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
-    , layer_plan_buffer(gcode)
+    , layer_plan_buffer(std::make_shared<LayerPlanBuffer>())
     , slice_uuid(Application::getInstance().instance_uuid_)
 {
     for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
@@ -203,7 +203,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
             // layer_plan_buffer.handle(*result.layer_plan, gcode, exporter);
-            layer_plan_buffer.appendLayerPlan(result.layer_plan);
+            layer_plan_buffer->appendLayerPlan(result.layer_plan);
         });
 
     // layer_plan_buffer.flush(exporter);
@@ -211,7 +211,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     AddLayerPlanTravelMovesProcessor layer_plan_travel_moves_processor;
     ExtruderPlanScheduler order_optimizer;
-    for (const std::shared_ptr<LayerPlan>& layer_plan : layer_plan_buffer.getOperationsAs<LayerPlan>())
+    for (const std::shared_ptr<LayerPlan>& layer_plan : layer_plan_buffer->getOperationsAs<LayerPlan>())
     {
         for (const std::shared_ptr<ExtruderPlan>& extruder_plan : layer_plan->getOperationsAs<ExtruderPlan>())
         {
@@ -221,7 +221,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         layer_plan_travel_moves_processor.process(layer_plan.get());
     }
 
-    layer_plan_buffer.write(exporter);
+    layer_plan_buffer->write(exporter);
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
     // Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
@@ -779,7 +779,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PathExporter& 
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr, false);
 
-        layer_plan_buffer.handle(gcode_layer, gcode, exporter);
+        // layer_plan_buffer.handle(gcode_layer, gcode, exporter);
     }
 
     const coord_t interface_layer_height = interface_settings.get<coord_t>("raft_interface_thickness");
@@ -939,7 +939,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PathExporter& 
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr);
 
-        layer_plan_buffer.handle(gcode_layer, gcode, exporter);
+        // layer_plan_buffer.handle(gcode_layer, gcode, exporter);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
@@ -1121,7 +1121,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PathExporter& 
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr);
 
-        layer_plan_buffer.handle(gcode_layer, gcode, exporter);
+        // layer_plan_buffer.handle(gcode_layer, gcode, exporter);
     }
 }
 

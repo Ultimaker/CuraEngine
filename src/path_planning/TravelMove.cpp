@@ -14,10 +14,10 @@ TravelMove::TravelMove(const Point3LL& position)
 {
 }
 
-void TravelMove::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
+void TravelMove::write(PathExporter& exporter) const
 {
-    const auto* travel_route = findParent<TravelRoute>(parents);
-    const auto* layer_plan = findParent<LayerPlan>(parents);
+    const auto travel_route = findParentByType<TravelRoute>();
+    const auto layer_plan = findParentByType<LayerPlan>();
 
     if (! travel_route || ! layer_plan)
     {

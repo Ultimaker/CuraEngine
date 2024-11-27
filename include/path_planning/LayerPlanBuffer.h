@@ -37,7 +37,7 @@ class LayerPlanBuffer : public PrintOperationSequence
 {
     friend class LayerPlan;
 
-    GCodeExporter& gcode_;
+    // GCodeExporter& gcode_;
 
     Preheat preheat_config_; //!< the nozzle and material temperature settings for each extruder train.
 
@@ -48,8 +48,10 @@ class LayerPlanBuffer : public PrintOperationSequence
     static constexpr Duration extra_preheat_time_
         = 1.0_s; //!< Time to start heating earlier than computed to avoid accummulative discrepancy between actual heating times and computed ones.
 
-    std::vector<bool> extruder_used_in_meshgroup_; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see whether we should heat to
-                                                   //!< the initial_print_temp or to the extrusion_temperature
+    std::vector<bool> extruder_used_in_meshgroup_{
+        std::vector(MAX_EXTRUDERS, false)
+    }; //!< For each extruder whether it has already been planned once in this meshgroup. This is used to see
+       //!< whether we should heat to the initial_print_temp or to the extrusion_temperature
 
     /*!
      * The buffer containing several layer plans (LayerPlan) before writing them to gcode.
@@ -60,11 +62,7 @@ class LayerPlanBuffer : public PrintOperationSequence
     std::list<LayerPlan*> buffer_;
 
 public:
-    LayerPlanBuffer(GCodeExporter& gcode)
-        : gcode_(gcode)
-        , extruder_used_in_meshgroup_(MAX_EXTRUDERS, false)
-    {
-    }
+    explicit LayerPlanBuffer() = default;
 
     void setPreheatConfig();
 
@@ -80,7 +78,7 @@ public:
      * \param layer_plan The layer to handle
      * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
      */
-    void handle(LayerPlan& layer_plan, GCodeExporter& gcode, PathExporter& exporter);
+    // void handle(LayerPlan& layer_plan, GCodeExporter& gcode, PathExporter& exporter);
 
     void appendLayerPlan(const std::shared_ptr<LayerPlan>& layer_plan);
 
@@ -89,7 +87,7 @@ public:
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
-    void flush(PathExporter& exporter);
+    // void flush(PathExporter& exporter);
 
 private:
     /*!
@@ -101,7 +99,7 @@ private:
      * Pop out the earliest layer in the buffer if the buffer size is exceeded
      * \return A nullptr or the popped gcode_layer
      */
-    LayerPlan* processBuffer();
+    // LayerPlan* processBuffer();
 
     /*!
      * Add the travel move to properly travel from the end location of the previous layer to the starting location of the next
@@ -176,7 +174,7 @@ private:
      * \param extruder_plans The extruder plans in the buffer, moved to a temporary vector (from lower to upper layers)
      * \param extruder_plan_idx The index of the extruder plan in \p extruder_plans for which to generate the preheat command
      */
-    void insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
+    // void insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
 
     /*!
      * Insert the temperature command to heat from the initial print temperature to the printing temperature
@@ -202,7 +200,7 @@ private:
     /*!
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
-    void insertTempCommands();
+    // void insertTempCommands();
 
     /*!
      * Reconfigure the standby temperature during which we didn't print with this extruder.

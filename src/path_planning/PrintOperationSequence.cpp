@@ -3,6 +3,8 @@
 
 #include "path_planning/PrintOperationSequence.h"
 
+#include <range/v3/view/remove.hpp>
+
 namespace cura
 {
 
@@ -11,14 +13,11 @@ bool PrintOperationSequence::empty() const noexcept
     return operations_.empty();
 }
 
-void PrintOperationSequence::write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents) const
+void PrintOperationSequence::write(PathExporter& exporter) const
 {
-    std::vector<const PrintOperation*> new_parents = parents;
-    new_parents.push_back(this);
-
     for (const std::shared_ptr<PrintOperation>& operation : operations_)
     {
-        operation->write(exporter, new_parents);
+        operation->write(exporter);
     }
 }
 
@@ -65,7 +64,27 @@ std::optional<Point3LL> PrintOperationSequence::findEndPosition() const
 
 void PrintOperationSequence::appendOperation(const std::shared_ptr<PrintOperation>& operation)
 {
+    if (std::shared_ptr<PrintOperationSequence> actual_parent = operation->getParent())
+    {
+        actual_parent->removeOperation(operation);
+    }
+
     operations_.push_back(operation);
+    auto shared_this = weak_from_this();
+    operation->setParent(shared_this);
+}
+
+void PrintOperationSequence::removeOperation(const std::shared_ptr<PrintOperation>& operation)
+{
+    if (operation->getParent() == shared_from_this())
+    {
+        operation->setParent({});
+        ranges::views::remove(operations_, operation);
+    }
+    else
+    {
+        spdlog::error("Trying to remove an operation that is currently not a child");
+    }
 }
 
 std::shared_ptr<PrintOperation>
@@ -159,9 +178,8 @@ std::shared_ptr<PrintOperation> PrintOperationSequence::findOperation(
                 child = parent;
             }
         }
-
-        return nullptr;
     }
+    return nullptr;
 }
 
 const std::vector<std::shared_ptr<PrintOperation>>& PrintOperationSequence::getOperations() const noexcept

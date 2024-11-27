@@ -16,7 +16,7 @@ class SliceMeshStorage;
 class PathExporter;
 class LayerPlan;
 
-class PrintOperationSequence : public PrintOperation
+class PrintOperationSequence : public PrintOperation, public std::enable_shared_from_this<PrintOperationSequence>
 {
 public:
     enum class SearchOrder
@@ -35,7 +35,7 @@ public:
      *
      * \param gcode The gcode to write the planned paths to
      */
-    void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents = {}) const override;
+    void write(PathExporter& exporter) const override;
 
     void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
 
@@ -63,6 +63,8 @@ public:
 
 protected:
     void appendOperation(const std::shared_ptr<PrintOperation>& operation);
+
+    void removeOperation(const std::shared_ptr<PrintOperation>& operation);
 
     template<class ChildType>
     void applyProcessorToOperationsRecursively(PrintOperationProcessor<ChildType>& processor);

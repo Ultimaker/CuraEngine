@@ -760,7 +760,7 @@ public:
 
     void writeGCode(GCodeExporter& gcode);
 
-    void write(PathExporter& exporter, const std::vector<const PrintOperation*>& parents = {}) const override;
+    void write(PathExporter& exporter) const override;
 
     std::optional<Point3LL> findExtruderStartPosition() const;
 
