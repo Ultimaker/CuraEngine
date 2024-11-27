@@ -4,6 +4,8 @@
 
 #include <sstream>
 
+#include "geometry/Point3LL.h"
+
 
 namespace cura
 {

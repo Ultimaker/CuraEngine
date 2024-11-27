@@ -52,7 +52,7 @@ void CommandLine::beginGCode()
 void CommandLine::flushGCode()
 {
 }
-void CommandLine::sendCurrentPosition(const Point2LL&)
+void CommandLine::sendCurrentPosition(const Point3LL&)
 {
 }
 void CommandLine::sendFinishedSlicing() const
@@ -61,16 +61,10 @@ void CommandLine::sendFinishedSlicing() const
 void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&)
 {
 }
-void CommandLine::sendLineTo(const PrintFeatureType&, const Point2LL&, const coord_t&, const coord_t&, const Velocity&)
+void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&)
 {
 }
 void CommandLine::sendOptimizedLayerData()
-{
-}
-void CommandLine::sendPolygon(const PrintFeatureType&, const Polygon&, const coord_t&, const coord_t&, const Velocity&)
-{
-}
-void CommandLine::sendPolygons(const PrintFeatureType&, const Shape&, const coord_t&, const coord_t&, const Velocity&)
 {
 }
 void CommandLine::setExtruderForSend(const ExtruderTrain&)
@@ -192,7 +186,9 @@ void CommandLine::sliceNext()
                     force_read_parent = false;
                     force_read_nondefault = false;
                 }
-                else if (argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb") || argument.starts_with("--gcode_header_cb"))
+                else if (
+                    argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb") || argument.starts_with("--gcode_header_cb")
+                    || argument.starts_with("--engine_info_cb"))
                 {
                     // Unused in command line slicing, but used in EmscriptenCommunication.
                     argument_index++;

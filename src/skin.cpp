@@ -93,7 +93,7 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
     {
         generateRoofingFillAndSkinFill(part);
 
-        generateTopAndBottomMostSkinFill(part);
+        generateTopAndBottomMostSurfaces(part);
     }
 }
 
@@ -343,6 +343,22 @@ void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& p
     }
 }
 
+void SkinInfillAreaComputation::generateTopAndBottomMostSurfaces(SliceLayerPart& part)
+{
+    const Shape outline_above = getOutlineOnLayer(part, layer_nr_ + 1);
+    part.top_most_surface = part.outline.difference(outline_above);
+
+    if (layer_nr_ > 0)
+    {
+        const Shape outline_below = getOutlineOnLayer(part, layer_nr_ + 1);
+        part.bottom_most_surface = part.outline.difference(outline_below);
+    }
+    else
+    {
+        part.bottom_most_surface = part.outline;
+    }
+}
+
 /*
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
@@ -529,8 +545,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 part.infill_area_per_combine_per_density.emplace_back();
                 std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
                 const Shape more_dense_infill = infill_area.difference(less_dense_infill);
-                infill_area_per_combine_current_density.push_back(
-                    simplifier.polygon(more_dense_infill.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
+                infill_area_per_combine_current_density.push_back(simplifier.polygon(more_dense_infill.difference(sum_more_dense)));
                 if (is_connected)
                 {
                     sum_more_dense = sum_more_dense.unionPolygons(more_dense_infill);
@@ -538,7 +553,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
             }
             part.infill_area_per_combine_per_density.emplace_back();
             std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-            infill_area_per_combine_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense).offset(-infill_wall_width).offset(infill_wall_width)));
+            infill_area_per_combine_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense)));
             part.infill_area_own = std::nullopt; // clear infill_area_own, it's not needed any more.
             assert(! part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
         }
@@ -633,25 +648,5 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
         }
     }
 }
-
-/*
- * This function is executed in a parallel region based on layer_nr.
- * When modifying make sure any changes does not introduce data races.
- *
- * this function may only read/write the skin and infill from the *current* layer.
- */
-
-void SkinInfillAreaComputation::generateTopAndBottomMostSkinFill(SliceLayerPart& part)
-{
-    for (SkinPart& skin_part : part.skin_parts)
-    {
-        Shape filled_area_above = generateFilledAreaAbove(part, 1);
-        skin_part.top_most_surface_fill = skin_part.outline.difference(filled_area_above);
-
-        Shape filled_area_below = generateFilledAreaBelow(part, 1);
-        skin_part.bottom_most_surface_fill = skin_part.skin_fill.difference(filled_area_below);
-    }
-}
-
 
 } // namespace cura

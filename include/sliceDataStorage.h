@@ -45,8 +45,6 @@ public:
                          //!< roofing and non-roofing.
     Shape skin_fill; //!< The part of the skin which is not roofing.
     Shape roofing_fill; //!< The inner infill which has air directly above
-    Shape top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
-    Shape bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
 };
 
 /*!
@@ -69,6 +67,8 @@ public:
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
     std::vector<VariableWidthLines> wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets. Binned by inset_idx.
     std::vector<VariableWidthLines> infill_wall_toolpaths; //!< toolpaths for the walls of the infill areas. Binned by inset_idx.
+    Shape top_most_surface; //!< Sub-part of the outline containing the area that is not covered by something above
+    Shape bottom_most_surface; //!< Sub-part of the outline containing the area that has nothing below
 
     /*!
      * The areas inside of the mesh.

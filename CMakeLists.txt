@@ -63,6 +63,7 @@ set(engine_SRCS # Except main.cpp.
         src/Mold.cpp
         src/multiVolumes.cpp
         src/path_ordering.cpp
+        src/PathAdapter.cpp
         src/Preheat.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
@@ -142,7 +143,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
-        src/utils/Point3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -157,6 +157,14 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoxelUtils.cpp
         src/utils/MixedPolylineStitcher.cpp
 
+        src/utils/scoring/BestElementFinder.cpp
+        src/utils/scoring/CornerScoringCriterion.cpp
+        src/utils/scoring/DistanceScoringCriterion.cpp
+        src/utils/scoring/ExclusionAreaScoringCriterion.cpp
+        src/utils/scoring/RandomScoringCriterion.cpp
+
+        src/geometry/Point2LL.cpp
+        src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
         src/geometry/Shape.cpp
         src/geometry/PointsSet.cpp
@@ -188,6 +196,7 @@ target_compile_definitions(_CuraEngine
         $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
         $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
+        CURA_ENGINE_HASH=\"${CURA_ENGINE_HASH}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
         $<$<BOOL:${WIN32}>:NOMINMAX>

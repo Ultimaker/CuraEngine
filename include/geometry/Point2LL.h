@@ -1,8 +1,8 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_INT_POINT_H
-#define UTILS_INT_POINT_H
+#ifndef GEOMETRY_POINT2LL_H
+#define GEOMETRY_POINT2LL_H
 
 /**
 The integer point classes are used as soon as possible and represent microns in 2D or 3D space.
@@ -10,11 +10,12 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 */
 #define INLINE static inline
 
+#include <cmath>
 #include <limits>
 #include <numbers>
 #include <polyclipping/clipper.hpp>
 
-#include "geometry/Point3LL.h"
+#include "utils/Coord_t.h"
 #include "utils/types/generic.h"
 
 #ifdef __GNUC__
@@ -29,6 +30,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 
 namespace cura
 {
+
+class Point3LL;
 
 /* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 using Point2LL = ClipperLib::IntPoint;
@@ -207,39 +210,17 @@ INLINE const Point2LL& make_point(const Point2LL& p)
     return p;
 }
 
-inline Point3LL operator+(const Point3LL& p3, const Point2LL& p2)
-{
-    return { p3.x_ + p2.X, p3.y_ + p2.Y, p3.z_ };
-}
+Point2LL operator+(const Point2LL& p2, const Point3LL& p3);
 
-inline Point3LL& operator+=(Point3LL& p3, const Point2LL& p2)
-{
-    p3.x_ += p2.X;
-    p3.y_ += p2.Y;
-    return p3;
-}
+Point3LL operator+(const Point3LL& p3, const Point2LL& p2);
 
-inline Point2LL operator+(const Point2LL& p2, const Point3LL& p3)
-{
-    return { p3.x_ + p2.X, p3.y_ + p2.Y };
-}
+Point3LL& operator+=(Point3LL& p3, const Point2LL& p2);
 
-inline Point3LL operator-(const Point3LL& p3, const Point2LL& p2)
-{
-    return { p3.x_ - p2.X, p3.y_ - p2.Y, p3.z_ };
-}
+Point3LL operator-(const Point3LL& p3, const Point2LL& p2);
 
-inline Point3LL& operator-=(Point3LL& p3, const Point2LL& p2)
-{
-    p3.x_ -= p2.X;
-    p3.y_ -= p2.Y;
-    return p3;
-}
+Point3LL& operator-=(Point3LL& p3, const Point2LL& p2);
 
-inline Point2LL operator-(const Point2LL& p2, const Point3LL& p3)
-{
-    return { p2.X - p3.x_, p2.Y - p3.y_ };
-}
+Point2LL operator-(const Point2LL& p2, const Point3LL& p3);
 
 } // namespace cura
 
@@ -259,4 +240,4 @@ struct hash<cura::Point2LL>
 };
 } // namespace std
 
-#endif // UTILS_INT_POINT_H
+#endif // GEOMETRY_POINT2LL_H

@@ -398,6 +398,12 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     std::vector<bool> ret;
     ret.resize(Application::getInstance().current_slice_->scene.extruders.size(), false);
 
+    // set all the false to start, we set them to true if used
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
+    {
+        ret[extruder_nr] = false;
+    }
+
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
     if (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM)

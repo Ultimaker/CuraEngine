@@ -124,7 +124,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     {
         constexpr bool force_comb_retract = false;
         layer.addTravel(ironing_polygons[0][0], force_comb_retract);
-        layer.addPolygonsByOptimizer(ironing_polygons, line_config, ZSeamConfig());
+        layer.addPolygonsByOptimizer(ironing_polygons, line_config, mesh.settings, ZSeamConfig());
         added = true;
     }
     if (! ironing_lines.empty())

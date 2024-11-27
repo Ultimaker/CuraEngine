@@ -52,7 +52,10 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const ZSeamConfig& z_seam_config,
     const std::vector<VariableWidthLines>& paths,
     const Point2LL& model_center_point,
-    const Shape& disallowed_areas_for_seams)
+    const Shape& disallowed_areas_for_seams,
+    const bool scarf_seam,
+    const bool smooth_speed,
+    const Shape& overhang_areas)
     : gcode_writer_(gcode_writer)
     , storage_(storage)
     , gcode_layer_(gcode_layer)
@@ -74,6 +77,9 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , layer_nr_(gcode_layer.getLayerNr())
     , model_center_point_(model_center_point)
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
+    , scarf_seam_(scarf_seam)
+    , smooth_speed_(smooth_speed)
+    , overhang_areas_(overhang_areas)
 {
 }
 
@@ -89,6 +95,7 @@ bool InsetOrderOptimizer::addToLayer()
     const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
 
     const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
+    const bool use_shortest_for_inner_walls = outer_to_inner;
     auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
 
     const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
@@ -110,7 +117,9 @@ bool InsetOrderOptimizer::addToLayer()
         reverse,
         order,
         group_outer_walls,
-        disallowed_areas_for_seams_);
+        disallowed_areas_for_seams_,
+        use_shortest_for_inner_walls,
+        overhang_areas_);
 
     for (auto& line : walls_to_be_added)
     {
@@ -122,7 +131,7 @@ bool InsetOrderOptimizer::addToLayer()
                 // If the user indicated that we may deviate from the vertices for the seam, we can insert a seam point, if needed.
                 force_start = insertSeamPoint(line);
             }
-            order_optimizer.addPolygon(&line, force_start);
+            order_optimizer.addPolygon(&line, force_start, line.is_outer_wall());
         }
         else
         {
@@ -146,6 +155,8 @@ bool InsetOrderOptimizer::addToLayer()
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
         const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
+        const bool scarf_seam = scarf_seam_ && is_outer_wall;
+        const bool smooth_speed = smooth_speed_ && is_outer_wall;
 
         const bool revert_inset = alternate_walls && (path.vertices_->inset_idx_ % 2 != 0);
         const bool revert_layer = alternate_walls && (layer_nr_ % 2 != 0);
@@ -166,7 +177,9 @@ bool InsetOrderOptimizer::addToLayer()
             retract_before,
             path.is_closed_,
             backwards,
-            linked_path);
+            linked_path,
+            scarf_seam,
+            smooth_speed);
         added_something = true;
     }
     return added_something;
@@ -194,7 +207,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     Point2LL closest_point;
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
-    bool should_reclaculate_closest = false;
+    bool should_recalculate_closest = false;
     if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
     {
         // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
@@ -240,24 +253,27 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
                 closest_junction_idx = i;
             }
         }
-        should_reclaculate_closest = true;
+        should_recalculate_closest = true;
     }
 
     const auto& start_pt = closed_line.junctions_[closest_junction_idx];
     const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
-    if (should_reclaculate_closest)
+    if (should_recalculate_closest)
     {
         // In the second case (see above) the closest point hasn't actually been calculated yet,
         // since in that case we'de need the start and end points. So do that here.
         closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     }
     constexpr coord_t smallest_dist_sqd = 25;
-    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd || vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
     {
-        // Early out if the closest point is too close to the start or end point.
-        // NOTE: Maybe return the index here anyway, since this is the point the current caller would want to force the seam to.
-        //       However, then the index returned would have a caveat that it _can_ point to an already exisiting point then.
-        return std::nullopt;
+        // If the closest point is very close to the start point, just use it instead.
+        return closest_junction_idx;
+    }
+    if (vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    {
+        // If the closest point is very close to the end point, just use it instead.
+        return (closest_junction_idx + 1) % closed_line.junctions_.size();
     }
 
     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.

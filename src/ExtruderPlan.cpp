@@ -70,4 +70,18 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
         path.speed_back_pressure_factor = std::max(epsilon_speed_factor, 1.0 + (nominal_width_for_path / line_width_for_path - 1.0) * back_pressure_compensation);
     }
 }
+
+std::shared_ptr<const SliceMeshStorage> ExtruderPlan::findFirstPrintedMesh() const
+{
+    for (const GCodePath& path : paths_)
+    {
+        if (path.mesh)
+        {
+            return path.mesh;
+        }
+    }
+
+    return nullptr;
+}
+
 } // namespace cura

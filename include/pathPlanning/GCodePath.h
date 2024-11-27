@@ -29,7 +29,7 @@ namespace cura
  */
 struct GCodePath
 {
-    coord_t z_offset{}; //<! vertical offset from 'full' layer height
+    coord_t z_offset{}; //<! Actual vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
     GCodePathConfig config{}; //!< The configuration settings of the path.
     std::shared_ptr<const SliceMeshStorage> mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type{}; //!< The type of space filling of which this path is a part
@@ -46,10 +46,11 @@ struct GCodePath
     bool perform_z_hop{ false }; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime{ false }; //!< Whether this path is preceded by a prime (blob)
     bool skip_agressive_merge_hint{ false }; //!< Wheter this path needs to skip merging if any travel paths are in between the extrusions.
-    std::vector<Point2LL> points{}; //!< The points constituting this path.
+    std::vector<Point3LL> points{}; //!< The points constituting this path. The Z coordinate is an offset relative to the actual layer height, added to the global z_offset.
     bool done{ false }; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates
+    bool travel_to_z{ true }; //! Indicates whether we should add a travel move to the Z height of the first point before processing the path
 
     /*!
      * Whether this config is the config of a travel path.

@@ -21,9 +21,10 @@ void MockSocket::reset()
 { /* Do nothing. */
 }
 
-void MockSocket::sendMessage(Arcus::MessagePtr message)
+bool MockSocket::sendMessage(Arcus::MessagePtr message)
 {
     sent_messages.push_back(message);
+    return true;
 }
 
 Arcus::MessagePtr MockSocket::takeNextMessage()

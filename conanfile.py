@@ -134,6 +134,7 @@ class CuraEngineConan(ConanFile):
 
         tc = CMakeToolchain(self)
         tc.variables["CURA_ENGINE_VERSION"] = self.version
+        tc.variables["CURA_ENGINE_HASH"] = self.conan_data["commit"]
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
         tc.variables["ENABLE_TESTING"] = not self.conf.get("tools.build:skip_test", False, check_type=bool)
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks

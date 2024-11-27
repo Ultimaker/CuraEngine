@@ -322,7 +322,8 @@ void Infill::_generate(
         auto [toolpaths_, generated_result_polygons_, generated_result_lines_] = slots::instance().generate<plugins::v0::SlotID::INFILL_GENERATE>(
             inner_contour_,
             mesh ? mesh->settings.get<std::string>("infill_pattern") : settings.get<std::string>("infill_pattern"),
-            mesh ? mesh->settings : settings);
+            mesh ? mesh->settings : settings,
+            z_);
         toolpaths.insert(toolpaths.end(), toolpaths_.begin(), toolpaths_.end());
         result_polygons.push_back(generated_result_polygons_);
         result_lines.push_back(generated_result_lines_);
@@ -930,12 +931,15 @@ void Infill::connectLines(OpenLinesSet& result_lines)
                     }
                     else
                     {
+                        constexpr coord_t epsilon_sqd = 25;
+
                         // Resolve any intersections of the fill lines close to the boundary, by inserting extra points so the lines don't create a tiny 'loop'.
                         Point2LL intersect;
                         if (vSize2(previous_point - next_point) < half_line_distance_squared
                             && LinearAlg2D::lineLineIntersection(previous_segment->start_, previous_segment->end_, crossing->start_, crossing->end_, intersect)
                             && LinearAlg2D::pointIsProjectedBeyondLine(intersect, previous_segment->start_, previous_segment->end_) == 0
-                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0)
+                            && LinearAlg2D::pointIsProjectedBeyondLine(intersect, crossing->start_, crossing->end_) == 0 && vSize2(previous_point - intersect) > epsilon_sqd
+                            && vSize2(next_point - intersect) > epsilon_sqd)
                         {
                             resolveIntersection(infill_line_width_, intersect, previous_point, next_point, previous_segment, crossing);
                         }
