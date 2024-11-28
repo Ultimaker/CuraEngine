@@ -1,0 +1,47 @@
+{
+  "name": "@ultimaker/curaenginejs",
+  "version": "0.2.0",
+  "description": "CuraEngineJS a TS component to run CuraEngine in a browser",
+  "main": "src/CuraEngine.js",
+  "scripts": {
+    "install_curaengine": "conan install ${npm_package_config_conan_package} -s build_type=Release --build=missing --update -c tools.build:skip_test=True -pr:h cura_wasm.jinja -if src && rm -f src/*conan*",
+    "build": "npm run install_curaengine"
+  },
+  "config": {
+    "conan_package": "curaengine/5.9.0@_/_"
+  },
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/Ultimaker/CuraEngine.git"
+  },
+  "keywords": [
+    "Cura",
+    "CuraEngine",
+    "Slicer"
+  ],
+  "author": "UltiMaker",
+  "license": "",
+  "bugs": {
+    "url": "https://github.com/Ultimaker/CuraEngine/issues"
+  },
+  "homepage": "https://github.com/Ultimaker/CuraEngine#readme",
+  "dependencies": {
+    "emscripten": "^0.0.2-beta",
+    "observable-fns": "^0.6.1",
+    "uuid": "^9.0.1"
+  },
+  "devDependencies": {
+    "@types/emscripten": "^1.39.10",
+    "@types/uuid": "^9.0.8",
+    "@typescript-eslint/eslint-plugin": "^6.19.1",
+    "@typescript-eslint/parser": "^6.19.1",
+    "eslint": "^8.55.0",
+    "eslint-config-airbnb-typescript": "^17.1.0",
+    "typescript": "^5.2.2"
+  },
+  "files": [
+    "dist",
+    "package.json",
+    "README.md"
+  ]
+}
