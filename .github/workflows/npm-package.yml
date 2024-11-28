@@ -86,7 +86,6 @@ jobs:
       - name: Set npm config
         run: |
           cd CuraEngineJS
-          npm run install_curaengine
           npm publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
