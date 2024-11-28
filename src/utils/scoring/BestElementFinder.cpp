@@ -57,7 +57,7 @@ std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t cand
 
         if (best_candidate_iterator == end)
         {
-            // Something got wrong, we have not best candidate
+            // Something went wrong, we don't have a best candidate
             return std::nullopt;
         }
 
