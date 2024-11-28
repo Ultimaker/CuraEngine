@@ -58,7 +58,7 @@ void SupportCradleGeneration::getLayerDeformation(
     CradleDeformationHalfCircle& deform_part)
 {
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
+    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant");
     const coord_t min_wall_line_width = mesh.settings.get<coord_t>("min_wall_line_width");
 
     coord_t extent_x = std::max(min_wall_line_width / 2, minimum_box.extent.X);
@@ -97,7 +97,7 @@ void SupportCradleGeneration::getLayerDeformation(
 
         // todo tan did make more sense but as values are small, it should be similar to linear
         deform_part[direction_idx]
-            = (deformation_constant * layer_height / (assumed_thickness_in_direction * (1 + std::sqrt(std::max(0.0, assumed_thickness_opposite_direction)))));
+            = (deformation_constant / (assumed_thickness_in_direction * (1 + std::sqrt(std::max(0.0, assumed_thickness_opposite_direction)))));
     }
 }
 
@@ -185,8 +185,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
     }
     iterate_elements.clear();
 
-    std::unordered_map<UnsupportedAreaInformation*, CradleDeformationHalfCircle> known_deformation_map; // todo remove if confirmed no longer needed
-    std::unordered_map<UnsupportedAreaInformation*, coord_t> largest_center_distance_map; // todo remove if confirmed no longer needed
 
     LayerIndex last_z_stable_layer = 0;
 
@@ -205,7 +203,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
         std::unordered_set<UnsupportedAreaInformation*> simulate_elements_as_connected;
 
-        //todo add all elements that connect with anything in elements_on_path_down further down, as well as connect with another part of the model further up that could provide stability.
         for (UnsupportedAreaInformation* current_area : iterate_elements)
         {
             if(elements_on_path_down.contains(current_area))
@@ -237,11 +234,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
         for(UnsupportedAreaInformation* current_area : iterate_elements)
         {
-            CradleDeformationHalfCircle total_element_deformation = {}; // todo remove if confirmed no longer needed
             CradleDeformationHalfCircle element_deformation_layer = current_area->deformation;
-
-            coord_t distance_from_top_below = 0; // todo remove if confirmed no longer needed
-
             Shape simulated_connection;
             if(simulate_elements_as_connected.contains(current_area))
             {
@@ -290,43 +283,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                     });
             }
 
-            for(UnsupportedAreaInformation* element_below: current_area->areas_below)
-            {
-                CradleDeformationHalfCircle deformation_below = {};
-                coord_t distance_below;
-                if(largest_center_distance_map.contains(element_below))
-                {
-                    distance_below = largest_center_distance_map[element_below];
-                }
-                else
-                {
-                    distance_below = vSize(element->min_box.center - element_below->min_box.center);
-                }
-
-                if(known_deformation_map.contains(element_below))
-                {
-                    deformation_below = known_deformation_map[element_below];
-                }
-
-                if (total_element_deformation == CradleDeformationHalfCircle{})
-                {
-                    // if multiple connect to one each below should be similar (because of simulated_connection), still do a min in case it is not
-                    total_element_deformation = deformation_below;
-                    distance_from_top_below = distance_below;
-                }
-                else
-                {
-                    total_element_deformation = elementWiseSelect(
-                        deformation_below,
-                        total_element_deformation,
-                        [](double a, double b)
-                        {
-                            return std::min(a, b);
-                        });
-                    distance_from_top_below = std::min(distance_below,distance_from_top_below);
-
-                }
-            }
             for(UnsupportedAreaInformation* element_above: current_area->areas_above)
             {
                 if(elements_on_path_down.contains(element_above))
@@ -334,8 +290,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                     next_iterate_elements.emplace(element_above);
                 }
             }
-            distance_from_top_below = std::max(distance_from_top_below, (vSize(element->min_box.center - current_area->min_box.center)));
-            for (size_t direction_idx = 0; direction_idx < total_element_deformation.size(); direction_idx++)
+            for (size_t direction_idx = 0; direction_idx < element_deformation_layer.size(); direction_idx++)
             {
                 double deformation_in_xy_direction = element_deformation_layer[direction_idx] * std::pow(double(layer_idx - iterate_layer_idx) / layer_per_mm, 2);
                 if (deformation_in_xy_direction > largest_deformation_in_xy_direction_deformation)
@@ -343,7 +298,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                     largest_deformation_in_xy_direction_deformation = deformation_in_xy_direction;
                     largest_deformation_in_xy_direction_element = current_area;
                 }
-                total_element_deformation[direction_idx] += (element_deformation_layer[direction_idx] * double(layer_idx - iterate_layer_idx)) / layer_per_mm;
             }
 
             // Estimate horizontal influence to deformation
@@ -362,37 +316,21 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             }
             if(current_area->total_deformation_limit > 0)
             {
-                for (size_t direction_idx = 0; direction_idx < total_element_deformation.size(); direction_idx++)
-                {
-                    total_element_deformation[direction_idx] = std::min(total_element_deformation[direction_idx], current_area->total_deformation_limit);
-                }
+
                 largest_deformation_in_z_direction_deformation = std::min(largest_deformation_in_z_direction_deformation, current_area->total_deformation_limit);
                 largest_deformation_in_xy_direction_deformation = std::min(largest_deformation_in_xy_direction_deformation, current_area->total_deformation_limit);
-                distance_from_top_below = 0;
                 last_z_stable_layer = current_area->layer_idx;
             }
-            known_deformation_map[current_area] = total_element_deformation;
-            largest_center_distance_map[current_area] = distance_from_top_below;
         }
         iterate_elements = next_iterate_elements;
     }
 
-    if(! known_deformation_map.contains(element))
-    {
-        spdlog::error("Could not determine deformation at {}", layer_idx);
-    }
-
-    if(! largest_center_distance_map.contains(element))
-    {
-        spdlog::error("Could not determine largest center distance at {}", layer_idx);
-    }
-
     double result_deformation_xy
-        = largest_deformation_in_xy_direction_deformation; // *std::max_element( std::begin( known_deformation_map[element] ), std::end( known_deformation_map[element] ) );
+        = largest_deformation_in_xy_direction_deformation;
     double horizontal_distance = element->min_box.minimumDistance(largest_deformation_in_z_direction_element->min_box) * horizontal_movement_weight;
     double result_deformation_z = largest_deformation_in_z_direction_deformation;
     element->total_deformation_maximum = std::pow(sqrt(result_deformation_xy) + sqrt(result_deformation_z), 2);
-    printf(
+    /*printf(
         "at %d layer xy %lf z %lf horizontal distance was %lf result is %lf, most xy deform on layer %d most z on layer %d\n",
         layer_idx,
         result_deformation_xy,
@@ -401,6 +339,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         element->total_deformation_maximum,
         largest_deformation_in_xy_direction_element->layer_idx,
         largest_deformation_in_z_direction_element->layer_idx);
+        */
 
     return element->total_deformation_maximum;
 }
