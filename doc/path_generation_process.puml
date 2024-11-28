@@ -1,0 +1,13 @@
+@startuml
+'https://plantuml.com/activity-diagram-beta
+
+start
+:slice 3D model;
+:create layerplan;
+:run extruderplan generators;
+:run layerplan processors;
+:run printplan processors;
+:run exporters;
+stop
+
+@enduml

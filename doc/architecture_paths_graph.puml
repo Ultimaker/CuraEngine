@@ -117,4 +117,14 @@ package "path_processing" {
   class ScarfSeamSplitter #paleturquoise
   class SmoothSpeedSplitter #paleturquoise
 }
+
+package "feature_generation" {
+  abstract FeatureGenerator
+
+  MeshFeatureGenerator -up-|> FeatureGenerator
+  NormalSupportGenerator -up-|> FeatureGenerator
+  TreeSupportGenerator -up-|> FeatureGenerator
+  OozeShieldGenerator -up-|> FeatureGenerator
+  SkirtBrimGenerator -up-|> FeatureGenerator
+}
 @enduml
