@@ -1,6 +1,6 @@
 {
   "name": "@ultimaker/curaenginejs",
-  "version": "0.2.2",
+  "version": "0.2.3",
   "description": "CuraEngineJS a TS component to run CuraEngine in a browser",
   "main": "dist/CuraEngine.js",
   "scripts": {
