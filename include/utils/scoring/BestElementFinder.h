@@ -15,7 +15,7 @@ class ScoringCriterion;
 
 /*!
  * This class implements an algorithm to find an element amongst a list, regarding one or multiple scoring criteria. The
- * criteria are implemented by subclassing the CriterionScoring class. It is also possible to setup multiple passes of
+ * criteria are implemented by subclassing the CriterionScoring class. It is also possible to set up multiple passes of
  * criteria. Thus, if the first pass gives a few best candidates that are too close to each other, we keep only the best
  * candidates and process a second pass with different criteria, and so on until we have a single outsider, or no more
  * criteria.
@@ -60,6 +60,7 @@ public:
          * Once we have calculated the global scores of each element for this pass, we calculate the score difference
          * between the best candidate and the following ones. If the following ones have a score close enough to the
          * best, within this threshold, they will also be considered outsiders and will be run for the next pass.
+         * This value will be ignored for the last pass.
          */
         double outsider_delta_threshold{ 0.0 };
     };
