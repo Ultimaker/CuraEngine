@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "path_planning/LayerPlan.h" //The code under test.
+#include "print_operation/LayerPlan.h" //The code under test.
 
 #include <gtest/gtest.h>
 

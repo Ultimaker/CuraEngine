@@ -109,50 +109,51 @@ set(engine_SRCS # Except main.cpp.
         src/infill/SubDivCube.cpp
         src/infill/GyroidInfill.cpp
 
-        src/path_export/CommunicationExporter.cpp include/path_export/CommunicationExporter.h
-        src/path_export/ConsoleExporter.cpp include/path_export/ConsoleExporter.h
-        src/path_export/ConsumptionEstimationExporter.cpp include/path_export/ConsumptionEstimationExporter.h
-        src/path_export/GCodeExporter.cpp include/path_export/GCodeExporter.h
-        src/path_export/MultiExporter.cpp include/path_export/MultiExporter.h
-        src/path_export/PathExporter.cpp include/path_export/PathExporter.h
+        src/plan_export/CommunicationExporter.cpp include/plan_export/CommunicationExporter.h
+        src/plan_export/ConsoleExporter.cpp include/plan_export/ConsoleExporter.h
+        src/plan_export/ConsumptionEstimationExporter.cpp include/plan_export/ConsumptionEstimationExporter.h
+        src/plan_export/GCodeExporter.cpp include/plan_export/GCodeExporter.h
+        src/plan_export/MultiExporter.cpp include/plan_export/MultiExporter.h
+        src/plan_export/PlanExporter.cpp include/plan_export/PlanExporter.h
 
-        include/path_planning/ContinuousExtruderMoveSequencePtr.h
-        include/path_planning/FeatureExtrusionPtr.h
         src/path_planning/Comb.cpp include/path_planning/Comb.h
-        src/path_planning/ContinuousExtruderMoveSequence.cpp include/path_planning/ContinuousExtruderMoveSequence.h
-        src/path_planning/ExtruderMove.cpp include/path_planning/ExtruderMove.h
-        src/path_planning/ExtruderPlan.cpp include/path_planning/ExtruderPlan.h
-        src/path_planning/ExtrusionMove.cpp include/path_planning/ExtrusionMove.h
-        src/path_planning/FeatureExtrusion.cpp include/path_planning/FeatureExtrusion.h
         src/path_planning/GCodePath.cpp include/path_planning/GCodePath.h
-        src/path_planning/LayerPlan.cpp include/path_planning/LayerPlan.h
-        src/path_planning/LayerPlanBuffer.cpp include/path_planning/LayerPlanBuffer.h
         src/path_planning/LinePolygonsCrossings.cpp
-        src/path_planning/MeshFeatureExtrusion.cpp include/path_planning/MeshFeatureExtrusion.h
         src/path_planning/NozzleTempInsert.cpp include/path_planning/NozzleTempInsert.h
-        src/path_planning/PrintOperation.cpp include/path_planning/PrintOperation.h
-        src/path_planning/PrintOperationSequence.cpp include/path_planning/PrintOperationSequence.h
         src/path_planning/SpeedDerivatives.cpp include/path_planning/SpeedDerivatives.h
-        src/path_planning/TravelMove.cpp include/path_planning/TravelMove.h
-        src/path_planning/TravelRoute.cpp include/path_planning/TravelRoute.h
-        src/path_planning/WallFeatureExtrusion.cpp include/path_planning/WallFeatureExtrusion.h
 
-        include/path_processing/ChangeSequenceAction.h
-        include/path_processing/ClosestStartPoint.h
-        include/path_processing/StartCandidatePoint.h
-        src/path_processing/AddLayerPlanTravelMovesProcessor.cpp include/path_processing/AddLayerPlanTravelMovesProcessor.h
-        src/path_processing/AddTravelMovesProcessor.cpp include/path_processing/AddTravelMovesProcessor.h
-        src/path_processing/BedAdhesionConstraintsGenerator.cpp include/path_processing/BedAdhesionConstraintsGenerator.h
-        src/path_processing/DirectTravelMoveGenerator.cpp include/path_processing/DirectTravelMoveGenerator.h
-        src/path_processing/ExtruderPlanScheduler.cpp include/path_processing/ExtruderPlanScheduler.h
-        src/path_processing/FeatureExtrusionsConstraintsGenerator.cpp include/path_processing/FeatureExtrusionsConstraintsGenerator.h
-        src/path_processing/FeatureExtrusionScheduler.cpp include/path_processing/FeatureExtrusionScheduler.h
-        src/path_processing/InsertOperationsProcessor.cpp include/path_processing/InsertOperationsProcessor.h
-        src/path_processing/MeshFeaturesConstraintsGenerator.cpp include/path_processing/MeshFeaturesConstraintsGenerator.h
-        src/path_processing/MonotonicConstraintsGenerator.cpp include/path_processing/MonotonicConstraintsGenerator.h
-        src/path_processing/MoveSequencesConstraintsGenerator.cpp include/path_processing/MoveSequencesConstraintsGenerator.h
-        src/path_processing/PrintOperationProcessor.cpp include/path_processing/PrintOperationProcessor.h
-        src/path_processing/TravelMoveGenerator.cpp include/path_processing/TravelMoveGenerator.h
+        include/print_operation/ContinuousExtruderMoveSequencePtr.h
+        include/print_operation/FeatureExtrusionPtr.h
+        src/print_operation/ContinuousExtruderMoveSequence.cpp include/print_operation/ContinuousExtruderMoveSequence.h
+        src/print_operation/ExtruderMove.cpp include/print_operation/ExtruderMove.h
+        src/print_operation/ExtruderPlan.cpp include/print_operation/ExtruderPlan.h
+        src/print_operation/ExtrusionMove.cpp include/print_operation/ExtrusionMove.h
+        src/print_operation/FeatureExtrusion.cpp include/print_operation/FeatureExtrusion.h
+        src/print_operation/LayerPlan.cpp include/print_operation/LayerPlan.h
+        src/print_operation/PrintPlan.cpp include/print_operation/PrintPlan.h
+        src/print_operation/MeshFeatureExtrusion.cpp include/print_operation/MeshFeatureExtrusion.h
+        src/print_operation/PrintOperation.cpp include/print_operation/PrintOperation.h
+        src/print_operation/PrintOperationSequence.cpp include/print_operation/PrintOperationSequence.h
+        src/print_operation/TravelMove.cpp include/print_operation/TravelMove.h
+        src/print_operation/TravelRoute.cpp include/print_operation/TravelRoute.h
+        src/print_operation/WallFeatureExtrusion.cpp include/print_operation/WallFeatureExtrusion.h
+
+        include/operation_transformation/ChangeSequenceAction.h
+        include/operation_transformation/ClosestStartPoint.h
+        include/operation_transformation/StartCandidatePoint.h
+        src/operation_transformation/LayerPlanTravelMovesInserter.cpp include/operation_transformation/LayerPlanTravelMovesInserter.h
+        src/operation_transformation/AddTravelMovesProcessor.cpp include/operation_transformation/AddTravelMovesProcessor.h
+        src/operation_transformation/BedAdhesionConstraintsGenerator.cpp include/operation_transformation/BedAdhesionConstraintsGenerator.h
+        src/operation_transformation/DirectTravelMoveGenerator.cpp include/operation_transformation/DirectTravelMoveGenerator.h
+        src/operation_transformation/ExtruderPlanScheduler.cpp include/operation_transformation/ExtruderPlanScheduler.h
+        src/operation_transformation/FeatureExtrusionsConstraintsGenerator.cpp include/operation_transformation/FeatureExtrusionsConstraintsGenerator.h
+        src/operation_transformation/FeatureExtrusionScheduler.cpp include/operation_transformation/FeatureExtrusionScheduler.h
+        src/operation_transformation/InsertOperationsProcessor.cpp include/operation_transformation/InsertOperationsProcessor.h
+        src/operation_transformation/MeshFeaturesConstraintsGenerator.cpp include/operation_transformation/MeshFeaturesConstraintsGenerator.h
+        src/operation_transformation/MonotonicConstraintsGenerator.cpp include/operation_transformation/MonotonicConstraintsGenerator.h
+        src/operation_transformation/MoveSequencesConstraintsGenerator.cpp include/operation_transformation/MoveSequencesConstraintsGenerator.h
+        src/operation_transformation/PrintOperationProcessor.cpp include/operation_transformation/PrintOperationTransformer.h
+        src/operation_transformation/TravelMoveGenerator.cpp include/operation_transformation/TravelMoveGenerator.h
 
         src/plugins/converters.cpp
 

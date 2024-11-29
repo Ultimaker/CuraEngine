@@ -10,8 +10,8 @@
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
-#include "path_export/GCodeExporter.h"
-#include "path_planning/LayerPlanBuffer.h"
+#include "plan_export/GCodeExporter.h"
+#include "print_operation/PrintPlan.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
@@ -49,7 +49,7 @@ private:
      * The layer plans are buffered so that we can start heating up a nozzle several layers before it needs to be used.
      * Another reason is to perform Auto Temperature.
      */
-    std::shared_ptr<LayerPlanBuffer> layer_plan_buffer;
+    std::shared_ptr<PrintPlan> layer_plan_buffer;
 
     /*!
      * The class holding the current state of the gcode being written.
@@ -202,7 +202,7 @@ private:
      *
      * \param[in,out] storage where the slice data is stored.
      */
-    void processRaft(const SliceDataStorage& storage, PathExporter& exporter);
+    void processRaft(const SliceDataStorage& storage, PlanExporter& exporter);
 
     void startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder);
 

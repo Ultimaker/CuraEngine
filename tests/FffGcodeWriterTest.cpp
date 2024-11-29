@@ -15,7 +15,7 @@
 #include <gtest/gtest.h>
 
 #include "Application.h"
-#include "path_planning/LayerPlan.h"
+#include "print_operation/LayerPlan.h"
 #include "Slice.h"
 #include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
 #include "geometry/OpenPolyline.h"

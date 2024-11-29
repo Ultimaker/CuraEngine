@@ -1,6 +1,6 @@
 @startuml
-package "path_planning" {
-  FffGCodeWriter *-- "1" LayerPlanBuffer
+package "print_operation" {
+  FffGCodeWriter *-- "1" PrintPlan
 
   abstract class PrintOperation {
     {abstract} write(PathExporter)
@@ -16,7 +16,7 @@ package "path_planning" {
   LayerPlan -up-|> PrintOperationSequence
   ExtruderPlan -up-|> PrintOperationSequence
   ContinuousExtruderMoveSequence -up-|> PrintOperationSequence
-  LayerPlanBuffer -up-|> PrintOperationSequence
+  PrintPlan -up-|> PrintOperationSequence
   MeshFeatureExtrusion -up-|> FeatureExtrusion
 
   ExtruderMove -up-|> PrintOperation
@@ -31,8 +31,8 @@ package "path_planning" {
   FeatureExtrusion -up-|> PrintOperationSequence
   TravelRoute -up-|> ContinuousExtruderMoveSequence
 }
-package "path_export" {
-  abstract PathExporter {
+package "plan_export" {
+  abstract PlanExporter {
       {abstract} void writeExtrusionMove(...)
       {abstract} void writeTravelMove(...)
       {abstract} void writeSetNozzleTemperature(...)
@@ -40,13 +40,13 @@ package "path_export" {
       {abstract} void writeSetCoolingFanSpeed(...)
   }
 
-  GCodeExporter -up-|> PathExporter
-  CommunicationExporter -up-|> PathExporter
-  MultiExporter -right-|> PathExporter
-  ConsumptionEstimationExporter -up-|> PathExporter
-  ConsoleExporter -up-|> PathExporter
+  GCodeExporter -up-|> PlanExporter
+  CommunicationExporter -up-|> PlanExporter
+  MultiExporter -right-|> PlanExporter
+  ConsumptionEstimationExporter -up-|> PlanExporter
+  ConsoleExporter -up-|> PlanExporter
 
-  MultiExporter *-- "*" PathExporter
+  MultiExporter *-- "*" PlanExporter
 }
 
 ExtruderMove : Point end
@@ -63,23 +63,23 @@ MeshFeatureExtrusion : SliceMeshStorage mesh
 ContinuousExtruderMoveSequence : bool closed
 ContinuousExtruderMoveSequence : double speed_factor
 
-package "path_processing" {
-  abstract PrintOperationProcessor << template<class OperationType> >> {
+package "operation_transformation" {
+  abstract PrintOperationTransformer << template<class OperationType> >> {
     {abstract} void process(OperationType operation)
   }
 
-  AddLayerPlanTravelMovesProcessor -up-|> PrintOperationProcessor
-  PrimeTowerProcessor -up-|> PrintOperationProcessor
-  MinimumLayerTimeProcessor -up-|> PrintOperationProcessor
-  CoastingProcessor -up-|> PrintOperationProcessor
-  BackPressureCompensationProcessor -up-|> PrintOperationProcessor
-  SplitterProcessor -up-|> PrintOperationProcessor
-  NozzleTemperatureCommandsProcessor -up-|> InsertOperationOnTimeProcessor
-  BedTemperatureCommandsProcessor -up-|> InsertOperationOnTimeProcessor
-  CoolingFanCommandsProcessor -up-|> InsertOperationOnTimeProcessor
-  InsertOperationOnTimeProcessor -up-|> PrintOperationProcessor
+  LayerPlanTravelMovesInserter -up-|> PrintOperationTransformer
+  AddPrimeTowerTransformer -up-|> PrintOperationTransformer
+  MinimumLayerTimeTransformer -up-|> PrintOperationTransformer
+  CoastingTransformer -up-|> PrintOperationTransformer
+  BackPressureCompensationTransformer -up-|> PrintOperationTransformer
+  SplitterTransformer -up-|> PrintOperationTransformer
+  AddNozzleTemperatureCommandsTransformer -up-|> InsertOperationOnTimeTransformer
+  AddBedTemperatureCommandsTransformer -up-|> InsertOperationOnTimeTransformer
+  AddCoolingFanCommandsTransformer -up-|> InsertOperationOnTimeTransformer
+  InsertOperationOnTimeTransformer -up-|> PrintOperationTransformer
 
-  AddLayerPlanTravelMovesProcessor *-- "*" TravelMoveGenerator
+  LayerPlanTravelMovesInserter *-- "*" TravelMoveGenerator
   abstract TravelMoveGenerator
   DirectTravelMoveGenerator -up-|> TravelMoveGenerator
   CombingTravelMoveGenerator -up-|> TravelMoveGenerator
@@ -89,29 +89,29 @@ package "path_processing" {
 
   MonotonicConstraintsGenerator -up-|> MoveSequencesConstraintsGenerator
 
-  ExtruderPlanScheduler -up-|> PrintOperationProcessor
+  ExtruderPlanScheduler -up-|> PrintOperationTransformer
   class FeatureExtrusionScheduler
   ExtruderPlanScheduler *-- "*" FeatureExtrusionScheduler
   FeatureExtrusionScheduler *-- "*" FeatureExtrusionsConstraintsGenerator
   FeatureExtrusionScheduler *-- "*" MoveSequencesConstraintsGenerator
 
-  SplitterProcessor *-- "*" PathSplitter
+  SplitterTransformer *-- "*" PathSplitter
 
   abstract PathSplitter
   GradualFlowSplitter -up-|> PathSplitter
   ScarfSeamSplitter -up-|> PathSplitter
   SmoothSpeedSplitter -up-|> PathSplitter
 
-  class InsertOperationOnTimeProcessor #paleturquoise
-  class NozzleTemperatureCommandsProcessor #paleturquoise
-  class BedTemperatureCommandsProcessor #paleturquoise
-  class CoolingFanCommandsProcessor #paleturquoise
-  class PrimeTowerProcessor #paleturquoise
+  class InsertOperationOnTimeTransformer #paleturquoise
+  class AddNozzleTemperatureCommandsTransformer #paleturquoise
+  class AddBedTemperatureCommandsTransformer #paleturquoise
+  class AddCoolingFanCommandsTransformer #paleturquoise
+  class AddPrimeTowerTransformer #paleturquoise
   class CombingTravelMoveGenerator #paleturquoise
-  class MinimumLayerTimeProcessor #paleturquoise
-  class CoastingProcessor #paleturquoise
-  class BackPressureCompensationProcessor #paleturquoise
-  class SplitterProcessor #paleturquoise
+  class MinimumLayerTimeTransformer #paleturquoise
+  class CoastingTransformer #paleturquoise
+  class BackPressureCompensationTransformer #paleturquoise
+  class SplitterTransformer #paleturquoise
   class PathSplitter #paleturquoise
   class GradualFlowSplitter #paleturquoise
   class ScarfSeamSplitter #paleturquoise
@@ -126,5 +126,12 @@ package "feature_generation" {
   TreeSupportGenerator -up-|> FeatureGenerator
   OozeShieldGenerator -up-|> FeatureGenerator
   SkirtBrimGenerator -up-|> FeatureGenerator
+
+  class FeatureGenerator #paleturquoise
+  class MeshFeatureGenerator #paleturquoise
+  class NormalSupportGenerator #paleturquoise
+  class TreeSupportGenerator #paleturquoise
+  class OozeShieldGenerator #paleturquoise
+  class SkirtBrimGenerator #paleturquoise
 }
 @enduml

@@ -4,7 +4,7 @@
 #include "utils/scoring/CornerScoringCriterion.h"
 
 #include "geometry/PointsSet.h"
-#include "path_processing/StartCandidatePoint.h"
+#include "operation_transformation/StartCandidatePoint.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
 

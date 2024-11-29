@@ -4,7 +4,7 @@
 #include "utils/scoring/DistanceScoringCriterion.h"
 
 #include "geometry/PointsSet.h"
-#include "path_processing/StartCandidatePoint.h"
+#include "operation_transformation/StartCandidatePoint.h"
 
 
 namespace cura

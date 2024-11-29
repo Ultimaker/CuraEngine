@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "path_export/ConsumptionEstimationExporter.h"
+#include "plan_export/ConsumptionEstimationExporter.h"
 #ifdef ARCUS
 
 #include "communication/ArcusCommunication.h"

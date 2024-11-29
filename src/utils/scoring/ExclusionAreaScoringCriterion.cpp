@@ -4,7 +4,7 @@
 #include "utils/scoring/ExclusionAreaScoringCriterion.h"
 
 #include "geometry/Shape.h"
-#include "path_processing/StartCandidatePoint.h"
+#include "operation_transformation/StartCandidatePoint.h"
 
 
 namespace cura

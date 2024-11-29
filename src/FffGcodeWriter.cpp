@@ -29,13 +29,13 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
 #include "infill.h"
-#include "path_export/CommunicationExporter.h"
-#include "path_export/ConsoleExporter.h"
-#include "path_export/ConsumptionEstimationExporter.h"
-#include "path_export/MultiExporter.h"
-#include "path_planning/LayerPlan.h"
-#include "path_processing/AddLayerPlanTravelMovesProcessor.h"
-#include "path_processing/ExtruderPlanScheduler.h"
+#include "operation_transformation/ExtruderPlanScheduler.h"
+#include "operation_transformation/LayerPlanTravelMovesInserter.h"
+#include "plan_export/CommunicationExporter.h"
+#include "plan_export/ConsoleExporter.h"
+#include "plan_export/ConsumptionEstimationExporter.h"
+#include "plan_export/MultiExporter.h"
+#include "print_operation/LayerPlan.h"
 #include "progress/Progress.h"
 #include "raft.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
@@ -51,7 +51,7 @@ constexpr coord_t EPSILON = 5;
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
-    , layer_plan_buffer(std::make_shared<LayerPlanBuffer>())
+    , layer_plan_buffer(std::make_shared<PrintPlan>())
     , slice_uuid(Application::getInstance().instance_uuid_)
 {
     for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
@@ -209,7 +209,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     // layer_plan_buffer.flush(exporter);
     // layer_plan_buffer.applyProcessors();
 
-    AddLayerPlanTravelMovesProcessor layer_plan_travel_moves_processor;
+    LayerPlanTravelMovesInserter layer_plan_travel_moves_processor;
     ExtruderPlanScheduler order_optimizer;
     for (const std::shared_ptr<LayerPlan>& layer_plan : layer_plan_buffer->getOperationsAs<LayerPlan>())
     {
@@ -596,7 +596,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
 
-void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PathExporter& exporter)
+void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PlanExporter& exporter)
 {
     Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
