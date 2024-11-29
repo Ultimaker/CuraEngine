@@ -80,8 +80,6 @@ class CuraEngineConan(ConanFile):
             self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
-        if self.settings.os == "Linux":
-            self.options["openssl"].shared = True
 
     def validate(self):
         super().validate()
@@ -125,7 +123,6 @@ class CuraEngineConan(ConanFile):
         self.requires("fmt/10.2.1")
         self.requires("range-v3/0.12.0")
         self.requires("zlib/1.3.1")
-        self.requires("openssl/3.2.1")
         self.requires("mapbox-wagyu/0.5.0@ultimaker/cura_11622") # FIXME: use main after merge
 
     def generate(self):
