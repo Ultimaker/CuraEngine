@@ -6,7 +6,7 @@
   "scripts": {
     "install_curaengine": "conan install ${npm_package_config_conan_package} -s build_type=Release --build=missing --update -c tools.build:skip_test=True -pr:h cura_wasm.jinja -if dist && rm -f dist/*conan*",
     "build": "npm run install_curaengine",
-    "prepublish": "npm run build"
+    "prepublishOnly": "npm run build"
   },
   "config": {
     "conan_package": "curaengine/5.9.0@_/_"
