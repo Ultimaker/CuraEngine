@@ -1,10 +1,10 @@
 {
   "name": "@ultimaker/curaenginejs",
-  "version": "0.2.1",
+  "version": "0.2.2",
   "description": "CuraEngineJS a TS component to run CuraEngine in a browser",
-  "main": "src/CuraEngine.js",
+  "main": "dist/CuraEngine.js",
   "scripts": {
-    "install_curaengine": "conan install ${npm_package_config_conan_package} -s build_type=Release --build=missing --update -c tools.build:skip_test=True -pr:h cura_wasm.jinja -if src && rm -f src/*conan*",
+    "install_curaengine": "conan install ${npm_package_config_conan_package} -s build_type=Release --build=missing --update -c tools.build:skip_test=True -pr:h cura_wasm.jinja -if dist && rm -f dist/*conan*",
     "build": "npm run install_curaengine",
     "prepublish": "npm run build"
   },
