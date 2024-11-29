@@ -11,52 +11,5 @@ on:
 jobs:
   lint-tidier-job:
     name: Auto-apply clang-tidy
-
-    runs-on: ubuntu-latest
-    steps:
 # FIXME: use main once merged
-      - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
-
-      - uses: greguintow/get-diff-action@v7
-        with:
-          PATTERNS: |
-            include/**/*.h*
-            src/**/*.c*
-
-      - name: Install dependencies
-        run: conan install . -c tools.build:skip_test=False -s *:build_type=Release --build=missing --update
-
-      - name: Build CuraEngine and tests
-        run: |
-          source build/Release/generators/conanbuild.sh
-          cmake --preset release
-          cmake --build --preset release
-
-      - name: Create results directory
-        run: mkdir linter-result
-
-      - name: Diagnose file(s)
-        if: env.GIT_DIFF && !env.MATCHED_FILES
-        continue-on-error: true
-        run: |
-          clang-tidy -p ./build/Release/ --config-file=.clang-tidy ${{ env.GIT_DIFF_FILTERED }} --export-fixes=linter-result/fixes.yml
-
-      - name: Save PR metadata
-        run: |
-          echo ${{ github.event.number }} > linter-result/pr-id.txt
-          echo ${{ github.event.pull_request.head.repo.full_name }} > linter-result/pr-head-repo.txt
-          echo ${{ github.event.pull_request.head.sha }} > linter-result/pr-head-sha.txt
-
-      - uses: actions/upload-artifact@v4
-        with:
-          name: linter-result
-          path: linter-result/
-
-      - name: Run clang-tidy-pr-comments action
-        uses: platisd/clang-tidy-pr-comments@1.4.0
-        with:
-          github_token: ${{ secrets.GITHUB_TOKEN }}
-          clang_tidy_fixes: linter-result/fixes.yml
-          request_changes: true
-          suggestions_per_comment: 30
+    uses: ultimaker/cura-workflows/.github/workflows/lint-tidier.yml@CURA-11622_conan_v2
