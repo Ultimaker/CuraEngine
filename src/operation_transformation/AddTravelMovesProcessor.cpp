@@ -3,11 +3,11 @@
 
 #include "operation_transformation/AddTravelMovesProcessor.h"
 
+#include "operation_transformation/DirectTravelMoveGenerator.h"
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderPlan.h"
 #include "print_operation/FeatureExtrusion.h"
 #include "print_operation/TravelRoute.h"
-#include "operation_transformation/DirectTravelMoveGenerator.h"
 
 namespace cura
 {

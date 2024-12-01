@@ -11,11 +11,11 @@
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "print_operation/LayerPlan.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "plan_export/GCodeExporter.h"
 #include "infill.h"
+#include "plan_export/GCodeExporter.h"
+#include "print_operation/LayerPlan.h"
 #include "raft.h"
 #include "sliceDataStorage.h"
 

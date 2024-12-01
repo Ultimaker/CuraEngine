@@ -4,9 +4,9 @@
 #include "TopSurface.h"
 
 #include "ExtruderTrain.h"
-#include "print_operation/LayerPlan.h"
 #include "geometry/OpenPolyline.h"
 #include "infill.h"
+#include "print_operation/LayerPlan.h"
 #include "sliceDataStorage.h"
 
 namespace cura

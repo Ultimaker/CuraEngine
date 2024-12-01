@@ -5,9 +5,9 @@
 #define GRADUAL_FLOW_PROCESSOR_H
 
 #include "Application.h"
-#include "print_operation/LayerPlan.h"
 #include "Scene.h"
 #include "gradual_flow/FlowLimitedPath.h"
+#include "print_operation/LayerPlan.h"
 
 namespace cura::gradual_flow::Processor
 {

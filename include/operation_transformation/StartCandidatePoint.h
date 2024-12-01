@@ -6,9 +6,9 @@
 
 #include <geometry/Point3LL.h>
 
+#include "operation_transformation/ChangeSequenceAction.h"
 #include "print_operation/ContinuousExtruderMoveSequencePtr.h"
 #include "print_operation/FeatureExtrusionPtr.h"
-#include "operation_transformation/ChangeSequenceAction.h"
 
 namespace cura
 {

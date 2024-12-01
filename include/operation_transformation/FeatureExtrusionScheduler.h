@@ -7,9 +7,9 @@
 #include <map>
 #include <optional>
 
+#include "operation_transformation/StartCandidatePoint.h"
 #include "print_operation/ContinuousExtruderMoveSequencePtr.h"
 #include "print_operation/FeatureExtrusionPtr.h"
-#include "operation_transformation/StartCandidatePoint.h"
 
 namespace cura
 {

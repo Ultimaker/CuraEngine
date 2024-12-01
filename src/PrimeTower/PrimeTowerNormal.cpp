@@ -4,9 +4,9 @@
 #include "PrimeTower/PrimeTowerNormal.h"
 
 #include "Application.h"
-#include "print_operation/LayerPlan.h"
 #include "Scene.h"
 #include "Slice.h"
+#include "print_operation/LayerPlan.h"
 #include "sliceDataStorage.h"
 
 namespace cura

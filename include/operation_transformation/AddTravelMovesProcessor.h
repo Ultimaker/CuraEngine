@@ -6,8 +6,8 @@
 
 #include <optional>
 
-#include "path_planning/SpeedDerivatives.h"
 #include "operation_transformation/InsertOperationsProcessor.h"
+#include "path_planning/SpeedDerivatives.h"
 
 namespace cura
 {

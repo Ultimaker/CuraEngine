@@ -5,9 +5,9 @@
 
 #include <spdlog/spdlog.h>
 
-#include "print_operation/FeatureExtrusion.h"
 #include "operation_transformation/ClosestStartPoint.h"
 #include "operation_transformation/FeatureExtrusionScheduler.h"
+#include "print_operation/FeatureExtrusion.h"
 
 namespace cura
 {

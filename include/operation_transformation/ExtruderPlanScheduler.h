@@ -6,8 +6,8 @@
 
 #include <ranges>
 
-#include "print_operation/ExtruderPlan.h"
 #include "operation_transformation/PrintOperationTransformer.h"
+#include "print_operation/ExtruderPlan.h"
 
 namespace cura
 {

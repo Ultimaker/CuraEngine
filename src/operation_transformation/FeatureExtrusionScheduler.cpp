@@ -11,14 +11,14 @@
 #include <range/v3/algorithm/contains.hpp>
 #include <spdlog/spdlog.h>
 
-#include "print_operation/ContinuousExtruderMoveSequence.h"
-#include "print_operation/ExtrusionMove.h"
-#include "print_operation/MeshFeatureExtrusion.h"
 #include "operation_transformation/BedAdhesionConstraintsGenerator.h"
 #include "operation_transformation/ClosestStartPoint.h"
 #include "operation_transformation/ExtruderPlanScheduler.h"
 #include "operation_transformation/MeshFeaturesConstraintsGenerator.h"
 #include "operation_transformation/MonotonicConstraintsGenerator.h"
+#include "print_operation/ContinuousExtruderMoveSequence.h"
+#include "print_operation/ExtrusionMove.h"
+#include "print_operation/MeshFeatureExtrusion.h"
 #include "settings/ZSeamConfig.h"
 #include "utils/scoring/BestElementFinder.h"
 

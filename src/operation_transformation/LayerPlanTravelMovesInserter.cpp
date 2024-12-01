@@ -1,8 +1,9 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "operation_transformation/DirectTravelMoveGenerator.h"
 #include "operation_transformation/LayerPlanTravelMovesInserter.h"
+
+#include "operation_transformation/DirectTravelMoveGenerator.h"
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderPlan.h"
 #include "print_operation/FeatureExtrusion.h"
