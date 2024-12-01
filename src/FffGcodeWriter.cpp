@@ -25,6 +25,7 @@
 #include "WallToolPaths.h"
 #include "bridge.h"
 #include "communication/Communication.h" //To send layer view data.
+#include "feature_generation/FeatureGenerator.h"
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
@@ -51,7 +52,7 @@ constexpr coord_t EPSILON = 5;
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
-    , layer_plan_buffer(std::make_shared<PrintPlan>())
+    , print_plan_(std::make_shared<PrintPlan>())
     , slice_uuid(Application::getInstance().instance_uuid_)
 {
     for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
@@ -196,22 +197,23 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         total_layers,
         [&storage, total_layers, &exporter, this](int layer_nr)
         {
-            return std::make_optional(processLayer(storage, layer_nr, total_layers));
+            // return std::make_optional(processLayer(storage, layer_nr, total_layers));
+            return std::make_optional(generateFeatures(storage, layer_nr));
         },
         [this, total_layers, &exporter](std::optional<ProcessLayerResult> result_opt)
         {
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
-            // layer_plan_buffer.handle(*result.layer_plan, gcode, exporter);
-            layer_plan_buffer->appendLayerPlan(result.layer_plan);
+            // print_plan_.handle(*result.layer_plan, gcode, exporter);
+            print_plan_->appendLayerPlan(result.layer_plan);
         });
 
-    // layer_plan_buffer.flush(exporter);
-    // layer_plan_buffer.applyProcessors();
+    // print_plan_.flush(exporter);
+    // print_plan_.applyProcessors();
 
-    LayerPlanTravelMovesInserter layer_plan_travel_moves_processor;
+    LayerPlanTravelMovesInserter layer_plan_travel_moves_processor(configs_storage_.travel_config_per_extruder[extruder].speed_derivatives;);
     ExtruderPlanScheduler order_optimizer;
-    for (const std::shared_ptr<LayerPlan>& layer_plan : layer_plan_buffer->getOperationsAs<LayerPlan>())
+    for (const std::shared_ptr<LayerPlan>& layer_plan : print_plan_->getOperationsAs<LayerPlan>())
     {
         for (const std::shared_ptr<ExtruderPlan>& extruder_plan : layer_plan->getOperationsAs<ExtruderPlan>())
         {
@@ -221,7 +223,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         layer_plan_travel_moves_processor.process(layer_plan.get());
     }
 
-    layer_plan_buffer->write(exporter);
+    print_plan_->write(exporter);
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
     // Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
@@ -779,7 +781,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PlanExporter& 
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr, false);
 
-        // layer_plan_buffer.handle(gcode_layer, gcode, exporter);
+        // print_plan_.handle(gcode_layer, gcode, exporter);
     }
 
     const coord_t interface_layer_height = interface_settings.get<coord_t>("raft_interface_thickness");
@@ -939,7 +941,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PlanExporter& 
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr);
 
-        // layer_plan_buffer.handle(gcode_layer, gcode, exporter);
+        // print_plan_.handle(gcode_layer, gcode, exporter);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
@@ -1121,7 +1123,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage, PlanExporter& 
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr);
 
-        // layer_plan_buffer.handle(gcode_layer, gcode, exporter);
+        // print_plan_.handle(gcode_layer, gcode, exporter);
     }
 }
 
@@ -1314,6 +1316,72 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     gcode_layer->applyProcessors();
 
     return { gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
+}
+
+FffGcodeWriter::ProcessLayerResult FffGcodeWriter::generateFeatures(const SliceDataStorage& storage, LayerIndex layer_nr) const
+{
+    spdlog::debug("Generating features for layer {}", layer_nr);
+    TimeKeeper time_keeper;
+    spdlog::stopwatch timer_total;
+
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
+    coord_t z;
+    if (layer_nr < 0)
+    {
+#ifdef DEBUG
+        assert(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
+#endif // DEBUG
+        const int filler_layer_count = Raft::getFillerLayerCount();
+        layer_thickness = Raft::getFillerLayerHeight();
+        z = Raft::getTotalThickness() + (filler_layer_count + layer_nr + 1) * layer_thickness;
+    }
+    else
+    {
+        z = storage.meshes[0]->layers[layer_nr].printZ; // stub default
+        // find printZ of first actual printed mesh
+        for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+        {
+            const auto& mesh = *mesh_ptr;
+            if (layer_nr >= static_cast<int>(mesh.layers.size()) || mesh.settings.get<bool>("support_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")
+                || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("infill_mesh"))
+            {
+                continue;
+            }
+            z = mesh.layers[layer_nr].printZ;
+            layer_thickness = mesh.layers[layer_nr].thickness;
+            break;
+        }
+    }
+
+    // Make empty layer plan
+    auto layer_plan = std::make_shared<LayerPlan>(layer_nr, z, layer_thickness);
+
+    // Make empty extruder plans, for all possible extruders
+    std::vector<ExtruderPlanPtr> extruder_plans;
+    extruder_plans.reserve(MAX_EXTRUDERS);
+    for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
+    {
+        extruder_plans.push_back(std::make_shared<ExtruderPlan>(extruder_nr));
+    }
+
+    // Generate features
+    for (const std::shared_ptr<FeatureGenerator>& generator : feature_generators_)
+    {
+        generator->generateFeatures(layer_nr, extruder_plans);
+    }
+
+    // Now append non-empty extruder plans to layer plan
+    for (const ExtruderPlanPtr& extruder_plan : extruder_plans)
+    {
+        constexpr bool check_non_empty = true;
+        layer_plan->appendExtruderPlan(extruder_plan, check_non_empty);
+    }
+
+    // Finalize layer plan
+    layer_plan->applyProcessors();
+
+    return { layer_plan, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
 }
 
 bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const

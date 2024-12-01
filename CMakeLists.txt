@@ -97,6 +97,9 @@ set(engine_SRCS # Except main.cpp.
         src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
 
+        src/feature_generation/FeatureGenerator.cpp include/feature_generation/FeatureGenerator.h
+        src/feature_generation/MeshFeatureGenerator.cpp include/feature_generation/MeshFeatureGenerator.h
+
         src/infill/ImageBasedDensityProvider.cpp
         src/infill/NoZigZagConnectorProcessor.cpp
         src/infill/ZigzagConnectorProcessor.cpp
@@ -123,7 +126,9 @@ set(engine_SRCS # Except main.cpp.
         src/path_planning/SpeedDerivatives.cpp include/path_planning/SpeedDerivatives.h
 
         include/print_operation/ContinuousExtruderMoveSequencePtr.h
+        include/print_operation/ExtruderPlanPtr.h
         include/print_operation/FeatureExtrusionPtr.h
+        include/print_operation/PrintOperationPtr.h
         src/print_operation/ContinuousExtruderMoveSequence.cpp include/print_operation/ContinuousExtruderMoveSequence.h
         src/print_operation/ExtruderMove.cpp include/print_operation/ExtruderMove.h
         src/print_operation/ExtruderPlan.cpp include/print_operation/ExtruderPlan.h

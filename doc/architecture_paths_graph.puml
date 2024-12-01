@@ -119,7 +119,9 @@ package "operation_transformation" {
 }
 
 package "feature_generation" {
-  abstract FeatureGenerator
+  abstract FeatureGenerator {
+    {abstract} vector<FeatureExtrusion> generateFeatures(layer_index, extruder_index)
+  }
 
   MeshFeatureGenerator -up-|> FeatureGenerator
   NormalSupportGenerator -up-|> FeatureGenerator
@@ -127,7 +129,6 @@ package "feature_generation" {
   OozeShieldGenerator -up-|> FeatureGenerator
   SkirtBrimGenerator -up-|> FeatureGenerator
 
-  class FeatureGenerator #paleturquoise
   class MeshFeatureGenerator #paleturquoise
   class NormalSupportGenerator #paleturquoise
   class TreeSupportGenerator #paleturquoise

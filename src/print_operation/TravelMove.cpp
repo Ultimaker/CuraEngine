@@ -3,6 +3,7 @@
 
 #include "print_operation/TravelMove.h"
 
+#include "plan_export/PlanExporter.h"
 #include "print_operation/LayerPlan.h"
 #include "print_operation/TravelRoute.h"
 

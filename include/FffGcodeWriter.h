@@ -26,6 +26,7 @@ class SliceDataStorage;
 class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
+class FeatureGenerator;
 struct MeshPathConfigs;
 
 /*!
@@ -49,7 +50,7 @@ private:
      * The layer plans are buffered so that we can start heating up a nozzle several layers before it needs to be used.
      * Another reason is to perform Auto Temperature.
      */
-    std::shared_ptr<PrintPlan> layer_plan_buffer;
+    std::shared_ptr<PrintPlan> print_plan_;
 
     /*!
      * The class holding the current state of the gcode being written.
@@ -82,6 +83,8 @@ private:
                                                                                        //!< and fan speeds. Configured for each extruder.
 
     std::string slice_uuid; //!< The UUID of the current slice.
+
+    std::vector<std::shared_ptr<FeatureGenerator>> feature_generators_;
 
 public:
     /*
@@ -220,6 +223,8 @@ private:
      * \return The layer plans
      */
     ProcessLayerResult processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const;
+
+    ProcessLayerResult generateFeatures(const SliceDataStorage& storage, LayerIndex layer_nr) const;
 
     /*!
      * This function checks whether prime blob should happen for any extruder on the first layer.

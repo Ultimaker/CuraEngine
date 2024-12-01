@@ -32,11 +32,11 @@ namespace cura
 {
     return line_width;
 }
-
-[[nodiscard]] coord_t GCodePathConfig::getLayerThickness() const noexcept
-{
-    return layer_thickness;
-}
+//
+// [[nodiscard]] coord_t GCodePathConfig::getLayerThickness() const noexcept
+// {
+//     return layer_thickness;
+// }
 
 [[nodiscard]] PrintFeatureType GCodePathConfig::getPrintFeatureType() const noexcept
 {

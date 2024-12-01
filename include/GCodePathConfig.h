@@ -23,7 +23,7 @@ struct GCodePathConfig
     coord_t z_offset{}; //<! vertical offset from 'full' layer height, to be applied to the whole path
     PrintFeatureType type{}; //!< name of the feature type
     coord_t line_width{}; //!< width of the line extruded
-    coord_t layer_thickness{}; //!< current layer height in micron
+    // coord_t layer_thickness{}; //!< current layer height in micron
     Ratio flow{}; //!< extrusion flow modifier.
     SpeedDerivatives speed_derivatives{}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
     bool is_bridge_path{ false }; //!< whether current config is used when bridging
@@ -63,7 +63,7 @@ struct GCodePathConfig
 
     [[nodiscard]] const Ratio& getFlowRatio() const noexcept;
 
-    [[nodiscard]] coord_t getLayerThickness() const noexcept;
+    //[[nodiscard]] coord_t getLayerThickness() const noexcept;
 
     [[nodiscard]] PrintFeatureType getPrintFeatureType() const noexcept;
 
