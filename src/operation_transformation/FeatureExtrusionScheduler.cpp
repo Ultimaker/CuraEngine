@@ -3,6 +3,8 @@
 
 #include "operation_transformation/FeatureExtrusionScheduler.h"
 
+#include <geometry/Shape.h>
+#include <sliceDataStorage.h>
 #include <utils/scoring/CornerScoringCriterion.h>
 #include <utils/scoring/DistanceScoringCriterion.h>
 #include <utils/scoring/ExclusionAreaScoringCriterion.h>
@@ -13,7 +15,6 @@
 
 #include "operation_transformation/BedAdhesionConstraintsGenerator.h"
 #include "operation_transformation/ClosestStartPoint.h"
-#include "operation_transformation/ExtruderPlanScheduler.h"
 #include "operation_transformation/MeshFeaturesConstraintsGenerator.h"
 #include "operation_transformation/MonotonicConstraintsGenerator.h"
 #include "print_operation/ContinuousExtruderMoveSequence.h"

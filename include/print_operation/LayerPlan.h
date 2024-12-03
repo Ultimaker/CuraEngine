@@ -10,10 +10,12 @@
 namespace cura
 {
 
+struct PathConfigStorage;
+
 class LayerPlan : public PrintOperationSequence
 {
 public:
-    LayerPlan(const LayerIndex& layer_index, const coord_t z, const coord_t thickness);
+    LayerPlan(const LayerIndex& layer_index, const coord_t z, const coord_t thickness, const std::shared_ptr<PathConfigStorage>& configs);
 
     virtual ~LayerPlan() = default;
 
@@ -23,16 +25,19 @@ public:
 
     coord_t getZ() const;
 
+    coord_t getThickness() const;
+
     void write(PlanExporter& exporter) const override;
 
     std::optional<Point3LL> findExtruderStartPosition() const;
 
-    Point3LL getAbsolutePosition(const ContinuousExtruderMoveSequence& extruder_move_set, const Point3LL& relative_position) const;
+    Point3LL getAbsolutePosition(const ContinuousExtruderMoveSequence& move_sequence, const Point3LL& relative_position) const;
 
 private:
     const LayerIndex layer_index_;
     const coord_t z_;
     const coord_t thickness_;
+    const std::shared_ptr<PathConfigStorage> configs_;
 };
 
 } // namespace cura

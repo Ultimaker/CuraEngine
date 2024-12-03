@@ -172,77 +172,77 @@ void PrimeTower::addToGcode(
     const size_t prev_extruder_nr,
     const size_t new_extruder_nr) const
 {
-    if (gcode_layer.getPrimeTowerIsPlanned(new_extruder_nr))
-    { // don't print the prime tower if it has been printed already with this extruder.
-        return;
-    }
-
-    const LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
-    {
-        return;
-    }
-
-    bool post_wipe = Application::getInstance().current_slice_->scene.extruders[prev_extruder_nr].settings_.get<bool>("prime_tower_wipe_enabled");
-
-    // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
-    if (prev_extruder_nr == new_extruder_nr || layer_nr == 0)
-    {
-        post_wipe = false;
-    }
-
-    auto extruder_iterator = std::find_if(
-        required_extruder_prime.begin(),
-        required_extruder_prime.end(),
-        [new_extruder_nr](const ExtruderUse& extruder_use)
-        {
-            return extruder_use.extruder_nr == new_extruder_nr;
-        });
-
-    if (extruder_iterator == required_extruder_prime.end())
-    {
-        // Extruder is not used on this layer
-        return;
-    }
-
-    const ClosedLinesSet* toolpaths = nullptr;
-    auto iterator_layer = toolpaths_.find(layer_nr);
-    if (iterator_layer != toolpaths_.end())
-    {
-        const std::vector<ExtruderToolPaths>& toolpaths_at_this_layer = iterator_layer->second;
-        auto iterator_extruder = std::find_if(
-            toolpaths_at_this_layer.begin(),
-            toolpaths_at_this_layer.end(),
-            [new_extruder_nr](const ExtruderToolPaths& extruder_toolpaths)
-            {
-                return extruder_toolpaths.extruder_nr == new_extruder_nr;
-            });
-        if (iterator_extruder != iterator_layer->second.end())
-        {
-            toolpaths = &(iterator_extruder->toolpaths);
-        }
-    }
-
-    if (toolpaths && ! toolpaths->empty())
-    {
-        gotoStartLocation(gcode_layer, new_extruder_nr);
-
-        const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[new_extruder_nr];
-        gcode_layer.addLinesByOptimizer(*toolpaths, config, SpaceFillType::PolyLines);
-    }
-
-    gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
-
-    // post-wipe:
-    if (post_wipe)
-    {
-        // Make sure we wipe the old extruder on the prime tower.
-        const Settings& previous_settings = Application::getInstance().current_slice_->scene.extruders[prev_extruder_nr].settings_;
-        const Point2LL previous_nozzle_offset = Point2LL(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
-        const Settings& new_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder_nr].settings_;
-        const Point2LL new_nozzle_offset = Point2LL(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
-        gcode_layer.addTravel(post_wipe_point_ - previous_nozzle_offset + new_nozzle_offset);
-    }
+    // if (gcode_layer.getPrimeTowerIsPlanned(new_extruder_nr))
+    // { // don't print the prime tower if it has been printed already with this extruder.
+    //     return;
+    // }
+    //
+    // const LayerIndex layer_nr = gcode_layer.getLayerNr();
+    // if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
+    // {
+    //     return;
+    // }
+    //
+    // bool post_wipe = Application::getInstance().current_slice_->scene.extruders[prev_extruder_nr].settings_.get<bool>("prime_tower_wipe_enabled");
+    //
+    // // Do not wipe on the first layer, we will generate non-hollow prime tower there for better bed adhesion.
+    // if (prev_extruder_nr == new_extruder_nr || layer_nr == 0)
+    // {
+    //     post_wipe = false;
+    // }
+    //
+    // auto extruder_iterator = std::find_if(
+    //     required_extruder_prime.begin(),
+    //     required_extruder_prime.end(),
+    //     [new_extruder_nr](const ExtruderUse& extruder_use)
+    //     {
+    //         return extruder_use.extruder_nr == new_extruder_nr;
+    //     });
+    //
+    // if (extruder_iterator == required_extruder_prime.end())
+    // {
+    //     // Extruder is not used on this layer
+    //     return;
+    // }
+    //
+    // const ClosedLinesSet* toolpaths = nullptr;
+    // auto iterator_layer = toolpaths_.find(layer_nr);
+    // if (iterator_layer != toolpaths_.end())
+    // {
+    //     const std::vector<ExtruderToolPaths>& toolpaths_at_this_layer = iterator_layer->second;
+    //     auto iterator_extruder = std::find_if(
+    //         toolpaths_at_this_layer.begin(),
+    //         toolpaths_at_this_layer.end(),
+    //         [new_extruder_nr](const ExtruderToolPaths& extruder_toolpaths)
+    //         {
+    //             return extruder_toolpaths.extruder_nr == new_extruder_nr;
+    //         });
+    //     if (iterator_extruder != iterator_layer->second.end())
+    //     {
+    //         toolpaths = &(iterator_extruder->toolpaths);
+    //     }
+    // }
+    //
+    // if (toolpaths && ! toolpaths->empty())
+    // {
+    //     gotoStartLocation(gcode_layer, new_extruder_nr);
+    //
+    //     const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[new_extruder_nr];
+    //     gcode_layer.addLinesByOptimizer(*toolpaths, config, SpaceFillType::PolyLines);
+    // }
+    //
+    // gcode_layer.setPrimeTowerIsPlanned(new_extruder_nr);
+    //
+    // // post-wipe:
+    // if (post_wipe)
+    // {
+    //     // Make sure we wipe the old extruder on the prime tower.
+    //     const Settings& previous_settings = Application::getInstance().current_slice_->scene.extruders[prev_extruder_nr].settings_;
+    //     const Point2LL previous_nozzle_offset = Point2LL(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
+    //     const Settings& new_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder_nr].settings_;
+    //     const Point2LL new_nozzle_offset = Point2LL(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
+    //     gcode_layer.addTravel(post_wipe_point_ - previous_nozzle_offset + new_nozzle_offset);
+    // }
 }
 
 const Polygon& PrimeTower::getOccupiedOutline(const LayerIndex& layer_nr) const
@@ -350,35 +350,35 @@ bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used
 
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr != -LayerIndex(Raft::getTotalExtraLayers()))
-    {
-        coord_t wipe_radius;
-        auto iterator = base_occupied_outline_.iterator_at(gcode_layer.getLayerNr());
-        if (iterator != base_occupied_outline_.end())
-        {
-            wipe_radius = iterator->outer_radius;
-        }
-        else
-        {
-            wipe_radius = outer_poly_.outer_radius;
-        }
-
-        const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-        wipe_radius += train.settings_.get<coord_t>("machine_nozzle_size") * 2;
-
-        // Layer number may be negative, make it positive (or null) before using modulo operator
-        while (layer_nr < 0)
-        {
-            layer_nr += number_of_prime_tower_start_locations_;
-        }
-
-        size_t current_start_location_idx = ((extruder_nr + 1) * static_cast<size_t>(layer_nr)) % number_of_prime_tower_start_locations_;
-        const AngleRadians angle = start_locations_step_ * current_start_location_idx;
-        const Point2LL prime_start = PolygonUtils::makeCirclePoint(middle_, wipe_radius, angle);
-
-        gcode_layer.addTravel(prime_start);
-    }
+    // LayerIndex layer_nr = gcode_layer.getLayerNr();
+    // if (layer_nr != -LayerIndex(Raft::getTotalExtraLayers()))
+    // {
+    //     coord_t wipe_radius;
+    //     auto iterator = base_occupied_outline_.iterator_at(gcode_layer.getLayerNr());
+    //     if (iterator != base_occupied_outline_.end())
+    //     {
+    //         wipe_radius = iterator->outer_radius;
+    //     }
+    //     else
+    //     {
+    //         wipe_radius = outer_poly_.outer_radius;
+    //     }
+    //
+    //     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+    //     wipe_radius += train.settings_.get<coord_t>("machine_nozzle_size") * 2;
+    //
+    //     // Layer number may be negative, make it positive (or null) before using modulo operator
+    //     while (layer_nr < 0)
+    //     {
+    //         layer_nr += number_of_prime_tower_start_locations_;
+    //     }
+    //
+    //     size_t current_start_location_idx = ((extruder_nr + 1) * static_cast<size_t>(layer_nr)) % number_of_prime_tower_start_locations_;
+    //     const AngleRadians angle = start_locations_step_ * current_start_location_idx;
+    //     const Point2LL prime_start = PolygonUtils::makeCirclePoint(middle_, wipe_radius, angle);
+    //
+    //     gcode_layer.addTravel(prime_start);
+    // }
 }
 
 } // namespace cura

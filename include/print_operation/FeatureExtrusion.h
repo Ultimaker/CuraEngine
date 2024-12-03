@@ -27,8 +27,6 @@ public:
 
     coord_t getLineWidth() const;
 
-    coord_t getLayerThickness() const;
-
 private:
     const Ratio& getFlow() const;
 

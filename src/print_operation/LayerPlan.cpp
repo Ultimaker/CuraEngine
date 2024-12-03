@@ -10,16 +10,22 @@
 namespace cura
 {
 
-LayerPlan::LayerPlan(const LayerIndex& layer_index, const coord_t z, const coord_t thickness)
+LayerPlan::LayerPlan(const LayerIndex& layer_index, const coord_t z, const coord_t thickness, const std::shared_ptr<PathConfigStorage>& configs)
     : layer_index_(layer_index)
     , z_(z)
     , thickness_(thickness)
+    , configs_(configs)
 {
 }
 
 coord_t LayerPlan::getZ() const
 {
     return z_;
+}
+
+coord_t LayerPlan::getThickness() const
+{
+    return thickness_;
 }
 
 LayerIndex LayerPlan::getLayerIndex() const
@@ -47,16 +53,23 @@ void LayerPlan::write(PlanExporter& exporter) const
 
 std::optional<Point3LL> LayerPlan::findExtruderStartPosition() const
 {
-    if (const auto extruder_move_sequence = findOperationByType<ContinuousExtruderMoveSequence>(SearchOrder::DepthFirstForward))
+    if (const auto move_sequence = findOperationByType<ContinuousExtruderMoveSequence>(SearchOrder::DepthFirstForward))
     {
-        std::optional<Point3LL> start_position = extruder_move_sequence->findStartPosition();
+        std::optional<Point3LL> start_position = move_sequence->findStartPosition();
         if (start_position.has_value())
         {
-            return getAbsolutePosition(*extruder_move_sequence, start_position.value());
+            return getAbsolutePosition(*move_sequence, start_position.value());
         }
     }
 
     return std::nullopt;
+}
+
+Point3LL LayerPlan::getAbsolutePosition(const ContinuousExtruderMoveSequence& move_sequence, const Point3LL& relative_position) const
+{
+    Point3LL absolute_position = relative_position;
+    absolute_position.z_ += getZ() + move_sequence.getZOffset();
+    return absolute_position;
 }
 
 } // namespace cura

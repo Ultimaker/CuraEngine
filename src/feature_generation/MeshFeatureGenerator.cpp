@@ -3,21 +3,22 @@
 
 #include "feature_generation/MeshFeatureGenerator.h"
 
+#include <sliceDataStorage.h>
+
 namespace cura
 {
 
-inline MeshFeatureGenerator::MeshFeatureGenerator(const std::shared_ptr<SliceMeshStorage>& mesh)
+MeshFeatureGenerator::MeshFeatureGenerator(const std::shared_ptr<SliceMeshStorage>& mesh)
     : mesh_(mesh)
 {
 }
 
-inline bool MeshFeatureGenerator::isActive() const
+bool MeshFeatureGenerator::isActive() const
 {
-    // Mesh generators are always active, you don't want to print e.g. only supports, right ?
-    return true;
+    return ! mesh_->layers.empty();
 }
 
-inline void MeshFeatureGenerator::generateFeatures(const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans) const
+void MeshFeatureGenerator::generateFeatures(const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans) const
 {
 }
 

@@ -13,6 +13,7 @@ namespace cura
 {
 
 class TravelMoveGenerator;
+struct SpeedDerivatives;
 
 class LayerPlanTravelMovesInserter : public PrintOperationTransformer<LayerPlan>
 {

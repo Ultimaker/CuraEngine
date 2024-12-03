@@ -6,7 +6,6 @@
 #include <vector>
 
 #include "print_operation/ExtruderPlanPtr.h"
-#include "print_operation/FeatureExtrusionPtr.h"
 
 namespace cura
 {

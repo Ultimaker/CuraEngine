@@ -8,14 +8,20 @@
 namespace cura
 {
 
-ExtruderPlan::ExtruderPlan(const size_t extruder_nr) noexcept
+ExtruderPlan::ExtruderPlan(const size_t extruder_nr, const SpeedDerivatives& travel_speed) noexcept
     : extruder_nr_(extruder_nr)
+    , travel_speed_(travel_speed)
 {
 }
 
 size_t ExtruderPlan::getExtruderNr() const noexcept
 {
     return extruder_nr_;
+}
+
+const SpeedDerivatives& ExtruderPlan::getTravelSpeed() const noexcept
+{
+    return travel_speed_;
 }
 
 void ExtruderPlan::appendFeatureExtrusion(const std::shared_ptr<FeatureExtrusion>& feature_extrusion, const bool check_non_empty)

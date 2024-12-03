@@ -74,7 +74,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , wall_x_extruder_nr_(wall_x_extruder_nr)
     , z_seam_config_(z_seam_config)
     , paths_(paths)
-    , layer_nr_(gcode_layer.getLayerNr())
+    , layer_nr_(gcode_layer.getLayerIndex())
     , model_center_point_(model_center_point)
     , disallowed_areas_for_seams_{ disallowed_areas_for_seams }
     , scarf_seam_(scarf_seam)
@@ -85,205 +85,207 @@ InsetOrderOptimizer::InsetOrderOptimizer(
 
 bool InsetOrderOptimizer::addToLayer()
 {
-    // Settings & configs:
-    const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
-    const auto inset_direction = settings_.get<InsetDirection>("inset_direction");
-    const auto alternate_walls = settings_.get<bool>("material_alternate_walls");
-
-    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
-    const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
-    const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
-
-    const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
-    const bool use_shortest_for_inner_walls = outer_to_inner;
-    auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
-
-    const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
-
-    constexpr Ratio flow = 1.0_r;
-
-    bool added_something = false;
-
-    constexpr bool detect_loops = false;
-    constexpr Shape* combing_boundary = nullptr;
-    const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
-    // When we alternate walls, also alternate the direction at which the first wall starts in.
-    // On even layers we start with normal direction, on odd layers with inverted direction.
-    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(
-        gcode_layer_.getLastPlannedPositionOrStartingPosition(),
-        z_seam_config_,
-        detect_loops,
-        combing_boundary,
-        reverse,
-        order,
-        group_outer_walls,
-        disallowed_areas_for_seams_,
-        use_shortest_for_inner_walls,
-        overhang_areas_);
-
-    for (auto& line : walls_to_be_added)
-    {
-        if (line.is_closed_)
-        {
-            std::optional<size_t> force_start;
-            if (! settings_.get<bool>("z_seam_on_vertex"))
-            {
-                // If the user indicated that we may deviate from the vertices for the seam, we can insert a seam point, if needed.
-                force_start = insertSeamPoint(line);
-            }
-            order_optimizer.addPolygon(&line, force_start, line.is_outer_wall());
-        }
-        else
-        {
-            order_optimizer.addPolyline(&line);
-        }
-    }
-
-    order_optimizer.optimize();
-
-    for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths_)
-    {
-        if (path.vertices_->empty())
-        {
-            continue;
-        }
-
-        const bool is_outer_wall = path.vertices_->inset_idx_ == 0; // or thin wall 'gap filler'
-        const bool is_gap_filler = path.vertices_->is_odd_;
-        const GCodePathConfig& default_config = is_outer_wall ? inset_0_default_config_ : inset_X_default_config_;
-        const GCodePathConfig& roofing_config = is_outer_wall ? inset_0_roofing_config_ : inset_X_roofing_config_;
-        const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
-        const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
-        const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
-        const bool scarf_seam = scarf_seam_ && is_outer_wall;
-        const bool smooth_speed = smooth_speed_ && is_outer_wall;
-
-        const bool revert_inset = alternate_walls && (path.vertices_->inset_idx_ % 2 != 0);
-        const bool revert_layer = alternate_walls && (layer_nr_ % 2 != 0);
-        const bool backwards = path.backwards_ != (revert_inset != revert_layer);
-        const size_t start_index = (backwards != path.backwards_) ? path.vertices_->size() - (path.start_vertex_ + 1) : path.start_vertex_;
-        const bool linked_path = ! path.is_closed_;
-
-        gcode_layer_.setIsInside(true); // Going to print walls, which are always inside.
-        gcode_layer_.addWall(
-            *path.vertices_,
-            start_index,
-            settings_,
-            default_config,
-            roofing_config,
-            bridge_config,
-            wipe_dist,
-            flow,
-            retract_before,
-            path.is_closed_,
-            backwards,
-            linked_path,
-            scarf_seam,
-            smooth_speed);
-        added_something = true;
-    }
-    return added_something;
+    // // Settings & configs:
+    // const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
+    // const auto inset_direction = settings_.get<InsetDirection>("inset_direction");
+    // const auto alternate_walls = settings_.get<bool>("material_alternate_walls");
+    //
+    // const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
+    // const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
+    // const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
+    //
+    // const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
+    // const bool use_shortest_for_inner_walls = outer_to_inner;
+    // auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
+    //
+    // const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
+    //
+    // constexpr Ratio flow = 1.0_r;
+    //
+    // bool added_something = false;
+    //
+    // constexpr bool detect_loops = false;
+    // constexpr Shape* combing_boundary = nullptr;
+    // const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
+    // // When we alternate walls, also alternate the direction at which the first wall starts in.
+    // // On even layers we start with normal direction, on odd layers with inverted direction.
+    // PathOrderOptimizer<const ExtrusionLine*> order_optimizer(
+    //     gcode_layer_.getLastPlannedPositionOrStartingPosition(),
+    //     z_seam_config_,
+    //     detect_loops,
+    //     combing_boundary,
+    //     reverse,
+    //     order,
+    //     group_outer_walls,
+    //     disallowed_areas_for_seams_,
+    //     use_shortest_for_inner_walls,
+    //     overhang_areas_);
+    //
+    // for (auto& line : walls_to_be_added)
+    // {
+    //     if (line.is_closed_)
+    //     {
+    //         std::optional<size_t> force_start;
+    //         if (! settings_.get<bool>("z_seam_on_vertex"))
+    //         {
+    //             // If the user indicated that we may deviate from the vertices for the seam, we can insert a seam point, if needed.
+    //             force_start = insertSeamPoint(line);
+    //         }
+    //         order_optimizer.addPolygon(&line, force_start, line.is_outer_wall());
+    //     }
+    //     else
+    //     {
+    //         order_optimizer.addPolyline(&line);
+    //     }
+    // }
+    //
+    // order_optimizer.optimize();
+    //
+    // for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths_)
+    // {
+    //     if (path.vertices_->empty())
+    //     {
+    //         continue;
+    //     }
+    //
+    //     const bool is_outer_wall = path.vertices_->inset_idx_ == 0; // or thin wall 'gap filler'
+    //     const bool is_gap_filler = path.vertices_->is_odd_;
+    //     const GCodePathConfig& default_config = is_outer_wall ? inset_0_default_config_ : inset_X_default_config_;
+    //     const GCodePathConfig& roofing_config = is_outer_wall ? inset_0_roofing_config_ : inset_X_roofing_config_;
+    //     const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
+    //     const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
+    //     const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
+    //     const bool scarf_seam = scarf_seam_ && is_outer_wall;
+    //     const bool smooth_speed = smooth_speed_ && is_outer_wall;
+    //
+    //     const bool revert_inset = alternate_walls && (path.vertices_->inset_idx_ % 2 != 0);
+    //     const bool revert_layer = alternate_walls && (layer_nr_ % 2 != 0);
+    //     const bool backwards = path.backwards_ != (revert_inset != revert_layer);
+    //     const size_t start_index = (backwards != path.backwards_) ? path.vertices_->size() - (path.start_vertex_ + 1) : path.start_vertex_;
+    //     const bool linked_path = ! path.is_closed_;
+    //
+    //     gcode_layer_.setIsInside(true); // Going to print walls, which are always inside.
+    //     gcode_layer_.addWall(
+    //         *path.vertices_,
+    //         start_index,
+    //         settings_,
+    //         default_config,
+    //         roofing_config,
+    //         bridge_config,
+    //         wipe_dist,
+    //         flow,
+    //         retract_before,
+    //         path.is_closed_,
+    //         backwards,
+    //         linked_path,
+    //         scarf_seam,
+    //         smooth_speed);
+    //     added_something = true;
+    // }
+    // return added_something;
+    return false;
 }
 
 std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed_line)
 {
-    assert(closed_line.is_closed_);
-    assert(closed_line.size() >= 3);
-
-    Point2LL request_point;
-    switch (z_seam_config_.type_)
-    {
-    case EZSeamType::USER_SPECIFIED:
-        request_point = z_seam_config_.pos_;
-        break;
-    case EZSeamType::SHORTEST:
-        request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
-        break;
-    default:
-        return std::nullopt;
-    }
-
-    // Find the 'closest' point on the polygon to the request_point.
-    Point2LL closest_point;
-    size_t closest_junction_idx = 0;
-    coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
-    bool should_recalculate_closest = false;
-    if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
-    {
-        // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
-        // since you want the seam-line to be continuous in 3D space.
-        // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
-        // and project the point along the ray from the center to the request_point.
-
-        const Point2LL ray_origin = model_center_point_;
-        request_point = ray_origin + (request_point - ray_origin) * 10;
-
-        for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
-        {
-            // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
-            const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
-
-            float t, u;
-            if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
-            {
-                const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-                const coord_t distance_sqd = vSize2(request_point - intersection);
-                if (distance_sqd < closest_distance_sqd)
-                {
-                    closest_point = intersection;
-                    closest_distance_sqd = distance_sqd;
-                    closest_junction_idx = i;
-                }
-            }
-        }
-    }
-    if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
-    {
-        // If it the method isn't 'user-defined', or the attempt to do user-defined above failed
-        // (since we don't take the center of the polygon, but of the model, there's a chance there's no intersection),
-        // then just find the closest point on the polygon.
-
-        for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
-        {
-            const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
-            const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
-            if (distance_sqd < closest_distance_sqd)
-            {
-                closest_distance_sqd = distance_sqd;
-                closest_junction_idx = i;
-            }
-        }
-        should_recalculate_closest = true;
-    }
-
-    const auto& start_pt = closed_line.junctions_[closest_junction_idx];
-    const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
-    if (should_recalculate_closest)
-    {
-        // In the second case (see above) the closest point hasn't actually been calculated yet,
-        // since in that case we'de need the start and end points. So do that here.
-        closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
-    }
-    constexpr coord_t smallest_dist_sqd = 25;
-    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
-    {
-        // If the closest point is very close to the start point, just use it instead.
-        return closest_junction_idx;
-    }
-    if (vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
-    {
-        // If the closest point is very close to the end point, just use it instead.
-        return (closest_junction_idx + 1) % closed_line.junctions_.size();
-    }
-
-    // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
-    const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
-    const coord_t start_dist = vSize(closest_point - start_pt.p_);
-    const coord_t end_dist = vSize(closest_point - end_pt.p_);
-    const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
-
-    closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
-    return closest_junction_idx + 1;
+    // assert(closed_line.is_closed_);
+    // assert(closed_line.size() >= 3);
+    //
+    // Point2LL request_point;
+    // switch (z_seam_config_.type_)
+    // {
+    // case EZSeamType::USER_SPECIFIED:
+    //     request_point = z_seam_config_.pos_;
+    //     break;
+    // case EZSeamType::SHORTEST:
+    //     request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
+    //     break;
+    // default:
+    //     return std::nullopt;
+    // }
+    //
+    // // Find the 'closest' point on the polygon to the request_point.
+    // Point2LL closest_point;
+    // size_t closest_junction_idx = 0;
+    // coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
+    // bool should_recalculate_closest = false;
+    // if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
+    // {
+    //     // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
+    //     // since you want the seam-line to be continuous in 3D space.
+    //     // To that end, take the center of the 3D model (not of the current polygon, as that would give the same problems)
+    //     // and project the point along the ray from the center to the request_point.
+    //
+    //     const Point2LL ray_origin = model_center_point_;
+    //     request_point = ray_origin + (request_point - ray_origin) * 10;
+    //
+    //     for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
+    //     {
+    //         // NOTE: Maybe rewrite this once we can use C++23 ranges::views::adjacent
+    //         const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
+    //
+    //         float t, u;
+    //         if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
+    //         {
+    //             const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
+    //             const coord_t distance_sqd = vSize2(request_point - intersection);
+    //             if (distance_sqd < closest_distance_sqd)
+    //             {
+    //                 closest_point = intersection;
+    //                 closest_distance_sqd = distance_sqd;
+    //                 closest_junction_idx = i;
+    //             }
+    //         }
+    //     }
+    // }
+    // if (closest_distance_sqd >= std::numeric_limits<coord_t>::max())
+    // {
+    //     // If it the method isn't 'user-defined', or the attempt to do user-defined above failed
+    //     // (since we don't take the center of the polygon, but of the model, there's a chance there's no intersection),
+    //     // then just find the closest point on the polygon.
+    //
+    //     for (const auto& [i, junction] : closed_line.junctions_ | ranges::views::enumerate)
+    //     {
+    //         const auto& next_junction = closed_line.junctions_[(i + 1) % closed_line.junctions_.size()];
+    //         const coord_t distance_sqd = LinearAlg2D::getDist2FromLineSegment(junction.p_, request_point, next_junction.p_);
+    //         if (distance_sqd < closest_distance_sqd)
+    //         {
+    //             closest_distance_sqd = distance_sqd;
+    //             closest_junction_idx = i;
+    //         }
+    //     }
+    //     should_recalculate_closest = true;
+    // }
+    //
+    // const auto& start_pt = closed_line.junctions_[closest_junction_idx];
+    // const auto& end_pt = closed_line.junctions_[(closest_junction_idx + 1) % closed_line.junctions_.size()];
+    // if (should_recalculate_closest)
+    // {
+    //     // In the second case (see above) the closest point hasn't actually been calculated yet,
+    //     // since in that case we'de need the start and end points. So do that here.
+    //     closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
+    // }
+    // constexpr coord_t smallest_dist_sqd = 25;
+    // if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
+    // {
+    //     // If the closest point is very close to the start point, just use it instead.
+    //     return closest_junction_idx;
+    // }
+    // if (vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    // {
+    //     // If the closest point is very close to the end point, just use it instead.
+    //     return (closest_junction_idx + 1) % closed_line.junctions_.size();
+    // }
+    //
+    // // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
+    // const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
+    // const coord_t start_dist = vSize(closest_point - start_pt.p_);
+    // const coord_t end_dist = vSize(closest_point - end_pt.p_);
+    // const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
+    //
+    // closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
+    // return closest_junction_idx + 1;
+    return std::nullopt;
 }
 
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)

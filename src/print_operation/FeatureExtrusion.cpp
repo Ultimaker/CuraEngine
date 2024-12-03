@@ -38,11 +38,6 @@ coord_t FeatureExtrusion::getLineWidth() const
     return std::llrint(getFlow() * getWidthFactor() * static_cast<double>(config_.getLineWidth()) * config_.getFlowRatio());
 }
 
-coord_t FeatureExtrusion::getLayerThickness() const
-{
-    return config_.getLayerThickness();
-}
-
 double FeatureExtrusion::getExtrusionMM3perMM() const
 {
     return config_.getExtrusionMM3perMM();

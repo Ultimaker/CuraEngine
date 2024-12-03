@@ -58,7 +58,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
     const std::vector<AngleDegrees>& top_most_skin_angles = (roofing_layer_count > 0) ? mesh.roofing_angles : mesh.skin_angles;
     assert(top_most_skin_angles.size() > 0);
-    const AngleDegrees direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + AngleDegrees(90.0); // Always perpendicular to the skin lines.
+    const AngleDegrees direction = top_most_skin_angles[layer.getLayerIndex() % top_most_skin_angles.size()] + AngleDegrees(90.0); // Always perpendicular to the skin lines.
     constexpr coord_t infill_overlap = 0;
     constexpr int infill_multiplier = 1;
     constexpr coord_t shift = 0;
@@ -99,7 +99,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         infill_overlap,
         infill_multiplier,
         direction,
-        layer.z_ - 10,
+        layer.getZ() - 10,
         shift,
         max_resolution,
         max_deviation,
@@ -110,88 +110,89 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     std::vector<VariableWidthLines> ironing_paths;
     Shape ironing_polygons;
     OpenLinesSet ironing_lines;
-    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerNr(), SectionType::IRONING);
+    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerIndex(), SectionType::IRONING);
 
     if (ironing_polygons.empty() && ironing_lines.empty() && ironing_paths.empty())
     {
         return false; // Nothing to do.
     }
 
-    layer.mode_skip_agressive_merge_ = true;
-
     bool added = false;
-    if (! ironing_polygons.empty())
-    {
-        constexpr bool force_comb_retract = false;
-        layer.addTravel(ironing_polygons[0][0], force_comb_retract);
-        layer.addPolygonsByOptimizer(ironing_polygons, line_config, mesh.settings, ZSeamConfig());
-        added = true;
-    }
-    if (! ironing_lines.empty())
-    {
-        if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
-        {
-            // Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
-            const AABB bounding_box(ironed_areas);
-            PointMatrix rotate(-direction + 90);
-            const Point2LL center = bounding_box.getMiddle();
-            const Point2LL far_away = rotate.apply(
-                Point2LL(0, vSize(bounding_box.max_ - center) * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
-            // Two options to start, both perpendicular to the ironing lines. Which is closer?
-            const Point2LL front_side = PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
-            const Point2LL back_side = PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
-            if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
-            {
-                layer.addTravel(front_side);
-            }
-            else
-            {
-                layer.addTravel(back_side);
-            }
-        }
-
-        if (! enforce_monotonic_order)
-        {
-            layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
-        }
-        else
-        {
-            const coord_t max_adjacent_distance
-                = line_spacing * 1.1; // Lines are considered adjacent - meaning they need to be printed in monotonic order - if spaced 1 line apart, with 10% extra play.
-            layer.addLinesMonotonic(Shape(), ironing_lines, line_config, SpaceFillType::PolyLines, AngleRadians(direction), max_adjacent_distance);
-        }
-        added = true;
-    }
-    if (! ironing_paths.empty())
-    {
-        constexpr bool retract_before_outer_wall = false;
-        constexpr coord_t wipe_dist = 0u;
-        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
-        InsetOrderOptimizer wall_orderer(
-            gcode_writer,
-            storage,
-            layer,
-            mesh.settings,
-            extruder_nr,
-            line_config,
-            line_config,
-            line_config,
-            line_config,
-            line_config,
-            line_config,
-            retract_before_outer_wall,
-            wipe_dist,
-            wipe_dist,
-            extruder_nr,
-            extruder_nr,
-            z_seam_config,
-            ironing_paths,
-            storage.getModelBoundingBox().flatten().getMiddle());
-        wall_orderer.addToLayer();
-        added = true;
-    }
-
-    layer.mode_skip_agressive_merge_ = false;
+    // layer.mode_skip_agressive_merge_ = true;
+    //
+    // if (! ironing_polygons.empty())
+    // {
+    //     constexpr bool force_comb_retract = false;
+    //     layer.addTravel(ironing_polygons[0][0], force_comb_retract);
+    //     layer.addPolygonsByOptimizer(ironing_polygons, line_config, mesh.settings, ZSeamConfig());
+    //     added = true;
+    // }
+    // if (! ironing_lines.empty())
+    // {
+    //     if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
+    //     {
+    //         // Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
+    //         const AABB bounding_box(ironed_areas);
+    //         PointMatrix rotate(-direction + 90);
+    //         const Point2LL center = bounding_box.getMiddle();
+    //         const Point2LL far_away = rotate.apply(
+    //             Point2LL(0, vSize(bounding_box.max_ - center) * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the
+    //             centre.
+    //         // Two options to start, both perpendicular to the ironing lines. Which is closer?
+    //         const Point2LL front_side = PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
+    //         const Point2LL back_side = PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
+    //         if (vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
+    //         {
+    //             layer.addTravel(front_side);
+    //         }
+    //         else
+    //         {
+    //             layer.addTravel(back_side);
+    //         }
+    //     }
+    //
+    //     if (! enforce_monotonic_order)
+    //     {
+    //         layer.addLinesByOptimizer(ironing_lines, line_config, SpaceFillType::PolyLines);
+    //     }
+    //     else
+    //     {
+    //         const coord_t max_adjacent_distance
+    //             = line_spacing * 1.1; // Lines are considered adjacent - meaning they need to be printed in monotonic order - if spaced 1 line apart, with 10% extra play.
+    //         layer.addLinesMonotonic(Shape(), ironing_lines, line_config, SpaceFillType::PolyLines, AngleRadians(direction), max_adjacent_distance);
+    //     }
+    //     added = true;
+    // }
+    // if (! ironing_paths.empty())
+    // {
+    //     constexpr bool retract_before_outer_wall = false;
+    //     constexpr coord_t wipe_dist = 0u;
+    //     const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+    //     InsetOrderOptimizer wall_orderer(
+    //         gcode_writer,
+    //         storage,
+    //         layer,
+    //         mesh.settings,
+    //         extruder_nr,
+    //         line_config,
+    //         line_config,
+    //         line_config,
+    //         line_config,
+    //         line_config,
+    //         line_config,
+    //         retract_before_outer_wall,
+    //         wipe_dist,
+    //         wipe_dist,
+    //         extruder_nr,
+    //         extruder_nr,
+    //         z_seam_config,
+    //         ironing_paths,
+    //         storage.getModelBoundingBox().flatten().getMiddle());
+    //     wall_orderer.addToLayer();
+    //     added = true;
+    // }
+    //
+    // layer.mode_skip_agressive_merge_ = false;
     return added;
 }
 

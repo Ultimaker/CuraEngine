@@ -383,7 +383,8 @@ gcode_paths_modify_request::value_type
         gcode_path->mutable_speed_derivatives()->set_acceleration(path.config.getAcceleration());
         gcode_path->mutable_speed_derivatives()->set_jerk(path.config.getJerk());
         gcode_path->set_line_width(path.config.getLineWidth());
-        gcode_path->set_layer_thickness(path.config.getLayerThickness());
+#warning take the layer thickness, well, from the layer
+        // gcode_path->set_layer_thickness(path.config.getLayerThickness());
         gcode_path->set_flow_ratio(path.config.getFlowRatio());
         gcode_path->set_is_bridge_path(path.config.isBridgePath());
         gcode_path->set_z_offset(path.config.z_offset);

@@ -3,6 +3,8 @@
 
 #include "operation_transformation/ExtruderPlanScheduler.h"
 
+#include <algorithm>
+
 #include <spdlog/spdlog.h>
 
 #include "operation_transformation/ClosestStartPoint.h"
