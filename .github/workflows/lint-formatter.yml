@@ -15,9 +15,9 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Checkout
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
 
-      - uses: technote-space/get-diff-action@v6
+      - uses: greguintow/get-diff-action@v7
         with:
           PATTERNS: |
             include/**/*.h*
@@ -25,7 +25,7 @@ jobs:
 
       - name: Setup Python and pip
         if: env.GIT_DIFF && !env.MATCHED_FILES  # If nothing happens with python and/or pip after, the clean-up crashes.
-        uses: actions/setup-python@v4
+        uses: actions/setup-python@v5
         with:
           python-version: 3.11.x
           cache: 'pip'
