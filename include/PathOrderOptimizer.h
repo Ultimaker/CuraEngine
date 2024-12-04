@@ -784,17 +784,20 @@ protected:
         best_candidate_finder.appendCriteriaPass(main_criteria_pass);
 
         // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
-        const AABB path_bounding_box(points);
+        if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
+        {
+            const AABB path_bounding_box(points);
 
-        { // First fallback strategy is to take points on the back-most position
-            auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
-            constexpr double outsider_delta_threshold = 0.01;
-            best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
-        }
+            { // First fallback strategy is to take points on the back-most position
+                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+                constexpr double outsider_delta_threshold = 0.01;
+                best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
+            }
 
-        { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-            auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
-            best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
+            { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
+                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+                best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
+            }
         }
 
         // ########## Step 3: apply the criteria to find the vertex with the best global score

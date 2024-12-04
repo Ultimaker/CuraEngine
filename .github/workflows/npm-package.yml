@@ -86,6 +86,7 @@ jobs:
 
       - name: Set npm config
         run: |
+          cd CuraEngineJS
           npm run install_curaengine
           npm ci
           npm publish
