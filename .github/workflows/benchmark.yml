@@ -31,13 +31,11 @@ permissions:
 
 jobs:
   check_actor:
-# FIXME: use main once merged
-    uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@CURA-11622_conan_v2
+    uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@main
     secrets: inherit
 
   benchmark:
-# FIXME: use main once merged
-    uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@CURA-11622_conan_v2
+    uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@main
     with:
       conan_extra_args: "-o \"curaengine/*:enable_benchmarks=True\""
       benchmark_cmd: "./build/Release/benchmark/benchmarks --benchmark_format=json --benchmark_out=benchmark_result.json"

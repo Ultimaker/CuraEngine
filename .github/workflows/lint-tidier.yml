@@ -11,5 +11,4 @@ on:
 jobs:
   lint-tidier-job:
     name: Auto-apply clang-tidy
-# FIXME: use main once merged
-    uses: ultimaker/cura-workflows/.github/workflows/lint-tidier.yml@CURA-11622_conan_v2
+    uses: ultimaker/cura-workflows/.github/workflows/lint-tidier.yml@main

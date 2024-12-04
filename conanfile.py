@@ -22,7 +22,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "application"
-    python_requires = "sentrylibrary/1.0.0@ultimaker/cura_11622" # FIXME: use main after merge
+    python_requires = "sentrylibrary/1.0.0@ultimaker/stable"
     python_requires_extend = "sentrylibrary.SentryLibrary"
 
     options = {
@@ -88,7 +88,7 @@ class CuraEngineConan(ConanFile):
             check_min_cppstd(self, 20)
 
     def build_requirements(self):
-        self.test_requires("standardprojectsettings/[>=0.2.0]@ultimaker/cura_11622")  # FIXME: use stable after merge
+        self.test_requires("standardprojectsettings/[>=0.2.0]@ultimaker/stable")
         if self.options.enable_arcus or self.options.enable_plugins:
             self.tool_requires("protobuf/3.21.12")
         if not self.conf.get("tools.build:skip_test", False, check_type=bool):
@@ -115,7 +115,7 @@ class CuraEngineConan(ConanFile):
                 self.requires(req)
         if self.options.enable_arcus or self.options.enable_plugins:
             self.requires("protobuf/3.21.12")
-        self.requires("clipper/6.4.2@ultimaker/cura_11622") # FIXME: use main after merge
+        self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.83.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
@@ -123,7 +123,7 @@ class CuraEngineConan(ConanFile):
         self.requires("fmt/10.2.1")
         self.requires("range-v3/0.12.0")
         self.requires("zlib/1.3.1")
-        self.requires("mapbox-wagyu/0.5.0@ultimaker/cura_11622") # FIXME: use main after merge
+        self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
 
     def generate(self):
         deps = CMakeDeps(self)

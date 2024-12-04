@@ -41,8 +41,6 @@ jobs:
     needs: [ check_actor ]
     if: ${{ needs.check_actor.outputs.proceed == 'true' }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@main
-    with:
-      project_name: curaengine
 
   benchmark:
     needs: [ conan-recipe-version ]

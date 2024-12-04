@@ -35,8 +35,6 @@ jobs:
     needs: [ check_actor ]
     if: ${{ needs.check_actor.outputs.proceed == 'true' }}
     uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@main
-    with:
-      project_name: curaengine
 
   gcodeanalyzer:
     needs: [ conan-recipe-version ]
@@ -44,8 +42,7 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - name: Setup the build environment
-# FIXME: use main once merged
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@CURA-11622_conan_v2
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@main
         with:
           install_system_dependencies: true
 
