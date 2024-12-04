@@ -1,7 +1,7 @@
 version: "5.10.0-alpha.0"
 commit: "unknown"
 requirements:
-  - "scripta/[>=1.1.0]@ultimaker/stable"
+  - "scripta/[>=1.1.0]@ultimaker/testing"
 requirements_arcus:
   - "arcus/5.4.1@ultimaker/stable"
 requirements_plugins:
