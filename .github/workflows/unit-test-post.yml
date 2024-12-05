@@ -1,9 +1,9 @@
-name: Unit tests publishing
+name: Unit tests - publish
 
 on:
   workflow_run:
-    workflows: [ unit-test ]
-    types: [ completed ]
+    workflows: [Unit tests - run]
+    types: [completed]
 
 jobs:
   publish-test-results:

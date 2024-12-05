@@ -1,4 +1,4 @@
-name: Unit tests
+name: Unit tests - run
 
 on:
   push:
