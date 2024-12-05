@@ -1,4 +1,4 @@
-name: unit-test-post
+name: Unit tests publishing
 
 on:
   workflow_run:

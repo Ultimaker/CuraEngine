@@ -1,5 +1,5 @@
----
-name: unit-test
+name: Unit tests
+
 on:
   push:
     paths:
