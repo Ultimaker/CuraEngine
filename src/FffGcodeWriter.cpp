@@ -30,6 +30,7 @@
 #include "communication/Communication.h" //To send layer view data.
 #include "feature_generation/FeatureGenerator.h"
 #include "feature_generation/MeshFeatureGenerator.h"
+#include "feature_generation/SkirtBrimGenerator.h"
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
@@ -191,6 +192,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     // }
 
     // Add all possible feature generators
+    feature_generators_.push_back(std::make_shared<SkirtBrimGenerator>());
     for (const std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
     {
         feature_generators_.push_back(std::make_shared<MeshFeatureGenerator>(mesh));

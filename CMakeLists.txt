@@ -99,6 +99,7 @@ set(engine_SRCS # Except main.cpp.
 
         src/feature_generation/FeatureGenerator.cpp include/feature_generation/FeatureGenerator.h
         src/feature_generation/MeshFeatureGenerator.cpp include/feature_generation/MeshFeatureGenerator.h
+        src/feature_generation/SkirtBrimGenerator.cpp include/feature_generation/SkirtBrimGenerator.h
 
         src/infill/ImageBasedDensityProvider.cpp
         src/infill/NoZigZagConnectorProcessor.cpp
