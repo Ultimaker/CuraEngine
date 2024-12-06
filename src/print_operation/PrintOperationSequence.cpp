@@ -87,98 +87,67 @@ void PrintOperationSequence::removeOperation(const std::shared_ptr<PrintOperatio
     }
 }
 
-std::shared_ptr<PrintOperation>
-    PrintOperationSequence::findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function, const SearchOrder search_order) const
-{
-#warning We should iterator over all children in the tree, depth first
-    auto find_in = [&search_function](auto begin, auto end) -> std::shared_ptr<PrintOperation>
-    {
-        auto iterator = std::find_if(begin, end, search_function);
-        if (iterator != end)
-        {
-            return *iterator;
-        }
-
-        return nullptr;
-    };
-
-    auto find_depth_first = [&search_function, &search_order](auto begin, auto end) -> std::shared_ptr<PrintOperation>
-    {
-        for (auto iterator = begin; iterator != end; ++iterator)
-        {
-            const std::shared_ptr<PrintOperation>& operation = *iterator;
-            if (search_function(operation))
-            {
-                return operation;
-            }
-
-            if (const auto operation_sequence = std::dynamic_pointer_cast<PrintOperationSequence>(operation))
-            {
-                if (auto result = operation_sequence->findOperation(search_function, search_order))
-                {
-                    return result;
-                }
-            }
-        }
-
-        return nullptr;
-    };
-
-    switch (search_order)
-    {
-    case SearchOrder::Forward:
-        return find_in(operations_.begin(), operations_.end());
-    case SearchOrder::Backward:
-        return find_in(operations_.rbegin(), operations_.rend());
-    case SearchOrder::DepthFirstForward:
-        return find_depth_first(operations_.begin(), operations_.end());
-    case SearchOrder::DepthFirstBackward:
-        return find_depth_first(operations_.rbegin(), operations_.rend());
-    }
-
-    return nullptr;
-}
-
 std::shared_ptr<PrintOperation> PrintOperationSequence::findOperation(
-    const std::vector<const PrintOperation*>& parents,
-    const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function) const
+    const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function,
+    const SearchOrder search_order,
+    const std::optional<size_t> max_depth) const
 {
-    if (! parents.empty())
+    if (! max_depth.has_value() || max_depth.value() > 0)
     {
-        const PrintOperation* child = this;
+        const std::optional<size_t> next_depth = max_depth.has_value() ? max_depth.value() - 1 : max_depth;
 
-        for (const PrintOperation* parent : parents | ranges::views::reverse)
+        const auto find_depth_first = [&search_function, &search_order, &next_depth](auto begin, auto end) -> std::shared_ptr<PrintOperation>
         {
-            if (const auto* parent_as_sequence = dynamic_cast<const PrintOperationSequence*>(parent))
+            for (auto iterator = begin; iterator != end; ++iterator)
             {
-                const std::vector<std::shared_ptr<PrintOperation>>& children = parent_as_sequence->getOperations();
-                auto iterator_child = std::find_if(
-                    children.begin(),
-                    children.end(),
-                    [&child](const std::shared_ptr<PrintOperation>& operation)
-                    {
-                        return operation.get() == child;
-                    });
-                if (iterator_child != children.begin())
+                const std::shared_ptr<PrintOperation>& operation = *iterator;
+                if (search_function(operation))
                 {
-                    for (auto iterator = iterator_child - 1; iterator != children.begin(); --iterator)
-                    {
-                        if (search_function(*iterator))
-                        {
-                            return *iterator;
-                        }
+                    return operation;
+                }
 
-                        if (const auto child_as_sequence = std::dynamic_pointer_cast<const PrintOperationSequence>(*iterator))
-                        {
-                            child_as_sequence->findOperation(search_function, SearchOrder::DepthFirstBackward);
-                        }
+                if (const auto operation_sequence = std::dynamic_pointer_cast<PrintOperationSequence>(operation))
+                {
+                    if (auto result = operation_sequence->findOperation(search_function, search_order, next_depth))
+                    {
+                        return result;
                     }
                 }
-
-                child = parent;
             }
+
+            return nullptr;
+        };
+
+        switch (search_order)
+        {
+        case SearchOrder::Forward:
+            return find_depth_first(operations_.begin(), operations_.end());
+        case SearchOrder::Backward:
+            return find_depth_first(operations_.rbegin(), operations_.rend());
         }
     }
+    else
+    {
+        auto find_in = [&search_function](auto begin, auto end) -> std::shared_ptr<PrintOperation>
+        {
+            auto iterator = std::find_if(begin, end, search_function);
+            if (iterator != end)
+            {
+                return *iterator;
+            }
+
+            return nullptr;
+        };
+
+        switch (search_order)
+        {
+        case SearchOrder::Forward:
+            return find_in(operations_.begin(), operations_.end());
+        case SearchOrder::Backward:
+            return find_in(operations_.rbegin(), operations_.rend());
+        }
+    }
+
     return nullptr;
 }
 

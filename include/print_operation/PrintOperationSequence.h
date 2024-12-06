@@ -16,15 +16,19 @@ class SliceMeshStorage;
 class PlanExporter;
 class LayerPlan;
 
+namespace SearchDepth
+{
+static constexpr std::optional<size_t> Full = std::nullopt;
+static constexpr std::optional<size_t> DirectChildren = 0;
+}; // namespace SearchDepth
+
 class PrintOperationSequence : public PrintOperation, public std::enable_shared_from_this<PrintOperationSequence>
 {
 public:
     enum class SearchOrder
     {
-        Forward, // Only search in direct children, forwards
-        Backward, // Only search in direct children, backwards
-        DepthFirstForward, // Search in children tree, depth-first forwards
-        DepthFirstBackward, // Search in children tree, depth-first backwards
+        Forward,
+        Backward,
     };
 
 public:
@@ -43,14 +47,23 @@ public:
 
     std::optional<Point3LL> findEndPosition() const override;
 
-    std::shared_ptr<PrintOperation>
-        findOperation(const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function, const SearchOrder search_order = SearchOrder::Forward) const;
+    /*!
+     * Searches a child operation, recursively or not, forwards of backwards, given a search function
+     *
+     * @param search_function The search function that should find the matching operation
+     * @param search_order Whether we should search forwards or backwards
+     * @param max_depth The maximum depth of children to look for. 0 means only direct children, nullopt means full tree. You case use SearchDepth defines.
+     * @return The first found operation, or a null ptr if none was found
+     * @note This function can also be used to iterate over children by providing a search function that always returns false
+     */
+    std::shared_ptr<PrintOperation> findOperation(
+        const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function,
+        const SearchOrder search_order = SearchOrder::Forward,
+        const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
     template<class OperationType>
-    std::shared_ptr<OperationType> findOperationByType(const SearchOrder search_order = SearchOrder::Forward) const;
-
-    std::shared_ptr<PrintOperation>
-        findOperation(const std::vector<const PrintOperation*>& parents, const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function) const;
+    std::shared_ptr<OperationType>
+        findOperationByType(const SearchOrder search_order = SearchOrder::Forward, const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
     const std::vector<std::shared_ptr<PrintOperation>>& getOperations() const noexcept;
 
@@ -74,14 +87,15 @@ private:
 };
 
 template<class OperationType>
-std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(const SearchOrder search_order) const
+std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(const SearchOrder search_order, const std::optional<size_t> max_depth) const
 {
     std::shared_ptr<PrintOperation> found_operation = findOperation(
         [](const std::shared_ptr<PrintOperation>& operation)
         {
             return static_cast<bool>(std::dynamic_pointer_cast<OperationType>(operation));
         },
-        search_order);
+        search_order,
+        max_depth);
 
     if (found_operation)
     {

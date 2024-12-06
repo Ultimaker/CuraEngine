@@ -10,6 +10,9 @@
 #include "FffProcessor.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
+#include "feature_generation/SkirtBrimAppender.h"
+#include "operation_transformation/ExtruderPlanScheduler.h"
+#include "operation_transformation/LayerPlanTravelMovesInserter.h"
 #include "plan_export/GCodeExporter.h"
 #include "print_operation/LayerPlan.h"
 
@@ -45,6 +48,21 @@ void PrintPlan::appendLayerPlan(const std::shared_ptr<LayerPlan>& layer_plan)
 void PrintPlan::applyProcessors(const std::vector<const PrintOperation*>& parents)
 {
     // Do not apply processors to children, they have been done separately
+
+    SkirtBrimAppender skirt_brim_appender;
+    skirt_brim_appender.process(this);
+
+    LayerPlanTravelMovesInserter layer_plan_travel_moves_inserter;
+    ExtruderPlanScheduler order_optimizer;
+    for (const std::shared_ptr<LayerPlan>& layer_plan : getOperationsAs<LayerPlan>())
+    {
+        for (const std::shared_ptr<ExtruderPlan>& extruder_plan : layer_plan->getOperationsAs<ExtruderPlan>())
+        {
+            order_optimizer.process(extruder_plan.get());
+        }
+
+        layer_plan_travel_moves_inserter.process(layer_plan.get());
+    }
 }
 
 // LayerPlan* PrintPlan::processBuffer()

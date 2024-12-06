@@ -69,7 +69,6 @@ package "operation_transformation" {
   }
 
   LayerPlanTravelMovesInserter -up-|> PrintOperationTransformer
-  AddPrimeTowerTransformer -up-|> PrintOperationTransformer
   MinimumLayerTimeTransformer -up-|> PrintOperationTransformer
   CoastingTransformer -up-|> PrintOperationTransformer
   BackPressureCompensationTransformer -up-|> PrintOperationTransformer
@@ -78,6 +77,8 @@ package "operation_transformation" {
   AddBedTemperatureCommandsTransformer -up-|> InsertOperationOnTimeTransformer
   AddCoolingFanCommandsTransformer -up-|> InsertOperationOnTimeTransformer
   InsertOperationOnTimeTransformer -up-|> PrintOperationTransformer
+  SkirtBrimAppender -up-|> PrintOperationTransformer
+  PrimeTowerAppender -up-|> PrintOperationTransformer
 
   LayerPlanTravelMovesInserter *-- "*" TravelMoveGenerator
   abstract TravelMoveGenerator
@@ -106,7 +107,6 @@ package "operation_transformation" {
   class AddNozzleTemperatureCommandsTransformer #paleturquoise
   class AddBedTemperatureCommandsTransformer #paleturquoise
   class AddCoolingFanCommandsTransformer #paleturquoise
-  class AddPrimeTowerTransformer #paleturquoise
   class CombingTravelMoveGenerator #paleturquoise
   class MinimumLayerTimeTransformer #paleturquoise
   class CoastingTransformer #paleturquoise
@@ -116,23 +116,22 @@ package "operation_transformation" {
   class GradualFlowSplitter #paleturquoise
   class ScarfSeamSplitter #paleturquoise
   class SmoothSpeedSplitter #paleturquoise
+  class PrimeTowerAppender #paleturquoise
 }
 
 package "feature_generation" {
   abstract FeatureGenerator {
-    {abstract} vector<FeatureExtrusion> generateFeatures(layer_index, extruder_index)
+    {abstract} generateFeatures(layer_index, extruder_plans)
   }
 
   MeshFeatureGenerator -up-|> FeatureGenerator
   NormalSupportGenerator -up-|> FeatureGenerator
   TreeSupportGenerator -up-|> FeatureGenerator
   OozeShieldGenerator -up-|> FeatureGenerator
-  SkirtBrimGenerator -up-|> FeatureGenerator
 
   class MeshFeatureGenerator #paleturquoise
   class NormalSupportGenerator #paleturquoise
   class TreeSupportGenerator #paleturquoise
   class OozeShieldGenerator #paleturquoise
-  class SkirtBrimGenerator #paleturquoise
 }
 @enduml

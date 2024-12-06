@@ -53,7 +53,7 @@ void LayerPlan::write(PlanExporter& exporter) const
 
 std::optional<Point3LL> LayerPlan::findExtruderStartPosition() const
 {
-    if (const auto move_sequence = findOperationByType<ContinuousExtruderMoveSequence>(SearchOrder::DepthFirstForward))
+    if (const auto move_sequence = findOperationByType<ContinuousExtruderMoveSequence>(SearchOrder::Forward, SearchDepth::Full))
     {
         std::optional<Point3LL> start_position = move_sequence->findStartPosition();
         if (start_position.has_value())
