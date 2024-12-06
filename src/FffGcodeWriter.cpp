@@ -41,7 +41,7 @@
 
 namespace cura
 {
-constexpr coord_t EPSILON = 8;
+constexpr coord_t EPSILON = 9;
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
