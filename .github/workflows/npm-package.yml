@@ -80,15 +80,12 @@ jobs:
       - name: Use Node.js
         uses: actions/setup-node@v4
         with:
-          node-version-file: .nvmrc
           registry-url: 'https://npm.pkg.github.com'
           scope: '@ultimaker'
 
       - name: Set npm config
         run: |
           cd CuraEngineJS
-          npm run install_curaengine
-          npm ci
           npm publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
