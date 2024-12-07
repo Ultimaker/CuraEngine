@@ -236,6 +236,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
         {
             CradleDeformationHalfCircle element_deformation_layer = current_area->deformation;
             Shape simulated_connection;
+            MinimumBoundingBox relevant_min_box = element->min_box;
             if(simulate_elements_as_connected.contains(current_area))
             {
                 // One cant be sure that the center of the min box is actually inside the polygon, e.g. a U shape
@@ -281,6 +282,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
                     {
                         return std::min(a, b);
                     });
+                relevant_min_box = simulated_connect_box;
             }
 
             for(UnsupportedAreaInformation* element_above: current_area->areas_above)
@@ -301,7 +303,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             }
 
             // Estimate horizontal influence to deformation
-            double horizontal_distance = element->min_box.minimumDistance(current_area->min_box) * horizontal_movement_weight;
+            double horizontal_distance = relevant_min_box.minimumDistance(current_area->min_box) * horizontal_movement_weight;
             double vertical_distance = (element->layer_idx - current_area->layer_idx) * layer_height;
             double total_distance = std::sqrt(horizontal_distance * horizontal_distance + vertical_distance * vertical_distance);
 
