@@ -10,7 +10,6 @@ on:
       - 'conandata.yml'
       - 'CMakeLists.txt'
       - '.github/workflows/conan-package.yml'
-      - '.github/workflows/npm-package.yml'
     branches:
       - main
       - 'CURA-*'
@@ -31,7 +30,6 @@ on:
       - 'conandata.yml'
       - 'CMakeLists.txt'
       - '.github/workflows/conan-package.yml'
-      - '.github/workflows/npm-package.yml'
     branches:
       - main
       - 'CURA-*'
@@ -42,7 +40,15 @@ on:
 
 jobs:
   conan-package:
-    uses: ultimaker/cura-workflows/.github/workflows/conan-package.yml@main
+    uses: ultimaker/cura-workflows/.github/workflows/conan-package.yml@NP-637_conan_v2_wasm
     with:
       platform_wasm: true
+    secrets: inherit
+
+  npm-package:
+    needs: [ conan-package ]
+    if: ${{ github.event_name == 'push' }}
+    uses: ultimaker/cura-workflows/.github/workflows/npm-package.yml@NP-637_conan_v2_wasm
+    with:
+      version_full: ${{ needs.conan-package.outputs.version_full }}
     secrets: inherit
