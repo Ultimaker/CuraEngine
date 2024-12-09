@@ -3,6 +3,8 @@
 
 #include "print_operation/ExtruderPlan.h"
 
+#include <range/v3/algorithm/find_if.hpp>
+
 #include "print_operation/FeatureExtrusion.h"
 
 namespace cura
@@ -30,6 +32,23 @@ void ExtruderPlan::appendFeatureExtrusion(const std::shared_ptr<FeatureExtrusion
     {
         appendOperation(feature_extrusion);
     }
+}
+
+ExtruderPlanPtr ExtruderPlan::find(const std::vector<ExtruderPlanPtr>& extruder_plans, const size_t extruder_nr)
+{
+    auto iterator = ranges::find_if(
+        extruder_plans,
+        [&extruder_nr](const ExtruderPlanPtr& extruder_plan)
+        {
+            return extruder_plan->getExtruderNr() == extruder_nr;
+        });
+
+    if (iterator != extruder_plans.end())
+    {
+        return *iterator;
+    }
+
+    return nullptr;
 }
 
 } // namespace cura

@@ -13,12 +13,13 @@ namespace cura
 class ExtrusionMove : public ExtruderMove
 {
 public:
-    explicit ExtrusionMove(const Point3LL& position, const Ratio& line_width_ratio = 1.0_r);
+    explicit ExtrusionMove(const Point3LL& position, const coord_t line_width_start, const std::optional<coord_t>& line_width_end = std::nullopt);
 
     void write(PlanExporter& exporter) const override;
 
 private:
-    Ratio line_width_ratio_{ 1.0 };
+    coord_t line_width_start_{ 0 };
+    coord_t line_width_end_{ 0 };
 };
 
 } // namespace cura

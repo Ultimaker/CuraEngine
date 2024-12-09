@@ -29,7 +29,7 @@
 #include "bridge.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "feature_generation/FeatureGenerator.h"
-#include "feature_generation/MeshFeatureGenerator.h"
+#include "feature_generation/MeshInsetsGenerator.h"
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
@@ -110,20 +110,20 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setConfigRetractionAndWipe(storage);
 
-    if (scene.current_mesh_group == scene.mesh_groups.begin())
-    {
-        auto should_prime_extruder = gcode.initializeExtruderTrains(storage, start_extruder_nr);
-
-        if (! should_prime_extruder)
-        {
-            // set to most negative number so that layer processing never primes this extruder anymore.
-            extruder_prime_layer_nr[start_extruder_nr] = std::numeric_limits<int>::min();
-        }
-    }
-    else
-    {
-        processNextMeshGroupCode(storage);
-    }
+    // if (scene.current_mesh_group == scene.mesh_groups.begin())
+    // {
+    //     auto should_prime_extruder = gcode.initializeExtruderTrains(storage, start_extruder_nr);
+    //
+    //     if (! should_prime_extruder)
+    //     {
+    //         // set to most negative number so that layer processing never primes this extruder anymore.
+    //         extruder_prime_layer_nr[start_extruder_nr] = std::numeric_limits<int>::min();
+    //     }
+    // }
+    // else
+    // {
+    //     processNextMeshGroupCode(storage);
+    // }
 
     size_t total_layers = 0;
     for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
@@ -144,34 +144,34 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     setSupportAngles(storage);
 
-    gcode.writeLayerCountComment(total_layers);
-
-    { // calculate the mesh order for each extruder
-        const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
-        mesh_order_per_extruder.clear(); // Might be not empty in case of sequential printing.
-        mesh_order_per_extruder.reserve(extruder_count);
-        for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
-        {
-            mesh_order_per_extruder.push_back(calculateMeshOrder(storage, extruder_nr));
-        }
-    }
-    const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_;
+    // gcode.writeLayerCountComment(total_layers);
+    //
+    // { // calculate the mesh order for each extruder
+    //     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
+    //     mesh_order_per_extruder.clear(); // Might be not empty in case of sequential printing.
+    //     mesh_order_per_extruder.reserve(extruder_count);
+    //     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
+    //     {
+    //         mesh_order_per_extruder.push_back(calculateMeshOrder(storage, extruder_nr));
+    //     }
+    // }
+    // const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_;
     // in case the prime blob is enabled the brim already starts from the closest start position which is blob location
     // also in case of one at a time printing the first move of every object shouldn't be start position of machine
-    if (! extruder_settings.get<bool>("prime_blob_enable") and ! (extruder_settings.get<std::string>("print_sequence") == "one_at_a_time"))
-    {
-        // Setting first travel move of the first extruder to the machine start position
-        Point3LL p(extruder_settings.get<coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
-        gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"));
-    }
+    // if (! extruder_settings.get<bool>("prime_blob_enable") and ! (extruder_settings.get<std::string>("print_sequence") == "one_at_a_time"))
+    // {
+    //     // Setting first travel move of the first extruder to the machine start position
+    //     Point3LL p(extruder_settings.get<coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
+    //     gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"));
+    // }
 
-    calculateExtruderOrderPerLayer(storage);
-    calculatePrimeLayerPerExtruder(storage);
-
-    if (scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
-    {
-        findLayerSeamsForSpiralize(storage, total_layers);
-    }
+    // calculateExtruderOrderPerLayer(storage);
+    // calculatePrimeLayerPerExtruder(storage);
+    //
+    // if (scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
+    // {
+    //     findLayerSeamsForSpiralize(storage, total_layers);
+    // }
 
     int process_layer_starting_layer_nr = 0;
     // const bool has_raft = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
@@ -193,10 +193,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     // Add all possible feature generators
     for (const std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
     {
-        feature_generators_.push_back(std::make_shared<MeshFeatureGenerator>(mesh));
+        feature_generators_.push_back(std::make_shared<MeshInsetsGenerator>(mesh));
     }
 
-    // Filter out generators that are actually useless in this context
+    // Filter out generators that are actually useless in this context. Not highly useful, but helps for debugging.
     ranges::remove_if(
         feature_generators_,
         [](const std::shared_ptr<FeatureGenerator>& generator)

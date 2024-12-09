@@ -40,7 +40,7 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
             {
                 used_extruders.insert(extruder_plan->getExtruderNr());
             }
-            return false;
+            return false; // Loop through all operations, we don't actually search something specific
         },
         PrintOperationSequence::SearchOrder::Forward,
         1);

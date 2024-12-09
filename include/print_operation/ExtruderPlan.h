@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "print_operation/ExtruderPlanPtr.h"
 #include "print_operation/PrintOperationSequence.h"
 
 namespace cura
@@ -21,6 +22,8 @@ public:
     const SpeedDerivatives& getTravelSpeed() const noexcept;
 
     void appendFeatureExtrusion(const std::shared_ptr<FeatureExtrusion>& feature_extrusion, const bool check_non_empty = true);
+
+    static ExtruderPlanPtr find(const std::vector<ExtruderPlanPtr>& extruder_plans, const size_t extruder_nr);
 
 private:
     const size_t extruder_nr_;

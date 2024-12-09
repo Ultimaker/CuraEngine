@@ -11,6 +11,7 @@ namespace cura
 {
 
 struct LayerIndex;
+class SliceDataStorage;
 
 class FeatureGenerator
 {
@@ -19,7 +20,7 @@ public:
 
     virtual bool isActive() const = 0;
 
-    virtual void generateFeatures(const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans) const = 0;
+    virtual void generateFeatures(const SliceDataStorage& storage, const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans) const = 0;
 };
 
 } // namespace cura
