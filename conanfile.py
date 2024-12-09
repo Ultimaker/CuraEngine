@@ -224,5 +224,4 @@ class CuraEngineConan(ConanFile):
                     "package.json"
                 ]
             }
-
             self.conf_info.define(f"user.{self.name.lower()}:package_json", package_json)
