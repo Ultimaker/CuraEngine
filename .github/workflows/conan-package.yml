@@ -30,6 +30,7 @@ on:
       - 'conandata.yml'
       - 'CMakeLists.txt'
       - '.github/workflows/conan-package.yml'
+      - '.github/workflows/npm-package.yml'
     branches:
       - main
       - 'CURA-*'
