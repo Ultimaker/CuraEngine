@@ -9,7 +9,7 @@ on:
 jobs:
   conan-recipe-version:
     name: Calculate version numbers
-    uses:  ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml
+    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@main
     permissions:
       contents: read
 
@@ -22,7 +22,7 @@ jobs:
 
     steps:
       - name: Setup the build environment
-        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637_conan_v2_wasm  # Remove this line after merge
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637_conan_v2_wasm  # Change to `main` after merge
         with:
           conan_user: ${{ secrets.CONAN_USER }}
           conan_password: ${{ secrets.CONAN_PASS }}
