@@ -204,3 +204,22 @@ class CuraEngineConan(ConanFile):
         ext = ".exe" if self.settings.os == "Windows" else ""
         self.conf_info.define_path("user.curaengine:curaengine",
                                    os.path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
+        if self.settings.os == "Emscripten":
+            package_json = {
+                "name": f"@ultimaker/{self.name.lower()}js",
+                "version": f"{self.version}",
+                "description": f"JavaScript / TypeScript bindings for {self.name}, a {self.description}",
+                "main": "bin/CuraEngine.js",
+                "repository": {
+                    "type": "git",
+                    "url": self.url
+                },
+                "author": self.author,
+                "license": self.license,
+                "keywords": self.topics,
+                "files": [
+                    "bin",
+                    "package.json"
+                ]
+            }
+            self.conf_info.define(f"user.{self.name.lower()}:package_json", package_json)
