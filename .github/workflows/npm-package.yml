@@ -1,81 +1,37 @@
 name: NPM package
 
 on:
-  workflow_dispatch:
-    inputs:
-      branch:
-        description: 'Branch to build'
-        required: true
-        default: 'main'
+  workflow_run:
+    workflows: ["conan-package"]
+    types:
+      - completed
 
 jobs:
-  build:
-    runs-on: ubuntu-latest
+  conan-recipe-version:
+    name: Calculate version numbers
+    uses:  ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml
+    permissions:
+      contents: read
 
+  publish-npm:
+    runs-on: ubuntu-latest
+    needs: [ conan-recipe-version ]
     permissions:
       contents: read
       packages: write
 
     steps:
-      - name: Checkout code
-        uses: actions/checkout@v4
+      - name: Setup the build environment
+        uses: ultimaker/cura-workflows/.github/actions/setup-build-environment@NP-637_conan_v2_wasm  # Remove this line after merge
         with:
-            ref: ${{ github.event.inputs.branch }}
+          conan_user: ${{ secrets.CONAN_USER }}
+          conan_password: ${{ secrets.CONAN_PASS }}
+          conan_config_branch: "NP-637_conan_v2_wasm"  # Remove this line after merging https://github.com/Ultimaker/cura-workflows/pull/32
+          install_system_dependencies: true
+          repository_path: _sources
 
-      - name: Sync pip requirements
-        run: curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/.github/workflows/requirements-runner.txt
-        working-directory: .github/workflows
-
-      - name: Setup Python and pip
-        uses: actions/setup-python@v4
-        with:
-          python-version: 3.11.x
-          cache: pip
-          cache-dependency-path: .github/workflows/requirements-runner.txt
-
-      - name: Install Python requirements and Create default Conan profile
-        run: pip install -r .github/workflows/requirements-runner.txt
-
-      - name: Install Linux system requirements for building
-        run: |
-          mkdir runner_scripts
-          cd runner_scripts
-          curl -O https://raw.githubusercontent.com/Ultimaker/cura-workflows/main/runner_scripts/ubuntu_setup.sh
-          chmod +x ubuntu_setup.sh
-          sudo ./ubuntu_setup.sh
-
-      - name: Setup pipeline caches
-        run: |
-          mkdir -p /home/runner/.conan/downloads
-          mkdir -p /home/runner/.conan/data
-
-      - name: Create default Conan profile
-        run: conan profile new default --detect
-
-      # FIXME: Once merged to main: conan config install https://github.com/Ultimaker/conan-config.git -a "-b runner/${{ runner.os }}/${{ runner.arch }}"
-      - name: Get Conan configuration
-        run: |
-          conan config install https://github.com/Ultimaker/conan-config.git
-          conan config install https://github.com/Ultimaker/conan-config.git -a "-b NP-419"
-
-      - name: Add runner credentials to cura remote
-        run: conan user -p ${{ secrets.CONAN_PASS }} -r cura ${{ secrets.CONAN_USER }}
-
-      - name: Cache Conan packages
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan/data
-          key: ${{ runner.os }}-conan-data-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-data-
-
-      - name: Cache Conan downloads
-        uses: actions/cache@v3
-        with:
-          path: /home/runner/.conan/downloads
-          key: ${{ runner.os }}-conan-downloads-${{ github.run_id }}
-          restore-keys: |
-            ${{ runner.os }}-conan-downloads-
+      - name: Gather/build the packages
+        run: conan install --requires "${{ needs.conan-recipe-version.outputs.version_full }}" -pr:h cura_wasm.jinja --build=missing --update -of .
 
       - name: Use Node.js
         uses: actions/setup-node@v4
@@ -83,16 +39,8 @@ jobs:
           registry-url: 'https://npm.pkg.github.com'
           scope: '@ultimaker'
 
-      - name: Set npm config
+      - name: Publish to GitHub Packages
         run: |
-          cd CuraEngineJS
           npm publish
         env:
           GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
-
-      - name: Upload the Package(s)
-        if: ${{ always() }}
-        run: |
-          conan remove "cura_private_data/*" --force
-          conan remove "fdm_materials/*" --force
-          conan upload "*" -r cura --all -c
