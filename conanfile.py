@@ -3,10 +3,9 @@
 import os
 
 from conan import ConanFile
-from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy, mkdir, update_conandata
-from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
+from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
+from conan.tools.files import copy, mkdir, update_conandata
 from conan.tools.scm import Version, Git
 
 required_conan_version = ">=2.7.0"
@@ -61,8 +60,10 @@ class CuraEngineConan(ConanFile):
         copy(self, "CuraEngine.rc", self.recipe_folder, self.export_sources_folder)
         copy(self, "LICENSE", self.recipe_folder, self.export_sources_folder)
         copy(self, "*", os.path.join(self.recipe_folder, "src"), os.path.join(self.export_sources_folder, "src"))
-        copy(self, "*", os.path.join(self.recipe_folder, "include"), os.path.join(self.export_sources_folder, "include"))
-        copy(self, "*", os.path.join(self.recipe_folder, "benchmark"), os.path.join(self.export_sources_folder, "benchmark"))
+        copy(self, "*", os.path.join(self.recipe_folder, "include"),
+             os.path.join(self.export_sources_folder, "include"))
+        copy(self, "*", os.path.join(self.recipe_folder, "benchmark"),
+             os.path.join(self.export_sources_folder, "benchmark"))
         copy(self, "*", os.path.join(self.recipe_folder, "stress_benchmark"),
              os.path.join(self.export_sources_folder, "stress_benchmark"))
         copy(self, "*", os.path.join(self.recipe_folder, "tests"), os.path.join(self.export_sources_folder, "tests"))
@@ -138,7 +139,8 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_TESTING"] = not self.conf.get("tools.build:skip_test", False, check_type=bool)
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
-        tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
+        tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(
+            self.settings.compiler.version) < "14"
         tc.variables["ENABLE_THREADING"] = not (self.settings.arch == "wasm" and self.settings.os == "Emscripten")
         if self.options.enable_plugins:
             tc.variables["ENABLE_PLUGINS"] = True
@@ -182,7 +184,7 @@ class CuraEngineConan(ConanFile):
         cmake.configure()
         cmake.build()
 
-        self.send_sentry_debug_files(binary_basename = "CuraEngine")
+        self.send_sentry_debug_files(binary_basename="CuraEngine")
 
     def deploy(self):
         copy(self, "CuraEngine*", src=os.path.join(self.package_folder, "bin"), dst=self.deploy_folder)
@@ -222,5 +224,4 @@ class CuraEngineConan(ConanFile):
                     "package.json"
                 ]
             }
-
             self.conf_info.define(f"user.{self.name.lower()}:package_json", package_json)
