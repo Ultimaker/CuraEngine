@@ -207,7 +207,7 @@ class CuraEngineConan(ConanFile):
         if self.settings.os == "Emscripten":
             package_json = {
                 "name": f"@ultimaker/{self.name.lower()}js",
-                "version": f"{self.version}",
+                "version": f"{str(self.version).replace('+', '-')}",  # npm will otherwise 'sanitize' the version number
                 "description": f"JavaScript / TypeScript bindings for {self.name}, a {self.description}",
                 "main": "bin/CuraEngine.js",
                 "repository": {
