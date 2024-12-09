@@ -25,7 +25,7 @@ void TravelMove::write(PlanExporter& exporter) const
         return;
     }
 
-    const Point3LL position = layer_plan->getAbsolutePosition(*travel_route, getPosition());
+    const Point3LL position = layer_plan->getAbsolutePosition(getPosition());
     const Velocity& velocity = travel_route->getSpeed();
     const PrintFeatureType feature = travel_route->getFeatureType();
 

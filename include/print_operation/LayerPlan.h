@@ -27,11 +27,11 @@ public:
 
     coord_t getThickness() const;
 
+    const std::shared_ptr<PathConfigStorage>& getConfigsStorage() const;
+
     void write(PlanExporter& exporter) const override;
 
-    std::optional<Point3LL> findExtruderStartPosition() const;
-
-    Point3LL getAbsolutePosition(const ContinuousExtruderMoveSequence& move_sequence, const Point3LL& relative_position) const;
+    Point3LL getAbsolutePosition(const Point3LL& relative_position) const;
 
 private:
     const LayerIndex layer_index_;

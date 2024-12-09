@@ -53,7 +53,7 @@ public:
     GCodePathConfig support_fractional_roof_config; //!< The config used to print the dense roofs of support on fractional layer-height parts.
     GCodePathConfig support_bottom_config; //!< The config to use to print the dense bottoms of support
 
-    std::vector<MeshPathConfigs> mesh_configs; //!< For each mesh the config for all its feature types
+    std::map<std::shared_ptr<SliceMeshStorage>, MeshPathConfigs> mesh_configs; //!< For each mesh the config for all its feature types
 
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers

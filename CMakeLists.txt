@@ -130,6 +130,7 @@ set(engine_SRCS # Except main.cpp.
         include/print_operation/ContinuousExtruderMoveSequencePtr.h
         include/print_operation/ExtruderPlanPtr.h
         include/print_operation/FeatureExtrusionPtr.h
+        include/print_operation/LayerPlanPtr.h
         include/print_operation/PrintOperationPtr.h
         src/print_operation/ContinuousExtruderMoveSequence.cpp include/print_operation/ContinuousExtruderMoveSequence.h
         src/print_operation/ExtruderMove.cpp include/print_operation/ExtruderMove.h

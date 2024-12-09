@@ -10,8 +10,9 @@
 namespace cura
 {
 
-FeatureExtrusion::FeatureExtrusion(const GCodePathConfig& config)
-    : config_(config)
+FeatureExtrusion::FeatureExtrusion(const PrintFeatureType type, const coord_t nominal_line_width)
+    : type_(type)
+    , nominal_line_width_(nominal_line_width)
 {
 }
 
@@ -23,34 +24,13 @@ void FeatureExtrusion::appendExtruderMoveSequence(const ContinuousExtruderMoveSe
     }
 }
 
-const Velocity& FeatureExtrusion::getSpeed() const
+PrintFeatureType FeatureExtrusion::getType() const
 {
-    return config_.getSpeed();
+    return type_;
 }
-
-PrintFeatureType FeatureExtrusion::getPrintFeatureType() const
+coord_t FeatureExtrusion::getNominalLineWidth() const
 {
-    return config_.getPrintFeatureType();
-}
-
-coord_t FeatureExtrusion::getLineWidth() const
-{
-    return std::llrint(getFlow() * getWidthFactor() * static_cast<double>(config_.getLineWidth()) * config_.getFlowRatio());
-}
-
-double FeatureExtrusion::getExtrusionMM3perMM() const
-{
-    return config_.getExtrusionMM3perMM();
-}
-
-const Ratio& FeatureExtrusion::getFlow() const
-{
-    return flow_;
-}
-
-const Ratio& FeatureExtrusion::getWidthFactor() const
-{
-    return width_factor_;
+    return nominal_line_width_;
 }
 
 } // namespace cura

@@ -18,13 +18,13 @@ public:
 
     bool isActive() const override;
 
-    void generateFeatures(const SliceDataStorage& storage, const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans) const final;
+    void generateFeatures(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const std::vector<ExtruderPlanPtr>& extruder_plans) const final;
 
 protected:
     std::shared_ptr<SliceMeshStorage> getMesh() const;
 
     virtual void
-        generateFeatures(const SliceDataStorage& storage, const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans, const SliceLayerPart& part) const
+        generateFeatures(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const std::vector<ExtruderPlanPtr>& extruder_plans, const SliceLayerPart& part) const
         = 0;
 
 private:

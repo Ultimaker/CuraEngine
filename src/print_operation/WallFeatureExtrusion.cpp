@@ -6,8 +6,12 @@
 namespace cura
 {
 
-WallFeatureExtrusion::WallFeatureExtrusion(const GCodePathConfig& config, const std::shared_ptr<const SliceMeshStorage>& mesh, const size_t inset_index)
-    : MeshFeatureExtrusion(config, mesh)
+WallFeatureExtrusion::WallFeatureExtrusion(
+    const PrintFeatureType type,
+    const coord_t nominal_line_width,
+    const std::shared_ptr<const SliceMeshStorage>& mesh,
+    const size_t inset_index)
+    : MeshFeatureExtrusion(type, nominal_line_width, mesh)
     , inset_index_(inset_index)
 {
 }

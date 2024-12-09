@@ -6,6 +6,7 @@
 #include <vector>
 
 #include "print_operation/ExtruderPlanPtr.h"
+#include "print_operation/LayerPlanPtr.h"
 
 namespace cura
 {
@@ -20,7 +21,7 @@ public:
 
     virtual bool isActive() const = 0;
 
-    virtual void generateFeatures(const SliceDataStorage& storage, const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans) const = 0;
+    virtual void generateFeatures(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const std::vector<ExtruderPlanPtr>& extruder_plans) const = 0;
 };
 
 } // namespace cura

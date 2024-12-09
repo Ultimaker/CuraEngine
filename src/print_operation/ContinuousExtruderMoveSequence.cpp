@@ -19,21 +19,6 @@ std::optional<Point3LL> ContinuousExtruderMoveSequence::findStartPosition() cons
     return closed_ ? PrintOperationSequence::findEndPosition() : start_position_;
 }
 
-coord_t ContinuousExtruderMoveSequence::getZOffset() const
-{
-    return z_offset_;
-}
-
-const Ratio& ContinuousExtruderMoveSequence::getSpeedFactor() const
-{
-    return speed_factor_;
-}
-
-const Ratio& ContinuousExtruderMoveSequence::getSpeedBackPressureFactor() const
-{
-    return speed_back_pressure_factor_;
-}
-
 bool ContinuousExtruderMoveSequence::isClosed() const
 {
     return closed_;
@@ -99,9 +84,9 @@ void ContinuousExtruderMoveSequence::reverse()
     }
 }
 
-void ContinuousExtruderMoveSequence::appendExtruderMove(const Point3LL& position, const Ratio& line_width_ratio)
+void ContinuousExtruderMoveSequence::appendExtruderMove(const std::shared_ptr<ExtruderMove>& extruder_move)
 {
-    appendOperation(std::make_shared<ExtrusionMove>(position, line_width_ratio));
+    appendOperation(extruder_move);
 }
 
 } // namespace cura

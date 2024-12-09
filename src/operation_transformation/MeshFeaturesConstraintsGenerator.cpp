@@ -24,7 +24,7 @@ void MeshFeaturesConstraintsGenerator::appendConstraints(
         return;
     }
 
-    const PrintFeatureType feature_type = feature_extrusion->getPrintFeatureType();
+    const PrintFeatureType feature_type = feature_extrusion->getType();
     const Settings& mesh_settings = mesh_feature_extrusion->getMesh()->settings;
     const bool infill_before_walls = mesh_settings.get<bool>("infill_before_walls");
     const auto inset_direction = mesh_settings.get<InsetDirection>("inset_direction");
@@ -83,7 +83,7 @@ void MeshFeaturesConstraintsGenerator::appendConstraints(
         {
             const auto other_wall_feature = std::dynamic_pointer_cast<WallFeatureExtrusion>(other_feature_extrusion);
             bool process_after = inset_index_after.has_value() && other_wall_feature && other_wall_feature->getInsetIndex() == inset_index_after.value();
-            process_after |= ranges::contains(types_after, other_mesh_feature->getPrintFeatureType());
+            process_after |= ranges::contains(types_after, other_mesh_feature->getType());
             if (process_after)
             {
                 extrusions_after.push_back(other_feature_extrusion);

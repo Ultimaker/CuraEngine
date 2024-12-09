@@ -6,8 +6,8 @@
 namespace cura
 {
 
-MeshFeatureExtrusion::MeshFeatureExtrusion(const GCodePathConfig& config, const std::shared_ptr<const SliceMeshStorage>& mesh)
-    : FeatureExtrusion(config)
+MeshFeatureExtrusion::MeshFeatureExtrusion(const PrintFeatureType type, const coord_t nominal_line_width, const std::shared_ptr<const SliceMeshStorage>& mesh)
+    : FeatureExtrusion(type, nominal_line_width)
     , mesh_(mesh)
 {
 }

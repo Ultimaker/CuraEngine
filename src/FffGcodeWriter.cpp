@@ -1378,7 +1378,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::generateFeatures(const SliceD
     // Generate features
     for (const std::shared_ptr<FeatureGenerator>& generator : feature_generators_)
     {
-        generator->generateFeatures(layer_nr, extruder_plans);
+        generator->generateFeatures(storage, layer_plan, extruder_plans);
     }
 
     // Now append non-empty extruder plans to layer plan

@@ -18,7 +18,7 @@ public:
     bool isActive() const override;
 
 protected:
-    void generateFeatures(const SliceDataStorage& storage, const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans, const SliceLayerPart& part)
+    void generateFeatures(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const std::vector<ExtruderPlanPtr>& extruder_plans, const SliceLayerPart& part)
         const override;
 };
 

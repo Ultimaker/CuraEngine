@@ -28,6 +28,11 @@ coord_t LayerPlan::getThickness() const
     return thickness_;
 }
 
+const std::shared_ptr<PathConfigStorage>& LayerPlan::getConfigsStorage() const
+{
+    return configs_;
+}
+
 LayerIndex LayerPlan::getLayerIndex() const
 {
     return layer_index_;
@@ -43,32 +48,18 @@ void LayerPlan::appendExtruderPlan(const ExtruderPlanPtr& extruder_plan, const b
 
 void LayerPlan::write(PlanExporter& exporter) const
 {
-    const std::optional<Point3LL> start_position = findExtruderStartPosition();
-    exporter.writeLayerStart(layer_index_, start_position.value_or(Point3LL()));
+    const std::optional<Point3LL> start_position = findStartPosition();
+    exporter.writeLayerStart(layer_index_, getAbsolutePosition(start_position.value_or(Point3LL())));
 
     PrintOperationSequence::write(exporter);
 
     exporter.writeLayerEnd(layer_index_, z_, thickness_);
 }
 
-std::optional<Point3LL> LayerPlan::findExtruderStartPosition() const
-{
-    if (const auto move_sequence = findOperationByType<ContinuousExtruderMoveSequence>(SearchOrder::Forward, SearchDepth::Full))
-    {
-        std::optional<Point3LL> start_position = move_sequence->findStartPosition();
-        if (start_position.has_value())
-        {
-            return getAbsolutePosition(*move_sequence, start_position.value());
-        }
-    }
-
-    return std::nullopt;
-}
-
-Point3LL LayerPlan::getAbsolutePosition(const ContinuousExtruderMoveSequence& move_sequence, const Point3LL& relative_position) const
+Point3LL LayerPlan::getAbsolutePosition(const Point3LL& relative_position) const
 {
     Point3LL absolute_position = relative_position;
-    absolute_position.z_ += getZ() + move_sequence.getZOffset();
+    absolute_position.z_ += getZ();
     return absolute_position;
 }
 

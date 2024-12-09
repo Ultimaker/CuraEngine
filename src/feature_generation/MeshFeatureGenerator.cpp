@@ -5,6 +5,8 @@
 
 #include <sliceDataStorage.h>
 
+#include "print_operation/LayerPlan.h"
+
 namespace cura
 {
 
@@ -29,22 +31,22 @@ bool MeshFeatureGenerator::isActive() const
     return true;
 }
 
-void MeshFeatureGenerator::generateFeatures(const SliceDataStorage& storage, const LayerIndex& layer_index, const std::vector<ExtruderPlanPtr>& extruder_plans) const
+void MeshFeatureGenerator::generateFeatures(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const std::vector<ExtruderPlanPtr>& extruder_plans) const
 {
-    if (layer_index > mesh_->layer_nr_max_filled_layer)
+    if (layer_plan->getLayerIndex() > mesh_->layer_nr_max_filled_layer)
     {
         return;
     }
 
-    const SliceLayer& layer = mesh_->layers[layer_index];
-    for (const SliceLayerPart& part : layer)
+    const SliceLayer& layer = mesh_->layers[layer_plan->getLayerIndex()];
+    for (const SliceLayerPart& part : layer.parts)
     {
         if (part.outline.empty())
         {
             continue;
         }
 
-        generateFeatures(storage, layer_index, extruder_plans, part);
+        generateFeatures(storage, layer_plan, extruder_plans, part);
     }
 }
 

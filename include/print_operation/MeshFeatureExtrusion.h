@@ -12,7 +12,7 @@ namespace cura
 class MeshFeatureExtrusion : public FeatureExtrusion
 {
 public:
-    explicit MeshFeatureExtrusion(const GCodePathConfig& config, const std::shared_ptr<const SliceMeshStorage>& mesh);
+    explicit MeshFeatureExtrusion(const PrintFeatureType type, const coord_t nominal_line_width, const std::shared_ptr<const SliceMeshStorage>& mesh);
 
     const std::shared_ptr<const SliceMeshStorage>& getMesh() const;
 

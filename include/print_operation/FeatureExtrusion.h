@@ -5,7 +5,6 @@
 #define PATHPLANNING_FEATUREEXTRUSION_H
 
 #include "GCodePathConfig.h"
-#include "geometry/Point3LL.h"
 #include "print_operation/ContinuousExtruderMoveSequencePtr.h"
 #include "print_operation/PrintOperationSequence.h"
 
@@ -15,27 +14,17 @@ namespace cura
 class FeatureExtrusion : public PrintOperationSequence
 {
 public:
-    explicit FeatureExtrusion(const GCodePathConfig& config);
+    explicit FeatureExtrusion(const PrintFeatureType type, const coord_t nominal_line_width);
 
     void appendExtruderMoveSequence(const ContinuousExtruderMoveSequencePtr& extruder_move_sequence, bool check_non_empty = true);
 
-    const Velocity& getSpeed() const;
+    PrintFeatureType getType() const;
 
-    double getExtrusionMM3perMM() const;
-
-    PrintFeatureType getPrintFeatureType() const;
-
-    coord_t getLineWidth() const;
+    coord_t getNominalLineWidth() const;
 
 private:
-    const Ratio& getFlow() const;
-
-    const Ratio& getWidthFactor() const;
-
-private:
-    GCodePathConfig config_; //!< The configuration settings of the path.
-    Ratio flow_{ 1.0 }; //!< A type-independent flow configuration
-    Ratio width_factor_{ 1.0 }; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.
+    const PrintFeatureType type_;
+    const coord_t nominal_line_width_;
 };
 
 } // namespace cura

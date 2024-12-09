@@ -100,7 +100,7 @@ std::vector<FeatureExtrusionPtr>
     std::vector<FeatureExtrusionPtr> extrusions_after;
     std::vector<std::shared_ptr<FeatureExtrusionsConstraintsGenerator>> constraints_generators;
 
-    switch (feature_extrusion->getPrintFeatureType())
+    switch (feature_extrusion->getType())
     {
     case PrintFeatureType::SkirtBrim:
         constraints_generators.push_back(std::make_shared<BedAdhesionConstraintsGenerator>());
@@ -379,7 +379,7 @@ void FeatureExtrusionScheduler::preFilterStartCandidates(std::vector<StartCandid
 
 std::shared_ptr<ZSeamConfig> FeatureExtrusionScheduler::getZSeamConfig(const FeatureExtrusionPtr& feature_extrusion)
 {
-    switch (feature_extrusion->getPrintFeatureType())
+    switch (feature_extrusion->getType())
     {
     case PrintFeatureType::OuterWall:
     {

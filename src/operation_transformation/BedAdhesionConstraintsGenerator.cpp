@@ -18,7 +18,7 @@ void BedAdhesionConstraintsGenerator::appendConstraints(
 {
     for (const std::shared_ptr<FeatureExtrusion>& other_feature_extrusion : all_feature_extrusions)
     {
-        if (other_feature_extrusion != feature_extrusion && other_feature_extrusion->getPrintFeatureType() != PrintFeatureType::SkirtBrim)
+        if (other_feature_extrusion != feature_extrusion && other_feature_extrusion->getType() != PrintFeatureType::SkirtBrim)
         {
             extrusions_after.push_back(other_feature_extrusion);
         }

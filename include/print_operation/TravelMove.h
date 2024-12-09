@@ -14,7 +14,7 @@ class TravelMove : public ExtruderMove
 public:
     explicit TravelMove(const Point3LL& position);
 
-    virtual void write(PlanExporter& exporter) const override;
+    void write(PlanExporter& exporter) const override;
 };
 
 } // namespace cura

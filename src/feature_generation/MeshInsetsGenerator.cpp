@@ -5,12 +5,15 @@
 
 #include <ExtruderTrain.h>
 #include <WallToolPaths.h>
+#include <settings/PathConfigStorage.h>
 
 #include <range/v3/algorithm/find_if.hpp>
 
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderPlan.h"
-#include "print_operation/FeatureExtrusion.h"
+#include "print_operation/ExtrusionMove.h"
+#include "print_operation/LayerPlan.h"
+#include "print_operation/WallFeatureExtrusion.h"
 #include "sliceDataStorage.h"
 
 namespace cura
@@ -36,8 +39,8 @@ bool MeshInsetsGenerator::isActive() const
 }
 
 void MeshInsetsGenerator::generateFeatures(
-    const SliceDataStorage& storage,
-    const LayerIndex& layer_index,
+    const SliceDataStorage& /*storage*/,
+    const LayerPlanPtr& layer_plan,
     const std::vector<ExtruderPlanPtr>& extruder_plans,
     const SliceLayerPart& part) const
 {
@@ -52,36 +55,65 @@ void MeshInsetsGenerator::generateFeatures(
     const size_t extruder_nr_outer_walls = mesh_settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_;
     ExtruderPlanPtr extruder_plan_outer_walls = ExtruderPlan::find(extruder_plans, extruder_nr_outer_walls);
     assert(extruder_plan_outer_walls && "Unable to find extruder plan for outer walls");
-    auto feature_extrusion_outer_walls = std::make_shared<FeatureExtrusion>();
+    const MeshPathConfigs& mesh_configs = layer_plan->getConfigsStorage()->mesh_configs.at(getMesh());
 
     const size_t extruder_nr_inner_walls = mesh_settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_;
     ExtruderPlanPtr extruder_plan_inner_walls = ExtruderPlan::find(extruder_plans, extruder_nr_inner_walls);
     assert(extruder_plan_inner_walls && "Unable to find extruder plan for inner walls");
-    auto feature_extrusion_inner_walls = std::make_shared<FeatureExtrusion>();
+
+    std::vector<std::shared_ptr<WallFeatureExtrusion>> feature_extrusions;
+
+    auto find_or_make_feature_extrusion = [this, &feature_extrusions, &mesh_configs](const size_t inset_index)
+    {
+        auto iterator = ranges::find_if(
+            feature_extrusions,
+            [&inset_index](const std::shared_ptr<WallFeatureExtrusion>& feature_extrusion)
+            {
+                return feature_extrusion->getInsetIndex() == inset_index;
+            });
+
+        if (iterator != feature_extrusions.end())
+        {
+            return *iterator;
+        }
+
+        const GCodePathConfig& config = inset_index == 0 ? mesh_configs.inset0_config : mesh_configs.insetX_config;
+
+        auto feature_extrusion
+            = std::make_shared<WallFeatureExtrusion>(inset_index == 0 ? PrintFeatureType::OuterWall : PrintFeatureType::InnerWall, config.line_width, getMesh(), inset_index);
+        feature_extrusions.push_back(feature_extrusion);
+        return feature_extrusion;
+    };
 
     for (const VariableWidthLines& toolpath : part.wall_toolpaths)
     {
         for (const ExtrusionLine& extrusion_line : toolpath)
         {
-            auto move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(extrusion_line.is_closed_);
-
-            for (const ExtrusionJunction& extrusion_junction : extrusion_line)
+            if (extrusion_line.empty())
             {
+                continue;
             }
 
-            if (extrusion_line.is_outer_wall())
+            auto move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(extrusion_line.is_closed_, extrusion_line.front().p_);
+
+            for (const auto& extrusion_junctions : extrusion_line.junctions_ | ranges::views::sliding(2))
             {
-                feature_extrusion_outer_walls->appendExtruderMoveSequence(move_sequence);
+                const ExtrusionJunction& start = extrusion_junctions[0];
+                const ExtrusionJunction& end = extrusion_junctions[1];
+
+                const GCodePathConfig& config = extrusion_line.inset_idx_ == 0 ? mesh_configs.inset0_config : mesh_configs.insetX_config;
+
+                move_sequence->appendExtruderMove(std::make_shared<ExtrusionMove>(end.p_, start.w_, config.getSpeed(), end.w_));
             }
-            else
-            {
-                feature_extrusion_inner_walls->appendExtruderMoveSequence(move_sequence);
-            }
+
+            find_or_make_feature_extrusion(extrusion_line.inset_idx_)->appendExtruderMoveSequence(move_sequence);
         }
     }
 
-    extruder_plan_outer_walls->appendFeatureExtrusion(feature_extrusion_outer_walls);
-    extruder_plan_inner_walls->appendFeatureExtrusion(feature_extrusion_inner_walls);
+    for (const std::shared_ptr<WallFeatureExtrusion>& feature_extrusion : feature_extrusions)
+    {
+        extruder_plan_outer_walls->appendFeatureExtrusion(feature_extrusion);
+    }
 
     // if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr ==
     // mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)

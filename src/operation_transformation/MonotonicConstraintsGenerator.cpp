@@ -29,14 +29,14 @@ void MonotonicConstraintsGenerator::appendConstraints(
     const std::shared_ptr<const SliceMeshStorage>& mesh = mesh_feature->getMesh();
     const std::vector<AngleDegrees>* angles = nullptr;
 
-    if (feature_extrusion->getPrintFeatureType() == PrintFeatureType::Roof)
+    if (feature_extrusion->getType() == PrintFeatureType::Roof)
     {
         if (mesh->settings.get<bool>("roofing_monotonic"))
         {
             angles = &mesh->roofing_angles;
         }
     }
-    else if (feature_extrusion->getPrintFeatureType() == PrintFeatureType::Skin)
+    else if (feature_extrusion->getType() == PrintFeatureType::Skin)
     {
         if (mesh->settings.get<bool>("skin_monotonic"))
         {
@@ -51,10 +51,10 @@ void MonotonicConstraintsGenerator::appendConstraints(
         const AngleDegrees angle = angles->empty() ? AngleDegrees(45) : angles->front();
 #warning restore proper angle selection according to layer number
         //     roofing_angle = mesh.roofing_angles.at(gcode_layer.getLayerNr() % mesh.roofing_angles.size());
-        const double same_line_distance = feature_extrusion->getLineWidth() * 0.5;
+        const double same_line_distance = feature_extrusion->getNominalLineWidth() * 0.5;
 
         // Lines are considered adjacent if they are less than 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.
-        const double max_adjacent_distance = feature_extrusion->getLineWidth() * 1.1;
+        const double max_adjacent_distance = feature_extrusion->getNominalLineWidth() * 1.1;
 
         appendMonotonicConstraints(moves, angle, same_line_distance, max_adjacent_distance, constraints);
     }
