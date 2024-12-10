@@ -24,8 +24,7 @@ protected:
     std::shared_ptr<SliceMeshStorage> getMesh() const;
 
     virtual void
-        generateFeatures(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const std::vector<ExtruderPlanPtr>& extruder_plans, const SliceLayerPart& part) const
-        = 0;
+        generateFeatures(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const std::vector<ExtruderPlanPtr>& extruder_plans, const SliceLayerPart& part) const = 0;
 
 private:
     std::shared_ptr<SliceMeshStorage> mesh_;
