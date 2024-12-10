@@ -31,33 +31,39 @@ void LayerPlanTravelMovesInserter::process(LayerPlan* layer_plan)
 
 void LayerPlanTravelMovesInserter::appendTravelsMovesBetweenChildren(const std::shared_ptr<PrintOperationSequence>& sequence, const SpeedDerivatives& speed)
 {
-    std::vector<std::shared_ptr<PrintOperation>>& child_operations = sequence->getOperations();
-    for (size_t index_first = 0; index_first < child_operations.size(); ++index_first)
+    std::vector<std::shared_ptr<PrintOperation>> child_operations = sequence->getOperations();
+    for (size_t index_first = 0; index_first < child_operations.size() - 1; ++index_first)
     {
         const std::shared_ptr<PrintOperation>& operation_first = child_operations[index_first];
         std::optional<Point3LL> first_end_position = operation_first->findEndPosition();
-        if (first_end_position.has_value())
+        if (! first_end_position.has_value())
         {
-            for (size_t index_second = index_first + 1; index_second < child_operations.size(); ++index_second)
+            continue;
+        }
+
+        for (size_t index_second = index_first + 1; index_second < child_operations.size(); ++index_second)
+        {
+            const std::shared_ptr<PrintOperation>& operation_second = child_operations[index_second];
+            std::optional<Point3LL> second_start_position = operation_second->findStartPosition();
+            if (! second_start_position.has_value())
             {
-                const std::shared_ptr<PrintOperation>& operation_second = child_operations[index_second];
-                std::optional<Point3LL> second_start_position = operation_second->findStartPosition();
-                if (second_start_position.has_value())
-                {
-                    if (const std::shared_ptr<PrintOperation> travel_move = makeTravelMove(first_end_position.value(), second_start_position.value(), speed))
-                    {
-                        child_operations.insert(std::next(child_operations.begin(), index_second), travel_move);
-                        index_first = index_second;
-                    }
-                    else
-                    {
-                        index_first = index_second - 1;
-                    }
-                    break;
-                }
+                continue;
             }
+
+            if (const std::shared_ptr<PrintOperation> travel_move = makeTravelRoute(first_end_position.value(), second_start_position.value(), speed))
+            {
+                child_operations.insert(std::next(child_operations.begin(), index_second), travel_move);
+                index_first = index_second;
+            }
+            else
+            {
+                index_first = index_second - 1;
+            }
+            break;
         }
     }
+
+    sequence->setOperations(child_operations);
 }
 
 void LayerPlanTravelMovesInserter::appendTravelMovesRecursively(const std::shared_ptr<PrintOperation>& operation, const SpeedDerivatives& speed)
@@ -73,7 +79,7 @@ void LayerPlanTravelMovesInserter::appendTravelMovesRecursively(const std::share
     }
 }
 
-const std::shared_ptr<PrintOperation> LayerPlanTravelMovesInserter::makeTravelMove(const Point3LL& start_position, const Point3LL& end_position, const SpeedDerivatives& speed)
+const std::shared_ptr<PrintOperation> LayerPlanTravelMovesInserter::makeTravelRoute(const Point3LL& start_position, const Point3LL& end_position, const SpeedDerivatives& speed)
 {
     if (end_position != start_position)
     {

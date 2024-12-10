@@ -28,7 +28,7 @@ void ContinuousExtruderMoveSequence::reorderToEndWith(const std::shared_ptr<Extr
 {
     if (closed_)
     {
-        std::vector<std::shared_ptr<PrintOperation>>& operations = getOperations();
+        std::vector<std::shared_ptr<PrintOperation>> operations = getOperations();
         if (operations.size() > 1)
         {
             auto iterator = std::find(operations.begin(), operations.end(), extruder_move);
@@ -44,6 +44,8 @@ void ContinuousExtruderMoveSequence::reorderToEndWith(const std::shared_ptr<Extr
             {
                 spdlog::warn("Unable to change sequence ordering because the given move is not part of the sequence");
             }
+
+            setOperations(operations);
         }
     }
     else
@@ -80,7 +82,8 @@ void ContinuousExtruderMoveSequence::reverse()
             }
         }
 
-        std::reverse(getOperations().begin(), getOperations().end());
+        std::reverse(operations.begin(), operations.end());
+        setOperations(operations);
     }
 }
 

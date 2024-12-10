@@ -27,7 +27,7 @@ private:
 
     void appendTravelMovesRecursively(const std::shared_ptr<PrintOperation>& operation, const SpeedDerivatives& speed);
 
-    const std::shared_ptr<PrintOperation> makeTravelMove(const Point3LL& start_position, const Point3LL& end_position, const SpeedDerivatives& speed);
+    const std::shared_ptr<PrintOperation> makeTravelRoute(const Point3LL& start_position, const Point3LL& end_position, const SpeedDerivatives& speed);
 
 private:
     std::vector<std::shared_ptr<TravelMoveGenerator>> generators_;

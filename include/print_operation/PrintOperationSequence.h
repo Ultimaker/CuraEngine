@@ -1,12 +1,14 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATHPLANNING_PRINTOPERATIONSEQUENCE_H
-#define PATHPLANNING_PRINTOPERATIONSEQUENCE_H
+#pragma once
+
+#include <range/v3/algorithm/contains.hpp>
 
 #include "geometry/Point3LL.h"
 #include "operation_transformation/PrintOperationTransformer.h"
 #include "print_operation/PrintOperation.h"
+#include "print_operation/PrintOperationPtr.h"
 
 namespace cura
 {
@@ -56,8 +58,8 @@ public:
      * @return The first found operation, or a null ptr if none was found
      * @note This function can also be used to iterate over children by providing a search function that always returns false
      */
-    std::shared_ptr<PrintOperation> findOperation(
-        const std::function<bool(const std::shared_ptr<PrintOperation>&)>& search_function,
+    PrintOperationPtr findOperation(
+        const std::function<bool(const PrintOperationPtr&)>& search_function,
         const SearchOrder search_order = SearchOrder::Forward,
         const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
@@ -65,32 +67,33 @@ public:
     std::shared_ptr<OperationType>
         findOperationByType(const SearchOrder search_order = SearchOrder::Forward, const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
-    const std::vector<std::shared_ptr<PrintOperation>>& getOperations() const noexcept;
-
-    std::vector<std::shared_ptr<PrintOperation>>& getOperations() noexcept;
+    const std::vector<PrintOperationPtr>& getOperations() const noexcept;
 
     template<class OperationType>
     std::vector<std::shared_ptr<OperationType>> getOperationsAs() noexcept;
 
-    void setOperations(std::vector<std::shared_ptr<PrintOperation>>& operations) noexcept;
+    // void setOperations(std::vector<PrintOperationPtr>& operations) noexcept;
+
+    template<class OperationType>
+    void setOperations(std::vector<std::shared_ptr<OperationType>>& operations) noexcept;
 
 protected:
-    void appendOperation(const std::shared_ptr<PrintOperation>& operation);
+    void appendOperation(const PrintOperationPtr& operation);
 
-    void removeOperation(const std::shared_ptr<PrintOperation>& operation);
+    void removeOperation(const PrintOperationPtr& operation);
 
     template<class ChildType>
     void applyProcessorToOperationsRecursively(PrintOperationTransformer<ChildType>& processor);
 
 private:
-    std::vector<std::shared_ptr<PrintOperation>> operations_;
+    std::vector<PrintOperationPtr> operations_;
 };
 
 template<class OperationType>
 std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(const SearchOrder search_order, const std::optional<size_t> max_depth) const
 {
-    std::shared_ptr<PrintOperation> found_operation = findOperation(
-        [](const std::shared_ptr<PrintOperation>& operation)
+    PrintOperationPtr found_operation = findOperation(
+        [](const PrintOperationPtr& operation)
         {
             return static_cast<bool>(std::dynamic_pointer_cast<OperationType>(operation));
         },
@@ -126,6 +129,32 @@ std::vector<std::shared_ptr<OperationType>> PrintOperationSequence::getOperation
     return result;
 }
 
+template<class OperationType>
+void PrintOperationSequence::setOperations(std::vector<std::shared_ptr<OperationType>>& operations) noexcept
+{
+    for (const PrintOperationPtr& removed_operation : operations_)
+    {
+        if (! ranges::contains(operations, removed_operation))
+        {
+            removed_operation->setParent({});
+        }
+    }
+
+    for (const PrintOperationPtr& added_operation : operations)
+    {
+        if (! ranges::contains(operations_, added_operation))
+        {
+            added_operation->setParent(weak_from_this());
+        }
+    }
+
+    operations_.resize(operations.size());
+    for (size_t index = 0; index < operations.size(); ++index)
+    {
+        operations_[index] = operations[index];
+    }
+}
+
 template<class ChildType>
 void PrintOperationSequence::applyProcessorToOperationsRecursively(PrintOperationTransformer<ChildType>& processor)
 {
@@ -144,5 +173,3 @@ void PrintOperationSequence::applyProcessorToOperationsRecursively(PrintOperatio
 }
 
 } // namespace cura
-
-#endif // PATHPLANNING_PRINTOPERATIONSEQUENCE_H

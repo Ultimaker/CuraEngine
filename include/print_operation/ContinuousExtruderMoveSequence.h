@@ -3,12 +3,8 @@
 
 #pragma once
 
-#include "GCodePathConfig.h"
-#include "SpaceFillType.h"
 #include "geometry/Point3LL.h"
 #include "print_operation/PrintOperationSequence.h"
-#include "settings/types/Ratio.h"
-#include "utils/Coord_t.h"
 
 namespace cura
 {

@@ -4,12 +4,15 @@
 #ifndef PATHPLANNING_TRAVELROUTE_H
 #define PATHPLANNING_TRAVELROUTE_H
 
+#include "path_planning/SpeedDerivatives.h"
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 
 namespace cura
 {
 
+enum class PrintFeatureType : unsigned char;
 class TravelMove;
+struct Velocity;
 
 class TravelRoute : public ContinuousExtruderMoveSequence
 {

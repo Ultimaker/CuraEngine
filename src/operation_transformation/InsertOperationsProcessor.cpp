@@ -10,7 +10,7 @@ namespace cura
 
 void InsertOperationsProcessor::process(PrintOperationSequence* operation)
 {
-    std::vector<std::shared_ptr<PrintOperation>>& child_operations = operation->getOperations();
+    std::vector<std::shared_ptr<PrintOperation>> child_operations = operation->getOperations();
     for (size_t index_first = 0; index_first < child_operations.size(); ++index_first)
     {
         const std::shared_ptr<PrintOperation>& operation_first = child_operations[index_first];
@@ -35,6 +35,8 @@ void InsertOperationsProcessor::process(PrintOperationSequence* operation)
             }
         }
     }
+
+    operation->setOperations(child_operations);
 }
 
 } // namespace cura

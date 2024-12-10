@@ -3,6 +3,7 @@
 
 #include "operation_transformation/DirectTravelMoveGenerator.h"
 
+#include "PrintFeatureType.h"
 #include "print_operation/TravelMove.h"
 #include "print_operation/TravelRoute.h"
 

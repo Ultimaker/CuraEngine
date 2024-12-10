@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATHPROCESSING_DIRECTTRAVELMOVEGENERATOR_H
-#define PATHPROCESSING_DIRECTTRAVELMOVEGENERATOR_H
+#pragma once
 
 #include "operation_transformation/TravelMoveGenerator.h"
 
@@ -16,5 +15,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // PATHPROCESSING_DIRECTTRAVELMOVEGENERATOR_H

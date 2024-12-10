@@ -46,7 +46,8 @@ std::shared_ptr<PrintOperationSequence>
 
         return parent_ptr->findParent(search_function, warn_not_found);
     }
-    else if (warn_not_found)
+
+    if (warn_not_found)
     {
         spdlog::warn("Couldn't find appropriate parent");
     }
