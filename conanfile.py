@@ -125,8 +125,6 @@ class CuraEngineConan(ConanFile):
         self.requires("range-v3/0.12.0")
         self.requires("zlib/1.3.1")
         self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
-        if self.settings.os == "Linux":
-            self.requires("libsystemd/255.10", override=True)  # Required for compiling on Arch-based systems
 
     def generate(self):
         deps = CMakeDeps(self)
