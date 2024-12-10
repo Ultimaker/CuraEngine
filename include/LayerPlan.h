@@ -60,6 +60,12 @@ class LayerPlan : public NoCopy
 #endif
 
 public:
+    struct OverhangMask
+    {
+        Shape mask;
+        Ratio speed_ratio;
+    };
+
     const PathConfigStorage configs_storage_; //!< The line configs for this layer for each feature type
     const coord_t z_;
     coord_t final_travel_z_;
@@ -115,7 +121,8 @@ private:
     Comb* comb_;
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
-    Shape overhang_mask_; //!< The regions of a layer part where the walls overhang
+    std::vector<OverhangMask>
+        overhang_masks_; //!< The regions of a layer part where the walls overhang, calculated for multiple overhang angles. The latter is the most overhanging.
     Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
     Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
 
@@ -295,11 +302,11 @@ public:
     void setBridgeWallMask(const Shape& polys);
 
     /*!
-     * Set overhang_mask.
+     * Set overhang_masks.
      *
-     * \param polys The overhung areas of the part currently being processed that will require modified print settings
+     * \param masks The overhung areas of the part currently being processed that will require modified print settings
      */
-    void setOverhangMask(const Shape& polys);
+    void setOverhangMasks(const std::vector<OverhangMask>& masks);
 
     /*!
      * Set seam_overhang_mask.

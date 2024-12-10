@@ -57,14 +57,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
@@ -724,14 +725,15 @@ void LayerPlan::addWallLine(
     double distance_to_bridge_start,
     const bool travel_to_z)
 {
-    const coord_t min_line_len = 5; // we ignore lines less than 5um long
-    const double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
-    const double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
-    const bool spiralize = false;
+    constexpr coord_t min_line_len = 5; // we ignore lines less than 5um long
+    constexpr double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
+    constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
+    constexpr bool spiralize = false;
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
     const Ratio overhang_speed_factor = settings.get<Ratio>("wall_overhang_speed_factor");
+    const auto overhang_speed_factors = settings.get<std::vector<int>>("wall_overhang_speed_factors");
 
     Point3LL cur_point = p0;
 
@@ -1322,7 +1324,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -1948,9 +1950,11 @@ void LayerPlan::addLinesInGivenOrder(
 
 bool LayerPlan::segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const
 {
-    const OpenPolyline segment{ p0.toPoint2LL(), p1.toPoint2LL() };
-    const OpenLinesSet intersected_lines = overhang_mask_.intersection(OpenLinesSet{ segment });
-    return ! intersected_lines.empty() && (static_cast<double>(intersected_lines.length()) / segment.length()) > 0.5;
+    // const OpenPolyline segment{ p0.toPoint2LL(), p1.toPoint2LL() };
+    // const OpenLinesSet intersected_lines = overhang_mask_.intersection(OpenLinesSet{ segment });
+    // return ! intersected_lines.empty() && (static_cast<double>(intersected_lines.length()) / segment.length()) > 0.5;
+
+    return false;
 }
 
 void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed)
@@ -3154,9 +3158,9 @@ void LayerPlan::setBridgeWallMask(const Shape& polys)
     bridge_wall_mask_ = polys;
 }
 
-void LayerPlan::setOverhangMask(const Shape& polys)
+void LayerPlan::setOverhangMasks(const std::vector<OverhangMask>& masks)
 {
-    overhang_mask_ = polys;
+    overhang_masks_ = masks;
 }
 
 void LayerPlan::setSeamOverhangMask(const Shape& polys)

@@ -3082,10 +3082,6 @@ bool FffGcodeWriter::processInsets(
 
         const auto get_overhang_region = [&](const AngleDegrees overhang_angle) -> Shape
         {
-            if (overhang_angle >= 90)
-            {
-                return Shape(); // keep empty to disable overhang detection
-            }
             // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
             // the supported region is made up of those areas that really are supported by either model or support on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
@@ -3093,7 +3089,26 @@ bool FffGcodeWriter::processInsets(
             const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / std::numbers::pi));
             return part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
         };
-        gcode_layer.setOverhangMask(get_overhang_region(mesh.settings.get<AngleDegrees>("wall_overhang_angle")));
+
+        // Build overhang masks for all the overhang speeds
+        std::vector<LayerPlan::OverhangMask> overhang_masks;
+        const auto overhang_speed_factors = mesh.settings.get<std::vector<Ratio>>("wall_overhang_speed_factors");
+        const size_t overhang_angles_count = overhang_speed_factors.size();
+        if (overhang_angles_count > 0)
+        {
+            const auto wall_overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
+            if (wall_overhang_angle < 90.0)
+            {
+                const AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
+                for (size_t angle_index = 0; angle_index < overhang_angles_count; ++angle_index)
+                {
+                    const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
+                    overhang_masks.emplace_back(get_overhang_region(actual_wall_overhang_angle), overhang_speed_factors[angle_index]);
+                }
+            }
+        }
+        gcode_layer.setOverhangMasks(overhang_masks);
+
         gcode_layer.setSeamOverhangMask(get_overhang_region(mesh.settings.get<AngleDegrees>("seam_overhang_angle")));
 
         const auto roofing_mask_fn = [&]() -> Shape
@@ -3125,7 +3140,7 @@ bool FffGcodeWriter::processInsets(
         // clear to disable use of bridging settings
         gcode_layer.setBridgeWallMask(Shape());
         // clear to disable overhang detection
-        gcode_layer.setOverhangMask(Shape());
+        gcode_layer.setOverhangMasks({});
         // clear to disable overhang detection
         gcode_layer.setSeamOverhangMask(Shape());
         // clear to disable use of roofing settings
