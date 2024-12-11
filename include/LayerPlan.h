@@ -62,7 +62,7 @@ class LayerPlan : public NoCopy
 public:
     struct OverhangMask
     {
-        Shape mask;
+        Shape supported_region;
         Ratio speed_ratio;
     };
 
@@ -121,8 +121,8 @@ private:
     Comb* comb_;
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
-    std::vector<OverhangMask>
-        overhang_masks_; //!< The regions of a layer part where the walls overhang, calculated for multiple overhang angles. The latter is the most overhanging.
+    std::vector<OverhangMask> overhang_masks_; //!< The regions of a layer part where the walls overhang, calculated for multiple overhang angles. The latter is the most
+                                               //!< overhanging. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
     Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
     Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
 
@@ -390,6 +390,17 @@ public:
      * \param fan_speed Fan speed override for this path.
      */
     void addExtrusionMove(
+        const Point3LL& p,
+        const GCodePathConfig& config,
+        const SpaceFillType space_fill_type,
+        const Ratio& flow = 1.0_r,
+        const Ratio width_factor = 1.0_r,
+        const bool spiralize = false,
+        const Ratio speed_factor = 1.0_r,
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool travel_to_z = true);
+
+    void addExtrusionMoveWithGradualOverhang(
         const Point3LL& p,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
@@ -1007,13 +1018,6 @@ private:
      * \return The distance from the start of the current wall line to the first bridge segment
      */
     coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const;
-
-    /*!
-     * \brief Calculates whether the given segment is to be treated as overhanging
-     * \param p0 The start point of the segment
-     * \param p1 The end point of the segment
-     */
-    bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
 };
 
 } // namespace cura

@@ -890,6 +890,25 @@ void Shape::simplify(ClipperLib::PolyFillType fill_type)
     }
 }
 
+std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const Point2LL& end) const
+{
+    std::vector<float> result;
+
+    for (const Polygon& polygon : getLines())
+    {
+        for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
+        {
+            float t, u;
+            if (LinearAlg2D::segmentSegmentIntersection(start, end, (*iterator).start, (*iterator).end, t, u))
+            {
+                result.push_back(t);
+            }
+        }
+    }
+
+    return result;
+}
+
 void Shape::ensureManifold()
 {
     std::vector<Point2LL> duplicate_locations;

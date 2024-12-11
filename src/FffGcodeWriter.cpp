@@ -3080,36 +3080,61 @@ bool FffGcodeWriter::processInsets(
             gcode_layer.setBridgeWallMask(Shape());
         }
 
-        const auto get_overhang_region = [&](const AngleDegrees overhang_angle) -> Shape
+        const Shape fully_supported_region = outlines_below.offset(-half_outer_wall_width);
+        const Shape part_print_region = part.outline.offset(-half_outer_wall_width);
+
+        const auto get_supported_region = [&fully_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
         {
             // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
             // the supported region is made up of those areas that really are supported by either model or support on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
-            const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / std::numbers::pi));
-            return part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+            const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
+            return fully_supported_region.offset(overhang_width + 10);
         };
 
-        // Build overhang masks for all the overhang speeds
+#warning remove SVG writing
+        SVG svg(fmt::format("/tmp/overhang_mask_{}.svg", gcode_layer.getLayerNr().value), storage.getMachineBorder(), 0.001);
+        svg.writePolygons(part.outline, SVG::Color::BLACK, 0.01);
+
+        // Build supported regions for all the overhang speeds. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
         std::vector<LayerPlan::OverhangMask> overhang_masks;
         const auto overhang_speed_factors = mesh.settings.get<std::vector<Ratio>>("wall_overhang_speed_factors");
         const size_t overhang_angles_count = overhang_speed_factors.size();
-        if (overhang_angles_count > 0)
+        const auto wall_overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
+        if (overhang_angles_count > 0 && wall_overhang_angle < 90.0)
         {
-            const auto wall_overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
-            if (wall_overhang_angle < 90.0)
+            const AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
+            for (size_t angle_index = 0; angle_index < overhang_angles_count; ++angle_index)
             {
-                const AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
-                for (size_t angle_index = 0; angle_index < overhang_angles_count; ++angle_index)
-                {
-                    const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
-                    overhang_masks.emplace_back(get_overhang_region(actual_wall_overhang_angle), overhang_speed_factors[angle_index]);
-                }
+                const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
+                const Ratio speed_factor = angle_index == 0 ? 1.0_r : overhang_speed_factors[angle_index - 1];
+
+                overhang_masks.emplace_back(get_supported_region(actual_wall_overhang_angle), speed_factor);
+            }
+
+            // Add an empty region, which actually means everything and should be ignored anyway
+            overhang_masks.emplace_back(Shape(), overhang_speed_factors.back());
+
+            for (const auto& region : overhang_masks)
+            {
+                svg.writePolygons(region.supported_region, SVG::Color::RAINBOW, 0.01);
             }
         }
         gcode_layer.setOverhangMasks(overhang_masks);
 
-        gcode_layer.setSeamOverhangMask(get_overhang_region(mesh.settings.get<AngleDegrees>("seam_overhang_angle")));
+        // the seam overhang mask is set to the area of the current part's outline minus the region that is considered to be supported,
+        // which will then be empty if everything is considered supported i.r.t. the angle
+        const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
+        if (seam_overhang_angle < 90.0)
+        {
+            const Shape supported_region_seam = get_supported_region(seam_overhang_angle);
+            gcode_layer.setSeamOverhangMask(part_print_region.difference(supported_region_seam).offset(10));
+        }
+        else
+        {
+            gcode_layer.setSeamOverhangMask(Shape());
+        }
 
         const auto roofing_mask_fn = [&]() -> Shape
         {

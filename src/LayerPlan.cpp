@@ -558,6 +558,124 @@ void LayerPlan::addExtrusionMove(
     last_planned_position_ = p.toPoint2LL();
 }
 
+void LayerPlan::addExtrusionMoveWithGradualOverhang(
+    const Point3LL& p,
+    const GCodePathConfig& config,
+    const SpaceFillType space_fill_type,
+    const Ratio& flow,
+    const Ratio width_factor,
+    const bool spiralize,
+    const Ratio speed_factor,
+    const double fan_speed,
+    const bool travel_to_z)
+{
+    const auto add_extrusion_move = [&](const Point3LL& target, const Ratio& overhang_speed_factor = 1.0_r)
+    {
+        addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z);
+    };
+
+    if (overhang_masks_.empty() || ! last_planned_position_.has_value())
+    {
+        // Unable to apply gradual overhanging (probably just disabled), just add the basic extrusion move
+        add_extrusion_move(p);
+        return;
+    }
+
+    // First, find the speed region where the segment starts
+    const Point2LL start = last_planned_position_.value();
+    size_t actual_speed_region_index = overhang_masks_.size() - 1; // Default to last region, which is infinity and beyond
+    for (const auto& [index, overhang_region] : overhang_masks_ | ranges::views::drop_last(1) | ranges::views::enumerate)
+    {
+        if (overhang_region.supported_region.inside(start, true))
+        {
+            actual_speed_region_index = index;
+            break;
+        }
+    }
+
+    // Pre-calculate the intersections of the segment with all regions (except last one, you cannot intersect an infinite plane)
+    const Point2LL end = p.toPoint2LL();
+    const Point2LL vector = end - start;
+    std::vector<std::vector<float>> speed_regions_intersections;
+    speed_regions_intersections.reserve(overhang_masks_.size() - 1);
+    for (const OverhangMask& overhang_region : overhang_masks_ | ranges::views::drop_last(1))
+    {
+        std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start, end);
+        ranges::sort(intersections);
+        speed_regions_intersections.push_back(intersections);
+        if (! intersections.empty())
+        {
+            spdlog::debug("coucou");
+        }
+    }
+
+    const auto remove_previous_intersections = [&speed_regions_intersections](const float current_intersection)
+    {
+        for (std::vector<float>& intersections : speed_regions_intersections)
+        {
+            auto iterator = ranges::find_if(
+                intersections,
+                [&current_intersection](const float next_intersection)
+                {
+                    return next_intersection > current_intersection;
+                });
+
+            intersections.erase(intersections.begin(), iterator);
+        }
+    };
+
+    // Now move along segment and split it where we cross speed regions
+    while (true)
+    {
+        // First, see if we cross either the border or our current region (go out) or the border of the inner region (go in)
+        auto get_first_intersection = [](const std::vector<float>* intersections) -> std::optional<float>
+        {
+            return intersections != nullptr && ! intersections->empty() ? std::make_optional(intersections->front()) : std::nullopt;
+        };
+
+        std::vector<float>* intersections_current_region
+            = actual_speed_region_index < speed_regions_intersections.size() ? &speed_regions_intersections[actual_speed_region_index] : nullptr;
+        const std::optional<float> first_intersection_current_region = get_first_intersection(intersections_current_region);
+
+        std::vector<float>* intersections_inner_region = actual_speed_region_index > 0 ? &speed_regions_intersections[actual_speed_region_index - 1] : nullptr;
+        const std::optional<float> first_intersection_inner_region = get_first_intersection(intersections_inner_region);
+
+        if (first_intersection_current_region.has_value() || first_intersection_inner_region.has_value())
+        {
+            float intersection_parameter;
+            size_t next_speed_region_index;
+
+            if (first_intersection_current_region.has_value()
+                && (! first_intersection_inner_region.has_value() || first_intersection_inner_region.value() > first_intersection_current_region.value()))
+            {
+                // We crossed the border of the current region, which means we are getting out of it to an outer region
+                intersection_parameter = first_intersection_current_region.value();
+                next_speed_region_index = actual_speed_region_index + 1;
+            }
+            else
+            {
+                // We crossed the border of the inner region, which means we are getting inside of it
+                intersection_parameter = first_intersection_inner_region.value();
+                next_speed_region_index = actual_speed_region_index - 1;
+            }
+
+            // Move to intersection at current region speed
+            const Point2LL split_position = start + vector * intersection_parameter;
+            add_extrusion_move(split_position, overhang_masks_[actual_speed_region_index].speed_ratio);
+
+            // Prepare for next move in different region
+            actual_speed_region_index = next_speed_region_index;
+            remove_previous_intersections(intersection_parameter);
+        }
+        else
+        {
+            // We cross no border, which means we can reach the end of the segment within the current speed region, so we are done
+            add_extrusion_move(p, overhang_masks_[actual_speed_region_index].speed_ratio);
+            return;
+        }
+    }
+}
+
 template<class PathType>
 void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const Point2LL& last_path_position)
 {
@@ -732,8 +850,6 @@ void LayerPlan::addWallLine(
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
-    const Ratio overhang_speed_factor = settings.get<Ratio>("wall_overhang_speed_factor");
-    const auto overhang_speed_factors = settings.get<std::vector<int>>("wall_overhang_speed_factors");
 
     Point3LL cur_point = p0;
 
@@ -799,14 +915,14 @@ void LayerPlan::addWallLine(
                 else
                 {
                     // no coasting required, just normal segment using non-bridge config
-                    addExtrusionMove(
+                    addExtrusionMoveWithGradualOverhang(
                         segment_end,
                         default_config,
                         SpaceFillType::Polygons,
                         segment_flow,
                         width_factor,
                         spiralize,
-                        segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
+                        speed_factor,
                         GCodePathConfig::FAN_SPEED_DEFAULT,
                         travel_to_z);
                 }
@@ -816,14 +932,14 @@ void LayerPlan::addWallLine(
             else
             {
                 // no coasting required, just normal segment using non-bridge config
-                addExtrusionMove(
+                addExtrusionMoveWithGradualOverhang(
                     segment_end,
                     default_config,
                     SpaceFillType::Polygons,
                     segment_flow,
                     width_factor,
                     spiralize,
-                    segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
+                    speed_factor,
                     GCodePathConfig::FAN_SPEED_DEFAULT,
                     travel_to_z);
             }
@@ -921,14 +1037,14 @@ void LayerPlan::addWallLine(
     else if (bridge_wall_mask_.empty())
     {
         // no bridges required
-        addExtrusionMove(
+        addExtrusionMoveWithGradualOverhang(
             p1,
             default_config,
             SpaceFillType::Polygons,
             flow,
             width_factor,
             spiralize,
-            segmentIsOnOverhang(p0, p1) ? overhang_speed_factor : speed_factor,
+            speed_factor,
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
@@ -1946,15 +2062,6 @@ void LayerPlan::addLinesInGivenOrder(
             }
         }
     }
-}
-
-bool LayerPlan::segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const
-{
-    // const OpenPolyline segment{ p0.toPoint2LL(), p1.toPoint2LL() };
-    // const OpenLinesSet intersected_lines = overhang_mask_.intersection(OpenLinesSet{ segment });
-    // return ! intersected_lines.empty() && (static_cast<double>(intersected_lines.length()) / segment.length()) > 0.5;
-
-    return false;
 }
 
 void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed)
