@@ -21,7 +21,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "application"
-    python_requires = "sentrylibrary/1.0.0@ultimaker/stable"
+    python_requires = "sentrylibrary/1.0.0@ultimaker/stable", "npmpackage/[>=1.0.0]@ultimaker/np_637"
     python_requires_extend = "sentrylibrary.SentryLibrary"
 
     options = {
@@ -205,21 +205,4 @@ class CuraEngineConan(ConanFile):
         self.conf_info.define_path("user.curaengine:curaengine",
                                    os.path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
         if self.settings.os == "Emscripten":
-            package_json = {
-                "name": f"@ultimaker/{self.name.lower()}js",
-                "version": f"{str(self.version).replace('+', '-')}",  # npm will otherwise 'sanitize' the version number
-                "description": f"JavaScript / TypeScript bindings for {self.name}, a {self.description}",
-                "main": "bin/CuraEngine.js",
-                "repository": {
-                    "type": "git",
-                    "url": self.url
-                },
-                "author": self.author,
-                "license": self.license,
-                "keywords": self.topics,
-                "files": [
-                    "bin",
-                    "package.json"
-                ]
-            }
-            self.conf_info.define(f"user.{self.name.lower()}:package_json", package_json)
+            self.python_requires["npmpackage"].module.conf_package_json(self)
