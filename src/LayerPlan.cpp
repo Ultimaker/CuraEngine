@@ -559,7 +559,6 @@ void LayerPlan::addExtrusionMove(
 }
 
 void LayerPlan::addExtrusionMoveWithGradualOverhang(
-    SVG& logger,
     const Point3LL& p,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
@@ -660,7 +659,6 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
 
             // Move to intersection at current region speed
             const Point2LL split_position = start + vector * intersection_parameter;
-            logger.writeLine(last_planned_position_.value(), split_position, colors[actual_speed_region_index], 0.02);
             add_extrusion_move(split_position, overhang_masks_[actual_speed_region_index].speed_ratio);
 
             // Prepare for next move in different region
@@ -670,7 +668,6 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         else
         {
             // We cross no border, which means we can reach the end of the segment within the current speed region, so we are done
-            logger.writeLine(last_planned_position_.value(), p.toPoint2LL(), colors[actual_speed_region_index], 0.025);
             add_extrusion_move(p, overhang_masks_[actual_speed_region_index].speed_ratio);
             return;
         }
@@ -830,9 +827,6 @@ void LayerPlan::addPolygonsByOptimizer(
 
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
-#warning remove this
-std::map<LayerIndex, size_t> counts;
-
 void LayerPlan::addWallLine(
     const Point3LL& p0,
     const Point3LL& p1,
@@ -856,23 +850,6 @@ void LayerPlan::addWallLine(
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
     Point3LL cur_point = p0;
-
-#warning remove SVG writing
-    size_t count = 0;
-    if (counts.contains(layer_nr_))
-    {
-        count = counts[layer_nr_] + 1;
-    }
-    counts[layer_nr_] = count;
-
-    SVG svg(fmt::format("/tmp/overhang_mask_{}_{}.svg", layer_nr_.value, count), storage_.getMachineBorder(), 0.001);
-
-    for (const OverhangMask& mask : overhang_masks_)
-    {
-        svg.writePolygons(mask.supported_region, SVG::Color::MAGENTA, 0.01);
-    }
-
-    svg.writePolygons(bridge_wall_mask_, SVG::Color::ORANGE, 0.01);
 
     // helper function to add a single non-bridge line
 
@@ -937,7 +914,6 @@ void LayerPlan::addWallLine(
                 {
                     // no coasting required, just normal segment using non-bridge config
                     addExtrusionMoveWithGradualOverhang(
-                        svg,
                         segment_end,
                         default_config,
                         SpaceFillType::Polygons,
@@ -955,7 +931,6 @@ void LayerPlan::addWallLine(
             {
                 // no coasting required, just normal segment using non-bridge config
                 addExtrusionMoveWithGradualOverhang(
-                    svg,
                     segment_end,
                     default_config,
                     SpaceFillType::Polygons,
@@ -1061,7 +1036,6 @@ void LayerPlan::addWallLine(
     {
         // no bridges required
         addExtrusionMoveWithGradualOverhang(
-            svg,
             p1,
             default_config,
             SpaceFillType::Polygons,
@@ -1128,7 +1102,6 @@ void LayerPlan::addWallLine(
                     if (bridge_line_len > min_line_len)
                     {
                         addExtrusionMoveWithGradualOverhang(
-                            svg,
                             b1,
                             bridge_config,
                             SpaceFillType::Polygons,
@@ -1161,7 +1134,7 @@ void LayerPlan::addWallLine(
         else if (bridge_wall_mask_.inside(p0.toPoint2LL(), true) && (p0 - p1).vSize() >= min_bridge_line_len)
         {
             // both p0 and p1 must be above air (the result will be ugly!)
-            addExtrusionMoveWithGradualOverhang(svg, p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
+            addExtrusionMoveWithGradualOverhang(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
             non_bridge_line_volume = 0;
         }
         else

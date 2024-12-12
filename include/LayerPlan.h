@@ -401,7 +401,6 @@ public:
         const bool travel_to_z = true);
 
     void addExtrusionMoveWithGradualOverhang(
-        SVG& logger,
         const Point3LL& p,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
