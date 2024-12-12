@@ -559,6 +559,7 @@ void LayerPlan::addExtrusionMove(
 }
 
 void LayerPlan::addExtrusionMoveWithGradualOverhang(
+    SVG& logger,
     const Point3LL& p,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
@@ -603,10 +604,6 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start, end);
         ranges::sort(intersections);
         speed_regions_intersections.push_back(intersections);
-        if (! intersections.empty())
-        {
-            spdlog::debug("coucou");
-        }
     }
 
     const auto remove_previous_intersections = [&speed_regions_intersections](const float current_intersection)
@@ -623,6 +620,8 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
             intersections.erase(intersections.begin(), iterator);
         }
     };
+
+    const std::vector<SVG::Color> colors = { SVG::Color::RED, SVG::Color::GREEN, SVG::Color::BLUE, SVG::Color::YELLOW };
 
     // Now move along segment and split it where we cross speed regions
     while (true)
@@ -661,6 +660,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
 
             // Move to intersection at current region speed
             const Point2LL split_position = start + vector * intersection_parameter;
+            logger.writeLine(last_planned_position_.value(), split_position, colors[actual_speed_region_index], 0.02);
             add_extrusion_move(split_position, overhang_masks_[actual_speed_region_index].speed_ratio);
 
             // Prepare for next move in different region
@@ -670,6 +670,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         else
         {
             // We cross no border, which means we can reach the end of the segment within the current speed region, so we are done
+            logger.writeLine(last_planned_position_.value(), p.toPoint2LL(), colors[actual_speed_region_index], 0.025);
             add_extrusion_move(p, overhang_masks_[actual_speed_region_index].speed_ratio);
             return;
         }
@@ -829,6 +830,9 @@ void LayerPlan::addPolygonsByOptimizer(
 
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
+#warning remove this
+std::map<LayerIndex, size_t> counts;
+
 void LayerPlan::addWallLine(
     const Point3LL& p0,
     const Point3LL& p1,
@@ -852,6 +856,23 @@ void LayerPlan::addWallLine(
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
     Point3LL cur_point = p0;
+
+#warning remove SVG writing
+    size_t count = 0;
+    if (counts.contains(layer_nr_))
+    {
+        count = counts[layer_nr_] + 1;
+    }
+    counts[layer_nr_] = count;
+
+    SVG svg(fmt::format("/tmp/overhang_mask_{}_{}.svg", layer_nr_.value, count), storage_.getMachineBorder(), 0.001);
+
+    for (const OverhangMask& mask : overhang_masks_)
+    {
+        svg.writePolygons(mask.supported_region, SVG::Color::MAGENTA, 0.01);
+    }
+
+    svg.writePolygons(bridge_wall_mask_, SVG::Color::ORANGE, 0.01);
 
     // helper function to add a single non-bridge line
 
@@ -916,6 +937,7 @@ void LayerPlan::addWallLine(
                 {
                     // no coasting required, just normal segment using non-bridge config
                     addExtrusionMoveWithGradualOverhang(
+                        svg,
                         segment_end,
                         default_config,
                         SpaceFillType::Polygons,
@@ -933,6 +955,7 @@ void LayerPlan::addWallLine(
             {
                 // no coasting required, just normal segment using non-bridge config
                 addExtrusionMoveWithGradualOverhang(
+                    svg,
                     segment_end,
                     default_config,
                     SpaceFillType::Polygons,
@@ -1038,6 +1061,7 @@ void LayerPlan::addWallLine(
     {
         // no bridges required
         addExtrusionMoveWithGradualOverhang(
+            svg,
             p1,
             default_config,
             SpaceFillType::Polygons,
@@ -1103,7 +1127,17 @@ void LayerPlan::addWallLine(
 
                     if (bridge_line_len > min_line_len)
                     {
-                        addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
+                        addExtrusionMoveWithGradualOverhang(
+                            svg,
+                            b1,
+                            bridge_config,
+                            SpaceFillType::Polygons,
+                            flow,
+                            width_factor,
+                            spiralize,
+                            1.0_r,
+                            GCodePathConfig::FAN_SPEED_DEFAULT,
+                            travel_to_z);
                         non_bridge_line_volume = 0;
                         cur_point = b1;
                         // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
@@ -1127,7 +1161,7 @@ void LayerPlan::addWallLine(
         else if (bridge_wall_mask_.inside(p0.toPoint2LL(), true) && (p0 - p1).vSize() >= min_bridge_line_len)
         {
             // both p0 and p1 must be above air (the result will be ugly!)
-            addExtrusionMove(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
+            addExtrusionMoveWithGradualOverhang(svg, p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
             non_bridge_line_volume = 0;
         }
         else

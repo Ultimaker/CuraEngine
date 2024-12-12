@@ -3093,10 +3093,6 @@ bool FffGcodeWriter::processInsets(
             return fully_supported_region.offset(overhang_width + 10);
         };
 
-#warning remove SVG writing
-        SVG svg(fmt::format("/tmp/overhang_mask_{}.svg", gcode_layer.getLayerNr().value), storage.getMachineBorder(), 0.001);
-        svg.writePolygons(part.outline, SVG::Color::BLACK, 0.01);
-
         // Build supported regions for all the overhang speeds. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
         std::vector<LayerPlan::OverhangMask> overhang_masks;
         const auto overhang_speed_factors = mesh.settings.get<std::vector<Ratio>>("wall_overhang_speed_factors");
@@ -3115,11 +3111,6 @@ bool FffGcodeWriter::processInsets(
 
             // Add an empty region, which actually means everything and should be ignored anyway
             overhang_masks.emplace_back(Shape(), overhang_speed_factors.back());
-
-            for (const auto& region : overhang_masks)
-            {
-                svg.writePolygons(region.supported_region, SVG::Color::RAINBOW, 0.01);
-            }
         }
         gcode_layer.setOverhangMasks(overhang_masks);
 
