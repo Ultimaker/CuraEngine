@@ -4,9 +4,10 @@ import os
 
 from conan import ConanFile
 from conan.errors import ConanInvalidConfiguration
-from conan.tools.files import copy, mkdir, update_conandata
-from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
 from conan.tools.build import check_min_cppstd
+from conan.tools.cmake import CMakeToolchain, CMakeDeps, CMake, cmake_layout
+from conan.tools.files import copy, mkdir, update_conandata
+from conan.tools.microsoft import check_min_vs, is_msvc
 from conan.tools.scm import Version, Git
 
 required_conan_version = ">=2.7.0"
@@ -22,7 +23,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "application"
-    python_requires = "sentrylibrary/1.0.0@ultimaker/stable"
+    python_requires = "sentrylibrary/1.0.0@ultimaker/stable", "npmpackage/[>=1.0.0]@ultimaker/np_637"
     python_requires_extend = "sentrylibrary.SentryLibrary"
 
     options = {
@@ -41,6 +42,16 @@ class CuraEngineConan(ConanFile):
         "enable_remote_plugins": False,
         "with_cura_resources": False,
     }
+
+    @property
+    def _compilers_minimum_version(self):
+        return {
+            "gcc": "12",
+            "clang": "14",
+            "apple-clang": "13",
+            "msvc": "191",
+            "visual_studio": "17",
+        }
 
     def init(self):
         base = self.python_requires["sentrylibrary"].module.SentryLibrary
@@ -61,8 +72,10 @@ class CuraEngineConan(ConanFile):
         copy(self, "CuraEngine.rc", self.recipe_folder, self.export_sources_folder)
         copy(self, "LICENSE", self.recipe_folder, self.export_sources_folder)
         copy(self, "*", os.path.join(self.recipe_folder, "src"), os.path.join(self.export_sources_folder, "src"))
-        copy(self, "*", os.path.join(self.recipe_folder, "include"), os.path.join(self.export_sources_folder, "include"))
-        copy(self, "*", os.path.join(self.recipe_folder, "benchmark"), os.path.join(self.export_sources_folder, "benchmark"))
+        copy(self, "*", os.path.join(self.recipe_folder, "include"),
+             os.path.join(self.export_sources_folder, "include"))
+        copy(self, "*", os.path.join(self.recipe_folder, "benchmark"),
+             os.path.join(self.export_sources_folder, "benchmark"))
         copy(self, "*", os.path.join(self.recipe_folder, "stress_benchmark"),
              os.path.join(self.export_sources_folder, "stress_benchmark"))
         copy(self, "*", os.path.join(self.recipe_folder, "tests"), os.path.join(self.export_sources_folder, "tests"))
@@ -86,6 +99,12 @@ class CuraEngineConan(ConanFile):
 
         if self.settings.compiler.get_safe("cppstd"):
             check_min_cppstd(self, 20)
+        check_min_vs(self, 191)
+        if not is_msvc(self):
+            minimum_version = self._compilers_minimum_version.get(str(self.settings.compiler), False)
+            if minimum_version and Version(self.settings.compiler.version) < minimum_version:
+                raise ConanInvalidConfiguration(
+                    f"{self.ref} requires C++{self._min_cppstd}, which your compiler does not support.")
 
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.2.0]@ultimaker/stable")
@@ -136,7 +155,8 @@ class CuraEngineConan(ConanFile):
         tc.variables["ENABLE_TESTING"] = not self.conf.get("tools.build:skip_test", False, check_type=bool)
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks
         tc.variables["EXTENSIVE_WARNINGS"] = self.options.enable_extensive_warnings
-        tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(self.settings.compiler.version) < "14"
+        tc.variables["OLDER_APPLE_CLANG"] = self.settings.compiler == "apple-clang" and Version(
+            self.settings.compiler.version) < "14"
         tc.variables["ENABLE_THREADING"] = not (self.settings.arch == "wasm" and self.settings.os == "Emscripten")
         if self.options.enable_plugins:
             tc.variables["ENABLE_PLUGINS"] = True
@@ -180,7 +200,7 @@ class CuraEngineConan(ConanFile):
         cmake.configure()
         cmake.build()
 
-        self.send_sentry_debug_files(binary_basename = "CuraEngine")
+        self.send_sentry_debug_files(binary_basename="CuraEngine")
 
     def deploy(self):
         copy(self, "CuraEngine*", src=os.path.join(self.package_folder, "bin"), dst=self.deploy_folder)
@@ -202,3 +222,6 @@ class CuraEngineConan(ConanFile):
         ext = ".exe" if self.settings.os == "Windows" else ""
         self.conf_info.define_path("user.curaengine:curaengine",
                                    os.path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
+
+        if self.settings.os == "Emscripten":
+            self.python_requires["npmpackage"].module.conf_package_json(self)
