@@ -40,15 +40,15 @@ on:
 
 jobs:
   conan-package:
-    uses: ultimaker/cura-workflows/.github/workflows/conan-package.yml@NP-637_conan_v2_wasm
+    uses: ultimaker/cura-workflows/.github/workflows/conan-package.yml@NP-637_conan_v2_wasm  # FIXME: Use `main` branch
     with:
       platform_wasm: true
     secrets: inherit
 
   npm-package:
     needs: [ conan-package ]
-    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || contains(github.ref_name, 'NP-') || github.ref_name == '5.10') }}  # FIXME: have a more generic way to determine release branches
-    uses: ultimaker/cura-workflows/.github/workflows/npm-package.yml@NP-637_conan_v2_wasm
+    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'NP-') || startsWith(github.ref_name, '5.')) }}  # FIXME: have a more generic way to determine release branches
+    uses: ultimaker/cura-workflows/.github/workflows/npm-package.yml@NP-637_conan_v2_wasm # FIXME: Use `main` branch
     with:
       package_version_full: ${{ needs.conan-package.outputs.package_version_full }}
     secrets: inherit
