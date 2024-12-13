@@ -3106,11 +3106,11 @@ bool FffGcodeWriter::processInsets(
                 const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
                 const Ratio speed_factor = angle_index == 0 ? 1.0_r : overhang_speed_factors[angle_index - 1];
 
-                overhang_masks.emplace_back(get_supported_region(actual_wall_overhang_angle), speed_factor);
+                overhang_masks.push_back(LayerPlan::OverhangMask{ get_supported_region(actual_wall_overhang_angle), speed_factor });
             }
 
             // Add an empty region, which actually means everything and should be ignored anyway
-            overhang_masks.emplace_back(Shape(), overhang_speed_factors.back());
+            overhang_masks.push_back(LayerPlan::OverhangMask{ Shape(), overhang_speed_factors.back() });
         }
         gcode_layer.setOverhangMasks(overhang_masks);
 
