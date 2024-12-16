@@ -89,23 +89,8 @@ void MeshInsetsGenerator::generateFeatures(
     {
         for (const ExtrusionLine& extrusion_line : toolpath)
         {
-            if (extrusion_line.empty())
-            {
-                continue;
-            }
-
-            auto move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(extrusion_line.is_closed_, extrusion_line.front().p_);
-
-            for (const auto& extrusion_junctions : extrusion_line.junctions_ | ranges::views::sliding(2))
-            {
-                const ExtrusionJunction& start = extrusion_junctions[0];
-                const ExtrusionJunction& end = extrusion_junctions[1];
-
-                const GCodePathConfig& config = extrusion_line.inset_idx_ == 0 ? mesh_configs.inset0_config : mesh_configs.insetX_config;
-
-                move_sequence->appendExtruderMove(std::make_shared<ExtrusionMove>(end.p_, start.w_, config.getSpeed(), end.w_));
-            }
-
+            const GCodePathConfig& config = extrusion_line.inset_idx_ == 0 ? mesh_configs.inset0_config : mesh_configs.insetX_config;
+            auto move_sequence = ContinuousExtruderMoveSequence::makeFrom(extrusion_line, config.getSpeed());
             find_or_make_feature_extrusion(extrusion_line.inset_idx_)->appendExtruderMoveSequence(move_sequence);
         }
     }

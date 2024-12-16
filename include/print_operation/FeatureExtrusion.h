@@ -6,10 +6,13 @@
 
 #include "GCodePathConfig.h"
 #include "print_operation/ContinuousExtruderMoveSequencePtr.h"
+#include "print_operation/FeatureExtrusionPtr.h"
 #include "print_operation/PrintOperationSequence.h"
 
 namespace cura
 {
+
+class Shape;
 
 class FeatureExtrusion : public PrintOperationSequence
 {

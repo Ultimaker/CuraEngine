@@ -72,6 +72,12 @@ public:
         return false; // Definitely not
     }
 
+    /*! @see Polyline::isClosed() */
+    [[nodiscard]] bool isClosed() const override
+    {
+        return false;
+    }
+
     /*! @see Polyline::segmentsCount() */
     [[nodiscard]] size_t segmentsCount() const override
     {

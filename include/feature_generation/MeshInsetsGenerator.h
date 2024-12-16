@@ -8,8 +8,6 @@
 namespace cura
 {
 
-class SliceLayerPart;
-
 class MeshInsetsGenerator : public MeshFeatureGenerator
 {
 public:

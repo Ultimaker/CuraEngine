@@ -4,11 +4,15 @@
 #pragma once
 
 #include "geometry/Point3LL.h"
+#include "print_operation/ContinuousExtruderMoveSequencePtr.h"
 #include "print_operation/PrintOperationSequence.h"
 
 namespace cura
 {
-
+struct ExtrusionLine;
+struct Velocity;
+struct ExtrusionJunction;
+class Polyline;
 class ExtruderMove;
 class SliceMeshStorage;
 class PlanExporter;
@@ -19,6 +23,10 @@ class ContinuousExtruderMoveSequence : public PrintOperationSequence
 {
 public:
     explicit ContinuousExtruderMoveSequence(bool closed, const Point3LL& start_position = Point3LL());
+
+    static ContinuousExtruderMoveSequencePtr makeFrom(const ExtrusionLine& extrusion_line, const Velocity& speed);
+
+    static ContinuousExtruderMoveSequencePtr makeFrom(const Polyline& polyline, const coord_t line_width, const Velocity& speed);
 
     void appendExtruderMove(const std::shared_ptr<ExtruderMove>& extruder_move);
 

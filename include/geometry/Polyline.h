@@ -75,6 +75,11 @@ public:
     [[nodiscard]] virtual bool hasClosingSegment() const = 0;
 
     /*!
+     * \brief Indicates whether this polyline represents a closed or an open line
+     */
+    [[nodiscard]] virtual bool isClosed() const = 0;
+
+    /*!
      * \brief Gets the total number of "full" segments in the polyline. Calling this is also safe if
      *        there are not enough points to make a valid polyline, so it can also be a good
      *        indicator of a "valid" polyline.

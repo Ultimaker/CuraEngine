@@ -3,6 +3,11 @@
 
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 
+#include <utils/ExtrusionLine.h>
+#include <utils/types/arachne.h>
+
+#include <range/v3/view/sliding.hpp>
+
 #include "print_operation/ExtrusionMove.h"
 
 namespace cura
@@ -12,6 +17,33 @@ ContinuousExtruderMoveSequence::ContinuousExtruderMoveSequence(bool closed, cons
     : start_position_(start_position)
     , closed_(closed)
 {
+}
+
+ContinuousExtruderMoveSequencePtr ContinuousExtruderMoveSequence::makeFrom(const ExtrusionLine& extrusion_line, const Velocity& speed)
+{
+    auto move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(extrusion_line.is_closed_, extrusion_line.junctions_.empty() ? Point3LL() : extrusion_line.front().p_);
+
+    for (const auto& extrusion_junctions : extrusion_line.junctions_ | ranges::views::sliding(2))
+    {
+        const ExtrusionJunction& start = extrusion_junctions[0];
+        const ExtrusionJunction& end = extrusion_junctions[1];
+
+        move_sequence->appendExtruderMove(std::make_shared<ExtrusionMove>(end.p_, start.w_, speed, end.w_));
+    }
+
+    return move_sequence;
+}
+
+ContinuousExtruderMoveSequencePtr ContinuousExtruderMoveSequence::makeFrom(const Polyline& polyline, const coord_t line_width, const Velocity& speed)
+{
+    auto move_sequence = std::make_shared<ContinuousExtruderMoveSequence>(polyline.isClosed(), polyline.empty() ? Point3LL() : polyline.front());
+
+    for (auto iterator = polyline.beginSegments(); iterator != polyline.endSegments(); ++iterator)
+    {
+        move_sequence->appendExtruderMove(std::make_shared<ExtrusionMove>((*iterator).end, line_width, speed));
+    }
+
+    return move_sequence;
 }
 
 std::optional<Point3LL> ContinuousExtruderMoveSequence::findStartPosition() const

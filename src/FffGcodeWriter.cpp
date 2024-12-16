@@ -29,6 +29,7 @@
 #include "bridge.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "feature_generation/FeatureGenerator.h"
+#include "feature_generation/MeshInfillGenerator.h"
 #include "feature_generation/MeshInsetsGenerator.h"
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
@@ -194,6 +195,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     for (const std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
     {
         feature_generators_.push_back(std::make_shared<MeshInsetsGenerator>(mesh));
+        feature_generators_.push_back(std::make_shared<MeshInfillGenerator>(mesh));
     }
 
     // Filter out generators that are actually useless in this context. Not highly useful, but helps for debugging.

@@ -93,6 +93,12 @@ public:
         return ! explicitely_closed_;
     }
 
+    /*! @see Polyline::isClosed() */
+    [[nodiscard]] bool isClosed() const override
+    {
+        return true;
+    }
+
     /*! @see Polyline::addClosingSegment() */
     [[nodiscard]] size_t segmentsCount() const override;
 
