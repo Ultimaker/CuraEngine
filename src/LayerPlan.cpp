@@ -569,8 +569,13 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     const double fan_speed,
     const bool travel_to_z)
 {
-    const auto add_extrusion_move = [&](const Point3LL& target, const Ratio& overhang_speed_factor = 1.0_r)
+    const auto add_extrusion_move = [&](const Point3LL& target, const std::optional<size_t> speed_region_index = std::nullopt)
     {
+        const Ratio overhang_speed_factor = speed_region_index.has_value() ? overhang_masks_[speed_region_index.value()].speed_ratio : 1.0_r;
+        if (speed_region_index.has_value() && speed_region_index.value() > 0)
+        {
+            contains_overhang_ = true;
+        }
         addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z);
     };
 
@@ -659,7 +664,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
 
             // Move to intersection at current region speed
             const Point2LL split_position = start + vector * intersection_parameter;
-            add_extrusion_move(split_position, overhang_masks_[actual_speed_region_index].speed_ratio);
+            add_extrusion_move(split_position, actual_speed_region_index);
 
             // Prepare for next move in different region
             actual_speed_region_index = next_speed_region_index;
@@ -668,7 +673,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         else
         {
             // We cross no border, which means we can reach the end of the segment within the current speed region, so we are done
-            add_extrusion_move(p, overhang_masks_[actual_speed_region_index].speed_ratio);
+            add_extrusion_move(p, actual_speed_region_index);
             return;
         }
     }
@@ -2562,7 +2567,9 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
             {
                 other_extr_plan_time += extruder_plan.estimates_.getTotalTime();
             }
-            maximum_cool_min_layer_time = std::max(maximum_cool_min_layer_time, extruder_plan.fan_speed_layer_time_settings_.cool_min_layer_time);
+
+            const FanSpeedLayerTimeSettings& settings = extruder_plan.fan_speed_layer_time_settings_;
+            maximum_cool_min_layer_time = std::max(maximum_cool_min_layer_time, contains_overhang_ ? settings.cool_min_layer_time_overhang : settings.cool_min_layer_time);
 
             // Modify fan speeds for the first layer(s)
             extruder_plan.processFanSpeedForFirstLayers();
