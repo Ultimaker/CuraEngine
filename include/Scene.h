@@ -26,7 +26,7 @@ Settings settings;
      * \brief Which extruder to evaluate each setting on, if different from the
      * normal extruder of the object it's evaluated for.
      */
-    std::unordered_map<std::string, ExtruderTrain*> limit_to_extruder;
+std::unordered_map<std::string, ExtruderTrain*> limit_to_extruder;
 
     /*
      * \brief The mesh groups in the scene.
