@@ -747,7 +747,7 @@ protected:
         }
         else
         {
-            if (path.seam_config_.type_ == EZSeamType::SHORTEST)
+            if (path.seam_config_.type_ == EZSeamType::SHORTEST || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED)
             {
                 main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
             }
