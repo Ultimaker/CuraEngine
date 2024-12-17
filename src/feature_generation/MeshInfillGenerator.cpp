@@ -26,6 +26,17 @@ MeshInfillGenerator::MeshInfillGenerator(const std::shared_ptr<SliceMeshStorage>
     , infill_line_distance_(mesh->settings.get<coord_t>("infill_line_distance"))
 {
 }
+
+void MeshInfillGenerator::preCalculateData()
+{
+    MeshFeatureGenerator::preCalculateData();
+
+    if (getMesh()->settings.get<EFillMethod>("infill_pattern") == EFillMethod::LIGHTNING)
+    {
+        lightning_generator_ = std::make_shared<LightningGenerator>(getMesh());
+    }
+}
+
 bool MeshInfillGenerator::isActive() const
 {
     if (! MeshFeatureGenerator::isActive())
@@ -106,10 +117,9 @@ void MeshInfillGenerator::processMultiLayerInfill(const LayerPlanPtr& layer_plan
             const bool fill_gaps = density_idx == 0; // Only fill gaps for the lowest density.
 
             std::shared_ptr<LightningLayer> lightning_layer = nullptr;
-            if (getMesh()->lightning_generator)
+            if (lightning_generator_)
             {
-#warning set the generator as a class variable of this
-                lightning_layer = std::make_shared<LightningLayer>(getMesh()->lightning_generator->getTreesForLayer(layer_plan->getLayerIndex()));
+                lightning_layer = std::make_shared<LightningLayer>(lightning_generator_->getTreesForLayer(layer_plan->getLayerIndex()));
             }
             Infill infill_comp(
                 infill_pattern,
@@ -275,9 +285,9 @@ void MeshInfillGenerator::processSingleLayerInfill(
         Shape in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
         std::shared_ptr<LightningLayer> lightning_layer;
-        if (getMesh()->lightning_generator)
+        if (lightning_generator_)
         {
-            lightning_layer = std::make_shared<LightningLayer>(getMesh()->lightning_generator->getTreesForLayer(layer_plan->getLayerIndex()));
+            lightning_layer = std::make_shared<LightningLayer>(lightning_generator_->getTreesForLayer(layer_plan->getLayerIndex()));
         }
 
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.

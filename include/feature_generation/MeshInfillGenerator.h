@@ -10,12 +10,15 @@
 namespace cura
 {
 
+class LightningGenerator;
 class Shape;
 
 class MeshInfillGenerator : public MeshFeatureGenerator
 {
 public:
     explicit MeshInfillGenerator(const std::shared_ptr<SliceMeshStorage>& mesh);
+
+    void preCalculateData() override;
 
     bool isActive() const override;
 
@@ -55,6 +58,7 @@ private:
 
 private:
     const coord_t infill_line_distance_;
+    std::shared_ptr<LightningGenerator> lightning_generator_; //!< Pre-computed structure for Lightning type infill
 };
 
 } // namespace cura

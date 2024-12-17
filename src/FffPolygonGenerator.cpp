@@ -695,13 +695,6 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
         }
     }
 
-    // Pre-compute lightning fill (aka minfill, aka ribbed support vaults)
-    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::LIGHTNING)
-    {
-        // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
-        mesh.lightning_generator = std::make_shared<LightningGenerator>(mesh);
-    }
-
     // combine infill
     SkinInfillAreaComputation::combineInfillLayers(mesh);
 

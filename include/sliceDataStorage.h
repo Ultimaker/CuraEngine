@@ -30,7 +30,6 @@ namespace cura
 
 class Mesh;
 class SierpinskiFillProvider;
-class LightningGenerator;
 class PrimeTower;
 
 /*!
@@ -320,8 +319,6 @@ public:
 
     std::shared_ptr<SubDivCube> base_subdiv_cube;
     std::shared_ptr<SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
-
-    std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     RetractionAndWipeConfig retraction_wipe_config; //!< Per-Object retraction and wipe settings.
     std::shared_ptr<ZSeamConfig> seam_config;

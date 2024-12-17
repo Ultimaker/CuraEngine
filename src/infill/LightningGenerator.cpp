@@ -26,9 +26,9 @@
 
 using namespace cura;
 
-LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
+LightningGenerator::LightningGenerator(const std::shared_ptr<SliceMeshStorage>& mesh)
 {
-    const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr");
+    const auto infill_extruder = mesh->settings.get<ExtruderTrain&>("infill_extruder_nr");
     const auto layer_thickness = infill_extruder.settings_.get<coord_t>(
         "layer_height"); // Note: There's not going to be a layer below the first one, so the 'initial layer height' doesn't have to be taken into account.
 
@@ -41,18 +41,18 @@ LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
     generateTrees(mesh);
 }
 
-void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh)
+void LightningGenerator::generateInitialInternalOverhangs(const std::shared_ptr<SliceMeshStorage>& mesh)
 {
-    overhang_per_layer.resize(mesh.layers.size());
-    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
-    const auto infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
+    overhang_per_layer.resize(mesh->layers.size());
+    const auto infill_wall_line_count = static_cast<coord_t>(mesh->settings.get<size_t>("infill_wall_line_count"));
+    const auto infill_line_width = mesh->settings.get<coord_t>("infill_line_width");
     const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
 
     Shape infill_area_above;
     // Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
-    for (int layer_nr = mesh.layers.size() - 1; layer_nr >= 0; layer_nr--)
+    for (int layer_nr = mesh->layers.size() - 1; layer_nr >= 0; layer_nr--)
     {
-        const SliceLayer& current_layer = mesh.layers[layer_nr];
+        const SliceLayer& current_layer = mesh->layers[layer_nr];
         Shape infill_area_here;
         for (auto& part : current_layer.parts)
         {
@@ -73,27 +73,27 @@ const LightningLayer& LightningGenerator::getTreesForLayer(const size_t& layer_i
     return lightning_layers[layer_id];
 }
 
-void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
+void LightningGenerator::generateTrees(const std::shared_ptr<SliceMeshStorage>& mesh)
 {
-    lightning_layers.resize(mesh.layers.size());
-    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
-    const auto infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
+    lightning_layers.resize(mesh->layers.size());
+    const auto infill_wall_line_count = static_cast<coord_t>(mesh->settings.get<size_t>("infill_wall_line_count"));
+    const auto infill_line_width = mesh->settings.get<coord_t>("infill_line_width");
     const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
 
     std::vector<Shape> infill_outlines;
-    infill_outlines.insert(infill_outlines.end(), mesh.layers.size(), Shape());
+    infill_outlines.insert(infill_outlines.end(), mesh->layers.size(), Shape());
 
     // For-each layer from top to bottom:
-    for (int layer_id = mesh.layers.size() - 1; layer_id >= 0; layer_id--)
+    for (int layer_id = mesh->layers.size() - 1; layer_id >= 0; layer_id--)
     {
-        for (const auto& part : mesh.layers[layer_id].parts)
+        for (const auto& part : mesh->layers[layer_id].parts)
         {
             infill_outlines[layer_id].push_back(part.getOwnInfillArea().offset(infill_wall_offset));
         }
     }
 
     // For various operations its beneficial to quickly locate nearby features on the polygon:
-    const size_t top_layer_id = mesh.layers.size() - 1;
+    const size_t top_layer_id = mesh->layers.size() - 1;
     auto outlines_locator_ptr = PolygonUtils::createLocToLineGrid(infill_outlines[top_layer_id], locator_cell_size);
 
     // For-each layer from top to bottom:

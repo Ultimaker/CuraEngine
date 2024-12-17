@@ -376,58 +376,6 @@ private:
         LayerPlan& gcode_layer) const;
 
     /*!
-     * \brief Add infill for a given part in a layer plan.
-     *
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
-     * \param extruder_nr The extruder for which to print all features of the
-     * mesh which should be printed with this extruder.
-     * \param mesh_config the line config with which to print a print feature.
-     * \param part The part for which to create gcode.
-     * \return Whether this function added anything to the layer plan.
-     */
-    bool processInfill(
-        const SliceDataStorage& storage,
-        LayerPlan& gcodeLayer,
-        const SliceMeshStorage& mesh,
-        const size_t extruder_nr,
-        const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
-
-    /*!
-     * \brief Add thicker (multiple layers) sparse infill for a given part in a
-     * layer plan.
-     *
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
-     * \param extruder_nr The extruder for which to print all features of the
-     * mesh which should be printed with this extruder.
-     * \param mesh_config The line config with which to print a print feature.
-     * \param part The part for which to create gcode.
-     * \return Whether this function added anything to the layer plan.
-     */
-    bool processMultiLayerInfill(LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part)
-        const;
-
-    /*!
-     * \brief Add normal sparse infill for a given part in a layer.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
-     * \param extruder_nr The extruder for which to print all features of the
-     * mesh which should be printed with this extruder
-     * \param mesh_config The line config with which to print a print feature.
-     * \param part The part for which to create gcode.
-     * \return Whether this function added anything to the layer plan.
-     */
-    bool processSingleLayerInfill(
-        const SliceDataStorage& storage,
-        LayerPlan& gcodeLayer,
-        const SliceMeshStorage& mesh,
-        const size_t extruder_nr,
-        const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
-
-    /*!
      * Generate the insets for the walls of a given layer part.
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
