@@ -1,0 +1,47 @@
+author: UltiMaker
+default_options:
+    enable_arcus: True
+    enable_benchmarks: False
+    enable_extensive_warnings: False
+    enable_plugins: True
+    enable_remote_plugins: False
+    with_cura_resources: False
+description: Powerful, fast and robust engine for converting 3D models into g-code instructions for 3D printers. It is part of the larger open source project Cura.
+generators: []
+label: 
+languages: []
+license: AGPL-3.0
+name: curaengine
+options:
+    enable_arcus: True
+    enable_benchmarks: False
+    enable_extensive_warnings: False
+    enable_plugins: True
+    enable_remote_plugins: False
+    enable_sentry: False
+    sentry_create_release: False
+    sentry_project: 
+    sentry_send_binaries: False
+    with_cura_resources: False
+options_definitions:
+    enable_arcus: ['True', 'False']
+    enable_benchmarks: ['True', 'False']
+    enable_extensive_warnings: ['True', 'False']
+    enable_plugins: ['True', 'False']
+    enable_remote_plugins: ['True', 'False']
+    with_cura_resources: ['True', 'False']
+    enable_sentry: ['True', 'False']
+    sentry_send_binaries: ['True', 'False']
+    sentry_create_release: ['True', 'False']
+    sentry_project: ['ANY']
+package_type: application
+python_requires:
+    sentrylibrary/1.0.0@ultimaker/stable#8e51e6e3e3ff5f05777ac59f411c9323: {'remote': 'cura-conan2', 'recipe': 'Downloaded', 'path': '/home/runner/.conan2/p/sentr040c452005456/e'}
+    npmpackage/1.0.0@ultimaker/np_637#8cbc1b088465f6310ecba60cfc2402b7: {'remote': 'cura-conan2', 'recipe': 'Downloaded', 'path': '/home/runner/.conan2/p/npmpa61c5401cc109c/e'}
+requires: []
+revision_mode: hash
+settings: ['os', 'compiler', 'build_type', 'arch']
+topics: ['cura', 'protobuf', 'gcode', 'c++', 'curaengine', 'libarcus', 'gcode-generation', '3D-printing']
+url: https://github.com/Ultimaker/CuraEngine
+vendor: False
+version: 5.10.0-alpha.0
