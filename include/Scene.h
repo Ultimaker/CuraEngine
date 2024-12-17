@@ -1,5 +1,5 @@
-// Copyright (c) 2018 Ultimaker B.V.
-// CuraEngine is released under the terms of the AGPLv3 or higher.
+//Copyright (c) 2018 Ultimaker B.V.
+//CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SCENE_H
 #define SCENE_H
@@ -20,13 +20,13 @@ public:
     /*
      * \brief The global settings in the scene.
      */
-    Settings settings;
+Settings settings;
 
     /*
      * \brief Which extruder to evaluate each setting on, if different from the
      * normal extruder of the object it's evaluated for.
      */
-    std::unordered_map<std::string, ExtruderTrain*> limit_to_extruder;
+std::unordered_map<std::string, ExtruderTrain*> limit_to_extruder;
 
     /*
      * \brief The mesh groups in the scene.
@@ -80,9 +80,9 @@ private:
     /*
      * \brief You are not allowed to copy by assignment either.
      */
-    Scene& operator=(const Scene&) = delete;
+    Scene& operator =(const Scene&) = delete;
 };
 
-} // namespace cura
+} //namespace cura
 
-#endif // SCENE_H
+#endif //SCENE_H
