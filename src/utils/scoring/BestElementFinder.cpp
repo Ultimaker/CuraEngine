@@ -33,7 +33,7 @@ std::vector<size_t> BestElementFinder::findBestElements(const size_t candidates_
     const auto begin = best_candidates.begin();
     auto end = best_candidates.end();
 
-    // Now run the criteria passes until we have a single outsider or no more cirteria
+    // Now run the criteria passes until we have a single outsider or no more criteria
     for (const CriteriaPass& criteria_pass : criteria_)
     {
         // For each element, reset score, process each criterion and apply weights to get the global score
@@ -67,6 +67,13 @@ std::vector<size_t> BestElementFinder::findBestElements(const size_t candidates_
         }
     }
 
+    std::sort(
+        begin,
+        end,
+        [](const Candidate& candidate1, const Candidate& candidate2)
+        {
+            return candidate1.score > candidate2.score;
+        });
     std::vector<size_t> best_candidates_indices;
     best_candidates_indices.reserve(std::distance(begin, end));
     for (auto iterator = begin; iterator != end; ++iterator)
