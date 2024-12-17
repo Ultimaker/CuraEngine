@@ -50,8 +50,8 @@ private:
      */
     void processSingleLayerInfill(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const ExtruderPlanPtr& extruder_plan, const SliceLayerPart& part) const;
 
-    bool
-        partitionInfillBySkinAbove(Shape& infill_below_skin, Shape& infill_not_below_skin, const LayerPlanPtr& layer_plan, const SliceLayerPart& part, coord_t infill_line_width) const;
+    bool partitionInfillBySkinAbove(Shape& infill_below_skin, Shape& infill_not_below_skin, const LayerPlanPtr& layer_plan, const SliceLayerPart& part, coord_t infill_line_width)
+        const;
 
 private:
     const coord_t infill_line_distance_;
