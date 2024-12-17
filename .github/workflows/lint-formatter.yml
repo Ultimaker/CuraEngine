@@ -1,9 +1,13 @@
 name: lint-formatter
 
 on:
-  workflow_dispatch:
-
   push:
+    paths:
+      - 'include/**/*.h*'
+      - 'src/**/*.c*'
+
+  pull_request:
+    types: [ opened ]
     paths:
       - 'include/**/*.h*'
       - 'src/**/*.c*'
