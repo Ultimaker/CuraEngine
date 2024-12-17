@@ -20,7 +20,7 @@ public:
     /*
      * \brief The global settings in the scene.
      */
-    Settings settings;
+Settings settings;
 
     /*
      * \brief Which extruder to evaluate each setting on, if different from the

@@ -19,7 +19,7 @@ public:
      * \brief Add a raft polygon to the slice data storage.
      * \param storage The storage to store the newly created raft.
      */
-    static void generate(SliceDataStorage& storage);
+static void generate(SliceDataStorage& storage);
 
     /*!
      * \brief Get the height difference between the raft and the bottom of
