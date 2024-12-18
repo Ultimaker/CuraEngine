@@ -53,26 +53,19 @@ bool MeshInfillGenerator::isActive() const
 }
 
 void MeshInfillGenerator::generateFeatures(
-    const SliceDataStorage& storage,
+    const SliceDataStorage& /*storage*/,
     const LayerPlanPtr& layer_plan,
     const std::vector<ExtruderPlanPtr>& extruder_plans,
     const SliceLayerPart& part) const
 {
-    const size_t infill_extruder_nr = getMesh()->settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_;
-    ExtruderPlanPtr extruder_plan_infill = ExtruderPlan::find(extruder_plans, infill_extruder_nr);
+    const Settings& settings = getMesh()->settings;
+    const size_t infill_extruder_nr = settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_;
+    const ExtruderPlanPtr extruder_plan_infill = ExtruderPlan::find(extruder_plans, infill_extruder_nr);
     assert(extruder_plan_infill && "Unable to find extruder plan for infill");
 
-    processMultiLayerInfill(layer_plan, extruder_plan_infill, part);
-    processSingleLayerInfill(storage, layer_plan, extruder_plan_infill, part);
+    const auto max_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
+    const auto max_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
 
-#warning factorize the functions
-}
-
-void MeshInfillGenerator::processMultiLayerInfill(const LayerPlanPtr& layer_plan, const ExtruderPlanPtr& extruder_plan, const SliceLayerPart& part) const
-{
-    const Settings& settings = getMesh()->settings;
-    coord_t max_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
-    coord_t max_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
     AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
     if (! getMesh()->infill_angles.empty())
     {
@@ -80,62 +73,68 @@ void MeshInfillGenerator::processMultiLayerInfill(const LayerPlanPtr& layer_plan
             = std::max(uint64_t(1), round_divide(settings.get<coord_t>("infill_sparse_thickness"), std::max(settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = getMesh()->infill_angles.at((layer_plan->getLayerIndex() / combined_infill_layers) % getMesh()->infill_angles.size());
     }
+
     const Point3LL mesh_middle = getMesh()->bounding_box.getMiddle();
-    const Point2LL infill_origin(mesh_middle.x_ + settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + settings.get<coord_t>("infill_offset_y"));
     const MeshPathConfigs& mesh_configs = layer_plan->getConfigsStorage()->mesh_configs.at(getMesh());
 
-    // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
-    for (unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
+    const Point2LL infill_origin(mesh_middle.x_ + settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + settings.get<coord_t>("infill_offset_y"));
+
+    const auto infill_pattern = settings.get<EFillMethod>("infill_pattern");
+    const auto zig_zaggify_infill = settings.get<bool>("zig_zaggify_infill") || infill_pattern == EFillMethod::ZIG_ZAG;
+    const auto connect_polygons = settings.get<bool>("connect_infill_polygons");
+    const auto infill_multiplier = settings.get<size_t>("infill_multiplier");
+    const auto infill_overlap = settings.get<coord_t>("infill_overlap_mm");
+    const auto pocket_size = settings.get<coord_t>("cross_infill_pocket_size");
+
+    constexpr bool skip_stitching = false;
+    constexpr bool connected_zigzags = false;
+    constexpr bool skip_some_zags = false;
+    constexpr int zag_skip_count = 0;
+    constexpr coord_t small_area_width = 0;
+
+    const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
+
+    std::shared_ptr<LightningLayer> lightning_layer = nullptr;
+    if (lightning_generator_)
     {
+        lightning_layer = std::make_shared<LightningLayer>(lightning_generator_->getTreesForLayer(layer_plan->getLayerIndex()));
+    }
+
+    for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
+    {
+        Shape infill_polygons;
+        std::vector<std::vector<VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
+        OpenLinesSet infill_lines;
+
         const GCodePathConfig& infill_config = mesh_configs.infill_config[combine_idx];
         const coord_t infill_line_width = infill_config.getLineWidth();
-        const EFillMethod infill_pattern = settings.get<EFillMethod>("infill_pattern");
-        const bool zig_zaggify_infill = settings.get<bool>("zig_zaggify_infill") || infill_pattern == EFillMethod::ZIG_ZAG;
-        const bool connect_polygons = settings.get<bool>("connect_infill_polygons");
-        const size_t infill_multiplier = settings.get<size_t>("infill_multiplier");
-        Shape infill_polygons;
-        OpenLinesSet infill_lines;
-        std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
-        for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
-        { // combine different density infill areas (for gradual infill)
-            size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-            coord_t infill_line_distance_here = infill_line_distance_ * density_factor; // the highest density infill combines with the next to create a grid with density_factor
-            const coord_t infill_shift = infill_line_distance_here / 2;
-            if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
-            {
-                infill_line_distance_here /= 2;
-            }
 
-            constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
-            const coord_t small_area_width = 0;
-            const coord_t infill_overlap = settings.get<coord_t>("infill_overlap_mm");
-            constexpr bool skip_stitching = false;
-            constexpr bool connected_zigzags = false;
-            constexpr bool use_endpieces = true;
-            constexpr bool skip_some_zags = false;
-            constexpr size_t zag_skip_count = 0;
+        const auto generate_infill = [&](const Shape& in_outline,
+                                         const coord_t infill_line_distance,
+                                         const coord_t overlap,
+                                         const coord_t infill_shift,
+                                         const coord_t wall_count,
+                                         const size_t density_idx,
+                                         const bool use_endpieces,
+                                         std::vector<VariableWidthLines>& toolpaths)
+        {
             const bool fill_gaps = density_idx == 0; // Only fill gaps for the lowest density.
 
-            std::shared_ptr<LightningLayer> lightning_layer = nullptr;
-            if (lightning_generator_)
-            {
-                lightning_layer = std::make_shared<LightningLayer>(lightning_generator_->getTreesForLayer(layer_plan->getLayerIndex()));
-            }
             Infill infill_comp(
                 infill_pattern,
                 zig_zaggify_infill,
                 connect_polygons,
-                part.infill_area_per_combine_per_density[density_idx][combine_idx],
+                in_outline,
                 infill_line_width,
-                infill_line_distance_here,
-                infill_overlap,
+                infill_line_distance,
+                overlap,
                 infill_multiplier,
                 infill_angle,
                 layer_plan->getZ(),
                 infill_shift,
                 max_resolution,
                 max_deviation,
-                wall_line_count,
+                wall_count,
                 small_area_width,
                 infill_origin,
                 skip_stitching,
@@ -144,9 +143,9 @@ void MeshInfillGenerator::processMultiLayerInfill(const LayerPlanPtr& layer_plan
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                settings.get<coord_t>("cross_infill_pocket_size"));
+                pocket_size);
             infill_comp.generate(
-                infill_paths,
+                toolpaths,
                 infill_polygons,
                 infill_lines,
                 settings,
@@ -155,6 +154,27 @@ void MeshInfillGenerator::processMultiLayerInfill(const LayerPlanPtr& layer_plan
                 getMesh()->cross_fill_provider,
                 lightning_layer,
                 getMesh().get());
+        };
+
+        if (combine_idx == 0)
+        {
+            processMultiLayerInfill(
+                part,
+                settings,
+                layer_plan,
+                last_idx,
+                infill_pattern,
+                infill_line_width,
+                infill_overlap,
+                zig_zaggify_infill,
+                generate_infill,
+                wall_tool_paths,
+                infill_lines,
+                infill_polygons);
+        }
+        else
+        {
+            processSingleLayerInfill(part, last_idx, infill_pattern, combine_idx, infill_overlap, generate_infill);
         }
 
         auto feature_extrusion = std::make_shared<MeshFeatureExtrusion>(PrintFeatureType::Infill, infill_line_width, getMesh());
@@ -169,53 +189,39 @@ void MeshInfillGenerator::processMultiLayerInfill(const LayerPlanPtr& layer_plan
             feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(polyline, infill_line_width, infill_config.getSpeed()));
         }
 
-        extruder_plan->appendFeatureExtrusion(feature_extrusion);
+        for (const std::vector<VariableWidthLines>& wall_tool_path : wall_tool_paths)
+        {
+            for (const VariableWidthLines& extrusion_lines : wall_tool_path)
+            {
+                for (const ExtrusionLine& extrusion_line : extrusion_lines)
+                {
+                    feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(extrusion_line, infill_config.getSpeed()));
+                }
+            }
+
+            extruder_plan_infill->appendFeatureExtrusion(feature_extrusion);
+
+#warning Handle infill_randomize_start_location in scheduler
+            // if (settings.get<bool>("infill_randomize_start_location"))
+        }
     }
 }
 
-void MeshInfillGenerator::processSingleLayerInfill(
-    const SliceDataStorage& storage,
+void MeshInfillGenerator::processMultiLayerInfill(
+    const SliceLayerPart& part,
+    const Settings& settings,
     const LayerPlanPtr& layer_plan,
-    const ExtruderPlanPtr& extruder_plan,
-    const SliceLayerPart& part) const
+    const size_t last_idx,
+    const EFillMethod infill_pattern,
+    const coord_t infill_line_width,
+    const coord_t infill_overlap,
+    const bool zig_zaggify_infill,
+    const auto generate_infill,
+    std::vector<std::vector<VariableWidthLines>>& wall_tool_paths,
+    OpenLinesSet& infill_lines,
+    Shape& infill_polygons) const
 {
-    const MeshPathConfigs& mesh_configs = layer_plan->getConfigsStorage()->mesh_configs.at(getMesh());
-    const GCodePathConfig& infill_config = mesh_configs.infill_config[0];
-    const coord_t infill_line_width = infill_config.getLineWidth();
-
-    // Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
-    Shape infill_polygons;
-    std::vector<std::vector<VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
-    OpenLinesSet infill_lines;
-
-    const Settings& settings = getMesh()->settings;
-    const auto pattern = settings.get<EFillMethod>("infill_pattern");
-    const bool zig_zaggify_infill = settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
-    const bool connect_polygons = settings.get<bool>("connect_infill_polygons");
-    const auto infill_overlap = settings.get<coord_t>("infill_overlap_mm");
-    const auto infill_multiplier = settings.get<size_t>("infill_multiplier");
     const auto wall_line_count = settings.get<size_t>("infill_wall_line_count");
-    const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
-    const auto max_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
-    const auto max_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
-    AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
-    if (! getMesh()->infill_angles.empty())
-    {
-        const size_t combined_infill_layers
-            = std::max(uint64_t(1), round_divide(settings.get<coord_t>("infill_sparse_thickness"), std::max(settings.get<coord_t>("layer_height"), coord_t(1))));
-        infill_angle = getMesh()->infill_angles.at((layer_plan->getLayerIndex() / combined_infill_layers) % getMesh()->infill_angles.size());
-    }
-    const Point3LL mesh_middle = getMesh()->bounding_box.getMiddle();
-    const Point2LL infill_origin(mesh_middle.x_ + settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + settings.get<coord_t>("infill_offset_y"));
-
-    auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
-    {
-        if (zig_zaggify)
-        {
-            return -line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5;
-        }
-        return -static_cast<coord_t>(line_count) * line_width;
-    };
 
     Shape sparse_in_outline = part.infill_area_per_combine_per_density[last_idx][0];
 
@@ -225,12 +231,16 @@ void MeshInfillGenerator::processSingleLayerInfill(
     Shape infill_not_below_skin;
     const bool hasSkinEdgeSupport = partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, layer_plan, part, infill_line_width);
 
-    const auto pocket_size = settings.get<coord_t>("cross_infill_pocket_size");
-    constexpr bool skip_stitching = false;
-    constexpr bool connected_zigzags = false;
     const bool use_endpieces = part.infill_area_per_combine_per_density.size() == 1; // Only use endpieces when not using gradual infill, since they will then overlap.
-    constexpr bool skip_some_zags = false;
-    constexpr int zag_skip_count = 0;
+
+    auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
+    {
+        if (zig_zaggify)
+        {
+            return -line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5;
+        }
+        return -static_cast<coord_t>(line_count) * line_width;
+    };
 
     for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
     {
@@ -264,7 +274,7 @@ void MeshInfillGenerator::processSingleLayerInfill(
          */
 
         // All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2.
-        if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
+        if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
         {
             /* the least dense infill should fill up all remaining gaps
              :       |       :       |       :       |       :       |       :  > furthest from top
@@ -284,55 +294,17 @@ void MeshInfillGenerator::processSingleLayerInfill(
 
         Shape in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
-        std::shared_ptr<LightningLayer> lightning_layer;
-        if (lightning_generator_)
-        {
-            lightning_layer = std::make_shared<LightningLayer>(lightning_generator_->getTreesForLayer(layer_plan->getLayerIndex()));
-        }
-
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.
         if (hasSkinEdgeSupport)
         {
             // infill region with skin above has to have at least one infill wall line
             const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
             const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
-            const coord_t small_area_width = 0;
             wall_tool_paths.emplace_back(std::vector<VariableWidthLines>());
             const coord_t overlap = infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width);
-            Infill infill_comp(
-                pattern,
-                zig_zaggify_infill,
-                connect_polygons,
-                infill_below_skin,
-                infill_line_width,
-                infill_line_distance_here,
-                overlap,
-                infill_multiplier,
-                infill_angle,
-                layer_plan->getZ(),
-                infill_shift,
-                max_resolution,
-                max_deviation,
-                skin_below_wall_count,
-                small_area_width,
-                infill_origin,
-                skip_stitching,
-                fill_gaps,
-                connected_zigzags,
-                use_endpieces,
-                skip_some_zags,
-                zag_skip_count,
-                pocket_size);
-            infill_comp.generate(
-                wall_tool_paths.back(),
-                infill_polygons,
-                infill_lines,
-                settings,
-                layer_plan->getLayerIndex(),
-                SectionType::INFILL,
-                getMesh()->cross_fill_provider,
-                lightning_layer,
-                getMesh().get());
+
+            generate_infill(infill_below_skin, infill_line_distance_here, overlap, infill_shift, skin_below_wall_count, density_idx, use_endpieces, wall_tool_paths.back());
+
             if (density_idx < last_idx)
             {
                 const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
@@ -360,44 +332,12 @@ void MeshInfillGenerator::processSingleLayerInfill(
         in_outline.removeSmallAreas(minimum_small_area);
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
-        const coord_t small_area_width = 0;
         const coord_t overlap = settings.get<coord_t>("infill_overlap_mm");
 
         wall_tool_paths.emplace_back();
-        Infill infill_comp(
-            pattern,
-            zig_zaggify_infill,
-            connect_polygons,
-            in_outline,
-            infill_line_width,
-            infill_line_distance_here,
-            overlap,
-            infill_multiplier,
-            infill_angle,
-            layer_plan->getZ(),
-            infill_shift,
-            max_resolution,
-            max_deviation,
-            wall_line_count_here,
-            small_area_width,
-            infill_origin,
-            skip_stitching,
-            fill_gaps,
-            connected_zigzags,
-            use_endpieces,
-            skip_some_zags,
-            zag_skip_count,
-            pocket_size);
-        infill_comp.generate(
-            wall_tool_paths.back(),
-            infill_polygons,
-            infill_lines,
-            settings,
-            layer_plan->getLayerIndex(),
-            SectionType::INFILL,
-            getMesh()->cross_fill_provider,
-            lightning_layer,
-            getMesh().get());
+
+        generate_infill(in_outline, infill_line_distance_here, overlap, infill_shift, wall_line_count_here, density_idx, use_endpieces, wall_tool_paths.back());
+
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
@@ -411,40 +351,46 @@ void MeshInfillGenerator::processSingleLayerInfill(
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
 
     if (settings.get<coord_t>("wall_line_count") // Disable feature if no walls - it can leave dangling lines at edges
-        && pattern != EFillMethod::LIGHTNING // Lightning doesn't make enclosed regions
-        && pattern != EFillMethod::CONCENTRIC // Doesn't handle 'holes' in infill lines very well
-        && pattern != EFillMethod::CROSS // Ditto
-        && pattern != EFillMethod::CROSS_3D) // Ditto
+        && infill_pattern != EFillMethod::LIGHTNING // Lightning doesn't make enclosed regions
+        && infill_pattern != EFillMethod::CONCENTRIC // Doesn't handle 'holes' in infill lines very well
+        && infill_pattern != EFillMethod::CROSS // Ditto
+        && infill_pattern != EFillMethod::CROSS_3D) // Ditto
     {
         // addExtraLinesToSupportSurfacesAbove(infill_lines, infill_polygons, wall_tool_paths, part, infill_line_width, gcode_layer, mesh);
     }
+}
 
-    auto feature_extrusion = std::make_shared<MeshFeatureExtrusion>(PrintFeatureType::Infill, infill_line_width, getMesh());
-
-    for (const Polygon& polygon : infill_polygons)
-    {
-        feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(polygon, infill_line_width, infill_config.getSpeed()));
-    }
-
-    for (const OpenPolyline& polyline : infill_lines)
-    {
-        feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(polyline, infill_line_width, infill_config.getSpeed()));
-    }
-
-    for (const std::vector<VariableWidthLines>& wall_tool_path : wall_tool_paths)
-    {
-        for (const VariableWidthLines& extrusion_lines : wall_tool_path)
+void MeshInfillGenerator::processSingleLayerInfill(
+    const SliceLayerPart& part,
+    const size_t last_idx,
+    const EFillMethod infill_pattern,
+    const size_t combine_idx,
+    const coord_t infill_overlap,
+    const auto generate_infill) const
+{
+    std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
+    for (size_t density_idx = last_idx; (int)density_idx >= 0; density_idx--)
+    { // combine different density infill areas (for gradual infill)
+        size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
+        coord_t infill_line_distance_here = infill_line_distance_ * density_factor; // the highest density infill combines with the next to create a grid with density_factor
+        const coord_t infill_shift = infill_line_distance_here / 2;
+        if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
         {
-            for (const ExtrusionLine& extrusion_line : extrusion_lines)
-            {
-                feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(extrusion_line, infill_config.getSpeed()));
-            }
+            infill_line_distance_here /= 2;
         }
 
-        extruder_plan->appendFeatureExtrusion(feature_extrusion);
+        constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
+        constexpr bool use_endpieces = true;
 
-#warning Handle infill_randomize_start_location in scheduler
-        // if (settings.get<bool>("infill_randomize_start_location"))
+        generate_infill(
+            part.infill_area_per_combine_per_density[density_idx][combine_idx],
+            infill_line_distance_here,
+            infill_overlap,
+            infill_shift,
+            wall_line_count,
+            density_idx,
+            use_endpieces,
+            infill_paths);
     }
 }
 

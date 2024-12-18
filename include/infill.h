@@ -76,7 +76,7 @@ public:
         EFillMethod pattern,
         bool zig_zaggify,
         bool connect_polygons,
-        Shape in_outline,
+        const Shape& in_outline,
         coord_t infill_line_width,
         coord_t line_distance,
         coord_t infill_overlap,

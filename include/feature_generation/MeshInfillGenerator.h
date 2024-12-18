@@ -4,12 +4,15 @@
 #pragma once
 
 #include <utils/Coord_t.h>
+#include <utils/ExtrusionLine.h>
 
 #include "feature_generation/MeshFeatureGenerator.h"
 
 namespace cura
 {
 
+enum class EFillMethod;
+class Settings;
 class LightningGenerator;
 class Shape;
 
@@ -28,30 +31,32 @@ protected:
 
 private:
     /*!
-     * \brief Add thicker (multiple layers) sparse infill for a given part in a
-     * layer plan.
-     *
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
-     * \param extruder_nr The extruder for which to print all features of the
-     * mesh which should be printed with this extruder.
-     * \param mesh_config The line config with which to print a print feature.
-     * \param part The part for which to create gcode.
-     * \return Whether this function added anything to the layer plan.
+     * \brief Add thicker (multiple layers) sparse infill for a given part in a layer plan.
      */
-    void processMultiLayerInfill(const LayerPlanPtr& layer_plan, const ExtruderPlanPtr& extruder_plan, const SliceLayerPart& part) const;
+    void processMultiLayerInfill(
+        const SliceLayerPart& part,
+        const Settings& settings,
+        const LayerPlanPtr& layer_plan,
+        const size_t last_idx,
+        const EFillMethod infill_pattern,
+        const coord_t infill_line_width,
+        const coord_t infill_overlap,
+        const bool zig_zaggify_infill,
+        const auto generate_infill,
+        std::vector<std::vector<VariableWidthLines>>& wall_tool_paths,
+        OpenLinesSet& infill_lines,
+        Shape& infill_polygons) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
-     * \param gcodeLayer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
-     * \param extruder_nr The extruder for which to print all features of the
-     * mesh which should be printed with this extruder
-     * \param mesh_config The line config with which to print a print feature.
-     * \param part The part for which to create gcode.
-     * \return Whether this function added anything to the layer plan.
      */
-    void processSingleLayerInfill(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const ExtruderPlanPtr& extruder_plan, const SliceLayerPart& part) const;
+    void processSingleLayerInfill(
+        const SliceLayerPart& part,
+        const size_t last_idx,
+        const EFillMethod infill_pattern,
+        const size_t combine_idx,
+        const coord_t infill_overlap,
+        const auto generate_infill) const;
 
     bool partitionInfillBySkinAbove(Shape& infill_below_skin, Shape& infill_not_below_skin, const LayerPlanPtr& layer_plan, const SliceLayerPart& part, coord_t infill_line_width)
         const;
