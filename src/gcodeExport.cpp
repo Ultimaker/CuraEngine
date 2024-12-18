@@ -1741,7 +1741,7 @@ void GCodeExport::writeJerk(const Velocity& jerk)
             *output_stream_ << "M566 X" << PrecisionedDouble{ 2, jerk * 60 } << " Y" << PrecisionedDouble{ 2, jerk * 60 } << new_line_;
             break;
         case EGCodeFlavor::CHEETAH:
-            *output_stream_ << "M215 X" << PrecisionedDouble{ 2, jerk * 1000 } << " Y" << PrecisionedDouble{ 2, jerk * 1000  } << new_line_;
+            *output_stream_ << "M215 X" << PrecisionedDouble{ 2, jerk * 1000 } << " Y" << PrecisionedDouble{ 2, jerk * 1000 } << new_line_;
             break;
         default:
             *output_stream_ << "M205 X" << PrecisionedDouble{ 2, jerk } << " Y" << PrecisionedDouble{ 2, jerk } << new_line_;
