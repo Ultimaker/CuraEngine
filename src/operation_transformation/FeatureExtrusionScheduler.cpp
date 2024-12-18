@@ -393,10 +393,20 @@ std::shared_ptr<ZSeamConfig> FeatureExtrusionScheduler::getZSeamConfig(const Fea
     case PrintFeatureType::Roof:
     case PrintFeatureType::Support:
     case PrintFeatureType::SkirtBrim:
-    case PrintFeatureType::Infill:
     case PrintFeatureType::SupportInfill:
     case PrintFeatureType::SupportInterface:
         return std::make_shared<ZSeamConfig>(EZSeamType::SHORTEST);
+
+    case PrintFeatureType::Infill:
+    {
+        const auto mesh_feature_extrusion = std::dynamic_pointer_cast<MeshFeatureExtrusion>(feature_extrusion);
+        assert(mesh_feature_extrusion && "The infill feature extrusion is not a MeshFeatureExtrusion instance");
+        if (mesh_feature_extrusion->getMesh()->settings.get<bool>("infill_randomize_start_location"))
+        {
+            return std::make_shared<ZSeamConfig>(EZSeamType::RANDOM);
+        }
+        break;
+    }
 
     case PrintFeatureType::MoveCombing:
     case PrintFeatureType::MoveRetraction:

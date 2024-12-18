@@ -200,9 +200,6 @@ void MeshInfillGenerator::generateFeatures(
             }
 
             extruder_plan_infill->appendFeatureExtrusion(feature_extrusion);
-
-#warning Handle infill_randomize_start_location in scheduler
-            // if (settings.get<bool>("infill_randomize_start_location"))
         }
     }
 }
