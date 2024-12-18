@@ -323,6 +323,9 @@ public:
     std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     RetractionAndWipeConfig retraction_wipe_config; //!< Per-Object retraction and wipe settings.
+    bool override_extruder_retract_settings = true; //!< The 'per-object' retraction and wipe settings are currently always filled, even if not overridden.
+                                                    //!< This has potential conflicts with per-extruder retract/wipe settings.
+                                                    //!< So, only override the settings on a per-object basis if all extruder retract/wipe settings are the same.
 
     /*!
      * \brief Creates a storage space for slice results of a mesh.
