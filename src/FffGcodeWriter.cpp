@@ -31,6 +31,7 @@
 #include "feature_generation/FeatureGenerator.h"
 #include "feature_generation/MeshInfillGenerator.h"
 #include "feature_generation/MeshInsetsGenerator.h"
+#include "feature_generation/MeshSkinGenerator.h"
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
@@ -196,9 +197,10 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         feature_generators_.push_back(std::make_shared<MeshInsetsGenerator>(mesh));
         feature_generators_.push_back(std::make_shared<MeshInfillGenerator>(mesh));
+        feature_generators_.push_back(std::make_shared<MeshSkinGenerator>(mesh));
     }
 
-    // Filter out generators that are actually useless in this context. Not highly useful, but helps for debugging.
+    // Filter out generators that are actually useless in this context, to save significant time on next steps
     ranges::remove_if(
         feature_generators_,
         [](const std::shared_ptr<FeatureGenerator>& generator)

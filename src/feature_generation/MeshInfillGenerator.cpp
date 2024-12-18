@@ -198,9 +198,9 @@ void MeshInfillGenerator::generateFeatures(
                     feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(extrusion_line, infill_config.getSpeed()));
                 }
             }
-
-            extruder_plan_infill->appendFeatureExtrusion(feature_extrusion);
         }
+
+        extruder_plan_infill->appendFeatureExtrusion(feature_extrusion);
     }
 }
 

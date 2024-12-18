@@ -101,6 +101,7 @@ set(engine_SRCS # Except main.cpp.
         src/feature_generation/MeshFeatureGenerator.cpp include/feature_generation/MeshFeatureGenerator.h
         src/feature_generation/MeshInfillGenerator.cpp include/feature_generation/MeshInfillGenerator.h
         src/feature_generation/MeshInsetsGenerator.cpp include/feature_generation/MeshInsetsGenerator.h
+        src/feature_generation/MeshSkinGenerator.cpp include/feature_generation/MeshSkinGenerator.h
         src/feature_generation/SkirtBrimAppender.cpp include/feature_generation/SkirtBrimAppender.h
 
         src/infill/ImageBasedDensityProvider.cpp
