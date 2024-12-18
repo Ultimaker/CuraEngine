@@ -102,12 +102,11 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
     , cross_fill_provider(nullptr)
-    , seam_config(
-          std::make_shared<ZSeamConfig>(
-              settings.get<EZSeamType>("z_seam_type"),
-              getZSeamHint(),
-              settings.get<EZSeamCornerPrefType>("z_seam_corner"),
-              settings.get<coord_t>("wall_line_width_0") * 2))
+    , seam_config(std::make_shared<ZSeamConfig>(
+          settings.get<EZSeamType>("z_seam_type"),
+          getZSeamHint(),
+          settings.get<EZSeamCornerPrefType>("z_seam_corner"),
+          settings.get<coord_t>("wall_line_width_0") * 2))
 {
     layers.resize(slice_layer_count);
 }

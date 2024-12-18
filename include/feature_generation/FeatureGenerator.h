@@ -21,7 +21,7 @@ public:
 
     virtual bool isActive() const = 0;
 
-    virtual void preCalculateData() {};
+    virtual void preCalculateData(){};
 
     virtual void generateFeatures(const SliceDataStorage& storage, const LayerPlanPtr& layer_plan, const std::vector<ExtruderPlanPtr>& extruder_plans) const = 0;
 };
