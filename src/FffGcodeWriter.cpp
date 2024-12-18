@@ -1169,6 +1169,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
 
+    coord_t comb_offset_from_outlines = 0;
     coord_t avoid_distance = 0; // minimal avoid distance is zero
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
@@ -1181,6 +1182,8 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             {
                 avoid_distance = std::max(avoid_distance, extruder.settings_.get<coord_t>("travel_avoid_distance"));
             }
+
+            comb_offset_from_outlines = std::max(comb_offset_from_outlines, extruder.settings_.get<coord_t>("retraction_combing_avoid_distance"));
         }
     }
 
@@ -1196,7 +1199,6 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
         }
         max_inner_wall_width = std::max(max_inner_wall_width, mesh_inner_wall_width);
     }
-    const coord_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
     const size_t first_extruder = findUsedExtruderIndex(storage, layer_nr, false);
 
