@@ -14,7 +14,7 @@
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderPlan.h"
 #include "print_operation/LayerPlan.h"
-#include "print_operation/MeshFeatureExtrusion.h"
+#include "print_operation/InfillFeatureExtrusion.h"
 #include "utils/math.h"
 
 
@@ -177,7 +177,7 @@ void MeshInfillGenerator::generateFeatures(
             processSingleLayerInfill(part, last_idx, infill_pattern, combine_idx, infill_overlap, generate_infill);
         }
 
-        auto feature_extrusion = std::make_shared<MeshFeatureExtrusion>(PrintFeatureType::Infill, infill_line_width, getMesh());
+        auto feature_extrusion = std::make_shared<InfillFeatureExtrusion>(PrintFeatureType::Infill, infill_line_width, getMesh(), infill_angle);
 
         for (const Polygon& polygon : infill_polygons)
         {

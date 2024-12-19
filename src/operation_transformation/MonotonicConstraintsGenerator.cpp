@@ -10,7 +10,7 @@
 
 #include "geometry/Point2D.h"
 #include "print_operation/ContinuousExtruderMoveSequence.h"
-#include "print_operation/MeshFeatureExtrusion.h"
+#include "print_operation/InfillFeatureExtrusion.h"
 #include "sliceDataStorage.h"
 
 namespace cura
@@ -20,13 +20,13 @@ void MonotonicConstraintsGenerator::appendConstraints(
     const FeatureExtrusionPtr& feature_extrusion,
     std::map<ContinuousExtruderMoveSequencePtr, std::vector<ContinuousExtruderMoveSequencePtr>>& constraints) const
 {
-    auto mesh_feature = std::dynamic_pointer_cast<MeshFeatureExtrusion>(feature_extrusion);
-    if (! mesh_feature)
+    auto infill_feature = std::dynamic_pointer_cast<InfillFeatureExtrusion>(feature_extrusion);
+    if (! infill_feature)
     {
         return;
     }
 
-    const std::shared_ptr<const SliceMeshStorage>& mesh = mesh_feature->getMesh();
+    const std::shared_ptr<const SliceMeshStorage>& mesh = infill_feature->getMesh();
     const std::vector<AngleDegrees>* angles = nullptr;
 
     if (feature_extrusion->getType() == PrintFeatureType::Roof)
@@ -48,9 +48,7 @@ void MonotonicConstraintsGenerator::appendConstraints(
     {
         const std::vector<ContinuousExtruderMoveSequencePtr> moves = feature_extrusion->getOperationsAs<ContinuousExtruderMoveSequence>();
 
-        const AngleDegrees angle = angles->empty() ? AngleDegrees(45) : angles->front();
-#warning restore proper angle selection according to layer number
-        //     roofing_angle = mesh.roofing_angles.at(gcode_layer.getLayerNr() % mesh.roofing_angles.size());
+        const AngleDegrees angle = infill_feature->GetInfillAngle();
         const double same_line_distance = feature_extrusion->getNominalLineWidth() * 0.5;
 
         // Lines are considered adjacent if they are less than 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.

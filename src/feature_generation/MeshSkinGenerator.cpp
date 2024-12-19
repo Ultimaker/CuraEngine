@@ -9,7 +9,7 @@
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderPlan.h"
 #include "print_operation/LayerPlan.h"
-#include "print_operation/MeshFeatureExtrusion.h"
+#include "print_operation/InfillFeatureExtrusion.h"
 #include "settings/EnumSettings.h"
 #include "settings/PathConfigStorage.h"
 #include "sliceDataStorage.h"
@@ -54,8 +54,6 @@ void MeshSkinGenerator::processRoofing(const LayerPlanPtr& layer_plan, const Ski
     }
 
     const Ratio skin_density = 1.0;
-#warning handle monotonic roofing
-    // const bool monotonic = getMesh()->settings.get<bool>("roofing_monotonic");
     const MeshPathConfigs& mesh_configs = layer_plan->getConfigsStorage()->mesh_configs.at(getMesh());
     processSkinPrintFeature(layer_plan, skin_part.roofing_fill, mesh_configs.roofing_config, pattern, roofing_angle, skin_density, PrintFeatureType::Roof, extruder_plan);
 }
@@ -289,7 +287,7 @@ void MeshSkinGenerator::processSkinPrintFeature(
         nullptr,
         small_areas_on_surface ? Shape() : exposed_to_air);
 
-    auto feature_extrusion = std::make_shared<MeshFeatureExtrusion>(feature_type, config.getLineWidth(), getMesh());
+    auto feature_extrusion = std::make_shared<InfillFeatureExtrusion>(feature_type, config.getLineWidth(), getMesh(), skin_angle);
 
     for (const Polygon& polygon : skin_polygons)
     {

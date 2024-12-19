@@ -139,9 +139,10 @@ set(engine_SRCS # Except main.cpp.
         src/print_operation/ExtruderPlan.cpp include/print_operation/ExtruderPlan.h
         src/print_operation/ExtrusionMove.cpp include/print_operation/ExtrusionMove.h
         src/print_operation/FeatureExtrusion.cpp include/print_operation/FeatureExtrusion.h
+        src/print_operation/InfillFeatureExtrusion.cpp include/print_operation/InfillFeatureExtrusion.h
         src/print_operation/LayerPlan.cpp include/print_operation/LayerPlan.h
-        src/print_operation/PrintPlan.cpp include/print_operation/PrintPlan.h
         src/print_operation/MeshFeatureExtrusion.cpp include/print_operation/MeshFeatureExtrusion.h
+        src/print_operation/PrintPlan.cpp include/print_operation/PrintPlan.h
         src/print_operation/PrintOperation.cpp include/print_operation/PrintOperation.h
         src/print_operation/PrintOperationSequence.cpp include/print_operation/PrintOperationSequence.h
         src/print_operation/TravelMove.cpp include/print_operation/TravelMove.h
