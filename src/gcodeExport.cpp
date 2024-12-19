@@ -1748,7 +1748,15 @@ void GCodeExport::writeJerk(const Velocity& jerk)
             break;
         }
         current_jerk_ = jerk;
-        estimate_calculator_.setMaxXyJerk(jerk);
+
+        if(getFlavor() == EGCodeFlavor::CHEETAH)
+        {
+            estimate_calculator_.setMaxXyJerk(jerk/200);
+        }
+        else
+        {
+            estimate_calculator_.setMaxXyJerk(jerk);
+        }
     }
 }
 
