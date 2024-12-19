@@ -16,9 +16,9 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
+#include "path_ordering.h"
 #include "path_planning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "path_planning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
-#include "path_ordering.h"
 #include "settings/EnumSettings.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.

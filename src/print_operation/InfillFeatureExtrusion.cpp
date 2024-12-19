@@ -3,8 +3,8 @@
 
 #include "print_operation/InfillFeatureExtrusion.h"
 
-#include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "geometry/OpenPolyline.h"
+#include "print_operation/ContinuousExtruderMoveSequence.h"
 
 namespace cura
 {
@@ -19,7 +19,13 @@ InfillFeatureExtrusion::InfillFeatureExtrusion(
 {
 }
 
-std::shared_ptr<InfillFeatureExtrusion> InfillFeatureExtrusion::makeFrom(const Infill::GeneratedPatterns& patterns, PrintFeatureType type, const coord_t line_width, const std::shared_ptr<const SliceMeshStorage>& mesh,const AngleDegrees& infill_angle, const Velocity &speed)
+std::shared_ptr<InfillFeatureExtrusion> InfillFeatureExtrusion::makeFrom(
+    const Infill::GeneratedPatterns& patterns,
+    PrintFeatureType type,
+    const coord_t line_width,
+    const std::shared_ptr<const SliceMeshStorage>& mesh,
+    const AngleDegrees& infill_angle,
+    const Velocity& speed)
 {
     auto feature_extrusion = std::make_shared<InfillFeatureExtrusion>(type, line_width, mesh, infill_angle);
 

@@ -225,7 +225,7 @@ public:
         const Shape& prevent_small_exposed_to_air = Shape());
 
     void generate(
-        GeneratedPatterns &patterns,
+        GeneratedPatterns& patterns,
         const Settings& settings,
         int layer_idx,
         SectionType section_type,

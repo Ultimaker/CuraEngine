@@ -142,7 +142,7 @@ FeatureExtrusionScheduler::SequencesConstraintsMap FeatureExtrusionScheduler::ma
 
     for (const std::shared_ptr<MoveSequencesConstraintsGenerator>& constraints_generator : moves_constraints_generators)
     {
-        constraints_generator->appendConstraints(feature_extrusion,  constraints);
+        constraints_generator->appendConstraints(feature_extrusion, constraints);
     }
 
     return constraints;

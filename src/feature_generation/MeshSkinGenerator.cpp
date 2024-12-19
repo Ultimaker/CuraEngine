@@ -8,8 +8,8 @@
 #include "infill.h"
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderPlan.h"
-#include "print_operation/LayerPlan.h"
 #include "print_operation/InfillFeatureExtrusion.h"
+#include "print_operation/LayerPlan.h"
 #include "settings/EnumSettings.h"
 #include "settings/PathConfigStorage.h"
 #include "sliceDataStorage.h"
@@ -273,15 +273,7 @@ void MeshSkinGenerator::processSkinPrintFeature(
         skip_some_zags,
         zag_skip_count,
         pocket_size);
-    infill_comp.generate(
-        patterns,
-        settings,
-        layer_plan->getLayerIndex(),
-        SectionType::SKIN,
-        nullptr,
-        nullptr,
-        nullptr,
-        small_areas_on_surface ? Shape() : exposed_to_air);
+    infill_comp.generate(patterns, settings, layer_plan->getLayerIndex(), SectionType::SKIN, nullptr, nullptr, nullptr, small_areas_on_surface ? Shape() : exposed_to_air);
 
     auto feature_extrusion = InfillFeatureExtrusion::makeFrom(patterns, feature_type, config.getLineWidth(), getMesh(), skin_angle, config.getSpeed());
     extruder_plan->appendFeatureExtrusion(feature_extrusion);

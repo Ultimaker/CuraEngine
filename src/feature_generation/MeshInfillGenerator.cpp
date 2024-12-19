@@ -13,8 +13,8 @@
 
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderPlan.h"
-#include "print_operation/LayerPlan.h"
 #include "print_operation/InfillFeatureExtrusion.h"
+#include "print_operation/LayerPlan.h"
 #include "utils/math.h"
 
 
@@ -142,29 +142,12 @@ void MeshInfillGenerator::generateFeatures(
                 skip_some_zags,
                 zag_skip_count,
                 pocket_size);
-            infill_comp.generate(
-                patterns,
-                settings,
-                layer_plan->getLayerIndex(),
-                SectionType::INFILL,
-                getMesh()->cross_fill_provider,
-                lightning_layer,
-                getMesh().get());
+            infill_comp.generate(patterns, settings, layer_plan->getLayerIndex(), SectionType::INFILL, getMesh()->cross_fill_provider, lightning_layer, getMesh().get());
         };
 
         if (combine_idx == 0)
         {
-            processMultiLayerInfill(
-                part,
-                settings,
-                layer_plan,
-                last_idx,
-                infill_pattern,
-                infill_line_width,
-                infill_overlap,
-                zig_zaggify_infill,
-                generate_infill,
-                patterns);
+            processMultiLayerInfill(part, settings, layer_plan, last_idx, infill_pattern, infill_line_width, infill_overlap, zig_zaggify_infill, generate_infill, patterns);
         }
         else
         {
