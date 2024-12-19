@@ -102,9 +102,7 @@ void MeshInfillGenerator::generateFeatures(
 
     for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
     {
-        Shape infill_polygons;
-        std::vector<std::vector<VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
-        OpenLinesSet infill_lines;
+        Infill::GeneratedPatterns patterns;
 
         const GCodePathConfig& infill_config = mesh_configs.infill_config[combine_idx];
         const coord_t infill_line_width = infill_config.getLineWidth();
@@ -116,7 +114,7 @@ void MeshInfillGenerator::generateFeatures(
                                          const coord_t wall_count,
                                          const size_t density_idx,
                                          const bool use_endpieces,
-                                         std::vector<VariableWidthLines>& toolpaths)
+                                         Infill::GeneratedPatterns& patterns)
         {
             const bool fill_gaps = density_idx == 0; // Only fill gaps for the lowest density.
 
@@ -145,9 +143,7 @@ void MeshInfillGenerator::generateFeatures(
                 zag_skip_count,
                 pocket_size);
             infill_comp.generate(
-                toolpaths,
-                infill_polygons,
-                infill_lines,
+                patterns,
                 settings,
                 layer_plan->getLayerIndex(),
                 SectionType::INFILL,
@@ -168,38 +164,14 @@ void MeshInfillGenerator::generateFeatures(
                 infill_overlap,
                 zig_zaggify_infill,
                 generate_infill,
-                wall_tool_paths,
-                infill_lines,
-                infill_polygons);
+                patterns);
         }
         else
         {
             processSingleLayerInfill(part, last_idx, infill_pattern, combine_idx, infill_overlap, generate_infill);
         }
 
-        auto feature_extrusion = std::make_shared<InfillFeatureExtrusion>(PrintFeatureType::Infill, infill_line_width, getMesh(), infill_angle);
-
-        for (const Polygon& polygon : infill_polygons)
-        {
-            feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(polygon, infill_line_width, infill_config.getSpeed()));
-        }
-
-        for (const OpenPolyline& polyline : infill_lines)
-        {
-            feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(polyline, infill_line_width, infill_config.getSpeed()));
-        }
-
-        for (const std::vector<VariableWidthLines>& wall_tool_path : wall_tool_paths)
-        {
-            for (const VariableWidthLines& extrusion_lines : wall_tool_path)
-            {
-                for (const ExtrusionLine& extrusion_line : extrusion_lines)
-                {
-                    feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(extrusion_line, infill_config.getSpeed()));
-                }
-            }
-        }
-
+        auto feature_extrusion = InfillFeatureExtrusion::makeFrom(patterns, PrintFeatureType::Infill, infill_line_width, getMesh(), infill_angle, infill_config.getSpeed());
         extruder_plan_infill->appendFeatureExtrusion(feature_extrusion);
     }
 }
@@ -214,9 +186,7 @@ void MeshInfillGenerator::processMultiLayerInfill(
     const coord_t infill_overlap,
     const bool zig_zaggify_infill,
     const auto generate_infill,
-    std::vector<std::vector<VariableWidthLines>>& wall_tool_paths,
-    OpenLinesSet& infill_lines,
-    Shape& infill_polygons) const
+    Infill::GeneratedPatterns& patterns) const
 {
     const auto wall_line_count = settings.get<size_t>("infill_wall_line_count");
 
@@ -290,17 +260,15 @@ void MeshInfillGenerator::processMultiLayerInfill(
         }
 
         Shape in_outline = part.infill_area_per_combine_per_density[density_idx][0];
-
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.
         if (hasSkinEdgeSupport)
         {
             // infill region with skin above has to have at least one infill wall line
             const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
             const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
-            wall_tool_paths.emplace_back(std::vector<VariableWidthLines>());
             const coord_t overlap = infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width);
 
-            generate_infill(infill_below_skin, infill_line_distance_here, overlap, infill_shift, skin_below_wall_count, density_idx, use_endpieces, wall_tool_paths.back());
+            generate_infill(infill_below_skin, infill_line_distance_here, overlap, infill_shift, skin_below_wall_count, density_idx, use_endpieces, patterns);
 
             if (density_idx < last_idx)
             {
@@ -308,7 +276,7 @@ void MeshInfillGenerator::processMultiLayerInfill(
                 Shape tool = infill_below_skin.offset(static_cast<int>(cut_offset));
                 infill_lines_here = tool.intersection(infill_lines_here);
             }
-            infill_lines.push_back(infill_lines_here);
+            patterns.lines.push_back(infill_lines_here);
             // normal processing for the infill that isn't below skin
             in_outline = infill_not_below_skin;
             if (density_idx == last_idx)
@@ -331,9 +299,7 @@ void MeshInfillGenerator::processMultiLayerInfill(
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
         const coord_t overlap = settings.get<coord_t>("infill_overlap_mm");
 
-        wall_tool_paths.emplace_back();
-
-        generate_infill(in_outline, infill_line_distance_here, overlap, infill_shift, wall_line_count_here, density_idx, use_endpieces, wall_tool_paths.back());
+        generate_infill(in_outline, infill_line_distance_here, overlap, infill_shift, wall_line_count_here, density_idx, use_endpieces, patterns);
 
         if (density_idx < last_idx)
         {
@@ -341,11 +307,12 @@ void MeshInfillGenerator::processMultiLayerInfill(
             Shape tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
             infill_lines_here = tool.intersection(infill_lines_here);
         }
-        infill_lines.push_back(infill_lines_here);
-        infill_polygons.push_back(infill_polygons_here);
+        patterns.lines.push_back(infill_lines_here);
+        patterns.polygons.push_back(infill_polygons_here);
     }
 
-    wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
+    // The extra infill walls were generated separately. Add these too.
+    patterns.toolpaths.insert(patterns.toolpaths.end(), part.infill_wall_toolpaths.begin(), part.infill_wall_toolpaths.end());
 
     if (settings.get<coord_t>("wall_line_count") // Disable feature if no walls - it can leave dangling lines at edges
         && infill_pattern != EFillMethod::LIGHTNING // Lightning doesn't make enclosed regions
@@ -365,7 +332,8 @@ void MeshInfillGenerator::processSingleLayerInfill(
     const coord_t infill_overlap,
     const auto generate_infill) const
 {
-    std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
+    Infill::GeneratedPatterns patterns;
+    patterns.toolpaths = part.infill_wall_toolpaths;
     for (size_t density_idx = last_idx; (int)density_idx >= 0; density_idx--)
     { // combine different density infill areas (for gradual infill)
         size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
@@ -387,7 +355,7 @@ void MeshInfillGenerator::processSingleLayerInfill(
             wall_line_count,
             density_idx,
             use_endpieces,
-            infill_paths);
+            patterns);
     }
 }
 

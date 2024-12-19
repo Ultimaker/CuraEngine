@@ -23,6 +23,9 @@
 namespace cura
 {
 
+enum class PrintFeatureType : unsigned char;
+struct Velocity;
+class FeatureExtrusion;
 class SierpinskiFillProvider;
 class SliceMeshStorage;
 
@@ -70,6 +73,13 @@ class Infill
     }
 
 public:
+    struct GeneratedPatterns
+    {
+        std::vector<VariableWidthLines> toolpaths;
+        Shape polygons;
+        OpenLinesSet lines;
+    };
+
     Infill() noexcept = default;
 
     Infill(
@@ -206,6 +216,16 @@ public:
         std::vector<VariableWidthLines>& toolpaths,
         Shape& result_polygons,
         OpenLinesSet& result_lines,
+        const Settings& settings,
+        int layer_idx,
+        SectionType section_type,
+        const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
+        const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
+        const SliceMeshStorage* mesh = nullptr,
+        const Shape& prevent_small_exposed_to_air = Shape());
+
+    void generate(
+        GeneratedPatterns &patterns,
         const Settings& settings,
         int layer_idx,
         SectionType section_type,

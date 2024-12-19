@@ -23,6 +23,8 @@
 #include "infill/SubDivCube.h"
 #include "infill/UniformDensityProvider.h"
 #include "plugins/slots.h"
+#include "print_operation/ContinuousExtruderMoveSequence.h"
+#include "print_operation/InfillFeatureExtrusion.h"
 #include "sliceDataStorage.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonConnector.h"
@@ -247,6 +249,19 @@ void Infill::generate(
             scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
             scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
     }
+}
+
+void Infill::generate(
+    GeneratedPatterns& patterns,
+    const Settings& settings,
+    int layer_idx,
+    SectionType section_type,
+    const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
+    const std::shared_ptr<LightningLayer>& lightning_layer,
+    const SliceMeshStorage* mesh,
+    const Shape& prevent_small_exposed_to_air)
+{
+    generate(patterns.toolpaths, patterns.polygons, patterns.lines, settings, layer_idx, section_type, cross_fill_provider, lightning_layer, mesh, prevent_small_exposed_to_air);
 }
 
 void Infill::_generate(

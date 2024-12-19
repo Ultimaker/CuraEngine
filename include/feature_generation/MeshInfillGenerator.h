@@ -7,6 +7,7 @@
 #include <utils/ExtrusionLine.h>
 
 #include "feature_generation/MeshFeatureGenerator.h"
+#include "print_operation/InfillFeatureExtrusion.h"
 
 namespace cura
 {
@@ -43,9 +44,7 @@ private:
         const coord_t infill_overlap,
         const bool zig_zaggify_infill,
         const auto generate_infill,
-        std::vector<std::vector<VariableWidthLines>>& wall_tool_paths,
-        OpenLinesSet& infill_lines,
-        Shape& infill_polygons) const;
+        Infill::GeneratedPatterns& patterns) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.

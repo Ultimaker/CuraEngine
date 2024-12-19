@@ -223,9 +223,7 @@ void MeshSkinGenerator::processSkinPrintFeature(
     const PrintFeatureType feature_type,
     const ExtruderPlanPtr& extruder_plan) const
 {
-    Shape skin_polygons;
-    OpenLinesSet skin_lines;
-    std::vector<VariableWidthLines> skin_paths;
+    Infill::GeneratedPatterns patterns;
 
     const Settings& settings = getMesh()->settings;
     constexpr int infill_multiplier = 1;
@@ -276,9 +274,7 @@ void MeshSkinGenerator::processSkinPrintFeature(
         zag_skip_count,
         pocket_size);
     infill_comp.generate(
-        skin_paths,
-        skin_polygons,
-        skin_lines,
+        patterns,
         settings,
         layer_plan->getLayerIndex(),
         SectionType::SKIN,
@@ -287,26 +283,7 @@ void MeshSkinGenerator::processSkinPrintFeature(
         nullptr,
         small_areas_on_surface ? Shape() : exposed_to_air);
 
-    auto feature_extrusion = std::make_shared<InfillFeatureExtrusion>(feature_type, config.getLineWidth(), getMesh(), skin_angle);
-
-    for (const Polygon& polygon : skin_polygons)
-    {
-        feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(polygon, config.getLineWidth(), config.getSpeed()));
-    }
-
-    for (const OpenPolyline& polyline : skin_lines)
-    {
-        feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(polyline, config.getLineWidth(), config.getSpeed()));
-    }
-
-    for (const VariableWidthLines& extrusion_lines : skin_paths)
-    {
-        for (const ExtrusionLine& extrusion_line : extrusion_lines)
-        {
-            feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(extrusion_line, config.getSpeed()));
-        }
-    }
-
+    auto feature_extrusion = InfillFeatureExtrusion::makeFrom(patterns, feature_type, config.getLineWidth(), getMesh(), skin_angle, config.getSpeed());
     extruder_plan->appendFeatureExtrusion(feature_extrusion);
 }
 
