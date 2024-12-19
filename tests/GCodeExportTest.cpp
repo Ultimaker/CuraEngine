@@ -449,6 +449,8 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     scene.extruders.emplace_back(0, nullptr);
     ExtruderTrain& train1 = scene.extruders.back();
 
+    train1.settings_.add("machine_extruder_prestart_code", ";PRESTART FIRST EXTRUDER");
+    train1.settings_.add("machine_extruder_change_duration", "10.0");
     train1.settings_.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
     train1.settings_.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
     train1.settings_.add("machine_extruder_start_code_duration", "0.0");
@@ -459,6 +461,8 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     scene.extruders.emplace_back(1, nullptr);
     ExtruderTrain& train2 = scene.extruders.back();
 
+    train2.settings_.add("machine_extruder_prestart_code", ";PRESTART SECOND EXTRUDER");
+    train2.settings_.add("machine_extruder_change_duration", "11.1");
     train2.settings_.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
     train2.settings_.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
     train2.settings_.add("machine_extruder_start_code_duration", "0.0");
@@ -473,7 +477,7 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     EXPECT_CALL(*mock_communication, sendCurrentPosition(testing::_));
     gcode.switchExtruder(1, no_retraction);
 
-    EXPECT_EQ(std::string("G92 E0\n;FIRST EXTRUDER END G-CODE!\nT1\nG92 E0\n;SECOND EXTRUDER START G-CODE!\n"), output.str());
+    EXPECT_EQ(std::string("G92 E0\n;FIRST EXTRUDER END G-CODE!\n;PRESTART SECOND EXTRUDER\nT1\nG92 E0\n;SECOND EXTRUDER START G-CODE!\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, WriteZHopStartZero)

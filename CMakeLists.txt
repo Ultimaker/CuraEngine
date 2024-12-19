@@ -208,6 +208,12 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/ExclusionAreaScoringCriterion.cpp
         src/utils/scoring/RandomScoringCriterion.cpp
 
+        src/utils/scoring/BestElementFinder.cpp
+        src/utils/scoring/CornerScoringCriterion.cpp
+        src/utils/scoring/DistanceScoringCriterion.cpp
+        src/utils/scoring/ExclusionAreaScoringCriterion.cpp
+        src/utils/scoring/RandomScoringCriterion.cpp
+
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
@@ -299,6 +305,7 @@ target_link_libraries(_CuraEngine
 
 target_compile_definitions(_CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        SENTRY_ENVIRONMENT=\"${SENTRY_ENVIRONMENT}\"
 )
 
 if (NOT WIN32)
@@ -355,6 +362,7 @@ target_link_libraries(CuraEngine PRIVATE
 )
 target_compile_definitions(CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        SENTRY_ENVIRONMENT=\"${SENTRY_ENVIRONMENT}\"
         VERSION=\"${CURA_ENGINE_VERSION}\"
 )
 

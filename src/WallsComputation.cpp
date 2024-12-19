@@ -104,21 +104,15 @@ void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
 
     // Remove the parts which did not generate a wall. As these parts are too small to print,
     //  and later code can now assume that there is always minimal 1 wall line.
-    if (settings_.get<size_t>("wall_line_count") >= 1 && ! settings_.get<bool>("fill_outline_gaps"))
-    {
-        for (size_t part_idx = 0; part_idx < layer->parts.size(); part_idx++)
+    bool check_wall_and_spiral = settings_.get<size_t>("wall_line_count") >= 1 && ! settings_.get<bool>("fill_outline_gaps");
+    auto iterator_remove = std::remove_if(
+        layer->parts.begin(),
+        layer->parts.end(),
+        [&check_wall_and_spiral](const SliceLayerPart& part)
         {
-            if (layer->parts[part_idx].wall_toolpaths.empty() && layer->parts[part_idx].spiral_wall.empty())
-            {
-                if (part_idx != layer->parts.size() - 1)
-                { // move existing part into part to be deleted
-                    layer->parts[part_idx] = std::move(layer->parts.back());
-                }
-                layer->parts.pop_back(); // always remove last element from array (is more efficient)
-                part_idx -= 1; // check the part we just moved here
-            }
-        }
-    }
+            return (check_wall_and_spiral && part.wall_toolpaths.empty() && part.spiral_wall.empty()) || part.outline.empty() || part.print_outline.empty();
+        });
+    layer->parts.erase(iterator_remove, layer->parts.end());
 }
 
 void WallsComputation::generateSpiralInsets(SliceLayerPart* part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall)

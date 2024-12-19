@@ -1,5 +1,5 @@
----
-name: unit-test
+name: Unit tests - run
+
 on:
   push:
     paths:
@@ -36,24 +36,9 @@ on:
 permissions:
   contents: read
 
-env:
-  CONAN_LOGIN_USERNAME: ${{ secrets.CONAN_USER }}
-  CONAN_PASSWORD: ${{ secrets.CONAN_PASS }}
-
 jobs:
-  conan-recipe-version:
-    uses: ultimaker/cura-workflows/.github/workflows/conan-recipe-version.yml@main
-    with:
-      project_name: curaengine
-
   testing:
+    name: Run unit tests
     uses: ultimaker/cura-workflows/.github/workflows/unit-test.yml@main
-    needs: [ conan-recipe-version ]
     with:
-      recipe_id_full: ${{ needs.conan-recipe-version.outputs.recipe_id_full }}
-      conan_extra_args: '-c tools.build:skip_test=False'
-      unit_test_cmd: 'ctest --output-junit engine_test.xml'
-      unit_test_dir: 'build/Release'
-      build: true
-    secrets: inherit
-
+      test_use_ctest: true
