@@ -58,7 +58,9 @@ jobs:
           token: ${{ secrets.GITHUB_TOKEN }}
 
       - name: Install Python requirements
-        run: pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
+        run: |
+          pip install pandas
+          pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
 
       - name: Install dependencies and build CuraEngine
         run: conan build . -s build_type=Release --build=missing --update -g VirtualRunEnv -o "curaengine/*:with_cura_resources=True"
