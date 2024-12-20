@@ -46,15 +46,16 @@ void MeshSkinGenerator::generateFeatures(
 
 void MeshSkinGenerator::processRoofing(const LayerPlanPtr& layer_plan, const SkinPart& skin_part, const ExtruderPlanPtr& extruder_plan) const
 {
-    const EFillMethod pattern = getMesh()->settings.get<EFillMethod>("roofing_pattern");
-    AngleDegrees roofing_angle = 45;
-    if (getMesh()->roofing_angles.size() > 0)
+    if (skin_part.roofing_fill.empty())
     {
-        roofing_angle = getMesh()->roofing_angles.at(layer_plan->getLayerIndex() % getMesh()->roofing_angles.size());
+        return;
     }
 
-    const Ratio skin_density = 1.0;
+    const auto pattern = getMesh()->settings.get<EFillMethod>("roofing_pattern");
+    const AngleDegrees roofing_angle = getInfillAngle(layer_plan, getMesh()->roofing_angles);
+    constexpr Ratio skin_density = 1.0;
     const MeshPathConfigs& mesh_configs = layer_plan->getConfigsStorage()->mesh_configs.at(getMesh());
+
     processSkinPrintFeature(layer_plan, skin_part.roofing_fill, mesh_configs.roofing_config, pattern, roofing_angle, skin_density, PrintFeatureType::Roof, extruder_plan);
 }
 
@@ -69,12 +70,7 @@ void MeshSkinGenerator::processTopBottom(const SliceDataStorage& storage, const 
     const size_t layer_nr = layer_plan->getLayerIndex();
 
     EFillMethod pattern = (layer_nr == 0) ? settings.get<EFillMethod>("top_bottom_pattern_0") : settings.get<EFillMethod>("top_bottom_pattern");
-
-    AngleDegrees skin_angle = 45;
-    if (getMesh()->skin_angles.size() > 0)
-    {
-        skin_angle = getMesh()->skin_angles.at(layer_nr % getMesh()->skin_angles.size());
-    }
+    AngleDegrees skin_angle = getInfillAngle(layer_plan, getMesh()->skin_angles);
 
     // generate skin_polygons and skin_lines
     const MeshPathConfigs& mesh_configs = layer_plan->getConfigsStorage()->mesh_configs.at(getMesh());
@@ -83,7 +79,7 @@ void MeshSkinGenerator::processTopBottom(const SliceDataStorage& storage, const 
     const bool bridge_settings_enabled = settings.get<bool>("bridge_settings_enabled");
     const bool bridge_enable_more_layers = bridge_settings_enabled && settings.get<bool>("bridge_enable_more_layers");
     const Ratio support_threshold = bridge_settings_enabled ? settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
-    const size_t bottom_layers = settings.get<size_t>("bottom_layers");
+    const auto bottom_layers = settings.get<size_t>("bottom_layers");
 
     // if support is enabled, consider the support outlines so we don't generate bridges over support
 
@@ -168,8 +164,6 @@ void MeshSkinGenerator::processTopBottom(const SliceDataStorage& storage, const 
         }
     }
 
-    double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-
     if (layer_nr > 0 && skin_config == &mesh_configs.skin_config && support_layer_nr >= 0 && settings.get<bool>("support_fan_enable"))
     {
         // skin isn't a bridge but is it above support and we need to modify the fan speed?
@@ -204,11 +198,6 @@ void MeshSkinGenerator::processTopBottom(const SliceDataStorage& storage, const 
                 }
             }
         }
-
-        if (supported)
-        {
-            fan_speed = settings.get<Ratio>("support_supported_skin_fan_speed") * 100.0;
-        }
     }
     processSkinPrintFeature(layer_plan, skin_part.skin_fill, *skin_config, pattern, skin_angle, skin_density, PrintFeatureType::Skin, extruder_plan);
 }
@@ -228,12 +217,12 @@ void MeshSkinGenerator::processSkinPrintFeature(
     const Settings& settings = getMesh()->settings;
     constexpr int infill_multiplier = 1;
     constexpr int extra_infill_shift = 0;
-    const size_t wall_line_count = settings.get<size_t>("skin_outline_count");
-    const coord_t small_area_width = settings.get<coord_t>("small_skin_width");
+    const auto wall_line_count = settings.get<size_t>("skin_outline_count");
+    const auto small_area_width = settings.get<coord_t>("small_skin_width");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = settings.get<bool>("connect_skin_polygons");
-    coord_t max_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
-    coord_t max_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
+    const auto max_resolution = settings.get<coord_t>("meshfix_maximum_resolution");
+    const auto max_deviation = settings.get<coord_t>("meshfix_maximum_deviation");
     const Point2LL infill_origin;
 #warning to be confirmed
     // const bool skip_line_stitching = monotonic;
@@ -273,18 +262,20 @@ void MeshSkinGenerator::processSkinPrintFeature(
         skip_some_zags,
         zag_skip_count,
         pocket_size);
-    infill_comp.generate(
-        patterns,
-        settings,
-        layer_plan->getLayerIndex(),
-        SectionType::SKIN,
-        nullptr,
-        nullptr,
-        nullptr,
-        small_areas_on_surface ? Shape() : exposed_to_air);
+    infill_comp.generate(patterns, settings, layer_plan->getLayerIndex(), SectionType::SKIN, nullptr, nullptr, nullptr, small_areas_on_surface ? Shape() : exposed_to_air);
 
     auto feature_extrusion = InfillFeatureExtrusion::makeFrom(patterns, feature_type, config.getLineWidth(), getMesh(), skin_angle, config.getSpeed());
     extruder_plan->appendFeatureExtrusion(feature_extrusion);
+}
+
+AngleDegrees MeshSkinGenerator::getInfillAngle(const LayerPlanPtr& layer_plan, const std::vector<AngleDegrees>& angles)
+{
+    if (angles.empty())
+    {
+        return 45;
+    }
+
+    return angles.at(layer_plan->getLayerIndex() % angles.size());
 }
 
 } // namespace cura
