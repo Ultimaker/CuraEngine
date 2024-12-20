@@ -18,6 +18,8 @@ package "print_operation" {
   ContinuousExtruderMoveSequence -up-|> PrintOperationSequence
   PrintPlan -up-|> PrintOperationSequence
   MeshFeatureExtrusion -up-|> FeatureExtrusion
+  InfillFeatureExtrusion -up-|> MeshFeatureExtrusion
+  WallFeatureExtrusion -up-|> MeshFeatureExtrusion
 
   ExtruderMove -up-|> PrintOperation
   ExtrusionMove -up-|> ExtruderMove
@@ -59,6 +61,10 @@ ExtrusionMove : double flow
 FeatureExtrusion : FeatureType type
 
 MeshFeatureExtrusion : SliceMeshStorage mesh
+
+InfillFeatureExtrusion : Angle infill_angle
+
+WallFeatureExtrusion : size_t inset_index
 
 ContinuousExtruderMoveSequence : bool closed
 ContinuousExtruderMoveSequence : double speed_factor
