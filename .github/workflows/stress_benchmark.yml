@@ -36,7 +36,7 @@ jobs:
   benchmark:
     uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@main
     with:
-      conan_extra_args: "-o \"curaengine/*:enable_benchmarks=True\""
+      conan_extra_args: "-c tools.build:skip_test=False -o \"curaengine/*:enable_benchmarks=True\""
       benchmark_cmd: "stress_benchmark/stress_benchmark -o benchmark_result.json"
       name: "Stress Benchmark"
       output_file_path: "benchmark_result.json"
