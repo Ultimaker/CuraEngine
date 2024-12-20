@@ -80,6 +80,8 @@ public:
      */
     [[nodiscard]] Shape unionPolygons() const;
 
+    [[nodiscard]] static Shape unionShapes(const std::vector<Shape> &shapes, ClipperLib::PolyFillType fill_type = ClipperLib::pftNonZero);
+
     [[nodiscard]] Shape intersection(const Shape& other) const;
 
     /*!

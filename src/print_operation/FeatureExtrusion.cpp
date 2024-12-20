@@ -3,8 +3,10 @@
 
 #include "print_operation/FeatureExtrusion.h"
 
+#include <geometry/MixedLinesSet.h>
+#include <geometry/Shape.h>
+
 #include "print_operation/ContinuousExtruderMoveSequence.h"
-#include "print_operation/ExtruderPlan.h"
 #include "print_operation/ExtrusionMove.h"
 
 namespace cura
@@ -31,6 +33,20 @@ PrintFeatureType FeatureExtrusion::getType() const
 coord_t FeatureExtrusion::getNominalLineWidth() const
 {
     return nominal_line_width_;
+}
+
+Shape FeatureExtrusion::calculateFootprint() const
+{
+    // Do not consider individual lines widths because clipper is not able to make a multi-width offset. The result
+    // is then very approximate but should be good enough in most cases. If not, then this behavior should be improved
+    MixedLinesSet extrusions_polylines;
+
+    for (const ContinuousExtruderMoveSequencePtr& extruder_move_sequence : getOperationsAs<ContinuousExtruderMoveSequence>())
+    {
+        extrusions_polylines.push_back(extruder_move_sequence->calculatePolyline());
+    }
+
+    return extrusions_polylines.offset(nominal_line_width_ / 2 + 10);
 }
 
 } // namespace cura

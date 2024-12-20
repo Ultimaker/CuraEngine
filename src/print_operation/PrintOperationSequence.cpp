@@ -4,6 +4,7 @@
 #include "print_operation/PrintOperationSequence.h"
 
 #include <range/v3/algorithm/contains.hpp>
+#include <range/v3/algorithm/copy.hpp>
 #include <range/v3/algorithm/copy_if.hpp>
 #include <range/v3/algorithm/remove_if.hpp>
 #include <range/v3/view/remove.hpp>
@@ -154,6 +155,65 @@ PrintOperationPtr PrintOperationSequence::findOperation(
     }
 
     return nullptr;
+}
+
+std::vector<PrintOperationPtr> PrintOperationSequence::findOperations(
+    const std::function<bool(const PrintOperationPtr&)>& search_function,
+    const SearchOrder search_order,
+    const std::optional<size_t> max_depth) const
+{
+    std::vector<PrintOperationPtr> found_operations;
+
+    if (! max_depth.has_value() || max_depth.value() > 0)
+    {
+        const std::optional<size_t> next_depth = max_depth.has_value() ? max_depth.value() - 1 : max_depth;
+
+        const auto find_depth_first = [&search_function, &search_order, &next_depth, &found_operations](auto begin, auto end) -> void
+        {
+            for (auto iterator = begin; iterator != end; ++iterator)
+            {
+                const PrintOperationPtr& operation = *iterator;
+                if (search_function(operation))
+                {
+                    found_operations.push_back(operation);
+                }
+
+                if (const auto operation_sequence = std::dynamic_pointer_cast<PrintOperationSequence>(operation))
+                {
+                    ranges::copy(operation_sequence->findOperations(search_function, search_order, next_depth), std::back_inserter(found_operations));
+                }
+            }
+        };
+
+        switch (search_order)
+        {
+        case SearchOrder::Forward:
+            find_depth_first(operations_.begin(), operations_.end());
+            break;
+        case SearchOrder::Backward:
+            find_depth_first(operations_.rbegin(), operations_.rend());
+            break;
+        }
+    }
+    else
+    {
+        auto find_in = [&search_function, &found_operations](auto begin, auto end) -> void
+        {
+            ranges::copy_if(begin, end, std::back_inserter(found_operations), search_function);
+        };
+
+        switch (search_order)
+        {
+        case SearchOrder::Forward:
+            find_in(operations_.begin(), operations_.end());
+            break;
+        case SearchOrder::Backward:
+            find_in(operations_.rbegin(), operations_.rend());
+            break;
+        }
+    }
+
+    return found_operations;
 }
 
 const std::vector<PrintOperationPtr>& PrintOperationSequence::getOperations() const noexcept

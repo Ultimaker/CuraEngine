@@ -25,6 +25,8 @@ public:
 
     coord_t getNominalLineWidth() const;
 
+    Shape calculateFootprint() const;
+
 private:
     const PrintFeatureType type_;
     const coord_t nominal_line_width_;

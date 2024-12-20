@@ -18,6 +18,7 @@ class SliceMeshStorage;
 class PlanExporter;
 class LayerPlan;
 class Point3LL;
+class Polyline;
 
 class ContinuousExtruderMoveSequence : public PrintOperationSequence
 {
@@ -37,6 +38,8 @@ public:
     void reorderToEndWith(const std::shared_ptr<ExtruderMove>& extruder_move);
 
     void reverse();
+
+    std::shared_ptr<Polyline> calculatePolyline() const;
 
 private:
     Point3LL start_position_;

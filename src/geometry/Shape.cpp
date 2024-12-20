@@ -210,6 +210,23 @@ Shape Shape::unionPolygons() const
     return unionPolygons(Shape());
 }
 
+Shape Shape::unionShapes(const std::vector<Shape>& shapes, ClipperLib::PolyFillType fill_type)
+{
+    if (shapes.empty())
+    {
+        return Shape();
+    }
+
+    ClipperLib::Paths ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    for (const Shape& shape : shapes)
+    {
+        shape.addPaths(clipper, ClipperLib::ptSubject);
+    }
+    clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
+    return Shape{ std::move(ret) };
+}
+
 Shape Shape::intersection(const Shape& other) const
 {
     if (empty() || other.empty())

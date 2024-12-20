@@ -3,9 +3,11 @@
 
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 
+#include <geometry/OpenPolyline.h>
 #include <utils/ExtrusionLine.h>
 #include <utils/types/arachne.h>
 
+#include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/sliding.hpp>
 
 #include "print_operation/ExtrusionMove.h"
@@ -117,6 +119,40 @@ void ContinuousExtruderMoveSequence::reverse()
         std::reverse(operations.begin(), operations.end());
         setOperations(operations);
     }
+}
+
+std::shared_ptr<Polyline> ContinuousExtruderMoveSequence::calculatePolyline() const
+{
+    const std::vector<std::shared_ptr<ExtruderMove>> extruder_moves = getOperationsAs<ExtruderMove>();
+    if (extruder_moves.empty())
+    {
+        return nullptr;
+    }
+
+    std::shared_ptr<Polyline> result;
+    if (closed_)
+    {
+        constexpr bool explicitely_closed = false;
+        result = std::make_shared<ClosedPolyline>(explicitely_closed);
+        result->push_back(extruder_moves.back()->getPosition().toPoint2LL());
+
+        for (const std::shared_ptr<ExtruderMove> &extruder_move : extruder_moves | ranges::views::drop_last(1))
+        {
+            result->push_back(extruder_move->getPosition().toPoint2LL());
+        }
+    }
+    else
+    {
+        result = std::make_shared<OpenPolyline>();
+        result->push_back(start_position_.toPoint2LL());
+
+        for (const std::shared_ptr<ExtruderMove> &extruder_move : extruder_moves)
+        {
+            result->push_back(extruder_move->getPosition().toPoint2LL());
+        }
+    }
+
+    return result;
 }
 
 void ContinuousExtruderMoveSequence::appendExtruderMove(const std::shared_ptr<ExtruderMove>& extruder_move)

@@ -16,7 +16,7 @@ enum class EPlatformAdhesion;
 class SkirtBrimAppender : public PrintOperationTransformer<PrintPlan>
 {
 public:
-    explicit SkirtBrimAppender();
+    explicit SkirtBrimAppender() = default;
 
     void process(PrintPlan* print_plan) override;
 };

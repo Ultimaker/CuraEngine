@@ -54,7 +54,7 @@ public:
      *
      * @param search_function The search function that should find the matching operation
      * @param search_order Whether we should search forwards or backwards
-     * @param max_depth The maximum depth of children to look for. 0 means only direct children, nullopt means full tree. You case use SearchDepth defines.
+     * @param max_depth The maximum depth of children to look for. 0 means only direct children, nullopt means full tree. You can use SearchDepth defines.
      * @return The first found operation, or a null ptr if none was found
      * @note This function can also be used to iterate over children by providing a search function that always returns false
      */
@@ -63,14 +63,23 @@ public:
         const SearchOrder search_order = SearchOrder::Forward,
         const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
+    std::vector<PrintOperationPtr> findOperations(
+        const std::function<bool(const PrintOperationPtr&)>& search_function,
+        const SearchOrder search_order = SearchOrder::Forward,
+        const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
+
     template<class OperationType>
     std::shared_ptr<OperationType>
         findOperationByType(const SearchOrder search_order = SearchOrder::Forward, const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
+    template<class OperationType>
+    std::vector<std::shared_ptr<OperationType>>
+        findOperationsByType(const SearchOrder search_order = SearchOrder::Forward, const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
+
     const std::vector<PrintOperationPtr>& getOperations() const noexcept;
 
     template<class OperationType>
-    std::vector<std::shared_ptr<OperationType>> getOperationsAs() noexcept;
+    std::vector<std::shared_ptr<OperationType>> getOperationsAs() const noexcept;
 
     // void setOperations(std::vector<PrintOperationPtr>& operations) noexcept;
 
@@ -109,7 +118,26 @@ std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(const
 }
 
 template<class OperationType>
-std::vector<std::shared_ptr<OperationType>> PrintOperationSequence::getOperationsAs() noexcept
+std::vector<std::shared_ptr<OperationType>> PrintOperationSequence::findOperationsByType(const SearchOrder search_order, const std::optional<size_t> max_depth) const
+{
+    std::vector<std::shared_ptr<OperationType>> found_operations;
+    findOperations(
+        [&found_operations](const PrintOperationPtr& operation)
+        {
+            if (auto casted_operation = std::dynamic_pointer_cast<OperationType>(operation))
+            {
+                found_operations.push_back(casted_operation);
+            }
+            return false;
+        },
+        search_order,
+        max_depth);
+
+    return found_operations;
+}
+
+template<class OperationType>
+std::vector<std::shared_ptr<OperationType>> PrintOperationSequence::getOperationsAs() const noexcept
 {
     std::vector<std::shared_ptr<OperationType>> result;
     result.reserve(operations_.size());
