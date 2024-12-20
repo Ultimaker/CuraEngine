@@ -39,7 +39,7 @@ jobs:
       conan_extra_args: "-o curaengine:enable_benchmarks=True"
       benchmark_cmd: "stress_benchmark/stress_benchmark -o benchmark_result.json"
       name: "Stress Benchmark"
-      output_file_path: "build/Release/benchmark_result.json"
+      output_file_path: "benchmark_result.json"
       data_dir: "dev/stress_bench"
       tool: "customSmallerIsBetter"
     secrets: inherit
