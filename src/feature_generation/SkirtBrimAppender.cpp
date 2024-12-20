@@ -59,11 +59,11 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
 
     // Calculate the united footprint of all the extrusion features on the first layers
     std::vector<Shape> features_footprints;
-    for (const LayerPlanPtr &layer_plan : print_plan->getOperationsAs<LayerPlan>())
+    for (const LayerPlanPtr& layer_plan : print_plan->getOperationsAs<LayerPlan>())
     {
         if (layer_plan->getLayerIndex() < height)
         {
-            for (const FeatureExtrusionPtr &feature_extrusion : layer_plan->findOperationsByType<FeatureExtrusion>(PrintOperationSequence::SearchOrder::Forward, 1))
+            for (const FeatureExtrusionPtr& feature_extrusion : layer_plan->findOperationsByType<FeatureExtrusion>(PrintOperationSequence::SearchOrder::Forward, 1))
             {
                 features_footprints.push_back(feature_extrusion->calculateFootprint());
             }

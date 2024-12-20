@@ -136,7 +136,7 @@ std::shared_ptr<Polyline> ContinuousExtruderMoveSequence::calculatePolyline() co
         result = std::make_shared<ClosedPolyline>(explicitely_closed);
         result->push_back(extruder_moves.back()->getPosition().toPoint2LL());
 
-        for (const std::shared_ptr<ExtruderMove> &extruder_move : extruder_moves | ranges::views::drop_last(1))
+        for (const std::shared_ptr<ExtruderMove>& extruder_move : extruder_moves | ranges::views::drop_last(1))
         {
             result->push_back(extruder_move->getPosition().toPoint2LL());
         }
@@ -146,7 +146,7 @@ std::shared_ptr<Polyline> ContinuousExtruderMoveSequence::calculatePolyline() co
         result = std::make_shared<OpenPolyline>();
         result->push_back(start_position_.toPoint2LL());
 
-        for (const std::shared_ptr<ExtruderMove> &extruder_move : extruder_moves)
+        for (const std::shared_ptr<ExtruderMove>& extruder_move : extruder_moves)
         {
             result->push_back(extruder_move->getPosition().toPoint2LL());
         }

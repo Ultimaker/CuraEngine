@@ -42,7 +42,7 @@ private:
         const PrintFeatureType feature_type,
         const ExtruderPlanPtr& extruder_plan) const;
 
-    static AngleDegrees getInfillAngle(const LayerPlanPtr& layer_plan, const std::vector<AngleDegrees> &angles) ;
+    static AngleDegrees getInfillAngle(const LayerPlanPtr& layer_plan, const std::vector<AngleDegrees>& angles);
 };
 
 } // namespace cura
