@@ -38,9 +38,9 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@main
     with:
       conan_extra_args: "-o \"curaengine/*:enable_benchmarks=True\""
-      benchmark_cmd: "./build/Release/benchmark/benchmarks --benchmark_format=json --benchmark_out=benchmark_result.json"
+      benchmark_cmd: "benchmark/benchmarks --benchmark_format=json --benchmark_out=benchmark_result.json"
       name: "C++ Benchmark"
-      output_file_path: "build/Release/benchmark_result.json"
+      output_file_path: "benchmark_result.json"
       data_dir: "dev/bench"
       tool: "googlecpp"
       alert_threshold: "150%"
