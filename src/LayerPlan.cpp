@@ -572,10 +572,22 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     const auto add_extrusion_move = [&](const Point3LL& target, const std::optional<size_t> speed_region_index = std::nullopt)
     {
         const Ratio overhang_speed_factor = speed_region_index.has_value() ? overhang_masks_[speed_region_index.value()].speed_ratio : 1.0_r;
-        if (speed_region_index.has_value() && speed_region_index.value() > 0)
+
+        const bool is_overhanging = speed_region_index.has_value() && speed_region_index.value() > 0;
+
+        if (is_overhanging != currently_overhanging_)
         {
-            contains_overhang_ = true;
+            max_overhang_length_ = std::max(current_overhang_length_, max_overhang_length_);
+            current_overhang_length_ = 0;
         }
+
+        if (is_overhanging && last_planned_position_.has_value())
+        {
+            current_overhang_length_ += vSize(target.toPoint2LL() - last_planned_position_.value());
+        }
+
+        currently_overhanging_ = is_overhanging;
+
         addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z);
     };
 
@@ -2569,7 +2581,9 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
             }
 
             const FanSpeedLayerTimeSettings& settings = extruder_plan.fan_speed_layer_time_settings_;
-            maximum_cool_min_layer_time = std::max(maximum_cool_min_layer_time, contains_overhang_ ? settings.cool_min_layer_time_overhang : settings.cool_min_layer_time);
+            const bool apply_minimum_layer_time_overhang = max_overhang_length_ > settings.cool_min_layer_time_overhang_min_segment_length;
+            maximum_cool_min_layer_time
+                = std::max(maximum_cool_min_layer_time, apply_minimum_layer_time_overhang ? settings.cool_min_layer_time_overhang : settings.cool_min_layer_time);
 
             // Modify fan speeds for the first layer(s)
             extruder_plan.processFanSpeedForFirstLayers();
