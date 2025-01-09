@@ -12,6 +12,7 @@
 #include <optional>
 #include <unordered_set>
 
+#include <range/v3/view/chunk_by.hpp>
 #include <range/v3/view/concat.hpp>
 #include <spdlog/spdlog.h>
 
@@ -3089,8 +3090,13 @@ bool FffGcodeWriter::processInsets(
             // the supported region is made up of those areas that really are supported by either model or support on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
-            const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
-            return fully_supported_region.offset(overhang_width + 10);
+            if (overhang_angle < 90.0)
+            {
+                const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
+                return fully_supported_region.offset(overhang_width + 10);
+            }
+
+            return Shape();
         };
 
         // Build supported regions for all the overhang speeds. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
@@ -3100,17 +3106,46 @@ bool FffGcodeWriter::processInsets(
         const auto wall_overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
         if (overhang_angles_count > 0 && wall_overhang_angle < 90.0)
         {
+            struct SpeedRegion
+            {
+                AngleDegrees overhang_angle;
+                Ratio speed_factor;
+            };
+
+            // Create raw speed regions
             const AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
-            for (size_t angle_index = 0; angle_index < overhang_angles_count; ++angle_index)
+            std::vector<SpeedRegion> speed_regions;
+            speed_regions.reserve(overhang_angles_count + 1);
+
+            speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r }); // Initial internal region, always 100% speed factor
+
+            for (size_t angle_index = 1; angle_index < overhang_angles_count; ++angle_index)
             {
                 const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
-                const Ratio speed_factor = angle_index == 0 ? 1.0_r : overhang_speed_factors[angle_index - 1];
+                const Ratio speed_factor = overhang_speed_factors[angle_index - 1];
 
-                overhang_masks.push_back(LayerPlan::OverhangMask{ get_supported_region(actual_wall_overhang_angle), speed_factor });
+                speed_regions.push_back(SpeedRegion{ actual_wall_overhang_angle, speed_factor });
             }
 
-            // Add an empty region, which actually means everything and should be ignored anyway
-            overhang_masks.push_back(LayerPlan::OverhangMask{ Shape(), overhang_speed_factors.back() });
+            speed_regions.push_back(SpeedRegion{ 90.0, overhang_speed_factors.back() }); // Final "everything else" speed region
+
+            // Now merge regions that have similar speed factors (saves calculations and avoid generating micro-segments)
+            auto merged_regions = speed_regions
+                                | ranges::views::chunk_by(
+                                      [](const auto& region_a, const auto& region_b)
+                                      {
+                                          return region_a.speed_factor == region_b.speed_factor;
+                                      });
+
+            // If finally necessary, add actual calculated speed regions
+            if (std::ranges::distance(merged_regions) > 1)
+            {
+                for (const auto& regions : merged_regions)
+                {
+                    const SpeedRegion& last_region = *std::ranges::prev(regions.end());
+                    overhang_masks.push_back(LayerPlan::OverhangMask{ get_supported_region(last_region.overhang_angle), last_region.speed_factor });
+                }
+            }
         }
         gcode_layer.setOverhangMasks(overhang_masks);
 
