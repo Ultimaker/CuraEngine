@@ -3140,11 +3140,11 @@ bool FffGcodeWriter::processInsets(
                                       });
 
             // If finally necessary, add actual calculated speed regions
-            if (std::ranges::distance(merged_regions) > 1)
+            if (ranges::distance(merged_regions) > 1)
             {
                 for (const auto& regions : merged_regions)
                 {
-                    const SpeedRegion& last_region = *std::ranges::prev(regions.end());
+                    const SpeedRegion& last_region = *ranges::prev(regions.end());
                     overhang_masks.push_back(LayerPlan::OverhangMask{ get_supported_region(last_region.overhang_angle), last_region.speed_factor });
                 }
             }
