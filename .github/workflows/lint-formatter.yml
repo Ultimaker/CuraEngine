@@ -1,9 +1,13 @@
 name: lint-formatter
 
 on:
-  workflow_dispatch:
-
   push:
+    paths:
+      - 'include/**/*.h*'
+      - 'src/**/*.c*'
+
+  pull_request:
+    types: [ opened ]
     paths:
       - 'include/**/*.h*'
       - 'src/**/*.c*'
@@ -11,3 +15,7 @@ on:
 jobs:
   lint-formatter-job:
     uses: ultimaker/cura-workflows/.github/workflows/lint-formatter.yml@main
+    with:
+      file_patterns: +(include|src)/**/*.+(h|hpp|c|cpp)
+      command: clang-format --verbose -i
+      commit_message: "Apply clang-format"
