@@ -612,12 +612,40 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     // Pre-calculate the intersections of the segment with all regions (except last one, you cannot intersect an infinite plane)
     const Point2LL end = p.toPoint2LL();
     const Point2LL vector = end - start;
+    const coord_t segment_length = vSize(vector);
     std::vector<std::vector<float>> speed_regions_intersections;
     speed_regions_intersections.reserve(overhang_masks_.size() - 1);
     for (const OverhangMask& overhang_region : overhang_masks_ | ranges::views::drop_last(1))
     {
         std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start, end);
         ranges::sort(intersections);
+
+        // Avoid microsegments: Move intersections that are too close to the start or end of the segment slightly more to the center of the segment.
+        for (float& intersection : intersections)
+        {
+            if (intersection * segment_length < MINIMUM_LINE_LENGTH)
+            {
+                intersection = MINIMUM_LINE_LENGTH / static_cast<float>(segment_length);
+            }
+            else if (intersection * segment_length > segment_length - MINIMUM_LINE_LENGTH)
+            {
+                intersection = (segment_length - MINIMUM_LINE_LENGTH) / static_cast<float>(segment_length);
+            }
+        }
+
+        // (Also) Avoid microsegments: Filter out pairs of intersections that are too close to each other.
+        // This should be possible because the intersections happen in the same region.
+        constexpr std::array<float, 1> dummy = { 2.0f };
+        std::vector<float> temp_intersections;
+        for (const auto& tup : ranges::views::concat(dummy, intersections, dummy) | ranges::views::sliding(3))
+        {
+            if ((tup[1] - tup[0]) * segment_length >= MINIMUM_LINE_LENGTH && (tup[2] - tup[1]) * segment_length >= MINIMUM_LINE_LENGTH)
+            {
+                temp_intersections.push_back(tup[1]);
+            }
+        }
+        intersections = temp_intersections;
+
         speed_regions_intersections.push_back(intersections);
     }
 
