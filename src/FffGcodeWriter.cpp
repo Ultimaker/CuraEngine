@@ -3112,6 +3112,7 @@ bool FffGcodeWriter::processInsets(
             {
                 AngleDegrees overhang_angle;
                 Ratio speed_factor;
+                bool chunk = true;
             };
 
             // Create raw speed regions
@@ -3119,7 +3120,8 @@ bool FffGcodeWriter::processInsets(
             std::vector<SpeedRegion> speed_regions;
             speed_regions.reserve(overhang_angles_count + 1);
 
-            speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r }); // Initial internal region, always 100% speed factor
+            constexpr bool dont_chunk_first = false;
+            speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r, dont_chunk_first }); // Initial internal region, always 100% speed factor
 
             for (size_t angle_index = 1; angle_index <= overhang_angles_count; ++angle_index)
             {
@@ -3136,7 +3138,7 @@ bool FffGcodeWriter::processInsets(
                                 | ranges::views::chunk_by(
                                       [](const auto& region_a, const auto& region_b)
                                       {
-                                          return region_a.speed_factor == region_b.speed_factor;
+                                          return region_a.chunk && region_b.chunk && region_a.speed_factor == region_b.speed_factor;
                                       });
 
             // If finally necessary, add actual calculated speed regions
