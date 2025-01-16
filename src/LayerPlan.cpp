@@ -639,7 +639,8 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         std::vector<float> temp_intersections;
         for (const auto& tup : ranges::views::concat(dummy, intersections, dummy) | ranges::views::sliding(3))
         {
-            if ((tup[1] - tup[0]) * segment_length >= MINIMUM_LINE_LENGTH && (tup[2] - tup[1]) * segment_length >= MINIMUM_LINE_LENGTH)
+            if (std::abs(tup[1] - tup[0]) * segment_length >= MINIMUM_LINE_LENGTH &&
+                std::abs(tup[2] - tup[1]) * segment_length >= MINIMUM_LINE_LENGTH)
             {
                 temp_intersections.push_back(tup[1]);
             }
