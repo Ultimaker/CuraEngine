@@ -3121,7 +3121,7 @@ bool FffGcodeWriter::processInsets(
 
             speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r }); // Initial internal region, always 100% speed factor
 
-            for (size_t angle_index = 1; angle_index < overhang_angles_count; ++angle_index)
+            for (size_t angle_index = 1; angle_index <= overhang_angles_count; ++angle_index)
             {
                 const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
                 const Ratio speed_factor = overhang_speed_factors[angle_index - 1];
