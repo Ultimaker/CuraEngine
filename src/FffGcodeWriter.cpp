@@ -3118,20 +3118,20 @@ bool FffGcodeWriter::processInsets(
             // Create raw speed regions
             const AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
             std::vector<SpeedRegion> speed_regions;
-            speed_regions.reserve(overhang_angles_count + 1);
+            speed_regions.reserve(overhang_angles_count + 2);
 
             constexpr bool dont_chunk_first = false;
-            speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r, dont_chunk_first }); // Initial internal region, always 100% speed factor
+            speed_regions.emplace_back(wall_overhang_angle, 1.0_r, dont_chunk_first); // Initial internal region, always 100% speed factor
 
             for (size_t angle_index = 1; angle_index <= overhang_angles_count; ++angle_index)
             {
                 const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
                 const Ratio speed_factor = overhang_speed_factors[angle_index - 1];
 
-                speed_regions.push_back(SpeedRegion{ actual_wall_overhang_angle, speed_factor });
+                speed_regions.emplace_back(actual_wall_overhang_angle, speed_factor);
             }
 
-            speed_regions.push_back(SpeedRegion{ 90.0, overhang_speed_factors.back() }); // Final "everything else" speed region
+            speed_regions.emplace_back(90.0, overhang_speed_factors.back()); // Final "everything else" speed region
 
             // Now merge regions that have similar speed factors (saves calculations and avoid generating micro-segments)
             auto merged_regions = speed_regions
@@ -3147,7 +3147,7 @@ bool FffGcodeWriter::processInsets(
                 for (const auto& regions : merged_regions)
                 {
                     const SpeedRegion& last_region = *ranges::prev(regions.end());
-                    overhang_masks.push_back(LayerPlan::OverhangMask{ get_supported_region(last_region.overhang_angle), last_region.speed_factor });
+                    overhang_masks.emplace_back(get_supported_region(last_region.overhang_angle), last_region.speed_factor);
                 }
             }
         }
