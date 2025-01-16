@@ -636,8 +636,6 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         }
     };
 
-    const std::vector<SVG::Color> colors = { SVG::Color::RED, SVG::Color::GREEN, SVG::Color::BLUE, SVG::Color::YELLOW };
-
     // Now move along segment and split it where we cross speed regions
     while (true)
     {
