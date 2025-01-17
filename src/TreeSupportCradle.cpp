@@ -95,7 +95,6 @@ void SupportCradleGeneration::getLayerDeformation(
         double assumed_thickness_opposite_direction
             = percent_angle * double(std::max(extent_x, extent_y)) + (1.0 - percent_angle) * std::min(assumed_part_thickness, double(std::min(extent_x, extent_y)));
 
-        // todo tan did make more sense but as values are small, it should be similar to linear
         deform_part[direction_idx] = (deformation_constant / (std::pow(assumed_thickness_in_direction, 1) * (std::pow(assumed_thickness_opposite_direction , 0.33))));
     }
 }
@@ -142,50 +141,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             all_scan_elements = next_scan_elements;
         }
     }
-    std::unordered_map<UnsupportedAreaInformation*, std::unordered_set<UnsupportedAreaInformation*>> rests_on_root;
-    std::vector<std::vector<UnsupportedAreaInformation*>> all_elements_not_in_path_down(layer_idx + 1);
     std::unordered_set<UnsupportedAreaInformation*> iterate_elements;
-
-    for (LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
-    {
-        std::unordered_set<UnsupportedAreaInformation*> next_iterate_elements;
-
-        for (UnsupportedAreaInformation* current_area : root_areas[iterate_layer_idx])
-        {
-            if (! elements_on_path_down.contains(current_area))
-            {
-                all_elements_not_in_path_down[iterate_layer_idx].emplace_back(current_area);
-            }
-            for (UnsupportedAreaInformation* element_above : current_area->areas_above)
-            {
-                rests_on_root[element_above].emplace(current_area);
-                next_iterate_elements.emplace(element_above);
-            }
-        }
-        for (UnsupportedAreaInformation* current_area : iterate_elements)
-        {
-            if (! elements_on_path_down.contains(current_area))
-            {
-                all_elements_not_in_path_down[iterate_layer_idx].emplace_back(current_area);
-            }
-            for (UnsupportedAreaInformation* element_above : current_area->areas_above)
-            {
-                if (rests_on_root.contains(current_area))
-                {
-                    rests_on_root[element_above].insert(rests_on_root[current_area].begin(), rests_on_root[current_area].end());
-                }
-                if (elements_on_path_down.contains(element_above))
-                {
-                    next_iterate_elements.emplace(element_above);
-                }
-            }
-        }
-        iterate_elements = next_iterate_elements;
-    }
-    iterate_elements.clear();
-
-
-    LayerIndex last_z_stable_layer = 0;
 
     // todo instead of doing a single maximum, do a window over a few mm ?
 
@@ -207,27 +163,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             if(elements_on_path_down.contains(current_area))
             {
                 simulate_elements_as_connected.emplace(current_area);
-            }
-            else
-            {
-                // If any element rests on at least one identical roots than another, but are not on the direct path down, they have to be connected further up
-                for (UnsupportedAreaInformation* not_in_path_area : all_elements_not_in_path_down[iterate_layer_idx])
-                {
-                    bool connected = false;
-                    for (UnsupportedAreaInformation* current_rests_on : rests_on_root[current_area])
-                    {
-                        for (UnsupportedAreaInformation* not_in_path_area_rests_on : rests_on_root[not_in_path_area])
-                        {
-                            simulate_elements_as_connected.emplace(not_in_path_area);
-                            connected = true;
-                            break;
-                        }
-                        if (connected)
-                        {
-                            break;
-                        }
-                    }
-                }
             }
         }
 
@@ -320,7 +255,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
                 largest_deformation_in_z_direction_deformation = std::min(largest_deformation_in_z_direction_deformation, current_area->total_deformation_limit);
                 largest_deformation_in_xy_direction_deformation = std::min(largest_deformation_in_xy_direction_deformation, current_area->total_deformation_limit);
-                last_z_stable_layer = current_area->layer_idx;
             }
         }
         iterate_elements = next_iterate_elements;
@@ -550,7 +484,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                         }
                         if(last_cradle_at_layer_idx != -1 && last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO
                         {
-                            area_info->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
+                            area_info->total_deformation_limit = EPSILON;
                         }
                         else
                         {
