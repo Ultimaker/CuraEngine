@@ -406,12 +406,12 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                     if (add_manual_cradle)
                     {
                         area_info->support_required = CradlePlacementMethod::MANUAL_POINTY;
-                        top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
+                        top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
                     }
                     else if (add_automatic_cradle)
                     {
                         area_info->support_required = CradlePlacementMethod::AUTOMATIC_POINTY;
-                        top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
+                        top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
                     }
                     std::lock_guard<std::mutex> critical_section_add(critical_floating_parts_cache);
                     floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
@@ -516,7 +516,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                         = new UnsupportedAreaInformation(part, layer_idx, min_resting_on_layers + 1, overhang_area + supported_overhang_area, deform_part, minimum_box);
                     if (add_manual_cradle)
                     {
-                        top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
+                        top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
                         area_info->support_required = CradlePlacementMethod::MANUAL_SIDE;
                         std::lock_guard<std::mutex> critical_section_add_to_manual_cradle_map(critical_manual_cradle_map);
                         for (size_t manual_cradle_idx : manual_cradle_causes)
@@ -557,9 +557,9 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                             double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
                             if(estimated_deformation > side_cradle_support_threshold) // todo additional cradle if it rests on cradle earlier
                             {
-                                top_most_cradle_layer_ = layer_idx + cradle_layers + 1;
+                                top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
                                 area_info->support_required = CradlePlacementMethod::AUTOMATIC_SIDE;
-                                area_info->total_deformation_limit = EPSILON; //todo do I want to use min cradle xy distance here?
+                                area_info->total_deformation_limit = EPSILON;
                                 std::cout << "at " << layer_idx<< ": " << " Mark for support "
                                           <<std::endl ;
                             }
