@@ -216,8 +216,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         const auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
         spdlog::info(
             "Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\n"
-            "Calculating Avoidance: {} ms Calculating Cradle: {} ms of which {} ms were initialising Creating initial influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
-            "support {} ms",
+            "Calculating Avoidance: {} ms\n"
+            "Calculating Cradle: {} ms of which {} ms were initialising\n"
+            "Creating initial influence areas: {} ms\n"
+            "Influence area creation: {} ms\n"
+            "Placement of Points in InfluenceAreas: {} ms\n"
+            "Drawing result as support {} ms\n",
             dur_total,
             dur_pre_gen,
             dur_cradle,
