@@ -57,14 +57,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
@@ -571,28 +572,29 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     const auto add_extrusion_move = [&](const Point3LL& target, const std::optional<size_t> speed_region_index = std::nullopt)
     {
         const Ratio overhang_speed_factor = speed_region_index.has_value() ? overhang_masks_[speed_region_index.value()].speed_ratio : 1.0_r;
+        addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z);
+    };
 
-        const bool is_overhanging = speed_region_index.has_value() && speed_region_index.value() > 0;
-
+    const auto update_is_overhanging = [this](const Point2LL& target, std::optional<Point2LL> current_position, const bool is_overhanging = false)
+    {
         if (is_overhanging != currently_overhanging_)
         {
             max_overhang_length_ = std::max(current_overhang_length_, max_overhang_length_);
             current_overhang_length_ = 0;
         }
 
-        if (is_overhanging && last_planned_position_.has_value())
+        if (is_overhanging && current_position.has_value())
         {
-            current_overhang_length_ += vSize(target.toPoint2LL() - last_planned_position_.value());
+            current_overhang_length_ += vSize(target - current_position.value());
         }
 
         currently_overhanging_ = is_overhanging;
-
-        addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z);
     };
 
     if (overhang_masks_.empty() || ! last_planned_position_.has_value())
     {
         // Unable to apply gradual overhanging (probably just disabled), just add the basic extrusion move
+        update_is_overhanging(p.toPoint2LL(), last_planned_position_);
         add_extrusion_move(p);
         return;
     }
@@ -612,40 +614,12 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     // Pre-calculate the intersections of the segment with all regions (except last one, you cannot intersect an infinite plane)
     const Point2LL end = p.toPoint2LL();
     const Point2LL vector = end - start;
-    const coord_t segment_length = vSize(vector);
     std::vector<std::vector<float>> speed_regions_intersections;
     speed_regions_intersections.reserve(overhang_masks_.size() - 1);
     for (const OverhangMask& overhang_region : overhang_masks_ | ranges::views::drop_last(1))
     {
         std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start, end);
         ranges::sort(intersections);
-
-        // Avoid microsegments: Move intersections that are too close to the start or end of the segment slightly more to the center of the segment.
-        for (float& intersection : intersections)
-        {
-            if (intersection * segment_length < MINIMUM_LINE_LENGTH)
-            {
-                intersection = MINIMUM_LINE_LENGTH / static_cast<float>(segment_length);
-            }
-            else if (intersection * segment_length > segment_length - MINIMUM_LINE_LENGTH)
-            {
-                intersection = (segment_length - MINIMUM_LINE_LENGTH) / static_cast<float>(segment_length);
-            }
-        }
-
-        // (Also) Avoid microsegments: Filter out pairs of intersections that are too close to each other.
-        // This should be possible because the intersections happen in the same region.
-        constexpr std::array<float, 1> dummy = { 2.0f };
-        std::vector<float> temp_intersections;
-        for (const auto& tup : ranges::views::concat(dummy, intersections, dummy) | ranges::views::sliding(3))
-        {
-            if (std::abs(tup[1] - tup[0]) * segment_length >= MINIMUM_LINE_LENGTH && std::abs(tup[2] - tup[1]) * segment_length >= MINIMUM_LINE_LENGTH)
-            {
-                temp_intersections.push_back(tup[1]);
-            }
-        }
-        intersections = temp_intersections;
-
         speed_regions_intersections.push_back(intersections);
     }
 
@@ -663,6 +637,14 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
             intersections.erase(intersections.begin(), iterator);
         }
     };
+
+    struct SegmentExtrusionMove
+    {
+        Point2LL position;
+        size_t speed_region_index;
+    };
+
+    std::vector<SegmentExtrusionMove> extrusion_moves;
 
     // Now move along segment and split it where we cross speed regions
     while (true)
@@ -701,7 +683,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
 
             // Move to intersection at current region speed
             const Point2LL split_position = start + vector * intersection_parameter;
-            add_extrusion_move(split_position, actual_speed_region_index);
+            extrusion_moves.push_back(SegmentExtrusionMove{ split_position, actual_speed_region_index });
 
             // Prepare for next move in different region
             actual_speed_region_index = next_speed_region_index;
@@ -710,9 +692,67 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         else
         {
             // We cross no border, which means we can reach the end of the segment within the current speed region, so we are done
-            add_extrusion_move(p, actual_speed_region_index);
-            return;
+            extrusion_moves.push_back(SegmentExtrusionMove{ p.toPoint2LL(), actual_speed_region_index });
+            break;
         }
+    }
+
+    // Filter out micro-segments
+    std::vector<SegmentExtrusionMove> extrusion_moves_filtered;
+    extrusion_moves_filtered.reserve(extrusion_moves.size());
+    Point2LL current_position = start;
+    for (const SegmentExtrusionMove& extrusion_move : extrusion_moves | ranges::views::drop_last(1))
+    {
+        if (vSize2(extrusion_move.position - current_position) >= MINIMUM_SQUARED_LINE_LENGTH)
+        {
+            extrusion_moves_filtered.push_back(extrusion_move);
+        }
+
+        current_position = extrusion_move.position;
+    }
+
+    if (extrusion_moves_filtered.empty() || vSize2(extrusion_moves.back().position - current_position) >= MINIMUM_SQUARED_LINE_LENGTH)
+    {
+        extrusion_moves_filtered.push_back(extrusion_moves.back());
+    }
+    else
+    {
+        extrusion_moves_filtered.back().position = extrusion_moves.back().position;
+    }
+
+    // Calculate max consecutive overhanging segment length
+    current_position = start;
+    for (const SegmentExtrusionMove& extrusion_move : extrusion_moves_filtered)
+    {
+        const bool is_overhanging = extrusion_move.speed_region_index > 0;
+        update_is_overhanging(extrusion_move.position, current_position, is_overhanging);
+        current_position = extrusion_move.position;
+    }
+
+    // Merge consecutive sub-segments that in the end have the same speed
+    std::vector<SegmentExtrusionMove> extrusion_moves_merged;
+    extrusion_moves_merged.reserve(extrusion_moves_filtered.size());
+    extrusion_moves_merged.push_back(extrusion_moves_filtered.front());
+
+    for (const SegmentExtrusionMove& extrusion_move : extrusion_moves_filtered | ranges::views::drop(1))
+    {
+        const Ratio previous_speed_factor = overhang_masks_[extrusion_moves_merged.back().speed_region_index].speed_ratio;
+        const Ratio next_speed_factor = overhang_masks_[extrusion_move.speed_region_index].speed_ratio;
+
+        if (next_speed_factor == previous_speed_factor)
+        {
+            extrusion_moves_merged.back().position = extrusion_move.position;
+        }
+        else
+        {
+            extrusion_moves_merged.push_back(extrusion_move);
+        }
+    }
+
+    // Finally, add extrusion moves
+    for (const SegmentExtrusionMove& extrusion_move : extrusion_moves_merged)
+    {
+        add_extrusion_move(extrusion_move.position, extrusion_move.speed_region_index);
     }
 }
 

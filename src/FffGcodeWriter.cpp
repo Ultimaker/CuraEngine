@@ -3122,7 +3122,7 @@ bool FffGcodeWriter::processInsets(
             std::vector<SpeedRegion> speed_regions;
             speed_regions.reserve(overhang_angles_count + 2);
 
-            constexpr bool dont_chunk_first = false;
+            constexpr bool dont_chunk_first = false; // Never merge internal region in order to detect actual overhanging
             speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r, dont_chunk_first }); // Initial internal region, always 100% speed factor
 
             for (size_t angle_index = 1; angle_index <= overhang_angles_count; ++angle_index)
