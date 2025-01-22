@@ -196,10 +196,10 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 switch (boundary_type)
                 {
                 case CombBoundary::MINIMUM:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
+                    offset = -(mesh.settings.get<coord_t>("machine_nozzle_size") / 2 + mesh.settings.get<coord_t>("wall_line_width_0") / 2 + extra_offset);
                     break;
                 case CombBoundary::PREFERRED:
-                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
+                    offset = -(mesh.settings.get<coord_t>("retraction_combing_avoid_distance") + mesh.settings.get<coord_t>("wall_line_width_0") / 2 + extra_offset);
                     break;
                 default:
                     offset = 0;
@@ -1322,7 +1322,7 @@ std::vector<LayerPlan::PathCoasting>
 
         for (const auto& reversed_chunk : paths | ranges::views::enumerate | ranges::views::reverse
                                               | ranges::views::chunk_by(
-                                                  [](const auto&path_a, const auto&path_b)
+                                                  [](const auto& path_a, const auto& path_b)
                                                   {
                                                       return (! std::get<1>(path_a).isTravelPath()) || std::get<1>(path_b).isTravelPath();
                                                   }))
@@ -2512,8 +2512,24 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     {
         ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
 
-        const RetractionAndWipeConfig* retraction_config
-            = current_mesh ? &current_mesh->retraction_wipe_config : &storage_.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_];
+        auto get_retraction_config = [&extruder_nr, this](std::shared_ptr<const SliceMeshStorage>& mesh) -> std::optional<const RetractionAndWipeConfig*>
+        {
+            if (mesh)
+            {
+                if (extruder_nr == mesh->settings.get<size_t>("extruder_nr")) [[likely]]
+                {
+                    return &mesh->retraction_wipe_config;
+                }
+
+                // We are printing a part of a mesh with a different extruder, use this extruder settings instead (mesh-specific settings will be ignored)
+                return &storage_.retraction_wipe_config_per_extruder[extruder_nr];
+            }
+
+            // We have no mesh yet, a more global config should be used
+            return std::nullopt;
+        };
+
+        const RetractionAndWipeConfig* retraction_config = get_retraction_config(current_mesh).value_or(&storage_.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_]);
         coord_t z_hop_height = retraction_config->retraction_config.zHop;
 
         if (extruder_nr != extruder_plan.extruder_nr_)
@@ -2697,7 +2713,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (path.retract)
             {
-                retraction_config = path.mesh ? &path.mesh->retraction_wipe_config : retraction_config;
+                retraction_config = get_retraction_config(path.mesh).value_or(retraction_config);
                 gcode.writeRetraction(retraction_config->retraction_config);
                 if (path.retract_for_nozzle_switch)
                 {
