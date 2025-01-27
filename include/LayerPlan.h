@@ -481,6 +481,8 @@ public:
      * that are not spanning a bridge or are exposed to air.
      * \param roofing_config The config with which to print the wall lines
      * that are exposed to air.
+     * \param flooring_config The config with which to print the wall lines
+     * that are exposed to air below.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge.
      * \param flow The ratio with which to multiply the extrusion amount.
@@ -517,6 +519,8 @@ public:
      * that are not spanning a bridge or are exposed to air.
      * \param roofing_config The config with which to print the wall lines
      * that are exposed to air.
+     * \param flooring_config The config with which to print the wall lines
+     * that are exposed to air below.
      * \param wall_0_wipe_dist The distance to travel along the wall after it
      * has been laid down, in order to wipe the start and end of the wall
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
@@ -544,6 +548,8 @@ public:
      * that are not spanning a bridge or are exposed to air.
      * \param roofing_config The config with which to print the wall lines
      * that are exposed to air.
+     * \param flooring_config The config with which to print the wall lines
+     * that are exposed to air below.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge
      * \param wall_0_wipe_dist The distance to travel along the wall after it
@@ -590,7 +596,9 @@ public:
      * \param default_config The config with which to print the wall lines
      * that are not spanning a bridge or are exposed to air.
      * \param roofing_config The config with which to print the wall lines
-     * that are exposed to air.
+     * that are exposed to air above.
+     * \param flooring_config The config with which to print the wall lines
+     * that are exposed to air below.
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
