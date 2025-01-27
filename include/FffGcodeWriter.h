@@ -501,7 +501,7 @@ private:
         const SkinPart& skin_part) const;
 
     /*!
-     * Add the roofing which is the area inside the innermost skin inset which has air 'directly' above
+     * Add the roofing/flooring which is the area inside the innermost skin inset which has air 'directly' above or below
      *
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -511,13 +511,15 @@ private:
      * \param skin_part The skin part for which to create gcode
      * \param[out] added_something Whether this function added anything to the layer plan
      */
-    void processRoofing(
+    void processRoofingFlooring(
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const MeshPathConfigs& mesh_config,
-        const SkinPart& skin_part,
+        const std::string& setting_prefix,
+        const Shape& fill,
+        const GCodePathConfig& config,
+        const std::vector<AngleDegrees>& angles,
         bool& added_something) const;
 
     /*!

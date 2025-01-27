@@ -91,7 +91,7 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
 
     for (SliceLayerPart& part : layer->parts)
     {
-        generateRoofingFillAndSkinFill(part);
+        generateSkinRoofingFlooringFill(part);
 
         generateTopAndBottomMostSurfaces(part);
     }
@@ -324,22 +324,27 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& part)
+void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& part)
 {
     for (SkinPart& skin_part : part.skin_parts)
     {
         const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
+        const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
         const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
 
         Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
+        Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count);
 
+        // An area that would have nothing below nor above is considered a roof
         skin_part.roofing_fill = skin_part.outline.difference(filled_area_above);
-        skin_part.skin_fill = skin_part.outline.intersection(filled_area_above);
+        skin_part.flooring_fill = skin_part.outline.intersection(filled_area_above).difference(filled_area_below);
+        skin_part.skin_fill = skin_part.outline.intersection(filled_area_above).intersection(filled_area_below);
 
-        // We remove offsets areas from roofing_fill anywhere they overlap with skin_fill.
-        // Otherwise, adjacent skin_fill and roofing_fill would have doubled offset areas. Since they both offset into each other.
-        skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap).difference(skin_part.roofing_fill);
+        // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
+        // Otherwise, adjacent skin_fill and roofing/flooring would have doubled offset areas. Since they both offset into each other.
+        skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap).difference(skin_part.roofing_fill).difference(skin_part.flooring_fill);
         skin_part.roofing_fill = skin_part.roofing_fill.offset(skin_overlap);
+        skin_part.flooring_fill = skin_part.flooring_fill.offset(skin_overlap).difference(skin_part.roofing_fill);
     }
 }
 

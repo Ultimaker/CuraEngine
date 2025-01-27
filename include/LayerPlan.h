@@ -117,7 +117,8 @@ private:
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     Shape overhang_mask_; //!< The regions of a layer part where the walls overhang
     Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
-    Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
+    Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air above
+    Shape flooring_mask_; //!< The regions of a layer part where the walls are exposed to the air below
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
@@ -321,6 +322,13 @@ public:
     void setRoofingMask(const Shape& polys);
 
     /*!
+     * Set flooring_mask.
+     *
+     * \param shape The areas of the part currently being processed that will require flooring.
+     */
+    void setFlooringMask(const Shape& shape);
+
+    /*!
      * Travel to a certain point, with all of the procedures necessary to do so.
      *
      * Additional procedures here are:
@@ -491,6 +499,7 @@ public:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
+        const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
         double flow,
         const Ratio width_factor,
@@ -520,6 +529,7 @@ public:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
+        const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
         double flow_ratio,
@@ -554,6 +564,7 @@ public:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
+        const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
         double flow_ratio,
@@ -592,6 +603,7 @@ public:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
+        const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,

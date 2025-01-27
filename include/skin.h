@@ -127,12 +127,12 @@ protected:
     void generateInfill(SliceLayerPart& part);
 
     /*!
-     * Remove the areas which are 'directly' under air from the \ref SkinPart::inner_infill and
-     * save them in the \ref SkinPart::roofing_fill of the \p part.
+     * Remove the areas which are 'directly' under/over air from the \ref SkinPart::inner_infill and
+     * save them in the \ref SkinPart::roofing_fill and \ref SkinPart::flooring_fill of the \p part.
      *
-     * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing areas
+     * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing/flooring areas
      */
-    void generateRoofingFillAndSkinFill(SliceLayerPart& part);
+    void generateSkinRoofingFlooringFill(SliceLayerPart& part);
 
     /*!
      * Generate the top and bottom-most surfaces of the given \p part, i.e. the surfaces that have nothing above or below
