@@ -42,6 +42,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const GCodePathConfig& inset_X_default_config,
     const GCodePathConfig& inset_0_roofing_config,
     const GCodePathConfig& inset_X_roofing_config,
+    const GCodePathConfig& inset_0_flooring_config,
+    const GCodePathConfig& inset_X_flooring_config,
     const GCodePathConfig& inset_0_bridge_config,
     const GCodePathConfig& inset_X_bridge_config,
     const bool retract_before_outer_wall,
@@ -65,6 +67,8 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , inset_X_default_config_(inset_X_default_config)
     , inset_0_roofing_config_(inset_0_roofing_config)
     , inset_X_roofing_config_(inset_X_roofing_config)
+    , inset_0_flooring_config_(inset_0_flooring_config)
+    , inset_X_flooring_config_(inset_X_flooring_config)
     , inset_0_bridge_config_(inset_0_bridge_config)
     , inset_X_bridge_config_(inset_X_bridge_config)
     , retract_before_outer_wall_(retract_before_outer_wall)
@@ -152,6 +156,7 @@ bool InsetOrderOptimizer::addToLayer()
         const bool is_gap_filler = path.vertices_->is_odd_;
         const GCodePathConfig& default_config = is_outer_wall ? inset_0_default_config_ : inset_X_default_config_;
         const GCodePathConfig& roofing_config = is_outer_wall ? inset_0_roofing_config_ : inset_X_roofing_config_;
+        const GCodePathConfig& flooring_config = is_outer_wall ? inset_0_flooring_config_ : inset_X_flooring_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
         const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
@@ -171,6 +176,7 @@ bool InsetOrderOptimizer::addToLayer()
             settings_,
             default_config,
             roofing_config,
+            flooring_config,
             bridge_config,
             wipe_dist,
             flow,

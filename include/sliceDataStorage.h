@@ -45,6 +45,7 @@ public:
                          //!< roofing and non-roofing.
     Shape skin_fill; //!< The part of the skin which is not roofing.
     Shape roofing_fill; //!< The inner infill which has air directly above
+    Shape flooring_fill; //!< The inner infill which has air directly below
 };
 
 /*!
@@ -309,6 +310,7 @@ public:
 
     std::vector<AngleDegrees> infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
     std::vector<AngleDegrees> roofing_angles; //!< a list of angle values which is cycled through to determine the roofing angle of each layer
+    std::vector<AngleDegrees> flooring_angles; //!< a list of angle values which is cycled through to determine the flooring angle of each layer
     std::vector<AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
     std::vector<Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
     std::vector<Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the

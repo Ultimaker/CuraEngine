@@ -117,7 +117,8 @@ private:
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     Shape overhang_mask_; //!< The regions of a layer part where the walls overhang
     Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
-    Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
+    Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air above
+    Shape flooring_mask_; //!< The regions of a layer part where the walls are exposed to the air below
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
@@ -321,6 +322,13 @@ public:
     void setRoofingMask(const Shape& polys);
 
     /*!
+     * Set flooring_mask.
+     *
+     * \param shape The areas of the part currently being processed that will require flooring.
+     */
+    void setFlooringMask(const Shape& shape);
+
+    /*!
      * Travel to a certain point, with all of the procedures necessary to do so.
      *
      * Additional procedures here are:
@@ -473,6 +481,8 @@ public:
      * that are not spanning a bridge or are exposed to air.
      * \param roofing_config The config with which to print the wall lines
      * that are exposed to air.
+     * \param flooring_config The config with which to print the wall lines
+     * that are exposed to air below.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge.
      * \param flow The ratio with which to multiply the extrusion amount.
@@ -491,6 +501,7 @@ public:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
+        const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
         double flow,
         const Ratio width_factor,
@@ -508,6 +519,8 @@ public:
      * that are not spanning a bridge or are exposed to air.
      * \param roofing_config The config with which to print the wall lines
      * that are exposed to air.
+     * \param flooring_config The config with which to print the wall lines
+     * that are exposed to air below.
      * \param wall_0_wipe_dist The distance to travel along the wall after it
      * has been laid down, in order to wipe the start and end of the wall
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
@@ -520,6 +533,7 @@ public:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
+        const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
         double flow_ratio,
@@ -534,6 +548,8 @@ public:
      * that are not spanning a bridge or are exposed to air.
      * \param roofing_config The config with which to print the wall lines
      * that are exposed to air.
+     * \param flooring_config The config with which to print the wall lines
+     * that are exposed to air below.
      * \param bridge_config The config with which to print the wall lines that
      * are spanning a bridge
      * \param wall_0_wipe_dist The distance to travel along the wall after it
@@ -554,6 +570,7 @@ public:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
+        const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
         double flow_ratio,
@@ -579,7 +596,9 @@ public:
      * \param default_config The config with which to print the wall lines
      * that are not spanning a bridge or are exposed to air.
      * \param roofing_config The config with which to print the wall lines
-     * that are exposed to air.
+     * that are exposed to air above.
+     * \param flooring_config The config with which to print the wall lines
+     * that are exposed to air below.
      * \param bridge_config The config with which to print the wall lines that are spanning a bridge
      * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
@@ -592,6 +611,7 @@ public:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
+        const GCodePathConfig& flooring_config,
         const GCodePathConfig& bridge_config,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,

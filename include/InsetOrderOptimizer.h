@@ -47,6 +47,8 @@ public:
         const GCodePathConfig& inset_X_default_config,
         const GCodePathConfig& inset_0_roofing_config,
         const GCodePathConfig& inset_X_roofing_config,
+        const GCodePathConfig& inset_0_flooring_config,
+        const GCodePathConfig& inset_X_flooring_config,
         const GCodePathConfig& inset_0_bridge_config,
         const GCodePathConfig& inset_X_bridge_config,
         const bool retract_before_outer_wall,
@@ -101,6 +103,8 @@ private:
     const GCodePathConfig& inset_X_default_config_;
     const GCodePathConfig& inset_0_roofing_config_;
     const GCodePathConfig& inset_X_roofing_config_;
+    const GCodePathConfig& inset_0_flooring_config_;
+    const GCodePathConfig& inset_X_flooring_config_;
     const GCodePathConfig& inset_0_bridge_config_;
     const GCodePathConfig& inset_X_bridge_config_;
     const bool retract_before_outer_wall_;
