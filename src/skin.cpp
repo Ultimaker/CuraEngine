@@ -332,8 +332,8 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
         const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
         const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
 
-        Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
-        Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count);
+        const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
+        const Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count);
 
         // An area that would have nothing below nor above is considered a roof
         skin_part.roofing_fill = skin_part.outline.difference(filled_area_above);

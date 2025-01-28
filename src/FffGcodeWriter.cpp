@@ -43,6 +43,9 @@ namespace cura
 {
 constexpr coord_t EPSILON = 5;
 
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic" };
+
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
     , layer_plan_buffer(gcode)
@@ -3320,8 +3323,26 @@ bool FffGcodeWriter::processSkinPart(
 
     gcode_layer.mode_skip_agressive_merge_ = true;
 
-    processRoofingFlooring(storage, gcode_layer, mesh, extruder_nr, "roofing", skin_part.roofing_fill, mesh_config.roofing_config, mesh.roofing_angles, added_something);
-    processRoofingFlooring(storage, gcode_layer, mesh, extruder_nr, "flooring", skin_part.flooring_fill, mesh_config.flooring_config, mesh.flooring_angles, added_something);
+    processRoofingFlooring(
+        storage,
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        roofing_settings_names,
+        skin_part.roofing_fill,
+        mesh_config.roofing_config,
+        mesh.roofing_angles,
+        added_something);
+    processRoofingFlooring(
+        storage,
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        flooring_settings_names,
+        skin_part.flooring_fill,
+        mesh_config.flooring_config,
+        mesh.flooring_angles,
+        added_something);
     processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
 
     gcode_layer.mode_skip_agressive_merge_ = false;
@@ -3333,19 +3354,19 @@ void FffGcodeWriter::processRoofingFlooring(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const std::string& setting_prefix,
+    const RoofingFlooringSettingsNames& settings_names,
     const Shape& fill,
     const GCodePathConfig& config,
     const std::vector<AngleDegrees>& angles,
     bool& added_something) const
 {
-    const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>(fmt::format("{}_extruder_nr", setting_prefix)).extruder_nr_;
+    const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>(settings_names.extruder_nr).extruder_nr_;
     if (extruder_nr != skin_extruder_nr)
     {
         return;
     }
 
-    const EFillMethod pattern = mesh.settings.get<EFillMethod>(fmt::format("{}_pattern", setting_prefix));
+    const EFillMethod pattern = mesh.settings.get<EFillMethod>(settings_names.pattern);
     AngleDegrees roofing_angle = 45;
     if (angles.size() > 0)
     {
@@ -3354,7 +3375,7 @@ void FffGcodeWriter::processRoofingFlooring(
 
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
-    const bool monotonic = mesh.settings.get<bool>(fmt::format("{}_monotonic", setting_prefix));
+    const bool monotonic = mesh.settings.get<bool>(settings_names.monotonic);
     processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, fill, config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, added_something);
 }
 

@@ -144,6 +144,16 @@ private:
         TimeKeeper::RegisteredTimes stages_times;
     };
 
+    struct RoofingFlooringSettingsNames
+    {
+        std::string extruder_nr;
+        std::string pattern;
+        std::string monotonic;
+    };
+
+    static const RoofingFlooringSettingsNames roofing_settings_names;
+    static const RoofingFlooringSettingsNames flooring_settings_names;
+
     /*!
      * \brief Set the FffGcodeWriter::fan_speed_layer_time_settings by
      * retrieving all settings from the global/per-meshgroup settings.
@@ -516,7 +526,7 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const std::string& setting_prefix,
+        const RoofingFlooringSettingsNames& settings_names,
         const Shape& fill,
         const GCodePathConfig& config,
         const std::vector<AngleDegrees>& angles,
