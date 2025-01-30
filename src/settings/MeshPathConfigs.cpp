@@ -16,8 +16,7 @@ MeshPathConfigs::MeshPathConfigs(
     const coord_t layer_thickness,
     const LayerIndex layer_nr,
     const std::vector<Ratio>& line_width_factor_per_extruder,
-    const std::vector<Ratio>& fan_overhang_factor_per_extruder
-)
+    const std::vector<Ratio>& fan_overhang_factor_per_extruder)
     : inset0_config{ .type = PrintFeatureType::OuterWall,
                      .line_width = static_cast<coord_t>(
                          mesh.settings.get<coord_t>("wall_line_width_0") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_]),
@@ -151,8 +150,6 @@ MeshPathConfigs::MeshPathConfigs(
                                    .acceleration = mesh.settings.get<Acceleration>("acceleration_infill"),
                                    .jerk = mesh.settings.get<Velocity>("jerk_infill") } });
     }
-
-
 }
 
 } // namespace cura

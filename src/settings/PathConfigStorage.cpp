@@ -3,6 +3,9 @@
 
 #include "settings/PathConfigStorage.h"
 
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/transform.hpp>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -10,9 +13,6 @@
 #include "settings/EnumSettings.h" //For EPlatformAdhesion.
 #include "settings/Settings.h" // MAX_INFILL_COMBINE
 #include "sliceDataStorage.h" // SliceDataStorage
-
-#include <range/v3/to_container.hpp>
-#include <range/v3/view/transform.hpp>
 
 namespace cura
 {
@@ -37,9 +37,13 @@ std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerI
 
 std::vector<Ratio> PathConfigStorage::getFanOverhangFactorPerExtruder()
 {
-    return Application::getInstance().current_slice_->scene.extruders | ranges::views::transform([](const ExtruderTrain& train) -> Ratio {
-        return train.settings_.get<Ratio>("cool_fan_speed_overhang_factor");
-    }) | ranges::to<std::vector<Ratio>>;
+    return Application::getInstance().current_slice_->scene.extruders
+         | ranges::views::transform(
+               [](const ExtruderTrain& train) -> Ratio
+               {
+                   return train.settings_.get<Ratio>("cool_fan_speed_overhang_factor");
+               })
+         | ranges::to<std::vector<Ratio>>;
 }
 
 PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness)
