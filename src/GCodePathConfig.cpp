@@ -58,6 +58,11 @@ namespace cura
     return fan_speed;
 }
 
+[[nodiscard]] double GCodePathConfig::getFanOverhangFactor() const noexcept
+{
+    return fan_overhang_factor;
+}
+
 [[nodiscard]] Ratio GCodePathConfig::getFlowRatio() const noexcept
 {
     return flow;

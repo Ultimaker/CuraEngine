@@ -49,6 +49,7 @@ struct GCodePath
     std::vector<Point3LL> points{}; //!< The points constituting this path. The Z coordinate is an offset relative to the actual layer height, added to the global z_offset.
     bool done{ false }; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    double fan_speed_overhang_factor{ 1.0 }; //!< fan speed overhang factor, multiplicative
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates
     bool travel_to_z{ true }; //! Indicates whether we should add a travel move to the Z height of the first point before processing the path
 
@@ -86,6 +87,17 @@ struct GCodePath
      * \return the value of fan_speed if it is in the range 0-100, otherwise the value from the config
      */
     [[nodiscard]] double getFanSpeed() const noexcept;
+
+    /*!
+     * Set the fan speed overhang factor, this needs to be separate from the fan speed because of signalling values.
+     */
+    void setFanSpeedOverhangFactor(const double overhang_factor) noexcept;
+
+    /*!
+     * Get the fan speed overhang factor, this needs to be separate from the fan speed because of signalling values.
+     * \return the value of fan_overhang_factor
+     */
+    [[nodiscard]] double getFanSpeedOverhangFactor() const noexcept;
 };
 
 } // namespace cura

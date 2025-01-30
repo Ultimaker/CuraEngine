@@ -116,7 +116,7 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     LayerPlan gcode_layer(*storage, 100, 10000, 100, 0, {fan_settings}, 20, 10, 5000 );
     SliceMeshStorage mesh_storage(&mesh, 200);
     size_t extruder_nr = 0;
-    MeshPathConfigs mesh_config(mesh_storage, 10, 100, {0.5});
+    MeshPathConfigs mesh_config(mesh_storage, 10, 100, { 0.5 }, { 1.0 });
     SliceLayerPart part;
 
     part.infill_area_per_combine_per_density = { { outer_square } };

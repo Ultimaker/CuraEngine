@@ -38,6 +38,9 @@ private:
     const std::vector<Ratio> line_width_factor_per_extruder;
     static std::vector<Ratio> getLineWidthFactorPerExtruder(const LayerIndex& layer_nr);
 
+    const std::vector<Ratio> fan_overhang_factor_per_extruder;
+    static std::vector<Ratio> getFanOverhangFactorPerExtruder();
+
 public:
     GCodePathConfig raft_base_config;
     GCodePathConfig raft_interface_config;

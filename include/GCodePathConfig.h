@@ -28,6 +28,7 @@ struct GCodePathConfig
     SpeedDerivatives speed_derivatives{}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
     bool is_bridge_path{ false }; //!< whether current config is used when bridging
     double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
+    double fan_overhang_factor{ 1.0 }; //!< fan speed overhang factor, multiplicative
     double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
 
     [[nodiscard]] constexpr bool operator==(const GCodePathConfig& other) const noexcept = default;
@@ -60,6 +61,8 @@ struct GCodePathConfig
     [[nodiscard]] bool isBridgePath() const noexcept;
 
     [[nodiscard]] double getFanSpeed() const noexcept;
+
+    [[nodiscard]] double getFanOverhangFactor() const noexcept;
 
     [[nodiscard]] Ratio getFlowRatio() const noexcept;
 

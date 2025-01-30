@@ -11,6 +11,9 @@
 #include "settings/Settings.h" // MAX_INFILL_COMBINE
 #include "sliceDataStorage.h" // SliceDataStorage
 
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/transform.hpp>
+
 namespace cura
 {
 
@@ -32,6 +35,13 @@ std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerI
     return ret;
 }
 
+std::vector<Ratio> PathConfigStorage::getFanOverhangFactorPerExtruder()
+{
+    return Application::getInstance().current_slice_->scene.extruders | ranges::views::transform([](const ExtruderTrain& train) -> Ratio {
+        return train.settings_.get<Ratio>("cool_fan_speed_overhang_factor");
+    }) | ranges::to<std::vector<Ratio>>;
+}
+
 PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness)
     : support_infill_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_)
     , support_roof_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_)
@@ -43,6 +53,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     , support_roof_train(Application::getInstance().current_slice_->scene.extruders[support_roof_extruder_nr])
     , support_bottom_train(Application::getInstance().current_slice_->scene.extruders[support_bottom_extruder_nr])
     , line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(layer_nr))
+    , fan_overhang_factor_per_extruder(PathConfigStorage::getFanOverhangFactorPerExtruder())
     , raft_base_config(GCodePathConfig{ .type = PrintFeatureType::SupportInterface,
                                         .line_width = raft_base_train.settings_.get<coord_t>("raft_base_line_width"),
                                         .layer_thickness = raft_base_train.settings_.get<coord_t>("raft_base_thickness"),
@@ -126,7 +137,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     mesh_configs.reserve(storage.meshes.size());
     for (const std::shared_ptr<SliceMeshStorage>& mesh_storage : storage.meshes)
     {
-        mesh_configs.emplace_back(*mesh_storage, layer_thickness, layer_nr, line_width_factor_per_extruder);
+        mesh_configs.emplace_back(*mesh_storage, layer_thickness, layer_nr, line_width_factor_per_extruder, fan_overhang_factor_per_extruder);
     }
 
     support_infill_config.reserve(MAX_INFILL_COMBINE);

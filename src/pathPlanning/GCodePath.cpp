@@ -31,4 +31,14 @@ void GCodePath::setFanSpeed(const double fanspeed) noexcept
     return (fan_speed >= 0 && fan_speed <= 100) ? fan_speed : config.getFanSpeed();
 }
 
+void GCodePath::setFanSpeedOverhangFactor(const double overhang_factor) noexcept
+{
+    fan_speed_overhang_factor = overhang_factor;
+}
+
+[[nodiscard]] double GCodePath::getFanSpeedOverhangFactor() const noexcept
+{
+    return fan_speed_overhang_factor;
+}
+
 } // namespace cura

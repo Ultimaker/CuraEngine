@@ -48,11 +48,12 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     const Ratio flow,
     const Ratio width_factor,
     const bool spiralize,
-    const Ratio speed_factor)
+    const Ratio speed_factor,
+    const Ratio fan_speed_overhang_factor)
 {
     std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
     if (paths.size() > 0 && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
-        && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset
+        && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset && paths.back().fan_speed_overhang_factor == fan_speed_overhang_factor
         && paths.back().mesh == current_mesh_) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
@@ -64,7 +65,8 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
                                   .flow = flow,
                                   .width_factor = width_factor,
                                   .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+                                  .speed_factor = speed_factor,
+                                  .fan_speed_overhang_factor = fan_speed_overhang_factor });
 
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
@@ -544,11 +546,13 @@ void LayerPlan::addExtrusionMove(
     const bool spiralize,
     const Ratio speed_factor,
     const double fan_speed,
-    const bool travel_to_z)
+    const bool travel_to_z,
+    const Ratio fan_speed_overhang_factor)
 {
-    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor);
+    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor, fan_speed_overhang_factor);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
+    path->setFanSpeedOverhangFactor(fan_speed_overhang_factor);
     path->travel_to_z = travel_to_z;
     if (! static_cast<bool>(first_extrusion_acc_jerk_))
     {
@@ -571,7 +575,8 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     const auto add_extrusion_move = [&](const Point3LL& target, const std::optional<size_t> speed_region_index = std::nullopt)
     {
         const Ratio overhang_speed_factor = speed_region_index.has_value() ? overhang_masks_[speed_region_index.value()].speed_ratio : 1.0_r;
-        addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z);
+        const double fan_speed_overhang_factor = fan_speed < 0 && currently_overhanging_ ? config.fan_overhang_factor : 1.0;
+        addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z, fan_speed_overhang_factor);
     };
 
     const auto update_is_overhanging = [this](const Point2LL& target, std::optional<Point2LL> current_position, const bool is_overhanging = false)
@@ -2831,7 +2836,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (! path.isTravelPath() || path.fan_speed >= 0)
             {
                 const double path_fan_speed = path.getFanSpeed();
-                gcode.writeFanCommand(path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed());
+                gcode.writeFanCommand(path.getFanSpeedOverhangFactor() * (path_fan_speed != GCodePathConfig::FAN_SPEED_DEFAULT ? path_fan_speed : extruder_plan.getFanSpeed()));
             }
 
             if (path.perform_prime)

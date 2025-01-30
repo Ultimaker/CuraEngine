@@ -159,7 +159,8 @@ private:
         const Ratio flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
         const bool spiralize = false,
-        const Ratio speed_factor = 1.0_r);
+        const Ratio speed_factor = 1.0_r,
+        const Ratio fan_speed_overhang_factor = 1.0_r);
 
 public:
     /*!
@@ -402,7 +403,8 @@ public:
         const bool spiralize = false,
         const Ratio speed_factor = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        const bool travel_to_z = true);
+        const bool travel_to_z = true,
+        const Ratio fan_speed_overhang_factor = 1.0_r);
 
     void addExtrusionMoveWithGradualOverhang(
         const Point3LL& p,
