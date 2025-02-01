@@ -67,7 +67,7 @@ class ArcusCommunication::PathCompiler
     std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is
                                //!< the dimensionality of the point.
 
-    Point2LL last_point;
+    Point3LL last_point;
 
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
@@ -80,13 +80,12 @@ public:
         : _cs_private_data(cs_private_data)
         , _layer_nr(0)
         , extruder(0)
-        , data_point_type(cura::proto::PathSegment::Point2D)
+        , data_point_type(cura::proto::PathSegment::Point3D)
         , line_types()
         , line_widths()
         , line_thicknesses()
         , line_velocities()
         , points()
-        , last_point{ 0, 0 }
     {
     }
 
@@ -143,11 +142,11 @@ public:
      * of the path this jump is marked as `PrintFeatureType::NoneType`.
      * \param from The initial point of a polygon.
      */
-    void handleInitialPoint(const Point2LL& initial_point)
+    void handleInitialPoint(const Point3LL& initial_point)
     {
         if (points.size() == 0)
         {
-            addPoint2D(initial_point);
+            addPoint3D(initial_point);
         }
         else if (initial_point != last_point)
         {
@@ -201,7 +200,7 @@ public:
     /*!
      * \brief Move the current point of this path to \p position.
      */
-    void setCurrentPosition(const Point2LL& position)
+    void setCurrentPosition(const Point3LL& position)
     {
         handleInitialPoint(position);
     }
@@ -217,7 +216,7 @@ public:
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
      */
-    void sendLineTo(const PrintFeatureType& print_feature_type, const Point2LL& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
+    void sendLineTo(const PrintFeatureType& print_feature_type, const Point3LL& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
     {
         assert(! points.empty() && "A point must already be in the buffer for sendLineTo(.) to function properly.");
 
@@ -227,53 +226,18 @@ public:
         }
     }
 
-    /*!
-     * \brief Adds closed polygon to the current path.
-     * \param print_feature_type The type of feature that the polygon is part of
-     * (infill, wall, etc).
-     * \param polygon The shape of the polygon.
-     * \param width The width of the lines of the polygon.
-     * \param thickness The layer thickness of the polygon.
-     * \param velocity How fast the polygon is printed.
-     */
-    void sendPolygon(const PrintFeatureType& print_feature_type, const Polygon& polygon, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
-    {
-        if (polygon.size() < 2) // Don't send single points or empty polygons.
-        {
-            return;
-        }
-
-        ClipperLib::Path::const_iterator point = polygon.begin();
-        handleInitialPoint(*point);
-
-        // Send all coordinates one by one.
-        while (++point != polygon.end())
-        {
-            if (*point == last_point)
-            {
-                continue; // Ignore zero-length segments.
-            }
-            addLineSegment(print_feature_type, *point, width, thickness, velocity);
-        }
-
-        // Make sure the polygon is closed.
-        if (*polygon.begin() != polygon.back())
-        {
-            addLineSegment(print_feature_type, *polygon.begin(), width, thickness, velocity);
-        }
-    }
-
 private:
     /*!
      * \brief Convert and add a point to the points buffer.
      *
-     * Each point is represented as two consecutive floats. All members adding a
-     * 2D point to the data should use this function.
+     * Each point is represented as three consecutive floats. All members adding a
+     * 3D point to the data should use this function.
      */
-    void addPoint2D(const Point2LL& point)
+    void addPoint3D(const Point3LL& point)
     {
-        points.push_back(INT2MM(point.X));
-        points.push_back(INT2MM(point.Y));
+        points.push_back(INT2MM(point.x_));
+        points.push_back(INT2MM(point.y_));
+        points.push_back(INT2MM(point.z_));
         last_point = point;
     }
 
@@ -289,9 +253,9 @@ private:
      * \param thickness The layer thickness of the polygon.
      * \param velocity How fast the polygon is printed.
      */
-    void addLineSegment(const PrintFeatureType& print_feature_type, const Point2LL& point, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
+    void addLineSegment(const PrintFeatureType& print_feature_type, const Point3LL& point, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
     {
-        addPoint2D(point);
+        addPoint3D(point);
         line_types.push_back(print_feature_type);
         line_widths.push_back(INT2MM(width));
         line_thicknesses.push_back(INT2MM(thickness));
@@ -381,7 +345,7 @@ bool ArcusCommunication::hasSlice() const
         && private_data->slice_count < 1; // Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
-void ArcusCommunication::sendCurrentPosition(const Point2LL& position)
+void ArcusCommunication::sendCurrentPosition(const Point3LL& position)
 {
     path_compiler->setCurrentPosition(position);
 }
@@ -415,7 +379,7 @@ void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_n
     layer->set_thickness(thickness);
 }
 
-void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point2LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point3LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
 {
     path_compiler->sendLineTo(type, to, line_width, line_thickness, velocity);
 }
@@ -442,19 +406,6 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.current_layer_count = 0;
     data.current_layer_offset = 0;
     data.slice_data.clear();
-}
-
-void ArcusCommunication::sendPolygon(const PrintFeatureType& type, const Polygon& polygon, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
-{
-    path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
-}
-
-void ArcusCommunication::sendPolygons(const PrintFeatureType& type, const Shape& polygons, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
-{
-    for (const Polygon& polygon : polygons)
-    {
-        path_compiler->sendPolygon(type, polygon, line_width, line_thickness, velocity);
-    }
 }
 
 void ArcusCommunication::sendPrintTimeMaterialEstimates() const
@@ -520,7 +471,7 @@ void ArcusCommunication::sliceNext()
 
     // Handle the main Slice message.
     const cura::proto::Slice* slice_message = dynamic_cast<cura::proto::Slice*>(message.get()); // See if the message is of the message type Slice. Returns nullptr otherwise.
-    if (! slice_message)
+    if (slice_message == nullptr)
     {
         return;
     }
@@ -553,15 +504,15 @@ void ArcusCommunication::sliceNext()
     }
 #endif // ENABLE_PLUGINS
 
-    Slice slice(slice_message->object_lists().size());
-    Application::getInstance().current_slice_ = &slice;
+    auto slice = std::make_shared<Slice>(slice_message->object_lists().size());
+    Application::getInstance().current_slice_ = slice;
 
     private_data->readGlobalSettingsMessage(slice_message->global_settings());
     private_data->readExtruderSettingsMessage(slice_message->extruders());
 
     // Broadcast the settings to the plugins
     slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
-    const size_t extruder_count = slice.scene.extruders.size();
+    const size_t extruder_count = slice->scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
     for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
@@ -572,8 +523,8 @@ void ArcusCommunication::sliceNext()
             // If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
             continue;
         }
-        ExtruderTrain& extruder = slice.scene.extruders[setting_extruder.extruder()];
-        slice.scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
+        ExtruderTrain& extruder = slice->scene.extruders[setting_extruder.extruder()];
+        slice->scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
     }
 
     // Load all mesh groups, meshes and their settings.
@@ -584,9 +535,9 @@ void ArcusCommunication::sliceNext()
     }
     spdlog::debug("Done reading Slice message.");
 
-    if (! slice.scene.mesh_groups.empty())
+    if (! slice->scene.mesh_groups.empty())
     {
-        slice.compute();
+        slice->compute();
         FffProcessor::getInstance()->finalize();
         flushGCode();
         sendPrintTimeMaterialEstimates();

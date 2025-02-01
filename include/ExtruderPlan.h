@@ -42,6 +42,7 @@ class ExtruderPlan
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull);
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
     FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
+    friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
 #endif
 public:
     size_t extruder_nr_{ 0 }; //!< The extruder used for this paths in the current plan.
@@ -123,6 +124,11 @@ public:
      */
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
+    /*!
+     * Gets the mesh being printed first on this plan
+     */
+    std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
     bool is_initial_layer_{ false }; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
@@ -190,7 +196,7 @@ private:
     /*!
      * @return distance between p0 and p1 as well as the time spend on the segment
      */
-    std::pair<double, double> getPointToPointTime(const Point2LL& p0, const Point2LL& p1, const GCodePath& path);
+    std::pair<double, double> getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path) const;
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.

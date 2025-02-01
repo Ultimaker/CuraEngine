@@ -9,6 +9,9 @@
 #include <ctype.h>
 #include <sstream> // ostringstream
 
+#include <boost/archive/iterators/base64_from_binary.hpp>
+#include <boost/archive/iterators/ostream_iterator.hpp>
+#include <boost/archive/iterators/transform_width.hpp>
 #include <spdlog/spdlog.h>
 
 namespace cura
@@ -27,6 +30,30 @@ static inline int stringcasecompare(const char* a, const char* b)
     return *a - *b;
 }
 
+// Convert string to base64 string.
+// This function is useful to forward string through javascript even if they contain any special strings
+//
+[[maybe_unused]] static std::string convertTobase64(const std::string& input)
+{
+    using namespace boost::archive::iterators;
+    // prepare the stream to hold the encoded data
+    std::stringstream output;
+
+    // encode data
+    typedef base64_from_binary<transform_width<std::string::const_iterator, 6, 8>> base64_enc;
+    std::copy(base64_enc(input.begin()), base64_enc(input.end()), ostream_iterator<char>(output));
+
+    // Retrieve the encoded string
+    std::string output_encoded = output.str();
+
+    // ensure padding if needed
+    size_t num = (3 - input.length() % 3) % 3;
+    for (size_t i = 0; i < num; i++)
+    {
+        output_encoded.push_back('=');
+    }
+    return output_encoded;
+}
 /*!
  * Efficient conversion of micron integer type to millimeter string.
  *

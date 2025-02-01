@@ -38,6 +38,9 @@ class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
 
+template<typename PathType>
+class PathAdapter;
+
 /*!
  * The LayerPlan class stores multiple moves that are planned.
  *
@@ -53,6 +56,7 @@ class LayerPlan : public NoCopy
     friend class LayerPlanBuffer;
 #ifdef BUILD_TESTS
     friend class AddTravelTest;
+    friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
 #endif
 
 public:
@@ -62,6 +66,21 @@ public:
     bool mode_skip_agressive_merge_; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
+    // Indicates how coasting should be processed on the given path.
+    enum class ApplyCoasting
+    {
+        NoCoasting, // Do not apply coasting on this path, extrude it normally
+        CoastEntirePath, // Fully coast this path, i.e. replace it by travel moves
+        PartialCoasting // Extrude the first part of the path and coast the end
+    };
+
+    struct PathCoasting
+    {
+        ApplyCoasting apply_coasting{ ApplyCoasting::NoCoasting };
+        size_t coasting_start_index{ 0 };
+        Point3LL coasting_start_pos;
+    };
+
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr_; //!< The layer number of this layer plan
     const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
@@ -290,6 +309,11 @@ public:
     void setSeamOverhangMask(const Shape& polys);
 
     /*!
+     * Get the seam overhang mask, which contains the areas where we don't want to place the seam because they are overhanding
+     */
+    const Shape& getSeamOverhangMask() const;
+
+    /*!
      * Set roofing_mask.
      *
      * \param polys The areas of the part currently being processed that will require roofing.
@@ -359,14 +383,15 @@ public:
      * \param fan_speed Fan speed override for this path.
      */
     void addExtrusionMove(
-        const Point2LL p,
+        const Point3LL& p,
         const GCodePathConfig& config,
         const SpaceFillType space_fill_type,
         const Ratio& flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
         const bool spiralize = false,
         const Ratio speed_factor = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool travel_to_z = true);
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -378,16 +403,21 @@ public:
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addPolygon(
         const Polygon& polygon,
         int startIdx,
         const bool reverse,
+        const Settings& settings,
         const GCodePathConfig& config,
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio& flow_ratio = 1.0_r,
-        bool always_retract = false);
+        bool always_retract = false,
+        bool scarf_seam = false,
+        bool smooth_speed = false);
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -416,17 +446,22 @@ public:
      * \param reverse_order Adds polygons in reverse order.
      * \param start_near_location Start optimising the path near this location.
      * If unset, this causes it to start near the last planned location.
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addPolygonsByOptimizer(
         const Shape& polygons,
         const GCodePathConfig& config,
+        const Settings& settings,
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio flow_ratio = 1.0_r,
         bool always_retract = false,
         bool reverse_order = false,
-        const std::optional<Point2LL> start_near_location = std::optional<Point2LL>());
+        const std::optional<Point2LL> start_near_location = std::optional<Point2LL>(),
+        bool scarf_seam = false,
+        bool smooth_acceleration = false);
 
     /*!
      * Add a single line that is part of a wall to the gcode.
@@ -451,8 +486,8 @@ public:
      * the first bridge segment.
      */
     void addWallLine(
-        const Point2LL& p0,
-        const Point2LL& p1,
+        const Point3LL& p0,
+        const Point3LL& p1,
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
@@ -461,7 +496,8 @@ public:
         const Ratio width_factor,
         double& non_bridge_line_volume,
         Ratio speed_factor,
-        double distance_to_bridge_start);
+        double distance_to_bridge_start,
+        const bool travel_to_z = true);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -480,7 +516,7 @@ public:
      */
     void addWall(
         const Polygon& wall,
-        int start_idx,
+        size_t start_idx,
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
@@ -509,10 +545,12 @@ public:
      * polyline).
      * \param is_reversed Whether to print this wall in reverse direction.
      * \param is_linked_path Whether the path is a continuation off the previous path
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
     void addWall(
         const ExtrusionLine& wall,
-        int start_idx,
+        size_t start_idx,
         const Settings& settings,
         const GCodePathConfig& default_config,
         const GCodePathConfig& roofing_config,
@@ -522,7 +560,9 @@ public:
         bool always_retract,
         const bool is_closed,
         const bool is_reversed,
-        const bool is_linked_path);
+        const bool is_linked_path,
+        const bool scarf_seam = false,
+        const bool smooth_speed = false);
 
     /*!
      * Add an infill wall to the g-code
@@ -664,50 +704,6 @@ public:
         const bool is_top_layer,
         const bool is_bottom_layer);
 
-
-    /*!
-     * Given a wall polygon and a start vertex index, return the index of the first vertex that is supported (is not above air)
-     *
-     * Uses bridge_wall_mask and overhang_mask to determine where there is air below
-     *
-     * \param wall The wall polygon
-     * \param start_idx The index of the starting vertex of \p wall
-     * \return The index of the first supported vertex - if no vertices are supported, start_idx is returned
-     */
-    template<typename T>
-    unsigned locateFirstSupportedVertex(const T& wall, const unsigned start_idx) const
-    {
-        if (bridge_wall_mask_.empty() && seam_overhang_mask_.empty())
-        {
-            return start_idx;
-        }
-
-        const auto air_below = bridge_wall_mask_.unionPolygons(seam_overhang_mask_);
-
-        unsigned curr_idx = start_idx;
-
-        while (true)
-        {
-            const Point2LL& vertex = cura::make_point(wall[curr_idx]);
-            if (! air_below.inside(vertex, true))
-            {
-                // vertex isn't above air so it's OK to use
-                return curr_idx;
-            }
-
-            if (++curr_idx >= wall.size())
-            {
-                curr_idx = 0;
-            }
-
-            if (curr_idx == start_idx)
-            {
-                // no vertices are supported so just return the original index
-                return start_idx;
-            }
-        }
-    }
-
     /*!
      * Write the planned paths to gcode
      *
@@ -724,25 +720,6 @@ public:
      * \return Whether the path should be an extruder switch retracted path
      */
     bool makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx);
-
-    /*!
-     * Writes a path to GCode and performs coasting, or returns false if it did nothing.
-     *
-     * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
-     *
-     * \param gcode The gcode to write the planned paths to.
-     * \param extruder_plan_idx The index of the current extruder plan.
-     * \param path_idx The index into LayerPlan::paths for the next path to be
-     * written to GCode.
-     * \param layer_thickness The height of the current layer.
-     * \return Whether any GCode has been written for the path.
-     */
-    bool writePathWithCoasting(
-        GCodeExport& gcode,
-        const size_t extruder_plan_idx,
-        const size_t path_idx,
-        const coord_t layer_thickness,
-        const std::function<void(const double, const int64_t)> insertTempOnTime);
 
     /*!
      * Applying speed corrections for minimal layer times and determine the fanSpeed.
@@ -777,6 +754,17 @@ public:
      * the back-pressure is compensated for. This is conjectured to be especially important if the printer has a Bowden-tube style setup.
      */
     void applyBackPressureCompensation();
+
+    /*!
+     * If enabled, applies the gradual flow acceleration splitting, that improves printing quality when printing at very high speed,
+     * especially with a bowden extruder.
+     */
+    void applyGradualFlow();
+
+    /*!
+     * Gets the mesh being printed first on this layer
+     */
+    std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
 
 private:
     /*!
@@ -813,6 +801,212 @@ private:
         const coord_t wipe_dist,
         const Ratio flow_ratio,
         const double fan_speed);
+
+    /*!
+     *  @brief Send a GCodePath line to the communication object, applying proper Z offsets
+     *  @param path The path to be sent
+     *  @param position The start position (which is not included in the path points)
+     *  @param extrude_speed The actual used extrusion speed
+     */
+    void sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed);
+
+    /*!
+     *  @brief Write a travel move and properly apply the various Z offsets
+     *  @param gcode The actual GCode exporter
+     *  @param position The position to move to. The Z coordinate is an offset to the current layer position
+     *  @param speed The actual used speed
+     *  @param path_z_offset The global path Z offset to be applied
+     *  @note This function is to be used when dealing with 3D coordinates. If you have 2D coordinates, just call gcode.writeTravel()
+     */
+    void writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset);
+
+    /*!
+     * \brief Write an extrusion move and properly apply the various Z offsets
+     * \param gcode The actual GCode exporter
+     * \param position The position to move to. The Z coordinate is an offset to the current layer position
+     * \param speed The actual used speed
+     * \param path_z_offset The global path Z offset to be applied
+     * \param extrusion_mm3_per_mm The desired flow rate
+     * \param feature The current feature being printed
+     * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
+     */
+    void writeExtrusionRelativeZ(
+        GCodeExport& gcode,
+        const Point3LL& position,
+        const Velocity& speed,
+        const coord_t path_z_offset,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        bool update_extrusion_offset = false);
+
+    /*!
+     * \brief Alias for a function definition that adds an extrusion segment
+     * \param start The start position of the segment
+     * \param end The end position of the segment
+     * \param speed_factor The speed factor to be applied when extruding this specific segment (relative to nominal speed for the entire path)
+     * \param flow_ratio The flow ratio to be applied when extruding this specific segment (relative to nominal flow for the entire path)
+     * \param line_width_ratio The line width ratio to be applied when extruding this specific segment (relative to nominal line width for the entire path)
+     * \param distance_to_bridge_start The calculate distance to the next bridge start, which may be irrelevant in some cases
+     */
+    using AddExtrusionSegmentFunction = std::function<void(
+        const Point3LL& start,
+        const Point3LL& end,
+        const Ratio& speed_factor,
+        const Ratio& flow_ratio,
+        const Ratio& line_width_ratio,
+        const coord_t distance_to_bridge_start)>;
+
+    /*!
+     * \brief Add a wall to the gcode with optimized order, but split into pieces in order to facilitate the scarf seam and/or speed gradient.
+     * \tparam PathType The type of path to be processed, either ExtrusionLine or some subclass of Polyline
+     * \param wall The full wall to be added
+     * \param wall_length The pre-calculated full wall length
+     * \param start_idx The index of the point where to start printing the wall
+     * \param direction The direction along which to print the wall, which should be 1 or -1
+     * \param max_index The last index to be used when iterating over the wall segments
+     * \param default_config The config with which to print the wall lines that are not spanning a bridge or are exposed to air
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param nominal_line_width The nominal line width for the wall
+     * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
+     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param is_small_feature Indicates whether the wall is so small that it should be processed differently
+     * \param small_feature_speed_factor The speed factor to be applied to small feature walls
+     * \param max_area_deviation The maximum allowed area deviation to split a segment into pieces
+     * \param max_resolution The maximum resolution to split a segment into pieces
+     * \param scarf_seam_length The length of the scarf joint seam, which may be 0 if there is none
+     * \param scarf_seam_start_ratio The ratio of the line thickness to start the scarf seam with
+     * \param scarf_split_distance The maximum length of a segment to apply the scarf seam gradient, longer segments will be splitted
+     * \param scarf_max_z_offset The maximum Z offset te be applied at the lowest position of the scarf seam
+     * \param speed_split_distance The maximum length of a segment to apply the acceleration/deceleration gradient, longer segments will be splitted
+     * \param start_speed_ratio The ratio of the top speed to be applied when starting the segment, then accelerate gradually to full speed
+     * \param accelerate_length The pre-calculated length of the acceleration phase
+     * \param end_speed_ratio The ratio of the top speed to be applied when finishing a segment
+     * \param decelerate_length The pre-calculated length of the deceleration phase
+     * \param is_scarf_closure Indicates whether this function is called to make the scarf closure (overlap over the first scarf pass) or the normal first pass of the wall
+     * \param compute_distance_to_bridge_start Whether we should compute the distance to start of bridge. This is
+     *                                         possible only if PathType is ExtrusionLine and will be ignored otherwise.
+     * \param func_add_segment The function to be called to actually add an extrusion segment with the given parameters
+     * \return The index of the last traversed point, and the final position with the scarf seam
+     */
+    template<class PathType>
+    std::tuple<size_t, Point2LL> addSplitWall(
+        const PathAdapter<PathType>& wall,
+        const coord_t wall_length,
+        const size_t start_idx,
+        const size_t max_index,
+        const int direction,
+        const GCodePathConfig& default_config,
+        const bool always_retract,
+        const bool is_small_feature,
+        Ratio small_feature_speed_factor,
+        const coord_t max_area_deviation,
+        const auto max_resolution,
+        const double flow_ratio,
+        const coord_t nominal_line_width,
+        const coord_t min_bridge_line_len,
+        const auto scarf_seam_length,
+        const auto scarf_seam_start_ratio,
+        const auto scarf_split_distance,
+        const coord_t scarf_max_z_offset,
+        const coord_t speed_split_distance,
+        const Ratio start_speed_ratio,
+        const coord_t accelerate_length,
+        const Ratio end_speed_ratio,
+        const coord_t decelerate_length,
+        const bool is_scarf_closure,
+        const bool compute_distance_to_bridge_start,
+        const AddExtrusionSegmentFunction& func_add_segment);
+
+    /*!
+     * \brief Add a wall to the gcode with optimized order, possibly adding a scarf seam / speed gradient according to settings
+     * \tparam PathType The type of path to be processed, either ExtrusionLine or some subclass of Polyline
+     * \param wall The full wall to be added
+     * \param start_idx The index of the point where to start printing the wall
+     * \param settings The settings which should apply to this wall added to the layer plan
+     * \param default_config The config with which to print the wall lines that are not spanning a bridge or are exposed to air
+     * \param flow_ratio The ratio with which to multiply the extrusion amount
+     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param is_closed Indicates whether the path is closed (or open)
+     * \param is_reversed Indicates if the path is to be processed backwards
+     * \param is_candidate_small_feature Indicates whether the path should be tested for being treated as a smell feature
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
+     * \param func_add_segment The function to be called to actually add an extrusion segment with the given parameters
+     * \return The index of the last traversed point, and the final position with the scarf seam
+     */
+    template<class PathType>
+    std::tuple<size_t, Point2LL> addWallWithScarfSeam(
+        const PathAdapter<PathType>& wall,
+        size_t start_idx,
+        const Settings& settings,
+        const GCodePathConfig& default_config,
+        const double flow_ratio,
+        bool always_retract,
+        const bool is_closed,
+        const bool is_reversed,
+        const bool is_candidate_small_feature,
+        const bool scarf_seam,
+        const bool smooth_speed,
+        const AddExtrusionSegmentFunction& func_add_segment);
+
+    /*!
+     * \brief Add a wipe travel after the given path has been extruded
+     * \tparam PathType The type of path to be processed, either ExtrusionLine or some subclass of Polyline
+     * \param path The path that has just been extruded
+     * \param wipe_distance The length of the wipe move to be added
+     * \param backwards Indicates if the path has been processed backwards
+     * \param start_index The index of the point where o start printing the path
+     * \param last_path_position The actual last position of the extruder, which may be slightly forwards on the last printed segment
+     */
+    template<class PathType>
+    void addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const Point2LL& last_path_position);
+
+    /*!
+     * Pre-calculates the coasting to be applied on the paths
+     *
+     * \param extruder_settings The current extruder settings
+     * \param paths The current set of paths to be written to GCode
+     * \param current_position The last position set in the gcode writer
+     * \return The list of coasting settings to be applied on the paths. It will always have the same size as paths.
+     */
+    std::vector<PathCoasting> calculatePathsCoasting(const Settings& extruder_settings, const std::vector<GCodePath>& paths, const Point3LL& current_position) const;
+
+    /*!
+     * Writes a path to GCode and performs coasting, or returns false if it did nothing.
+     *
+     * Coasting replaces the last piece of an extruded path by move commands and uses the oozed material to lay down lines.
+     *
+     * \param gcode The gcode to write the planned paths to.
+     * \param extruder_plan_idx The index of the current extruder plan.
+     * \param path_idx The index into LayerPlan::paths for the next path to be
+     * written to GCode.
+     * \param layer_thickness The height of the current layer.
+     * \param insertTempOnTime A function that inserts temperature changes at a given time.
+     * \param path_coasting The actual coasting to be applied to the path.
+     * \return Whether any GCode has been written for the path.
+     */
+    bool writePathWithCoasting(
+        GCodeExport& gcode,
+        const size_t extruder_plan_idx,
+        const size_t path_idx,
+        const std::function<void(const double, const int64_t)> insertTempOnTime,
+        const PathCoasting& path_coasting);
+
+    /*!
+     * \brief Helper function to calculate the distance from the start of the current wall line to the first bridge segment
+     * \param wall The currently processed wall
+     * \param current_index The index of the currently processed point
+     * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
+     * \return The distance from the start of the current wall line to the first bridge segment
+     */
+    coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const;
+
+    /*!
+     * \brief Calculates whether the given segment is to be treated as overhanging
+     * \param p0 The start point of the segment
+     * \param p1 The end point of the segment
+     */
+    bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
 };
 
 } // namespace cura

@@ -38,7 +38,7 @@ public:
      * Mock away the communication channel where layer data is output by this
      * class.
      */
-    MockCommunication* mock_communication;
+    std::shared_ptr<MockCommunication> mock_communication;
 
     void SetUp() override
     {
@@ -68,15 +68,13 @@ public:
         gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice_ = new Slice(1);
-        mock_communication = new MockCommunication();
+        Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
+        mock_communication = std::make_shared<MockCommunication>();
         Application::getInstance().communication_ = mock_communication;
     }
 
     void TearDown() override
     {
-        delete Application::getInstance().current_slice_;
-        delete Application::getInstance().communication_;
         Application::getInstance().communication_ = nullptr;
     }
 };
@@ -224,12 +222,7 @@ public:
         gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice_ = new Slice(0);
-    }
-
-    void TearDown() override
-    {
-        delete Application::getInstance().current_slice_;
+        Application::getInstance().current_slice_ = std::make_shared<Slice>(0);
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -705,7 +698,7 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     config.move_speed = 10.0;
     config.pause = 0;
 
-    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(5);
     gcode.insertWipeScript(config);
 
     std::string token;

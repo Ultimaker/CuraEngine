@@ -59,6 +59,14 @@ std::string SVG::toString(const ColorObject& color) const
     }
 }
 
+void SVG::handleFlush(const bool flush) const
+{
+    if (flush)
+    {
+        fflush(out_);
+    }
+}
+
 
 SVG::SVG(std::string filename, AABB aabb, Point2LL canvas_size, ColorObject background)
     : SVG(
@@ -249,7 +257,7 @@ void SVG::writeLines(const std::vector<Point2LL>& polyline, const ColorObject co
     fprintf(out_, "\" />\n"); // Write the end of the tag.
 }
 
-void SVG::writeLine(const Point2LL& a, const Point2LL& b, const ColorObject color, const double stroke_width) const
+void SVG::writeLine(const Point2LL& a, const Point2LL& b, const ColorObject color, const double stroke_width, const bool flush) const
 {
     Point3D fa = transformF(a);
     Point3D fb = transformF(b);
@@ -262,6 +270,8 @@ void SVG::writeLine(const Point2LL& a, const Point2LL& b, const ColorObject colo
         static_cast<double>(fb.y_),
         toString(color).c_str(),
         static_cast<double>(stroke_width));
+
+    handleFlush(flush);
 }
 
 void SVG::writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color, const double stroke_width, const double head_size) const
@@ -342,10 +352,7 @@ void SVG::writePolygons(const Shape& polys, const ColorObject color, const doubl
         writePolygon(poly, color, stroke_width, false);
     }
 
-    if (flush)
-    {
-        fflush(out_);
-    }
+    handleFlush(flush);
 }
 
 void SVG::writePolygon(const Polygon poly, const ColorObject color, const double stroke_width, const bool flush) const
@@ -381,19 +388,18 @@ void SVG::writePolygon(const Polygon poly, const ColorObject color, const double
         i++;
     }
 
-    if (flush)
-    {
-        fflush(out_);
-    }
+    handleFlush(flush);
 }
 
 
-void SVG::writePolylines(const Shape& polys, const ColorObject color, const double stroke_width) const
+void SVG::writePolylines(const Shape& polys, const ColorObject color, const double stroke_width, const bool flush) const
 {
     for (const Polygon& poly : polys)
     {
-        writePolyline(poly, color, stroke_width);
+        writePolyline(poly, color, stroke_width, false);
     }
+
+    handleFlush(flush);
 }
 
 void SVG::writePolyline(const Polygon& poly, const ColorObject color, const double stroke_width) const
@@ -427,6 +433,16 @@ void SVG::writePolyline(const Polygon& poly, const ColorObject color, const doub
     }
 }
 
+void SVG::writePolyline(const Polyline& poly, const ColorObject color, const double stroke_width, const bool flush) const
+{
+    for (auto iterator = poly.beginSegments(); iterator != poly.endSegments(); ++iterator)
+    {
+        writeLine((*iterator).start, (*iterator).end, color, stroke_width, false);
+    }
+
+    handleFlush(flush);
+}
+
 void SVG::writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color, const double width_factor) const
 {
     for (const VariableWidthLines& lines : paths)
@@ -443,7 +459,7 @@ void SVG::writeLines(const VariableWidthLines& lines, const ColorObject color, c
     }
 }
 
-void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const double width_factor) const
+void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const double width_factor, const bool flush) const
 {
     constexpr double minimum_line_width = 10; // Always have some width, otherwise some lines become completely invisible.
     if (line.junctions_.empty()) // Only draw lines that have at least 2 junctions, otherwise they are degenerate.
@@ -480,6 +496,11 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
             static_cast<double>(end_left.y_));
 
         start_vertex = end_vertex; // For the next line segment.
+    }
+
+    if (flush)
+    {
+        fflush(out_);
     }
 }
 

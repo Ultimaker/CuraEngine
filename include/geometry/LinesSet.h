@@ -158,7 +158,7 @@ public:
     template<class OtherLineType>
     void push_back(LinesSet<OtherLineType>&& lines_set);
 
-    /*! \brief Pushes an entier set at the end */
+    /*! \brief Pushes an entire set at the end */
     void push_back(const LinesSet& other)
     {
         lines_.insert(lines_.end(), other.lines_.begin(), other.lines_.end());

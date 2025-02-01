@@ -125,7 +125,7 @@ class CuraEngineConan(ConanFile):
             self.requires("protobuf/3.21.12")
         self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.82.0")
-        self.requires("rapidjson/1.1.0")
+        self.requires("rapidjson/cci.20230929")
         self.requires("stb/20200203")
         self.requires("spdlog/1.12.0")
         self.requires("fmt/10.1.1")
@@ -140,6 +140,7 @@ class CuraEngineConan(ConanFile):
 
         tc = CMakeToolchain(self)
         tc.variables["CURA_ENGINE_VERSION"] = self.version
+        tc.variables["CURA_ENGINE_HASH"] = self.conan_data["commit"]
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
         tc.variables["ENABLE_TESTING"] = not self.conf.get("tools.build:skip_test", False, check_type=bool)
         tc.variables["ENABLE_BENCHMARKS"] = self.options.enable_benchmarks

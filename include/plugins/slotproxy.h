@@ -40,7 +40,7 @@ class SlotProxy
 {
     Default default_process{};
     using value_type = PluginProxy<SlotID, SlotVersion, Stub, ValidatorTp, RequestTp, ResponseTp>;
-    std::optional<value_type> plugin_{ std::nullopt };
+    std::vector<value_type> plugins_;
 
 public:
     static constexpr plugins::v0::SlotID slot_id{ SlotID };
@@ -53,14 +53,15 @@ public:
     SlotProxy() noexcept = default;
 
     /**
-     * @brief Constructs a SlotProxy object with a plugin.
-     *
-     * Constructs a SlotProxy object and initializes the plugin using the provided gRPC channel.
-     *
+     * @brief Adds a plugin to this proxy.
+     * @param name The fully-qualified name of the plugin
+     * @param version The full verison of the plugin
      * @param channel A shared pointer to the gRPC channel for communication with the plugin.
      */
-    SlotProxy(const std::string& name, const std::string& version, std::shared_ptr<grpc::Channel> channel)
-        : plugin_{ value_type{ name, version, channel } } {};
+    void addPlugin(const std::string& name, const std::string& version, std::shared_ptr<grpc::Channel> channel)
+    {
+        plugins_.emplace_back(name, version, channel);
+    }
 
     /**
      * @brief Executes the plugin operation.
@@ -75,18 +76,25 @@ public:
      */
     constexpr auto generate(auto&&... args)
     {
-        if (plugin_.has_value())
+        if (! plugins_.empty())
         {
-            return plugin_.value().generate(std::forward<decltype(args)>(args)...);
+            return plugins_.front().generate(std::forward<decltype(args)>(args)...);
         }
         return std::invoke(default_process, std::forward<decltype(args)>(args)...);
     }
 
     constexpr auto modify(auto& original_value, auto&&... args)
     {
-        if (plugin_.has_value())
+        if (! plugins_.empty())
         {
-            return plugin_.value().modify(original_value, std::forward<decltype(args)>(args)...);
+            auto modified_value = original_value;
+
+            for (value_type& plugin : plugins_)
+            {
+                modified_value = plugin.modify(modified_value, std::forward<decltype(args)>(args)...);
+            }
+
+            return modified_value;
         }
         if constexpr (sizeof...(args) == 0)
         {
@@ -98,9 +106,9 @@ public:
     template<v0::SlotID S>
     void broadcast(auto&&... args)
     {
-        if (plugin_.has_value())
+        for (value_type& plugin : plugins_)
         {
-            plugin_.value().template broadcast<S>(std::forward<decltype(args)>(args)...);
+            plugin.template broadcast<S>(std::forward<decltype(args)>(args)...);
         }
     }
 };

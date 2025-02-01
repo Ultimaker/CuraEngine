@@ -20,7 +20,7 @@ struct GCodePathConfig
 {
     static constexpr double FAN_SPEED_DEFAULT = -1.0;
 
-    coord_t z_offset{}; //<! vertical offset from 'full' layer height
+    coord_t z_offset{}; //<! vertical offset from 'full' layer height, to be applied to the whole path
     PrintFeatureType type{}; //!< name of the feature type
     coord_t line_width{}; //!< width of the line extruded
     coord_t layer_thickness{}; //!< current layer height in micron

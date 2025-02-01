@@ -32,10 +32,6 @@
 #include "utils/format/filesystem_path.h"
 #include "utils/views/split_paths.h"
 
-#ifdef __EMSCRIPTEN__
-#include <emscripten.h>
-#endif
-
 namespace cura
 {
 
@@ -56,7 +52,7 @@ void CommandLine::beginGCode()
 void CommandLine::flushGCode()
 {
 }
-void CommandLine::sendCurrentPosition(const Point2LL&)
+void CommandLine::sendCurrentPosition(const Point3LL&)
 {
 }
 void CommandLine::sendFinishedSlicing() const
@@ -65,16 +61,10 @@ void CommandLine::sendFinishedSlicing() const
 void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&)
 {
 }
-void CommandLine::sendLineTo(const PrintFeatureType&, const Point2LL&, const coord_t&, const coord_t&, const Velocity&)
+void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&)
 {
 }
 void CommandLine::sendOptimizedLayerData()
-{
-}
-void CommandLine::sendPolygon(const PrintFeatureType&, const Polygon&, const coord_t&, const coord_t&, const Velocity&)
-{
-}
-void CommandLine::sendPolygons(const PrintFeatureType&, const Shape&, const coord_t&, const coord_t&, const Velocity&)
 {
 }
 void CommandLine::setExtruderForSend(const ExtruderTrain&)
@@ -124,13 +114,6 @@ void CommandLine::sendProgress(double progress) const
     {
         return;
     }
-    // TODO: Do we want to print a progress bar? We'd need a better solution to not have that progress bar be ruined by any logging.
-#ifdef __EMSCRIPTEN__
-    // Call progress handler with progress
-    char js[100];
-    std::sprintf(js, "globalThis[\"%s\"](%f)", progressHandler.c_str(), progress);
-    emscripten_run_script(js);
-#endif
 }
 
 void CommandLine::sliceNext()
@@ -146,16 +129,16 @@ void CommandLine::sliceNext()
             num_mesh_groups++;
         }
     }
-    Slice slice(num_mesh_groups);
 
-    Application::getInstance().current_slice_ = &slice;
+    Application::getInstance().current_slice_ = std::make_shared<Slice>(num_mesh_groups);
+    auto slice = Application::getInstance().current_slice_;
 
     size_t mesh_group_index = 0;
-    Settings* last_settings = &slice.scene.settings;
+    Settings* last_settings = &slice->scene.settings;
 
-    slice.scene.extruders.reserve(arguments_.size() >> 1); // Allocate enough memory to prevent moves.
-    slice.scene.extruders.emplace_back(0, &slice.scene.settings); // Always have one extruder.
-    ExtruderTrain* last_extruder = slice.scene.extruders.data();
+    slice->scene.extruders.reserve(arguments_.size() >> 1); // Allocate enough memory to prevent moves.
+    slice->scene.extruders.emplace_back(0, &slice->scene.settings); // Always have one extruder.
+    ExtruderTrain* last_extruder = slice->scene.extruders.data();
 
     bool force_read_parent = false;
     bool force_read_nondefault = false;
@@ -175,7 +158,7 @@ void CommandLine::sliceNext()
 
                         mesh_group_index++;
                         FffProcessor::getInstance()->time_keeper.restart();
-                        last_settings = &slice.scene.mesh_groups[mesh_group_index].settings;
+                        last_settings = &slice->scene.mesh_groups[mesh_group_index].settings;
                     }
                     catch (...)
                     {
@@ -203,15 +186,14 @@ void CommandLine::sliceNext()
                     force_read_parent = false;
                     force_read_nondefault = false;
                 }
-#ifdef __EMSCRIPTEN__
-                else if (argument.find("--progress") == 0)
+                else if (
+                    argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb") || argument.starts_with("--gcode_header_cb")
+                    || argument.starts_with("--engine_info_cb"))
                 {
-                    // Store progress handler name
+                    // Unused in command line slicing, but used in EmscriptenCommunication.
                     argument_index++;
                     argument = arguments_[argument_index];
-                    progressHandler = argument;
                 }
-#endif
                 else
                 {
                     spdlog::error("Unknown option: {}", argument);
@@ -266,12 +248,12 @@ void CommandLine::sliceNext()
                     }
 
                     // If this was the global stack, create extruders for the machine_extruder_count setting.
-                    if (last_settings == &slice.scene.settings)
+                    if (last_settings == &slice->scene.settings)
                     {
-                        const auto extruder_count = slice.scene.settings.get<size_t>("machine_extruder_count");
-                        while (slice.scene.extruders.size() < extruder_count)
+                        const auto extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
+                        while (slice->scene.extruders.size() < extruder_count)
                         {
-                            slice.scene.extruders.emplace_back(slice.scene.extruders.size(), &slice.scene.settings);
+                            slice->scene.extruders.emplace_back(slice->scene.extruders.size(), &slice->scene.settings);
                         }
                     }
                     // If this was an extruder stack, make sure that the extruder_nr setting is correct.
@@ -284,13 +266,13 @@ void CommandLine::sliceNext()
                 case 'e':
                 {
                     size_t extruder_nr = stoul(argument.substr(2));
-                    while (slice.scene.extruders.size() <= extruder_nr) // Make sure we have enough extruders up to the extruder_nr that the user wanted.
+                    while (slice->scene.extruders.size() <= extruder_nr) // Make sure we have enough extruders up to the extruder_nr that the user wanted.
                     {
-                        slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
+                        slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
                     }
-                    last_settings = &slice.scene.extruders[extruder_nr].settings_;
+                    last_settings = &slice->scene.extruders[extruder_nr].settings_;
                     last_settings->add("extruder_nr", argument.substr(2));
-                    last_extruder = &slice.scene.extruders[extruder_nr];
+                    last_extruder = &slice->scene.extruders[extruder_nr];
                     break;
                 }
                 case 'l':
@@ -305,14 +287,14 @@ void CommandLine::sliceNext()
 
                     const auto transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
-                    if (! loadMeshIntoMeshGroup(&slice.scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings_))
+                    if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings_))
                     {
                         spdlog::error("Failed to load model: {}. (error number {})", argument, errno);
                         exit(1);
                     }
                     else
                     {
-                        last_settings = &slice.scene.mesh_groups[mesh_group_index].meshes.back().settings_;
+                        last_settings = &slice->scene.mesh_groups[mesh_group_index].meshes.back().settings_;
                     }
                     break;
                 }
@@ -334,7 +316,7 @@ void CommandLine::sliceNext()
                 }
                 case 'g':
                 {
-                    last_settings = &slice.scene.mesh_groups[mesh_group_index].settings;
+                    last_settings = &slice->scene.mesh_groups[mesh_group_index].settings;
                     break;
                 }
                 /* ... falls through ... */
@@ -432,49 +414,45 @@ void CommandLine::sliceNext()
 
                     for (const auto& [setting_key, setting_value] : global_settings)
                     {
-                        slice.scene.settings.add(setting_key, setting_value);
+                        slice->scene.settings.add(setting_key, setting_value);
                     }
 
                     for (const auto& [key, values] : extruder_settings)
                     {
                         const auto extruder_nr = std::stoi(key.substr(extruder_identifier.size()));
-                        while (slice.scene.extruders.size() <= static_cast<size_t>(extruder_nr))
+                        while (slice->scene.extruders.size() <= static_cast<size_t>(extruder_nr))
                         {
-                            slice.scene.extruders.emplace_back(extruder_nr, &slice.scene.settings);
+                            slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
                         }
                         for (const auto& [setting_key, setting_value] : values)
                         {
-                            slice.scene.extruders[extruder_nr].settings_.add(setting_key, setting_value);
+                            slice->scene.extruders[extruder_nr].settings_.add(setting_key, setting_value);
                         }
                     }
 
                     for (const auto& [key, values] : model_settings)
                     {
                         const auto& model_name = key;
-
-                        cura::MeshGroup mesh_group;
                         for (const auto& [setting_key, setting_value] : values)
                         {
-                            mesh_group.settings.add(setting_key, setting_value);
+                            slice->scene.mesh_groups[mesh_group_index].settings.add(setting_key, setting_value);
                         }
 
-                        const auto transformation = mesh_group.settings.get<Matrix4x3D>("mesh_rotation_matrix");
-                        const auto extruder_nr = mesh_group.settings.get<size_t>("extruder_nr");
+                        const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
+                        const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
 
-                        if (! loadMeshIntoMeshGroup(&mesh_group, model_name.c_str(), transformation, slice.scene.extruders[extruder_nr].settings_))
+                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name.c_str(), transformation, slice->scene.extruders[extruder_nr].settings_))
                         {
                             spdlog::error("Failed to load model: {}. (error number {})", model_name, errno);
                             exit(1);
                         }
-
-                        slice.scene.mesh_groups.push_back(std::move(mesh_group));
                     }
                     for (const auto& [key, value] : limit_to_extruder)
                     {
                         const auto extruder_nr = std::stoi(value.substr(extruder_identifier.size()));
                         if (extruder_nr >= 0)
                         {
-                            slice.scene.limit_to_extruder[key] = &slice.scene.extruders[extruder_nr];
+                            slice->scene.limit_to_extruder[key] = &slice->scene.extruders[extruder_nr];
                         }
                     }
 
@@ -505,11 +483,11 @@ void CommandLine::sliceNext()
     try
     {
 #endif // DEBUG
-        slice.scene.mesh_groups[mesh_group_index].finalize();
+        slice->scene.mesh_groups[mesh_group_index].finalize();
         spdlog::info("Loaded from disk in {:3}s\n", FffProcessor::getInstance()->time_keeper.restart());
 
         // Start slicing.
-        slice.compute();
+        slice->compute();
 #ifndef DEBUG
     }
     catch (...)

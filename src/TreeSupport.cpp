@@ -2771,8 +2771,8 @@ void TreeSupport::calculateSupportHoles(std::vector<Shape>& support_layer_storag
 
                     for (auto [idx2, hole2] : hole_parts[layer_idx - 1] | ranges::views::enumerate)
                     {
-                        if (hole_aabb.hit(AABB(hole2))
-                            && ! hole.intersection(hole2).empty()) // TODO should technically be outline: Check if this is fine either way as it would save an offset
+                        // TODO should technically be outline: Check if this is fine either way as it would save an offset
+                        if (hole_aabb.hit(AABB(hole2)) && ! hole.intersection(PolygonUtils::clipPolygonWithAABB(hole2, hole_aabb)).empty())
                         {
                             hole_rest_map[layer_idx][idx].emplace_back(idx2);
                         }

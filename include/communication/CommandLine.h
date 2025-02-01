@@ -27,6 +27,8 @@ using container_setting_map = std::unordered_map<std::string, setting_map>;
 class CommandLine : public Communication
 {
 public:
+    CommandLine() = default;
+
     /*
      * \brief Construct a new communicator that interprets the command line to
      * start a slice.
@@ -64,7 +66,7 @@ public:
      * The command line doesn't do anything with the current position so this is
      * ignored.
      */
-    void sendCurrentPosition(const Point2LL&) override;
+    void sendCurrentPosition(const Point3LL&) override;
 
     /*
      * \brief Indicate to the command line that we finished slicing.
@@ -98,7 +100,7 @@ public:
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType&, const Point2LL&, const coord_t&, const coord_t&, const Velocity&) override;
+    void sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Complete a layer to show it in layer view.
@@ -106,20 +108,6 @@ public:
      * The command line doesn't show any layer view so this is ignored.
      */
     void sendOptimizedLayerData() override;
-
-    /*
-     * \brief Send a polygon to show it in layer view.
-     *
-     * The command line doesn't show any layer view so this is ignored.
-     */
-    void sendPolygon(const PrintFeatureType&, const Polygon&, const coord_t&, const coord_t&, const Velocity&) override;
-
-    /*
-     * \brief Send a polygon to show it in layer view.
-     *
-     * The command line doesn't show any layer view so this is ignored.
-     */
-    void sendPolygons(const PrintFeatureType&, const Shape&, const coord_t&, const coord_t&, const Velocity&) override;
 
     /*
      * \brief Show an estimate of how long the print would take and how much
@@ -155,17 +143,14 @@ public:
      */
     void sliceNext() override;
 
-private:
-#ifdef __EMSCRIPTEN__
-    std::string progressHandler;
-#endif
-
-    std::vector<std::filesystem::path> search_directories_;
-
+protected:
     /*
      * \brief The command line arguments that the application was called with.
      */
     std::vector<std::string> arguments_;
+
+private:
+    std::vector<std::filesystem::path> search_directories_;
 
     /*
      * The last progress update that we output to stdcerr.

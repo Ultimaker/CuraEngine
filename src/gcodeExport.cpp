@@ -417,7 +417,7 @@ const Point3LL& GCodeExport::getPosition() const
 }
 Point2LL GCodeExport::getPositionXY() const
 {
-    return Point2LL(current_position_.x_, current_position_.y_);
+    return current_position_.toPoint2LL();
 }
 
 int GCodeExport::getPositionZ() const
@@ -975,7 +975,7 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     const PrintFeatureType travel_move_type = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
     const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
-    Application::getInstance().communication_->sendLineTo(travel_move_type, Point2LL(x, y), display_width, layer_height, speed);
+    Application::getInstance().communication_->sendLineTo(travel_move_type, Point3LL(x, y, z), display_width, layer_height, speed);
 
     *output_stream_ << "G0";
     writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type);
@@ -1249,9 +1249,11 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*
             speed = extruder.settings_.get<Velocity>("speed_z_hop");
         }
         is_z_hopped_ = hop_height;
+        const coord_t target_z = current_layer_z_ + is_z_hopped_;
         current_speed_ = speed;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ current_layer_z_ + is_z_hopped_ } << new_line_;
-        total_bounding_box_.includeZ(current_layer_z_ + is_z_hopped_);
+        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z } << new_line_;
+        Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);
+        total_bounding_box_.includeZ(target_z);
         assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }
@@ -1269,6 +1271,8 @@ void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/)
         current_position_.z_ = current_layer_z_;
         current_speed_ = speed;
         *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ current_layer_z_ } << new_line_;
+        Application::getInstance()
+            .communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, current_layer_z_), 0, 0, speed);
         assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }
@@ -1722,6 +1726,11 @@ void GCodeExport::finalize(const char* endCode)
     for (int n = 1; n < MAX_EXTRUDERS; n++)
         if (getTotalFilamentUsed(n) > 0)
             spdlog::info("Filament {}: {}", n + 1, int(getTotalFilamentUsed(n)));
+    flushOutputStream();
+}
+
+void GCodeExport::flushOutputStream()
+{
     output_stream_->flush();
 }
 

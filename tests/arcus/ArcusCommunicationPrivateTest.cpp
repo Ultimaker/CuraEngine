@@ -34,15 +34,13 @@ public:
     {
         instance = new ArcusCommunication::Private();
         instance->socket = new MockSocket();
-        Application::getInstance().current_slice_ = new Slice(GK_TEST_NUM_MESH_GROUPS);
+        Application::getInstance().current_slice_ = std::make_shared<Slice>(GK_TEST_NUM_MESH_GROUPS);
     }
 
     void TearDown() override
     {
         delete instance->socket;
         delete instance;
-
-        delete Application::getInstance().current_slice_;
     }
 
     /*
