@@ -99,14 +99,83 @@ void SupportCradleGeneration::getLayerDeformation(
     }
 }
 
+std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> SupportCradleGeneration::getSimulatedConnection(const SliceMeshStorage& mesh,
+                                                                                                           double assumed_part_thickness,
+                                                                                                           std::set<UnsupportedAreaInformation*> elements)
+{
+
+    if(elements.empty())
+    {
+        return std::pair<MinimumBoundingBox,CradleDeformationHalfCircle>(MinimumBoundingBox(), CradleDeformationHalfCircle());
+    }
+
+    UnsupportedAreaInformation* random_area = *elements.begin();
+
+    if(elements.size() == 1)
+    {
+        return std::pair<MinimumBoundingBox,CradleDeformationHalfCircle>(random_area->min_box, random_area->deformation);
+    }
+
+    {
+        std::lock_guard<std::mutex> critical_section(*critical_simulated_connection_cache_);
+        for(auto& cache_elements:simulated_connection_cache_[random_area->layer_idx])
+        {
+            if(cache_elements.first == elements)
+            {
+                return cache_elements.second;
+            }
+        }
+    }
+
+    Shape simulated_connection;
+    // One cant be sure that the center of the min box is actually inside the polygon, e.g. a U shape
+    // This may cause some inaccuracies, but better than issues later on.
+    Point2LL current_inside = random_area->min_box.center;
+    if (! random_area->area.inside(current_inside))
+    {
+        PolygonUtils::moveInside(random_area->area, current_inside);
+    }
+
+    for (UnsupportedAreaInformation* element_connect : elements)
+    {
+        if(random_area == element_connect)
+        {
+            continue;
+        }
+        OpenLinesSet line;
+        Point2LL connect_inside = element_connect->min_box.center;
+        if (! element_connect->area.inside(connect_inside))
+        {
+            PolygonUtils::moveInside(element_connect->area, connect_inside);
+        }
+        line.addSegment(current_inside, connect_inside);
+        //todo that line thickness calculation needs improvement.
+        simulated_connection.push_back(line.offset(std::max(
+            std::min(random_area->min_box.extent.X, random_area->min_box.extent.Y),
+            std::min(element_connect->min_box.extent.X, element_connect->min_box.extent.Y))));
+        simulated_connection.push_back(element_connect->area);
+    }
+
+    simulated_connection.push_back(random_area->area);
+    simulated_connection = simulated_connection.unionPolygons();
+    MinimumBoundingBox simulated_connect_box(simulated_connection.getOutsidePolygons().splitIntoParts()[0]);
+    CradleDeformationHalfCircle simulated_deform_part = {};
+    getLayerDeformation(mesh, simulated_connect_box, assumed_part_thickness, simulated_deform_part);
+    std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> result(simulated_connect_box, simulated_deform_part);
+    std::lock_guard<std::mutex> critical_section(*critical_simulated_connection_cache_);
+    simulated_connection_cache_[random_area->layer_idx].emplace_back(elements, result);
+    return result;
+
+}
+
 double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element)
 {
-    if (element->total_deformation_maximum >= 0)
+    if (element->deformation_total_calculated >= 0)
     {
-        return element->total_deformation_maximum;
+        return element->deformation_total_calculated;
     }
     const size_t cradle_deformation_half_circle_size = CradleDeformationHalfCircle().size();
-
+    const coord_t part_stable_radius = retrieveSetting<coord_t>(mesh.settings, "support_tree_part_deformation_diameter") / 2;
     LayerIndex layer_idx = element->layer_idx;
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const double horizontal_movement_weight = retrieveSetting<double>(mesh.settings, "support_tree_side_cradle_xy_factor");
@@ -141,141 +210,111 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             all_scan_elements = next_scan_elements;
         }
     }
-    std::unordered_set<UnsupportedAreaInformation*> iterate_elements;
+    std::set<UnsupportedAreaInformation*> iterate_elements;
 
     // todo instead of doing a single maximum, do a window over a few mm ?
 
-    UnsupportedAreaInformation* largest_deformation_in_z_direction_element = element;
     double largest_deformation_in_z_direction_deformation = 0;
-
-    UnsupportedAreaInformation* largest_deformation_in_xy_direction_element = element;
     double largest_deformation_in_xy_direction_deformation = 0;
 
     for(LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
     {
-        std::unordered_set<UnsupportedAreaInformation*> next_iterate_elements;
+        std::set<UnsupportedAreaInformation*> next_iterate_elements;
         iterate_elements.insert(root_areas[iterate_layer_idx].begin(),root_areas[iterate_layer_idx].end());
 
-        std::unordered_set<UnsupportedAreaInformation*> simulate_elements_as_connected;
 
-        for (UnsupportedAreaInformation* current_area : iterate_elements)
+        if(!iterate_elements.empty())
         {
-            if(elements_on_path_down.contains(current_area))
-            {
-                simulate_elements_as_connected.emplace(current_area);
-            }
-        }
+            double deformation_limit_total_layer = -1;
+            double deformation_limit_z_layer = -1;
+            CradleDeformationHalfCircle deformation_layer;
+            MinimumBoundingBox min_box_layer;
 
-        for(UnsupportedAreaInformation* current_area : iterate_elements)
-        {
-            CradleDeformationHalfCircle element_deformation_layer = current_area->deformation;
-            Shape simulated_connection;
-            MinimumBoundingBox relevant_min_box = element->min_box;
-            if(simulate_elements_as_connected.contains(current_area))
+            for(UnsupportedAreaInformation* current_area : iterate_elements) //todo why do i iterate over all? It is either one or a simulated connection...
             {
-                // One cant be sure that the center of the min box is actually inside the polygon, e.g. a U shape
-                // This may cause some inaccuracies, but better than issues later on.
-                Point2LL current_inside = current_area->min_box.center;
-                if (! current_area->area.inside(current_inside))
+                if(min_box_layer.center == Point2LL(0,0))
                 {
-                    PolygonUtils::moveInside(current_area->area, current_inside);
+                    deformation_layer = current_area->deformation;
                 }
 
-                for (UnsupportedAreaInformation* element_connect : simulate_elements_as_connected)
+                //basically just a random init. If there are multiple present the simulated connection below will deal with it anyway.
+                if(current_area->min_box.area > min_box_layer.area)
                 {
-                    if(current_area == element_connect)
-                    {
-                        continue;
-                    }
-                    OpenLinesSet line;
-                    Point2LL connect_inside = element_connect->min_box.center;
-                    if (! element_connect->area.inside(connect_inside))
-                    {
-                        PolygonUtils::moveInside(element_connect->area, connect_inside);
-                    }
-                    line.addSegment(current_inside, connect_inside);
-                    //todo that line thickness calculation needs improvement.
-                    simulated_connection.push_back(line.offset(std::max(
-                        std::min(current_area->min_box.extent.X, current_area->min_box.extent.Y),
-                        std::min(element_connect->min_box.extent.X, element_connect->min_box.extent.Y))));
-                    simulated_connection.push_back(element_connect->area);
+                    min_box_layer = current_area->min_box;
                 }
-            }
-            if (! simulated_connection.empty())
-            {
-                simulated_connection.push_back(current_area->area);
-                simulated_connection = simulated_connection.unionPolygons();
-                CradleDeformationHalfCircle simulated_deform_part = {};
-                MinimumBoundingBox simulated_connect_box(simulated_connection.getOutsidePolygons().splitIntoParts()[0]);
-                getLayerDeformation(mesh, simulated_connect_box, layer_height * layer_idx, simulated_deform_part);
 
-                element_deformation_layer = elementWiseSelect(
-                    simulated_deform_part,
-                    element_deformation_layer,
+                for (UnsupportedAreaInformation* element_above : current_area->areas_above)
+                {
+                    if (elements_on_path_down.contains(element_above))
+                    {
+                        next_iterate_elements.emplace(element_above);
+                    }
+                }
+                deformation_limit_total_layer = std::max(deformation_limit_total_layer, current_area->deformation_limit_total);
+                deformation_limit_z_layer = std::max(deformation_limit_z_layer, current_area->deformation_limit_z);
+                deformation_layer = elementWiseSelect(
+                    current_area->deformation,
+                    deformation_layer,
                     [](double a, double b)
                     {
                         return std::min(a, b);
                     });
-                relevant_min_box = simulated_connect_box;
+            }
+            if (iterate_elements.size() > 1)
+            {
+
+                std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> simulated_connect_result = getSimulatedConnection(mesh, part_stable_radius, iterate_elements);
+
+                deformation_layer = elementWiseSelect(
+                    simulated_connect_result.second,
+                    deformation_layer,
+                    [](double a, double b)
+                    {
+                        return std::min(a, b);
+                    });
+
+                min_box_layer = simulated_connect_result.first;
             }
 
-            for(UnsupportedAreaInformation* element_above: current_area->areas_above)
+            for (size_t direction_idx = 0; direction_idx < deformation_layer.size(); direction_idx++)
             {
-                if(elements_on_path_down.contains(element_above))
-                {
-                    next_iterate_elements.emplace(element_above);
-                }
-            }
-            for (size_t direction_idx = 0; direction_idx < element_deformation_layer.size(); direction_idx++)
-            {
-                double deformation_in_xy_direction = std::pow(element_deformation_layer[direction_idx] * double(layer_idx - iterate_layer_idx) / layer_per_mm, 3);
+                double deformation_in_xy_direction = std::pow(deformation_layer[direction_idx] * double(layer_idx - iterate_layer_idx) / layer_per_mm, 3);
                 if (deformation_in_xy_direction > largest_deformation_in_xy_direction_deformation)
                 {
                     largest_deformation_in_xy_direction_deformation = deformation_in_xy_direction;
-                    largest_deformation_in_xy_direction_element = current_area;
                 }
             }
 
             // Estimate horizontal influence to deformation
-            double horizontal_distance = relevant_min_box.minimumDistance(current_area->min_box) * horizontal_movement_weight;
-            double vertical_distance = (element->layer_idx - current_area->layer_idx) * layer_height;
+            double horizontal_distance = min_box_layer.minimumDistance(element->min_box) * horizontal_movement_weight;
+            double vertical_distance = (element->layer_idx - iterate_layer_idx) * layer_height;
             double total_distance = std::sqrt(horizontal_distance * horizontal_distance + vertical_distance * vertical_distance);
 
             double h_distance_per_layer = horizontal_distance == 0 ? 0 : (horizontal_distance / (layer_height * double(layer_idx - iterate_layer_idx)));
-            size_t direction_z_idx = getDirectionIdx(element->min_box.center, current_area->min_box.center);
-            double deformation_in_z_direction = std::pow(element_deformation_layer[direction_z_idx] * double(horizontal_distance / layer_height) / layer_per_mm, 3);
+            size_t direction_z_idx = getDirectionIdx(element->min_box.center, min_box_layer.center);
+            double deformation_in_z_direction = std::pow(deformation_layer[direction_z_idx] * double(horizontal_distance / layer_height) / layer_per_mm, 3);
 
             if (deformation_in_z_direction > largest_deformation_in_z_direction_deformation)
             {
                 largest_deformation_in_z_direction_deformation = deformation_in_z_direction;
-                largest_deformation_in_z_direction_element = current_area;
             }
-            if(current_area->total_deformation_limit > 0)
+            if(deformation_limit_z_layer > 0 && deformation_limit_z_layer < largest_deformation_in_z_direction_deformation)
             {
-
-                largest_deformation_in_z_direction_deformation = std::min(largest_deformation_in_z_direction_deformation, current_area->total_deformation_limit);
-                largest_deformation_in_xy_direction_deformation = std::min(largest_deformation_in_xy_direction_deformation, current_area->total_deformation_limit);
+                largest_deformation_in_z_direction_deformation = std::min(largest_deformation_in_z_direction_deformation, deformation_limit_z_layer);
+            }
+            if(deformation_limit_total_layer > 0 && deformation_limit_total_layer < largest_deformation_in_z_direction_deformation + largest_deformation_in_xy_direction_deformation)
+            {
+                largest_deformation_in_z_direction_deformation = std::min(largest_deformation_in_z_direction_deformation, deformation_limit_total_layer);
+                largest_deformation_in_xy_direction_deformation = std::min(largest_deformation_in_xy_direction_deformation, deformation_limit_total_layer);
             }
         }
         iterate_elements = next_iterate_elements;
     }
 
-    double result_deformation_xy
-        = largest_deformation_in_xy_direction_deformation;
-    double horizontal_distance = element->min_box.minimumDistance(largest_deformation_in_z_direction_element->min_box) * horizontal_movement_weight;
+    double result_deformation_xy = largest_deformation_in_xy_direction_deformation;
     double result_deformation_z = largest_deformation_in_z_direction_deformation;
-    element->total_deformation_maximum = result_deformation_xy+result_deformation_z;
-    /*printf("at %d layer xy %lf z %lf horizontal distance was %lf result is %lf, most xy deform on layer %d most z on layer %d\n",
-        layer_idx,
-        result_deformation_xy,
-        result_deformation_z,
-        horizontal_distance,
-        element->total_deformation_maximum,
-        largest_deformation_in_xy_direction_element->layer_idx,
-        largest_deformation_in_z_direction_element->layer_idx);
-        */
-
-    return element->total_deformation_maximum;
+    element->deformation_total_calculated = result_deformation_xy + result_deformation_z;
+    return element->deformation_total_calculated;
 }
 
 
@@ -312,16 +351,17 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                 const SingleShape& part = layer_parts[part_idx];
                 AABB part_aabb(part);
                 // Use all models not only this mesh to determine if it rests on something as otherwise cutting meshes lead to issues
-                bool has_support_below = ! PolygonUtils::clipPolygonWithAABB(storage.getLayerOutlines(layer_idx - 1, false, false), part_aabb).intersection(part).empty();
-                Shape overhang = mesh.overhang_areas[layer_idx].intersection(part);
-                coord_t overhang_area = std::max(overhang.area(), std::numbers::pi * min_wall_line_width * min_wall_line_width);
+                bool rests_on_material = ! PolygonUtils::clipPolygonWithAABB(storage.getLayerOutlines(layer_idx - 1, false, false), part_aabb).intersection(part).empty();
+                Shape overhang = PolygonUtils::clipPolygonWithAABB(mesh.overhang_areas[layer_idx], part_aabb).intersection(part);
+                coord_t overhang_area = overhang.area();
                 MinimumBoundingBox minimum_box(part);
 
-                if (! has_support_below || layer_idx == start_layer)
+                if (! rests_on_material || layer_idx == start_layer)
                 {
+                    overhang_area = std::max(overhang_area, coord_t(std::numbers::pi * min_wall_line_width * min_wall_line_width));
                     UnsupportedAreaInformation* area_info = new UnsupportedAreaInformation(part, layer_idx, 0, overhang_area, CradleDeformationHalfCircle{}, minimum_box);
                     bool add_manual_cradle = false;
-                    if (! has_support_below)
+                    if (! rests_on_material)
                     {
                         for (auto [idx, support_modifier] : storage.support.supportGenerationModifiers | ranges::views::enumerate)
                         {
@@ -336,7 +376,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                             }
                         }
                     }
-                    bool add_automatic_cradle = ! has_support_below && overhang_area < cradle_area_threshold;
+                    bool add_automatic_cradle = ! rests_on_material && overhang_area < cradle_area_threshold;
                     if (add_manual_cradle)
                     {
                         area_info->support_required = CradlePlacementMethod::MANUAL_POINTY;
@@ -359,10 +399,10 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                     deform_radius = std::min(minimum_box.extent.X, minimum_box.extent.Y);
                     bool found_limit_down = false;
                     double scan_height = std::max(minimum_box.extent.X, minimum_box.extent.Y);
-                    for (LayerIndex scan_down_layer_idx = layer_idx - 1; scan_down_layer_idx > 0 && (layer_idx - scan_down_layer_idx) * layer_height < 10 * deform_radius;
+                    for (LayerIndex scan_down_layer_idx = layer_idx - 1; scan_down_layer_idx > 0 && (layer_idx - scan_down_layer_idx) * layer_height < deform_radius;
                          scan_down_layer_idx--)
                     {
-                        if (mesh.layers[scan_down_layer_idx].getOutlines().intersection(part).empty())
+                        if (PolygonUtils::clipPolygonWithAABB(mesh.layers[scan_down_layer_idx].getOutlines(), part_aabb).intersection(part).empty())
                         {
                             scan_height = (layer_idx - scan_down_layer_idx) * layer_height;
                             found_limit_down = true;
@@ -469,34 +509,30 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
 
                     if(side_cradle_enabled)
                     {
-                        //Ensures output for testing purposes. TODO remove
-                        if (layer_idx * layer_height % 50000 == 0 && layer_idx > 20 || layer_idx + 5 * (1000 / layer_height) == mesh.layers.size())
-                        {
-
-                            double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
-                            printf("My estimation was %lf layer is %d\n",estimated_deformation, layer_idx);
-                        }
-
                         LayerIndex last_cradle_at_layer_idx = -1;
                         for(auto& cradle : cradles_below)
                         {
                             last_cradle_at_layer_idx = std::max(last_cradle_at_layer_idx, cradle->layer_idx);
                         }
-                        if(last_cradle_at_layer_idx != -1 && last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO
+                        if(last_cradle_at_layer_idx != -1 && layer_idx - last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO
                         {
-                            area_info->total_deformation_limit = EPSILON;
+                            area_info->deformation_limit_total = EPSILON;
                         }
-                        else
+                        else if(overhang_area > EPSILON)
                         {
+                            area_info->deformation_limit_z = EPSILON;
+                        }
+                        else if(area_info->support_required == CradlePlacementMethod::NONE && layer_idx % (std::max(coord_t(1),5000/layer_height)) == 0) // Only check total deformation every 5mm
+                        {
+
                             double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
                             if(estimated_deformation > side_cradle_support_threshold) // todo additional cradle if it rests on cradle earlier
                             {
                                 top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
                                 area_info->support_required = CradlePlacementMethod::AUTOMATIC_SIDE;
-                                area_info->total_deformation_limit = EPSILON;
-                                std::cout << "at " << layer_idx<< ": " << " Mark for support "
-                                          <<std::endl ;
+                                area_info->deformation_limit_total = EPSILON;
                             }
+
                         }
                     }
                 }

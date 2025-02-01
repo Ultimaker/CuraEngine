@@ -16,7 +16,7 @@ namespace cura
 // todo rename file as now general TreeSupportTipDataStructures
 struct TreeSupportCradle;
 
-using CradleDeformationHalfCircle = std::array<double, 32>;
+using CradleDeformationHalfCircle = std::array<double, 16>;
 
 struct OverhangInformation
 {
@@ -445,8 +445,10 @@ private:
         coord_t accumulated_supportable_overhang;
         CradlePlacementMethod support_required = CradlePlacementMethod::NONE;
         CradleDeformationHalfCircle deformation;
-        double total_deformation_limit = -1;
-        double total_deformation_maximum = -1;
+        double deformation_limit_total = -1;
+        double deformation_limit_z = -1;
+
+        double deformation_total_calculated = -1;
         MinimumBoundingBox min_box;
 
         // Contains identifiers of all cradles below
@@ -468,6 +470,11 @@ private:
     }
 
     void getLayerDeformation(const SliceMeshStorage& mesh, MinimumBoundingBox& minimum_box, double assumed_part_thickness, CradleDeformationHalfCircle& deform_part);
+
+    std::pair<MinimumBoundingBox,CradleDeformationHalfCircle > getSimulatedConnection(const SliceMeshStorage& mesh,
+                                                                                      double assumed_part_thickness,
+                                                                                      std::set<UnsupportedAreaInformation*> elements);
+
     //todo doku
     double getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
 
@@ -540,8 +547,12 @@ const bool only_gracious_ = false;
 LayerIndex top_most_cradle_layer_ = -1;
 
 mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
+mutable std::unordered_map<LayerIndex, std::vector<std::pair<std::set<UnsupportedAreaInformation*>,std::pair<MinimumBoundingBox,CradleDeformationHalfCircle>>>> simulated_connection_cache_;
 
 std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
+std::unique_ptr<std::mutex> critical_simulated_connection_cache_ = std::make_unique<std::mutex>();
+
+
 
 };
 

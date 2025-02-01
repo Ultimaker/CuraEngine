@@ -150,7 +150,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             progress_offset,
             exclude);
 
-        const auto t_cradle_init = std::chrono::high_resolution_clock::now();
 
         // ### Evaluate cradle placement. Topmost cradle layer is needed tor precalculation
         std::vector<std::vector<TreeSupportCradle*>> cradle_data;
@@ -160,6 +159,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             cradle_gen.addMeshToCradleCalculation(storage, mesh_idx);
         }
 
+        const auto t_cradle_init = std::chrono::high_resolution_clock::now();
         // ### Precalculate avoidances, collision etc.
         const LayerIndex max_required_layer = precalculate(storage, processing.second, cradle_gen.getTopMostCradleLayer());
         if (max_required_layer < 0)
@@ -217,7 +217,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         spdlog::info(
             "Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\n"
             "Calculating Avoidance: {} ms\n"
-            "Calculating Cradle: {} ms of which {} ms were initialising\n"
+            "Calculating Cradle: {} ms and {} ms initialising cradle calculation\n"
             "Creating initial influence areas: {} ms\n"
             "Influence area creation: {} ms\n"
             "Placement of Points in InfluenceAreas: {} ms\n"
