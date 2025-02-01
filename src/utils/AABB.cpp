@@ -41,13 +41,6 @@ AABB::AABB(const PointsSet& poly)
     calculate(poly);
 }
 
-AABB::AABB(const Polyline& line)
-    : min_(POINT_MAX, POINT_MAX)
-    , max_(POINT_MIN, POINT_MIN)
-{
-    calculate(line);
-}
-
 Point2LL AABB::getMiddle() const
 {
     return (min_ + max_) / 2;
@@ -96,16 +89,6 @@ void AABB::calculate(const PointsSet& poly)
     min_ = Point2LL(POINT_MAX, POINT_MAX);
     max_ = Point2LL(POINT_MIN, POINT_MIN);
     for (const Point2LL& p : poly)
-    {
-        include(p);
-    }
-}
-
-void AABB::calculate(const Polyline& line)
-{
-    min_ = Point2LL(POINT_MAX, POINT_MAX);
-    max_ = Point2LL(POINT_MIN, POINT_MIN);
-    for (const Point2LL& p : line)
     {
         include(p);
     }

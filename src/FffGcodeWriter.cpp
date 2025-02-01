@@ -4210,13 +4210,13 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
             if (gcode_layer.getLayerNr() == 0)
             {
-                gcode_layer.addPolygonsByOptimizer(wall, current_roof_config, z_seam_config);
+                gcode_layer.addPolygonsByOptimizer(wall, current_roof_config, roof_extruder.settings_, z_seam_config);
             }
             if (! roof_polygons.empty())
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config, z_seam_config);
+                gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config, roof_extruder.settings_, z_seam_config);
             }
             if (! roof_paths.empty())
             {
