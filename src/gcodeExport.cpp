@@ -15,6 +15,7 @@
 #include "PrintFeature.h"
 #include "RetractionConfig.h"
 #include "Slice.h"
+#include "TravelAntiOozing.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "settings/types/LayerIndex.h"
@@ -472,7 +473,7 @@ double GCodeExport::eToMm(double e)
     }
 }
 
-double GCodeExport::mm3ToE(double mm3)
+double GCodeExport::mm3ToE(double mm3) const
 {
     if (is_volumetric_)
     {
@@ -484,7 +485,7 @@ double GCodeExport::mm3ToE(double mm3)
     }
 }
 
-double GCodeExport::mmToE(double mm)
+double GCodeExport::mmToE(double mm) const
 {
     if (is_volumetric_)
     {
@@ -827,6 +828,27 @@ void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorag
     }
 }
 
+void GCodeExport::writeRawRetract(const RetractionAmounts& retraction_amounts)
+{
+    ExtruderTrainAttributes& extr_attr = extruder_attr_[current_extruder_];
+
+    current_e_value_ += retraction_amounts.diff_e;
+    const double output_e = (relative_extrusion_) ? retraction_amounts.diff_e : current_e_value_;
+    *output_stream_ << " " << extr_attr.extruder_character_ << PrecisionedDouble{ 5, output_e };
+    extr_attr.retraction_e_amount_current_ = retraction_amounts.new_e;
+}
+
+GCodeExport::RetractionAmounts GCodeExport::computeRetractionAmounts(const ExtruderTrainAttributes& extruder_attributes, const double distance) const
+{
+    RetractionAmounts amounts;
+
+    amounts.old_e = extruder_attributes.retraction_e_amount_current_;
+    amounts.new_e = mmToE(distance);
+    amounts.diff_e = amounts.old_e - amounts.new_e;
+
+    return amounts;
+}
+
 void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
@@ -884,14 +906,14 @@ void GCodeExport::writeExtrusion(const Point2LL& p, const Velocity& speed, doubl
     writeExtrusion(Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
-void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed)
+void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance)
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x_, p.y_, p.z_ + is_z_hopped_, speed, 0.0, PrintFeatureType::MoveCombing);
         return;
     }
-    writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed);
+    writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed, retract_distance);
 }
 
 void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
@@ -972,9 +994,13 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
         feature);
 }
 
-void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed)
+void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const std::optional<double> retract_distance)
 {
-    if (current_position_.x_ == x && current_position_.y_ == y && current_position_.z_ == z)
+    const ExtruderTrainAttributes& extruder_attr = extruder_attr_[current_extruder_];
+    std::optional<RetractionAmounts> retraction_amounts
+        = retract_distance.has_value() ? std::optional{ computeRetractionAmounts(extruder_attr, retract_distance.value()) } : std::nullopt;
+
+    if (current_position_.x_ == x && current_position_.y_ == y && current_position_.z_ == z && (! retraction_amounts.has_value() || ! retraction_amounts.value().has_retraction()))
     {
         return;
     }
@@ -986,13 +1012,13 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
 #endif // ASSERT_INSANE_OUTPUT
 
-    const PrintFeatureType travel_move_type = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
-    const int display_width = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
+    const PrintFeatureType travel_move_type = extruder_attr.retraction_e_amount_current_ ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
+    const int display_width = extruder_attr.retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
     const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
     Application::getInstance().communication_->sendLineTo(travel_move_type, Point3LL(x, y, z), display_width, layer_height, speed);
 
     *output_stream_ << "G0";
-    writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type);
+    writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type, retraction_amounts);
 }
 
 void GCodeExport::writeExtrusion(
@@ -1073,7 +1099,14 @@ void GCodeExport::writeExtrusion(
     writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
 
-void GCodeExport::writeFXYZE(const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e, const PrintFeatureType& feature)
+void GCodeExport::writeFXYZE(
+    const Velocity& speed,
+    const coord_t x,
+    const coord_t y,
+    const coord_t z,
+    const double e,
+    const PrintFeatureType& feature,
+    const std::optional<RetractionAmounts>& retraction_amounts)
 {
     if (current_speed_ != speed)
     {
@@ -1089,15 +1122,23 @@ void GCodeExport::writeFXYZE(const Velocity& speed, const coord_t x, const coord
     {
         *output_stream_ << " Z" << MMtoStream{ z };
     }
-    if (e + current_e_offset_ != current_e_value_)
+
+    if (retraction_amounts.has_value())
+    {
+        if (retraction_amounts->has_retraction())
+        {
+            writeRawRetract(retraction_amounts.value());
+        }
+    }
+    else if (e + current_e_offset_ != current_e_value_)
     {
         const double output_e = (relative_extrusion_) ? e + current_e_offset_ - current_e_value_ : e + current_e_offset_;
         *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
+        current_e_value_ = e;
     }
     *output_stream_ << new_line_;
 
     current_position_ = Point3LL(x, y, z);
-    current_e_value_ = e;
     estimate_calculator_.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);
 }
 
@@ -1163,7 +1204,7 @@ void GCodeExport::writeUnretractionAndPrime()
     }
 }
 
-void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bool extruder_switch)
+void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bool extruder_switch, const std::optional<double> retract_distance)
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr_[current_extruder_];
 
@@ -1180,10 +1221,8 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         return;
     }
 
-    double old_retraction_e_amount = extr_attr.retraction_e_amount_current_;
-    double new_retraction_e_amount = mmToE(config.distance);
-    double retraction_diff_e_amount = old_retraction_e_amount - new_retraction_e_amount;
-    if (std::abs(retraction_diff_e_amount) < 0.000001)
+    RetractionAmounts retraction_amounts = computeRetractionAmounts(extr_attr, retract_distance.value_or(config.distance));
+    if (! retraction_amounts.has_retraction())
     {
         return;
     }
@@ -1231,16 +1270,18 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
                 INT2MM(current_position_.x_),
                 INT2MM(current_position_.y_),
                 INT2MM(current_position_.z_),
-                eToMm(current_e_value_ + retraction_diff_e_amount)),
+                eToMm(current_e_value_ + retraction_amounts.diff_e)),
             25.0,
             PrintFeatureType::MoveRetraction); // TODO: hardcoded values!
+
+        extr_attr.retraction_e_amount_current_ = retraction_amounts.new_e; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     }
     else
     {
-        double speed = ((retraction_diff_e_amount < 0.0) ? config.speed : extr_attr.last_retraction_prime_speed_);
-        current_e_value_ += retraction_diff_e_amount;
-        const double output_e = (relative_extrusion_) ? retraction_diff_e_amount : current_e_value_;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " " << extr_attr.extruder_character_ << PrecisionedDouble{ 5, output_e } << new_line_;
+        const double speed = ((retraction_amounts.diff_e < 0.0) ? config.speed : extr_attr.last_retraction_prime_speed_);
+        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 };
+        writeRawRetract(retraction_amounts);
+        *output_stream_ << new_line_;
         current_speed_ = speed;
         estimate_calculator_.plan(
             TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
@@ -1249,12 +1290,19 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         extr_attr.last_retraction_prime_speed_ = config.primeSpeed;
     }
 
-    extr_attr.retraction_e_amount_current_ = new_retraction_e_amount; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     extr_attr.prime_volume_ += config.prime_volume;
 }
 
-void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*/)
+void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*/, const double retract_distance, const Ratio& retract_ratio)
 {
+    if (retract_ratio > 0.0 && retract_ratio < 1.0)
+    {
+        // We have to split the z-hop move in two sub-moves, one with retraction and one without
+        writeZhopStart(hop_height * retract_ratio, speed, retract_distance, 0.0);
+        writeZhopStart(hop_height, speed, retract_distance, 0.0);
+        return;
+    }
+
     if (hop_height > 0)
     {
         if (speed == 0)
@@ -1262,10 +1310,18 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*
             const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
             speed = extruder.settings_.get<Velocity>("speed_z_hop");
         }
+
+        RetractionAmounts retraction_amounts = computeRetractionAmounts(extruder_attr_[current_extruder_], retract_distance);
+
         is_z_hopped_ = hop_height;
         const coord_t target_z = current_layer_z_ + is_z_hopped_;
         current_speed_ = speed;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z } << new_line_;
+        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z };
+        if (retraction_amounts.has_retraction())
+        {
+            writeRawRetract(retraction_amounts);
+        }
+        *output_stream_ << new_line_;
         Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);
         total_bounding_box_.includeZ(target_z);
         assert(speed > 0.0 && "Z hop speed should be positive.");

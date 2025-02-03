@@ -14,7 +14,7 @@ struct NumericFacade
 {
     using value_type = T;
 
-    value_type value{};
+    value_type value{ static_cast<T>(0) };
 
     constexpr NumericFacade() noexcept = default;
 

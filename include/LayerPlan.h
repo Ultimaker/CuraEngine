@@ -81,6 +81,17 @@ private:
         Point3LL coasting_start_pos;
     };
 
+    struct TravelDurations
+    {
+        Duration z_hop; //!< The duration of the Z hop start and end
+        Duration travel; //!< The duration of the full travel
+
+        inline Duration totalDuration() const
+        {
+            return travel + 2.0 * z_hop;
+        }
+    };
+
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr_; //!< The layer number of this layer plan
     const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
@@ -818,7 +829,12 @@ private:
      *  @param path_z_offset The global path Z offset to be applied
      *  @note This function is to be used when dealing with 3D coordinates. If you have 2D coordinates, just call gcode.writeTravel()
      */
-    void writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset);
+    void writeTravelRelativeZ(
+        GCodeExport& gcode,
+        const Point3LL& position,
+        const Velocity& speed,
+        const coord_t path_z_offset,
+        const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * \brief Write an extrusion move and properly apply the various Z offsets
@@ -1007,6 +1023,8 @@ private:
      * \param p1 The end point of the segment
      */
     bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
+
+    TravelDurations computeTravelDurations(const GCodeExport& gcode, const ExtruderTrain& extruder, const GCodePath& path, const coord_t z_hop_height) const;
 };
 
 } // namespace cura

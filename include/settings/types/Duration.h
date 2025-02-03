@@ -98,6 +98,11 @@ inline std::ostream& operator<<(std::ostream& out, const Duration seconds)
     return out;
 }
 
+inline Duration operator*(const double lhs, const Duration& rhs)
+{
+    return Duration(lhs * rhs.value_);
+}
+
 } // namespace cura
 
 #endif // DURATION_H

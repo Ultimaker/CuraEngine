@@ -163,6 +163,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/ExclusionAreaScoringCriterion.cpp
         src/utils/scoring/RandomScoringCriterion.cpp
 
+        src/geometry/Point2D.cpp
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
@@ -295,7 +296,7 @@ if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
             "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
             "SHELL:-sWASM_BIGINT=1"
             "SHELL:-sSTACK_SIZE=196608"
-           $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
+            $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
             $<$<CONFIG:Debug>:SHELL:-sSAFE_HEAP=1>
             $<$<CONFIG:Debug>:SHELL:-sSTACK_OVERFLOW_CHECK=2>
             $<$<CONFIG:Debug>:SHELL:-g3>

@@ -21,6 +21,7 @@
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
+#include "utils/string.h"
 
 namespace cura
 {
@@ -113,6 +114,19 @@ private:
         {
         }
     };
+
+    struct RetractionAmounts
+    {
+        double old_e{ 0.0 };
+        double new_e{ 0.0 };
+        double diff_e{ 0.0 };
+
+        inline bool has_retraction() const
+        {
+            return std::abs(diff_e) >= 0.000001;
+        }
+    };
+
     ExtruderTrainAttributes extruder_attr_[MAX_EXTRUDERS];
     bool use_extruder_offset_to_offset_coords_;
     std::string machine_name_;
@@ -183,17 +197,6 @@ protected:
     double eToMm(double e);
 
     /*!
-     * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
-     *
-     * E values are either in mm or in mm^3
-     * The current extruder is used to determine the filament area to make the conversion.
-     *
-     * \param mm3 the value to convert
-     * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
-     */
-    double mm3ToE(double mm3);
-
-    /*!
      * Convert a distance value to an E value (which might be linear/distance based as well) for the current extruder.
      *
      * E values are either in mm or in mm^3
@@ -202,7 +205,7 @@ protected:
      * \param mm the value to convert
      * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
      */
-    double mmToE(double mm);
+    double mmToE(double mm) const;
 
     /*!
      * Convert an E value to a value in mm3 (if it wasn't already in mm3) for the provided extruder.
@@ -369,7 +372,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(const Point3LL& p, const Velocity& speed);
+    void writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Go to a X/Y location with the extrusion Z
@@ -414,6 +417,17 @@ public:
      */
     void flushOutputStream();
 
+    /*!
+     * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
+     *
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     *
+     * \param mm3 the value to convert
+     * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
+     */
+    double mm3ToE(double mm3) const;
+
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -423,7 +437,7 @@ private:
      * \param z build plate z
      * \param speed movement speed
      */
-    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed);
+    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Perform un-z-hop
@@ -458,7 +472,14 @@ private:
      * It estimates the time in \ref GCodeExport::estimateCalculator for the correct feature
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeFXYZE(const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e, const PrintFeatureType& feature);
+    void writeFXYZE(
+        const Velocity& speed,
+        const coord_t x,
+        const coord_t y,
+        const coord_t z,
+        const double e,
+        const PrintFeatureType& feature,
+        const std::optional<RetractionAmounts>& retraction_amounts = std::nullopt);
 
     /*!
      * The writeTravel and/or writeExtrusion when flavor == BFB
@@ -485,6 +506,10 @@ private:
      */
     void processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr);
 
+    void writeRawRetract(const RetractionAmounts& retraction_amounts);
+
+    RetractionAmounts computeRetractionAmounts(const ExtruderTrainAttributes& extruder_attributes, const double distance) const;
+
 public:
     /*!
      * Get ready for extrusion moves:
@@ -495,7 +520,7 @@ public:
      * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
     void writeUnretractionAndPrime();
-    void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
+    void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Start a z hop with the given \p hop_height.
@@ -503,7 +528,7 @@ public:
      * \param hop_height The height to move above the current layer.
      * \param speed The speed used for moving.
      */
-    void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0);
+    void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0, double retract_distance = 0.0, const Ratio& retract_ratio = 0.0_r);
 
     /*!
      * End a z hop: go back to the layer height
