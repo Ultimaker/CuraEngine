@@ -319,6 +319,8 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
         fan_speed_layer_time_settings_per_extruder.emplace_back();
         FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings_per_extruder.back();
         fan_speed_layer_time_settings.cool_min_layer_time = train.settings_.get<Duration>("cool_min_layer_time");
+        fan_speed_layer_time_settings.cool_min_layer_time_overhang = train.settings_.get<Duration>("cool_min_layer_time_overhang");
+        fan_speed_layer_time_settings.cool_min_layer_time_overhang_min_segment_length = train.settings_.get<coord_t>("cool_min_layer_time_overhang_min_segment_length");
         fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = train.settings_.get<Duration>("cool_min_layer_time_fan_speed_max");
         fan_speed_layer_time_settings.cool_fan_speed_0 = train.settings_.get<Ratio>("cool_fan_speed_0") * 100.0;
         fan_speed_layer_time_settings.cool_fan_speed_min = train.settings_.get<Ratio>("cool_fan_speed_min") * 100.0;
@@ -3112,16 +3114,18 @@ bool FffGcodeWriter::processInsets(
             {
                 AngleDegrees overhang_angle;
                 Ratio speed_factor;
+                bool chunk = true;
             };
 
             // Create raw speed regions
             const AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
             std::vector<SpeedRegion> speed_regions;
-            speed_regions.reserve(overhang_angles_count + 1);
+            speed_regions.reserve(overhang_angles_count + 2);
 
-            speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r }); // Initial internal region, always 100% speed factor
+            constexpr bool dont_chunk_first = false; // Never merge internal region in order to detect actual overhanging
+            speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r, dont_chunk_first }); // Initial internal region, always 100% speed factor
 
-            for (size_t angle_index = 1; angle_index < overhang_angles_count; ++angle_index)
+            for (size_t angle_index = 1; angle_index <= overhang_angles_count; ++angle_index)
             {
                 const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
                 const Ratio speed_factor = overhang_speed_factors[angle_index - 1];
@@ -3136,7 +3140,7 @@ bool FffGcodeWriter::processInsets(
                                 | ranges::views::chunk_by(
                                       [](const auto& region_a, const auto& region_b)
                                       {
-                                          return region_a.speed_factor == region_b.speed_factor;
+                                          return region_a.chunk && region_b.chunk && region_a.speed_factor == region_b.speed_factor;
                                       });
 
             // If finally necessary, add actual calculated speed regions

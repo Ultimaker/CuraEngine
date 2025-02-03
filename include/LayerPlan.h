@@ -124,6 +124,10 @@ private:
     std::vector<OverhangMask> overhang_masks_; //!< The regions of a layer part where the walls overhang, calculated for multiple overhang angles. The latter is the most
                                                //!< overhanging. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
     Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
+    bool currently_overhanging_{ false }; //!< Indicates whether the last extrusion move was overhanging
+    coord_t current_overhang_length_{ 0 }; //!< When doing consecutive overhanging moves, this is the current accumulated overhanging length
+    coord_t max_overhang_length_{ 0 }; //!< From all consecutive overhanging moves in the layer, this is the longest one
+
     Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
