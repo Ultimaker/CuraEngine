@@ -371,6 +371,8 @@ EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
         return EGCodeFlavor::MARLIN;
     case "Griffin"_sw:
         return EGCodeFlavor::GRIFFIN;
+    case "Cheetah"_sw:
+        return EGCodeFlavor::CHEETAH;
     case "UltiGCode"_sw:
         return EGCodeFlavor::ULTIGCODE;
     case "Makerbot"_sw:

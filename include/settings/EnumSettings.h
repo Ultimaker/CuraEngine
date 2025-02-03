@@ -225,6 +225,12 @@ enum class EGCodeFlavor
      *  M227 is used to initialize a single extrusion train.
      **/
     GRIFFIN = 6,
+    /**
+     * Cheetah flavored is Griffin based, but with the Cheetah planner.
+     *  This means it has a jerk-limited motion profile based on real jerk (instead of Marlin's jump).
+     *  The jerk value is set using M215 in m/s^3
+     **/
+    CHEETAH = 61,
 
     REPETIER = 7,
 
