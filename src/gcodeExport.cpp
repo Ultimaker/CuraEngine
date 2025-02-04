@@ -473,6 +473,11 @@ double GCodeExport::eToMm(double e)
     }
 }
 
+void GCodeExport::setZHopPrimeLeftover(const ZHopAntiOozing& z_hop_prime_leftover)
+{
+    z_hop_prime_leftover_ = z_hop_prime_leftover;
+}
+
 double GCodeExport::mm3ToE(double mm3) const
 {
     if (is_volumetric_)
@@ -1328,21 +1333,44 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*
     }
 }
 
-void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/)
+void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, const double prime_distance, const Ratio& prime_ratio)
 {
+    if (z_hop_prime_leftover_.has_value())
+    {
+        const ZHopAntiOozing z_hop_prime_leftover = z_hop_prime_leftover_.value();
+        z_hop_prime_leftover_.reset();
+        writeZhopEnd(speed, height, z_hop_prime_leftover.amount, z_hop_prime_leftover.ratio);
+    }
+
     if (is_z_hopped_)
     {
+        if (prime_ratio > 0.0 && prime_ratio < 1.0)
+        {
+            // We have to split the z-hop move in two sub-moves, one without prime and one with
+            writeZhopEnd(speed, is_z_hopped_ * prime_ratio, extruder_attr_[current_extruder_].retraction_e_amount_current_, 0.0);
+            writeZhopEnd(speed, 0, prime_distance, 0.0);
+            return;
+        }
+
         if (speed == 0)
         {
             const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
             speed = extruder.settings_.get<Velocity>("speed_z_hop");
         }
-        is_z_hopped_ = 0;
+
+        RetractionAmounts retraction_amounts = computeRetractionAmounts(extruder_attr_[current_extruder_], prime_distance);
+
+        is_z_hopped_ = height;
+        const coord_t target_z = current_layer_z_ + is_z_hopped_;
         current_position_.z_ = current_layer_z_;
         current_speed_ = speed;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ current_layer_z_ } << new_line_;
-        Application::getInstance()
-            .communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, current_layer_z_), 0, 0, speed);
+        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z };
+        if (retraction_amounts.has_retraction())
+        {
+            writeRawRetract(retraction_amounts);
+        }
+        *output_stream_ << new_line_;
+        Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);
         assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }

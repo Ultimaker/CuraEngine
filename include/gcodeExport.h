@@ -12,6 +12,7 @@
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
+#include "TravelAntiOozing.h"
 #include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
@@ -163,6 +164,7 @@ private:
     coord_t current_layer_z_;
     coord_t is_z_hopped_; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with
                           //!< other layer parts)
+    std::optional<ZHopAntiOozing> z_hop_prime_leftover_; //!< The leftover priming from a previous travel move that should be processed while z-hopping down
 
     size_t current_extruder_;
     std::map<size_t, double> current_fans_speeds_; //!< Current fan speed, by fan index. No value means the speed has never been set yet.
@@ -535,7 +537,7 @@ public:
      *
      * \param speed The speed used for moving.
      */
-    void writeZhopEnd(Velocity speed = 0.0);
+    void writeZhopEnd(Velocity speed = 0.0, const coord_t height = 0, const double prime_distance = 0.0, const Ratio& prime_ratio = 0.0_r);
 
     /*!
      * Start the new_extruder:
@@ -675,6 +677,8 @@ public:
      * \param wipe_config Config with wipe script settings.
      */
     void insertWipeScript(const WipeScriptConfig& wipe_config);
+
+    void setZHopPrimeLeftover(const ZHopAntiOozing& z_hop_prime_leftover);
 };
 
 } // namespace cura
