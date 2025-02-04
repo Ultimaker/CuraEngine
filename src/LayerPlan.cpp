@@ -2799,7 +2799,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             anti_oozing.z_hop.amount += missing_amount;
                         }
 
-                        anti_oozing.z_hop.ratio = ((anti_oozing.z_hop.amount - anti_oozing.amount_while_still) / speed) / travel_durations.z_hop;
+                        if (travel_durations.z_hop > 0)
+                        {
+                            anti_oozing.z_hop.ratio = ((anti_oozing.z_hop.amount - anti_oozing.amount_while_still) / speed) / travel_durations.z_hop;
+                        }
 
                         const Point2LL start_position = gcode.getPosition().toPoint2LL();
                         std::vector<Point3LL> points;
@@ -2824,7 +2827,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             const Duration segment_duration = (vSize(segment_end - segment_start) / path.config.getSpeed()) / 1000.0;
                             if (travel_duration + segment_duration >= (duration_during_travel - 0.001_s))
                             {
-                                anti_oozing.segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
+                                const double segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
+                                anti_oozing.segment_split_position = cura::lerp(segment_start, segment_end, segment_ratio).toPoint2LL();
                                 if (reversed)
                                 {
                                     anti_oozing.amount_by_segment.insert(anti_oozing.amount_by_segment.begin(), anti_oozing.z_hop.amount);
@@ -2837,7 +2841,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             }
 
                             anti_oozing.amount_by_segment.push_back(
-                                ((travel_duration + segment_duration) / duration_during_travel) * (anti_oozing.amount_while_travel - anti_oozing.z_hop.amount));
+                                std::lerp(anti_oozing.z_hop.amount, anti_oozing.amount_while_travel, (travel_duration + segment_duration) / duration_during_travel));
                             travel_duration += segment_duration;
                         }
 
@@ -2972,26 +2976,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             // This is the segment at which we should stop retracting
                             travel_retraction_state = TravelRetractionState::Travelling;
 
-                            if (retraction_amounts_val.segment_ratio >= 0.999)
-                            {
-                                // Skip the travel-only part
-                                writeTravelRelativeZ(gcode, path.points[point_index], speed, path.z_offset, retraction_amounts_val.amount_by_segment[point_index]);
-                            }
-                            else if (retraction_amounts_val.segment_ratio > 0.001)
-                            {
-                                // We have to split the segment in two parts, one with retraction and one without
-                                const Point2LL travel_segment = (path.points[point_index] - gcode.getPosition()).toPoint2LL();
-                                const Point2D direction = Point2D(travel_segment).normalized();
-                                const Point2LL split_position
-                                    = gcode.getPosition().toPoint2LL() + (direction * retraction_amounts_val.segment_ratio.value * vSize(travel_segment)).toPoint2LL();
-                                writeTravelRelativeZ(gcode, split_position, speed, path.z_offset, retraction_amounts_val.amount_by_segment[point_index]);
-                                write_travel_segment(point_index); // Do the travelling part now we have changed the state
-                            }
-                            else
-                            {
-                                // Skip the retraction part
-                                write_travel_segment(point_index);
-                            }
+                            // We have to split the segment in two parts, one with retraction and one without
+                            writeTravelRelativeZ(gcode, retraction_amounts_val.segment_split_position, speed, path.z_offset, retraction_amounts_val.amount_by_segment[point_index]);
+                            write_travel_segment(point_index); // Do the travelling part now we have changed the state
                         }
                         else if (point_index < retraction_amounts_val.amount_by_segment.size())
                         {
@@ -3013,26 +3000,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             // This is the segment at which we should start priming
                             travel_retraction_state = TravelRetractionState::Priming;
 
-                            if (priming_amounts_val.segment_ratio >= 0.999)
-                            {
-                                // Skip the travel-only part
-                                writeTravelRelativeZ(gcode, path.points[point_index], speed, path.z_offset, priming_amounts_val.amount_by_segment[point_index_reversed]);
-                            }
-                            else if (priming_amounts_val.segment_ratio > 0.001)
-                            {
-                                // We have to split the segment in two parts, one without primimg and one with
-                                const Point2LL travel_segment = (path.points[point_index] - gcode.getPosition()).toPoint2LL();
-                                const Point2D direction = Point2D(travel_segment).normalized();
-                                const Point2LL split_position
-                                    = gcode.getPosition().toPoint2LL() + (direction * (1.0_r - priming_amounts_val.segment_ratio).value * vSize(travel_segment)).toPoint2LL();
-                                writeTravelRelativeZ(gcode, split_position, speed, path.z_offset);
-                                write_travel_segment(point_index); // Do the priming part now we have changed the state
-                            }
-                            else
-                            {
-                                // Skip the travel part
-                                write_travel_segment(point_index);
-                            }
+                            writeTravelRelativeZ(gcode, priming_amounts_val.segment_split_position, speed, path.z_offset);
+                            write_travel_segment(point_index); // Do the priming part now we have changed the state
                         }
                         else
                         {
