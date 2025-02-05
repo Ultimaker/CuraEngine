@@ -3160,11 +3160,17 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     computeAntiOozeAmounts(gcode, extruder, path, z_hop_height, retraction_config, retraction_amounts, priming_amounts);
                 }
 
-                gcode.writeRetraction(
-                    retraction_config->retraction_config,
-                    false,
-                    false,
-                    retraction_amounts.has_value() ? std::optional{ retraction_amounts->amount_while_still } : std::nullopt);
+                if (! gcode.writeRetraction(
+                        retraction_config->retraction_config,
+                        false,
+                        false,
+                        retraction_amounts.has_value() ? std::make_optional(retraction_amounts->amount_while_still) : std::nullopt))
+                {
+                    // Retraction was cancelled because of limitations, so also cancel retraction/priming during travel
+                    retraction_amounts.reset();
+                    priming_amounts.reset();
+                }
+
                 if (path.retract_for_nozzle_switch)
                 {
                     constexpr bool force = true;
@@ -3177,7 +3183,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     gcode.writeZhopStart(
                         z_hop_height,
                         0.0,
-                        retraction_amounts.has_value() ? retraction_amounts->z_hop.amount : 0.0,
+                        retraction_amounts.has_value() ? std::make_optional(retraction_amounts->z_hop.amount) : std::nullopt,
                         retraction_amounts.has_value() ? retraction_amounts->z_hop.ratio : 0.0_r);
                     z_hop_height = retraction_config->retraction_config.zHop; // back to normal z hop
                 }

@@ -552,8 +552,9 @@ public:
      * @param force Indicates whether we should force the retraction to happen regardless of the maximum allowed retraction count
      * @param extruder_switch Indicates whether we retract for an extruder switch
      * @param retract_distance A specific absolute retraction distance to be used, or nullopt to use the one in the config
+     * @return True if the retraction has been processed normally, false if it was skipped because of limitations
      */
-    void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false, const std::optional<double> retract_distance = std::nullopt);
+    bool writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Start a z hop with the given \p hop_height.

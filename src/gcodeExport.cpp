@@ -1214,7 +1214,7 @@ void GCodeExport::writeUnretractionAndPrime()
     }
 }
 
-void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bool extruder_switch, const std::optional<double> retract_distance)
+bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bool extruder_switch, const std::optional<double> retract_distance)
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr_[current_extruder_];
 
@@ -1228,13 +1228,7 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             }
             extr_attr.retraction_e_amount_current_ = 1.0; // 1.0 is a stub; BFB doesn't use the actual retracted amount; retraction is performed by firmware
         }
-        return;
-    }
-
-    RetractionAmounts retraction_amounts = computeRetractionAmounts(extr_attr, retract_distance.value_or(config.distance));
-    if (! retraction_amounts.has_retraction())
-    {
-        return;
+        return true;
     }
 
     { // handle retraction limitation
@@ -1248,12 +1242,12 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
         if (! force && config.retraction_count_max <= 0)
         {
-            return;
+            return false;
         }
         if (! force && extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max
             && current_extruded_volume < extruded_volume_at_previous_n_retractions.back() + config.retraction_extrusion_window * extr_attr.filament_area_)
         {
-            return;
+            return false;
         }
         extruded_volume_at_previous_n_retractions.push_front(current_extruded_volume);
         if (extruded_volume_at_previous_n_retractions.size() == config.retraction_count_max + 1)
@@ -1262,11 +1256,17 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         }
     }
 
+    RetractionAmounts retraction_amounts = computeRetractionAmounts(extr_attr, retract_distance.value_or(config.distance));
+    if (! retraction_amounts.has_retraction())
+    {
+        return true;
+    }
+
     if (extr_attr.machine_firmware_retract_)
     {
         if (extruder_switch && extr_attr.retraction_e_amount_current_)
         {
-            return;
+            return true;
         }
         *output_stream_ << "G10";
         if (extruder_switch && flavor_ == EGCodeFlavor::REPETIER)
@@ -1301,6 +1301,8 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     }
 
     extr_attr.prime_volume_ += config.prime_volume;
+
+    return true;
 }
 
 void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*/, const std::optional<double> retract_distance, const Ratio& retract_ratio)
