@@ -59,15 +59,14 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(
-        GCodePath{ .z_offset = z_offset,
-                   .config = config,
-                   .mesh = current_mesh_,
-                   .space_fill_type = space_fill_type,
-                   .flow = flow,
-                   .width_factor = width_factor,
-                   .spiralize = spiralize,
-                   .speed_factor = speed_factor });
+    paths.emplace_back(GCodePath{ .z_offset = z_offset,
+                                  .config = config,
+                                  .mesh = current_mesh_,
+                                  .space_fill_type = space_fill_type,
+                                  .flow = flow,
+                                  .width_factor = width_factor,
+                                  .spiralize = spiralize,
+                                  .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
