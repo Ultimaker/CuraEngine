@@ -719,6 +719,11 @@ public:
      * Set the priming leftover to be processed during the next z-hop end
      */
     void setZHopPrimeLeftover(const ZHopAntiOozing& z_hop_prime_leftover);
+
+    /*!
+     * Indicates whether the printer handles the retraction/priming, totally or with specific commands
+     */
+    bool machineHandlesRetraction() const;
 };
 
 } // namespace cura

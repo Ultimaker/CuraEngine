@@ -2195,13 +2195,15 @@ void LayerPlan::computeAntiOozeAmounts(
     // Compute the desired retraction distance and duration during travel/z-hop
     const double retract_distance = retraction_config->retraction_config.distance;
     const Duration retract_duration = retract_distance / retraction_config->retraction_config.speed;
-    const Duration retract_duration_during_zhop_and_travel = retract_duration * retraction_config->retraction_config.retract_during_travel;
+    const Ratio retract_during_travel_ratio = gcode.machineHandlesRetraction() ? 0.0_r : retraction_config->retraction_config.retract_during_travel;
+    const Duration retract_duration_during_zhop_and_travel = retract_duration * retract_during_travel_ratio;
     const Duration retract_duration_during_travel = std::max(0.0_s, retract_duration_during_zhop_and_travel - travel_durations.z_hop);
 
     // Compute the desired priming distance and duration during travel/z-hop
     const double prime_distance = retraction_config->retraction_config.distance + gcode.mm3ToE(retraction_config->retraction_config.prime_volume);
     const Duration prime_duration = prime_distance / retraction_config->retraction_config.primeSpeed;
-    const Duration prime_duration_during_zhop_and_travel = prime_duration * retraction_config->retraction_config.prime_during_travel;
+    const Ratio prime_during_travel_ratio = gcode.machineHandlesRetraction() ? 0.0_r : retraction_config->retraction_config.prime_during_travel;
+    const Duration prime_duration_during_zhop_and_travel = prime_duration * prime_during_travel_ratio;
     const Duration prime_duration_during_travel = std::max(0.0_s, prime_duration_during_zhop_and_travel - travel_durations.z_hop);
 
     // Now check whether we actually have enough time during z-hop + travel to fit the retraction and priming

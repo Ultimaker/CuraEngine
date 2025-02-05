@@ -478,6 +478,11 @@ void GCodeExport::setZHopPrimeLeftover(const ZHopAntiOozing& z_hop_prime_leftove
     z_hop_prime_leftover_ = z_hop_prime_leftover;
 }
 
+bool GCodeExport::machineHandlesRetraction() const
+{
+    return extruder_attr_[0].machine_firmware_retract_ || flavor_ == EGCodeFlavor::BFB;
+}
+
 double GCodeExport::mm3ToE(double mm3) const
 {
     if (is_volumetric_)
