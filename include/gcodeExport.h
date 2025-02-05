@@ -118,10 +118,13 @@ private:
 
     struct RetractionAmounts
     {
-        double old_e{ 0.0 };
-        double new_e{ 0.0 };
-        double diff_e{ 0.0 };
+        double old_e{ 0.0 }; // The previous absolute retraction amount
+        double new_e{ 0.0 }; // The new absolute retraction amount
+        double diff_e{ 0.0 }; // The difference between the new and previous amount, which is to be processed
 
+        /*!
+         * Indicates whether this retraction actually has something to process
+         */
         inline bool has_retraction() const
         {
             return std::abs(diff_e) >= 0.000001;
@@ -373,6 +376,7 @@ public:
      *
      * \param p location to go to
      * \param speed movement speed
+     *  \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
     void writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
 
@@ -438,7 +442,7 @@ private:
      * \param y build plate y
      * \param z build plate z
      * \param speed movement speed
-     * \param retract_distance The retract disance to be reached during this travel, or nullopt to leave it unchanged
+     * \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
     void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
 

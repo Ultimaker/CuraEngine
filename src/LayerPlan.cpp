@@ -5,7 +5,6 @@
 
 #include <algorithm>
 #include <cstring>
-#include <geometry/Point2D.h>
 #include <numeric>
 #include <optional>
 

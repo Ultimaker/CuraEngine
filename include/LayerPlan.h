@@ -85,11 +85,6 @@ private:
     {
         Duration z_hop; //!< The duration of the Z hop start and end
         Duration travel; //!< The duration of the full travel
-
-        inline Duration totalDuration() const
-        {
-            return travel + 2.0 * z_hop;
-        }
     };
 
     enum class TravelRetractionState
@@ -835,6 +830,7 @@ private:
      *  @param position The position to move to. The Z coordinate is an offset to the current layer position
      *  @param speed The actual used speed
      *  @param path_z_offset The global path Z offset to be applied
+     *  @param retract_distance The absolute retraction distance to be reached during this travel move, or nullopt to leave it unchanged
      *  @note This function is to be used when dealing with 3D coordinates. If you have 2D coordinates, just call gcode.writeTravel()
      */
     void writeTravelRelativeZ(

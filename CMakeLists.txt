@@ -163,7 +163,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/ExclusionAreaScoringCriterion.cpp
         src/utils/scoring/RandomScoringCriterion.cpp
 
-        src/geometry/Point2D.cpp
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
