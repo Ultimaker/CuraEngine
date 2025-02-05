@@ -256,6 +256,14 @@ public:
      */
     void simplify(ClipperLib::PolyFillType fill_type = ClipperLib::pftEvenOdd);
 
+    /*!
+     * Calculates the intersections between the given segment and all the segments of the shape
+     * @param start The start position of the segment
+     * @param end The end position of the segment
+     * @return The parameters of the intersections on the segment (intersection = start + t * (end - start)), unsorted
+     */
+    std::vector<float> intersectionsWithSegment(const Point2LL& start, const Point2LL& end) const;
+
 #ifdef BUILD_TESTS
     /*!
      * @brief Import the polygon from a WKT string
