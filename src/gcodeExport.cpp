@@ -1310,26 +1310,7 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*
 
     if (hop_height > 0)
     {
-        if (speed == 0)
-        {
-            const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
-            speed = extruder.settings_.get<Velocity>("speed_z_hop");
-        }
-
-        RetractionAmounts retraction_amounts = computeRetractionAmounts(extruder_attr_[current_extruder_], retract_distance);
-
-        is_z_hopped_ = hop_height;
-        const coord_t target_z = current_layer_z_ + is_z_hopped_;
-        current_speed_ = speed;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z };
-        if (retraction_amounts.has_retraction())
-        {
-            writeRawRetract(retraction_amounts);
-        }
-        *output_stream_ << new_line_;
-        Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);
-        total_bounding_box_.includeZ(target_z);
-        assert(speed > 0.0 && "Z hop speed should be positive.");
+        writeZhop(speed, hop_height, retract_distance);
     }
 }
 
@@ -1352,27 +1333,34 @@ void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, con
             return;
         }
 
-        if (speed == 0)
-        {
-            const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
-            speed = extruder.settings_.get<Velocity>("speed_z_hop");
-        }
-
-        RetractionAmounts retraction_amounts = computeRetractionAmounts(extruder_attr_[current_extruder_], prime_distance);
-
-        is_z_hopped_ = height;
-        const coord_t target_z = current_layer_z_ + is_z_hopped_;
+        writeZhop(speed, height, prime_distance);
         current_position_.z_ = current_layer_z_;
-        current_speed_ = speed;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z };
-        if (retraction_amounts.has_retraction())
-        {
-            writeRawRetract(retraction_amounts);
-        }
-        *output_stream_ << new_line_;
-        Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);
-        assert(speed > 0.0 && "Z hop speed should be positive.");
     }
+}
+
+void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const double retract_distance)
+{
+    if (speed == 0)
+    {
+        const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
+        speed = extruder.settings_.get<Velocity>("speed_z_hop");
+    }
+
+    RetractionAmounts retraction_amounts = computeRetractionAmounts(extruder_attr_[current_extruder_], retract_distance);
+
+    is_z_hopped_ = height;
+    const coord_t target_z = current_layer_z_ + is_z_hopped_;
+    // current_position_.z_ = current_layer_z_;
+    current_speed_ = speed;
+    *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z };
+    if (retraction_amounts.has_retraction())
+    {
+        writeRawRetract(retraction_amounts);
+    }
+    *output_stream_ << new_line_;
+    Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);
+    assert(speed > 0.0 && "Z hop speed should be positive.");
+    total_bounding_box_.includeZ(target_z);
 }
 
 void GCodeExport::startExtruder(const size_t new_extruder)

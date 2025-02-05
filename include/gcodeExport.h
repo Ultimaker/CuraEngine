@@ -438,6 +438,7 @@ private:
      * \param y build plate y
      * \param z build plate z
      * \param speed movement speed
+     * \param retract_distance The retract disance to be reached during this travel, or nullopt to leave it unchanged
      */
     void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
 
@@ -508,9 +509,27 @@ private:
      */
     void processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr);
 
+    /*!
+     * Write a stationary or travelling retraction/unretraction and set the proper associated internal variables
+     * @param retraction_amounts The retraction amounts to be applied
+     */
     void writeRawRetract(const RetractionAmounts& retraction_amounts);
 
+    /*!
+     * Compute the appropriate retraction amounts according to the given extruder and retraction distance to reach
+     * @param extruder_attributes The extruder to be used
+     * @param distance The absolute retraction distance to be reached
+     * @return The calculated retraction amounts
+     */
     RetractionAmounts computeRetractionAmounts(const ExtruderTrainAttributes& extruder_attributes, const double distance) const;
+
+    /*!
+     * Start or end a z hop
+     * \param speed The speed used for moving, or 0 to take the default speed
+     * \param height The actual height to be reached, relative to the current layer height
+     * \param retract_distance The absolute retraction distance to be reached while doing the z-hop move
+     */
+    void writeZhop(Velocity speed = 0.0, const coord_t height = 0, const double retract_distance = 0.0);
 
 public:
     /*!
@@ -522,6 +541,14 @@ public:
      * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
     void writeUnretractionAndPrime();
+
+    /*!
+     * Write a stationary retraction
+     * @param config The retraction configuration to be used
+     * @param force Indicates whether we should force the retraction to happen regardless of the maximum allowed retraction count
+     * @param extruder_switch Indicates whether we retract for an extruder switch
+     * @param retract_distance A specific absolute retraction distance to be used, or nullopt to use the one in the config
+     */
     void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
@@ -529,6 +556,9 @@ public:
      *
      * \param hop_height The height to move above the current layer.
      * \param speed The speed used for moving.
+     * \param retract_distance The absolute retract distance to be reached during the z-hop move
+     * \param retract_ratio This is the ratio of the complete z-hop move that should be used to process the retraction. If >0 and <1 then the z-hop move
+     *                      will actually be split in two part, one with retraction and one without.
      */
     void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0, double retract_distance = 0.0, const Ratio& retract_ratio = 0.0_r);
 
@@ -536,6 +566,9 @@ public:
      * End a z hop: go back to the layer height
      *
      * \param speed The speed used for moving.
+     * \param prime_distance The absolute prime distance to be reached during the z-hop move
+     * \param prime_ratio This is the ratio of the complete z-hop move that should be used to process the priming. If >0 and <1 then the z-hop move
+     *                    will actually be split in two part, one without priming and one with.
      */
     void writeZhopEnd(Velocity speed = 0.0, const coord_t height = 0, const double prime_distance = 0.0, const Ratio& prime_ratio = 0.0_r);
 
@@ -678,6 +711,9 @@ public:
      */
     void insertWipeScript(const WipeScriptConfig& wipe_config);
 
+    /*!
+     * Set the priming leftover to be processed during the next z-hop end
+     */
     void setZHopPrimeLeftover(const ZHopAntiOozing& z_hop_prime_leftover);
 };
 

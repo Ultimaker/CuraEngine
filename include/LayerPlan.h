@@ -92,6 +92,14 @@ private:
         }
     };
 
+    enum class TravelRetractionState
+    {
+        None, // There is no retraction/prime
+        Retracting, // We are retracting while travelling
+        Travelling, // We are travelling, but neither retracting or priming, just moving
+        Priming, // We are priming while travelling
+    };
+
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr_; //!< The layer number of this layer plan
     const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
@@ -1024,7 +1032,55 @@ private:
      */
     bool segmentIsOnOverhang(const Point3LL& p0, const Point3LL& p1) const;
 
+    /*!
+     * Compute the Z-hop and travel duration for the given travel path
+     * @param gcode The gcode exporter, which we need to get the current nozzle position
+     * @param extruder The current extruder, for which we need the settings
+     * @param path The travel path we want the durations of
+     * @param z_hop_height The Z-hop height
+     * @return The computed path durations
+     */
     TravelDurations computeTravelDurations(const GCodeExport& gcode, const ExtruderTrain& extruder, const GCodePath& path, const coord_t z_hop_height) const;
+
+    /*!
+     * Compute the anti-ooze (retraction and priming) amounts to be processed during stationary/Z-hop/travel steps
+     * @param gcode The gcode exporter
+     * @param extruder The current extruder
+     * @param path The raw travel path to be exported
+     * @param z_hop_height The Z-hop height
+     * @param retraction_config The retraction/priming configuration to be used
+     * @param retraction_amounts The retraction amounts to be set
+     * @param priming_amounts The priming amounts to be set
+     */
+    void computeAntiOozeAmounts(
+        const GCodeExport& gcode,
+        const ExtruderTrain& extruder,
+        const GCodePath& path,
+        const coord_t z_hop_height,
+        const RetractionAndWipeConfig* retraction_config,
+        std::optional<TravelAntiOozing>& retraction_amounts,
+        std::optional<TravelAntiOozing>& priming_amounts) const;
+
+    /*!
+     * Write a single travel segment, taking care of the retraction and priming during travel
+     * @param travel_retraction_state The current travel retraction state, which may be updated
+     * @param gcode The gcode exporter
+     * @param path The full travel path being written
+     * @param retraction_amounts The pre-calculated retraction amounts to be processed during this travel move
+     * @param priming_amounts The pre-calculated priming amounts to be processed during this travel move
+     * @param speed The travel speed
+     * @param point_index The index of the current point in the path to be written
+     * @warning When travel_retraction_state is None, retraction_amounts and priming_amounts may be std::nullopt, however if it is anything different,
+     *          it is assumed that they both have a value.
+     */
+    void writeTravelSegment(
+        TravelRetractionState& travel_retraction_state,
+        GCodeExport& gcode,
+        const GCodePath& path,
+        const std::optional<TravelAntiOozing>& retraction_amounts,
+        const std::optional<TravelAntiOozing>& priming_amounts,
+        const Velocity& speed,
+        const size_t point_index);
 };
 
 } // namespace cura
