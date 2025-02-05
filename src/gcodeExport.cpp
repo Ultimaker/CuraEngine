@@ -1298,9 +1298,9 @@ void GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     extr_attr.prime_volume_ += config.prime_volume;
 }
 
-void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*/, const double retract_distance, const Ratio& retract_ratio)
+void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*/, const std::optional<double> retract_distance, const Ratio& retract_ratio)
 {
-    if (retract_ratio > 0.0 && retract_ratio < 1.0)
+    if (retract_distance.has_value() && retract_ratio > 0.0 && retract_ratio < 1.0)
     {
         // We have to split the z-hop move in two sub-moves, one with retraction and one without
         writeZhopStart(hop_height * retract_ratio, speed, retract_distance, 0.0);
@@ -1314,7 +1314,7 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*
     }
 }
 
-void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, const double prime_distance, const Ratio& prime_ratio)
+void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, const std::optional<double> prime_distance, const Ratio& prime_ratio)
 {
     if (z_hop_prime_leftover_.has_value())
     {
@@ -1325,7 +1325,7 @@ void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, con
 
     if (is_z_hopped_)
     {
-        if (prime_ratio > 0.0 && prime_ratio < 1.0)
+        if (prime_distance.has_value() && prime_ratio > 0.0 && prime_ratio < 1.0)
         {
             // We have to split the z-hop move in two sub-moves, one without prime and one with
             writeZhopEnd(speed, is_z_hopped_ * prime_ratio, extruder_attr_[current_extruder_].retraction_e_amount_current_, 0.0);
@@ -1338,7 +1338,7 @@ void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, con
     }
 }
 
-void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const double retract_distance)
+void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const std::optional<double> retract_distance)
 {
     if (speed == 0)
     {
@@ -1346,7 +1346,11 @@ void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const 
         speed = extruder.settings_.get<Velocity>("speed_z_hop");
     }
 
-    RetractionAmounts retraction_amounts = computeRetractionAmounts(extruder_attr_[current_extruder_], retract_distance);
+    RetractionAmounts retraction_amounts;
+    if (retract_distance.has_value())
+    {
+        retraction_amounts = computeRetractionAmounts(extruder_attr_[current_extruder_], *retract_distance);
+    }
 
     is_z_hopped_ = height;
     const coord_t target_z = current_layer_z_ + is_z_hopped_;

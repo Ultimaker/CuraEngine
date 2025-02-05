@@ -531,9 +531,9 @@ private:
      * Start or end a z hop
      * \param speed The speed used for moving, or 0 to take the default speed
      * \param height The actual height to be reached, relative to the current layer height
-     * \param retract_distance The absolute retraction distance to be reached while doing the z-hop move
+     * \param retract_distance The absolute retraction distance to be reached while doing the z-hop move, or nullopt to leave it unchanged
      */
-    void writeZhop(Velocity speed = 0.0, const coord_t height = 0, const double retract_distance = 0.0);
+    void writeZhop(Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
 
 public:
     /*!
@@ -560,21 +560,21 @@ public:
      *
      * \param hop_height The height to move above the current layer.
      * \param speed The speed used for moving.
-     * \param retract_distance The absolute retract distance to be reached during the z-hop move
+     * \param retract_distance The absolute retract distance to be reached during the z-hop move, or nullopt to leave it unchanged
      * \param retract_ratio This is the ratio of the complete z-hop move that should be used to process the retraction. If >0 and <1 then the z-hop move
      *                      will actually be split in two part, one with retraction and one without.
      */
-    void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0, double retract_distance = 0.0, const Ratio& retract_ratio = 0.0_r);
+    void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0, std::optional<double> retract_distance = std::nullopt, const Ratio& retract_ratio = 0.0_r);
 
     /*!
      * End a z hop: go back to the layer height
      *
      * \param speed The speed used for moving.
-     * \param prime_distance The absolute prime distance to be reached during the z-hop move
+     * \param prime_distance The absolute prime distance to be reached during the z-hop move, or nullopt to leave it unchanged
      * \param prime_ratio This is the ratio of the complete z-hop move that should be used to process the priming. If >0 and <1 then the z-hop move
      *                    will actually be split in two part, one without priming and one with.
      */
-    void writeZhopEnd(Velocity speed = 0.0, const coord_t height = 0, const double prime_distance = 0.0, const Ratio& prime_ratio = 0.0_r);
+    void writeZhopEnd(Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> prime_distance = std::nullopt, const Ratio& prime_ratio = 0.0_r);
 
     /*!
      * Start the new_extruder:
