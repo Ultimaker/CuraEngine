@@ -3646,40 +3646,36 @@ void FffGcodeWriter::processSkinPrintFeature(
         if (! skin_paths.empty())
         {
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
-            const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
-            if (extruder_nr == skin_extruder_nr)
-            {
-                constexpr bool retract_before_outer_wall = false;
-                constexpr coord_t wipe_dist = 0;
-                const ZSeamConfig z_seam_config(
-                    mesh.settings.get<EZSeamType>("z_seam_type"),
-                    mesh.getZSeamHint(),
-                    mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
-                    config.getLineWidth() * 2);
-                InsetOrderOptimizer wall_orderer(
-                    *this,
-                    storage,
-                    gcode_layer,
-                    mesh.settings,
-                    extruder_nr,
-                    config,
-                    config,
-                    config,
-                    config,
-                    config,
-                    config,
-                    config,
-                    config,
-                    retract_before_outer_wall,
-                    wipe_dist,
-                    wipe_dist,
-                    skin_extruder_nr,
-                    skin_extruder_nr,
-                    z_seam_config,
-                    skin_paths,
-                    mesh.bounding_box.flatten().getMiddle());
-                added_something |= wall_orderer.addToLayer();
-            }
+            constexpr bool retract_before_outer_wall = false;
+            constexpr coord_t wipe_dist = 0;
+            const ZSeamConfig z_seam_config(
+                mesh.settings.get<EZSeamType>("z_seam_type"),
+                mesh.getZSeamHint(),
+                mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
+                config.getLineWidth() * 2);
+            InsetOrderOptimizer wall_orderer(
+                *this,
+                storage,
+                gcode_layer,
+                mesh.settings,
+                extruder_nr,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                retract_before_outer_wall,
+                wipe_dist,
+                wipe_dist,
+                extruder_nr,
+                extruder_nr,
+                z_seam_config,
+                skin_paths,
+                mesh.bounding_box.flatten().getMiddle());
+            added_something |= wall_orderer.addToLayer();
         }
         if (! skin_polygons.empty())
         {
