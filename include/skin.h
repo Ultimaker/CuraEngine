@@ -4,6 +4,8 @@
 #ifndef SKIN_H
 #define SKIN_H
 
+#include <optional>
+
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
@@ -152,8 +154,9 @@ protected:
      *
      * \param part Where to get the SkinParts to get the outline info from
      * \param flooring_layer_count The number of layers below the layer which we are looking into
+     * \return The area that contains mesh parts below, or nullopt if the build plate is below, which actually means everything is considered supported
      */
-    Shape generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
+    std::optional<Shape> generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
 
 protected:
     LayerIndex layer_nr_; //!< The index of the layer for which to generate the skins and infill.
