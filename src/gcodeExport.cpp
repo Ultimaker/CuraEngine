@@ -1361,7 +1361,6 @@ void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const 
 
     is_z_hopped_ = height;
     const coord_t target_z = current_layer_z_ + is_z_hopped_;
-    // current_position_.z_ = current_layer_z_;
     current_speed_ = speed;
     *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z };
     if (retraction_amounts.has_retraction())

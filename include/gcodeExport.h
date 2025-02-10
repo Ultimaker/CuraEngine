@@ -125,9 +125,10 @@ private:
         /*!
          * Indicates whether this retraction actually has something to process
          */
-        inline bool has_retraction() const
+        [[nodiscard]] bool has_retraction() const noexcept
         {
-            return std::abs(diff_e) >= 0.000001;
+            constexpr double threshold{ 1e-6 };
+            return std::abs(diff_e) >= threshold;
         }
     };
 

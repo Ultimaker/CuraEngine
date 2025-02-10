@@ -1073,6 +1073,27 @@ private:
         std::optional<TravelAntiOozing>& priming_amounts) const;
 
     /*!
+     * Compute the anti-ooze amounts to be processed during stationary/Z-hop/travel steps for either a retraction or a priming
+     * @param travel_durations The pre-calculated travel durations
+     * @param gcode The gcode exporter
+     * @param path The raw travel path to be exported
+     * @param distance The retraction/prime distance to be applied
+     * @param during_travel_ratio The ratio of much of the retraction/prime should be processed during travel
+     * @param speed The retraction/prime speed
+     * @param extra_time_still The extra time to be allowed during stationary retraction/prime
+     * @param reversed Indicates if we should process the path forwards (retraction at the beginning) or backwards (prime at the end)
+     */
+    static TravelAntiOozing computeAntiOozeAmount(
+        const TravelDurations& travel_durations,
+        const GCodeExport& gcode,
+        const GCodePath& path,
+        const double distance,
+        const Ratio& during_travel_ratio,
+        const Velocity& speed,
+        const Duration& extra_time_still,
+        const bool reversed);
+
+    /*!
      * Write a single travel segment, taking care of the retraction and priming during travel
      * @param travel_retraction_state The current travel retraction state, which may be updated
      * @param gcode The gcode exporter

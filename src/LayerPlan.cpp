@@ -58,14 +58,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
@@ -2222,94 +2223,107 @@ void LayerPlan::computeAntiOozeAmounts(
         extra_time_still_prime = prime_duration_during_travel - allowed_prime_duration_during_travel;
     }
 
-    const auto compute_anti_ooze_amounts
-        = [&](const double distance, const Ratio& during_travel_ratio, const Velocity& speed, const Duration& extra_time_still, const bool reversed) -> TravelAntiOozing
-    {
-        TravelAntiOozing anti_oozing;
-
-        // First, assume we have enough time to perform retraction and priming during travel as required by the settings
-        anti_oozing.amount_while_still = distance * (1.0 - during_travel_ratio);
-
-        const double max_amount_during_z_hop = anti_oozing.amount_while_still + speed * travel_durations.z_hop;
-        anti_oozing.z_hop.amount = std::min(distance, max_amount_during_z_hop);
-
-        anti_oozing.amount_while_travel = distance;
-
-        if (extra_time_still > 0)
-        {
-            // Now, if we need some extra time, adjust the stationary and z-hop amounts so that actual travel is not overloaded
-            const double missing_amount = speed * extra_time_still;
-            anti_oozing.amount_while_still += missing_amount;
-            anti_oozing.z_hop.amount += missing_amount;
-        }
-
-        if (travel_durations.z_hop > 0)
-        {
-            // If the retraction/prime should stop/start during z-hop move, compute the ratio of the move which should contain the retraction/prime
-            anti_oozing.z_hop.ratio = ((anti_oozing.z_hop.amount - anti_oozing.amount_while_still) / speed) / travel_durations.z_hop;
-        }
-
-        // Now we are going to iterate over all the points of the travel move, including the start position, so create a temporary list and fill it appropriately
-        const Point2LL start_position = gcode.getPosition().toPoint2LL();
-        std::vector<Point3LL> points;
-        if (reversed)
-        {
-            points.insert(points.end(), path.points.rbegin(), path.points.rend());
-            points.push_back(start_position);
-        }
-        else
-        {
-            points = path.points;
-            points.insert(points.begin(), start_position);
-        }
-
-        // Now loop over the segments of the travel move to find when and where the retraction/prime should stop/start
-        const Duration duration_during_travel = (anti_oozing.amount_while_travel - anti_oozing.z_hop.amount) / speed;
-        Duration travel_duration;
-        for (const auto& segment : points | ranges::views::sliding(2))
-        {
-            const Point2LL& segment_start = segment[0].toPoint2LL();
-            const Point2LL& segment_end = segment[1].toPoint2LL();
-
-            const Duration segment_duration = (vSize(segment_end - segment_start) / path.config.getSpeed()) / 1000.0;
-            if (travel_duration + segment_duration >= (duration_during_travel - 0.001_s))
-            {
-                // Retraction/prime ends/starts on this segment, so calculate the intermediate position and final/start amount
-                const double segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
-                anti_oozing.segment_split_position = cura::lerp(segment_start, segment_end, segment_ratio).toPoint2LL();
-                if (reversed)
-                {
-                    anti_oozing.amount_by_segment.insert(anti_oozing.amount_by_segment.begin(), anti_oozing.z_hop.amount);
-                }
-                else
-                {
-                    anti_oozing.amount_by_segment.push_back(anti_oozing.amount_while_travel);
-                }
-                break;
-            }
-
-            // This segment fully contains the retraction/prime, set the proper intermediate amount and keep looping
-            anti_oozing.amount_by_segment.push_back(
-                std::lerp(anti_oozing.z_hop.amount, anti_oozing.amount_while_travel, (travel_duration + segment_duration) / duration_during_travel));
-            travel_duration += segment_duration;
-        }
-
-        return anti_oozing;
-    };
-
-    retraction_amounts = compute_anti_ooze_amounts(
+    retraction_amounts = computeAntiOozeAmount(
+        travel_durations,
+        gcode,
+        path,
         retract_distance,
         retraction_config->retraction_config.retract_during_travel,
         retraction_config->retraction_config.speed,
         extra_time_still_retraction,
         false);
 
-    priming_amounts = compute_anti_ooze_amounts(
+    priming_amounts = computeAntiOozeAmount(
+        travel_durations,
+        gcode,
+        path,
         prime_distance,
         retraction_config->retraction_config.prime_during_travel,
         retraction_config->retraction_config.primeSpeed,
         extra_time_still_prime,
         true);
+}
+
+TravelAntiOozing LayerPlan::computeAntiOozeAmount(
+    const TravelDurations& travel_durations,
+    const GCodeExport& gcode,
+    const GCodePath& path,
+    const double distance,
+    const Ratio& during_travel_ratio,
+    const Velocity& speed,
+    const Duration& extra_time_still,
+    const bool reversed)
+{
+    TravelAntiOozing anti_oozing;
+
+    // First, assume we have enough time to perform retraction and priming during travel as required by the settings
+    anti_oozing.amount_while_still = distance * (1.0 - during_travel_ratio);
+
+    const double max_amount_during_z_hop = anti_oozing.amount_while_still + speed * travel_durations.z_hop;
+    anti_oozing.z_hop.amount = std::min(distance, max_amount_during_z_hop);
+
+    anti_oozing.amount_while_travel = distance;
+
+    if (extra_time_still > 0)
+    {
+        // Now, if we need some extra time, adjust the stationary and z-hop amounts so that actual travel is not overloaded
+        const double missing_amount = speed * extra_time_still;
+        anti_oozing.amount_while_still += missing_amount;
+        anti_oozing.z_hop.amount += missing_amount;
+    }
+
+    if (travel_durations.z_hop > 0)
+    {
+        // If the retraction/prime should stop/start during z-hop move, compute the ratio of the move which should contain the retraction/prime
+        anti_oozing.z_hop.ratio = ((anti_oozing.z_hop.amount - anti_oozing.amount_while_still) / speed) / travel_durations.z_hop;
+    }
+
+    // Now we are going to iterate over all the points of the travel move, including the start position, so create a temporary list and fill it appropriately
+    const Point2LL start_position = gcode.getPosition().toPoint2LL();
+    std::vector<Point3LL> points;
+    if (reversed)
+    {
+        points.insert(points.end(), path.points.rbegin(), path.points.rend());
+        points.push_back(start_position);
+    }
+    else
+    {
+        points = path.points;
+        points.insert(points.begin(), start_position);
+    }
+
+    // Now loop over the segments of the travel move to find when and where the retraction/prime should stop/start
+    const Duration duration_during_travel = (anti_oozing.amount_while_travel - anti_oozing.z_hop.amount) / speed;
+    Duration travel_duration;
+    for (const auto& segment : points | ranges::views::sliding(2))
+    {
+        const Point2LL& segment_start = segment[0].toPoint2LL();
+        const Point2LL& segment_end = segment[1].toPoint2LL();
+
+        const Duration segment_duration = (vSize(segment_end - segment_start) / path.config.getSpeed()) / 1000.0;
+        if (travel_duration + segment_duration >= (duration_during_travel - 0.001_s))
+        {
+            // Retraction/prime ends/starts on this segment, so calculate the intermediate position and final/start amount
+            const double segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
+            anti_oozing.segment_split_position = cura::lerp(segment_start, segment_end, segment_ratio).toPoint2LL();
+            if (reversed)
+            {
+                anti_oozing.amount_by_segment.insert(anti_oozing.amount_by_segment.begin(), anti_oozing.z_hop.amount);
+            }
+            else
+            {
+                anti_oozing.amount_by_segment.push_back(anti_oozing.amount_while_travel);
+            }
+            break;
+        }
+
+        // This segment fully contains the retraction/prime, set the proper intermediate amount and keep looping
+        anti_oozing.amount_by_segment.push_back(
+            std::lerp(anti_oozing.z_hop.amount, anti_oozing.amount_while_travel, (travel_duration + segment_duration) / duration_during_travel));
+        travel_duration += segment_duration;
+    }
+
+    return anti_oozing;
 }
 
 void LayerPlan::writeTravelSegment(
