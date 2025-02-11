@@ -38,6 +38,7 @@ class GCodeExport : public NoCopy
 #ifdef BUILD_TESTS
     friend class GCodeExportTest;
     friend class GriffinHeaderTest;
+    friend class AntiOozeAmountsTest;
     FRIEND_TEST(GCodeExportTest, CommentEmpty);
     FRIEND_TEST(GCodeExportTest, CommentSimple);
     FRIEND_TEST(GCodeExportTest, CommentMultiLine);

@@ -58,14 +58,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
@@ -2153,7 +2154,7 @@ void LayerPlan::addLinesInGivenOrder(
     }
 }
 
-LayerPlan::TravelDurations LayerPlan::computeTravelDurations(const GCodeExport& gcode, const ExtruderTrain& extruder, const GCodePath& path, const coord_t z_hop_height) const
+LayerPlan::TravelDurations LayerPlan::computeTravelDurations(const GCodeExport& gcode, const ExtruderTrain& extruder, const GCodePath& path, const coord_t z_hop_height)
 {
     TravelDurations travel_durations;
 
@@ -2186,7 +2187,7 @@ void LayerPlan::computeAntiOozeAmounts(
     const coord_t z_hop_height,
     const RetractionAndWipeConfig* retraction_config,
     std::optional<TravelAntiOozing>& retraction_amounts,
-    std::optional<TravelAntiOozing>& priming_amounts) const
+    std::optional<TravelAntiOozing>& priming_amounts)
 {
     // First compute the actual durations of the travel/z-hop move, as the retraction/prime will have to fit within the travel move without changing this
     const TravelDurations travel_durations = computeTravelDurations(gcode, extruder, path, path.perform_z_hop ? z_hop_height : 0);

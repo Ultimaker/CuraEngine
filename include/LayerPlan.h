@@ -57,6 +57,8 @@ class LayerPlan : public NoCopy
 #ifdef BUILD_TESTS
     friend class AddTravelTest;
     friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    friend class AntiOozeAmountsTest;
+    FRIEND_TEST(AntiOozeAmountsTest, ComputeAntiOozeAmounts);
 #endif
 
 public:
@@ -1051,7 +1053,7 @@ private:
      * @param z_hop_height The Z-hop height
      * @return The computed path durations
      */
-    TravelDurations computeTravelDurations(const GCodeExport& gcode, const ExtruderTrain& extruder, const GCodePath& path, const coord_t z_hop_height) const;
+    static TravelDurations computeTravelDurations(const GCodeExport& gcode, const ExtruderTrain& extruder, const GCodePath& path, const coord_t z_hop_height);
 
     /*!
      * Compute the anti-ooze (retraction and priming) amounts to be processed during stationary/Z-hop/travel steps
@@ -1063,14 +1065,14 @@ private:
      * @param retraction_amounts The retraction amounts to be set
      * @param priming_amounts The priming amounts to be set
      */
-    void computeAntiOozeAmounts(
+    static void computeAntiOozeAmounts(
         const GCodeExport& gcode,
         const ExtruderTrain& extruder,
         const GCodePath& path,
         const coord_t z_hop_height,
         const RetractionAndWipeConfig* retraction_config,
         std::optional<TravelAntiOozing>& retraction_amounts,
-        std::optional<TravelAntiOozing>& priming_amounts) const;
+        std::optional<TravelAntiOozing>& priming_amounts);
 
     /*!
      * Compute the anti-ooze amounts to be processed during stationary/Z-hop/travel steps for either a retraction or a priming
