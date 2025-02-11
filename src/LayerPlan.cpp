@@ -2168,13 +2168,17 @@ LayerPlan::TravelDurations LayerPlan::computeTravelDurations(const GCodeExport& 
     {
         const Velocity& travel_speed = path.config.getSpeed();
         Point2LL start_position = gcode.getPosition().toPoint2LL();
-        for (const Point3LL& travel_point : path.points)
-        {
-            const Point2LL travel_point_2d = travel_point.toPoint2LL();
-            const coord_t travel_segment_length = vSize(travel_point_2d - start_position);
-            travel_durations.travel += (travel_segment_length / travel_speed) / 1000.0;
-            start_position = travel_point_2d;
-        }
+        const coord_t travel_distance = ranges::accumulate(
+            path.points,
+            0,
+            [&start_position](const coord_t total_distance, const Point3LL& travel_point)
+            {
+                const Point2LL travel_point_2d = travel_point.toPoint2LL();
+                const coord_t travel_segment_length = vSize(travel_point_2d - start_position);
+                start_position = travel_point_2d;
+                return total_distance + travel_segment_length;
+            });
+        travel_durations.travel = (travel_distance / travel_speed) / 1000.0;
     }
 
     return travel_durations;
