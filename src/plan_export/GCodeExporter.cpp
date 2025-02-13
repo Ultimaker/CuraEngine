@@ -167,7 +167,7 @@ void GCodeExporter::setInitialAndBuildVolumeTemps(const unsigned int start_extru
 void GCodeExporter::setInitialTemp(int extruder_nr, double temp)
 {
     extruder_attr_[extruder_nr].initial_temp_ = temp;
-    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::ULTIGCODE)
+    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH || flavor_ == EGCodeFlavor::ULTIGCODE)
     {
         extruder_attr_[extruder_nr].current_temperature_ = temp;
     }
@@ -189,6 +189,8 @@ std::string GCodeExporter::flavorToString(const EGCodeFlavor& flavor)
         return "Marlin(Volumetric)";
     case EGCodeFlavor::GRIFFIN:
         return "Griffin";
+    case EGCodeFlavor::CHEETAH:
+        return "Cheetah";
     case EGCodeFlavor::REPETIER:
         return "Repetier";
     case EGCodeFlavor::REPRAP:
@@ -211,6 +213,7 @@ std::string GCodeExporter::getFileHeader(
     switch (flavor_)
     {
     case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
         prefix << ";START_OF_HEADER" << new_line_;
         prefix << ";HEADER_VERSION:0.1" << new_line_;
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
@@ -687,7 +690,7 @@ bool GCodeExporter::initializeExtruderTrains(const SliceDataStorage& storage, co
         writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
     }
 
-    if (getFlavor() == EGCodeFlavor::GRIFFIN)
+    if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     {
         std::ostringstream tmp;
         tmp << "T" << start_extruder_nr;
@@ -728,7 +731,7 @@ bool GCodeExporter::initializeExtruderTrains(const SliceDataStorage& storage, co
         tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
         writeLine(tmp.str().c_str());
     }
-    else if (getFlavor() == EGCodeFlavor::GRIFFIN)
+    else if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     { // initialize extruder trains
         ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[start_extruder_nr];
         processInitialLayerTemperature(storage, start_extruder_nr);
@@ -742,7 +745,7 @@ bool GCodeExporter::initializeExtruderTrains(const SliceDataStorage& storage, co
     {
         writeExtrusionMode(true);
     }
-    if (getFlavor() != EGCodeFlavor::GRIFFIN)
+    if (getFlavor() != EGCodeFlavor::GRIFFIN && getFlavor() != EGCodeFlavor::CHEETAH)
     {
         if (mesh_group_settings.get<bool>("retraction_enable"))
         {
@@ -836,6 +839,7 @@ void GCodeExporter::processInitialLayerTemperature(const SliceDataStorage& stora
     case EGCodeFlavor::ULTIGCODE:
         return;
     case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
         wait_start_extruder = true;
         break;
     default:
@@ -857,6 +861,7 @@ bool GCodeExporter::needPrimeBlob() const
     switch (getFlavor())
     {
     case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
         return true;
     default:
         // TODO: change this once priming for other firmware types is implemented
@@ -1459,7 +1464,7 @@ void GCodeExporter::writePrimeTrain(const Velocity& travel_speed)
         writeTravel(prime_pos, travel_speed);
     }
 
-    if (flavor_ == EGCodeFlavor::GRIFFIN)
+    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
     {
         bool should_correct_z = false;
 
@@ -1678,7 +1683,7 @@ void GCodeExporter::writeBedTemperatureCommand(const Temperature& temperature, c
 
 void GCodeExporter::writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait)
 {
-    if (flavor_ == EGCodeFlavor::ULTIGCODE || flavor_ == EGCodeFlavor::GRIFFIN)
+    if (flavor_ == EGCodeFlavor::ULTIGCODE || flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
     {
         // Ultimaker printers don't support build volume temperature commands.
         return;
@@ -1759,12 +1764,23 @@ void GCodeExporter::writeJerk(const Velocity& jerk)
         case EGCodeFlavor::REPRAP:
             *output_stream_ << "M566 X" << PrecisionedDouble{ 2, jerk * 60 } << " Y" << PrecisionedDouble{ 2, jerk * 60 } << new_line_;
             break;
+        case EGCodeFlavor::CHEETAH:
+            *output_stream_ << "M215 X" << PrecisionedDouble{ 2, jerk * 1000 } << " Y" << PrecisionedDouble{ 2, jerk * 1000 } << new_line_;
+            break;
         default:
             *output_stream_ << "M205 X" << PrecisionedDouble{ 2, jerk } << " Y" << PrecisionedDouble{ 2, jerk } << new_line_;
             break;
         }
         current_jerk_ = jerk;
-        estimate_calculator_.setMaxXyJerk(jerk);
+
+        if (getFlavor() == EGCodeFlavor::CHEETAH)
+        {
+            estimate_calculator_.setMaxXyJerk(jerk / 200);
+        }
+        else
+        {
+            estimate_calculator_.setMaxXyJerk(jerk);
+        }
     }
 }
 

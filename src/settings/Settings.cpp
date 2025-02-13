@@ -183,7 +183,7 @@ Acceleration Settings::get<Acceleration>(const std::string& key) const
 template<>
 Ratio Settings::get<Ratio>(const std::string& key) const
 {
-    return get<double>(key) / 100.0; // The settings are all in percentages, but we need to interpret them as radians.
+    return get<double>(key) / 100.0; // The settings are all in percentages, but we need to interpret them as ratios.
 }
 
 template<>
@@ -371,6 +371,8 @@ EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
         return EGCodeFlavor::MARLIN;
     case "Griffin"_sw:
         return EGCodeFlavor::GRIFFIN;
+    case "Cheetah"_sw:
+        return EGCodeFlavor::CHEETAH;
     case "UltiGCode"_sw:
         return EGCodeFlavor::ULTIGCODE;
     case "Makerbot"_sw:
@@ -784,6 +786,22 @@ std::vector<double> Settings::get<std::vector<double>>(const std::string& key) c
             }
         }
     }
+    return result;
+}
+
+template<>
+std::vector<Ratio> Settings::get<std::vector<Ratio>>(const std::string& key) const
+{
+    auto values_double = get<std::vector<double>>(key);
+
+    // The settings are all in percentages, but we need to interpret them as ratios.
+    std::vector<Ratio> result;
+    result.reserve(values_double.size());
+    for (const auto& value_double : values_double)
+    {
+        result.emplace_back(value_double / 100.0);
+    }
+
     return result;
 }
 
