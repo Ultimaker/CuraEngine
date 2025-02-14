@@ -179,6 +179,8 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
             line_config,
             line_config,
             line_config,
+            line_config,
+            line_config,
             retract_before_outer_wall,
             wipe_dist,
             wipe_dist,

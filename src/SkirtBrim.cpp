@@ -407,7 +407,7 @@ Shape SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     first_layer_outline = Simplify(smallest_line_length, largest_error_of_removed_point, 0).polygon(first_layer_outline);
     if (first_layer_outline.empty())
     {
-        spdlog::error("Couldn't generate skirt / brim! No polygons on first layer.");
+        spdlog::warn("Couldn't generate skirt / brim! No polygons on first layer for extruder {}.", extruder_nr);
     }
     return first_layer_outline;
 }
