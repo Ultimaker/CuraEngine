@@ -58,14 +58,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
@@ -2325,17 +2326,25 @@ TravelAntiOozing LayerPlan::computeAntiOozeAmount(
     // Now loop over the segments of the travel move to find when and where the retraction/prime should stop/start
     const Duration duration_during_travel = (anti_oozing.amount_while_travel - anti_oozing.z_hop.amount) / speed;
     Duration travel_duration;
-    for (const auto& segment : points | ranges::views::sliding(2))
+    for (const auto& [index, segment] : points | ranges::views::sliding(2) | ranges::views::enumerate)
     {
         const Point2LL& segment_start = segment[0].toPoint2LL();
         const Point2LL& segment_end = segment[1].toPoint2LL();
 
         const Duration segment_duration = (vSize(segment_end - segment_start) / path.config.getSpeed()) / 1000.0;
-        if (travel_duration + segment_duration >= (duration_during_travel - 0.001_s))
+        if ((travel_duration + segment_duration >= (duration_during_travel - 0.001_s)) || index == points.size() - 2)
         {
             // Retraction/prime ends/starts on this segment, so calculate the intermediate position and final/start amount
-            const double segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
-            anti_oozing.segment_split_position = cura::lerp(segment_start, segment_end, segment_ratio).toPoint2LL();
+            if (segment_duration > 0.001_s)
+            {
+                const double segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
+                anti_oozing.segment_split_position = cura::lerp(segment_start, segment_end, segment_ratio).toPoint2LL();
+            }
+            else
+            {
+                anti_oozing.segment_split_position = segment_start;
+            }
+
             if (reversed)
             {
                 anti_oozing.amount_by_segment.insert(anti_oozing.amount_by_segment.begin(), anti_oozing.z_hop.amount);
