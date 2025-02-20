@@ -287,10 +287,6 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
 
             // Estimate horizontal influence to deformation
             double horizontal_distance = min_box_layer.minimumDistance(element->min_box) * horizontal_movement_weight;
-            double vertical_distance = (element->layer_idx - iterate_layer_idx) * layer_height;
-            double total_distance = std::sqrt(horizontal_distance * horizontal_distance + vertical_distance * vertical_distance);
-
-            double h_distance_per_layer = horizontal_distance == 0 ? 0 : (horizontal_distance / (layer_height * double(layer_idx - iterate_layer_idx)));
             size_t direction_z_idx = getDirectionIdx(element->min_box.center, min_box_layer.center);
             double deformation_in_z_direction = std::pow(deformation_layer[direction_z_idx] * double(horizontal_distance / layer_height) / layer_per_mm, 3);
 
