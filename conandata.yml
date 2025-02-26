@@ -3,8 +3,8 @@ commit: "unknown"
 requirements:
   - "scripta/[>=1.1.0]@ultimaker/testing"
 requirements_arcus:
-  - "arcus/5.10.0@ultimaker/stable"
+  - "arcus/5.10.0"
 requirements_plugins:
-  - "curaengine_grpc_definitions/0.3.1@ultimaker/stable"
+  - "curaengine_grpc_definitions/0.3.1"
 requirements_cura_resources:
   - "cura_resources/5.10.0-beta.1"
