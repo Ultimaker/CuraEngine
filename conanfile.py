@@ -23,7 +23,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "application"
-    python_requires = "sentrylibrary/1.0.0", "npmpackage/[>=1.0.0]@ultimaker/np_637"
+    python_requires = "sentrylibrary/1.0.0", "npmpackage/[>=1.0.0]"
     python_requires_extend = "sentrylibrary.SentryLibrary"
 
     options = {
