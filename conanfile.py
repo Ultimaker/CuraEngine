@@ -23,7 +23,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "application"
-    python_requires = "sentrylibrary/1.0.0", "npmpackage/[>=1.0.0]@ultimaker/np_637"
+    python_requires = "sentrylibrary/1.0.0", "npmpackage/[>=1.0.0]"
     python_requires_extend = "sentrylibrary.SentryLibrary"
 
     options = {
@@ -108,8 +108,6 @@ class CuraEngineConan(ConanFile):
 
     def build_requirements(self):
         self.test_requires("standardprojectsettings/[>=0.2.0]")
-        if self.options.enable_arcus or self.options.enable_plugins:
-            self.tool_requires("protobuf/3.21.12")
         if not self.conf.get("tools.build:skip_test", False, check_type=bool):
             self.test_requires("gtest/1.14.0")
         if self.options.enable_benchmarks:
@@ -126,16 +124,13 @@ class CuraEngineConan(ConanFile):
                 self.requires(req)
         if self.options.enable_plugins:
             self.requires("neargye-semver/0.3.0")
-            self.requires("asio-grpc/2.9.2")
             for req in self.conan_data["requirements_plugins"]:
                 self.requires(req)
         if self.options.with_cura_resources:
             for req in self.conan_data["requirements_cura_resources"]:
                 self.requires(req)
-        if self.options.enable_arcus or self.options.enable_plugins:
-            self.requires("protobuf/3.21.12")
         self.requires("clipper/6.4.2@ultimaker/stable")
-        self.requires("boost/1.83.0")
+        self.requires("boost/1.86.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
         self.requires("spdlog/1.12.0")
