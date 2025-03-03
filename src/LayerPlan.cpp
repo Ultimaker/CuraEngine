@@ -2415,7 +2415,18 @@ void LayerPlan::spiralizeWallSlice(
             }
             // reduce number of paths created when polygon has many points by limiting precision of flow
             constexpr bool no_spiralize = false;
-            addExtrusionMove(p, config, SpaceFillType::Polygons, ((int)(flow * 20)) / 20.0, width_factor, no_spiralize, speed_factor);
+            constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+            constexpr bool travel_to_z = false;
+            addExtrusionMove(
+                Point3LL(p, layer_thickness_ / 2.0),
+                config,
+                SpaceFillType::Polygons,
+                ((int)(flow * 20)) / 20.0,
+                width_factor,
+                no_spiralize,
+                speed_factor,
+                fan_speed,
+                travel_to_z);
         }
     }
 }
