@@ -130,7 +130,7 @@ class CuraEngineConan(ConanFile):
             for req in self.conan_data["requirements_cura_resources"]:
                 self.requires(req)
         self.requires("clipper/6.4.2@ultimaker/stable")
-        self.requires("boost/1.83.0")
+        self.requires("boost/1.86.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
         self.requires("spdlog/1.12.0")
