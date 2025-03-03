@@ -2179,13 +2179,13 @@ void LayerPlan::addLinesInGivenOrder(
     }
 }
 
-void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed)
+void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed, const std::optional<coord_t>& line_thickness)
 {
     Application::getInstance().communication_->sendLineTo(
         path.config.type,
         position + Point3LL(0, 0, z_ + path.z_offset),
         path.getLineWidthForLayerView(),
-        path.config.getLayerThickness() + path.z_offset + position.z_,
+        line_thickness.value_or(path.config.getLayerThickness() + path.z_offset + position.z_),
         extrude_speed);
 }
 
@@ -3088,9 +3088,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                     for (unsigned int point_idx = 0; point_idx < spiral_path.points.size(); point_idx++)
                     {
-                        const Point2LL p1 = spiral_path.points[point_idx].toPoint2LL();
-                        length += vSizeMM(p0 - p1);
-                        p0 = p1;
+                        const Point3LL p1 = spiral_path.points[point_idx];
+
+                        const Point2LL p1_2d = p1.toPoint2LL();
+                        length += vSizeMM(p0 - p1_2d);
+                        p0 = p1_2d;
 
                         const coord_t z_offset = std::round(layer_thickness_ * length / totalLength);
                         const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
@@ -3102,18 +3104,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             spiral_path.getExtrusionMM3perMM(),
                             spiral_path.config.type,
                             update_extrusion_offset);
-                        sendLineTo(spiral_path, spiral_path.points[point_idx], extrude_speed);
+                        sendLineTo(spiral_path, Point3LL(p1.x_, p1.y_, z_offset), extrude_speed, layer_thickness_);
                     }
-                    // for layer display only - the loop finished at the seam vertex but as we started from
-                    // the location of the previous layer's seam vertex the loop may have a gap if this layer's
-                    // seam vertex is "behind" the previous layer's seam vertex. So output another line segment
-                    // that joins this layer's seam vertex to the following vertex. If the layers have been blended
-                    // then this can cause a visible ridge (on the screen, not on the print) because the first vertex
-                    // would have been shifted in x/y to make it nearer to the previous layer outline but the seam
-                    // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
-                    // the less the vertices are shifted and the less obvious is the ridge. If the layer display
-                    // really displayed a spiral rather than slices of a spiral, this would not be required.
-                    sendLineTo(spiral_path, spiral_path.points[0], speed);
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
