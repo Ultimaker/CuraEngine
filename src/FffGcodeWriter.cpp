@@ -44,6 +44,9 @@ namespace cura
 {
 constexpr coord_t EPSILON = 5;
 
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic" };
+
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
     , layer_plan_buffer(gcode)
@@ -483,6 +486,17 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
         }
     }
 
+    if (mesh.flooring_angles.size() == 0)
+    {
+        mesh.flooring_angles = mesh.settings.get<std::vector<AngleDegrees>>("flooring_angles");
+        if (mesh.flooring_angles.size() == 0)
+        {
+            // user has not specified any infill angles so use defaults
+            mesh.flooring_angles.push_back(45);
+            mesh.flooring_angles.push_back(135);
+        }
+    }
+
     if (mesh.skin_angles.size() == 0)
     {
         mesh.skin_angles = mesh.settings.get<std::vector<AngleDegrees>>("skin_angles");
@@ -708,6 +722,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     config,
                     config,
                     config,
+                    config,
+                    config,
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -863,6 +879,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 gcode_layer,
                 interface_settings,
                 interface_extruder_nr,
+                config,
+                config,
                 config,
                 config,
                 config,
@@ -1032,6 +1050,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     gcode_layer,
                     surface_settings,
                     surface_extruder_nr,
+                    config,
+                    config,
                     config,
                     config,
                     config,
@@ -2735,6 +2755,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
                     mesh_config.infill_config[0],
                     mesh_config.infill_config[0],
                     mesh_config.infill_config[0],
+                    mesh_config.infill_config[0],
+                    mesh_config.infill_config[0],
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -3168,6 +3190,8 @@ bool FffGcodeWriter::processInsets(
             gcode_layer.setSeamOverhangMask(Shape());
         }
 
+        const auto wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
+
         const auto roofing_mask_fn = [&]() -> Shape
         {
             const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
@@ -3179,7 +3203,6 @@ bool FffGcodeWriter::processInsets(
                 return roofing_mask;
             }
 
-            const auto wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
             for (const auto& layer_part : mesh.layers[gcode_layer.getLayerNr() + roofing_layer_count].parts)
             {
                 if (boundaryBox.hit(layer_part.boundaryBox))
@@ -3188,9 +3211,32 @@ bool FffGcodeWriter::processInsets(
                 }
             }
             return roofing_mask;
-        }();
+        };
 
-        gcode_layer.setRoofingMask(roofing_mask_fn);
+        gcode_layer.setRoofingMask(roofing_mask_fn());
+
+        const auto flooring_mask_fn = [&]() -> Shape
+        {
+            const size_t flooring_layer_count = std::min(mesh.settings.get<size_t>("flooring_layer_count"), mesh.settings.get<size_t>("bottom_layers"));
+
+            auto flooring_mask = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_);
+
+            if (gcode_layer.getLayerNr() - flooring_layer_count < 0)
+            {
+                return flooring_mask;
+            }
+
+            for (const auto& layer_part : mesh.layers[gcode_layer.getLayerNr() - flooring_layer_count].parts)
+            {
+                if (boundaryBox.hit(layer_part.boundaryBox))
+                {
+                    flooring_mask = flooring_mask.difference(layer_part.outline.offset(-wall_line_width_0 / 4));
+                }
+            }
+            return flooring_mask;
+        };
+
+        gcode_layer.setFlooringMask(flooring_mask_fn());
     }
     else
     {
@@ -3202,6 +3248,8 @@ bool FffGcodeWriter::processInsets(
         gcode_layer.setSeamOverhangMask(Shape());
         // clear to disable use of roofing settings
         gcode_layer.setRoofingMask(Shape());
+        // clear to disable use of flooring settings
+        gcode_layer.setFlooringMask(Shape());
     }
 
     if (spiralize && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && ! part.spiral_wall.empty())
@@ -3219,7 +3267,7 @@ bool FffGcodeWriter::processInsets(
         else
         {
             // Print the spiral walls of other parts as single walls without Z gradient.
-            gcode_layer.addWalls(part.spiral_wall, mesh.settings, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config);
+            gcode_layer.addWalls(part.spiral_wall, mesh.settings, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config);
         }
     }
     else
@@ -3244,6 +3292,8 @@ bool FffGcodeWriter::processInsets(
             mesh_config.insetX_config,
             mesh_config.inset0_roofing_config,
             mesh_config.insetX_roofing_config,
+            mesh_config.inset0_flooring_config,
+            mesh_config.insetX_flooring_config,
             mesh_config.bridge_inset0_config,
             mesh_config.bridge_insetX_config,
             mesh.settings.get<bool>("travel_retract_before_outer_wall"),
@@ -3306,9 +3356,12 @@ bool FffGcodeWriter::processSkin(
 {
     const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
     const size_t roofing_extruder_nr = mesh.settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr_;
+    const size_t flooring_extruder_nr = mesh.settings.get<ExtruderTrain&>("flooring_extruder_nr").extruder_nr_;
     const size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_;
     const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
-    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr && (extruder_nr != roofing_extruder_nr || roofing_layer_count <= 0))
+    const size_t flooring_layer_count = std::min(mesh.settings.get<size_t>("flooring_layer_count"), mesh.settings.get<size_t>("bottom_layers"));
+    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr && (extruder_nr != roofing_extruder_nr || roofing_layer_count == 0)
+        && (extruder_nr != flooring_extruder_nr || flooring_layer_count == 0))
     {
         return false;
     }
@@ -3343,51 +3396,60 @@ bool FffGcodeWriter::processSkinPart(
 
     gcode_layer.mode_skip_agressive_merge_ = true;
 
-    processRoofing(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
+    processRoofingFlooring(
+        storage,
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        roofing_settings_names,
+        skin_part.roofing_fill,
+        mesh_config.roofing_config,
+        mesh.roofing_angles,
+        added_something);
+    processRoofingFlooring(
+        storage,
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        flooring_settings_names,
+        skin_part.flooring_fill,
+        mesh_config.flooring_config,
+        mesh.flooring_angles,
+        added_something);
     processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
 
     gcode_layer.mode_skip_agressive_merge_ = false;
     return added_something;
 }
 
-void FffGcodeWriter::processRoofing(
+void FffGcodeWriter::processRoofingFlooring(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const MeshPathConfigs& mesh_config,
-    const SkinPart& skin_part,
+    const RoofingFlooringSettingsNames& settings_names,
+    const Shape& fill,
+    const GCodePathConfig& config,
+    const std::vector<AngleDegrees>& angles,
     bool& added_something) const
 {
-    const size_t roofing_extruder_nr = mesh.settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr_;
-    if (extruder_nr != roofing_extruder_nr)
+    const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>(settings_names.extruder_nr).extruder_nr_;
+    if (extruder_nr != skin_extruder_nr)
     {
         return;
     }
 
-    const EFillMethod pattern = mesh.settings.get<EFillMethod>("roofing_pattern");
+    const EFillMethod pattern = mesh.settings.get<EFillMethod>(settings_names.pattern);
     AngleDegrees roofing_angle = 45;
-    if (mesh.roofing_angles.size() > 0)
+    if (angles.size() > 0)
     {
-        roofing_angle = mesh.roofing_angles.at(gcode_layer.getLayerNr() % mesh.roofing_angles.size());
+        roofing_angle = angles.at(gcode_layer.getLayerNr() % angles.size());
     }
 
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
-    const bool monotonic = mesh.settings.get<bool>("roofing_monotonic");
-    processSkinPrintFeature(
-        storage,
-        gcode_layer,
-        mesh,
-        extruder_nr,
-        skin_part.roofing_fill,
-        mesh_config.roofing_config,
-        pattern,
-        roofing_angle,
-        skin_overlap,
-        skin_density,
-        monotonic,
-        added_something);
+    const bool monotonic = mesh.settings.get<bool>(settings_names.monotonic);
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, fill, config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, added_something);
 }
 
 void FffGcodeWriter::processTopBottom(
@@ -3654,38 +3716,36 @@ void FffGcodeWriter::processSkinPrintFeature(
         if (! skin_paths.empty())
         {
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
-            const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
-            if (extruder_nr == skin_extruder_nr)
-            {
-                constexpr bool retract_before_outer_wall = false;
-                constexpr coord_t wipe_dist = 0;
-                const ZSeamConfig z_seam_config(
-                    mesh.settings.get<EZSeamType>("z_seam_type"),
-                    mesh.getZSeamHint(),
-                    mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
-                    config.getLineWidth() * 2);
-                InsetOrderOptimizer wall_orderer(
-                    *this,
-                    storage,
-                    gcode_layer,
-                    mesh.settings,
-                    extruder_nr,
-                    config,
-                    config,
-                    config,
-                    config,
-                    config,
-                    config,
-                    retract_before_outer_wall,
-                    wipe_dist,
-                    wipe_dist,
-                    skin_extruder_nr,
-                    skin_extruder_nr,
-                    z_seam_config,
-                    skin_paths,
-                    mesh.bounding_box.flatten().getMiddle());
-                added_something |= wall_orderer.addToLayer();
-            }
+            constexpr bool retract_before_outer_wall = false;
+            constexpr coord_t wipe_dist = 0;
+            const ZSeamConfig z_seam_config(
+                mesh.settings.get<EZSeamType>("z_seam_type"),
+                mesh.getZSeamHint(),
+                mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
+                config.getLineWidth() * 2);
+            InsetOrderOptimizer wall_orderer(
+                *this,
+                storage,
+                gcode_layer,
+                mesh.settings,
+                extruder_nr,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                retract_before_outer_wall,
+                wipe_dist,
+                wipe_dist,
+                extruder_nr,
+                extruder_nr,
+                z_seam_config,
+                skin_paths,
+                mesh.bounding_box.flatten().getMiddle());
+            added_something |= wall_orderer.addToLayer();
         }
         if (! skin_polygons.empty())
         {
@@ -3968,6 +4028,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 config,
                 config,
                 config,
+                config,
+                config,
                 retract_before_outer_wall,
                 wipe_dist,
                 wipe_dist,
@@ -4154,6 +4216,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     config,
                     config,
                     config,
+                    config,
+                    config,
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -4290,6 +4354,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
             config,
             config,
             config,
+            config,
+            config,
             retract_before_outer_wall,
             wipe_dist,
             wipe_dist,
@@ -4398,6 +4464,8 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
             gcode_layer,
             bottom_extruder.settings_,
             bottom_extruder_nr,
+            config,
+            config,
             config,
             config,
             config,

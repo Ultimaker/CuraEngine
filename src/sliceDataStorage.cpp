@@ -150,6 +150,11 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     {
         return true;
     }
+    const size_t flooring_layer_count = std::min(settings.get<size_t>("flooring_layer_count"), settings.get<size_t>("bottom_layers"));
+    if (flooring_layer_count > 0 && settings.get<ExtruderTrain&>("flooring_extruder_nr").extruder_nr_ == extruder_nr)
+    {
+        return true;
+    }
     return false;
 }
 
@@ -221,6 +226,19 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             for (const SkinPart& skin_part : part.skin_parts)
             {
                 if (! skin_part.roofing_fill.empty())
+                {
+                    return true;
+                }
+            }
+        }
+    }
+    if (settings.get<ExtruderTrain&>("flooring_extruder_nr").extruder_nr_ == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            for (const SkinPart& skin_part : part.skin_parts)
+            {
+                if (! skin_part.flooring_fill.empty())
                 {
                     return true;
                 }

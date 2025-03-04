@@ -23,7 +23,7 @@ class CuraEngineConan(ConanFile):
     exports = "LICENSE*"
     settings = "os", "compiler", "build_type", "arch"
     package_type = "application"
-    python_requires = "sentrylibrary/1.0.0@ultimaker/stable", "npmpackage/[>=1.0.0]@ultimaker/stable"
+    python_requires = "sentrylibrary/1.0.0", "npmpackage/[>=1.0.0]@ultimaker/stable"
     python_requires_extend = "sentrylibrary.SentryLibrary"
 
     options = {
@@ -107,7 +107,7 @@ class CuraEngineConan(ConanFile):
                     f"{self.ref} requires C++{self._min_cppstd}, which your compiler does not support.")
 
     def build_requirements(self):
-        self.test_requires("standardprojectsettings/[>=0.2.0]@ultimaker/stable")
+        self.test_requires("standardprojectsettings/[>=0.2.0]")
         if self.options.enable_arcus or self.options.enable_plugins:
             self.tool_requires("protobuf/3.21.12")
         if not self.conf.get("tools.build:skip_test", False, check_type=bool):

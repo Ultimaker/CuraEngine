@@ -914,6 +914,7 @@ void LayerPlan::addWallLine(
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
+    const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
     double flow,
     const Ratio width_factor,
@@ -1033,41 +1034,41 @@ void LayerPlan::addWallLine(
         }
     };
 
-    const auto use_roofing_config = [&]() -> bool
+    const auto use_skin_config = [&default_config, &p0, &p1](const Shape& mask, const GCodePathConfig& config) -> bool
     {
-        if (roofing_config == default_config)
+        if (config == default_config)
         {
             // if the roofing config and normal config are the same any way there is no need to check
             // what part of the line segment will be printed with what config.
             return false;
         }
-        return PolygonUtils::polygonCollidesWithLineSegment(roofing_mask_, p0.toPoint2LL(), p1.toPoint2LL()) || roofing_mask_.inside(p1.toPoint2LL(), true);
-    }();
+        return PolygonUtils::polygonCollidesWithLineSegment(mask, p0.toPoint2LL(), p1.toPoint2LL()) || mask.inside(p1.toPoint2LL(), true);
+    };
 
-    if (use_roofing_config)
+    const auto add_skin_extrusion = [&](const Shape& mask, const GCodePathConfig& config) -> void
     {
-        // The line segment is wholly or partially in the roofing area. The line is intersected
-        // with the roofing area into line segments. Each line segment left in this intersection
-        // will be printed using the roofing config, all removed segments will be printed using
+        // The line segment is wholly or partially in the skin area. The line is intersected
+        // with the skin area into line segments. Each line segment left in this intersection
+        // will be printed using the skin config, all removed segments will be printed using
         // the default_config. Since the original line segment was straight we can simply print
         // to the first and last point of the intersected line segments alternating between
-        // roofing and default_config's.
+        // skin and default_config's.
         OpenLinesSet line_polys;
         line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
         constexpr bool restitch = false; // only a single line doesn't need stitching
-        auto roofing_line_segments = roofing_mask_.intersection(line_polys, restitch);
+        auto skin_line_segments = mask.intersection(line_polys, restitch);
 
-        if (roofing_line_segments.empty())
+        if (skin_line_segments.empty())
         {
-            // roofing_line_segments should never be empty since we already checked that the line segment
-            // intersects with the roofing area. But if it is empty then just print the line segment
+            // skin_line_segments should never be empty since we already checked that the line segment
+            // intersects with the skin area. But if it is empty then just print the line segment
             // using the default_config.
             addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
         }
         else
         {
             // reorder all the line segments so all lines start at p0 and end at p1
-            for (auto& line_poly : roofing_line_segments)
+            for (auto& line_poly : skin_line_segments)
             {
                 const Point2LL& line_p0 = line_poly.front();
                 const Point2LL& line_p1 = line_poly.back();
@@ -1077,15 +1078,15 @@ void LayerPlan::addWallLine(
                 }
             }
             std::sort(
-                roofing_line_segments.begin(),
-                roofing_line_segments.end(),
+                skin_line_segments.begin(),
+                skin_line_segments.end(),
                 [&](auto& a, auto& b)
                 {
                     return vSize2(a.front() - p0) < vSize2(b.front() - p0);
                 });
 
             // add intersected line segments, alternating between roofing and default_config
-            for (const auto& line_poly : roofing_line_segments)
+            for (const auto& line_poly : skin_line_segments)
             {
                 // This is only relevant for the very fist iteration of the loop
                 // if the start of the line segment is not at minimum distance from p0
@@ -1103,15 +1104,24 @@ void LayerPlan::addWallLine(
                         travel_to_z);
                 }
 
-                addExtrusionMove(line_poly.back(), roofing_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
+                addExtrusionMove(line_poly.back(), config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
             }
 
             // if the last point is not yet at a minimum distance from p1 then add a move to p1
-            if (vSize2(roofing_line_segments.back().back() - p1) > min_line_len * min_line_len)
+            if (vSize2(skin_line_segments.back().back() - p1) > min_line_len * min_line_len)
             {
                 addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
             }
         }
+    };
+
+    if (use_skin_config(roofing_mask_, roofing_config))
+    {
+        add_skin_extrusion(roofing_mask_, roofing_config);
+    }
+    else if (use_skin_config(flooring_mask_, flooring_config))
+    {
+        add_skin_extrusion(flooring_mask_, flooring_config);
     }
     else if (bridge_wall_mask_.empty())
     {
@@ -1232,6 +1242,7 @@ void LayerPlan::addWall(
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
+    const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
     double flow_ratio,
@@ -1260,7 +1271,20 @@ void LayerPlan::addWall(
     constexpr bool is_closed = true;
     constexpr bool is_reversed = false;
     constexpr bool is_linked_path = false;
-    addWall(ewall, start_idx, settings, default_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract, is_closed, is_reversed, is_linked_path);
+    addWall(
+        ewall,
+        start_idx,
+        settings,
+        default_config,
+        roofing_config,
+        flooring_config,
+        bridge_config,
+        wall_0_wipe_dist,
+        flow_ratio,
+        always_retract,
+        is_closed,
+        is_reversed,
+        is_linked_path);
 }
 
 template<class PathType>
@@ -1811,6 +1835,7 @@ void LayerPlan::addWall(
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
+    const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
     const double flow_ratio,
@@ -1857,6 +1882,7 @@ void LayerPlan::addWall(
                 settings,
                 default_config,
                 roofing_config,
+                flooring_config,
                 bridge_config,
                 actual_flow_ratio,
                 line_width_ratio,
@@ -1905,6 +1931,7 @@ void LayerPlan::addWalls(
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
+    const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
@@ -1920,7 +1947,7 @@ void LayerPlan::addWalls(
     orderOptimizer.optimize();
     for (const PathOrdering<const Polygon*>& path : orderOptimizer.paths_)
     {
-        addWall(*path.vertices_, path.start_vertex_, settings, default_config, roofing_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(*path.vertices_, path.start_vertex_, settings, default_config, roofing_config, flooring_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
     }
 }
 
@@ -3391,6 +3418,11 @@ const Shape& LayerPlan::getSeamOverhangMask() const
 void LayerPlan::setRoofingMask(const Shape& polys)
 {
     roofing_mask_ = polys;
+}
+
+void LayerPlan::setFlooringMask(const Shape& shape)
+{
+    flooring_mask_ = shape;
 }
 
 template void LayerPlan::addLinesByOptimizer(

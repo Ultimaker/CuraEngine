@@ -5,6 +5,8 @@
 
 #include <cmath> // std::ceil
 
+#include <spdlog/spdlog.h>
+
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
@@ -91,7 +93,7 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
 
     for (SliceLayerPart& part : layer->parts)
     {
-        generateRoofingFillAndSkinFill(part);
+        generateSkinRoofingFlooringFill(part);
 
         generateTopAndBottomMostSurfaces(part);
     }
@@ -324,22 +326,36 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateRoofingFillAndSkinFill(SliceLayerPart& part)
+void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& part)
 {
     for (SkinPart& skin_part : part.skin_parts)
     {
         const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
+        const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
         const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
 
-        Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
+        const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
+        const std::optional<Shape> filled_area_below = generateFilledAreaBelow(part, flooring_layer_count);
 
+        // An area that would have nothing below nor above is considered a roof
         skin_part.roofing_fill = skin_part.outline.difference(filled_area_above);
-        skin_part.skin_fill = skin_part.outline.intersection(filled_area_above);
+        if (filled_area_below.has_value())
+        {
+            skin_part.flooring_fill = skin_part.outline.intersection(filled_area_above).difference(*filled_area_below);
+            skin_part.skin_fill = skin_part.outline.intersection(filled_area_above).intersection(*filled_area_below);
+        }
+        else
+        {
+            // Mesh part is just above build plate, so it is completely supported
+            // skin_part.flooring_fill = Shape();
+            skin_part.skin_fill = skin_part.outline.intersection(filled_area_above);
+        }
 
-        // We remove offsets areas from roofing_fill anywhere they overlap with skin_fill.
-        // Otherwise, adjacent skin_fill and roofing_fill would have doubled offset areas. Since they both offset into each other.
-        skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap).difference(skin_part.roofing_fill);
+        // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
+        // Otherwise, adjacent skin_fill and roofing/flooring would have doubled offset areas. Since they both offset into each other.
+        skin_part.skin_fill = skin_part.skin_fill.offset(skin_overlap).difference(skin_part.roofing_fill).difference(skin_part.flooring_fill);
         skin_part.roofing_fill = skin_part.roofing_fill.offset(skin_overlap);
+        skin_part.flooring_fill = skin_part.flooring_fill.offset(skin_overlap).difference(skin_part.roofing_fill);
     }
 }
 
@@ -401,12 +417,13 @@ Shape SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part, s
  *
  * this function may only read the skin and infill from the *current* layer.
  */
-Shape SkinInfillAreaComputation::generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count)
+std::optional<Shape> SkinInfillAreaComputation::generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count)
 {
     if (layer_nr_ < flooring_layer_count)
     {
-        return {};
+        return std::nullopt;
     }
+
     const int lowest_flooring_layer = layer_nr_ - flooring_layer_count;
     Shape filled_area_below = getOutlineOnLayer(part, lowest_flooring_layer);
 
