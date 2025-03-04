@@ -8,6 +8,7 @@
 #include <fstream> // ifstream.good()
 #include <utility> // pair
 
+#include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
@@ -1010,6 +1011,23 @@ void AreaSupport::generateSupportAreasForMesh(
     const size_t layer_z_distance_top = (z_distance_top / layer_thickness) + 1;
     if (layer_z_distance_top + 1 > layer_count)
     {
+        return;
+    }
+
+    if (ranges::all_of(
+            mesh.overhang_areas,
+            [](const Shape& overhang_area)
+            {
+                return overhang_area.empty();
+            })
+        && ranges::all_of(
+            mesh.full_overhang_areas,
+            [](const Shape& overhang_area)
+            {
+                return overhang_area.empty();
+            }))
+    {
+        // Mesh has no overhang, skip support generation
         return;
     }
 
