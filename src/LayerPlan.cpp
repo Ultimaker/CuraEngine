@@ -2846,6 +2846,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 
         bool update_extrusion_offset = true;
+        bool spiralize_finisher = false;
 
         double cumulative_path_time = 0.; // Time in seconds.
         const std::function<void(const double, const int64_t)> insertTempOnTime = [&](const double to_add, const int64_t path_idx)
@@ -3008,7 +3009,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeComment(ss.str());
             }
 
-            if (! path.spiralize && path.travel_to_z && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ())
+            if (! (path.spiralize || spiralize_finisher) && path.travel_to_z && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ())
                 && (path_idx > 0 || layer_nr_ > 0))
             {
                 // First move to desired height to then make a plain horizontal move
@@ -3054,22 +3055,27 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
+                    const coord_t extra_z_offset = spiralize_finisher ? layer_thickness_ : 0;
+
                     Point3LL prev_point = gcode.getPosition();
                     for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
                     {
-                        const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, path.points[point_idx], path);
+                        Point3LL& pt = path.points[point_idx];
+                        pt.z_ += extra_z_offset;
+
+                        const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
                         writeExtrusionRelativeZ(
                             gcode,
-                            path.points[point_idx],
+                            pt,
                             extrude_speed,
                             path.z_offset,
                             path.getExtrusionMM3perMM(),
                             path.config.type,
                             update_extrusion_offset);
-                        sendLineTo(path, path.points[point_idx], extrude_speed);
+                        sendLineTo(path, pt, extrude_speed);
 
                         prev_point = path.points[point_idx];
                     }
@@ -3118,6 +3124,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         sendLineTo(spiral_path, Point3LL(p1.x_, p1.y_, z_offset), extrude_speed, layer_thickness_);
                     }
                 }
+                spiralize_finisher = true;
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
         } // paths for this extruder /\  .
