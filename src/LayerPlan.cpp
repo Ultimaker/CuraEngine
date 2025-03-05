@@ -3009,8 +3009,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeComment(ss.str());
             }
 
-            if (! (path.spiralize || spiralize_finisher) && path.travel_to_z && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ())
-                && (path_idx > 0 || layer_nr_ > 0))
+            if (! (path.spiralize || spiralize_finisher) && path.travel_to_z && (! path.retract || ! path.perform_z_hop)
+                && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ()) && (path_idx > 0 || layer_nr_ > 0))
             {
                 // First move to desired height to then make a plain horizontal move
                 gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), speed);
@@ -3067,14 +3067,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        writeExtrusionRelativeZ(
-                            gcode,
-                            pt,
-                            extrude_speed,
-                            path.z_offset,
-                            path.getExtrusionMM3perMM(),
-                            path.config.type,
-                            update_extrusion_offset);
+                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
                         sendLineTo(path, pt, extrude_speed);
 
                         prev_point = path.points[point_idx];
