@@ -36,7 +36,7 @@ public:
 
     Point3LL(Point3LL&& point) = default;
     Point3LL(const Point3LL& point) = default;
-    Point3LL(const Point2LL& point);
+    Point3LL(const Point2LL& point, const coord_t z = 0);
 
     Point3LL& operator=(const Point3LL& point) = default;
     Point3LL& operator=(Point3LL&& point) = default;
