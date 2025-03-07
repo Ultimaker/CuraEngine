@@ -355,7 +355,7 @@ void SVG::writePolygons(const Shape& polys, const ColorObject color, const doubl
     handleFlush(flush);
 }
 
-void SVG::writePolygon(const Polygon poly, const ColorObject color, const double stroke_width, const bool flush) const
+void SVG::writePolygon(const Polygon& poly, const ColorObject color, const double stroke_width, const bool flush) const
 {
     if (poly.size() == 0)
     {
@@ -364,7 +364,7 @@ void SVG::writePolygon(const Polygon poly, const ColorObject color, const double
     int size = static_cast<int>(poly.size());
     Point2LL p0 = poly.back();
     int i = 0;
-    for (Point2LL p1 : poly)
+    for (const Point2LL& p1 : poly)
     {
         if (color.color_ == Color::RAINBOW)
         {
@@ -382,7 +382,7 @@ void SVG::writePolygon(const Polygon poly, const ColorObject color, const double
         }
         else
         {
-            writeLine(p0, p1, color, stroke_width);
+            writeLine(p0, p1, color, stroke_width, false);
         }
         p0 = p1;
         i++;

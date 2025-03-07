@@ -147,7 +147,7 @@ public:
 
     void writePolygons(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
-    void writePolygon(Polygon poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
+    void writePolygon(const Polygon& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
     void writePolylines(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
