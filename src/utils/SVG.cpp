@@ -69,14 +69,13 @@ void SVG::handleFlush(const bool flush) const
 
 
 SVG::SVG(std::string filename, AABB aabb, Point2LL canvas_size, ColorObject background)
-    : SVG(
-        filename,
-        aabb,
-        std::min(
-            static_cast<double>(canvas_size.X - canvas_size.X / 5 * 2) / static_cast<double>(aabb.max_.X - aabb.min_.X),
-            static_cast<double>(canvas_size.Y - canvas_size.Y / 5) / static_cast<double>(aabb.max_.Y - aabb.min_.Y)),
-        canvas_size,
-        background)
+    : SVG(filename,
+          aabb,
+          std::min(
+              static_cast<double>(canvas_size.X - canvas_size.X / 5 * 2) / static_cast<double>(aabb.max_.X - aabb.min_.X),
+              static_cast<double>(canvas_size.Y - canvas_size.Y / 5) / static_cast<double>(aabb.max_.Y - aabb.min_.Y)),
+          canvas_size,
+          background)
 {
 }
 
