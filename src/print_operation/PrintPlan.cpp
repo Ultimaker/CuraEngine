@@ -3,6 +3,8 @@
 
 #include "print_operation/PrintPlan.h"
 
+#include <utils/ExtrudersList.h>
+
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To flush g-code through the communication channel.
@@ -21,6 +23,10 @@ namespace cura
 
 
 constexpr Duration PrintPlan::extra_preheat_time_;
+
+PrintPlan::PrintPlan(const SliceDataStorage& storage) : PrintOperationSequence(), storage_(storage)
+{
+}
 
 void PrintPlan::push(LayerPlan& layer_plan)
 {
@@ -49,7 +55,7 @@ void PrintPlan::applyProcessors(const std::vector<const PrintOperation*>& parent
 {
     // Do not apply processors to children, they have been done separately
 
-    SkirtBrimAppender skirt_brim_appender;
+    SkirtBrimAppender skirt_brim_appender(storage_);
     skirt_brim_appender.process(this);
 
     LayerPlanTravelMovesInserter layer_plan_travel_moves_inserter;

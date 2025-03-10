@@ -6,6 +6,8 @@
 #include <geometry/MixedLinesSet.h>
 #include <geometry/Shape.h>
 
+#include <range/v3/numeric/accumulate.hpp>
+
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtrusionMove.h"
 
@@ -46,7 +48,19 @@ Shape FeatureExtrusion::calculateFootprint() const
         extrusions_polylines.push_back(extruder_move_sequence->calculatePolyline());
     }
 
-    return extrusions_polylines.offset(nominal_line_width_ / 2 + 10);
+    return extrusions_polylines.offset(nominal_line_width_ / 2);
+}
+
+coord_t FeatureExtrusion::calculateLength() const
+{
+    return ranges::accumulate(getOperations(), 0, [](coord_t length, const PrintOperationPtr &operation) -> coord_t
+    {
+        if (auto move_sequence = std::dynamic_pointer_cast<ContinuousExtruderMoveSequence>(operation))
+        {
+            return length + move_sequence->calculateLength();
+        }
+        return length;
+    });
 }
 
 } // namespace cura

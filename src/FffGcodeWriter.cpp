@@ -59,7 +59,6 @@ constexpr coord_t EPSILON = 5;
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
-    , print_plan_(std::make_shared<PrintPlan>())
     , slice_uuid(Application::getInstance().instance_uuid_)
 {
     for (unsigned int extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; extruder_nr++)
@@ -218,6 +217,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         });
 
     // Now do the actual feature generation
+    auto print_plan =std::make_shared<PrintPlan>(storage);
     run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
         total_layers,
@@ -226,16 +226,16 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
             // return std::make_optional(processLayer(storage, layer_nr, total_layers));
             return std::make_optional(generateFeatures(storage, layer_nr));
         },
-        [this, total_layers](std::optional<ProcessLayerResult> result_opt)
+        [total_layers, print_plan](std::optional<ProcessLayerResult> result_opt)
         {
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerIndex(), total_layers, result.total_elapsed_time, result.stages_times);
             // print_plan_.handle(*result.layer_plan, gcode, exporter);
-            print_plan_->appendLayerPlan(result.layer_plan);
+            print_plan->appendLayerPlan(result.layer_plan);
         });
 
     // print_plan_.flush(exporter);
-    print_plan_->applyProcessors();
+    print_plan->applyProcessors();
 
     MultiExporter exporter;
     // exporter.appendExporter(std::make_shared<ConsoleExporter>());
@@ -243,7 +243,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     auto consumption_estimator = std::make_shared<ConsumptionEstimationExporter>();
     exporter.appendExporter(consumption_estimator);
 
-    print_plan_->write(exporter);
+    print_plan->write(exporter);
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
     // Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.

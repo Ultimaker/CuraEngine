@@ -27,6 +27,8 @@ public:
 
     Shape calculateFootprint() const;
 
+    coord_t calculateLength() const;
+
 private:
     const PrintFeatureType type_;
     const coord_t nominal_line_width_;

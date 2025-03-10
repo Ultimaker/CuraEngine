@@ -73,6 +73,11 @@ void PrintOperationSequence::appendOperation(const PrintOperationPtr& operation)
 {
     if (std::shared_ptr<PrintOperationSequence> actual_parent = operation->getParent())
     {
+        if (actual_parent.get() == this)
+        {
+            return;
+        }
+
         actual_parent->removeOperation(operation);
     }
 

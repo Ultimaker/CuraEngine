@@ -44,14 +44,6 @@ class FffGcodeWriter : public NoCopy
 private:
     coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
-    /*
-     * Buffer for all layer plans (of type LayerPlan)
-     *
-     * The layer plans are buffered so that we can start heating up a nozzle several layers before it needs to be used.
-     * Another reason is to perform Auto Temperature.
-     */
-    std::shared_ptr<PrintPlan> print_plan_;
-
     /*!
      * The class holding the current state of the gcode being written.
      *

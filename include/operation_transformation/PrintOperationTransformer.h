@@ -7,6 +7,7 @@ namespace cura
 {
 
 class PrintOperation;
+class SliceDataStorage;
 
 template<class OperationType = PrintOperation>
 class PrintOperationTransformer

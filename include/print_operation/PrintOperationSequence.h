@@ -69,12 +69,19 @@ public:
         const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
     template<class OperationType>
-    std::shared_ptr<OperationType>
-        findOperationByType(const SearchOrder search_order = SearchOrder::Forward, const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
+    std::shared_ptr<OperationType> findOperationByType(
+        const SearchOrder search_order = SearchOrder::Forward,
+        const std::optional<size_t> max_depth = SearchDepth::DirectChildren,
+        const std::function<bool(const std::shared_ptr<OperationType>&)>& search_function = nullptr) const;
 
     template<class OperationType>
     std::vector<std::shared_ptr<OperationType>>
         findOperationsByType(const SearchOrder search_order = SearchOrder::Forward, const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
+
+    template<class OperationType>
+    void applyOnOperationsByType(const std::function<void(const std::shared_ptr<const OperationType>&)>& apply_function,
+        const SearchOrder search_order = SearchOrder::Forward,
+        const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
     const std::vector<PrintOperationPtr>& getOperations() const noexcept;
 
@@ -99,12 +106,16 @@ private:
 };
 
 template<class OperationType>
-std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(const SearchOrder search_order, const std::optional<size_t> max_depth) const
+std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(
+    const SearchOrder search_order,
+    const std::optional<size_t> max_depth, const
+    std::function<bool(const std::shared_ptr<OperationType>&)>& search_function) const
 {
     PrintOperationPtr found_operation = findOperation(
-        [](const PrintOperationPtr& operation)
+        [&search_function](const PrintOperationPtr& operation)
         {
-            return static_cast<bool>(std::dynamic_pointer_cast<OperationType>(operation));
+            std::shared_ptr<OperationType> operation_ptr = std::dynamic_pointer_cast<OperationType>(operation);
+            return operation_ptr && (!search_function || search_function(operation_ptr));
         },
         search_order,
         max_depth);
@@ -134,6 +145,20 @@ std::vector<std::shared_ptr<OperationType>> PrintOperationSequence::findOperatio
         max_depth);
 
     return found_operations;
+}
+
+template<class OperationType>
+void PrintOperationSequence::applyOnOperationsByType(
+    const std::function<void(const std::shared_ptr<const OperationType>&)>& apply_function, const
+    SearchOrder search_order,
+    const std::optional<size_t> max_depth) const
+{
+    // TODO: Optimize by not creating a temp vector
+    std::vector<std::shared_ptr<OperationType>> found_operations;
+    for (const std::shared_ptr<const OperationType> &operation : findOperationsByType<OperationType>(search_order, max_depth))
+    {
+        apply_function(operation);
+    }
 }
 
 template<class OperationType>

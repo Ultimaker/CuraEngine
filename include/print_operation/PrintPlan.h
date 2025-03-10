@@ -61,8 +61,11 @@ class PrintPlan : public PrintOperationSequence
      */
     std::list<LayerPlan*> buffer_;
 
+    // FIXME: This should be a singleton
+    const SliceDataStorage& storage_;
+
 public:
-    explicit PrintPlan() = default;
+    explicit PrintPlan(const SliceDataStorage& storage);
 
     void setPreheatConfig();
 

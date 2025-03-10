@@ -131,11 +131,13 @@ package "feature_generation" {
   }
 
   MeshFeatureGenerator -up-|> FeatureGenerator
+  MeshInfillGenerator -up-|> MeshFeatureGenerator
+  MeshInsetsGenerator -up-|> MeshFeatureGenerator
+  MeshSkinGenerator -up-|> MeshFeatureGenerator
   NormalSupportGenerator -up-|> FeatureGenerator
   TreeSupportGenerator -up-|> FeatureGenerator
   OozeShieldGenerator -up-|> FeatureGenerator
 
-  class MeshFeatureGenerator #paleturquoise
   class NormalSupportGenerator #paleturquoise
   class TreeSupportGenerator #paleturquoise
   class OozeShieldGenerator #paleturquoise

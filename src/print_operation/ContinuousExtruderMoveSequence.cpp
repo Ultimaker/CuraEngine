@@ -7,6 +7,7 @@
 #include <utils/ExtrusionLine.h>
 #include <utils/types/arachne.h>
 
+#include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/sliding.hpp>
 
@@ -153,6 +154,26 @@ std::shared_ptr<Polyline> ContinuousExtruderMoveSequence::calculatePolyline() co
     }
 
     return result;
+}
+
+coord_t ContinuousExtruderMoveSequence::calculateLength() const
+{
+    const std::vector<std::shared_ptr<ExtruderMove>> extruder_moves = getOperationsAs<ExtruderMove>();
+    if (extruder_moves.empty())
+    {
+        return 0;
+    }
+
+    coord_t length = ranges::accumulate(extruder_moves | ranges::views::sliding(2), 0, [](coord_t length, const auto &move_segment) -> coord_t
+    {
+        return length + (move_segment[1]->getPosition() - move_segment[0]->getPosition()).vSize();
+    });
+
+    // Add missing segment from start position to first destination
+    const Point3LL & start_position = closed_ ? extruder_moves.back()->getPosition() : start_position_;
+    length += (extruder_moves.front()->getPosition() - start_position).vSize();
+
+    return length;
 }
 
 void ContinuousExtruderMoveSequence::appendExtruderMove(const std::shared_ptr<ExtruderMove>& extruder_move)

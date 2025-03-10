@@ -9,6 +9,7 @@
 #endif
 
 #define MAX_EXTRUDERS 16
+#define EXTRUDERS_BITMASK_TYPE uint16_t
 
 // Maximum number of infill layers that can be combined into a single infill extrusion area.
 #define MAX_INFILL_COMBINE 8

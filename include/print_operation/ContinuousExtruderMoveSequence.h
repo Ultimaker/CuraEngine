@@ -41,6 +41,8 @@ public:
 
     std::shared_ptr<Polyline> calculatePolyline() const;
 
+    coord_t calculateLength() const;
+
 private:
     Point3LL start_position_;
     const bool closed_;

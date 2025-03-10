@@ -82,6 +82,7 @@ set(engine_SRCS # Except main.cpp.
         src/TreeSupport.cpp
         src/WallsComputation.cpp
         src/WallToolPaths.cpp
+        include/ExtruderNumber.h
 
         src/BeadingStrategy/BeadingStrategy.cpp
         src/BeadingStrategy/BeadingStrategyFactory.cpp
