@@ -377,7 +377,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part,
+        SliceLayerPart& part,
         LayerPlan& gcode_layer) const;
 
     /*!
@@ -448,7 +448,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
+        SliceLayerPart& part) const;
 
     /*!
      * Generate the a spiralized wall for a given layer part.

@@ -1790,7 +1790,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
 {
-    const auto& mesh = *mesh_ptr;
+    auto& mesh = *mesh_ptr;
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
         return;
@@ -1801,7 +1801,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    const SliceLayer& layer = mesh.layers[gcode_layer.getLayerNr()];
+    SliceLayer& layer = mesh.layers[gcode_layer.getLayerNr()];
 
     if (layer.parts.empty())
     {
@@ -1819,8 +1819,8 @@ void FffGcodeWriter::addMeshLayerToGCode(
             mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
             mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     }
-    PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (const SliceLayerPart& part : layer.parts)
+    PathOrderOptimizer<SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for (SliceLayerPart& part : layer.parts)
     {
         if (part.outline.empty())
         {
@@ -1831,7 +1831,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
 
     part_order_optimizer.optimize(false);
 
-    for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths_)
+    for (const PathOrdering<SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
     }
@@ -1853,7 +1853,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    const SliceLayerPart& part,
+    SliceLayerPart& part,
     LayerPlan& gcode_layer) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
@@ -2976,7 +2976,7 @@ bool FffGcodeWriter::processInsets(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    const SliceLayerPart& part) const
+    SliceLayerPart& part) const
 {
     bool added_something = false;
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_)
@@ -3099,7 +3099,16 @@ bool FffGcodeWriter::processInsets(
             // which is required because when the walls are being generated, the vertices do not fall on the part's outline
             // but, instead, are 1/2 a line width inset from the outline
 
-            gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
+            Shape bridge_mask = compressed_air.offset(max_air_gap + half_outer_wall_width);
+            gcode_layer.setBridgeWallMask(bridge_mask);
+
+            // Override flooring/skin areas to register bridging areas to be treated as normal skin
+            for (SkinPart& skin_part : part.skin_parts)
+            {
+                Shape moved_area = skin_part.flooring_fill.intersection(bridge_mask).offset(10);
+                skin_part.flooring_fill = skin_part.flooring_fill.difference(moved_area);
+                skin_part.skin_fill = skin_part.skin_fill.unionPolygons(moved_area);
+            }
         }
         else
         {
