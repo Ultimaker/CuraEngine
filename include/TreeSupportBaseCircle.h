@@ -19,6 +19,7 @@ class TreeSupportBaseCircle
 protected:
     inline static Polygon base_circle;
     inline static bool circle_generated = false;
+    inline static std::mutex critical_sections;
 
 public:
     inline static constexpr int64_t base_radius = 50;
@@ -31,7 +32,6 @@ public:
         }
         else
         {
-            std::mutex critical_sections;
             std::lock_guard<std::mutex> critical_section_progress(critical_sections);
             if (circle_generated)
             {
