@@ -112,7 +112,7 @@ struct CradleConfig
         , large_cradle_base_(roof && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base")
         , large_cradle_line_tips_(retrieveSetting<bool>(mesh.settings, "support_tree_large_cradle_line_tips"))
         , cradle_z_distance_layers_(round_divide(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_z_distance"), mesh.settings.get<coord_t>("layer_height")))
-
+        , cradle_towards_center_(retrieveSetting<std::string>(mesh.settings, "support_tree_cradle_direction")  == "center")
     {
         TreeSupportSettings config(mesh.settings); //todo replace with gathering settings manually
         if (cradle_layers_)
@@ -238,6 +238,11 @@ struct CradleConfig
      */
     coord_t cradle_line_distance_;
 
+    /*!
+     * \brief Should cradle lines go toward the center of the model (true) or the closest point on the outline(false)
+     */
+    bool cradle_towards_center_;
+
 };
 
 struct TreeSupportCradle
@@ -248,6 +253,7 @@ struct TreeSupportCradle
     std::vector<Shape> base_below_;
     std::vector<Point2LL> centers_;
     std::vector<Shape> shadow_;
+    std::vector<Shape> part_outline_;
     std::unordered_map<LayerIndex, std::vector<OverhangInformation>> overhang_;
     CradlePlacementMethod cradle_placement_method_;
     const std::shared_ptr<const CradleConfig> config_;

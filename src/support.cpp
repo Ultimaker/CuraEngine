@@ -1053,7 +1053,6 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
                         continue;
                     }
                     Shape overhang_area_regular;
-                    Point2LL center = cradle_data_mesh[layer_idx][cradle_idx]->getCenter(layer_idx);
                     Polygon overhang_outer_area_part;
                     bool includes_lines = false;
                     for (OverhangInformation& overhang : overhang_pair.second)

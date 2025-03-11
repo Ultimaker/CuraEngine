@@ -740,11 +740,14 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
                     Shape cradle_0 = accumulated_model[0];
                     accumulated_model.clear();
                     accumulated_model.emplace_back(cradle_0);
+                    unsupported_model.clear();
+                    unsupported_model.emplace_back(cradle_0);
                     delete cradle_main;
                 }
                 else
                 {
                     cradle_main->shadow_ = accumulated_model;
+                    cradle_main->part_outline_ = unsupported_model;
                     result[layer_idx].emplace_back(cradle_main);
                 }
             }
@@ -841,10 +844,35 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
 
                         // create lines that go from the furthest possible location to the center
                         OpenLinesSet lines_to_center;
-                        for (Point2LL p : max_outer_points)
+                        Shape model_shadow_outer_point_outline = model_shadow.offset(current_cradle_length);
+                        std::unique_ptr<LocToLineGrid> loc_to_grid_outer = PolygonUtils::createLocToLineGrid(model_shadow_outer_point_outline, 1000);
+                        for (Point2LL outer : max_outer_points)
                         {
-                            Point2LL direction = p - center;
-                            lines_to_center.addSegment(p, center + normal(direction, support_line_width));
+                            Point2LL direction = outer - center;
+                            Point2LL inner = center + normal(direction, support_line_width);
+
+                            //Space out the cradle lines by estimating where they should end and placing the line so that it directly goes towards the model instead of the center.
+                            if(! cradle->config_->cradle_towards_center_)
+                            {
+                                Point2LL point_on_outer_outline = outer;
+                                PolygonUtils::lineSegmentPolygonsIntersection(inner, outer, model_shadow_outer_point_outline, *loc_to_grid_outer, point_on_outer_outline, sqrt(max_distance2) + current_cradle_length * 2.0);
+
+                                size_t angle_idx = cradle->getIndexForLineEnd(outer, layer_idx + idx);
+                                Shape part_outline = cradle->part_outline_[idx];
+                                PolygonUtils::moveInside(part_outline.empty() ? model_shadow : part_outline, inner);
+
+                                if(idx > 0 && idx > cradle->config_->cradle_z_distance_layers_ + 1 && ! cradle->lines_[angle_idx].empty())
+                                {
+                                    coord_t distance_from_line = LinearAlg2D::getDistFromLine(inner, cradle->lines_[angle_idx].back().line_[0],cradle->lines_[angle_idx].back().line_[1]);
+                                    if(distance_from_line > support_line_width/2)
+                                    {
+                                        Point2LL closest_to_outline_on_prev =  LinearAlg2D::getClosestOnLine(inner, cradle->lines_[angle_idx].back().line_[0],cradle->lines_[angle_idx].back().line_[1]);
+                                        Point2LL direction_closest_on_outline = inner - closest_to_outline_on_prev;
+                                        inner = closest_to_outline_on_prev + normal(direction_closest_on_outline, support_line_width/2);
+                                    }
+                                }
+                            }
+                            lines_to_center.addSegment(inner, outer);
                         }
 
                         // Subtract the model shadow up until this layer from the lines.
@@ -982,7 +1010,10 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                         for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
                         {
                             Point2LL center = cradle->getCenter(line.layer_idx_);
-                            if (vSize2(line_end - center) > vSize2(line.line_.back() - center))
+                            coord_t distance2_from_cradle_line = LinearAlg2D::getDist2FromLine(line.line_.back(), line_end, line.line_.front());
+                            coord_t distance2_from_cradle_segment = LinearAlg2D::getDist2FromLineSegment(line_end, line.line_.back(), line.line_.front());
+
+                            if (distance2_from_cradle_segment > distance2_from_cradle_line)
                             {
                                 OpenLinesSet line_extension;
                                 line_extension.addSegment(line.line_.back(), line_end);
@@ -995,18 +1026,15 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                                     true);
                                 line_extension = actually_forbidden.difference(line_extension);
 
-                                if (line_extension.length() + EPSILON < line_length_before)
+                                for (auto line_part : line_extension)
                                 {
-                                    for (auto line_part : line_extension)
-                                    {
-                                        bool front_closer = vSize2(line_part.front() - center) < vSize2(line_part.back() - center);
-                                        Point2LL closer = front_closer ? line_part.front() : line_part.back();
-                                        Point2LL further = front_closer ? line_part.back() : line_part.front();
+                                    bool front_closer = vSize2(line_part.front() - center) < vSize2(line_part.back() - center);
+                                    Point2LL closer = front_closer ? line_part.front() : line_part.back();
+                                    Point2LL further = front_closer ? line_part.back() : line_part.front();
 
-                                        if (vSize2(closer - line.line_.back() < EPSILON * EPSILON))
-                                        {
-                                            line_end = further;
-                                        }
+                                    if (vSize2(closer - line.line_.back() < EPSILON * EPSILON))
+                                    {
+                                        line_end = further;
                                     }
                                 }
                                 // As the center can move there is no guarantee that the point of the current line lies on the line below.
@@ -1182,7 +1210,6 @@ void SupportCradleGeneration::cleanCradleLineOverlaps()
                                 cradle_lines.back().line_.back() = line_front_uppermost + normal(line_end - line_front_uppermost, current_cradle_length);
                                 for (auto [up_idx, line] : cradle_lines | ranges::views::enumerate | ranges::views::reverse)
                                 {
-                                    Point2LL center = cradle->getCenter(line.layer_idx_);
                                     Point2LL line_back_inner = line.line_.back();
                                     Point2LL line_front_inner = line.line_.front();
                                     if (vSize2(line_back_inner - line_front_inner) > cradle->config_->cradle_length_ * cradle->config_->cradle_length_)
@@ -1302,7 +1329,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                 {
                                     // This cradle line is to close to another.
                                     // Move it back todo If line gets smaller than min length => abort
-                                    coord_t tip_shift_here = outer_radius - vSize(center_front - cradle.getCenter(cradle_line->layer_idx_));
+                                    coord_t tip_shift_here = (centers_touch && !cradle.config_->cradle_towards_center_)? min_distance_between_lines : outer_radius - vSize(center_front - cradle.getCenter(cradle_line->layer_idx_));
                                     tip_shift += tip_shift_here;
                                     center_front = center_front + normal(direction, tip_shift_here);
                                     center_up = center_front + direction_up_center;
