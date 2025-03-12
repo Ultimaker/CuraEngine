@@ -766,6 +766,12 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
     const bool xy_overrides = mesh.settings.get<SupportDistPriority>("support_xy_overrides_z") == SupportDistPriority::XY_OVERRIDES_Z;
     const coord_t xy_min_distance = !xy_overrides ? mesh.settings.get<coord_t>("support_xy_distance_overhang") : xy_distance;
     const bool support_moves = mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::NORMAL;
+    coord_t maximum_move_distance_slow = 0;
+    if(support_moves)
+    {
+        TreeSupportSettings config(mesh.settings);
+        maximum_move_distance_slow = config.maximum_move_distance_slow;
+    }
 
     const coord_t minimum_area_to_be_supportable = support_moves ? mesh.settings.get<coord_t>("support_tree_tip_diameter") / 2 : 0;
     cura::parallel_for<coord_t>(
@@ -776,6 +782,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
             for (auto [center_idx, cradle] : cradle_data_mesh[layer_idx] | ranges::views::enumerate)
             {
                 const coord_t max_cradle_jump_length_forward = cradle->config_->cradle_length_ / 3;
+                coord_t center_move_distance = support_moves ? std::min(maximum_move_distance_slow, cradle->config_->cradle_line_width_ / 3) : cradle->config_->cradle_line_width_ / 3;
                 constexpr bool ignore_xy_dist_for_jumps = true;
                 const coord_t max_cradle_xy_distance = *std::max_element(cradle->config_->cradle_xy_distance_.begin(), cradle->config_->cradle_xy_distance_.end());
                 std::vector<bool> removed_directions(cradle->config_->cradle_line_count_);
@@ -822,7 +829,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                         coord_t cradle_min_xy_distance_delta = std::max(xy_min_distance - current_cradle_xy_distance, coord_t(0));
 
                         // Somewhere, Somehow there is a small rounding error which causes small slivers of collision of the model to remain.
-                        //  To prevent this offset my the delta before removing the influence of the model.
+                        //  To prevent this offset by the delta before removing the influence of the model.
                         relevant_forbidden = relevant_forbidden.offset(-cradle_min_xy_distance_delta)
                                                  .difference(this_part_influence.offset(cradle_min_xy_distance_delta + EPSILON).unionPolygons())
                                                  .offset(cradle_min_xy_distance_delta + cradle->config_->cradle_line_width_ / 2 + FUDGE_LENGTH)
@@ -844,7 +851,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
 
                         // Create lines that go from the furthest possible location to the center or model outline
                         OpenLinesSet lines_to_center;
-                        Shape model_shadow_outer_point_outline = model_shadow.offset(current_cradle_length);
+                        Shape model_shadow_outer_point_outline = model_shadow.offset(current_cradle_length + current_cradle_xy_distance);
                         std::unique_ptr<LocToLineGrid> loc_to_grid_outer = PolygonUtils::createLocToLineGrid(model_shadow_outer_point_outline, 1000);
                         for (Point2LL outer : max_outer_points)
                         {
@@ -867,16 +874,16 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                                 Shape part_outline = cradle->part_outline_[idx];
 
                                 // Place inner line-end on the outline closest to the point_on_outer_outline, and correct it if this would be causing a too large jump compared to the cradle line below.
-                                inner = point_on_outer_outline;
+                                inner = LinearAlg2D::getClosestOnLine(point_on_outer_outline, inner, outer);;
                                 PolygonUtils::moveInside(part_outline.empty() ? model_shadow : part_outline, inner);
                                 if (idx > 0 && idx > cradle->config_->cradle_z_distance_layers_ + 1 && ! cradle->lines_[angle_idx].empty())
                                 {
                                     coord_t distance_from_line = LinearAlg2D::getDistFromLine(inner, cradle->lines_[angle_idx].back().line_[0], cradle->lines_[angle_idx].back().line_[1]);
-                                    if (distance_from_line > support_line_width / 2)
+                                    if (distance_from_line > center_move_distance)
                                     {
                                         Point2LL closest_to_outline_on_prev = LinearAlg2D::getClosestOnLine(inner, cradle->lines_[angle_idx].back().line_[0], cradle->lines_[angle_idx].back().line_[1]);
                                         Point2LL direction_closest_on_outline = inner - closest_to_outline_on_prev;
-                                        inner = closest_to_outline_on_prev + normal(direction_closest_on_outline, support_line_width / 2);
+                                        inner = closest_to_outline_on_prev + normal(direction_closest_on_outline, center_move_distance);
                                     }
                                 }
                             }
@@ -1272,7 +1279,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
         const coord_t roof_outset = support_roof_layers > 0 ? mesh.settings.get<coord_t>("support_roof_offset") : 0;
         const bool support_moves = mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::NORMAL;
 
-        const coord_t max_roof_movement = support_moves ? TreeSupportSettings(mesh.settings).maximum_move_distance_slow : 0; //todo without TreeSupportSettings
+        const coord_t max_roof_movement = support_moves ? TreeSupportSettings(mesh.settings).maximum_move_distance_slow : 0;
         Simplify simplifyer(mesh.settings);
 
         cura::parallel_for<coord_t>(
