@@ -17,6 +17,8 @@ struct MeshPathConfigs
     GCodePathConfig insetX_config{};
     GCodePathConfig inset0_roofing_config{};
     GCodePathConfig insetX_roofing_config{};
+    GCodePathConfig inset0_flooring_config{};
+    GCodePathConfig insetX_flooring_config{};
     GCodePathConfig bridge_inset0_config{};
     GCodePathConfig bridge_insetX_config{};
     GCodePathConfig skin_config{};
@@ -24,6 +26,7 @@ struct MeshPathConfigs
     GCodePathConfig bridge_skin_config2{}; // used for second bridge layer
     GCodePathConfig bridge_skin_config3{}; // used for third bridge layer
     GCodePathConfig roofing_config{};
+    GCodePathConfig flooring_config{};
     std::vector<GCodePathConfig> infill_config{};
     GCodePathConfig ironing_config{};
 

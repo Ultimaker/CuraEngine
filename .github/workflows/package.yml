@@ -1,0 +1,54 @@
+name: package
+
+on:
+  push:
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'test_package/**'
+      - 'conanfile.py'
+      - 'conandata.yml'
+      - 'CMakeLists.txt'
+      - '.github/workflows/package.yml'
+    branches:
+      - main
+      - 'CURA-*'
+      - 'PP-*'
+      - 'NP-*'
+      - '[0-9].[0-9]*'
+      - '[0-9].[0-9][0-9]*'
+    tags:
+      - '[0-9]+.[0-9]+.[0-9]*'
+      - '[0-9]+.[0-9]+.[0-9]'
+  pull_request:
+    types: [opened, reopened, synchronize]
+    paths:
+      - 'include/**'
+      - 'src/**'
+      - 'test_package/**'
+      - 'conanfile.py'
+      - 'conandata.yml'
+      - 'CMakeLists.txt'
+      - '.github/workflows/package.yml'
+    branches:
+      - main
+      - 'CURA-*'
+      - 'PP-*'
+      - 'NP-*'
+      - '[0-9].[0-9]*'
+      - '[0-9].[0-9][0-9]*'
+
+jobs:
+  conan-package:
+    uses: ultimaker/cura-workflows/.github/workflows/conan-package.yml@main
+    with:
+      platform_wasm: true
+    secrets: inherit
+
+  npm-package:
+    needs: [ conan-package ]
+    if: ${{ github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'NP-') || startsWith(github.ref_name, '5.')) }}  # FIXME: have a more generic way to determine release branches
+    uses: ultimaker/cura-workflows/.github/workflows/npm-package.yml@main
+    with:
+      package_version_full: ${{ needs.conan-package.outputs.package_version_full }}
+    secrets: inherit

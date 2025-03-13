@@ -747,29 +747,26 @@ protected:
 
         BestElementFinder::WeighedCriterion main_criterion;
 
-        if (path.force_start_index_.has_value()) // Actually handles EZSeamType::USER_SPECIFIED
+        if (path.force_start_index_.has_value()) // Handles EZSeamType::USER_SPECIFIED with "seam_on_vertex" disabled
         {
             // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
             constexpr double distance_divider = 1.0;
             constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
             main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
         }
-        else
+        else if (path.seam_config_.type_ == EZSeamType::SHORTEST || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED)
         {
-            if (path.seam_config_.type_ == EZSeamType::SHORTEST)
-            {
-                main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
-            }
-            else if (
-                path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
-                && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN))
-            {
-                main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, path.seam_config_.corner_pref_);
-            }
-            else if (path.seam_config_.type_ == EZSeamType::RANDOM)
-            {
-                main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
-            }
+            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
+        }
+        else if (
+            path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
+            && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN))
+        {
+            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, path.seam_config_.corner_pref_);
+        }
+        else if (path.seam_config_.type_ == EZSeamType::RANDOM)
+        {
+            main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
         }
 
         if (main_criterion.criterion)
@@ -793,17 +790,20 @@ protected:
         best_candidate_finder.appendCriteriaPass(main_criteria_pass);
 
         // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
-        const AABB path_bounding_box(points);
+        if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
+        {
+            const AABB path_bounding_box(points);
 
-        { // First fallback strategy is to take points on the back-most position
-            auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
-            constexpr double outsider_delta_threshold = 0.01;
-            best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
-        }
+            { // First fallback strategy is to take points on the back-most position
+                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+                constexpr double outsider_delta_threshold = 0.01;
+                best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
+            }
 
-        { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-            auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
-            best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
+            { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
+                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+                best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
+            }
         }
 
         // ########## Step 3: apply the criteria to find the vertex with the best global score
