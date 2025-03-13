@@ -8,8 +8,8 @@
 
 #include "ExtruderNumber.h"
 #include "operation_transformation/PrintOperationTransformer.h"
+#include "print_operation/ContinuousExtruderMoveSequencePtr.h"
 #include "print_operation/ExtruderPlanPtr.h"
-#include "print_operation/FeatureExtrusionPtr.h"
 #include "print_operation/LayerPlanPtr.h"
 #include "print_operation/PrintPlan.h"
 
@@ -76,7 +76,7 @@ private:
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
         PrintPlan* print_plan);
 
-    static FeatureExtrusionPtr generateOffset(
+    static std::vector<ContinuousExtruderMoveSequencePtr> generateOffset(
         const ExtruderNumber extruder_nr,
         const coord_t total_offset,
         Shape& covered_area,

@@ -13,6 +13,7 @@
 #include <utils/MixedPolylineStitcher.h>
 #include <utils/Simplify.h>
 
+#include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/min_element.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/view/map.hpp>
@@ -203,7 +204,7 @@ std::map<ExtruderNumber, Shape> SkirtBrimAppender::generateAllowedAreas(
     }
 
     std::map<ExtruderNumber, Shape> allowed_areas_per_extruder;
-    for (ExtruderNumber extruder_nr : used_extruders)
+    for (const ExtruderNumber extruder_nr : used_extruders)
     {
         const ExtruderConfig& extruder_config = extruders_configs.at(extruder_nr);
 
@@ -262,7 +263,7 @@ std::map<ExtruderNumber, Shape> SkirtBrimAppender::generateAllowedAreas(
     return allowed_areas_per_extruder;
 }
 
-FeatureExtrusionPtr SkirtBrimAppender::generateOffset(
+std::vector<ContinuousExtruderMoveSequencePtr> SkirtBrimAppender::generateOffset(
         const ExtruderNumber extruder_nr,
         const coord_t total_offset,
         Shape& covered_area,
@@ -287,12 +288,12 @@ FeatureExtrusionPtr SkirtBrimAppender::generateOffset(
 
     const GCodePathConfig& config = layer_plan->getConfigsStorage()->skirt_brim_config_per_extruder.at(extruder_nr);
 
-    auto feature_extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, extruder_config.line_width_);
+    std::vector<ContinuousExtruderMoveSequencePtr> extrusions;
     for (PolylinePtr &extrusion_line: result)
     {
         if (extrusion_line->length() >= min_brim_line_length_)
         {
-            feature_extrusion->appendExtruderMoveSequence(ContinuousExtruderMoveSequence::makeFrom(*extrusion_line, extruder_config.line_width_, config.getSpeed()));
+            extrusions.push_back(ContinuousExtruderMoveSequence::makeFrom(*extrusion_line, extruder_config.line_width_, config.getSpeed()));
         }
     }
 
@@ -303,7 +304,7 @@ FeatureExtrusionPtr SkirtBrimAppender::generateOffset(
         allowed_area = allowed_area.difference(covered_area);
     }
 
-    return feature_extrusion;
+    return extrusions;
 
     // FIXME: This should be done globally by a "filter" transformer
     // simplify paths to prevent buffer unnerruns in firmware
@@ -331,18 +332,25 @@ void SkirtBrimAppender::generateSkirtBrim(
 {
     struct ExtruderOffsetData
     {
+        ExtruderNumber extruder_nr;
         coord_t next_offset;
+        FeatureExtrusionPtr extrusion;
         coord_t extruded_length{0};
+        bool done{false};
+        size_t processed_offsets{0};
     };
 
-    // Create a map containing the processing data for each extruder to be processed. When an extruder is finished,
-    // it is removed from the map, so when the map is empty, we are done.
-    std::map<ExtruderNumber, ExtruderOffsetData> next_offset;
+    // Create a map containing the processing data for each extruder to be processed
+    std::vector<ExtruderOffsetData> extruder_offset_datas;
     for (const ExtruderNumber extruder_nr : used_extruders)
     {
         const ExtruderConfig &extruder_config = extruders_configs.at(extruder_nr);
         const coord_t first_offset = extruder_config.gap_ + (extruder_config.line_width_ / 2);
-        next_offset[extruder_nr] = ExtruderOffsetData{ .next_offset = first_offset };
+        extruder_offset_datas.push_back(ExtruderOffsetData{
+            .extruder_nr = extruder_nr,
+            .next_offset = first_offset,
+            .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, extruder_config.line_width_)
+        });
     }
 
     // Create a cache containing the extruders processing ordering, we are going to need it extensively
@@ -359,22 +367,22 @@ void SkirtBrimAppender::generateSkirtBrim(
 
     std::map<ExtruderNumber, Shape> covered_areas = starting_outlines;
 
-    std::map<ExtruderNumber, std::vector<FeatureExtrusionPtr>> extrusions;
-    while (!next_offset.empty())
+    while (!ranges::all_of(extruder_offset_datas, [](const ExtruderOffsetData &data) {return data.done;}))
     {
-        auto iterator = ranges::min_element(next_offset, [&extruder_ordering](const auto &offset1, const auto& offset2)
+        auto iterator = ranges::min_element(extruder_offset_datas, [&extruder_ordering](const auto &offset1, const auto& offset2)
         {
-            if (offset1.second.next_offset == offset2.second.next_offset)
+            if (offset1.next_offset == offset2.next_offset)
             {
-                return extruder_ordering.at(offset1.first) < extruder_ordering.at(offset2.first);
+                return extruder_ordering.at(offset1.extruder_nr) < extruder_ordering.at(offset2.extruder_nr);
             }
-            return offset1.second.next_offset < offset2.second.next_offset;
+            return offset1.next_offset < offset2.next_offset;
         });
 
-        ExtruderOffsetData &extruder_offset_data = iterator->second;
-        const ExtruderNumber extruder_nr = iterator->first;
+        ExtruderOffsetData &extruder_offset_data = *iterator;
+        extruder_offset_data.processed_offsets++;
+        const ExtruderNumber extruder_nr = extruder_offset_data.extruder_nr;
         const ExtruderConfig &extruder_config = extruders_configs.at(extruder_nr);
-        const FeatureExtrusionPtr offset_extrusion = generateOffset(
+        const std::vector<ContinuousExtruderMoveSequencePtr> offset_extrusions = generateOffset(
             extruder_nr,
             extruder_offset_data.next_offset,
             covered_areas.at(extruder_nr),
@@ -382,23 +390,24 @@ void SkirtBrimAppender::generateSkirtBrim(
             extruders_configs,
             print_plan->getOperationsAs<LayerPlan>().front());
 
-        extrusions[extruder_nr].push_back(offset_extrusion);
+        for (const ContinuousExtruderMoveSequencePtr& offset_extrusion : offset_extrusions)
+        {
+            extruder_offset_data.extrusion->appendExtruderMoveSequence(offset_extrusion);
+            extruder_offset_data.extruded_length += offset_extrusion->calculateLength();
+        }
 
-        extruder_offset_data.extruded_length += offset_extrusion->calculateLength();
         extruder_offset_data.next_offset = extruder_config.line_width_ / 2;
 
-        if (offset_extrusion->empty() || extruder_offset_data.extruded_length >= extruder_config.skirt_brim_minimal_length_)
+        if (offset_extrusions.empty() || (extruder_offset_data.processed_offsets >= extruder_config.line_count_ && extruder_offset_data.extruded_length >= extruder_config.skirt_brim_minimal_length_))
         {
-            next_offset.erase(iterator);
+            extruder_offset_data.done = true;
         }
     }
 
-    for (auto & extrusion : extrusions)
+    for (auto & extrusion : extruder_offset_datas)
     {
-        for (auto &feature : extrusion.second)
-        {
-            print_plan->getOperationsAs<LayerPlan>().front()->getOperationsAs<ExtruderPlan>().front()->appendFeatureExtrusion(feature);
-        }
+        const auto &feature = extrusion.extrusion;
+        print_plan->getOperationsAs<LayerPlan>().front()->getOperationsAs<ExtruderPlan>().front()->appendFeatureExtrusion(feature);
     }
 }
 
