@@ -851,8 +851,11 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
 
                         // Create lines that go from the furthest possible location to the center or model outline
                         OpenLinesSet lines_to_center;
+                        Shape part_outline = cradle->part_outline_[idx].empty() ? model_shadow : cradle->part_outline_[idx];
                         Shape model_shadow_outer_point_outline = model_shadow.offset(current_cradle_length + current_cradle_xy_distance);
-                        std::unique_ptr<LocToLineGrid> loc_to_grid_outer = PolygonUtils::createLocToLineGrid(model_shadow_outer_point_outline, 1000);
+                        std::unique_ptr<LocToLineGrid> loc_to_grid_outer = PolygonUtils::createLocToLineGrid(model_shadow_outer_point_outline, 500);
+                        std::unique_ptr<LocToLineGrid> loc_to_grid_inner = PolygonUtils::createLocToLineGrid(part_outline, 1000);
+
                         for (Point2LL outer : max_outer_points)
                         {
                             Point2LL direction = outer - center;
@@ -871,7 +874,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                                     sqrt(max_distance2) + current_cradle_length * 2.0);
 
                                 size_t angle_idx = cradle->getIndexForLineEnd(outer, layer_idx + idx);
-                                Shape part_outline = cradle->part_outline_[idx];
+
 
                                 // Place inner line-end on the outline closest to the point_on_outer_outline, and correct it if this would be causing a too large jump compared to the cradle line below.
                                 inner = LinearAlg2D::getClosestOnLine(point_on_outer_outline, inner, outer);;
@@ -883,7 +886,17 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                                     {
                                         Point2LL closest_to_outline_on_prev = LinearAlg2D::getClosestOnLine(inner, cradle->lines_[angle_idx].back().line_[0], cradle->lines_[angle_idx].back().line_[1]);
                                         Point2LL direction_closest_on_outline = inner - closest_to_outline_on_prev;
-                                        inner = closest_to_outline_on_prev + normal(direction_closest_on_outline, center_move_distance);
+                                        Point2LL next_inner = closest_to_outline_on_prev + normal(direction_closest_on_outline, center_move_distance);
+                                        // Ensure next_inner actually lies on the outline
+                                        Point2LL next_inner_on_outline;
+                                        PolygonUtils::lineSegmentPolygonsIntersection(
+                                            next_inner,
+                                            outer,
+                                            part_outline,
+                                            *loc_to_grid_inner,
+                                            next_inner_on_outline,
+                                            sqrt(max_distance2) + current_cradle_length * 2.0);
+                                        inner = next_inner_on_outline != Point2LL() ? LinearAlg2D::getClosestOnLine(next_inner_on_outline, next_inner, outer) : next_inner;
                                     }
                                 }
                             }
