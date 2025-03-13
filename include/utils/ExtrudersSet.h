@@ -3,9 +3,11 @@
 
 #pragma once
 
+#include <bit>
+#include <optional>
+
 #include "settings/Settings.h"
 #include "ExtruderNumber.h"
-#include <bit>
 
 namespace cura
 {
@@ -57,17 +59,17 @@ public:
 public:
     bool contains(const ExtruderNumber extruder_nr) const
     {
-        return extruders_mask_ & (1 << extruder_nr);
+        return extruders_mask_ & (static_cast<EXTRUDERS_BITMASK_TYPE>(1) << extruder_nr);
     }
 
     void set(const ExtruderNumber extruder_nr)
     {
-        extruders_mask_ |= (1 << extruder_nr);
+        extruders_mask_ |= (static_cast<EXTRUDERS_BITMASK_TYPE>(1) << extruder_nr);
     }
 
     void unset(const ExtruderNumber extruder_nr)
     {
-        extruders_mask_ &= ~(1 << extruder_nr);
+        extruders_mask_ &= ~(static_cast<EXTRUDERS_BITMASK_TYPE>(1) << extruder_nr);
     }
 
     bool empty() const

@@ -3,6 +3,7 @@
 
 #include "Scene.h"
 
+#include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
@@ -98,6 +99,11 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     Application::getInstance().communication_->flushGCode();
     Application::getInstance().communication_->sendOptimizedLayerData();
     spdlog::info("Total time elapsed {:03.3f}s\n", time_keeper_total.restart());
+}
+
+const ExtruderTrain& Scene::getExtruder(const ExtruderNumber extruder_nr) const
+{
+    return *ranges::find_if(extruders, [extruder_nr](const ExtruderTrain &extruder){ return extruder.extruder_nr_ == extruder_nr; });
 }
 
 } // namespace cura

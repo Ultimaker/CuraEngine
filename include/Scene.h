@@ -71,6 +71,8 @@ public:
      */
     void processMeshGroup(MeshGroup& mesh_group);
 
+    const ExtruderTrain& getExtruder(const ExtruderNumber extruder_nr) const;
+
 private:
     /*
      * \brief You are not allowed to copy the scene.
