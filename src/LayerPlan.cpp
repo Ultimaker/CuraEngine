@@ -3008,8 +3008,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.writeComment(ss.str());
             }
 
-            if (! path.spiralize && path.travel_to_z && (! path.retract || ! path.perform_z_hop)
-                && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ()) && (path_idx > 0 || layer_nr_ > 0))
+            if (! path.spiralize && path.travel_to_z && (! path.retract || ! path.perform_z_hop) && (z_ + path.z_offset + path.points.front().z_ != gcode.getPositionZ())
+                && (path_idx > 0 || layer_nr_ > 0))
             {
                 // First move to desired height to then make a plain horizontal move
                 gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), speed);
@@ -3086,8 +3086,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                 double length = 0.0;
                 p0 = gcode.getPositionXY();
-                const auto writeSpiralPath =
-                [&](const GCodePath& spiral_path, const bool end_layer) -> void
+                const auto writeSpiralPath = [&](const GCodePath& spiral_path, const bool end_layer) -> void
                 {
                     for (const auto& p1 : spiral_path.points)
                     {
