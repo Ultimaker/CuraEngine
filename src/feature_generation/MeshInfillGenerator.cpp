@@ -59,7 +59,7 @@ void MeshInfillGenerator::generateFeatures(
     const SliceLayerPart& part) const
 {
     const Settings& settings = getMesh()->settings;
-    const size_t infill_extruder_nr = settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_;
+    const ExtruderNumber infill_extruder_nr = settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_;
     const ExtruderPlanPtr extruder_plan_infill = ExtruderPlan::find(extruder_plans, infill_extruder_nr);
     assert(extruder_plan_infill && "Unable to find extruder plan for infill");
 

@@ -17,6 +17,7 @@ namespace cura
 
 enum class EPlatformAdhesion;
 class Shape;
+class ExtrudersSet;
 
 class SkirtBrimAppender : public PrintOperationTransformer<PrintPlan>
 {
@@ -75,7 +76,7 @@ private:
         coord_t brim_inside_margin_;
     };
 
-    //static constexpr coord_t min_brim_line_length_ = 3000u; //!< open polyline brim lines smaller than this will be removed
+    static constexpr coord_t min_brim_line_length_ = 3000u; //!< open polyline brim lines smaller than this will be removed
     std::map<ExtruderNumber, ExtruderConfig> extruders_configs_;
     const SliceDataStorage& storage_;
 
@@ -86,27 +87,47 @@ private:
         return a.total_offset_ != b.total_offset_ ? a.total_offset_ < b.total_offset_ : a.extruder_nr_ < b.extruder_nr_;
     };
 
-    static std::map<ExtruderNumber, Shape> generateStartingOutlines(const PrintPlan* print_plan, const int skirt_brim_extruder_nr, const size_t height);
+    static std::map<ExtruderNumber, Shape> generateStartingOutlines(const PrintPlan* print_plan,
+        const std::optional<ExtruderNumber> skirt_brim_extruder_nr,
+        const size_t height,
+        const EPlatformAdhesion adhesion_type,
+        const ExtrudersSet& used_extruders);
 
-    std::vector<Offset> generateBrimOffsetPlan(const int skirt_brim_extruder_nr,
+    std::vector<Offset> generateBrimOffsetPlan(const std::optional<ExtruderNumber> skirt_brim_extruder_nr,
+        const EPlatformAdhesion adhesion_type,
         const std::map<ExtruderNumber, Shape>& starting_outlines,
-        const std::vector<ConstExtruderPlanPtr>& first_extruder_plans) const;
+        const ExtrudersSet &used_extruders) const;
 
     std::map<ExtruderNumber, Shape> generateAllowedAreas(const std::map<ExtruderNumber, Shape>& starting_outlines,
         const EPlatformAdhesion adhesion_type,
-        const std::vector<ConstExtruderPlanPtr>& first_extruder_plans,
-        const int skirt_brim_extruder_nr,
+        const ExtrudersSet &used_extruders,
+        const std::optional<ExtruderNumber> skirt_brim_extruder_nr,
         const SliceDataStorage& storage) const;
 
     void generateSkirtBrim(const SliceDataStorage& storage,
-    const EPlatformAdhesion adhesion_type,
-const std::map<ExtruderNumber, Shape>& starting_outlines,
-std::vector<Offset>& offset_plan,
-std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
-    PrintPlan* print_plan) const;
+        const EPlatformAdhesion adhesion_type,
+        const std::map<ExtruderNumber, Shape>& starting_outlines,
+        std::vector<Offset>& offset_plan,
+        std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
+        PrintPlan* print_plan) const;
+
+    void generateSkirtBrimV2(const SliceDataStorage& storage,
+        const EPlatformAdhesion adhesion_type,
+        const ExtrudersSet &used_extruders,
+        const std::vector<ConstExtruderPlanPtr> first_extruder_plans,
+        const std::map<ExtruderNumber,
+        Shape>& starting_outlines,
+        std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
+        PrintPlan* print_plan) const;
 
     FeatureExtrusionPtr generateOffset(const Offset& offset,
         const std::map<ExtruderNumber, Shape>& starting_outlines,
+        Shape& covered_area,
+        std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
+        const LayerPlanPtr &layer_plan) const;
+
+    FeatureExtrusionPtr generateOffsetV2(const ExtruderNumber extruder_nr,
+        const coord_t total_offset,
         Shape& covered_area,
         std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
         const LayerPlanPtr &layer_plan) const;

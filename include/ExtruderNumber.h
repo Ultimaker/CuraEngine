@@ -8,6 +8,7 @@
 namespace cura
 {
 
+// FIXME: This could actually be a much smaller storage type
 using ExtruderNumber = size_t;
 
 } // namespace cura

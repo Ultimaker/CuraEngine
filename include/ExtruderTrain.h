@@ -4,6 +4,7 @@
 #ifndef EXTRUDER_TRAIN_H
 #define EXTRUDER_TRAIN_H
 
+#include "ExtruderNumber.h"
 #include "settings/Settings.h"
 
 namespace cura
@@ -29,7 +30,7 @@ public:
      * This may be used by g-code commands such as T to indicate to which
      * tool we must switch.
      */
-    const size_t extruder_nr_;
+    const ExtruderNumber extruder_nr_;
 };
 
 } // namespace cura

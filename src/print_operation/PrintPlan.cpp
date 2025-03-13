@@ -3,8 +3,6 @@
 
 #include "print_operation/PrintPlan.h"
 
-#include <utils/ExtrudersList.h>
-
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To flush g-code through the communication channel.
