@@ -58,10 +58,17 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
     const std::map<ExtruderNumber, ExtruderConfig> extruders_configs = generateExtrudersConfigs(used_extruders, adhesion_type);
     const size_t height = calculateMaxHeight(extruders_configs, adhesion_type);
 
-    std::map<ExtruderNumber, Shape> starting_outlines = generateStartingOutlines(print_plan, skirt_brim_extruder_nr, height, adhesion_type, used_extruders);
-    std::map<ExtruderNumber, Shape> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines, adhesion_type, used_extruders, skirt_brim_extruder_nr, extruders_configs);
+    const std::map<ExtruderNumber, Shape> starting_outlines = generateStartingOutlines(print_plan, skirt_brim_extruder_nr, height, adhesion_type, used_extruders);
+    const std::map<ExtruderNumber, Shape> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines, adhesion_type, used_extruders, skirt_brim_extruder_nr, extruders_configs);
 
-    generateSkirtBrim(adhesion_type, used_extruders, first_extruder_plans, starting_outlines, allowed_areas_per_extruder, extruders_configs, print_plan);
+    for (LayerIndex actual_height = 0 ; actual_height < height; ++actual_height)
+    {
+        LayerPlanPtr layer_plan = print_plan->findLayerPlan(actual_height);
+        if (layer_plan)
+        {
+            generateSkirtBrim(adhesion_type, used_extruders, first_extruder_plans, starting_outlines, allowed_areas_per_extruder, extruders_configs, layer_plan);
+        }
+    }
 }
 
 std::tuple<std::vector<ConstExtruderPlanPtr>, ExtrudersSet> SkirtBrimAppender::generateUsedExtruders(const PrintPlan* print_plan)
@@ -107,11 +114,12 @@ std::map<ExtruderNumber, SkirtBrimAppender::ExtruderConfig> SkirtBrimAppender::g
         const Settings& settings = Application::getInstance().current_slice_->scene.getExtruder(extruder_nr).settings_;
 
         const auto& location = settings.get<BrimLocation>("brim_location");
+        // FIXME: Use initial_layer_line_width_factor only on first layer, and also handle the initial-layer speed and flow
         extruder_config.line_width_ = settings.get<coord_t>("skirt_brim_line_width") * settings.get<Ratio>("initial_layer_line_width_factor");
         extruder_config.skirt_brim_minimal_length_ = settings.get<coord_t>("skirt_brim_minimal_length");
         extruder_config.outside_polys_ = adhesion_type == EPlatformAdhesion::SKIRT || (location & BrimLocation::OUTSIDE);
         extruder_config.inside_polys_ = adhesion_type == EPlatformAdhesion::BRIM && (location & BrimLocation::INSIDE);
-        extruder_config.line_count_ = settings.get<int>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_line_count" : "skirt_line_count");
+        extruder_config.line_count_ = settings.get<size_t>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_line_count" : "skirt_line_count");
         extruder_config.gap_ = settings.get<coord_t>(adhesion_type == EPlatformAdhesion::BRIM ? "brim_gap" : "skirt_gap");
         extruder_config.brim_inside_margin_ = settings.get<coord_t>("brim_inside_margin");
         extruder_config.skirt_height_ = settings.get<size_t>("skirt_height");
@@ -326,9 +334,9 @@ void SkirtBrimAppender::generateSkirtBrim(
     const ExtrudersSet &used_extruders,
     const std::vector<ConstExtruderPlanPtr> first_extruder_plans,
     const std::map<ExtruderNumber, Shape>& starting_outlines,
-    std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
+    std::map<ExtruderNumber, Shape> allowed_areas_per_extruder,
     const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
-    PrintPlan* print_plan)
+    const LayerPlanPtr& layer_plan)
 {
     struct ExtruderOffsetData
     {
@@ -345,12 +353,15 @@ void SkirtBrimAppender::generateSkirtBrim(
     for (const ExtruderNumber extruder_nr : used_extruders)
     {
         const ExtruderConfig &extruder_config = extruders_configs.at(extruder_nr);
-        const coord_t first_offset = extruder_config.gap_ + (extruder_config.line_width_ / 2);
-        extruder_offset_datas.push_back(ExtruderOffsetData{
-            .extruder_nr = extruder_nr,
-            .next_offset = first_offset,
-            .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, extruder_config.line_width_)
-        });
+        if (extruder_config.skirt_height_ > layer_plan->getLayerIndex())
+        {
+            const coord_t first_offset = extruder_config.gap_ + (extruder_config.line_width_ / 2);
+            extruder_offset_datas.push_back(ExtruderOffsetData{
+                .extruder_nr = extruder_nr,
+                .next_offset = first_offset,
+                .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, extruder_config.line_width_)
+            });
+        }
     }
 
     // Create a cache containing the extruders processing ordering, we are going to need it extensively
@@ -388,7 +399,7 @@ void SkirtBrimAppender::generateSkirtBrim(
             covered_areas.at(extruder_nr),
             allowed_areas_per_extruder,
             extruders_configs,
-            print_plan->getOperationsAs<LayerPlan>().front());
+            layer_plan);
 
         for (const ContinuousExtruderMoveSequencePtr& offset_extrusion : offset_extrusions)
         {
@@ -398,7 +409,9 @@ void SkirtBrimAppender::generateSkirtBrim(
 
         extruder_offset_data.next_offset = extruder_config.line_width_ / 2;
 
-        if (offset_extrusions.empty() || (extruder_offset_data.processed_offsets >= extruder_config.line_count_ && extruder_offset_data.extruded_length >= extruder_config.skirt_brim_minimal_length_))
+        if (offset_extrusions.empty() ||
+            layer_plan->getLayerIndex() > 0 ||
+            (extruder_offset_data.processed_offsets >= extruder_config.line_count_ && extruder_offset_data.extruded_length >= extruder_config.skirt_brim_minimal_length_))
         {
             extruder_offset_data.done = true;
         }
@@ -407,7 +420,7 @@ void SkirtBrimAppender::generateSkirtBrim(
     for (auto & extrusion : extruder_offset_datas)
     {
         const auto &feature = extrusion.extrusion;
-        print_plan->getOperationsAs<LayerPlan>().front()->getOperationsAs<ExtruderPlan>().front()->appendFeatureExtrusion(feature);
+        layer_plan->getOperationsAs<ExtruderPlan>().front()->appendFeatureExtrusion(feature);
     }
 }
 

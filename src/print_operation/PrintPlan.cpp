@@ -69,6 +69,15 @@ void PrintPlan::applyProcessors(const std::vector<const PrintOperation*>& parent
     }
 }
 
+LayerPlanPtr PrintPlan::findLayerPlan(const LayerIndex& layer_nr) const
+{
+    return findOperationByType<LayerPlan>(
+        SearchOrder::Forward,
+        SearchDepth::DirectChildren,
+        [&layer_nr](const LayerPlanPtr &layer_plan) { return layer_plan->getLayerIndex() == layer_nr; }
+    );
+}
+
 // LayerPlan* PrintPlan::processBuffer()
 // {
 //     if (buffer_.empty())

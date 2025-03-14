@@ -37,7 +37,7 @@ private:
         bool inside_polys_; //!< Whether to generate brim on the inside
         coord_t line_width_; //!< The skirt/brim line width
         coord_t skirt_brim_minimal_length_; //!< The minimal brim length
-        int line_count_; //!< The (minimal) number of brim lines to generate
+        size_t line_count_; //!< The (minimal) number of brim lines to generate
         coord_t gap_; //!< The gap between the part and the first brim/skirt line
         coord_t brim_inside_margin_;
         size_t skirt_height_;
@@ -72,9 +72,9 @@ private:
         const ExtrudersSet& used_extruders,
         const std::vector<ConstExtruderPlanPtr> first_extruder_plans,
         const std::map<ExtruderNumber, Shape>& starting_outlines,
-        std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
+        std::map<ExtruderNumber, Shape> allowed_areas_per_extruder,
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
-        PrintPlan* print_plan);
+        const LayerPlanPtr& layer_plan);
 
     static std::vector<ContinuousExtruderMoveSequencePtr> generateOffset(
         const ExtruderNumber extruder_nr,

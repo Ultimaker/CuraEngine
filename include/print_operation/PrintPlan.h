@@ -7,6 +7,7 @@
 #include <list>
 #include <vector>
 
+#include "LayerPlanPtr.h"
 #include "Preheat.h"
 #include "print_operation/PrintOperationSequence.h"
 #include "settings/Settings.h"
@@ -15,6 +16,7 @@
 namespace cura
 {
 
+struct LayerIndex;
 class LayerPlan;
 class ExtruderPlan;
 class GCodeExporter;
@@ -86,6 +88,8 @@ public:
     void appendLayerPlan(const std::shared_ptr<LayerPlan>& layer_plan);
 
     void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
+
+    LayerPlanPtr findLayerPlan(const LayerIndex &layer_nr) const;
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.

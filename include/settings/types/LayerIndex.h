@@ -13,6 +13,7 @@
 namespace cura
 {
 
+// FIXME: Replace by a using (and maybe a 32-bit value is enough ???)
 struct LayerIndex
 {
     using value_type = int64_t;
