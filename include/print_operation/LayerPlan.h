@@ -3,6 +3,7 @@
 
 #pragma once
 
+#include "ExtruderNumber.h"
 #include "ExtruderPlanPtr.h"
 #include "print_operation/PrintOperationSequence.h"
 #include "settings/types/LayerIndex.h"
@@ -32,6 +33,8 @@ public:
     void write(PlanExporter& exporter) const override;
 
     Point3LL getAbsolutePosition(const Point3LL& relative_position) const;
+
+    ExtruderPlanPtr findFirstExtruderPlan(const ExtruderNumber &extruder_nr) const;
 
 private:
     const LayerIndex layer_index_;

@@ -63,4 +63,13 @@ Point3LL LayerPlan::getAbsolutePosition(const Point3LL& relative_position) const
     return absolute_position;
 }
 
+ExtruderPlanPtr LayerPlan::findFirstExtruderPlan(const ExtruderNumber& extruder_nr) const
+{
+    return findOperationByType<ExtruderPlan>(
+        SearchOrder::Forward,
+        SearchDepth::DirectChildren,
+        [&extruder_nr](const ExtruderPlanPtr &extruder_plan) { return extruder_plan->getExtruderNr() == extruder_nr; }
+    );
+}
+
 } // namespace cura
