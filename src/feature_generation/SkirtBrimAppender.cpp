@@ -30,6 +30,11 @@
 namespace cura
 {
 
+coord_t SkirtBrimAppender::ExtruderConfig::getLineWidth(const ConstLayerPlanPtr& layer_plan) const
+{
+    return getLineWidth(layer_plan->getLayerIndex());
+}
+
 SkirtBrimAppender::SkirtBrimAppender(const SliceDataStorage& storage) :
     PrintOperationTransformer()
     ,storage_(storage)
@@ -57,14 +62,32 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
     const size_t height = calculateMaxHeight(extruders_configs, adhesion_type);
 
     const std::map<ExtruderNumber, Shape> starting_outlines = generateStartingOutlines(print_plan, skirt_brim_extruder_nr, height, adhesion_type, used_extruders);
-    const std::map<ExtruderNumber, Shape> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines, adhesion_type, used_extruders, skirt_brim_extruder_nr, extruders_configs);
+    const std::map<ExtruderNumber, Shape> allowed_areas_per_extruder
+        = generateAllowedAreas(starting_outlines, adhesion_type, used_extruders, skirt_brim_extruder_nr, extruders_configs);
 
-    for (LayerIndex actual_height = 0 ; actual_height < height; ++actual_height)
+    // Specific outlines that are used for upper layers of skirt and generated at first layer, first offset
+    std::map<ExtruderNumber, Shape> specific_starting_outlines;
+
+    for (LayerIndex actual_height = 0; actual_height < height; ++actual_height)
     {
         LayerPlanPtr layer_plan = print_plan->findLayerPlan(actual_height);
         if (layer_plan)
         {
-            generateSkirtBrim(adhesion_type, used_extruders, starting_outlines, allowed_areas_per_extruder, extruders_configs, layer_plan);
+            auto first_extruder_outline_action = FirstExtruderOutlineAction::None;
+            if (adhesion_type == EPlatformAdhesion::SKIRT)
+            {
+                first_extruder_outline_action = actual_height == 0 ? FirstExtruderOutlineAction::Save : FirstExtruderOutlineAction::Use;
+            }
+
+            generateSkirtBrim(
+                adhesion_type,
+                used_extruders,
+                starting_outlines,
+                specific_starting_outlines,
+                allowed_areas_per_extruder,
+                extruders_configs,
+                layer_plan,
+                first_extruder_outline_action);
         }
     }
 }
@@ -110,8 +133,9 @@ std::map<ExtruderNumber, SkirtBrimAppender::ExtruderConfig> SkirtBrimAppender::g
         const Settings& settings = Application::getInstance().current_slice_->scene.getExtruder(extruder_nr).settings_;
 
         const auto& location = settings.get<BrimLocation>("brim_location");
-        // FIXME: Use initial_layer_line_width_factor only on first layer, and also handle the initial-layer speed and flow
-        extruder_config.line_width_ = settings.get<coord_t>("skirt_brim_line_width") * settings.get<Ratio>("initial_layer_line_width_factor");
+        // FIXME: Handle the initial-layer speed and flow
+        extruder_config.line_width_X_ = settings.get<coord_t>("skirt_brim_line_width");
+        extruder_config.line_width_0_ = extruder_config.line_width_X_ * settings.get<Ratio>("initial_layer_line_width_factor");
         extruder_config.skirt_brim_minimal_length_ = settings.get<coord_t>("skirt_brim_minimal_length");
         extruder_config.outside_polys_ = adhesion_type == EPlatformAdhesion::SKIRT || (location & BrimLocation::OUTSIDE);
         extruder_config.inside_polys_ = adhesion_type == EPlatformAdhesion::BRIM && (location & BrimLocation::INSIDE);
@@ -222,7 +246,7 @@ std::map<ExtruderNumber, Shape> SkirtBrimAppender::generateAllowedAreas(
             for (size_t other_extruder_nr = 0; other_extruder_nr < covered_area_by_extruder.size(); ++other_extruder_nr)
             {
                 const ExtruderOutlines& extruder_outlines = covered_area_by_extruder[other_extruder_nr];
-                const coord_t base_offset = extruder_config.line_width_ / 2;
+                const coord_t base_offset = extruder_config.line_width_0_ / 2;
 
                 // Remove areas covered by models
                 for (const Polygon& covered_surface : extruder_outlines.models_outlines)
@@ -276,9 +300,11 @@ std::vector<ContinuousExtruderMoveSequencePtr> SkirtBrimAppender::generateOffset
     Shape& covered_area,
     std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
     const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
-    const LayerPlanPtr &layer_plan)
+    const LayerPlanPtr &layer_plan,
+    const bool update_allowed_areas)
 {
     const ExtruderConfig &extruder_config = extruders_configs.at(extruder_nr);
+    const coord_t line_width = extruder_config.getLineWidth(layer_plan);
 
     Shape brim = covered_area.offset(total_offset, ClipperLib::jtRound);
 
@@ -287,9 +313,9 @@ std::vector<ContinuousExtruderMoveSequencePtr> SkirtBrimAppender::generateOffset
 
     OpenLinesSet brim_lines = allowed_areas_per_extruder[extruder_nr].intersection(brim, false);
 
-    Shape newly_covered = brim_lines.offset((extruder_config.line_width_ / 2) + 10, ClipperLib::jtRound);
+    Shape newly_covered = brim_lines.offset((line_width / 2) + 10, ClipperLib::jtRound);
 
-    const coord_t max_stitch_distance = extruder_config.line_width_;
+    const coord_t max_stitch_distance = line_width;
     MixedLinesSet result;
     MixedPolylineStitcher::stitch(brim_lines, result, max_stitch_distance);
 
@@ -300,15 +326,17 @@ std::vector<ContinuousExtruderMoveSequencePtr> SkirtBrimAppender::generateOffset
     {
         if (extrusion_line->length() >= min_brim_line_length_)
         {
-            extrusions.push_back(ContinuousExtruderMoveSequence::makeFrom(*extrusion_line, extruder_config.line_width_, config.getSpeed()));
+            extrusions.push_back(ContinuousExtruderMoveSequence::makeFrom(*extrusion_line, line_width, config.getSpeed()));
         }
     }
 
-    // update allowed_areas_per_extruder
-    covered_area = covered_area.unionPolygons(newly_covered.unionPolygons());
-    for (Shape& allowed_area : ranges::views::values(allowed_areas_per_extruder))
+    if (update_allowed_areas)
     {
-        allowed_area = allowed_area.difference(covered_area);
+        covered_area = covered_area.unionPolygons(newly_covered.unionPolygons());
+        for (Shape& allowed_area : ranges::views::values(allowed_areas_per_extruder))
+        {
+            allowed_area = allowed_area.difference(covered_area);
+        }
     }
 
     return extrusions;
@@ -332,9 +360,11 @@ void SkirtBrimAppender::generateSkirtBrim(
     const EPlatformAdhesion adhesion_type,
     std::vector<ExtruderNumber>& used_extruders,
     const std::map<ExtruderNumber, Shape>& starting_outlines,
+    std::map<ExtruderNumber, Shape>& specific_starting_outlines,
     std::map<ExtruderNumber, Shape> allowed_areas_per_extruder,
     const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
-    const LayerPlanPtr& layer_plan)
+    const LayerPlanPtr& layer_plan,
+    const FirstExtruderOutlineAction first_extruder_outline_action)
 {
     struct ExtruderOffsetData
     {
@@ -356,7 +386,7 @@ void SkirtBrimAppender::generateSkirtBrim(
         {
             extruder_offset_datas.push_back(ExtruderOffsetData{
                 .extruder_nr = extruder_nr,
-                .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, extruder_config.line_width_)
+                .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, extruder_config.getLineWidth(layer_plan))
             });
         }
     }
@@ -364,14 +394,14 @@ void SkirtBrimAppender::generateSkirtBrim(
     // Create a cache containing the extruders processing ordering, we are going to need it extensively
     const std::map<ExtruderNumber, size_t> extruder_ordering = [&used_extruders]()
     {
-        std::map<ExtruderNumber, size_t> extruder_ordering;
+        std::map<ExtruderNumber, size_t> extruder_ordering_tmp;
 
         for (const auto& [index, extruder_number] : used_extruders | ranges::views::enumerate)
         {
-            extruder_ordering[extruder_number] = index;
+            extruder_ordering_tmp[extruder_number] = index;
         }
 
-        return extruder_ordering;
+        return extruder_ordering_tmp;
     }();
 
     std::map<ExtruderNumber, Shape> covered_areas = starting_outlines;
@@ -395,17 +425,36 @@ void SkirtBrimAppender::generateSkirtBrim(
         ExtruderOffsetData &extruder_offset_data = *iterator;
         const ExtruderNumber extruder_nr = extruder_offset_data.extruder_nr;
         const ExtruderConfig &extruder_config = extruders_configs.at(extruder_nr);
+
+        Shape *starting_outline;
+        if (first_extruder_outline_action == FirstExtruderOutlineAction::Use)
+        {
+            starting_outline = &specific_starting_outlines[extruder_nr];
+        }
+        else
+        {
+            starting_outline = &covered_areas.at(adhesion_type == EPlatformAdhesion::SKIRT ? 0 : extruder_nr);
+        }
+
+        if (extruder_offset_data.processed_offsets == 0 && first_extruder_outline_action == FirstExtruderOutlineAction::Save)
+        {
+            specific_starting_outlines[extruder_nr] = *starting_outline;
+        }
+
         const bool add_gap = (adhesion_type == EPlatformAdhesion::SKIRT) ? first_offset : (extruder_offset_data.processed_offsets == 0);
-        const coord_t offset = (extruder_config.line_width_ / 2) + (add_gap ? extruder_config.gap_ : 0);
+        const coord_t offset = (extruder_config.getLineWidth(layer_plan) / 2) + (add_gap ? extruder_config.gap_ : 0);
         extruder_offset_data.processed_offsets++;
         extruder_offset_data.total_offset += offset;
+
+        const bool update_allowed_areas = first_extruder_outline_action != FirstExtruderOutlineAction::Use;
         const std::vector<ContinuousExtruderMoveSequencePtr> offset_extrusions = generateOffset(
             extruder_nr,
             offset,
-            covered_areas.at(adhesion_type == EPlatformAdhesion::SKIRT ? 0 : extruder_nr),
+            *starting_outline,
             allowed_areas_per_extruder,
             extruders_configs,
-            layer_plan);
+            layer_plan,
+            update_allowed_areas);
 
         for (const ContinuousExtruderMoveSequencePtr& offset_extrusion : offset_extrusions)
         {

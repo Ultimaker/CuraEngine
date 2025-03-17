@@ -4,6 +4,7 @@
 #pragma once
 
 #include <settings/EnumSettings.h>
+#include <settings/types/LayerIndex.h>
 #include <utils/ExtrudersSet.h>
 
 #include "ExtruderNumber.h"
@@ -33,12 +34,27 @@ private:
     {
         bool outside_polys_; //!< Whether to generate brim on the outside
         bool inside_polys_; //!< Whether to generate brim on the inside
-        coord_t line_width_; //!< The skirt/brim line width
+        coord_t line_width_0_; //!< The skirt/brim line width on the first layer
+        coord_t line_width_X_; //!< The skirt/brim line width on above layers
         coord_t skirt_brim_minimal_length_; //!< The minimal brim length
         size_t line_count_; //!< The (minimal) number of brim lines to generate
         coord_t gap_; //!< The gap between the part and the first brim/skirt line
         coord_t brim_inside_margin_;
         size_t skirt_height_;
+
+        coord_t getLineWidth(const LayerIndex &layer_nr) const
+        {
+            return layer_nr > 0 ? line_width_X_ : line_width_0_;
+        }
+
+        coord_t getLineWidth(const ConstLayerPlanPtr &layer_plan) const;
+    };
+
+    enum class FirstExtruderOutlineAction
+    {
+        None, // Do nothing specific
+        Save, // Save the first processed outline for each extruder
+        Use, // Use the first processed outline for each extruder, instead of the given starting outlines
     };
 
     static constexpr coord_t min_brim_line_length_ = 3000u; //!< open polyline brim lines smaller than this will be removed
@@ -80,9 +96,11 @@ private:
         const EPlatformAdhesion adhesion_type,
         std::vector<ExtruderNumber>& used_extruders,
         const std::map<ExtruderNumber, Shape>& starting_outlines,
+        std::map<ExtruderNumber, Shape>& specific_starting_outlines,
         std::map<ExtruderNumber, Shape> allowed_areas_per_extruder,
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
-        const LayerPlanPtr& layer_plan);
+        const LayerPlanPtr& layer_plan,
+        const FirstExtruderOutlineAction first_extruder_outline_action);
 
     static std::vector<ContinuousExtruderMoveSequencePtr> generateOffset(
         const ExtruderNumber extruder_nr,
@@ -90,7 +108,8 @@ private:
         Shape& covered_area,
         std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
-        const LayerPlanPtr& layer_plan);
+        const LayerPlanPtr& layer_plan,
+        const bool update_allowed_areas);
 };
 
 } // namespace cura
