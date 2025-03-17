@@ -42,12 +42,12 @@ private:
         coord_t brim_inside_margin_;
         size_t skirt_height_;
 
-        coord_t getLineWidth(const LayerIndex &layer_nr) const
+        coord_t getLineWidth(const LayerIndex& layer_nr) const
         {
             return layer_nr > 0 ? line_width_X_ : line_width_0_;
         }
 
-        coord_t getLineWidth(const ConstLayerPlanPtr &layer_plan) const;
+        coord_t getLineWidth(const ConstLayerPlanPtr& layer_plan) const;
     };
 
     enum class FirstExtruderOutlineAction
