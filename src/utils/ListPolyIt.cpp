@@ -3,6 +3,7 @@
 
 #include "utils/ListPolyIt.h"
 
+#include <cassert>
 #include <cmath> // isfinite
 #include <sstream> // ostream
 
