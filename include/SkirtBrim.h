@@ -23,15 +23,25 @@ class SkirtBrim
 {
 private:
     /*!
+     * Store the various outlines that we want to create a brim around
+     */
+    struct Outline
+    {
+        Shape gapped; //!< Outlines for which we want to start a brim by applying the gap for easy detaching
+        Shape touching; //!< Outlines for which we want the brim to touch, so that it has better adhesion
+    };
+
+    /*!
      * A helper class to store an offset yet to be performed on either an outline polygon, or based on an earlier generated brim line.
      */
     struct Offset
     {
         Offset(
-            const std::variant<Shape*, int>& reference_outline_or_index,
+            const std::variant<Outline*, int>& reference_outline_or_index,
             const bool outside,
             const bool inside,
-            const coord_t offset_value,
+            const coord_t offset_value_gapped,
+            const coord_t offset_value_touching,
             const coord_t total_offset,
             const size_t inset_idx,
             const size_t extruder_nr,
@@ -39,7 +49,8 @@ private:
             : reference_outline_or_index_(reference_outline_or_index)
             , outside_(outside)
             , inside_(inside)
-            , offset_value_(offset_value)
+            , offset_value_gapped_(offset_value_gapped)
+            , offset_value_touching_(offset_value_touching)
             , total_offset_(total_offset)
             , inset_idx_(inset_idx)
             , extruder_nr_(extruder_nr)
@@ -47,10 +58,11 @@ private:
         {
         }
 
-        std::variant<Shape*, int> reference_outline_or_index_;
+        std::variant<Outline*, int> reference_outline_or_index_;
         bool outside_; //!< Wether to offset outward from the reference polygons
         bool inside_; //!< Wether to offset inward from the reference polygons
-        coord_t offset_value_; //!< Distance by which to offset from the reference
+        coord_t offset_value_gapped_; //!< Distance by which to offset from the reference, for outlines with gap applied
+        coord_t offset_value_touching_; //!< Distance by which to offset from the reference, for outlines with no gap applied
         coord_t total_offset_; //!< Total distance from the model
         int inset_idx_; //!< The outset index of this brimline
         size_t extruder_nr_; //!< The extruder by which to print this brim line
@@ -124,7 +136,7 @@ private:
      * \param[out] starting_outlines The first layer outlines from which to compute the offsets. Returned as output parameter because pointers need to stay valid.
      * \return An ordered list of offsets to perform in the order in which they are to be performed.
      */
-    std::vector<Offset> generateBrimOffsetPlan(std::vector<Shape>& starting_outlines);
+    std::vector<Offset> generateBrimOffsetPlan(std::vector<Outline>& starting_outlines);
 
     /*!
      * Generate the primary skirt/brim of the one skirt_brim_extruder or of all extruders simultaneously.
@@ -158,7 +170,7 @@ private:
      * \param extruder_nr The extruder for which to get the outlines. -1 to include outliens for all extruders
      * \return The resulting reference polygons
      */
-    Shape getFirstLayerOutline(const int extruder_nr = -1);
+    Outline getFirstLayerOutline(const int extruder_nr = -1);
 
     /*!
      * The disallowed area around the internal holes of parts with other parts inside which would get an external brim.
@@ -206,7 +218,7 @@ private:
      * \param[in] starting_outlines The previously generated starting outlines for each extruder
      * \return The list of allowed areas for each extruder
      */
-    std::vector<Shape> generateAllowedAreas(const std::vector<Shape>& starting_outlines) const;
+    std::vector<Shape> generateAllowedAreas(const std::vector<Outline>& starting_outlines) const;
 
 public:
     /*!
