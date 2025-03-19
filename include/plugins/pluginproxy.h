@@ -18,6 +18,7 @@
 #include <fmt/ranges.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
+#include <sstream>
 
 #include "Application.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
@@ -275,7 +276,9 @@ private:
 
         // Metadata
         client_context.AddMetadata("cura-engine-uuid", slot_info.engine_uuid.data());
-        client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
+        std::stringstream strstrm;
+        strstrm << std::this_thread::get_id();
+        client_context.AddMetadata("cura-thread-id", strstrm.str());
     }
 
     /**
