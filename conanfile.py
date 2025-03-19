@@ -133,7 +133,7 @@ class CuraEngineConan(ConanFile):
         self.requires("boost/1.86.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
-        self.requires("spdlog/1.12.0")
+        self.requires("spdlog/1.14.1")
         self.requires("fmt/10.2.1")
         self.requires("range-v3/0.12.0")
         self.requires("zlib/1.3.1")
