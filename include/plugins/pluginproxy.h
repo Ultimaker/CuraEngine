@@ -5,6 +5,7 @@
 #define PLUGINS_PLUGINPROXY_H
 
 #include <chrono>
+#include <sstream>
 
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/client_rpc.hpp>
@@ -18,7 +19,6 @@
 #include <fmt/ranges.h>
 #include <range/v3/utility/semiregular_box.hpp>
 #include <spdlog/spdlog.h>
-#include <sstream>
 
 #include "Application.h"
 #include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
