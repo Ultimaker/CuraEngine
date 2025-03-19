@@ -1014,7 +1014,8 @@ void AreaSupport::generateSupportAreasForMesh(
         return;
     }
 
-    if (ranges::all_of(
+    if ((! mesh.settings.get<bool>("support_mesh"))
+        && ranges::all_of(
             mesh.overhang_areas,
             [](const Shape& overhang_area)
             {
