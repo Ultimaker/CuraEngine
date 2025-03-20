@@ -5,7 +5,6 @@
 
 #include <settings/EnumSettings.h>
 #include <settings/types/LayerIndex.h>
-#include <utils/ExtrudersSet.h>
 
 #include "ExtruderNumber.h"
 #include "operation_transformation/PrintOperationTransformer.h"
@@ -16,8 +15,10 @@
 namespace cura
 {
 
+enum class PrintFeatureType : unsigned char;
 enum class EPlatformAdhesion;
 class Shape;
+class SVG;
 
 class SkirtBrimAppender : public PrintOperationTransformer<PrintPlan>
 {
@@ -57,8 +58,12 @@ private:
         Use, // Use the first processed outline for each extruder, instead of the given starting outlines
     };
 
+    using FeatureFootprints = std::map<PrintFeatureType, std::vector<Shape>>;
+    using FeatureFootprint = std::map<PrintFeatureType, Shape>;
+
     static constexpr coord_t min_brim_line_length_ = 3000u; //!< open polyline brim lines smaller than this will be removed
     const SliceDataStorage& storage_;
+    SVG *svg_;
 
 private:
     static std::vector<ExtruderNumber> generateUsedExtruders(const PrintPlan* print_plan);
@@ -66,6 +71,8 @@ private:
     static size_t calculateMaxHeight(const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs, const EPlatformAdhesion adhesion_type);
 
     static std::map<ExtruderNumber, ExtruderConfig> generateExtrudersConfigs(std::vector<ExtruderNumber>& used_extruders, const EPlatformAdhesion adhesion_type);
+
+    static std::map<ExtruderNumber, FeatureFootprint> generateFeatureFootprints(const PrintPlan* print_plan, const size_t height);
 
     /*!
      * Generates the outline for the first offset of each used extruder
@@ -78,19 +85,15 @@ private:
      *         In case the adhesion type is skirt, a map containing a single element with fixed 0, which is a union of
      *         all the outlines of all extruders on the first layers
      */
-    static std::map<ExtruderNumber, Shape> generateStartingOutlines(
+    void generateFootprints(
         const PrintPlan* print_plan,
         const std::optional<ExtruderNumber> brim_extruder_nr,
         const size_t height,
         const EPlatformAdhesion adhesion_type,
-        std::vector<ExtruderNumber>& used_extruders);
-
-    std::map<ExtruderNumber, Shape> generateAllowedAreas(
-        const std::map<ExtruderNumber, Shape>& starting_outlines,
-        const EPlatformAdhesion adhesion_type,
-        std::vector<ExtruderNumber>& used_extruders,
-        const std::optional<ExtruderNumber> skirt_brim_extruder_nr,
-        const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs) const;
+        const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
+        const std::vector<ExtruderNumber> &used_extruders,
+        std::map<ExtruderNumber, Shape> &starting_outlines,
+        std::map<ExtruderNumber, Shape> &allowed_areas) const;
 
     static void generateSkirtBrim(
         const EPlatformAdhesion adhesion_type,

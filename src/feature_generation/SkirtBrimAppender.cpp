@@ -38,6 +38,7 @@ coord_t SkirtBrimAppender::ExtruderConfig::getLineWidth(const ConstLayerPlanPtr&
 SkirtBrimAppender::SkirtBrimAppender(const SliceDataStorage& storage) :
     PrintOperationTransformer()
     ,storage_(storage)
+    ,svg_(new SVG("/tmp/skirtbrim.svg", storage.getMachineBorder(), 0.001))
 {
 }
 
@@ -61,9 +62,19 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
     const std::map<ExtruderNumber, ExtruderConfig> extruders_configs = generateExtrudersConfigs(used_extruders, adhesion_type);
     const size_t height = calculateMaxHeight(extruders_configs, adhesion_type);
 
-    const std::map<ExtruderNumber, Shape> starting_outlines = generateStartingOutlines(print_plan, skirt_brim_extruder_nr, height, adhesion_type, used_extruders);
-    const std::map<ExtruderNumber, Shape> allowed_areas_per_extruder
-        = generateAllowedAreas(starting_outlines, adhesion_type, used_extruders, skirt_brim_extruder_nr, extruders_configs);
+    std::map<ExtruderNumber, Shape> starting_outlines;
+    std::map<ExtruderNumber, Shape> allowed_areas;
+    generateFootprints(print_plan, skirt_brim_extruder_nr, height, adhesion_type, extruders_configs, used_extruders, starting_outlines, allowed_areas);
+
+    for (auto &[extruder_nr, allowed_area] : allowed_areas)
+    {
+        svg_->writePolygons(allowed_area, extruder_nr == 0 ? SVG::Color::GREEN : SVG::Color::BLUE, 0.06);
+    }
+
+    for (auto &[extruder_nr, starting_outline] : starting_outlines)
+    {
+        svg_->writePolygons(starting_outline, extruder_nr == 0 ? SVG::Color::RED : SVG::Color::MAGENTA, 0.05);
+    }
 
     // Specific outlines that are used for upper layers of skirt and generated at first layer, first offset
     std::map<ExtruderNumber, Shape> specific_starting_outlines;
@@ -84,7 +95,7 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
                 used_extruders,
                 starting_outlines,
                 specific_starting_outlines,
-                allowed_areas_per_extruder,
+                allowed_areas,
                 extruders_configs,
                 layer_plan,
                 first_extruder_outline_action);
@@ -123,7 +134,8 @@ size_t SkirtBrimAppender::calculateMaxHeight(const std::map<ExtruderNumber, Extr
     return height;
 }
 
-std::map<ExtruderNumber, SkirtBrimAppender::ExtruderConfig> SkirtBrimAppender::generateExtrudersConfigs(std::vector<ExtruderNumber>& used_extruders, const EPlatformAdhesion adhesion_type)
+std::map<ExtruderNumber, SkirtBrimAppender::ExtruderConfig>
+    SkirtBrimAppender::generateExtrudersConfigs(std::vector<ExtruderNumber>& used_extruders, const EPlatformAdhesion adhesion_type)
 {
     std::map<ExtruderNumber, ExtruderConfig> extruders_configs;
 
@@ -148,150 +160,123 @@ std::map<ExtruderNumber, SkirtBrimAppender::ExtruderConfig> SkirtBrimAppender::g
     return extruders_configs;
 }
 
-std::map<size_t, Shape> SkirtBrimAppender::generateStartingOutlines(
-    const PrintPlan* print_plan,
-    const std::optional<ExtruderNumber> brim_extruder_nr,
-    const size_t height,
-    const EPlatformAdhesion adhesion_type,
-    std::vector<ExtruderNumber>& used_extruders)
+std::map<ExtruderNumber, std::map<PrintFeatureType, Shape>> SkirtBrimAppender::generateFeatureFootprints(const PrintPlan* print_plan, const size_t height)
 {
     // Calculate the united footprints of all the extrusion features on the first layers
-    std::map<ExtruderNumber, std::vector<Shape>> features_footprints;
+    std::map<ExtruderNumber, FeatureFootprints> features_footprints;
     for (const LayerPlanPtr& layer_plan : print_plan->getOperationsAs<LayerPlan>())
     {
         if (layer_plan->getLayerIndex() < height)
         {
-            for (const ConstExtruderPlanPtr &extruder_plan :layer_plan->getOperationsAs<ExtruderPlan>())
+            for (const ConstExtruderPlanPtr extruder_plan :layer_plan->getOperationsAs<ExtruderPlan>())
             {
-                const ExtruderNumber target_extruder_nr = adhesion_type == EPlatformAdhesion::SKIRT ? 0 : brim_extruder_nr.value_or(extruder_plan->getExtruderNr());
-                std::vector<Shape> &target_footprints = features_footprints[target_extruder_nr];
-
-                for (const ConstFeatureExtrusionPtr& feature_extrusion : extruder_plan->getOperationsAs<FeatureExtrusion>())
+                FeatureFootprints &target_footprints = features_footprints[extruder_plan->getExtruderNr()];
+                for (const ConstFeatureExtrusionPtr feature_extrusion : extruder_plan->getOperationsAs<FeatureExtrusion>())
                 {
-                    target_footprints.push_back(feature_extrusion->calculateFootprint());
+                    target_footprints[feature_extrusion->getType()].push_back(feature_extrusion->calculateFootprint());
                 }
             }
         }
     }
 
-    std::map<ExtruderNumber, Shape> starting_outlines;
-    for (auto & [extruder_nr, extruder_starting_outlines] : features_footprints)
+    // Unite all shapes by extruder/print feature type
+    std::map<ExtruderNumber, FeatureFootprint> features_united_footprints;
+    for (const auto & [extruder_nr, extruder_features_footprints] : features_footprints)
     {
-        starting_outlines[extruder_nr] = Shape::unionShapes(extruder_starting_outlines).getOutsidePolygons();
-    }
-
-    // Make sure we have an entry for all used extruders
-    for (const ExtruderNumber extruder_nr : used_extruders)
-    {
-        if (!starting_outlines.contains(extruder_nr))
+        for (const auto & [feature_type, footprints] : extruder_features_footprints)
         {
-            starting_outlines[extruder_nr] = Shape();
+            features_united_footprints[extruder_nr][feature_type] = Shape::unionShapes(footprints);
         }
     }
 
-    return starting_outlines;
+    return features_united_footprints;
 }
 
-std::map<ExtruderNumber, Shape> SkirtBrimAppender::generateAllowedAreas(
-    const std::map<ExtruderNumber, Shape>& starting_outlines,
+void SkirtBrimAppender::generateFootprints(
+    const PrintPlan* print_plan,
+    const std::optional<ExtruderNumber> brim_extruder_nr,
+    const size_t height,
     const EPlatformAdhesion adhesion_type,
-    std::vector<ExtruderNumber> &used_extruders,
-    const std::optional<ExtruderNumber> skirt_brim_extruder_nr,
-    const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs) const
+    const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
+    const std::vector<ExtruderNumber> &used_extruders,
+    std::map<ExtruderNumber, Shape> &starting_outlines,
+    std::map<ExtruderNumber, Shape> &allowed_areas) const
 {
-    constexpr LayerIndex layer_nr = 0;
+    // Geather footprints of printed features for each extruder
+    const std::map<ExtruderNumber, FeatureFootprint> features_footprints = generateFeatureFootprints(print_plan, height);
 
-    // For each extruder, pre-compute the areas covered by models/supports/prime tower
-    struct ExtruderOutlines
+    // Now generate the starting outlines for each extruder based on the footprints
+    const std::vector<ExtruderNumber> target_extruders = adhesion_type == EPlatformAdhesion::SKIRT ? std::vector<ExtruderNumber>({0}) : used_extruders;
+    for (const ExtruderNumber target_extruder : target_extruders)
     {
-        Shape models_outlines;
-        Shape supports_outlines;
-    };
+        std::vector<Shape> expanded_features_footprints;
+        const std::vector<ExtruderNumber> source_extruders = adhesion_type == EPlatformAdhesion::BRIM && brim_extruder_nr.has_value() ? used_extruders : std::vector<ExtruderNumber>({target_extruder});
 
-    std::map<ExtruderNumber, ExtruderOutlines> covered_area_by_extruder;
-    if (adhesion_type == EPlatformAdhesion::BRIM)
-    {
-        for (ExtruderNumber extruder_nr : used_extruders)
+        for (const ExtruderNumber source_extruder : source_extruders)
         {
-            // Gather models/support/prime tower areas separately to apply different margins
-            ExtruderOutlines& extruder_outlines = covered_area_by_extruder[extruder_nr];
-            constexpr bool external_polys_only = false;
+            auto iterator = features_footprints.find(source_extruder);
+            if (iterator != features_footprints.end())
             {
-                constexpr bool include_support = false;
-                constexpr bool include_prime_tower = false;
-                constexpr bool include_model = true;
-                extruder_outlines.models_outlines = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_model);
-            }
-            {
-                constexpr bool include_support = true;
-                constexpr bool include_prime_tower = true;
-                constexpr bool include_model = false;
-                extruder_outlines.supports_outlines = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_model);
-            }
-        }
-    }
-
-    std::map<ExtruderNumber, Shape> allowed_areas_per_extruder;
-    for (const ExtruderNumber extruder_nr : used_extruders)
-    {
-        // Initialize allowed area to full build plate, then remove disallowed areas
-        Shape& allowed_areas = allowed_areas_per_extruder[extruder_nr];
-        allowed_areas = storage_.getMachineBorder(extruder_nr);
-
-        if (adhesion_type == EPlatformAdhesion::BRIM)
-        {
-            const ExtruderConfig& extruder_config = extruders_configs.at(extruder_nr);
-            const coord_t hole_brim_distance = extruder_config.brim_inside_margin_;
-
-            for (size_t other_extruder_nr = 0; other_extruder_nr < covered_area_by_extruder.size(); ++other_extruder_nr)
-            {
-                const ExtruderOutlines& extruder_outlines = covered_area_by_extruder[other_extruder_nr];
-                const coord_t base_offset = extruder_config.line_width_0_ / 2;
-
-                // Remove areas covered by models
-                for (const Polygon& covered_surface : extruder_outlines.models_outlines)
+                for (auto & [feature_type, footprint] : iterator->second)
                 {
-                    coord_t offset = base_offset;
-                    const double covered_area = covered_surface.area();
-
-                    if ((other_extruder_nr == extruder_nr || extruder_nr == skirt_brim_extruder_nr)
-                        && ((covered_area > 0 && extruder_config.outside_polys_) || (covered_area < 0 && extruder_config.inside_polys_)))
+                    Shape expanded_footprint;
+                    if (PrintFeatureTypeEnum::isModel(feature_type))
                     {
-                        // This is an area we are gonna intentionnally print brim in, use the actual gap
-                        offset += extruder_config.gap_ - 50; // Lower margin a bit to avoid discarding legitimate lines
+                        expanded_footprint = footprint.offset(extruders_configs.at(source_extruder).gap_);
                     }
                     else
                     {
-                        // This is an area we do not expect brim to be printed in, use a larger gap to keep the printed surface clean
-                        offset += hole_brim_distance;
+                        expanded_footprint = footprint;
                     }
-
-                    if (covered_area < 0)
-                    {
-                        // Invert offset to make holes grow inside
-                        allowed_areas.push_back(covered_surface.offset(-offset, ClipperLib::jtRound));
-                    }
-                    else
-                    {
-                        allowed_areas = allowed_areas.difference(covered_surface.offset(offset, ClipperLib::jtRound));
-                    }
+                    expanded_features_footprints.push_back(std::move(expanded_footprint));
                 }
-
-                // Remove areas covered by support, with a low margin because we don't care if the brim touches it
-                allowed_areas = allowed_areas.difference(extruder_outlines.supports_outlines.offset(base_offset - 50));
             }
         }
 
-        // Anyway, don't allow a brim/skirt to grow inside itself, which may happen e.g. with ooze shield+skirt
-        const Shape starting_outline = starting_outlines.at(adhesion_type == EPlatformAdhesion::SKIRT ? 0 : extruder_nr);
+        Shape &extruder_starting_outlines = starting_outlines[target_extruder];
+        extruder_starting_outlines = Shape::unionShapes(expanded_features_footprints);
 
-        // When using a skirt, the used gap will be the one of the first processed extruder
-        const ExtruderNumber gap_extruder_nr = adhesion_type == EPlatformAdhesion::SKIRT ? used_extruders.front() : extruder_nr;
-        const coord_t gap = extruders_configs.at(gap_extruder_nr).gap_;
-        allowed_areas = allowed_areas.difference(starting_outline.offset(gap - 50, ClipperLib::jtRound));
+        svg_->writePolygons(extruder_starting_outlines, SVG::Color::ORANGE, 0.04);
+
+        if(adhesion_type == EPlatformAdhesion::SKIRT)
+        {
+            extruder_starting_outlines = extruder_starting_outlines.approxConvexHull();
+        }
+
+        svg_->writePolygons(extruder_starting_outlines, SVG::Color::BLUE, 0.03);
     }
 
-    return allowed_areas_per_extruder;
+    // Initialize each extruder allowed area with the whole build plate
+    for (ExtruderNumber extruder_nr : used_extruders)
+    {
+        allowed_areas[extruder_nr] = storage_.getMachineBorder(extruder_nr);
+    }
+
+    // Now remove disallowed areas from features of different extruders
+    for (auto & [source_extruder, extruder_features_footprints] : features_footprints)
+    {
+        for (auto & [feature_type, footprint] : extruder_features_footprints)
+        {
+            Shape expanded_footprint;
+            if (PrintFeatureTypeEnum::isModel(feature_type))
+            {
+                expanded_footprint = footprint.offset(extruders_configs.at(source_extruder).brim_inside_margin_);
+            }
+            else
+            {
+                expanded_footprint = footprint;
+            }
+
+            for (const ExtruderNumber target_extruder : used_extruders)
+            {
+                if (target_extruder != source_extruder)
+                {
+                    Shape &allowed_area = allowed_areas[target_extruder];
+                    allowed_area = allowed_area.difference(expanded_footprint);
+                }
+            }
+        }
+    }
 }
 
 std::vector<ContinuousExtruderMoveSequencePtr> SkirtBrimAppender::generateOffset(
@@ -370,7 +355,7 @@ void SkirtBrimAppender::generateSkirtBrim(
     {
         ExtruderNumber extruder_nr;
         FeatureExtrusionPtr extrusion;
-        coord_t total_offset{0};
+        coord_t total_offset;
         coord_t extruded_length{0};
         bool done{false};
         size_t processed_offsets{0};
@@ -386,7 +371,8 @@ void SkirtBrimAppender::generateSkirtBrim(
         {
             extruder_offset_datas.push_back(ExtruderOffsetData{
                 .extruder_nr = extruder_nr,
-                .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, extruder_config.getLineWidth(layer_plan))
+                .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, extruder_config.getLineWidth(layer_plan)),
+                .total_offset = extruder_config.gap_
             });
         }
     }
@@ -405,7 +391,6 @@ void SkirtBrimAppender::generateSkirtBrim(
     }();
 
     std::map<ExtruderNumber, Shape> covered_areas = starting_outlines;
-    bool first_offset = true;
 
     while (!ranges::all_of(extruder_offset_datas, [](const ExtruderOffsetData &data) {return data.done;}))
     {
@@ -441,8 +426,7 @@ void SkirtBrimAppender::generateSkirtBrim(
             specific_starting_outlines[extruder_nr] = *starting_outline;
         }
 
-        const bool add_gap = (adhesion_type == EPlatformAdhesion::SKIRT) ? first_offset : (extruder_offset_data.processed_offsets == 0);
-        const coord_t offset = (extruder_config.getLineWidth(layer_plan) / 2) + (add_gap ? extruder_config.gap_ : 0);
+        const coord_t offset = extruder_config.getLineWidth(layer_plan) / 2;
         extruder_offset_data.processed_offsets++;
         extruder_offset_data.total_offset += offset;
 
@@ -468,8 +452,6 @@ void SkirtBrimAppender::generateSkirtBrim(
         {
             extruder_offset_data.done = true;
         }
-
-        first_offset = false;
     }
 
     // Now add the generated feature to the proper extruder plans
