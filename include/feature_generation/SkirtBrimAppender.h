@@ -85,7 +85,7 @@ private:
      *         In case the adhesion type is skirt, a map containing a single element with fixed 0, which is a union of
      *         all the outlines of all extruders on the first layers
      */
-    void generateFootprints(
+    void generateBaseAreas(
         const PrintPlan* print_plan,
         const std::optional<ExtruderNumber> brim_extruder_nr,
         const size_t height,
@@ -95,24 +95,26 @@ private:
         std::map<ExtruderNumber, Shape> &starting_outlines,
         std::map<ExtruderNumber, Shape> &allowed_areas) const;
 
-    static void generateSkirtBrim(
+    void generateSkirtBrim(
         const EPlatformAdhesion adhesion_type,
+        const std::optional<ExtruderNumber> brim_extruder_nr,
         std::vector<ExtruderNumber>& used_extruders,
         const std::map<ExtruderNumber, Shape>& starting_outlines,
         std::map<ExtruderNumber, Shape>& specific_starting_outlines,
         std::map<ExtruderNumber, Shape> allowed_areas_per_extruder,
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
         const LayerPlanPtr& layer_plan,
-        const FirstExtruderOutlineAction first_extruder_outline_action);
+        const FirstExtruderOutlineAction first_extruder_outline_action) const;
 
-    static std::vector<ContinuousExtruderMoveSequencePtr> generateOffset(
+    std::vector<ContinuousExtruderMoveSequencePtr> generateOffset(
         const ExtruderNumber extruder_nr,
         const coord_t total_offset,
+        const Shape &outline,
         Shape& covered_area,
         std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
         const LayerPlanPtr& layer_plan,
-        const bool update_allowed_areas);
+        const bool update_allowed_areas) const;
 };
 
 } // namespace cura
