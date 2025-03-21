@@ -1119,10 +1119,6 @@ void LayerPlan::addWallLine(
     {
         add_skin_extrusion(roofing_mask_, roofing_config);
     }
-    else if (use_skin_config(flooring_mask_, flooring_config))
-    {
-        add_skin_extrusion(flooring_mask_, flooring_config);
-    }
     else if (bridge_wall_mask_.empty())
     {
         // no bridges required
@@ -1137,102 +1133,102 @@ void LayerPlan::addWallLine(
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
-    else
+    else if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL()))
     {
-        // bridges may be required
-        if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL()))
+        // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
+
+        // determine which segments of the line are bridges
+
+        OpenLinesSet line_polys;
+        line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
+        constexpr bool restitch = false; // only a single line doesn't need stitching
+        line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
+
+        // line_polys now contains the wall lines that need to be printed using bridge_config
+
+        while (line_polys.size() > 0)
         {
-            // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
-
-            // determine which segments of the line are bridges
-
-            OpenLinesSet line_polys;
-            line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
-            constexpr bool restitch = false; // only a single line doesn't need stitching
-            line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
-
-            // line_polys now contains the wall lines that need to be printed using bridge_config
-
-            while (line_polys.size() > 0)
+            // find the bridge line segment that's nearest to the current point
+            size_t nearest = 0;
+            double smallest_dist2 = (cur_point - line_polys[0][0]).vSize2f();
+            for (size_t i = 1; i < line_polys.size(); ++i)
             {
-                // find the bridge line segment that's nearest to the current point
-                size_t nearest = 0;
-                double smallest_dist2 = (cur_point - line_polys[0][0]).vSize2f();
-                for (size_t i = 1; i < line_polys.size(); ++i)
+                double dist2 = (cur_point - line_polys[i][0]).vSize2f();
+                if (dist2 < smallest_dist2)
                 {
-                    double dist2 = (cur_point - line_polys[i][0]).vSize2f();
-                    if (dist2 < smallest_dist2)
-                    {
-                        nearest = i;
-                        smallest_dist2 = dist2;
-                    }
+                    nearest = i;
+                    smallest_dist2 = dist2;
                 }
-                const OpenPolyline& bridge = line_polys[nearest];
+            }
+            const OpenPolyline& bridge = line_polys[nearest];
 
-                // set b0 to the nearest vertex and b1 the furthest
-                Point3LL b0 = bridge[0];
-                Point3LL b1 = bridge[1];
+            // set b0 to the nearest vertex and b1 the furthest
+            Point3LL b0 = bridge[0];
+            Point3LL b1 = bridge[1];
 
-                if ((cur_point - b1).vSize2f() < (cur_point - b0).vSize2f())
-                {
-                    // swap vertex order
-                    b0 = bridge[1];
-                    b1 = bridge[0];
-                }
-
-                // extrude using default_config to the start of the next bridge segment
-
-                addNonBridgeLine(b0);
-
-                const double bridge_line_len = (b1 - cur_point).vSize();
-
-                if (bridge_line_len >= min_bridge_line_len)
-                {
-                    // extrude using bridge_config to the end of the next bridge segment
-
-                    if (bridge_line_len > min_line_len)
-                    {
-                        addExtrusionMoveWithGradualOverhang(
-                            b1,
-                            bridge_config,
-                            SpaceFillType::Polygons,
-                            flow,
-                            width_factor,
-                            spiralize,
-                            1.0_r,
-                            GCodePathConfig::FAN_SPEED_DEFAULT,
-                            travel_to_z);
-                        non_bridge_line_volume = 0;
-                        cur_point = b1;
-                        // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
-                        speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
-                    }
-                }
-                else
-                {
-                    // treat the short bridge line just like a normal line
-
-                    addNonBridgeLine(b1);
-                }
-
-                // finished with this segment
-                line_polys.removeAt(nearest);
+            if ((cur_point - b1).vSize2f() < (cur_point - b0).vSize2f())
+            {
+                // swap vertex order
+                b0 = bridge[1];
+                b1 = bridge[0];
             }
 
-            // if we haven't yet reached p1, fill the gap with default_config line
-            addNonBridgeLine(p1);
+            // extrude using default_config to the start of the next bridge segment
+
+            addNonBridgeLine(b0);
+
+            const double bridge_line_len = (b1 - cur_point).vSize();
+
+            if (bridge_line_len >= min_bridge_line_len)
+            {
+                // extrude using bridge_config to the end of the next bridge segment
+
+                if (bridge_line_len > min_line_len)
+                {
+                    addExtrusionMoveWithGradualOverhang(
+                        b1,
+                        bridge_config,
+                        SpaceFillType::Polygons,
+                        flow,
+                        width_factor,
+                        spiralize,
+                        1.0_r,
+                        GCodePathConfig::FAN_SPEED_DEFAULT,
+                        travel_to_z);
+                    non_bridge_line_volume = 0;
+                    cur_point = b1;
+                    // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
+                    speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
+                }
+            }
+            else
+            {
+                // treat the short bridge line just like a normal line
+
+                addNonBridgeLine(b1);
+            }
+
+            // finished with this segment
+            line_polys.removeAt(nearest);
         }
-        else if (bridge_wall_mask_.inside(p0.toPoint2LL(), true) && (p0 - p1).vSize() >= min_bridge_line_len)
-        {
-            // both p0 and p1 must be above air (the result will be ugly!)
-            addExtrusionMoveWithGradualOverhang(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
-            non_bridge_line_volume = 0;
-        }
-        else
-        {
-            // no part of the line is above air or the line is too short to print as a bridge line
-            addNonBridgeLine(p1);
-        }
+
+        // if we haven't yet reached p1, fill the gap with default_config line
+        addNonBridgeLine(p1);
+    }
+    else if (bridge_wall_mask_.inside(p0.toPoint2LL(), true) && (p0 - p1).vSize() >= min_bridge_line_len)
+    {
+        // both p0 and p1 must be above air (the result will be ugly!)
+        addExtrusionMoveWithGradualOverhang(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
+        non_bridge_line_volume = 0;
+    }
+    else if (use_skin_config(flooring_mask_, flooring_config))
+    {
+        add_skin_extrusion(flooring_mask_, flooring_config);
+    }
+    else
+    {
+        // no part of the line is above air or the line is too short to print as a bridge line
+        addNonBridgeLine(p1);
     }
 }
 
