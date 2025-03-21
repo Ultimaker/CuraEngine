@@ -16,7 +16,7 @@ template<>
 struct formatter<std::thread::id> : formatter<string_view>
 {
     template<typename FormatContext>
-    auto format(std::thread::id thread_id, FormatContext& ctx)
+    auto format(std::thread::id thread_id, FormatContext& ctx) const
     {
         std::ostringstream oss;
         oss << thread_id;

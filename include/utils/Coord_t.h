@@ -16,7 +16,7 @@ namespace cura
 
 using coord_t = ClipperLib::cInt;
 
-static inline coord_t operator"" _mu(unsigned long long i)
+static inline coord_t operator""_mu(unsigned long long i)
 {
     return static_cast<coord_t>(i);
 }
