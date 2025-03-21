@@ -71,7 +71,7 @@ struct Duration
     double value_ = 0;
 };
 
-constexpr Duration operator"" _s(const long double seconds)
+constexpr Duration operator""_s(const long double seconds)
 {
     return Duration(static_cast<double>(seconds));
 }

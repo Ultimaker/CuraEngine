@@ -19,7 +19,7 @@ template<>
 struct formatter<cura::plugins::v0::SlotID>
 {
     template<typename FormatContext>
-    auto format(cura::plugins::v0::SlotID slot_id, FormatContext& ctx)
+    auto format(cura::plugins::v0::SlotID slot_id, FormatContext& ctx) const
     {
         std::string slot_name;
 
@@ -67,7 +67,7 @@ struct formatter<grpc::string_ref>
     }
 
     template<typename FormatContext>
-    auto format(const grpc::string_ref& str, FormatContext& ctx)
+    auto format(const grpc::string_ref& str, FormatContext& ctx) const
     {
         return format_to(ctx.out(), "{}", std::string_view{ str.data(), str.size() });
     }
