@@ -852,7 +852,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                         // Create lines that go from the furthest possible location to the center or model outline
                         OpenLinesSet lines_to_center;
                         Shape part_outline = cradle->part_outline_[idx].empty() ? model_shadow : cradle->part_outline_[idx];
-                        Shape model_shadow_outer_point_outline = model_shadow.offset(current_cradle_length + current_cradle_xy_distance);
+                        Shape model_shadow_outer_point_outline = model_shadow.offset(std::max(coord_t(0), current_cradle_length + current_cradle_xy_distance - 2 * support_line_width), ClipperLib::JoinType::jtRound);
                         std::unique_ptr<LocToLineGrid> loc_to_grid_outer = PolygonUtils::createLocToLineGrid(model_shadow_outer_point_outline, 500);
                         std::unique_ptr<LocToLineGrid> loc_to_grid_inner = PolygonUtils::createLocToLineGrid(part_outline, 1000);
 
