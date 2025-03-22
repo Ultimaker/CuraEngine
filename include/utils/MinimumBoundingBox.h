@@ -50,6 +50,10 @@ struct MinimumBoundingBox
 
     bool inside(Point2LL p)
     {
+        if(vSize(axis[0]) == 0 || vSize(axis[1]) == 0)
+        {
+            return false;
+        }
         Point2LL direction = center - p;
         Point2LL direction_local = Point2LL(dot(direction, axis[0]) / vSize(axis[0]), dot(direction, axis[1]) / vSize(axis[1]));
         return std::abs(direction_local.X) <= extent.X && std::abs(direction_local.Y) <= extent.Y;
