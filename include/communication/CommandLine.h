@@ -129,7 +129,7 @@ public:
      * This has no effect though because we don't show these three functions
      * because the command line doesn't show layer view.
      */
-    void setExtruderForSend(const ExtruderTrain&) override;
+    void setExtruderForSend(const ExtruderNumber) override;
 
     /*
      * \brief Set which layer is being used for the following calls to

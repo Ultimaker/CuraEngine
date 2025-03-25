@@ -5,6 +5,7 @@
 
 #include <geometry/Point3LL.h>
 
+#include "ExtruderNumber.h"
 #include "PrintFeatureType.h"
 #include "utils/Coord_t.h"
 
@@ -35,6 +36,8 @@ public:
     virtual void writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness) = 0;
 
     virtual void writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position) = 0;
+
+    virtual void writeExtruderChange(const ExtruderNumber next_extruder) = 0;
 };
 
 } // namespace cura

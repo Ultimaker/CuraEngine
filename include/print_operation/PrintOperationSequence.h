@@ -79,7 +79,8 @@ public:
         findOperationsByType(const SearchOrder search_order = SearchOrder::Forward, const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
     template<class OperationType>
-    void applyOnOperationsByType(const std::function<void(const std::shared_ptr<const OperationType>&)>& apply_function,
+    void applyOnOperationsByType(
+        const std::function<void(const std::shared_ptr<const OperationType>&)>& apply_function,
         const SearchOrder search_order = SearchOrder::Forward,
         const std::optional<size_t> max_depth = SearchDepth::DirectChildren) const;
 
@@ -98,6 +99,8 @@ protected:
 
     void removeOperation(const PrintOperationPtr& operation);
 
+    void insertOperationAfter(const PrintOperationPtr& actual_operation, const PrintOperationPtr& insert_operation);
+
     template<class ChildType>
     void applyProcessorToOperationsRecursively(PrintOperationTransformer<ChildType>& processor);
 
@@ -108,14 +111,14 @@ private:
 template<class OperationType>
 std::shared_ptr<OperationType> PrintOperationSequence::findOperationByType(
     const SearchOrder search_order,
-    const std::optional<size_t> max_depth, const
-    std::function<bool(const std::shared_ptr<OperationType>&)>& search_function) const
+    const std::optional<size_t> max_depth,
+    const std::function<bool(const std::shared_ptr<OperationType>&)>& search_function) const
 {
     PrintOperationPtr found_operation = findOperation(
         [&search_function](const PrintOperationPtr& operation)
         {
             std::shared_ptr<OperationType> operation_ptr = std::dynamic_pointer_cast<OperationType>(operation);
-            return operation_ptr && (!search_function || search_function(operation_ptr));
+            return operation_ptr && (! search_function || search_function(operation_ptr));
         },
         search_order,
         max_depth);
@@ -149,13 +152,13 @@ std::vector<std::shared_ptr<OperationType>> PrintOperationSequence::findOperatio
 
 template<class OperationType>
 void PrintOperationSequence::applyOnOperationsByType(
-    const std::function<void(const std::shared_ptr<const OperationType>&)>& apply_function, const
-    SearchOrder search_order,
+    const std::function<void(const std::shared_ptr<const OperationType>&)>& apply_function,
+    const SearchOrder search_order,
     const std::optional<size_t> max_depth) const
 {
     // TODO: Optimize by not creating a temp vector
     std::vector<std::shared_ptr<OperationType>> found_operations;
-    for (const std::shared_ptr<const OperationType> &operation : findOperationsByType<OperationType>(search_order, max_depth))
+    for (const std::shared_ptr<const OperationType>& operation : findOperationsByType<OperationType>(search_order, max_depth))
     {
         apply_function(operation);
     }

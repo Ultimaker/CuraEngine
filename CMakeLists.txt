@@ -135,6 +135,7 @@ set(engine_SRCS # Except main.cpp.
         include/print_operation/LayerPlanPtr.h
         include/print_operation/PrintOperationPtr.h
         src/print_operation/ContinuousExtruderMoveSequence.cpp include/print_operation/ContinuousExtruderMoveSequence.h
+        src/print_operation/ExtruderChange.cpp include/print_operation/ExtruderChange.h
         src/print_operation/ExtruderMove.cpp include/print_operation/ExtruderMove.h
         src/print_operation/ExtruderPlan.cpp include/print_operation/ExtruderPlan.h
         src/print_operation/ExtrusionMove.cpp include/print_operation/ExtrusionMove.h
@@ -165,6 +166,7 @@ set(engine_SRCS # Except main.cpp.
         src/operation_transformation/MoveSequencesConstraintsGenerator.cpp include/operation_transformation/MoveSequencesConstraintsGenerator.h
         src/operation_transformation/PrintOperationProcessor.cpp include/operation_transformation/PrintOperationTransformer.h
         src/operation_transformation/SkirtBrimAppender.cpp include/operation_transformation/SkirtBrimAppender.h
+        src/operation_transformation/ExtruderChangeAppender.cpp include/operation_transformation/ExtruderChangeAppender.h
         src/operation_transformation/TravelMoveGenerator.cpp include/operation_transformation/TravelMoveGenerator.h
 
         src/plugins/converters.cpp

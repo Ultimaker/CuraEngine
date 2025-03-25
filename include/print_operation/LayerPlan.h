@@ -12,6 +12,7 @@ namespace cura
 {
 
 struct PathConfigStorage;
+class ExtruderChange;
 
 class LayerPlan : public PrintOperationSequence
 {
@@ -21,6 +22,8 @@ public:
     virtual ~LayerPlan() = default;
 
     void appendExtruderPlan(const ExtruderPlanPtr& extruder_plan, const bool check_non_empty = true);
+
+    void insertExtruderChangeAfter(const ExtruderPlanPtr& extruder_plan, const std::shared_ptr<ExtruderChange>& extruder_change);
 
     LayerIndex getLayerIndex() const;
 
@@ -34,7 +37,7 @@ public:
 
     Point3LL getAbsolutePosition(const Point3LL& relative_position) const;
 
-    ExtruderPlanPtr findFirstExtruderPlan(const ExtruderNumber &extruder_nr) const;
+    ExtruderPlanPtr findFirstExtruderPlan(const ExtruderNumber& extruder_nr) const;
 
 private:
     const LayerIndex layer_index_;

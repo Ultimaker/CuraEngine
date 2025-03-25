@@ -36,6 +36,8 @@ public:
 
     void writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position) override;
 
+    void writeExtruderChange(const ExtruderNumber next_extruder) override;
+
 private:
     std::optional<double> getDistanceToLastPosition(const Point3LL& p) const;
 

@@ -49,7 +49,7 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
     const auto adhesion_type = settings.get<EPlatformAdhesion>("adhesion_type");
-    const auto support_brim_enable = settings.get<bool>("support_brim_enable");
+    const auto support_brim_enable = settings.get<bool>("support_brim_enable") && settings.get<bool>("support_enable");
 
     if (adhesion_type != EPlatformAdhesion::SKIRT && adhesion_type != EPlatformAdhesion::BRIM && ! support_brim_enable)
     {

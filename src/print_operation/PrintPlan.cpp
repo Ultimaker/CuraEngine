@@ -10,6 +10,7 @@
 #include "FffProcessor.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
+#include "operation_transformation/ExtruderChangeAppender.h"
 #include "operation_transformation/ExtruderPlanScheduler.h"
 #include "operation_transformation/LayerPlanTravelMovesInserter.h"
 #include "operation_transformation/SkirtBrimAppender.h"
@@ -55,8 +56,9 @@ void PrintPlan::applyProcessors(const std::vector<const PrintOperation*>& parent
 {
     // Do not apply processors to children, they have been done separately
 
-    SkirtBrimAppender skirt_brim_appender(storage_);
-    skirt_brim_appender.process(this);
+    SkirtBrimAppender(storage_).process(this);
+
+    ExtruderChangeAppender().process(this);
 
     LayerPlanTravelMovesInserter layer_plan_travel_moves_inserter;
     ExtruderPlanScheduler order_optimizer;

@@ -67,7 +67,7 @@ void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coo
 void CommandLine::sendOptimizedLayerData()
 {
 }
-void CommandLine::setExtruderForSend(const ExtruderTrain&)
+void CommandLine::setExtruderForSend(const ExtruderNumber)
 {
 }
 void CommandLine::setLayerForSend(const LayerIndex::value_type&)

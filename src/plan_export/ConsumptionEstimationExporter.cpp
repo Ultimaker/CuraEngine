@@ -63,6 +63,11 @@ void ConsumptionEstimationExporter::writeLayerEnd(const LayerIndex& /*layer_inde
 void ConsumptionEstimationExporter::writeLayerStart(const LayerIndex& /*layer_index*/, const Point3LL& /*start_position*/)
 {
 }
+
+void ConsumptionEstimationExporter::writeExtruderChange(const ExtruderNumber next_extruder)
+{
+}
+
 std::optional<double> ConsumptionEstimationExporter::getDistanceToLastPosition(const Point3LL& p) const
 {
     if (last_position_.has_value()) [[likely]]

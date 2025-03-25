@@ -159,7 +159,7 @@ public:
      * \brief Set which extruder is being used for the following calls to ``sendLineTo``.
      * \param extruder The new extruder to send data for.
      */
-    void setExtruderForSend(const ExtruderTrain& extruder) override;
+    void setExtruderForSend(const ExtruderNumber extruder) override;
 
     /*
      * \brief Set which layer is being used for the following calls to ``sendLineTo``.

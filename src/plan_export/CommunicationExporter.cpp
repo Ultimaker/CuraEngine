@@ -42,4 +42,9 @@ void CommunicationExporter::writeLayerEnd(const LayerIndex& layer_index, const c
     communication_->sendLayerComplete(layer_index, z, layer_thickness);
 }
 
+void CommunicationExporter::writeExtruderChange(const ExtruderNumber next_extruder)
+{
+    communication_->setExtruderForSend(next_extruder);
+}
+
 } // namespace cura

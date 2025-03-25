@@ -4,6 +4,7 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
+#include "ExtruderNumber.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/LayerIndex.h"
 
@@ -91,7 +92,7 @@ public:
      * \brief Set which extruder is being used for the following calls to
      * ``sendPolygon``, ``sendPolygons`` and ``sendLineTo``.
      */
-    virtual void setExtruderForSend(const ExtruderTrain& extruder) = 0;
+    virtual void setExtruderForSend(const ExtruderNumber extruder) = 0;
 
     /*
      * \brief Set which layer is being used for the following calls to

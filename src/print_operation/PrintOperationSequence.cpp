@@ -98,6 +98,48 @@ void PrintOperationSequence::removeOperation(const PrintOperationPtr& operation)
     }
 }
 
+void PrintOperationSequence::insertOperationAfter(const PrintOperationPtr& actual_operation, const PrintOperationPtr& insert_operation)
+{
+    if (actual_operation->getParent().get() == this)
+    {
+        const std::shared_ptr<PrintOperationSequence> actual_parent = insert_operation->getParent();
+        if (actual_parent.get() == this)
+        {
+            std::vector<PrintOperationPtr>::iterator insert_actual_position = ranges::find(operations_, insert_operation);
+            if (insert_actual_position != operations_.end())
+            {
+                operations_.erase(insert_actual_position);
+            }
+            else
+            {
+                spdlog::error("Operation to insert is registered has child but could not be found in children list");
+            }
+        }
+        else
+        {
+            if (actual_parent)
+            {
+                actual_parent->removeOperation(insert_operation);
+            }
+            insert_operation->setParent(weak_from_this());
+        }
+
+        auto actual_iterator = ranges::find(operations_, actual_operation);
+        if (actual_iterator != operations_.end())
+        {
+            operations_.insert(std::next(actual_iterator), insert_operation);
+        }
+        else
+        {
+            spdlog::error("Actual operation is registered has child but could not be found in children list");
+        }
+    }
+    else
+    {
+        spdlog::error("The given actual_operation is not a registered operation");
+    }
+}
+
 PrintOperationPtr PrintOperationSequence::findOperation(
     const std::function<bool(const PrintOperationPtr&)>& search_function,
     const SearchOrder search_order,

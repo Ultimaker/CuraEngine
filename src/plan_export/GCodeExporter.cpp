@@ -928,6 +928,11 @@ void GCodeExporter::writeLayerEnd(const LayerIndex& /*layer_index*/, const coord
 {
 }
 
+void GCodeExporter::writeExtruderChange(const ExtruderNumber next_extruder)
+{
+#warning TBD !!
+}
+
 void GCodeExporter::writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
     if (std::isinf(extrusion_mm3_per_mm))
@@ -1376,7 +1381,7 @@ void GCodeExporter::startExtruder(const size_t new_extruder)
         }
     }
 
-    Application::getInstance().communication_->setExtruderForSend(Application::getInstance().current_slice_->scene.extruders[new_extruder]);
+    Application::getInstance().communication_->setExtruderForSend(new_extruder);
     Application::getInstance().communication_->sendCurrentPosition(getPositionXY());
 
     // Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.

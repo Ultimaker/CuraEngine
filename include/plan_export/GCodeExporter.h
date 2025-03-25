@@ -384,7 +384,7 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    virtual void writeExtrusion(
+    void writeExtrusion(
         const Point3LL& p,
         const Velocity& speed,
         const size_t extruder_nr,
@@ -394,11 +394,13 @@ public:
         PrintFeatureType feature,
         bool update_extrusion_offset = false) override;
 
-    virtual void writeTravelMove(const Point3LL& position, const Velocity& speed, const PrintFeatureType feature) override;
+    void writeTravelMove(const Point3LL& position, const Velocity& speed, const PrintFeatureType feature) override;
 
-    virtual void writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position) override;
+    void writeLayerStart(const LayerIndex& layer_index, const Point3LL& start_position) override;
 
-    virtual void writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness) override;
+    void writeLayerEnd(const LayerIndex& layer_index, const coord_t z, const coord_t layer_thickness) override;
+
+    void writeExtruderChange(const ExtruderNumber next_extruder) override;
 
     void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false)
     {

@@ -127,12 +127,13 @@ public:
      * layer data.
      * \param new_extruder The new extruder to switch to.
      */
-    void setExtruder(const ExtruderTrain& new_extruder)
+    void setExtruder(const ExtruderNumber new_extruder)
     {
-        if (extruder != new_extruder.extruder_nr_)
+        if (extruder != new_extruder)
         {
             flushPathSegments();
-            extruder = new_extruder.extruder_nr_;
+            extruder = new_extruder;
+            addPoint3D(last_point);
         }
     }
 
@@ -491,7 +492,7 @@ void ArcusCommunication::setLayerForSend(const LayerIndex::value_type& layer_nr)
     path_compiler->setLayer(layer_nr);
 }
 
-void ArcusCommunication::setExtruderForSend(const ExtruderTrain& extruder)
+void ArcusCommunication::setExtruderForSend(const ExtruderNumber extruder)
 {
     path_compiler->setExtruder(extruder);
 }

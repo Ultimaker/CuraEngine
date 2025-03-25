@@ -46,6 +46,14 @@ void MultiExporter::writeLayerEnd(const LayerIndex& layer_index, const coord_t z
     }
 }
 
+void MultiExporter::writeExtruderChange(const ExtruderNumber next_extruder)
+{
+    for (const std::shared_ptr<PlanExporter>& exporter : exporters_)
+    {
+        exporter->writeExtruderChange(next_extruder);
+    }
+}
+
 void MultiExporter::appendExporter(const std::shared_ptr<PlanExporter> exporter)
 {
     exporters_.push_back(exporter);

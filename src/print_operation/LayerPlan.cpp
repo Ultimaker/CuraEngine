@@ -5,6 +5,7 @@
 
 #include "plan_export/PlanExporter.h"
 #include "print_operation/ContinuousExtruderMoveSequence.h"
+#include "print_operation/ExtruderChange.h"
 #include "print_operation/ExtruderPlan.h"
 
 namespace cura
@@ -46,6 +47,11 @@ void LayerPlan::appendExtruderPlan(const ExtruderPlanPtr& extruder_plan, const b
     }
 }
 
+void LayerPlan::insertExtruderChangeAfter(const ExtruderPlanPtr& extruder_plan, const std::shared_ptr<ExtruderChange>& extruder_change)
+{
+    insertOperationAfter(extruder_plan, extruder_change);
+}
+
 void LayerPlan::write(PlanExporter& exporter) const
 {
     const std::optional<Point3LL> start_position = findStartPosition();
@@ -68,8 +74,10 @@ ExtruderPlanPtr LayerPlan::findFirstExtruderPlan(const ExtruderNumber& extruder_
     return findOperationByType<ExtruderPlan>(
         SearchOrder::Forward,
         SearchDepth::DirectChildren,
-        [&extruder_nr](const ExtruderPlanPtr &extruder_plan) { return extruder_plan->getExtruderNr() == extruder_nr; }
-    );
+        [&extruder_nr](const ExtruderPlanPtr& extruder_plan)
+        {
+            return extruder_plan->getExtruderNr() == extruder_nr;
+        });
 }
 
 } // namespace cura
