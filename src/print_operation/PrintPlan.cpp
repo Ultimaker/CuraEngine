@@ -10,9 +10,9 @@
 #include "FffProcessor.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
-#include "feature_generation/SkirtBrimAppender.h"
 #include "operation_transformation/ExtruderPlanScheduler.h"
 #include "operation_transformation/LayerPlanTravelMovesInserter.h"
+#include "operation_transformation/SkirtBrimAppender.h"
 #include "plan_export/GCodeExporter.h"
 #include "print_operation/LayerPlan.h"
 
@@ -22,7 +22,9 @@ namespace cura
 
 constexpr Duration PrintPlan::extra_preheat_time_;
 
-PrintPlan::PrintPlan(const SliceDataStorage& storage) : PrintOperationSequence(), storage_(storage)
+PrintPlan::PrintPlan(const SliceDataStorage& storage)
+    : PrintOperationSequence()
+    , storage_(storage)
 {
 }
 
@@ -74,8 +76,10 @@ LayerPlanPtr PrintPlan::findLayerPlan(const LayerIndex& layer_nr) const
     return findOperationByType<LayerPlan>(
         SearchOrder::Forward,
         SearchDepth::DirectChildren,
-        [&layer_nr](const LayerPlanPtr &layer_plan) { return layer_plan->getLayerIndex() == layer_nr; }
-    );
+        [&layer_nr](const LayerPlanPtr& layer_plan)
+        {
+            return layer_plan->getLayerIndex() == layer_nr;
+        });
 }
 
 // LayerPlan* PrintPlan::processBuffer()

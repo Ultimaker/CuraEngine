@@ -103,7 +103,6 @@ set(engine_SRCS # Except main.cpp.
         src/feature_generation/MeshInfillGenerator.cpp include/feature_generation/MeshInfillGenerator.h
         src/feature_generation/MeshInsetsGenerator.cpp include/feature_generation/MeshInsetsGenerator.h
         src/feature_generation/MeshSkinGenerator.cpp include/feature_generation/MeshSkinGenerator.h
-        src/feature_generation/SkirtBrimAppender.cpp include/feature_generation/SkirtBrimAppender.h
 
         src/infill/ImageBasedDensityProvider.cpp
         src/infill/NoZigZagConnectorProcessor.cpp
@@ -165,6 +164,7 @@ set(engine_SRCS # Except main.cpp.
         src/operation_transformation/MonotonicConstraintsGenerator.cpp include/operation_transformation/MonotonicConstraintsGenerator.h
         src/operation_transformation/MoveSequencesConstraintsGenerator.cpp include/operation_transformation/MoveSequencesConstraintsGenerator.h
         src/operation_transformation/PrintOperationProcessor.cpp include/operation_transformation/PrintOperationTransformer.h
+        src/operation_transformation/SkirtBrimAppender.cpp include/operation_transformation/SkirtBrimAppender.h
         src/operation_transformation/TravelMoveGenerator.cpp include/operation_transformation/TravelMoveGenerator.h
 
         src/plugins/converters.cpp
