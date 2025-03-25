@@ -43,12 +43,12 @@ private:
         coord_t brim_inside_margin_;
         size_t skirt_height_;
 
-        coord_t getLineWidth(const LayerIndex &layer_nr) const
+        coord_t getLineWidth(const LayerIndex& layer_nr) const
         {
             return layer_nr > 0 ? line_width_X_ : line_width_0_;
         }
 
-        coord_t getLineWidth(const ConstLayerPlanPtr &layer_plan) const;
+        coord_t getLineWidth(const ConstLayerPlanPtr& layer_plan) const;
     };
 
     enum class FirstExtruderOutlineAction
@@ -63,7 +63,7 @@ private:
 
     static constexpr coord_t min_brim_line_length_ = 3000u; //!< open polyline brim lines smaller than this will be removed
     const SliceDataStorage& storage_;
-    SVG *svg_;
+    SVG* svg_;
 
 private:
     static std::vector<ExtruderNumber> generateUsedExtruders(const PrintPlan* print_plan);
@@ -91,9 +91,9 @@ private:
         const size_t height,
         const EPlatformAdhesion adhesion_type,
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
-        const std::vector<ExtruderNumber> &used_extruders,
-        std::map<ExtruderNumber, Shape> &starting_outlines,
-        std::map<ExtruderNumber, Shape> &allowed_areas) const;
+        const std::vector<ExtruderNumber>& used_extruders,
+        std::map<ExtruderNumber, Shape>& starting_outlines,
+        std::map<ExtruderNumber, Shape>& allowed_areas) const;
 
     void generateSkirtBrim(
         const EPlatformAdhesion adhesion_type,
@@ -109,7 +109,7 @@ private:
     std::vector<ContinuousExtruderMoveSequencePtr> generateOffset(
         const ExtruderNumber extruder_nr,
         const coord_t total_offset,
-        const Shape &outline,
+        const Shape& outline,
         Shape& covered_area,
         std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
