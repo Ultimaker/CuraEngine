@@ -116,7 +116,8 @@ LayerPlan::LayerPlan(
     size_t current_extruder = start_extruder;
     was_inside_ = true; // not used, because the first travel move is bogus
     is_inside_ = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
-    if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing") != CombingMode::OFF)
+    const auto& local_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    if (local_settings.get<CombingMode>("retraction_combing") != CombingMode::OFF && local_settings.get<coord_t>("retraction_combing_avoid_distance") > 0)
     {
         comb_ = new Comb(storage, layer_nr, comb_boundary_minimum_, comb_boundary_preferred_, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
     }
