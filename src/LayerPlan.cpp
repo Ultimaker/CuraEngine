@@ -67,7 +67,6 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
                                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
-    ret->skip_agressive_merge_hint = mode_skip_agressive_merge_;
     return ret;
 }
 
@@ -96,7 +95,6 @@ LayerPlan::LayerPlan(
     : configs_storage_(storage, layer_nr, layer_thickness)
     , z_(z)
     , final_travel_z_(z)
-    , mode_skip_agressive_merge_(false)
     , storage_(storage)
     , layer_nr_(layer_nr)
     , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
