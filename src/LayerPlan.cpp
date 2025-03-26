@@ -196,10 +196,10 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                 switch (boundary_type)
                 {
                 case CombBoundary::MINIMUM:
-                    offset = -(mesh.settings.get<coord_t>("machine_nozzle_size") / 2 + mesh.settings.get<coord_t>("wall_line_width_0") / 2 + extra_offset);
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
                     break;
                 case CombBoundary::PREFERRED:
-                    offset = -(mesh.settings.get<coord_t>("retraction_combing_avoid_distance") + mesh.settings.get<coord_t>("wall_line_width_0") / 2 + extra_offset);
+                    offset = -mesh.settings.get<coord_t>("machine_nozzle_size") * 3 / 2 - mesh.settings.get<coord_t>("wall_line_width_0") / 2 - extra_offset;
                     break;
                 default:
                     offset = 0;
