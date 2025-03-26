@@ -153,7 +153,7 @@ set(engine_SRCS # Except main.cpp.
         include/operation_transformation/ChangeSequenceAction.h
         include/operation_transformation/ClosestStartPoint.h
         include/operation_transformation/StartCandidatePoint.h
-        src/operation_transformation/LayerPlanTravelMovesInserter.cpp include/operation_transformation/LayerPlanTravelMovesInserter.h
+        src/operation_transformation/TravelMovesInserter.cpp include/operation_transformation/TravelMovesInserter.h
         src/operation_transformation/AddTravelMovesProcessor.cpp include/operation_transformation/AddTravelMovesProcessor.h
         src/operation_transformation/BedAdhesionConstraintsGenerator.cpp include/operation_transformation/BedAdhesionConstraintsGenerator.h
         src/operation_transformation/DirectTravelMoveGenerator.cpp include/operation_transformation/DirectTravelMoveGenerator.h

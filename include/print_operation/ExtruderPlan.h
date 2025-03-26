@@ -15,11 +15,9 @@ struct SpeedDerivatives;
 class ExtruderPlan : public PrintOperationSequence
 {
 public:
-    explicit ExtruderPlan(const size_t extruder_nr, const SpeedDerivatives& travel_speed) noexcept;
+    explicit ExtruderPlan(const size_t extruder_nr) noexcept;
 
     size_t getExtruderNr() const noexcept;
-
-    const SpeedDerivatives& getTravelSpeed() const noexcept;
 
     void appendFeatureExtrusion(const std::shared_ptr<FeatureExtrusion>& feature_extrusion, const bool check_non_empty = true);
 
@@ -27,8 +25,6 @@ public:
 
 private:
     const size_t extruder_nr_;
-#warning use a shared_ptr
-    const SpeedDerivatives& travel_speed_;
 };
 
 } // namespace cura

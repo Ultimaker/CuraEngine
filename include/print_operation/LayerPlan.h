@@ -13,6 +13,7 @@ namespace cura
 
 struct PathConfigStorage;
 class ExtruderChange;
+class TravelRoute;
 
 class LayerPlan : public PrintOperationSequence
 {
@@ -24,6 +25,8 @@ public:
     void appendExtruderPlan(const ExtruderPlanPtr& extruder_plan, const bool check_non_empty = true);
 
     void insertExtruderChangeAfter(const ExtruderPlanPtr& extruder_plan, const std::shared_ptr<ExtruderChange>& extruder_change);
+
+    void insertTravelRouteAfter(const std::shared_ptr<TravelRoute> travel_route, const std::shared_ptr<ExtruderPlan>& extruder_plan);
 
     LayerIndex getLayerIndex() const;
 

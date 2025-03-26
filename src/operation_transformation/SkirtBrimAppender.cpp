@@ -15,7 +15,6 @@
 
 #include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/min_element.hpp>
-#include <range/v3/algorithm/remove.hpp>
 #include <range/v3/algorithm/remove_if.hpp>
 #include <range/v3/algorithm/sort.hpp>
 #include <range/v3/view/map.hpp>
@@ -60,7 +59,7 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
     const std::optional<ExtruderNumber> skirt_brim_extruder_nr = skirt_brim_extruder_nr_setting >= 0 ? std::make_optional(skirt_brim_extruder_nr_setting) : std::nullopt;
 
     // Get the first extruder plan for each extruder
-    std::vector<ExtruderNumber> used_extruders = generateUsedExtruders(print_plan);
+    std::vector<ExtruderNumber> used_extruders = print_plan->calculateUsedExtruders();
 
     const std::map<ExtruderNumber, ExtruderConfig> extruders_configs = generateExtrudersConfigs(used_extruders, adhesion_type);
     const size_t height = calculateMaxHeight(extruders_configs, adhesion_type);
@@ -105,25 +104,6 @@ void SkirtBrimAppender::process(PrintPlan* print_plan)
                 first_extruder_outline_action);
         }
     }
-}
-
-std::vector<ExtruderNumber> SkirtBrimAppender::generateUsedExtruders(const PrintPlan* print_plan)
-{
-    std::vector<ExtruderNumber> used_extruders;
-
-    print_plan->applyOnOperationsByType<ExtruderPlan>(
-        [&used_extruders](const ConstExtruderPlanPtr& extruder_plan)
-        {
-            const ExtruderNumber extruder_nr = extruder_plan->getExtruderNr();
-            if (! ranges::contains(used_extruders, extruder_nr))
-            {
-                used_extruders.push_back(extruder_nr);
-            }
-        },
-        PrintOperationSequence::SearchOrder::Forward,
-        2);
-
-    return used_extruders;
 }
 
 size_t SkirtBrimAppender::calculateMaxHeight(const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs, const EPlatformAdhesion adhesion_type)
@@ -515,9 +495,7 @@ void SkirtBrimAppender::generateSkirtBrim(
         ExtruderPlanPtr extruder_plan = layer_plan->findFirstExtruderPlan(extruder_nr);
         if (! extruder_plan)
         {
-            // FIXME: Find a way to easily create an extruder plan (maybe it should not contain the travel speeds)
-            const SpeedDerivatives& travel_speed = layer_plan->getConfigsStorage()->travel_config_per_extruder[extruder_nr].speed_derivatives;
-            extruder_plan = std::make_shared<ExtruderPlan>(extruder_nr, travel_speed);
+            extruder_plan = std::make_shared<ExtruderPlan>(extruder_nr);
         }
 
         extruder_plan->appendFeatureExtrusion(feature_extrusion);

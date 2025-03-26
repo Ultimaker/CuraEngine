@@ -66,8 +66,6 @@ private:
     SVG* svg_;
 
 private:
-    static std::vector<ExtruderNumber> generateUsedExtruders(const PrintPlan* print_plan);
-
     static size_t calculateMaxHeight(const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs, const EPlatformAdhesion adhesion_type);
 
     static std::map<ExtruderNumber, ExtruderConfig> generateExtrudersConfigs(std::vector<ExtruderNumber>& used_extruders, const EPlatformAdhesion adhesion_type);

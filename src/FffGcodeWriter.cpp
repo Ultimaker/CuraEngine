@@ -38,7 +38,7 @@
 #include "geometry/PointMatrix.h"
 #include "infill.h"
 #include "operation_transformation/ExtruderPlanScheduler.h"
-#include "operation_transformation/LayerPlanTravelMovesInserter.h"
+#include "operation_transformation/TravelMovesInserter.h"
 #include "plan_export/CommunicationExporter.h"
 #include "plan_export/ConsoleExporter.h"
 #include "plan_export/ConsumptionEstimationExporter.h"
@@ -217,7 +217,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         });
 
     // Now do the actual feature generation
-    auto print_plan =std::make_shared<PrintPlan>(storage);
+    auto print_plan = std::make_shared<PrintPlan>(storage);
     run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
         total_layers,
@@ -1387,8 +1387,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::generateFeatures(const SliceD
     extruder_plans.reserve(MAX_EXTRUDERS);
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
-        const SpeedDerivatives& travel_speed = layer_configs->travel_config_per_extruder[extruder_nr].speed_derivatives;
-        extruder_plans.push_back(std::make_shared<ExtruderPlan>(extruder_nr, travel_speed));
+        extruder_plans.push_back(std::make_shared<ExtruderPlan>(extruder_nr));
     }
 
     // Generate features

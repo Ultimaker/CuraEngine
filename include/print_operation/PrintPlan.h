@@ -7,6 +7,7 @@
 #include <list>
 #include <vector>
 
+#include "ExtruderNumber.h"
 #include "LayerPlanPtr.h"
 #include "Preheat.h"
 #include "print_operation/PrintOperationSequence.h"
@@ -89,7 +90,12 @@ public:
 
     void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
 
-    LayerPlanPtr findLayerPlan(const LayerIndex &layer_nr) const;
+    LayerPlanPtr findLayerPlan(const LayerIndex& layer_nr) const;
+
+    /*!
+     * Generate the list of actually used extruders, in order of first use
+     */
+    std::vector<ExtruderNumber> calculateUsedExtruders() const;
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.

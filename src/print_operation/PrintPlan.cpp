@@ -12,8 +12,8 @@
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "operation_transformation/ExtruderChangeAppender.h"
 #include "operation_transformation/ExtruderPlanScheduler.h"
-#include "operation_transformation/LayerPlanTravelMovesInserter.h"
 #include "operation_transformation/SkirtBrimAppender.h"
+#include "operation_transformation/TravelMovesInserter.h"
 #include "plan_export/GCodeExporter.h"
 #include "print_operation/LayerPlan.h"
 
@@ -60,7 +60,6 @@ void PrintPlan::applyProcessors(const std::vector<const PrintOperation*>& parent
 
     ExtruderChangeAppender().process(this);
 
-    LayerPlanTravelMovesInserter layer_plan_travel_moves_inserter;
     ExtruderPlanScheduler order_optimizer;
     for (const std::shared_ptr<LayerPlan>& layer_plan : getOperationsAs<LayerPlan>())
     {
@@ -68,9 +67,9 @@ void PrintPlan::applyProcessors(const std::vector<const PrintOperation*>& parent
         {
             order_optimizer.process(extruder_plan.get());
         }
-
-        layer_plan_travel_moves_inserter.process(layer_plan.get());
     }
+
+    TravelMovesInserter().process(this);
 }
 
 LayerPlanPtr PrintPlan::findLayerPlan(const LayerIndex& layer_nr) const
@@ -82,6 +81,25 @@ LayerPlanPtr PrintPlan::findLayerPlan(const LayerIndex& layer_nr) const
         {
             return layer_plan->getLayerIndex() == layer_nr;
         });
+}
+
+std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
+{
+    std::vector<ExtruderNumber> used_extruders;
+
+    applyOnOperationsByType<ExtruderPlan>(
+        [&used_extruders](const ConstExtruderPlanPtr& extruder_plan)
+        {
+            const ExtruderNumber extruder_nr = extruder_plan->getExtruderNr();
+            if (! ranges::contains(used_extruders, extruder_nr))
+            {
+                used_extruders.push_back(extruder_nr);
+            }
+        },
+        SearchOrder::Forward,
+        2);
+
+    return used_extruders;
 }
 
 // LayerPlan* PrintPlan::processBuffer()

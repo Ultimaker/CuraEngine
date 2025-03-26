@@ -7,6 +7,7 @@
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderChange.h"
 #include "print_operation/ExtruderPlan.h"
+#include "print_operation/TravelRoute.h"
 
 namespace cura
 {
@@ -50,6 +51,11 @@ void LayerPlan::appendExtruderPlan(const ExtruderPlanPtr& extruder_plan, const b
 void LayerPlan::insertExtruderChangeAfter(const ExtruderPlanPtr& extruder_plan, const std::shared_ptr<ExtruderChange>& extruder_change)
 {
     insertOperationAfter(extruder_plan, extruder_change);
+}
+
+void LayerPlan::insertTravelRouteAfter(const std::shared_ptr<TravelRoute> travel_route, const std::shared_ptr<ExtruderPlan>& extruder_plan)
+{
+    insertOperationAfter(extruder_plan, travel_route);
 }
 
 void LayerPlan::write(PlanExporter& exporter) const
