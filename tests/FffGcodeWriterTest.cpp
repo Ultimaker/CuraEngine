@@ -76,6 +76,7 @@ public:
         }
 
         settings->add("infill_line_distance", "10");
+        settings->add("retraction_combing_avoid_distance", "0");
 
         Application::getInstance().current_slice_->scene.extruders.emplace_back(0, settings); // Add an extruder train.
 
