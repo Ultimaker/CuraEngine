@@ -61,10 +61,6 @@ private:
     using FeatureFootprints = std::map<PrintFeatureType, std::vector<Shape>>;
     using FeatureFootprint = std::map<PrintFeatureType, Shape>;
 
-    static constexpr coord_t min_brim_line_length_ = 3000u; //!< open polyline brim lines smaller than this will be removed
-    const SliceDataStorage& storage_;
-    SVG* svg_;
-
 private:
     static size_t calculateMaxHeight(const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs, const EPlatformAdhesion adhesion_type);
 
@@ -113,6 +109,11 @@ private:
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
         const LayerPlanPtr& layer_plan,
         const bool update_allowed_areas) const;
+
+private:
+    static constexpr coord_t min_brim_line_length_ = 3000u; //!< open polyline brim/skirt lines smaller than this will be removed
+    const SliceDataStorage& storage_;
+    SVG* svg_;
 };
 
 } // namespace cura

@@ -176,10 +176,6 @@ std::vector<std::shared_ptr<OperationType>> PrintOperationSequence::getOperation
         {
             result.push_back(operation_as);
         }
-        else
-        {
-            spdlog::error("Found an child operation which is not of expected type {}, it will be discarded", typeid(operation).name());
-        }
     }
 
     return result;
