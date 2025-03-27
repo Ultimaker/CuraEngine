@@ -53,7 +53,7 @@ void LayerPlan::insertExtruderChangeAfter(const ExtruderPlanPtr& extruder_plan, 
     insertOperationAfter(extruder_plan, extruder_change);
 }
 
-void LayerPlan::insertTravelRouteAfter(const std::shared_ptr<TravelRoute> travel_route, const std::shared_ptr<ExtruderPlan>& extruder_plan)
+void LayerPlan::insertTravelRouteAfter(const std::shared_ptr<TravelRoute>& travel_route, const std::shared_ptr<ExtruderPlan>& extruder_plan)
 {
     insertOperationAfter(extruder_plan, travel_route);
 }

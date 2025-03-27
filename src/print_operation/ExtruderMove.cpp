@@ -30,4 +30,16 @@ std::optional<Point3LL> ExtruderMove::findEndPosition() const
     return position_;
 }
 
+Point3LL ExtruderMove::getAbsolutePosition(const LayerPlanPtr& parent_layer_plan) const
+{
+    // If we are not part of a layer plan, assume position is absolute
+    return parent_layer_plan ? parent_layer_plan->getAbsolutePosition(getPosition()) : position_;
+}
+
+Point3LL ExtruderMove::getAbsolutePosition() const
+{
+    constexpr bool warn_not_found = false;
+    return getAbsolutePosition(findParentByType<LayerPlan>(warn_not_found));
+}
+
 } // namespace cura

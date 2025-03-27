@@ -18,14 +18,13 @@ TravelMove::TravelMove(const Point3LL& position)
 void TravelMove::write(PlanExporter& exporter) const
 {
     const auto travel_route = findParentByType<TravelRoute>();
-    const auto layer_plan = findParentByType<LayerPlan>();
-
-    if (! travel_route || ! layer_plan)
+    if (! travel_route)
     {
+        spdlog::error("TravelMove is not part of a TravelRoute");
         return;
     }
 
-    const Point3LL position = layer_plan->getAbsolutePosition(getPosition());
+    const Point3LL position = getAbsolutePosition();
     const Velocity& velocity = travel_route->getSpeed();
     const PrintFeatureType feature = travel_route->getFeatureType();
 

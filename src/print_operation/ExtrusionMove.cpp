@@ -29,10 +29,11 @@ void ExtrusionMove::write(PlanExporter& exporter) const
 
     if (! feature_extrusion || ! layer_plan || ! extruder_plan)
     {
+        spdlog::error("ExtrusionMove is missing a mandatory parent");
         return;
     }
 
-    const Point3LL position = layer_plan->getAbsolutePosition(getPosition());
+    const Point3LL position = getAbsolutePosition(layer_plan);
     const Velocity& velocity = speed_;
     const size_t extruder_nr = extruder_plan->getExtruderNr();
     const coord_t line_width = line_width_start_;

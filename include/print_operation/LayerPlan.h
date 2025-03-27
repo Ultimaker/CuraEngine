@@ -26,7 +26,7 @@ public:
 
     void insertExtruderChangeAfter(const ExtruderPlanPtr& extruder_plan, const std::shared_ptr<ExtruderChange>& extruder_change);
 
-    void insertTravelRouteAfter(const std::shared_ptr<TravelRoute> travel_route, const std::shared_ptr<ExtruderPlan>& extruder_plan);
+    void insertTravelRouteAfter(const std::shared_ptr<TravelRoute>& travel_route, const std::shared_ptr<ExtruderPlan>& extruder_plan);
 
     LayerIndex getLayerIndex() const;
 

@@ -6,6 +6,7 @@
 
 #include <optional>
 
+#include "DirectTravelMoveGenerator.h"
 #include "ExtruderNumber.h"
 #include "operation_transformation/PrintOperationTransformer.h"
 #include "print_operation/PrintPlan.h"
@@ -51,6 +52,7 @@ private:
 
 private:
     std::vector<std::shared_ptr<TravelMoveGenerator>> generators_;
+    std::shared_ptr<DirectTravelMoveGenerator> direct_travel_move_generator_;
 };
 
 } // namespace cura

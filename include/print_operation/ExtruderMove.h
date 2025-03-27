@@ -4,6 +4,7 @@
 #ifndef PATHPLANNING_EXTRUDERMOVE_H
 #define PATHPLANNING_EXTRUDERMOVE_H
 
+#include "LayerPlanPtr.h"
 #include "geometry/Point3LL.h"
 #include "print_operation/PrintOperation.h"
 
@@ -24,6 +25,11 @@ public:
     void setPosition(const Point3LL& position);
 
     std::optional<Point3LL> findEndPosition() const override;
+
+protected:
+    Point3LL getAbsolutePosition(const LayerPlanPtr& parent_layer_plan) const;
+
+    Point3LL getAbsolutePosition() const;
 
 private:
     /*!

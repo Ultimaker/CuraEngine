@@ -18,6 +18,7 @@ namespace cura
 {
 
 struct LayerIndex;
+class LayerChange;
 class LayerPlan;
 class ExtruderPlan;
 class GCodeExporter;
@@ -91,6 +92,8 @@ public:
     void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
 
     LayerPlanPtr findLayerPlan(const LayerIndex& layer_nr) const;
+
+    void insertLayerChangeAfter(const std::shared_ptr<LayerChange>& layer_change, const std::shared_ptr<LayerPlan>& layer_plan);
 
     /*!
      * Generate the list of actually used extruders, in order of first use

@@ -15,6 +15,7 @@
 #include "operation_transformation/SkirtBrimAppender.h"
 #include "operation_transformation/TravelMovesInserter.h"
 #include "plan_export/GCodeExporter.h"
+#include "print_operation/LayerChange.h"
 #include "print_operation/LayerPlan.h"
 
 namespace cura
@@ -81,6 +82,11 @@ LayerPlanPtr PrintPlan::findLayerPlan(const LayerIndex& layer_nr) const
         {
             return layer_plan->getLayerIndex() == layer_nr;
         });
+}
+
+void PrintPlan::insertLayerChangeAfter(const std::shared_ptr<LayerChange>& layer_change, const std::shared_ptr<LayerPlan>& layer_plan)
+{
+    insertOperationAfter(layer_plan, layer_change);
 }
 
 std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const

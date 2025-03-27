@@ -11,6 +11,7 @@
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderPlan.h"
 #include "print_operation/FeatureExtrusion.h"
+#include "print_operation/LayerChange.h"
 #include "print_operation/LayerPlan.h"
 #include "print_operation/TravelRoute.h"
 
@@ -18,8 +19,9 @@ namespace cura
 {
 
 TravelMovesInserter::TravelMovesInserter()
+    : direct_travel_move_generator_(std::make_shared<DirectTravelMoveGenerator>())
 {
-    generators_.push_back(std::make_shared<DirectTravelMoveGenerator>());
+    generators_.push_back(direct_travel_move_generator_);
 }
 
 void TravelMovesInserter::process(PrintPlan* print_plan)
@@ -28,8 +30,9 @@ void TravelMovesInserter::process(PrintPlan* print_plan)
     const std::vector<ExtruderNumber> used_extruders = print_plan->calculateUsedExtruders();
     const std::map<ExtruderNumber, SpeedDerivatives> extruders_travel_speed_initial = makeTravelSpeedsInitial(used_extruders);
     const std::map<ExtruderNumber, SpeedDerivatives> extruders_travel_speed_up = makeTravelSpeedsUp(used_extruders);
+    const std::vector<LayerPlanPtr> layer_plans = print_plan->getOperationsAs<LayerPlan>();
 
-    for (const LayerPlanPtr& layer_plan : print_plan->getOperationsAs<LayerPlan>())
+    for (const LayerPlanPtr& layer_plan : layer_plans)
     {
         std::vector<ExtruderPlanPtr> extruder_plans = layer_plan->getOperationsAs<ExtruderPlan>();
 
@@ -48,10 +51,10 @@ void TravelMovesInserter::process(PrintPlan* print_plan)
         // Now link extruder plans to each other
         for (const auto& extruder_plans_window : extruder_plans | ranges::views::sliding(2))
         {
-            const ExtruderPlanPtr extruder_plan_before = extruder_plans_window[0];
+            const ExtruderPlanPtr& extruder_plan_before = extruder_plans_window[0];
             const std::optional<Point3LL> end_position_before = extruder_plan_before->findEndPosition();
 
-            const ExtruderPlanPtr extruder_plan_after = extruder_plans_window[1];
+            const ExtruderPlanPtr& extruder_plan_after = extruder_plans_window[1];
             const std::optional<Point3LL> start_position_after = extruder_plan_after->findStartPosition();
 
             if (end_position_before.has_value() && start_position_after.has_value())
@@ -68,6 +71,62 @@ void TravelMovesInserter::process(PrintPlan* print_plan)
                     layer_plan->insertTravelRouteAfter(travel_move, extruder_plan_before);
                 }
             }
+        }
+    }
+
+    // Finally, link layer plans to each other
+    for (const auto& layer_plans_window : layer_plans | ranges::views::sliding(2))
+    {
+        const LayerPlanPtr& layer_plan_before = layer_plans_window[0];
+        const std::optional<Point3LL> end_position_before = layer_plan_before->findEndPosition();
+
+        const LayerPlanPtr& layer_plan_after = layer_plans_window[1];
+        const std::optional<Point3LL> start_position_after = layer_plan_after->findStartPosition();
+
+        if (end_position_before.has_value() && start_position_after.has_value())
+        {
+            // Find appropriate extruder number for travel speeds
+            std::optional<ExtruderNumber> extruder_nr;
+            const std::vector<ExtruderPlanPtr> extruder_plans_before = layer_plan_before->getOperationsAs<ExtruderPlan>();
+            if (! extruder_plans_before.empty())
+            {
+                extruder_nr = extruder_plans_before.back()->getExtruderNr();
+            }
+            if (! extruder_nr.has_value())
+            {
+                const std::vector<ExtruderPlanPtr> extruder_plans_after = layer_plan_after->getOperationsAs<ExtruderPlan>();
+                if (! extruder_plans_after.empty())
+                {
+                    extruder_nr = extruder_plans_after.front()->getExtruderNr();
+                }
+            }
+            if (! extruder_nr.has_value())
+            {
+                // Fallback to first used extruder, this should not really happen, we should not have empty layers
+                extruder_nr = used_extruders.front();
+                spdlog::warn(
+                    "Unable to find proper extruder when switching from layer {} to {}, using speed of extruder {}",
+                    layer_plan_before->getLayerIndex(),
+                    layer_plan_after->getLayerIndex(),
+                    extruder_nr.value());
+            }
+
+            const SpeedDerivatives speed
+                = getTravelSpeed(extruders_travel_speed_initial, extruders_travel_speed_up, initial_speedup_layer_count, layer_plan_before->getLayerIndex(), extruder_nr.value());
+
+            // Those travel moves are not part of a layer plan, so work in absolute Z coordinates
+            const Point3LL p0(end_position_before.value().x_, end_position_before.value().y_, layer_plan_before->getZ());
+            const Point3LL p1(end_position_before.value().x_, end_position_before.value().y_, layer_plan_after->getZ());
+            const Point3LL p2(start_position_after.value().x_, start_position_after.value().y_, layer_plan_after->getZ());
+
+            std::shared_ptr<TravelRoute> move_up = direct_travel_move_generator_->generateTravelRoute(p0, p1, speed);
+            std::shared_ptr<TravelRoute> move_to_start = makeTravelRoute(p1, p2, speed);
+
+            auto layer_change = std::make_shared<LayerChange>();
+            layer_change->appendTravelRoute(move_up);
+            layer_change->appendTravelRoute(move_to_start);
+
+            print_plan->insertLayerChangeAfter(layer_change, layer_plan_before);
         }
     }
 }
