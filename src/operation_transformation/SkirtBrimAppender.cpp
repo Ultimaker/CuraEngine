@@ -212,7 +212,7 @@ void SkirtBrimAppender::generateBaseAreas(
                     Shape expanded_footprint;
                     if (PrintFeatureTypeEnum::isModel(feature_type))
                     {
-                        expanded_footprint = footprint.offset(extruders_configs.at(source_extruder).gap_);
+                        expanded_footprint = footprint.offset(extruders_configs.at(source_extruder).gap_, ClipperLib::jtRound);
                     }
                     else
                     {
