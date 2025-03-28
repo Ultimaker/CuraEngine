@@ -350,10 +350,9 @@ void SkirtBrimAppender::generateSkirtBrim(
         const ExtruderConfig& extruder_config = extruders_configs.at(extruder_nr);
         if (extruder_config.skirt_height_ > layer_plan->getLayerIndex())
         {
-            extruder_offset_datas.push_back(
-                ExtruderOffsetData{ .extruder_nr = extruder_nr,
-                                    .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, getLineWidth(extruder_nr, layer_plan)),
-                                    .total_offset = extruder_config.gap_ });
+            extruder_offset_datas.push_back(ExtruderOffsetData{ .extruder_nr = extruder_nr,
+                                                                .extrusion = std::make_shared<FeatureExtrusion>(PrintFeatureType::SkirtBrim, getLineWidth(extruder_nr, layer_plan)),
+                                                                .total_offset = extruder_config.gap_ });
         }
     }
 

@@ -445,7 +445,11 @@ void CommandLine::sliceNext()
                         const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
                         const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
 
-                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name.c_str(), transformation, slice->scene.extruders_[extruder_nr].settings_))
+                        if (! loadMeshIntoMeshGroup(
+                                &slice->scene.mesh_groups[mesh_group_index],
+                                model_name.c_str(),
+                                transformation,
+                                slice->scene.extruders_[extruder_nr].settings_))
                         {
                             spdlog::error("Failed to load model: {}. (error number {})", model_name, errno);
                             exit(1);
