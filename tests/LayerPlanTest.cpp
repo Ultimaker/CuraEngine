@@ -188,7 +188,7 @@ public:
         settings->add("travel_avoid_other_parts", "true");
         settings->add("travel_avoid_supports", "true");
 
-        Application::getInstance().current_slice_->scene.extruders.emplace_back(0, settings); // Add an extruder train.
+        Application::getInstance().current_slice_->scene.extruders_.emplace_back(0, settings); // Add an extruder train.
 
         // Set the fan speed layer time settings (since the LayerPlan constructor copies these).
         FanSpeedLayerTimeSettings fan_settings;

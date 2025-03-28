@@ -22,7 +22,7 @@ namespace cura::gradual_flow::Processor
 void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_nr, const size_t layer_nr)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    const Settings& extruder_settings = scene.extruders[extruder_nr].settings_;
+    const Settings& extruder_settings = scene.extruders_[extruder_nr].settings_;
 
     if (extruder_settings.get<bool>("gradual_flow_enabled"))
     {

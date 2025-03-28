@@ -120,7 +120,7 @@ public:
      *
      * \return total print time in seconds for each feature
      */
-    std::vector<Duration> getTotalPrintTimePerFeature();
+    std::map<PrintFeatureType, Duration> getTotalPrintTimePerFeature();
 
     /*!
      * Write all the gcode for the current meshgroup.

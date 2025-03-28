@@ -156,7 +156,7 @@ private:
     size_t fans_count_{ 0 };
     EGCodeFlavor flavor_;
 
-    std::vector<Duration> total_print_times_; //!< The total estimated print time in seconds for each feature
+    std::map<PrintFeatureType, Duration> total_print_times_; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimate_calculator_;
 
     LayerIndex layer_nr_; //!< for sending travel data
@@ -295,7 +295,7 @@ public:
      *
      * \return total print time in seconds for each feature
      */
-    std::vector<Duration> getTotalPrintTimePerFeature();
+    std::map<PrintFeatureType, Duration> getTotalPrintTimePerFeature();
     /*!
      * Get the total print time in seconds for the complete print
      *

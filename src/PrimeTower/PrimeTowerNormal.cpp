@@ -55,8 +55,8 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNorma
         extruder_order.end(),
         [&scene](const size_t extruder_nr_a, const size_t extruder_nr_b)
         {
-            const Ratio adhesion_a = scene.extruders[extruder_nr_a].settings_.get<Ratio>("material_adhesion_tendency");
-            const Ratio adhesion_b = scene.extruders[extruder_nr_b].settings_.get<Ratio>("material_adhesion_tendency");
+            const Ratio adhesion_a = scene.extruders_[extruder_nr_a].settings_.get<Ratio>("material_adhesion_tendency");
+            const Ratio adhesion_b = scene.extruders_[extruder_nr_b].settings_.get<Ratio>("material_adhesion_tendency");
             return adhesion_a < adhesion_b;
         });
 

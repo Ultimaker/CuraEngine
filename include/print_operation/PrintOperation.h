@@ -35,7 +35,7 @@ public:
      */
     virtual void write(PlanExporter& exporter) const = 0;
 
-    virtual void applyProcessors(const std::vector<const PrintOperation*>& parents = {});
+    virtual void applyProcessors();
 
     virtual std::optional<Point3LL> findStartPosition() const;
 

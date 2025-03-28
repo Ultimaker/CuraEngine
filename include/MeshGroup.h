@@ -51,6 +51,8 @@ public:
      * shrinkage while sticking to the build plate.
      */
     void scaleFromBottom(const Ratio factor_xy, const Ratio factor_z);
+
+    static MeshGroup* getCurrent();
 };
 
 /*!

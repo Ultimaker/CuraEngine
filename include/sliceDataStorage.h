@@ -390,7 +390,6 @@ public:
     PrimeTower* prime_tower_{ nullptr };
 
     std::vector<Shape> ooze_shield; // oozeShield per layer
-    Shape draft_protection_shield; //!< The polygons for a heightened skirt which protects from warping by gusts of wind and acts as a heated chamber.
 
     /*!
      * \brief Creates a new slice data storage that stores the slice data of the
@@ -399,6 +398,8 @@ public:
     SliceDataStorage();
 
     ~SliceDataStorage();
+
+    static std::shared_ptr<SliceDataStorage> getCurrent();
 
     /*!
      * Get all outlines within a given layer.

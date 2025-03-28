@@ -10,7 +10,7 @@
 namespace cura
 {
 
-enum class PrintFeatureType : unsigned char;
+enum class PrintFeatureType : uint8_t;
 class TravelMove;
 struct Velocity;
 

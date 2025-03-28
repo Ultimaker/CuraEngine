@@ -27,20 +27,19 @@ void Slice::compute()
     }
 #endif
 
-    for (std::vector<MeshGroup>::iterator mesh_group = scene.mesh_groups.begin(); mesh_group != scene.mesh_groups.end(); mesh_group++)
+    for (MeshGroup& mesh_group : scene.mesh_groups)
     {
-        scene.current_mesh_group = mesh_group;
-        for (ExtruderTrain& extruder : scene.extruders)
+        for (ExtruderTrain& extruder : scene.extruders_)
         {
-            extruder.settings_.setParent(&scene.current_mesh_group->settings);
+            extruder.settings_.setParent(&mesh_group.settings);
         }
-        scene.processMeshGroup(*mesh_group);
+        scene.processMeshGroup(mesh_group);
     }
 }
 
 void Slice::reset()
 {
-    scene.extruders.clear();
+    scene.extruders_.clear();
     scene.mesh_groups.clear();
     scene.settings = Settings();
 }

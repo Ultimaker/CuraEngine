@@ -36,16 +36,16 @@ void Raft::generate(SliceDataStorage& storage)
 
     const coord_t shield_line_width_layer0 = settings.get<coord_t>("skirt_brim_line_width");
     const coord_t max_raft_distance = std::max(std::max(raft_base_margin, raft_interface_margin), raft_surface_margin);
-    if (storage.draft_protection_shield.size() > 0)
-    {
-        Shape draft_shield_raft
-            = storage.draft_protection_shield
-                  .offset(shield_line_width_layer0) // start half a line width outside shield
-                  .difference(storage.draft_protection_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
-        storage.raft_base_outline = storage.raft_base_outline.unionPolygons(draft_shield_raft);
-        storage.raft_surface_outline = storage.raft_surface_outline.unionPolygons(draft_shield_raft);
-        storage.raft_interface_outline = storage.raft_interface_outline.unionPolygons(draft_shield_raft);
-    }
+    // if (storage.draft_protection_shield.size() > 0)
+    // {
+    //     Shape draft_shield_raft
+    //         = storage.draft_protection_shield
+    //               .offset(shield_line_width_layer0) // start half a line width outside shield
+    //               .difference(storage.draft_protection_shield.offset(-max_raft_distance - shield_line_width_layer0 / 2, ClipperLib::jtRound)); // end distance inside shield
+    //     storage.raft_base_outline = storage.raft_base_outline.unionPolygons(draft_shield_raft);
+    //     storage.raft_surface_outline = storage.raft_surface_outline.unionPolygons(draft_shield_raft);
+    //     storage.raft_interface_outline = storage.raft_interface_outline.unionPolygons(draft_shield_raft);
+    // }
     if (storage.ooze_shield.size() > 0 && storage.ooze_shield[0].size() > 0)
     {
         const Shape& ooze_shield = storage.ooze_shield[0];

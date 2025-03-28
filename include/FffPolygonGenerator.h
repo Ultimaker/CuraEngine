@@ -149,19 +149,6 @@ private:
     void processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill);
 
     /*!
-     * Generate the polygons where the draft screen should be.
-     *
-     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     */
-    void processDraftShield(SliceDataStorage& storage);
-
-    /*!
-     * Generate the skirt/brim/raft areas/insets.
-     * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
-     */
-    void processPlatformAdhesion(SliceDataStorage& storage);
-
-    /*!
      * Make the outer wall 'fuzzy'
      *
      * Introduce new vertices and move existing vertices in or out by a random distance, based on the fuzzy skin settings.

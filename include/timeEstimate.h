@@ -4,9 +4,7 @@
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
 
-#include <stdint.h>
-#include <unordered_map>
-#include <vector>
+#include <map>
 
 #include "PrintFeatureType.h"
 #include "settings/types/Duration.h" //Print time estimates.
@@ -111,7 +109,7 @@ public:
 
     void reset();
 
-    std::vector<Duration> calculate();
+    std::map<PrintFeatureType, Duration> calculate();
 
 private:
     void reversePass();

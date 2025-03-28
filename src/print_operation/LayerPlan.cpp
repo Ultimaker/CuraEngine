@@ -3,6 +3,7 @@
 
 #include "print_operation/LayerPlan.h"
 
+#include "geometry/Shape.h"
 #include "plan_export/PlanExporter.h"
 #include "print_operation/ContinuousExtruderMoveSequence.h"
 #include "print_operation/ExtruderChange.h"
@@ -75,15 +76,23 @@ Point3LL LayerPlan::getAbsolutePosition(const Point3LL& relative_position) const
     return absolute_position;
 }
 
-ExtruderPlanPtr LayerPlan::findFirstExtruderPlan(const ExtruderNumber& extruder_nr) const
+ExtruderPlanPtr LayerPlan::findFirstExtruderPlan(const std::optional<ExtruderNumber>& extruder_nr) const
 {
     return findOperationByType<ExtruderPlan>(
         SearchOrder::Forward,
         SearchDepth::DirectChildren,
         [&extruder_nr](const ExtruderPlanPtr& extruder_plan)
         {
-            return extruder_plan->getExtruderNr() == extruder_nr;
+            return ! extruder_nr.has_value() || extruder_plan->getExtruderNr() == extruder_nr.value();
         });
+}
+
+void LayerPlan::calculateFootprint(std::map<ExtruderNumber, std::map<PrintFeatureType, std::vector<Shape>>>& footprint, const std::optional<PrintFeatureMask>& types_mask) const
+{
+    for (const ConstExtruderPlanPtr extruder_plan : getOperationsAs<ExtruderPlan>())
+    {
+        extruder_plan->calculateFootprint(footprint[extruder_plan->getExtruderNr()], types_mask);
+    }
 }
 
 } // namespace cura

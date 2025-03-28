@@ -91,7 +91,7 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
     rapidjson::Value material_estimates_json(rapidjson::kObjectType);
     const Scene& scene = Application::getInstance().current_slice_->scene;
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders_.size(); extruder_nr++)
     {
         const double value = FffProcessor::getInstance()->getTotalFilamentUsed(static_cast<int>(extruder_nr));
         spdlog::info("Extruder {} used {} [mm] of filament", extruder_nr, value);

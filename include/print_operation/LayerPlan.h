@@ -3,8 +3,11 @@
 
 #pragma once
 
+#include <map>
+
 #include "ExtruderNumber.h"
 #include "ExtruderPlanPtr.h"
+#include "PrintFeatureType.h"
 #include "print_operation/PrintOperationSequence.h"
 #include "settings/types/LayerIndex.h"
 
@@ -13,6 +16,7 @@ namespace cura
 
 struct PathConfigStorage;
 class ExtruderChange;
+class Shape;
 class TravelRoute;
 
 class LayerPlan : public PrintOperationSequence
@@ -40,7 +44,10 @@ public:
 
     Point3LL getAbsolutePosition(const Point3LL& relative_position) const;
 
-    ExtruderPlanPtr findFirstExtruderPlan(const ExtruderNumber& extruder_nr) const;
+    ExtruderPlanPtr findFirstExtruderPlan(const std::optional<ExtruderNumber>& extruder_nr = std::nullopt) const;
+
+    void calculateFootprint(std::map<ExtruderNumber, std::map<PrintFeatureType, std::vector<Shape>>>& footprint, const std::optional<PrintFeatureMask>& types_mask = std::nullopt)
+        const;
 
 private:
     const LayerIndex layer_index_;

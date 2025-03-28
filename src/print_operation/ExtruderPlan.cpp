@@ -5,6 +5,7 @@
 
 #include <range/v3/algorithm/find_if.hpp>
 
+#include "geometry/Shape.h"
 #include "print_operation/FeatureExtrusion.h"
 
 namespace cura
@@ -43,6 +44,17 @@ ExtruderPlanPtr ExtruderPlan::find(const std::vector<ExtruderPlanPtr>& extruder_
     }
 
     return nullptr;
+}
+
+void ExtruderPlan::calculateFootprint(std::map<PrintFeatureType, std::vector<Shape>>& footprint, const std::optional<PrintFeatureMask>& types_mask) const
+{
+    for (const ConstFeatureExtrusionPtr feature_extrusion : getOperationsAs<FeatureExtrusion>())
+    {
+        if (! types_mask.has_value() || types_mask.value().hasType(feature_extrusion->getType()))
+        {
+            footprint[feature_extrusion->getType()].push_back(feature_extrusion->calculateFootprint());
+        }
+    }
 }
 
 } // namespace cura

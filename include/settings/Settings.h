@@ -14,11 +14,11 @@
 // Maximum number of infill layers that can be combined into a single infill extrusion area.
 #define MAX_INFILL_COMBINE 8
 
+#include <cstdint>
 #include <map>
 #include <sstream>
 #include <unordered_map>
 #include <vector>
-#include <cstdint>
 
 namespace cura
 {
@@ -107,7 +107,7 @@ private:
      * Optionally, a parent setting container to ask for the value of a setting
      * if this container has no value for it.
      */
-    Settings* parent;
+    Settings* parent{ nullptr };
 
     /*!
      * \brief A dictionary to map the setting keys to the actual setting values.

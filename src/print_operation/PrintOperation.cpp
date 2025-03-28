@@ -19,7 +19,7 @@ void PrintOperation::setParent(std::weak_ptr<PrintOperationSequence> parent)
     parent_ = parent;
 }
 
-void PrintOperation::applyProcessors(const std::vector<const PrintOperation*>& /*parents*/)
+void PrintOperation::applyProcessors()
 {
     // Default behavior is do nothing
 }

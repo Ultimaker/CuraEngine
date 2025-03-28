@@ -11,7 +11,7 @@
 namespace cura
 {
 // Some forward declarations to increase compilation speed.
-enum class PrintFeatureType : unsigned char;
+enum class PrintFeatureType : uint8_t;
 class Shape;
 class Polygon;
 class ExtruderTrain;

@@ -61,7 +61,7 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
     const size_t extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
-        slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
+        slice->scene.extruders_.emplace_back(extruder_nr, &slice->scene.settings);
     }
 
     // Parse the extruder number and the settings from the messages.
@@ -75,7 +75,7 @@ void ArcusCommunication::Private::readExtruderSettingsMessage(const google::prot
         }
         ExtruderTrain& extruder
             = slice->scene
-                  .extruders[extruder_nr]; // Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
+                  .extruders_[extruder_nr]; // Extruder messages may arrive out of order, so don't iteratively get the next extruder but take the extruder_nr from this message.
         for (const cura::proto::Setting& setting_message : extruder_message.settings().settings())
         {
             extruder.settings_.add(setting_message.name(), setting_message.value());

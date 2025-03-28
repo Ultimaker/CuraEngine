@@ -104,10 +104,10 @@ LayerPlan::LayerPlan(
     , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
     , layer_type_(Raft::getLayerType(layer_nr))
     , layer_thickness_(layer_thickness)
-    , has_prime_tower_planned_per_extruder_(Application::getInstance().current_slice_->scene.extruders.size(), false)
+    , has_prime_tower_planned_per_extruder_(Application::getInstance().current_slice_->scene.extruders_.size(), false)
     , current_mesh_(nullptr)
     , last_extruder_previous_layer_(start_extruder)
-    , last_planned_extruder_(&Application::getInstance().current_slice_->scene.extruders[start_extruder])
+    , last_planned_extruder_(&Application::getInstance().current_slice_->scene.extruders_[start_extruder])
     , first_travel_destination_is_inside_(false)
     , // set properly when addTravel is called for the first time (otherwise not set properly)
     comb_boundary_minimum_(computeCombBoundary(CombBoundary::MINIMUM))
@@ -130,12 +130,12 @@ LayerPlan::LayerPlan(
     {
         layer_start_pos_per_extruder_.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"));
     }
-    extruder_plans_.reserve(Application::getInstance().current_slice_->scene.extruders.size());
+    extruder_plans_.reserve(Application::getInstance().current_slice_->scene.extruders_.size());
     const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
 
     appendExtruderPlan(current_extruder);
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders_.size(); extruder_nr++)
     { // Skirt and brim.
         skirt_brim_is_processed_[extruder_nr] = false;
     }
@@ -287,8 +287,8 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
     appendExtruderPlan(extruder_nr);
 
-    assert(extruder_plans_.size() <= Application::getInstance().current_slice_->scene.extruders.size() && "Never use the same extruder twice on one layer!");
-    last_planned_extruder_ = &Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+    assert(extruder_plans_.size() <= Application::getInstance().current_slice_->scene.extruders_.size() && "Never use the same extruder twice on one layer!");
+    last_planned_extruder_ = &Application::getInstance().current_slice_->scene.extruders_[extruder_nr];
 
     { // handle starting pos of the new extruder
         ExtruderTrain* extruder = getLastPlannedExtruderTrain();
@@ -2858,7 +2858,7 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
                 gcode.insertWipeScript(wipe_config);
                 gcode.ResetLastEValueAfterWipe(extruder_nr);
             }
-            else if (layer_nr_ != 0 && Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_.get<bool>("retract_at_layer_change"))
+            else if (layer_nr_ != 0 && Application::getInstance().current_slice_->scene.extruders_[extruder_nr].settings_.get<bool>("retract_at_layer_change"))
             {
                 // only do the retract if the paths are not spiralized
                 if (! mesh_group_settings.get<bool>("magic_spiralize"))
@@ -2876,7 +2876,7 @@ void LayerPlan::writeGCode(GCodeExporter& gcode)
 
         extruder_plan.inserts_.sort();
 
-        const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+        const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders_[extruder_nr];
 
         bool update_extrusion_offset = true;
 
@@ -3277,7 +3277,7 @@ bool LayerPlan::writePathWithCoasting(
     const ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
     const std::vector<GCodePath>& paths = extruder_plan.paths_;
     const GCodePath& path = paths[path_idx];
-    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
+    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders_[extruder_plan.extruder_nr_];
 
     if (path_coasting.apply_coasting == ApplyCoasting::CoastEntirePath)
     {
@@ -3404,7 +3404,7 @@ void LayerPlan::applyBackPressureCompensation()
     for (auto& extruder_plan : extruder_plans_)
     {
         const Ratio back_pressure_compensation
-            = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_].settings_.get<Ratio>("speed_equalize_flow_width_factor");
+            = Application::getInstance().current_slice_->scene.extruders_[extruder_plan.extruder_nr_].settings_.get<Ratio>("speed_equalize_flow_width_factor");
         if (back_pressure_compensation != 0.0)
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);

@@ -5,7 +5,7 @@
 #define EXTRUDER_TRAIN_H
 
 #include "ExtruderNumber.h"
-#include "settings/Settings.h"
+#include "settings/ExtruderSettings.h"
 
 namespace cura
 {
@@ -22,7 +22,7 @@ public:
     /*
      * \brief The settings that this extruder overwrites.
      */
-    Settings settings_;
+    ExtruderSettings settings_;
 
     /*
      * \brief The position of this extruder.

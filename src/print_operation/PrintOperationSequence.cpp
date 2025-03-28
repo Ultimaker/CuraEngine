@@ -28,16 +28,13 @@ void PrintOperationSequence::write(PlanExporter& exporter) const
     }
 }
 
-void PrintOperationSequence::applyProcessors(const std::vector<const PrintOperation*>& parents)
+void PrintOperationSequence::applyProcessors()
 {
-    PrintOperation::applyProcessors(parents);
-
-    std::vector<const PrintOperation*> new_parents = parents;
-    new_parents.push_back(this);
+    PrintOperation::applyProcessors();
 
     for (const PrintOperationPtr& operation : operations_)
     {
-        operation->applyProcessors(new_parents);
+        operation->applyProcessors();
     }
 }
 
@@ -71,6 +68,11 @@ std::optional<Point3LL> PrintOperationSequence::findEndPosition() const
 
 void PrintOperationSequence::appendOperation(const PrintOperationPtr& operation)
 {
+    if (! operation)
+    {
+        return;
+    }
+
     if (std::shared_ptr<PrintOperationSequence> actual_parent = operation->getParent())
     {
         if (actual_parent.get() == this)
@@ -90,6 +92,7 @@ void PrintOperationSequence::removeOperation(const PrintOperationPtr& operation)
     if (operation->getParent() == shared_from_this())
     {
         operation->setParent({});
+#warning This probably doesn't work
         ranges::views::remove(operations_, operation);
     }
     else

@@ -415,21 +415,21 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     spdlog::debug("Sending print time and material estimates.");
     std::shared_ptr<proto::PrintTimeMaterialEstimates> message = std::make_shared<proto::PrintTimeMaterialEstimates>();
 
-    std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
-    message->set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
-    message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
-    message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);
-    message->set_time_none(time_estimates[static_cast<unsigned char>(PrintFeatureType::NoneType)]);
-    message->set_time_retract(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveRetraction)]);
-    message->set_time_skin(time_estimates[static_cast<unsigned char>(PrintFeatureType::Skin)]);
-    message->set_time_skirt(time_estimates[static_cast<unsigned char>(PrintFeatureType::SkirtBrim)]);
-    message->set_time_support(time_estimates[static_cast<unsigned char>(PrintFeatureType::Support)]);
-    message->set_time_support_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInfill)]);
-    message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
-    message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
-    message->set_time_prime_tower(time_estimates[static_cast<unsigned char>(PrintFeatureType::PrimeTower)]);
+    std::map<PrintFeatureType, Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
+    message->set_time_infill(time_estimates[PrintFeatureType::Infill]);
+    message->set_time_inset_0(time_estimates[PrintFeatureType::OuterWall]);
+    message->set_time_inset_x(time_estimates[PrintFeatureType::InnerWall]);
+    message->set_time_none(time_estimates[PrintFeatureType::NoneType]);
+    message->set_time_retract(time_estimates[PrintFeatureType::MoveRetraction]);
+    message->set_time_skin(time_estimates[PrintFeatureType::Skin]);
+    message->set_time_skirt(time_estimates[PrintFeatureType::SkirtBrim]);
+    message->set_time_support(time_estimates[PrintFeatureType::Support]);
+    message->set_time_support_infill(time_estimates[PrintFeatureType::SupportInfill]);
+    message->set_time_support_interface(time_estimates[PrintFeatureType::SupportInterface]);
+    message->set_time_travel(time_estimates[PrintFeatureType::MoveCombing]);
+    message->set_time_prime_tower(time_estimates[PrintFeatureType::PrimeTower]);
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders_.size(); extruder_nr++)
     {
         proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);
@@ -544,7 +544,7 @@ void ArcusCommunication::sliceNext()
 
     // Broadcast the settings to the plugins
     slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
-    const size_t extruder_count = slice->scene.extruders.size();
+    const size_t extruder_count = slice->scene.extruders_.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).
     for (const cura::proto::SettingExtruder& setting_extruder : slice_message->limit_to_extruder())
@@ -555,7 +555,7 @@ void ArcusCommunication::sliceNext()
             // If it's -1 it should be ignored as per the spec. Let's also ignore it if it's beyond range.
             continue;
         }
-        ExtruderTrain& extruder = slice->scene.extruders[setting_extruder.extruder()];
+        ExtruderTrain& extruder = slice->scene.extruders_[setting_extruder.extruder()];
         slice->scene.limit_to_extruder.emplace(setting_extruder.name(), &extruder);
     }
 

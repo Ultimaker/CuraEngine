@@ -10,19 +10,21 @@
 #include "ExtruderNumber.h"
 #include "LayerPlanPtr.h"
 #include "Preheat.h"
+#include "PrintFeatureType.h"
 #include "print_operation/PrintOperationSequence.h"
 #include "settings/Settings.h"
 #include "settings/types/Duration.h"
+#include "settings/types/LayerIndex.h"
 
 namespace cura
 {
 
-struct LayerIndex;
-class LayerChange;
-class LayerPlan;
 class ExtruderPlan;
 class GCodeExporter;
+class LayerChange;
+class LayerPlan;
 class PlanExporter;
+class Shape;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
@@ -65,11 +67,8 @@ class PrintPlan : public PrintOperationSequence
      */
     std::list<LayerPlan*> buffer_;
 
-    // FIXME: This should be a singleton
-    const SliceDataStorage& storage_;
-
 public:
-    explicit PrintPlan(const SliceDataStorage& storage);
+    explicit PrintPlan();
 
     void setPreheatConfig();
 
@@ -89,9 +88,11 @@ public:
 
     void appendLayerPlan(const std::shared_ptr<LayerPlan>& layer_plan);
 
-    void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
+    void applyProcessors() override;
 
     LayerPlanPtr findLayerPlan(const LayerIndex& layer_nr) const;
+
+    LayerPlanPtr findLayerPlanAtHeight(const coord_t height) const;
 
     void insertLayerChangeAfter(const std::shared_ptr<LayerChange>& layer_change, const std::shared_ptr<LayerPlan>& layer_plan);
 
@@ -99,6 +100,16 @@ public:
      * Generate the list of actually used extruders, in order of first use
      */
     std::vector<ExtruderNumber> calculateUsedExtruders() const;
+
+    std::map<ExtruderNumber, std::map<PrintFeatureType, Shape>> calculateFootprint(
+        const std::optional<LayerIndex>& start_layer = std::nullopt,
+        const std::optional<LayerIndex>& end_layer = std::nullopt,
+        const std::optional<PrintFeatureMask>& types_mask = std::nullopt) const;
+
+    Shape calculateTotalFootprint(
+        const std::optional<LayerIndex>& start_layer = std::nullopt,
+        const std::optional<LayerIndex>& end_layer = std::nullopt,
+        const std::optional<PrintFeatureMask>& types_mask = std::nullopt) const;
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
@@ -228,6 +239,11 @@ private:
      * \param standby_temp The temperature to which to cool down when the extruder is in standby mode.
      */
     void handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx, double standby_temp);
+
+    std::map<ExtruderNumber, std::map<PrintFeatureType, std::vector<Shape>>> calculateSeparateFootprint(
+        const std::optional<LayerIndex>& start_layer = std::nullopt,
+        const std::optional<LayerIndex>& end_layer = std::nullopt,
+        const std::optional<PrintFeatureMask>& types_mask = std::nullopt) const;
 };
 
 } // namespace cura

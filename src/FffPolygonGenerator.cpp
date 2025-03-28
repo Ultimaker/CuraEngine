@@ -410,17 +410,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
 
-    spdlog::debug("Processing draft shield");
-    processDraftShield(storage);
-
-    // This catches a special case in which the models are in the air, and then
-    // the adhesion mustn't be calculated.
-    if (! isEmptyLayer(storage, 0) || storage.prime_tower_)
-    {
-        spdlog::debug("Processing platform adhesion");
-        processPlatformAdhesion(storage);
-    }
-
     spdlog::debug("Meshes post-processing");
     // meshes post processing
     for (std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
@@ -842,7 +831,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const La
 
 void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage)
 {
-    const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
+    const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders_.size();
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
@@ -970,7 +959,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         coord_t max_line_width = 0;
         { // compute max_line_width
             const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-            const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
+            const auto& extruders = Application::getInstance().current_slice_->scene.extruders_;
             for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
             {
                 if (! extruder_is_used[extruder_nr])
@@ -984,79 +973,6 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         }
     }
 }
-
-void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
-{
-    const size_t draft_shield_layers = getDraftShieldLayerCount(storage.print_layer_count);
-    if (draft_shield_layers <= 0)
-    {
-        return;
-    }
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
-
-    const LayerIndex layer_skip{ 500 / layer_height + 1 };
-
-    Shape& draft_shield = storage.draft_protection_shield;
-    for (LayerIndex layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
-    {
-        constexpr bool around_support = true;
-        constexpr bool around_prime_tower = false;
-        draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower));
-    }
-
-    const coord_t draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
-    storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
-
-    // Extra offset has rounded joints, so simplify again.
-    coord_t maximum_resolution = 0; // Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
-    coord_t maximum_deviation = std::numeric_limits<coord_t>::max();
-    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
-    {
-        maximum_resolution = std::max(maximum_resolution, extruder.settings_.get<coord_t>("meshfix_maximum_resolution"));
-        maximum_deviation = std::min(maximum_deviation, extruder.settings_.get<coord_t>("meshfix_maximum_deviation"));
-    }
-    storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
-    if (storage.prime_tower_)
-    {
-        coord_t max_line_width = 0;
-        { // compute max_line_width
-            const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
-            const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
-            for (int extruder_nr = 0; extruder_nr < int(extruders.size()); extruder_nr++)
-            {
-                if (! extruder_is_used[extruder_nr])
-                    continue;
-                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings_.get<coord_t>("skirt_brim_line_width"));
-            }
-        }
-        storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.prime_tower_->getOccupiedGroundOutline().offset(max_line_width / 2));
-    }
-}
-
-void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
-{
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
-
-    if (adhesion_type == EPlatformAdhesion::RAFT)
-    {
-        Raft::generate(storage);
-        return;
-    }
-
-    SkirtBrim skirt_brim(storage);
-    if (adhesion_type != EPlatformAdhesion::NONE)
-    {
-        skirt_brim.generate();
-    }
-
-    if (mesh_group_settings.get<bool>("support_brim_enable"))
-    {
-        skirt_brim.generateSupportBrim();
-    }
-}
-
 
 void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 {

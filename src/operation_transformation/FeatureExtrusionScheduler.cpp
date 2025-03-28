@@ -121,7 +121,6 @@ std::vector<FeatureExtrusionPtr>
     case PrintFeatureType::MoveRetraction:
     case PrintFeatureType::PrimeTower:
     case PrintFeatureType::NoneType:
-    case PrintFeatureType::NumPrintFeatureTypes:
         break;
     }
 
@@ -412,7 +411,6 @@ std::shared_ptr<ZSeamConfig> FeatureExtrusionScheduler::getZSeamConfig(const Fea
     case PrintFeatureType::MoveRetraction:
     case PrintFeatureType::PrimeTower:
     case PrintFeatureType::NoneType:
-    case PrintFeatureType::NumPrintFeatureTypes:
         break;
     }
 

@@ -19,13 +19,13 @@
 
 namespace cura
 {
-
+#if 0
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     : storage_(storage)
     , adhesion_type_(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type"))
     , has_ooze_shield_(storage.ooze_shield.size() > 0 && storage.ooze_shield[0].size() > 0)
     , has_draft_shield_(storage.draft_protection_shield.size() > 0)
-    , extruders_(Application::getInstance().current_slice_->scene.extruders)
+    , extruders_(Application::getInstance().current_slice_->scene.extruders_)
     , extruder_count_(extruders_.size())
     , extruders_configs_(extruder_count_)
 {
@@ -246,7 +246,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
     }
 
     // limit brim lines to allowed areas, stitch them and store them in the result
-    brim = Simplify(Application::getInstance().current_slice_->scene.extruders[offset.extruder_nr_].settings_).polygon(brim);
+    brim = Simplify(Application::getInstance().current_slice_->scene.extruders_[offset.extruder_nr_].settings_).polygon(brim);
 
     OpenLinesSet brim_lines = allowed_areas_per_extruder[offset.extruder_nr_].intersection(brim, false);
     length_added = brim_lines.length();
@@ -301,7 +301,7 @@ Shape SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
     {
         first_layer_outline = Shape();
         int skirt_height = 0;
-        for (const auto& extruder : Application::getInstance().current_slice_->scene.extruders)
+        for (const auto& extruder : Application::getInstance().current_slice_->scene.extruders_)
         {
             if (extruder_nr == -1 || extruder_nr == extruder.extruder_nr_)
             {
@@ -592,7 +592,7 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Shape>& sta
 
         if (adhesion_type_ == EPlatformAdhesion::BRIM)
         {
-            const Settings& settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
+            const Settings& settings = Application::getInstance().current_slice_->scene.extruders_[extruder_nr].settings_;
             const coord_t hole_brim_distance = settings.get<coord_t>("brim_inside_margin");
 
             for (size_t other_extruder_nr = 0; other_extruder_nr < covered_area_by_extruder.size(); ++other_extruder_nr)
@@ -710,5 +710,5 @@ void SkirtBrim::generateSupportBrim()
         }
     }
 }
-
+#endif
 } // namespace cura

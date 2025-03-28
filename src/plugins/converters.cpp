@@ -336,8 +336,6 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         return v0::PrintFeature::SUPPORTINTERFACE;
     case PrintFeatureType::PrimeTower:
         return v0::PrintFeature::PRIMETOWER;
-    case PrintFeatureType::NumPrintFeatureTypes:
-        return v0::PrintFeature::NUMPRINTFEATURETYPES;
     default:
         return v0::PrintFeature::NONETYPE;
     }
@@ -421,8 +419,6 @@ gcode_paths_modify_request::value_type
         return PrintFeatureType::SupportInterface;
     case v0::PrintFeature::PRIMETOWER:
         return PrintFeatureType::PrimeTower;
-    case v0::PrintFeature::NUMPRINTFEATURETYPES:
-        return PrintFeatureType::NumPrintFeatureTypes;
     default:
         return PrintFeatureType::NoneType;
     }

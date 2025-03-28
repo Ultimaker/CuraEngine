@@ -38,7 +38,6 @@ namespace cura
 
 Settings::Settings()
 {
-    parent = nullptr; // Needs to be properly initialised because we check against this if the parent is not set.
 }
 
 void Settings::add(const std::string& key, const std::string value)
@@ -57,15 +56,15 @@ template<>
 std::string Settings::get<std::string>(const std::string& key) const
 {
     // If this settings base has a setting value for it, look that up.
-    if (settings.find(key) != settings.end())
+    if (auto iterator = settings.find(key); iterator != settings.end())
     {
-        return settings.at(key);
+        return iterator->second;
     }
 
     const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice_->scene.limit_to_extruder;
-    if (limit_to_extruder.find(key) != limit_to_extruder.end())
+    if (auto iterator = limit_to_extruder.find(key); iterator != limit_to_extruder.end())
     {
-        return limit_to_extruder.at(key)->settings_.getWithoutLimiting(key);
+        return iterator->second->settings_.getWithoutLimiting(key);
     }
 
     if (parent)
@@ -115,7 +114,7 @@ ExtruderTrain& Settings::get<ExtruderTrain&>(const std::string& key) const
     {
         extruder_nr = get<size_t>("extruder_nr");
     }
-    return Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+    return Application::getInstance().current_slice_->scene.extruders_[extruder_nr];
 }
 
 template<>
@@ -125,14 +124,14 @@ std::vector<ExtruderTrain*> Settings::get<std::vector<ExtruderTrain*>>(const std
     std::vector<ExtruderTrain*> ret;
     if (extruder_nr < 0)
     {
-        for (ExtruderTrain& train : Application::getInstance().current_slice_->scene.extruders)
+        for (ExtruderTrain& train : Application::getInstance().current_slice_->scene.extruders_)
         {
             ret.emplace_back(&train);
         }
     }
     else
     {
-        ret.emplace_back(&Application::getInstance().current_slice_->scene.extruders[extruder_nr]);
+        ret.emplace_back(&Application::getInstance().current_slice_->scene.extruders_[extruder_nr]);
     }
     return ret;
 }

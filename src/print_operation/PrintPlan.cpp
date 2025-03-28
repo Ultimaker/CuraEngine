@@ -3,6 +3,7 @@
 
 #include "print_operation/PrintPlan.h"
 
+#include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To flush g-code through the communication channel.
@@ -10,6 +11,8 @@
 #include "FffProcessor.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
+#include "geometry/Shape.h"
+#include "operation_transformation/DraftShieldAppender.h"
 #include "operation_transformation/ExtruderChangeAppender.h"
 #include "operation_transformation/ExtruderPlanScheduler.h"
 #include "operation_transformation/SkirtBrimAppender.h"
@@ -24,9 +27,8 @@ namespace cura
 
 constexpr Duration PrintPlan::extra_preheat_time_;
 
-PrintPlan::PrintPlan(const SliceDataStorage& storage)
+PrintPlan::PrintPlan()
     : PrintOperationSequence()
-    , storage_(storage)
 {
 }
 
@@ -53,11 +55,13 @@ void PrintPlan::appendLayerPlan(const std::shared_ptr<LayerPlan>& layer_plan)
     appendOperation(layer_plan);
 }
 
-void PrintPlan::applyProcessors(const std::vector<const PrintOperation*>& parents)
+void PrintPlan::applyProcessors()
 {
     // Do not apply processors to children, they have been done separately
 
-    SkirtBrimAppender(storage_).process(this);
+    DraftShieldAppender().process(this);
+
+    SkirtBrimAppender().process(this);
 
     ExtruderChangeAppender().process(this);
 
@@ -84,6 +88,17 @@ LayerPlanPtr PrintPlan::findLayerPlan(const LayerIndex& layer_nr) const
         });
 }
 
+LayerPlanPtr PrintPlan::findLayerPlanAtHeight(const coord_t height) const
+{
+    return findOperationByType<LayerPlan>(
+        SearchOrder::Forward,
+        SearchDepth::DirectChildren,
+        [&height](const LayerPlanPtr& layer_plan)
+        {
+            return layer_plan->getZ() >= height;
+        });
+}
+
 void PrintPlan::insertLayerChangeAfter(const std::shared_ptr<LayerChange>& layer_change, const std::shared_ptr<LayerPlan>& layer_plan)
 {
     insertOperationAfter(layer_plan, layer_change);
@@ -106,6 +121,60 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
         2);
 
     return used_extruders;
+}
+
+std::map<ExtruderNumber, std::map<PrintFeatureType, std::vector<Shape>>> PrintPlan::calculateSeparateFootprint(
+    const std::optional<LayerIndex>& start_layer,
+    const std::optional<LayerIndex>& end_layer,
+    const std::optional<PrintFeatureMask>& types_mask) const
+{
+    std::map<ExtruderNumber, std::map<PrintFeatureType, std::vector<Shape>>> features_footprints;
+
+    for (const LayerPlanPtr& layer_plan : getOperationsAs<LayerPlan>())
+    {
+        if ((! start_layer.has_value() || layer_plan->getLayerIndex() >= start_layer) && (! end_layer.has_value() || layer_plan->getLayerIndex() <= end_layer))
+        {
+            layer_plan->calculateFootprint(features_footprints, types_mask);
+        }
+    }
+
+    return features_footprints;
+}
+
+std::map<ExtruderNumber, std::map<PrintFeatureType, Shape>>
+    PrintPlan::calculateFootprint(const std::optional<LayerIndex>& start_layer, const std::optional<LayerIndex>& end_layer, const std::optional<PrintFeatureMask>& types_mask) const
+{
+    std::map<ExtruderNumber, std::map<PrintFeatureType, std::vector<Shape>>> features_footprints = calculateSeparateFootprint(start_layer, end_layer, types_mask);
+
+    // Unite all shapes by extruder/print feature type
+    std::map<ExtruderNumber, std::map<PrintFeatureType, Shape>> features_united_footprints;
+    for (const auto& [extruder_nr, extruder_features_footprints] : features_footprints)
+    {
+        for (const auto& [feature_type, footprints] : extruder_features_footprints)
+        {
+            features_united_footprints[extruder_nr][feature_type] = Shape::unionShapes(footprints);
+        }
+    }
+
+    return features_united_footprints;
+}
+
+Shape PrintPlan::calculateTotalFootprint(
+    const std::optional<LayerIndex>& start_layer,
+    const std::optional<LayerIndex>& end_layer,
+    const std::optional<PrintFeatureMask>& types_mask) const
+{
+    std::map<ExtruderNumber, std::map<PrintFeatureType, std::vector<Shape>>> features_footprints = calculateSeparateFootprint(start_layer, end_layer, types_mask);
+    std::vector<Shape> all_footprints;
+    for (std::map<PrintFeatureType, std::vector<Shape>>& features_footprints : features_footprints | ranges::views::values)
+    {
+        for (std::vector<Shape>& footprints : features_footprints | ranges::views::values)
+        {
+            all_footprints.insert(all_footprints.end(), std::make_move_iterator(footprints.begin()), std::make_move_iterator(footprints.end()));
+        }
+    }
+
+    return Shape::unionShapes(all_footprints);
 }
 
 // LayerPlan* PrintPlan::processBuffer()
@@ -170,7 +239,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 //     if (! prev_layer->last_planned_position_ || *prev_layer->last_planned_position_ != first_location_new_layer)
 //     {
 //         const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-//         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_layer->extruder_plans_.back().extruder_nr_].settings_;
+//         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders_[prev_layer->extruder_plans_.back().extruder_nr_].settings_;
 //         prev_layer->setIsInside(new_layer_destination_state->second);
 //         const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change")
 //                                 || (mesh_group_settings.get<bool>("travel_retract_before_outer_wall")
@@ -243,7 +312,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 // {
 //     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
 //     size_t extruder = extruder_plan.extruder_nr_;
-//     Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
+//     Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders_[extruder].settings_;
 //     double initial_print_temp = extruder_plan.required_start_temperature_;
 //
 //     Duration in_between_time = 0.0_s; // the duration during which the extruder isn't used
@@ -288,7 +357,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 
 // void PrintPlan::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, const size_t extruder_nr, const Temperature required_temp)
 // {
-//     if (! Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_.get<bool>("machine_nozzle_temp_enabled"))
+//     if (! Application::getInstance().current_slice_->scene.extruders_[extruder_nr].settings_.get<bool>("machine_nozzle_temp_enabled"))
 //     {
 //         return;
 //     }
@@ -324,7 +393,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 // {
 //     ExtruderPlan& extruder_plan = *extruder_plans[extruder_plan_idx];
 //     const size_t extruder = extruder_plan.extruder_nr_;
-//     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
+//     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders_[extruder].settings_;
 //     if (! extruder_settings.get<bool>("machine_nozzle_temp_enabled"))
 //     {
 //         return;
@@ -377,7 +446,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 //
 //     if (prev_extruder != extruder)
 //     { // set previous extruder to standby temperature
-//         const Settings& previous_extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_extruder].settings_;
+//         const Settings& previous_extruder_settings = Application::getInstance().current_slice_->scene.extruders_[prev_extruder].settings_;
 //         extruder_plan.prev_extruder_standby_temp_ = previous_extruder_settings.get<Temperature>("material_standby_temperature");
 //     }
 //
@@ -386,7 +455,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 //         insertPreheatCommand_singleExtrusion(*prev_extruder_plan, extruder, extruder_plan.required_start_temperature_);
 //         prev_extruder_plan->extrusion_temperature_command_ = --prev_extruder_plan->inserts_.end();
 //     }
-//     else if (Application::getInstance().current_slice_->scene.extruders[extruder].settings_.get<bool>("machine_extruders_share_heater"))
+//     else if (Application::getInstance().current_slice_->scene.extruders_[extruder].settings_.get<bool>("machine_extruders_share_heater"))
 //     {
 //         // extruders share a heater so command the previous extruder to change to the temperature required for this extruder
 //         insertPreheatCommand_singleExtrusion(*prev_extruder_plan, prev_extruder, extruder_plan.required_start_temperature_);
@@ -409,7 +478,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 //     const double print_temp = *extruder_plan.extrusion_temperature_;
 //
 //     const unsigned int extruder = extruder_plan.extruder_nr_;
-//     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
+//     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders_[extruder].settings_;
 //     if (! extruder_settings.get<bool>("machine_nozzle_temp_enabled"))
 //     {
 //         return;
@@ -438,7 +507,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 // {
 //     ExtruderPlan& last_extruder_plan = *extruder_plans[last_extruder_plan_idx];
 //     const size_t extruder = last_extruder_plan.extruder_nr_;
-//     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
+//     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders_[extruder].settings_;
 //     if (! extruder_settings.get<bool>("machine_nozzle_temp_enabled"))
 //     {
 //         return;
@@ -593,7 +662,7 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 //         const size_t overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans_.size() + extruder_plan_idx;
 //         ExtruderPlan& extruder_plan = layer_plan.extruder_plans_[extruder_plan_idx];
 //         size_t extruder = extruder_plan.extruder_nr_;
-//         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
+//         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders_[extruder].settings_;
 //         Duration time = extruder_plan.estimates_.getTotalUnretractedTime();
 //         if (time <= 0.0)
 //         {
@@ -628,9 +697,9 @@ std::vector<ExtruderNumber> PrintPlan::calculateUsedExtruders() const
 //
 //         if (buffer_.size() == 1 && extruder_plan_idx == 0)
 //         { // the very first extruder plan of the current meshgroup
-//             for (size_t extruder_idx = 0; extruder_idx < scene.extruders.size(); extruder_idx++)
+//             for (size_t extruder_idx = 0; extruder_idx < scene.extruders_.size(); extruder_idx++)
 //             { // set temperature of the first nozzle, turn other nozzles down
-//                 const Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_idx].settings_;
+//                 const Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders_[extruder_idx].settings_;
 //                 if (scene.current_mesh_group == scene.mesh_groups.begin()) // First mesh group.
 //                 {
 //                     // override values from GCodeExport::setInitialTemps

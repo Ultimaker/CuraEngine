@@ -6,8 +6,8 @@
 #include <bit>
 #include <optional>
 
-#include "settings/Settings.h"
 #include "ExtruderNumber.h"
+#include "settings/Settings.h"
 
 namespace cura
 {
@@ -18,43 +18,67 @@ public:
     class Iterator
     {
     public:
-        Iterator(const EXTRUDERS_BITMASK_TYPE extruders_mask, const std::optional<ExtruderNumber> position = std::nullopt) :
-            extruders_mask_(extruders_mask),
-            position_(position.value_or(findSetPosition(extruders_mask_)))
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = ExtruderNumber;
+        using difference_type = ptrdiff_t;
+        using pointer = const ExtruderNumber*;
+        using reference = const ExtruderNumber&;
+
+        static Iterator begin(const EXTRUDERS_BITMASK_TYPE extruders_mask)
         {
+            return Iterator(extruders_mask, findSetPosition(extruders_mask));
         }
 
-        ExtruderNumber operator*() const
+        static Iterator end(const EXTRUDERS_BITMASK_TYPE extruders_mask)
         {
-            return position_;
+            return Iterator(extruders_mask, std::nullopt);
+        }
+
+        reference operator*() const
+        {
+            return position_.value();
         }
 
         Iterator& operator++()
         {
+            if (! position_.has_value())
+            {
+                return *this;
+            }
+
             // Clear all the LSBs starting from current position
-            const EXTRUDERS_BITMASK_TYPE next_position_mask = (extruders_mask_ >> (position_ + 1)) << (position_ + 1);
+            const EXTRUDERS_BITMASK_TYPE next_position_mask = (extruders_mask_ >> (position_.value() + 1)) << (position_.value() + 1);
             position_ = findSetPosition(next_position_mask);
             return *this;
         }
 
-        bool operator!=(const Iterator& other) const
-        {
-            return position_ != other.position_;
-        }
+        bool operator!=(const Iterator& other) const = default;
 
-    public:
-        static constexpr ExtruderNumber end_position = sizeof(EXTRUDERS_BITMASK_TYPE) * 8;
+        bool operator==(const Iterator& other) const = default;
 
     private:
-        static ExtruderNumber findSetPosition(const EXTRUDERS_BITMASK_TYPE extruders_mask)
+        Iterator(const EXTRUDERS_BITMASK_TYPE extruders_mask, const std::optional<ExtruderNumber> position)
+            : extruders_mask_(extruders_mask)
+            , position_(position)
         {
-            return extruders_mask ? std::countr_zero(extruders_mask) : end_position;
+        }
+
+        static std::optional<ExtruderNumber> findSetPosition(const EXTRUDERS_BITMASK_TYPE extruders_mask)
+        {
+            return extruders_mask ? std::make_optional(std::countr_zero(extruders_mask)) : std::nullopt;
         }
 
     private:
         EXTRUDERS_BITMASK_TYPE extruders_mask_;
-        ExtruderNumber position_;
+        std::optional<ExtruderNumber> position_;
     };
+
+public:
+    using iterator = Iterator;
+    using const_iterator = Iterator;
+    using value_type = Iterator::value_type;
+    using difference_type = Iterator::difference_type;
+    using size_type = size_t;
 
 public:
     bool contains(const ExtruderNumber extruder_nr) const
@@ -77,14 +101,24 @@ public:
         return extruders_mask_ == 0;
     }
 
-    Iterator begin() const
+    iterator begin()
     {
-        return Iterator(extruders_mask_);
+        return iterator::begin(extruders_mask_);
     }
 
-    Iterator end() const
+    const_iterator begin() const
     {
-        return Iterator(extruders_mask_, Iterator::end_position);
+        return const_iterator::begin(extruders_mask_);
+    }
+
+    iterator end()
+    {
+        return iterator::end(extruders_mask_);
+    }
+
+    const_iterator end() const
+    {
+        return const_iterator::end(extruders_mask_);
     }
 
 private:

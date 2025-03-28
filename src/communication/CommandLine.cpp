@@ -96,12 +96,12 @@ void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) 
 
 void CommandLine::sendPrintTimeMaterialEstimates() const
 {
-    std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
-    double sum = std::accumulate(time_estimates.begin(), time_estimates.end(), 0.0);
+    std::map<PrintFeatureType, Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
+    double sum = ranges::accumulate(time_estimates | ranges::views::values, 0.0);
     spdlog::info("Total print time: {:3}", sum);
 
     sum = 0.0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders_.size(); extruder_nr++)
     {
         sum += FffProcessor::getInstance()->getTotalFilamentUsed(static_cast<int>(extruder_nr));
     }
@@ -140,9 +140,9 @@ void CommandLine::sliceNext()
     size_t mesh_group_index = 0;
     Settings* last_settings = &slice->scene.settings;
 
-    slice->scene.extruders.reserve(arguments_.size() >> 1); // Allocate enough memory to prevent moves.
-    slice->scene.extruders.emplace_back(0, &slice->scene.settings); // Always have one extruder.
-    ExtruderTrain* last_extruder = slice->scene.extruders.data();
+    slice->scene.extruders_.reserve(arguments_.size() >> 1); // Allocate enough memory to prevent moves.
+    slice->scene.extruders_.emplace_back(0, &slice->scene.settings); // Always have one extruder.
+    ExtruderTrain* last_extruder = slice->scene.extruders_.data();
 
     bool force_read_parent = false;
     bool force_read_nondefault = false;
@@ -255,9 +255,9 @@ void CommandLine::sliceNext()
                     if (last_settings == &slice->scene.settings)
                     {
                         const auto extruder_count = slice->scene.settings.get<size_t>("machine_extruder_count");
-                        while (slice->scene.extruders.size() < extruder_count)
+                        while (slice->scene.extruders_.size() < extruder_count)
                         {
-                            slice->scene.extruders.emplace_back(slice->scene.extruders.size(), &slice->scene.settings);
+                            slice->scene.extruders_.emplace_back(slice->scene.extruders_.size(), &slice->scene.settings);
                         }
                     }
                     // If this was an extruder stack, make sure that the extruder_nr setting is correct.
@@ -270,13 +270,13 @@ void CommandLine::sliceNext()
                 case 'e':
                 {
                     size_t extruder_nr = stoul(argument.substr(2));
-                    while (slice->scene.extruders.size() <= extruder_nr) // Make sure we have enough extruders up to the extruder_nr that the user wanted.
+                    while (slice->scene.extruders_.size() <= extruder_nr) // Make sure we have enough extruders up to the extruder_nr that the user wanted.
                     {
-                        slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
+                        slice->scene.extruders_.emplace_back(extruder_nr, &slice->scene.settings);
                     }
-                    last_settings = &slice->scene.extruders[extruder_nr].settings_;
+                    last_settings = &slice->scene.extruders_[extruder_nr].settings_;
                     last_settings->add("extruder_nr", argument.substr(2));
-                    last_extruder = &slice->scene.extruders[extruder_nr];
+                    last_extruder = &slice->scene.extruders_[extruder_nr];
                     break;
                 }
                 case 'l':
@@ -424,13 +424,13 @@ void CommandLine::sliceNext()
                     for (const auto& [key, values] : extruder_settings)
                     {
                         const auto extruder_nr = std::stoi(key.substr(extruder_identifier.size()));
-                        while (slice->scene.extruders.size() <= static_cast<size_t>(extruder_nr))
+                        while (slice->scene.extruders_.size() <= static_cast<size_t>(extruder_nr))
                         {
-                            slice->scene.extruders.emplace_back(extruder_nr, &slice->scene.settings);
+                            slice->scene.extruders_.emplace_back(extruder_nr, &slice->scene.settings);
                         }
                         for (const auto& [setting_key, setting_value] : values)
                         {
-                            slice->scene.extruders[extruder_nr].settings_.add(setting_key, setting_value);
+                            slice->scene.extruders_[extruder_nr].settings_.add(setting_key, setting_value);
                         }
                     }
 
@@ -445,7 +445,7 @@ void CommandLine::sliceNext()
                         const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
                         const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
 
-                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name.c_str(), transformation, slice->scene.extruders[extruder_nr].settings_))
+                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name.c_str(), transformation, slice->scene.extruders_[extruder_nr].settings_))
                         {
                             spdlog::error("Failed to load model: {}. (error number {})", model_name, errno);
                             exit(1);
@@ -456,7 +456,7 @@ void CommandLine::sliceNext()
                         const auto extruder_nr = std::stoi(value.substr(extruder_identifier.size()));
                         if (extruder_nr >= 0)
                         {
-                            slice->scene.limit_to_extruder[key] = &slice->scene.extruders[extruder_nr];
+                            slice->scene.limit_to_extruder[key] = &slice->scene.extruders_[extruder_nr];
                         }
                     }
 
@@ -572,9 +572,9 @@ int CommandLine::loadJSON(
                 {
                     continue;
                 }
-                while (scene.extruders.size() <= static_cast<size_t>(extruder_nr))
+                while (scene.extruders_.size() <= static_cast<size_t>(extruder_nr))
                 {
-                    scene.extruders.emplace_back(scene.extruders.size(), &scene.settings);
+                    scene.extruders_.emplace_back(scene.extruders_.size(), &scene.settings);
                 }
                 const rapidjson::Value& extruder_id = extruder_train->value;
                 if (! extruder_id.IsString())
@@ -583,7 +583,7 @@ int CommandLine::loadJSON(
                 }
                 const std::string extruder_definition_id(extruder_id.GetString());
                 const std::string extruder_file = findDefinitionFile(extruder_definition_id, search_directories);
-                loadJSON(extruder_file, scene.extruders[extruder_nr].settings_, force_read_parent, force_read_nondefault);
+                loadJSON(extruder_file, scene.extruders_[extruder_nr].settings_, force_read_parent, force_read_nondefault);
             }
         }
     }

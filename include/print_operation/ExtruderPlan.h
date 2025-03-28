@@ -3,14 +3,17 @@
 
 #pragma once
 
+#include <map>
+
+#include "PrintFeatureType.h"
 #include "print_operation/ExtruderPlanPtr.h"
 #include "print_operation/PrintOperationSequence.h"
 
 namespace cura
 {
 
+class Shape;
 class FeatureExtrusion;
-struct SpeedDerivatives;
 
 class ExtruderPlan : public PrintOperationSequence
 {
@@ -22,6 +25,8 @@ public:
     void appendFeatureExtrusion(const std::shared_ptr<FeatureExtrusion>& feature_extrusion, const bool check_non_empty = true);
 
     static ExtruderPlanPtr find(const std::vector<ExtruderPlanPtr>& extruder_plans, const size_t extruder_nr);
+
+    void calculateFootprint(std::map<PrintFeatureType, std::vector<Shape>>& footprint, const std::optional<PrintFeatureMask>& types_mask = std::nullopt) const;
 
 private:
     const size_t extruder_nr_;

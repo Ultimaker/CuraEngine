@@ -1,8 +1,10 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SCENE_H
 #define SCENE_H
+
+#include <optional>
 
 #include "ExtruderTrain.h" //To store the extruders in the scene.
 #include "MeshGroup.h" //To store the mesh groups in the scene.
@@ -10,6 +12,9 @@
 
 namespace cura
 {
+
+class ExtrudersSet;
+class SliceDataStorage;
 
 /*
  * Represents a scene that should be sliced.
@@ -36,7 +41,7 @@ public:
     /*
      * \brief The extruders in the scene.
      */
-    std::vector<ExtruderTrain> extruders;
+    std::vector<ExtruderTrain> extruders_;
 
     /*
      * \brief The mesh group that is being processed right now.
@@ -45,7 +50,9 @@ public:
      * slicing process, you can be assured that this will not be null so you can
      * safely dereference it.
      */
-    std::vector<MeshGroup>::iterator current_mesh_group;
+    MeshGroup* current_mesh_group;
+
+    std::shared_ptr<SliceDataStorage> current_slice_data_;
 
     /*
      * \brief Create an empty scene.
@@ -73,6 +80,8 @@ public:
 
     const ExtruderTrain& getExtruder(const ExtruderNumber extruder_nr) const;
 
+    static Scene& getCurrent();
+
 private:
     /*
      * \brief You are not allowed to copy the scene.
@@ -82,9 +91,9 @@ private:
     /*
      * \brief You are not allowed to copy by assignment either.
      */
-    Scene& operator =(const Scene&) = delete;
+    Scene& operator=(const Scene&) = delete;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //SCENE_H
+#endif // SCENE_H

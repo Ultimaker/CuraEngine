@@ -23,7 +23,7 @@
 namespace cura
 {
 
-enum class PrintFeatureType : unsigned char;
+enum class PrintFeatureType : uint8_t;
 struct Velocity;
 class FeatureExtrusion;
 class SierpinskiFillProvider;

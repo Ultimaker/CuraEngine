@@ -3,27 +3,27 @@
 
 #pragma once
 
-#include <settings/EnumSettings.h>
-#include <settings/types/LayerIndex.h>
+#include <map>
 
 #include "ExtruderNumber.h"
 #include "operation_transformation/PrintOperationTransformer.h"
 #include "print_operation/ContinuousExtruderMoveSequencePtr.h"
 #include "print_operation/LayerPlanPtr.h"
 #include "print_operation/PrintPlan.h"
+#include "settings/EnumSettings.h"
 
 namespace cura
 {
 
-enum class PrintFeatureType : unsigned char;
+enum class PrintFeatureType : uint8_t;
 enum class EPlatformAdhesion;
+struct LayerIndex;
 class Shape;
-class SVG;
 
 class SkirtBrimAppender : public PrintOperationTransformer<PrintPlan>
 {
 public:
-    explicit SkirtBrimAppender(const SliceDataStorage& storage);
+    explicit SkirtBrimAppender();
 
     void process(PrintPlan* print_plan) override;
 
@@ -42,13 +42,6 @@ private:
         coord_t gap_; //!< The gap between the part and the first brim/skirt line
         coord_t brim_inside_margin_;
         size_t skirt_height_;
-
-        coord_t getLineWidth(const LayerIndex& layer_nr) const
-        {
-            return layer_nr > 0 ? line_width_X_ : line_width_0_;
-        }
-
-        coord_t getLineWidth(const ConstLayerPlanPtr& layer_plan) const;
     };
 
     enum class FirstExtruderOutlineAction
@@ -62,11 +55,11 @@ private:
     using FeatureFootprint = std::map<PrintFeatureType, Shape>;
 
 private:
+    static coord_t getLineWidth(const ExtruderNumber extruder_nr, const ConstLayerPlanPtr& layer_plan);
+
     static size_t calculateMaxHeight(const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs, const EPlatformAdhesion adhesion_type);
 
     static std::map<ExtruderNumber, ExtruderConfig> generateExtrudersConfigs(std::vector<ExtruderNumber>& used_extruders, const EPlatformAdhesion adhesion_type);
-
-    static std::map<ExtruderNumber, FeatureFootprint> generateFeatureFootprints(const PrintPlan* print_plan, const size_t height);
 
     /*!
      * Generates the outline for the first offset of each used extruder
@@ -89,7 +82,7 @@ private:
         std::map<ExtruderNumber, Shape>& starting_outlines,
         std::map<ExtruderNumber, Shape>& allowed_areas) const;
 
-    void generateSkirtBrim(
+    static void generateSkirtBrim(
         const EPlatformAdhesion adhesion_type,
         const std::optional<ExtruderNumber> brim_extruder_nr,
         std::vector<ExtruderNumber>& used_extruders,
@@ -98,22 +91,19 @@ private:
         std::map<ExtruderNumber, Shape> allowed_areas_per_extruder,
         const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
         const LayerPlanPtr& layer_plan,
-        const FirstExtruderOutlineAction first_extruder_outline_action) const;
+        const FirstExtruderOutlineAction first_extruder_outline_action);
 
-    std::vector<ContinuousExtruderMoveSequencePtr> generateOffset(
+    static std::vector<ContinuousExtruderMoveSequencePtr> generateOffset(
         const ExtruderNumber extruder_nr,
         const coord_t total_offset,
         const Shape& outline,
         Shape& covered_area,
         std::map<ExtruderNumber, Shape>& allowed_areas_per_extruder,
-        const std::map<ExtruderNumber, ExtruderConfig>& extruders_configs,
         const LayerPlanPtr& layer_plan,
-        const bool update_allowed_areas) const;
+        const bool update_allowed_areas);
 
 private:
     static constexpr coord_t min_brim_line_length_ = 3000u; //!< open polyline brim/skirt lines smaller than this will be removed
-    const SliceDataStorage& storage_;
-    SVG* svg_;
 };
 
 } // namespace cura

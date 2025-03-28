@@ -119,8 +119,8 @@ TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
     // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(1), Application::getInstance().current_slice_->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
-    EXPECT_EQ(setting_value, Application::getInstance().current_slice_->scene.extruders[0].settings_.get<std::string>("test_setting"));
+    ASSERT_EQ(size_t(1), Application::getInstance().current_slice_->scene.extruders_.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    EXPECT_EQ(setting_value, Application::getInstance().current_slice_->scene.extruders_[0].settings_.get<std::string>("test_setting"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
@@ -147,9 +147,9 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
     // Run the call that we're testing.
     instance->readExtruderSettingsMessage(messages);
 
-    ASSERT_EQ(size_t(2), Application::getInstance().current_slice_->scene.extruders.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
-    EXPECT_EQ(std::string("First"), Application::getInstance().current_slice_->scene.extruders[0].settings_.get<std::string>("What extruder are you?"));
-    EXPECT_EQ(std::string("Second"), Application::getInstance().current_slice_->scene.extruders[1].settings_.get<std::string>("What extruder are you?"));
+    ASSERT_EQ(size_t(2), Application::getInstance().current_slice_->scene.extruders_.size()) << "Reading the extruders must construct the correct amount of extruders in the scene.";
+    EXPECT_EQ(std::string("First"), Application::getInstance().current_slice_->scene.extruders_[0].settings_.get<std::string>("What extruder are you?"));
+    EXPECT_EQ(std::string("Second"), Application::getInstance().current_slice_->scene.extruders_[1].settings_.get<std::string>("What extruder are you?"));
 }
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)

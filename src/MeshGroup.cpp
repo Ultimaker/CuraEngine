@@ -3,6 +3,8 @@
 
 #include "MeshGroup.h"
 
+#include <Application.h>
+#include <Slice.h>
 #include <limits>
 #include <stdio.h>
 #include <string.h>
@@ -134,6 +136,11 @@ void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
     {
         mesh.transform(transformation);
     }
+}
+
+MeshGroup* MeshGroup::getCurrent()
+{
+    return Application::getInstance().current_slice_->scene.current_mesh_group;
 }
 
 bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)

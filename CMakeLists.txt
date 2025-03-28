@@ -158,6 +158,7 @@ set(engine_SRCS # Except main.cpp.
         src/operation_transformation/AddTravelMovesProcessor.cpp include/operation_transformation/AddTravelMovesProcessor.h
         src/operation_transformation/BedAdhesionConstraintsGenerator.cpp include/operation_transformation/BedAdhesionConstraintsGenerator.h
         src/operation_transformation/DirectTravelMoveGenerator.cpp include/operation_transformation/DirectTravelMoveGenerator.h
+        src/operation_transformation/DraftShieldAppender.cpp include/operation_transformation/DraftShieldAppender.h
         src/operation_transformation/ExtruderPlanScheduler.cpp include/operation_transformation/ExtruderPlanScheduler.h
         src/operation_transformation/FeatureExtrusionsConstraintsGenerator.cpp include/operation_transformation/FeatureExtrusionsConstraintsGenerator.h
         src/operation_transformation/FeatureExtrusionScheduler.cpp include/operation_transformation/FeatureExtrusionScheduler.h
@@ -180,6 +181,7 @@ set(engine_SRCS # Except main.cpp.
         src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
         src/settings/Settings.cpp
+        src/settings/ExtruderSettings.cpp include/settings/ExtruderSettings.h
         src/settings/ZSeamConfig.cpp
 
         src/utils/AABB.cpp

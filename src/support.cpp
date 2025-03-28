@@ -511,13 +511,13 @@ Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLay
         coord_t adhesion_size = 0; // Make sure there is enough room for the platform adhesion around support.
         coord_t extra_skirt_line_width = 0;
         const std::vector<bool> is_extruder_used = storage.getExtrudersUsed();
-        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
+        for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders_.size(); extruder_nr++)
         {
             if (! is_extruder_used[extruder_nr]) // Unused extruders and the primary adhesion extruder don't generate an extra skirt line.
             {
                 continue;
             }
-            const ExtruderTrain& other_extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
+            const ExtruderTrain& other_extruder = Application::getInstance().current_slice_->scene.extruders_[extruder_nr];
             extra_skirt_line_width += other_extruder.settings_.get<coord_t>("skirt_brim_line_width") * other_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
         }
         const std::vector<ExtruderTrain*> skirt_brim_extruders = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");

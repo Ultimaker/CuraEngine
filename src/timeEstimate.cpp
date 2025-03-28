@@ -270,22 +270,22 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     blocks.push_back(block);
 }
 
-std::vector<Duration> TimeEstimateCalculator::calculate()
+std::map<PrintFeatureType, Duration> TimeEstimateCalculator::calculate()
 {
     reversePass();
     forwardPass();
     recalculateTrapezoids();
 
-    std::vector<Duration> totals(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
-    totals[static_cast<unsigned char>(PrintFeatureType::NoneType)] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
+    std::map<PrintFeatureType, Duration> totals;
+    totals[PrintFeatureType::NoneType] = extra_time; // Extra time (pause for minimum layer time, etc) is marked as NoneType
     for (unsigned int n = 0; n < blocks.size(); n++)
     {
         const Block& block = blocks[n];
         const double plateau_distance = block.decelerate_after - block.accelerate_until;
 
-        totals[static_cast<unsigned char>(block.feature)] += accelerationTimeFromDistance(block.initial_feedrate, block.accelerate_until, block.acceleration);
-        totals[static_cast<unsigned char>(block.feature)] += plateau_distance / block.nominal_feedrate;
-        totals[static_cast<unsigned char>(block.feature)] += accelerationTimeFromDistance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
+        totals[block.feature] += accelerationTimeFromDistance(block.initial_feedrate, block.accelerate_until, block.acceleration);
+        totals[block.feature] += plateau_distance / block.nominal_feedrate;
+        totals[block.feature] += accelerationTimeFromDistance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
     }
     return totals;
 }

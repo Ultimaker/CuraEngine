@@ -11,7 +11,7 @@ namespace cura
 {
 
 enum class EFillMethod;
-enum class PrintFeatureType : unsigned char;
+enum class PrintFeatureType : uint8_t;
 struct GCodePathConfig;
 struct Ratio;
 class AngleDegrees;

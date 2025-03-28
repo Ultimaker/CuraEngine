@@ -43,7 +43,7 @@ public:
      */
     void write(PlanExporter& exporter) const override;
 
-    void applyProcessors(const std::vector<const PrintOperation*>& parents = {}) override;
+    void applyProcessors() override;
 
     std::optional<Point3LL> findStartPosition() const override;
 

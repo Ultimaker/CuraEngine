@@ -77,7 +77,7 @@ public:
 
         settings->add("infill_line_distance", "10");
 
-        Application::getInstance().current_slice_->scene.extruders.emplace_back(0, settings); // Add an extruder train.
+        Application::getInstance().current_slice_->scene.extruders_.emplace_back(0, settings); // Add an extruder train.
 
         // Set the retraction settings (also copied by LayerPlan).
         RetractionConfig retraction_config;

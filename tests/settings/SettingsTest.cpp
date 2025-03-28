@@ -89,16 +89,16 @@ TEST_F(SettingsTest, AddSettingExtruderTrain)
     // Add a slice with some extruder trains.
     auto current_slice = std::make_shared<Slice>(0);
     Application::getInstance().current_slice_ = current_slice;
-    current_slice->scene.extruders.emplace_back(0, nullptr);
-    current_slice->scene.extruders.emplace_back(1, nullptr);
-    current_slice->scene.extruders.emplace_back(2, nullptr);
+    current_slice->scene.extruders_.emplace_back(0, nullptr);
+    current_slice->scene.extruders_.emplace_back(1, nullptr);
+    current_slice->scene.extruders_.emplace_back(2, nullptr);
 
     settings.add("test_setting", "2");
-    EXPECT_EQ(&current_slice->scene.extruders[2], &settings.get<ExtruderTrain&>("test_setting"));
+    EXPECT_EQ(&current_slice->scene.extruders_[2], &settings.get<ExtruderTrain&>("test_setting"));
 
     settings.add("extruder_nr", "1");
     settings.add("test_setting", "-1"); //-1 should let it fall back to the current extruder_nr.
-    EXPECT_EQ(&current_slice->scene.extruders[1], &settings.get<ExtruderTrain&>("test_setting")) << "If the extruder is negative, it uses the extruder_nr setting.";
+    EXPECT_EQ(&current_slice->scene.extruders_[1], &settings.get<ExtruderTrain&>("test_setting")) << "If the extruder is negative, it uses the extruder_nr setting.";
 }
 
 TEST_F(SettingsTest, AddSettingLayerIndex)
@@ -241,14 +241,14 @@ TEST_F(SettingsTest, LimitToExtruder)
 {
     std::shared_ptr<Slice> current_slice = std::make_shared<Slice>(0);
     Application::getInstance().current_slice_ = current_slice;
-    current_slice->scene.extruders.emplace_back(0, nullptr);
-    current_slice->scene.extruders.emplace_back(1, nullptr);
-    current_slice->scene.extruders.emplace_back(2, nullptr);
+    current_slice->scene.extruders_.emplace_back(0, nullptr);
+    current_slice->scene.extruders_.emplace_back(1, nullptr);
+    current_slice->scene.extruders_.emplace_back(2, nullptr);
 
     // Add a setting to the extruder this is limiting to.
     const std::string limit_extruder_value = "I was gonna tell a time travelling joke but you didn't like it.";
-    current_slice->scene.extruders[2].settings_.add("test_setting", limit_extruder_value);
-    current_slice->scene.limit_to_extruder.emplace("test_setting", &current_slice->scene.extruders[2]);
+    current_slice->scene.extruders_[2].settings_.add("test_setting", limit_extruder_value);
+    current_slice->scene.limit_to_extruder.emplace("test_setting", &current_slice->scene.extruders_[2]);
 
     // Add a decoy setting to the main scene to make sure that we aren't getting the global setting instead.
     current_slice->scene.settings.add("test_setting", "Sting has been kidnapped. The Police have no lead.");

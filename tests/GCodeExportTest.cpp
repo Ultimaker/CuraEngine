@@ -233,8 +233,8 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     gcode.flavor_ = EGCodeFlavor::GRIFFIN;
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
-        Application::getInstance().current_slice_->scene.extruders.emplace_back(extruder_index, nullptr);
-        ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders.back();
+        Application::getInstance().current_slice_->scene.extruders_.emplace_back(extruder_index, nullptr);
+        ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders_.back();
         train.settings_.add("machine_nozzle_size", "0.4");
         train.settings_.add("machine_nozzle_id", "TestNozzle");
     }
@@ -313,8 +313,8 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
     const std::vector<double> filament_used = { 100, 200 };
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
-        Application::getInstance().current_slice_->scene.extruders.emplace_back(extruder_index, nullptr);
-        ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders.back();
+        Application::getInstance().current_slice_->scene.extruders_.emplace_back(extruder_index, nullptr);
+        ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders_.back();
         train.settings_.add("machine_nozzle_size", "0.4");
     }
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
@@ -446,8 +446,8 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
 
-    scene.extruders.emplace_back(0, nullptr);
-    ExtruderTrain& train1 = scene.extruders.back();
+    scene.extruders_.emplace_back(0, nullptr);
+    ExtruderTrain& train1 = scene.extruders_.back();
 
     train1.settings_.add("machine_extruder_prestart_code", ";PRESTART FIRST EXTRUDER");
     train1.settings_.add("machine_extruder_change_duration", "10.0");
@@ -458,8 +458,8 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     train1.settings_.add("machine_firmware_retract", "True");
     train1.settings_.add("retraction_enable", "True");
 
-    scene.extruders.emplace_back(1, nullptr);
-    ExtruderTrain& train2 = scene.extruders.back();
+    scene.extruders_.emplace_back(1, nullptr);
+    ExtruderTrain& train2 = scene.extruders_.back();
 
     train2.settings_.add("machine_extruder_prestart_code", ";PRESTART SECOND EXTRUDER");
     train2.settings_.add("machine_extruder_change_duration", "11.1");
@@ -488,8 +488,8 @@ TEST_F(GCodeExportTest, WriteZHopStartZero)
 
 TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.extruders_.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders_[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
@@ -498,8 +498,8 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.extruders_.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders_[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
@@ -516,8 +516,8 @@ TEST_F(GCodeExportTest, WriteZHopEndZero)
 
 TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.extruders_.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders_[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     gcode.writeZhopEnd();
@@ -526,8 +526,8 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
-    Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1");
+    Application::getInstance().current_slice_->scene.extruders_.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders_[gcode.current_extruder_].settings_.add("speed_z_hop", "1");
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
