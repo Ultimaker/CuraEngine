@@ -3403,9 +3403,6 @@ bool FffGcodeWriter::processSkinPart(
     const SkinPart& skin_part) const
 {
     bool added_something = false;
-
-    gcode_layer.mode_skip_agressive_merge_ = true;
-
     processRoofingFlooring(
         storage,
         gcode_layer,
@@ -3427,8 +3424,6 @@ bool FffGcodeWriter::processSkinPart(
         mesh.flooring_angles,
         added_something);
     processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
-
-    gcode_layer.mode_skip_agressive_merge_ = false;
     return added_something;
 }
 
