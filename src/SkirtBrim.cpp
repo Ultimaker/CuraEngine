@@ -539,7 +539,7 @@ void SkirtBrim::generateSecondarySkirtBrim(Shape& covered_area, std::vector<Shap
                 outside_polys,
                 inside_polys,
                 offset_from_reference,
-                bogus_total_offset,
+                offset_from_reference,
                 bogus_total_offset,
                 storage_.skirt_brim[extruder_nr].size(),
                 extruder_nr,
