@@ -131,7 +131,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     const Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width / wall_line_width_x)) / 100.0;
 
     const int wall_distribution_count = settings_.get<int>("wall_distribution_count");
-    const size_t max_bead_count = (inset_count_ < std::numeric_limits<coord_t>::max() / 2) ? 2 * inset_count_ : std::numeric_limits<coord_t>::max();
+    const size_t max_bead_count = (inset_count_ < std::numeric_limits<size_t>::max() / 2) ? 2 * inset_count_ : std::numeric_limits<size_t>::max();
     const auto beading_strat = BeadingStrategyFactory::makeStrategy(
         bead_width_0_,
         bead_width_x_,

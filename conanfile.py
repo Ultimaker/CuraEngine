@@ -133,8 +133,8 @@ class CuraEngineConan(ConanFile):
         self.requires("boost/1.86.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
-        self.requires("spdlog/1.12.0")
-        self.requires("fmt/10.2.1")
+        self.requires("spdlog/1.15.1")
+        self.requires("fmt/11.1.3")
         self.requires("range-v3/0.12.0")
         self.requires("zlib/1.3.1")
         self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
@@ -189,6 +189,11 @@ class CuraEngineConan(ConanFile):
         cmake_layout(self)
         self.cpp.build.includedirs = ["."]  # To package the generated headers
         self.cpp.package.libs = ["_CuraEngine"]
+
+        if self.settings.os == "Emscripten":
+            self.cpp.build.bin = ["CuraEngine.js"]
+            self.cpp.package.bin = ["CuraEngine.js"]
+            self.cpp.build.bindirs += ["CuraEngine"]
 
     def build(self):
         cmake = CMake(self)
