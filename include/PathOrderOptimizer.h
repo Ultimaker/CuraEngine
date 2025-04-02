@@ -22,7 +22,13 @@
 #include "settings/EnumSettings.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
+#include "utils/math.h"
 #include "utils/polygonUtils.h"
+#include "utils/scoring/BestElementFinder.h"
+#include "utils/scoring/CornerScoringCriterion.h"
+#include "utils/scoring/DistanceScoringCriterion.h"
+#include "utils/scoring/ExclusionAreaScoringCriterion.h"
+#include "utils/scoring/RandomScoringCriterion.h"
 #include "utils/views/dfs.h"
 
 namespace cura
@@ -113,7 +119,9 @@ public:
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false,
-        const Shape& disallowed_areas_for_seams = {})
+        const Shape& disallowed_areas_for_seams = {},
+        const bool use_shortest_for_inner_walls = false,
+        const Shape& overhang_areas = Shape())
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -122,7 +130,8 @@ public:
         , _group_outer_walls(group_outer_walls)
         , order_requirements_(&order_requirements)
         , disallowed_area_for_seams{ disallowed_areas_for_seams }
-
+        , use_shortest_for_inner_walls_(use_shortest_for_inner_walls)
+        , overhang_areas_(overhang_areas)
     {
     }
 
@@ -130,11 +139,12 @@ public:
      * Add a new polygon to be optimized.
      * \param polygon The polygon to optimize.
      */
-    void addPolygon(const Path& polygon, std::optional<size_t> force_start_index = std::nullopt)
+    void addPolygon(const Path& polygon, std::optional<size_t> force_start_index = std::nullopt, const bool is_outer_wall = false)
     {
         constexpr bool is_closed = true;
         paths_.emplace_back(polygon, is_closed);
         paths_.back().force_start_index_ = force_start_index;
+        paths_.back().is_outer_wall = is_outer_wall;
     }
 
     /*!
@@ -180,6 +190,20 @@ public:
             }
         }
 
+        // Set actual used start point calculation strategy for each path
+        for (auto& path : paths_)
+        {
+            if (use_shortest_for_inner_walls_ && ! path.is_outer_wall)
+            {
+                path.seam_config_ = ZSeamConfig(EZSeamType::SHORTEST);
+                path.force_start_index_ = std::nullopt;
+            }
+            else
+            {
+                path.seam_config_ = seam_config_;
+            }
+        }
+
         // Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
         const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
         SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
@@ -210,11 +234,15 @@ public:
         {
             for (auto& path : paths_)
             {
-                if (! path.is_closed_ || path.converted_->empty())
+                if (path.seam_config_.type_ == EZSeamType::RANDOM || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED
+                    || path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
                 {
-                    continue; // Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
+                    if (! path.is_closed_ || path.converted_->empty())
+                    {
+                        continue; // Can't pre-compute the seam for open polylines since they're at the endpoint nearest to the current position.
+                    }
+                    path.start_vertex_ = findStartLocation(path, path.seam_config_.pos_);
                 }
-                path.start_vertex_ = findStartLocation(path, seam_config_.pos_);
             }
         }
 
@@ -297,6 +325,17 @@ protected:
      * For each pair the first needs to be printe before the second.
      */
     const std::unordered_multimap<Path, Path>* order_requirements_;
+
+    /*!
+     * If true, we will compute the seam position of inner walls using a "shortest" seam configs, for inner walls that
+     * are directly following an outer wall.
+     */
+    const bool use_shortest_for_inner_walls_;
+
+    /*!
+     * Contains the overhang areas, where we would prefer not to place the start locations of walls
+     */
+    const Shape overhang_areas_;
 
     std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
@@ -583,8 +622,8 @@ protected:
                 continue;
             }
 
-            const bool precompute_start
-                = seam_config_.type_ == EZSeamType::RANDOM || seam_config_.type_ == EZSeamType::USER_SPECIFIED || seam_config_.type_ == EZSeamType::INTERNAL_SPECIFIED ||seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
+            const bool precompute_start = path->seam_config_.type_ == EZSeamType::RANDOM || path->seam_config_.type_ == EZSeamType::USER_SPECIFIED
+                                       || path->seam_config_.type_ == EZSeamType::INTERNAL_SPECIFIED || seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
             if (! path->is_closed_ || ! precompute_start) // Find the start location unless we've already precomputed it.
             {
                 path->start_vertex_ = findStartLocation(*path, start_position);
@@ -697,196 +736,84 @@ protected:
         }
 
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
+        const PointsSet& points = *path.converted_;
 
-        if (seam_config_.type_ == EZSeamType::RANDOM)
+        // ########## Step 1: define the main criteria to be applied and their weights
+        // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
+        // exactly one calculation using this criterion.
+        BestElementFinder best_candidate_finder;
+        BestElementFinder::CriteriaPass main_criteria_pass;
+        main_criteria_pass.outsider_delta_threshold = 0.05;
+
+        BestElementFinder::WeighedCriterion main_criterion;
+
+        if (path.force_start_index_.has_value()) // Handles EZSeamType::USER_SPECIFIED with "seam_on_vertex" disabled
         {
-            size_t vert = getRandomPointInPolygon(*path.converted_);
-            return vert;
+            // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
+            constexpr double distance_divider = 1.0;
+            constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
+            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
+        }
+        else if (path.seam_config_.type_ == EZSeamType::SHORTEST || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED)
+        {
+            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
+        }
+        else if (
+            path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
+            && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN))
+        {
+            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, path.seam_config_.corner_pref_);
+        }
+        else if (path.seam_config_.type_ == EZSeamType::RANDOM)
+        {
+            main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
         }
 
-        if (path.force_start_index_.has_value())
+        if (main_criterion.criterion)
         {
-            // Start index already known, since we forced it, return.
-            return path.force_start_index_.value();
-        }
-
-        // Precompute segments lengths because we are going to need them multiple times
-        std::vector<coord_t> segments_sizes(path.converted_->size());
-        coord_t total_length = 0;
-        for (size_t i = 0; i < path.converted_->size(); ++i)
-        {
-            const Point2LL& here = path.converted_->at(i);
-            const Point2LL& next = path.converted_->at((i + 1) % path.converted_->size());
-            const coord_t segment_size = vSize(next - here);
-            segments_sizes[i] = segment_size;
-            total_length += segment_size;
-        }
-
-        size_t best_i;
-        double best_score = std::numeric_limits<double>::infinity();
-        for (const auto& [i, here] : *path.converted_ | ranges::views::drop_last(1) | ranges::views::enumerate)
-        {
-            // For most seam types, the shortest distance matters. Not for SHARPEST_CORNER though.
-            // For SHARPEST_CORNER, use a fixed starting score of 0.
-            const double score_distance = (seam_config_.type_ == EZSeamType::SHARPEST_CORNER && seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE)
-                                            ? MM2INT(10)
-                                            : vSize2(here - target_pos);
-
-            double corner_angle = cornerAngle(path, i, segments_sizes, total_length);
-            // angles < 0 are concave (left turning)
-            // angles > 0 are convex (right turning)
-
-            double corner_shift;
-
-            if (seam_config_.type_ == EZSeamType::SHORTEST)
-            {
-                // the more a corner satisfies our criteria, the closer it appears to be
-                // shift 10mm for a very acute corner
-                corner_shift = MM2INT(10) * MM2INT(10);
-            }
-            else
-            {
-                // the larger the distance from prev_point to p1, the more a corner will "attract" the seam
-                // so the user has some control over where the seam will lie.
-
-                // the divisor here may need adjusting to obtain the best results (TBD)
-                corner_shift = score_distance / 50;
-            }
-
-            double score = score_distance;
-            switch (seam_config_.corner_pref_)
-            {
-            default:
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-                // Give advantage to concave corners. More advantage for sharper corners.
-                score += corner_angle * corner_shift;
-                break;
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-                // Give advantage to convex corners. More advantage for sharper corners.
-                score -= corner_angle * corner_shift;
-                break;
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-                score -= std::abs(corner_angle) * corner_shift; // Still give sharper corners more advantage.
-                break;
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
-                break;
-            case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED: // Give sharper corners some advantage, but sharper concave corners even more.
-            {
-                double score_corner = std::abs(corner_angle) * corner_shift;
-                if (corner_angle < 0) // Concave corner.
-                {
-                    score_corner *= 2;
-                }
-                score -= score_corner;
-                break;
-            }
-            }
-
-            constexpr double EPSILON = 5.0;
-            if (std::abs(best_score - score) <= EPSILON)
-            {
-                // add breaker for two candidate starting location with similar score
-                // if we don't do this then we (can) get an un-even seam
-                // ties are broken by favouring points with lower x-coord
-                // if x-coord for both points are equal then break ties by
-                // favouring points with lower y-coord
-                const Point2LL& best_point = path.converted_->at(best_i);
-                if (std::abs(here.Y - best_point.Y) <= EPSILON ? best_point.X < here.X : best_point.Y < here.Y)
-                {
-                    best_score = std::min(best_score, score);
-                    best_i = i;
-                }
-            }
-            else if (score < best_score)
-            {
-                best_i = i;
-                best_score = score;
-            }
-        }
-
-        if (! disallowed_area_for_seams.empty())
-        {
-            best_i = pathIfZseamIsInDisallowedArea(best_i, path, 0);
-        }
-        return best_i;
-    }
-
-    /*!
-     * Finds a neighbour point on the path, located before or after the given reference point. The neighbour point
-     * is computed by travelling on the path and stopping when the distance has been reached, For example:
-     * |------|---------|------|--------------*---|
-     * H      A         B      C              N   D
-     * In this case, H is the start point of the path and ABCD are the actual following points of the path.
-     * The neighbour point N is found by reaching point D then going a bit backward on the previous segment.
-     * This approach gets rid of the mesh actual resolution and gives a neighbour point that is on the path
-     * at a given physical distance.
-     * \param path The vertex data of a path
-     * \param here The starting point index
-     * \param distance The distance we want to travel on the path, which may be positive to go forward
-     * or negative to go backward
-     * \param segments_sizes The pre-computed sizes of the segments
-     * \return The position of the path a the given distance from the reference point
-     */
-    static Point2LL findNeighbourPoint(const OrderablePath& path, int here, coord_t distance, const std::vector<coord_t>& segments_sizes)
-    {
-        const int direction = distance > 0 ? 1 : -1;
-        const int size_delta = distance > 0 ? -1 : 0;
-        distance = std::abs(distance);
-
-        // Travel on the path until we reach the distance
-        int actual_delta = 0;
-        coord_t travelled_distance = 0;
-        coord_t segment_size = 0;
-        while (travelled_distance < distance)
-        {
-            actual_delta += direction;
-            segment_size = segments_sizes[(here + actual_delta + size_delta + path.converted_->size()) % path.converted_->size()];
-            travelled_distance += segment_size;
-        }
-
-        const Point2LL& next_pos = path.converted_->at((here + actual_delta + path.converted_->size()) % path.converted_->size());
-
-        if (travelled_distance > distance) [[likely]]
-        {
-            // We have overtaken the required distance, go backward on the last segment
-            int prev = (here + actual_delta - direction + path.converted_->size()) % path.converted_->size();
-            const Point2LL& prev_pos = path.converted_->at(prev);
-
-            const Point2LL vector = next_pos - prev_pos;
-            const Point2LL unit_vector = (vector * 1000) / segment_size;
-            const Point2LL vector_delta = unit_vector * (segment_size - (travelled_distance - distance));
-            return prev_pos + vector_delta / 1000;
+            main_criteria_pass.criteria.push_back(main_criterion);
         }
         else
         {
-            // Luckily, the required distance stops exactly on an existing point
-            return next_pos;
+            spdlog::warn("Missing main criterion calculator");
         }
-    }
 
-    /*!
-     * Some models have very sharp corners, but also have a high resolution. If a sharp corner
-     * consists of many points each point individual might have a shallow corner, but the
-     * collective angle of all nearby points is greater. To counter this the cornerAngle is
-     * calculated from two points within angle_query_distance of the query point, no matter
-     * what segment this leads us to
-     * \param path The vertex data of a path
-     * \param i index of the query point
-     * \param segments_sizes The pre-computed sizes of the segments
-     * \param total_length The path total length
-     * \param angle_query_distance query range (default to 1mm)
-     * \return angle between the reference point and the two sibling points, weighed to [-1.0 ; 1.0]
-     */
-    static double cornerAngle(const OrderablePath& path, int i, const std::vector<coord_t>& segments_sizes, coord_t total_length, const coord_t angle_query_distance = 1000)
-    {
-        const coord_t bounded_distance = std::min(angle_query_distance, total_length / 2);
-        const Point2LL& here = path.converted_->at(i);
-        const Point2LL next = findNeighbourPoint(path, i, bounded_distance, segments_sizes);
-        const Point2LL previous = findNeighbourPoint(path, i, -bounded_distance, segments_sizes);
+        // Second criterion with heigher weight to avoid overhanging areas
+        if (! overhang_areas_.empty())
+        {
+            BestElementFinder::WeighedCriterion overhang_criterion;
+            overhang_criterion.weight = 2.0;
+            overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(points, overhang_areas_);
+            main_criteria_pass.criteria.push_back(overhang_criterion);
+        }
 
-        double angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
+        best_candidate_finder.appendCriteriaPass(main_criteria_pass);
 
-        return angle / std::numbers::pi;
+        // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
+        if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
+        {
+            const AABB path_bounding_box(points);
+
+            { // First fallback strategy is to take points on the back-most position
+                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+                constexpr double outsider_delta_threshold = 0.01;
+                best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
+            }
+
+            { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
+                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+                best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
+            }
+        }
+
+        // ########## Step 3: apply the criteria to find the vertex with the best global score
+        std::optional<size_t> best_i = best_candidate_finder.findBestElement(points.size());
+
+        if (! disallowed_area_for_seams.empty())
+        {
+            best_i = pathIfZseamIsInDisallowedArea(best_i.value_or(0), path, 0);
+        }
+        return best_i.value_or(0);
     }
 
     /*!
@@ -945,16 +872,6 @@ protected:
             last_point = point;
         }
         return sum * sum; // Squared distance, for fair comparison with direct distance.
-    }
-
-    /*!
-     * Get a random vertex of a polygon.
-     * \param polygon A polygon to get a random vertex of.
-     * \return A random index in that polygon.
-     */
-    size_t getRandomPointInPolygon(const PointsSet& polygon) const
-    {
-        return rand() % polygon.size();
     }
 
     bool isLoopingPolyline(const OrderablePath& path)

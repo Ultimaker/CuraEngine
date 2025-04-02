@@ -59,7 +59,7 @@ struct TreeSupportSettings
         , maximum_move_distance((angle < TAU / 4) ? std::llround(tan(angle) * layer_height) : std::numeric_limits<coord_t>::max())
         , maximum_move_distance_slow((angle_slow < TAU / 4) ? std::llround(tan(angle_slow) * layer_height) : std::numeric_limits<coord_t>::max())
         , support_bottom_layers(mesh_group_settings.get<bool>("support_bottom_enable") ? round_divide(mesh_group_settings.get<coord_t>("support_bottom_height"), layer_height) : 0)
-        , tip_layers(std::max((branch_radius - min_radius) / (support_line_width / 3), branch_radius / layer_height))
+        , tip_layers(std::max(std::max((branch_radius - min_radius) / (support_line_width / 3), branch_radius / layer_height), 1LL))
         , // Ensure lines always stack nicely even if layer height is large
         diameter_angle_scale_factor(sin(mesh_group_settings.get<AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius)
         , max_to_model_radius_increase(mesh_group_settings.get<coord_t>("support_tree_max_diameter_increase_by_merges_when_support_to_model") / 2)

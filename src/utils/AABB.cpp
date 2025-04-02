@@ -3,6 +3,7 @@
 
 #include "utils/AABB.h"
 
+#include <algorithm>
 #include <limits>
 
 #include "geometry/Polyline.h"
@@ -33,18 +34,11 @@ AABB::AABB(const Shape& shape)
     calculate(shape);
 }
 
-AABB::AABB(const Polygon& poly)
+AABB::AABB(const PointsSet& poly)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
 {
     calculate(poly);
-}
-
-AABB::AABB(const Polyline& line)
-    : min_(POINT_MAX, POINT_MAX)
-    , max_(POINT_MIN, POINT_MIN)
-{
-    calculate(line);
 }
 
 Point2LL AABB::getMiddle() const
@@ -90,21 +84,11 @@ void AABB::calculate(const Shape& shape)
     }
 }
 
-void AABB::calculate(const Polygon& poly)
+void AABB::calculate(const PointsSet& poly)
 {
     min_ = Point2LL(POINT_MAX, POINT_MAX);
     max_ = Point2LL(POINT_MIN, POINT_MIN);
     for (const Point2LL& p : poly)
-    {
-        include(p);
-    }
-}
-
-void AABB::calculate(const Polyline& line)
-{
-    min_ = Point2LL(POINT_MAX, POINT_MAX);
-    max_ = Point2LL(POINT_MIN, POINT_MIN);
-    for (const Point2LL& p : line)
     {
         include(p);
     }
@@ -158,7 +142,7 @@ void AABB::include(const Point2LL& point)
     max_.Y = std::max(max_.Y, point.Y);
 }
 
-void AABB::include(const Polygon& polygon)
+void AABB::include(const PointsSet& polygon)
 {
     for (const Point2LL& point : polygon)
     {

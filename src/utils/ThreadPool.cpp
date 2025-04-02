@@ -15,16 +15,9 @@ ThreadPool::ThreadPool(size_t nthreads)
     }
 }
 
-bool ThreadPool::isInPool()
+bool ThreadPool::hasActiveTasks()
 {
-    for (size_t i = 0; i < threads.size(); i++)
-    {
-        if (threads[i].get_id() == std::this_thread::get_id())
-        {
-            return true;
-        }
-    }
-    return false;
+    return !tasks.empty();
 }
 
 void ThreadPool::worker()

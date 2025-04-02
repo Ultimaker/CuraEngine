@@ -12,6 +12,7 @@
 #include <optional>
 #include <unordered_set>
 
+#include <range/v3/view/chunk_by.hpp>
 #include <range/v3/view/concat.hpp>
 #include <spdlog/spdlog.h>
 
@@ -41,6 +42,10 @@
 
 namespace cura
 {
+constexpr coord_t EPSILON = 5;
+
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic" };
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
@@ -172,7 +177,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             if (extruder_is_used_in_filler_layers)
             {
-                process_layer_starting_layer_nr = -Raft::getFillerLayerCount();
+                process_layer_starting_layer_nr = -static_cast<int>(Raft::getFillerLayerCount());
                 break;
             }
         }
@@ -317,6 +322,8 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
         fan_speed_layer_time_settings_per_extruder.emplace_back();
         FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings_per_extruder.back();
         fan_speed_layer_time_settings.cool_min_layer_time = train.settings_.get<Duration>("cool_min_layer_time");
+        fan_speed_layer_time_settings.cool_min_layer_time_overhang = train.settings_.get<Duration>("cool_min_layer_time_overhang");
+        fan_speed_layer_time_settings.cool_min_layer_time_overhang_min_segment_length = train.settings_.get<coord_t>("cool_min_layer_time_overhang_min_segment_length");
         fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = train.settings_.get<Duration>("cool_min_layer_time_fan_speed_max");
         fan_speed_layer_time_settings.cool_fan_speed_0 = train.settings_.get<Ratio>("cool_fan_speed_0") * 100.0;
         fan_speed_layer_time_settings.cool_fan_speed_min = train.settings_.get<Ratio>("cool_fan_speed_min") * 100.0;
@@ -479,6 +486,17 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
         }
     }
 
+    if (mesh.flooring_angles.size() == 0)
+    {
+        mesh.flooring_angles = mesh.settings.get<std::vector<AngleDegrees>>("flooring_angles");
+        if (mesh.flooring_angles.size() == 0)
+        {
+            // user has not specified any infill angles so use defaults
+            mesh.flooring_angles.push_back(45);
+            mesh.flooring_angles.push_back(135);
+        }
+    }
+
     if (mesh.skin_angles.size() == 0)
     {
         mesh.skin_angles = mesh.settings.get<std::vector<AngleDegrees>>("skin_angles");
@@ -574,7 +592,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
 
     coord_t z = 0;
-    const LayerIndex initial_raft_layer_nr = -Raft::getTotalExtraLayers();
+    const LayerIndex initial_raft_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
     const Settings& interface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
     const size_t num_interface_layers = interface_settings.get<size_t>("raft_interface_layers");
     const Settings& surface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
@@ -704,6 +722,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     config,
                     config,
                     config,
+                    config,
+                    config,
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -734,6 +754,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             gcode_layer.addPolygonsByOptimizer(
                 raft_polygons,
                 gcode_layer.configs_storage_.raft_base_config,
+                mesh_group_settings,
                 ZSeamConfig(),
                 wipe_dist,
                 spiralize,
@@ -763,7 +784,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     z += raft_interface_z_offset;
 
-    for (LayerIndex raft_interface_layer = 1; static_cast<size_t>(raft_interface_layer) <= num_interface_layers; ++raft_interface_layer)
+    for (LayerIndex raft_interface_layer = 1; raft_interface_layer <= LayerIndex(num_interface_layers); ++raft_interface_layer)
     { // raft interface layer
         const LayerIndex layer_nr = initial_raft_layer_nr + raft_interface_layer;
         z += interface_layer_height;
@@ -864,6 +885,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 config,
                 config,
                 config,
+                config,
+                config,
                 retract_before_outer_wall,
                 wipe_dist,
                 wipe_dist,
@@ -894,6 +917,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         gcode_layer.addPolygonsByOptimizer(
             raft_polygons,
             gcode_layer.configs_storage_.raft_interface_config,
+            mesh_group_settings,
             ZSeamConfig(),
             wipe_dist,
             spiralize,
@@ -924,7 +948,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
     z += raft_surface_z_offset;
 
-    for (LayerIndex raft_surface_layer = 1; static_cast<size_t>(raft_surface_layer) <= num_surface_layers; raft_surface_layer++)
+    for (LayerIndex raft_surface_layer = 1; raft_surface_layer <= LayerIndex(num_surface_layers); raft_surface_layer++)
     { // raft surface layers
         const LayerIndex layer_nr = initial_raft_layer_nr + 1 + num_interface_layers + raft_surface_layer - 1; // +1: 1 base layer
         z += surface_layer_height;
@@ -1032,6 +1056,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     config,
                     config,
                     config,
+                    config,
+                    config,
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -1072,6 +1098,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 gcode_layer.addPolygonsByOptimizer(
                     raft_polygons,
                     gcode_layer.configs_storage_.raft_surface_config,
+                    mesh_group_settings,
                     ZSeamConfig(),
                     wipe_dist,
                     spiralize,
@@ -1165,6 +1192,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
 
+    coord_t comb_offset_from_outlines = 0;
     coord_t avoid_distance = 0; // minimal avoid distance is zero
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
@@ -1177,6 +1205,8 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             {
                 avoid_distance = std::max(avoid_distance, extruder.settings_.get<coord_t>("travel_avoid_distance"));
             }
+
+            comb_offset_from_outlines = std::max(comb_offset_from_outlines, extruder.settings_.get<coord_t>("retraction_combing_avoid_distance"));
         }
     }
 
@@ -1192,7 +1222,6 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
         }
         max_inner_wall_width = std::max(max_inner_wall_width, mesh_inner_wall_width);
     }
-    const coord_t comb_offset_from_outlines = max_inner_wall_width * 2;
 
     const size_t first_extruder = findUsedExtruderIndex(storage, layer_nr, false);
 
@@ -1269,6 +1298,8 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             }
         }
     }
+
+    gcode_layer.applyGradualFlow();
 
     gcode_layer.applyModifyPlugin();
     time_keeper.registerTime("Modify plugin");
@@ -1474,13 +1505,14 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
 {
     LayerIndex layer_nr = std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr());
-    if (layer_nr == 0 && Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
     {
         return; // ooze shield already generated by brim
     }
     if (storage.ooze_shield.size() > 0 && layer_nr < storage.ooze_shield.size())
     {
-        gcode_layer.addPolygonsByOptimizer(storage.ooze_shield[layer_nr], gcode_layer.configs_storage_.skirt_brim_config_per_extruder[0]);
+        gcode_layer.addPolygonsByOptimizer(storage.ooze_shield[layer_nr], gcode_layer.configs_storage_.skirt_brim_config_per_extruder[0], mesh_group_settings);
     }
 }
 
@@ -1513,7 +1545,7 @@ void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPl
         }
     }
 
-    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, gcode_layer.configs_storage_.skirt_brim_config_per_extruder[0]);
+    gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, gcode_layer.configs_storage_.skirt_brim_config_per_extruder[0], mesh_group_settings);
 }
 
 void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& storage)
@@ -1535,7 +1567,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     extruder_order_per_layer.init(true, storage.print_layer_count);
 
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
-    for (LayerIndex layer_nr = -Raft::getTotalExtraLayers(); layer_nr < static_cast<LayerIndex>(storage.print_layer_count); layer_nr++)
+    for (LayerIndex layer_nr = -LayerIndex(Raft::getTotalExtraLayers()); layer_nr < LayerIndex(storage.print_layer_count); layer_nr++)
     {
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);
         extruder_order_per_layer.push_back(extruder_order);
@@ -1554,7 +1586,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
 void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
 {
-    LayerIndex first_print_layer = -Raft::getTotalExtraLayers();
+    LayerIndex first_print_layer = -LayerIndex(Raft::getTotalExtraLayers());
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
         if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, extruder_nr))
@@ -1564,7 +1596,7 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
         }
     }
 
-    for (LayerIndex layer_nr = first_print_layer; layer_nr < static_cast<LayerIndex>(storage.print_layer_count); ++layer_nr)
+    for (LayerIndex layer_nr = first_print_layer; layer_nr < LayerIndex(storage.print_layer_count); ++layer_nr)
     {
         const std::vector<bool> used_extruders = storage.getExtrudersUsed(layer_nr);
         for (size_t extruder_nr = 0; extruder_nr < used_extruders.size(); ++extruder_nr)
@@ -1588,7 +1620,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const LayerIndex raft_base_layer_nr = -Raft::getTotalExtraLayers();
+    const LayerIndex raft_base_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
     Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
 
     if (layer_type == Raft::RaftBase)
@@ -1720,7 +1752,26 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
         mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
         mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     const bool spiralize = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize");
-    gcode_layer.addPolygonsByOptimizer(polygons, mesh_config.inset0_config, z_seam_config, mesh.settings.get<coord_t>("wall_0_wipe_dist"), spiralize);
+    constexpr Ratio flow_ratio = 1.0;
+    constexpr bool always_retract = false;
+    constexpr bool reverse_order = false;
+    const std::optional<Point2LL> start_near_location = std::nullopt;
+    constexpr bool scarf_seam = true;
+    constexpr bool smooth_speed = true;
+
+    gcode_layer.addPolygonsByOptimizer(
+        polygons,
+        mesh_config.inset0_config,
+        mesh.settings,
+        z_seam_config,
+        mesh.settings.get<coord_t>("wall_0_wipe_dist"),
+        spiralize,
+        flow_ratio,
+        always_retract,
+        reverse_order,
+        start_near_location,
+        scarf_seam,
+        smooth_speed);
 
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
 }
@@ -1739,7 +1790,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
 {
-    const auto& mesh = *mesh_ptr;
+    auto& mesh = *mesh_ptr;
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
         return;
@@ -1750,7 +1801,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    const SliceLayer& layer = mesh.layers[gcode_layer.getLayerNr()];
+    SliceLayer& layer = mesh.layers[gcode_layer.getLayerNr()];
 
     if (layer.parts.empty())
     {
@@ -1768,8 +1819,8 @@ void FffGcodeWriter::addMeshLayerToGCode(
             mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
             mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     }
-    PathOrderOptimizer<const SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (const SliceLayerPart& part : layer.parts)
+    PathOrderOptimizer<SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for (SliceLayerPart& part : layer.parts)
     {
         if (part.outline.empty())
         {
@@ -1780,7 +1831,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
 
     part_order_optimizer.optimize(false);
 
-    for (const PathOrdering<const SliceLayerPart*>& path : part_order_optimizer.paths_)
+    for (const PathOrdering<SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
         addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
     }
@@ -1802,7 +1853,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    const SliceLayerPart& part,
+    SliceLayerPart& part,
     LayerPlan& gcode_layer) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
@@ -1824,8 +1875,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     added_something = added_something | processSkin(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
     // After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-    if (added_something
-        && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < static_cast<LayerIndex>(mesh.settings.get<size_t>("initial_bottom_layers"))))
+    if (added_something && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))))
     {
         coord_t innermost_wall_line_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (gcode_layer.getLayerNr() == 0)
@@ -1964,7 +2014,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx]);
+                gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx], mesh.settings);
             }
 
             if (! infill_lines.empty())
@@ -1989,6 +2039,399 @@ bool FffGcodeWriter::processMultiLayerInfill(
         }
     }
     return added_something;
+}
+
+// Return a set of parallel lines at a given angle within an area
+// which cover a set of points
+void getLinesForArea(OpenLinesSet& result_lines, const Shape& area, const AngleDegrees& angle, const PointsSet& points, coord_t line_width)
+{
+    OpenLinesSet candidate_lines;
+    Shape unused_skin_polygons;
+    std::vector<VariableWidthLines> unused_skin_paths;
+
+    // We just want a set of lines which cover a Shape, and reusing this
+    // code seems like the best way.
+    Infill infill_comp(EFillMethod::LINES, false, false, area, line_width, line_width, 0, 1, angle, 0, 0, 0, 0);
+
+    infill_comp.generate(unused_skin_paths, unused_skin_polygons, candidate_lines, {}, 0, SectionType::INFILL);
+
+    // Select only lines which are needed to support points
+    for (const auto& line : candidate_lines)
+    {
+        for (const auto& point : points)
+        {
+            if (LinearAlg2D::getDist2FromLineSegment(line.front(), point, line.back()) <= (line_width / 2) * (line_width / 2))
+            {
+                result_lines.push_back(line);
+                break;
+            }
+        }
+    }
+}
+
+// Return a set of parallel lines within an area which
+// fully support (cover) a set of points.
+void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& area, const PointsSet& points, coord_t line_width)
+{
+    OpenLinesSet candidate_lines;
+
+    struct CompareAngles
+    {
+        bool operator()(const AngleDegrees& a, const AngleDegrees& b) const
+        {
+            constexpr double small_angle = 5;
+            if (std::fmod(a - b + 360, 180) < small_angle)
+            {
+                return false; // Consider them as equal (near duplicates)
+            }
+            return (a < b);
+        }
+    };
+    std::set<AngleDegrees, CompareAngles> candidate_angles;
+
+    // heuristic that usually chooses a goodish angle
+    for (size_t i = 1; i < points.size(); i *= 2)
+    {
+        candidate_angles.insert(angle(points[i] - points[i / 2]));
+    }
+
+    candidate_angles.insert({ 0, 90 });
+
+    for (const auto& angle : candidate_angles)
+    {
+        candidate_lines.clear();
+        getLinesForArea(candidate_lines, area, angle, points, line_width);
+        if (candidate_lines.length() < result_lines.length() || result_lines.length() == 0)
+        {
+            result_lines = std::move(candidate_lines);
+        }
+    }
+}
+
+// Add a supporting line by cutting a few existing lines.
+// We do this because supporting lines are hanging over air,
+// and therefore print best as part of a continuous print move,
+// rather than having a travel move before and after them.
+void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& line_to_add)
+{
+    // Returns the line index and the index of the point within an infill_line, null for no match found.
+    const auto findMatchingSegment = [&](const Point2LL& p) -> std::optional<std::tuple<size_t, size_t>>
+    {
+        for (size_t i = 0; i < infill_lines.size(); ++i)
+        {
+            for (size_t j = 1; j < infill_lines[i].size(); ++j)
+            {
+                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, infill_lines[i][j - 1], infill_lines[i][j]);
+                int64_t dist = vSize2(p - closest_here);
+
+                if (dist < EPSILON * EPSILON) // rounding
+                {
+                    return std::make_tuple(i, j);
+                }
+            }
+        }
+        return std::nullopt;
+    };
+
+    auto front_match = findMatchingSegment(line_to_add.front());
+    auto back_match = findMatchingSegment(line_to_add.back());
+
+    if (front_match && back_match)
+    {
+        const auto& [front_line_index, front_point_index] = *front_match;
+        const auto& [back_line_index, back_point_index] = *back_match;
+
+        if (front_line_index == back_line_index)
+        {
+            /* both ends intersect with the same line.
+             * If the inserted line has ends x, y
+             * and the original line was  ...--A--(x)--B--...--C--(y)--D--...
+             * Then the new lines will be ...--A--x--y--C--...--B--x
+             * And line                   y--D--...
+             * Note that some parts of the line are reversed,
+             * and the last one is completly split apart.
+             */
+            OpenPolyline& old_line = infill_lines[front_line_index];
+            OpenPolyline new_line_start;
+            OpenPolyline new_line_end;
+            Point2LL x, y;
+            std::ptrdiff_t x_index, y_index;
+            if (front_point_index < back_point_index)
+            {
+                x = line_to_add.front();
+                y = line_to_add.back();
+                x_index = static_cast<std::ptrdiff_t>(front_point_index);
+                y_index = static_cast<std::ptrdiff_t>(back_point_index);
+            }
+            else
+            {
+                y = line_to_add.front();
+                x = line_to_add.back();
+                y_index = static_cast<std::ptrdiff_t>(front_point_index);
+                x_index = static_cast<std::ptrdiff_t>(back_point_index);
+            }
+
+            new_line_start.insert(new_line_start.end(), old_line.begin(), old_line.begin() + x_index);
+            new_line_start.push_back(x);
+            new_line_start.push_back(y);
+            new_line_start.insert(new_line_start.end(), old_line.rend() - y_index, old_line.rend() - x_index);
+            new_line_start.push_back(x);
+
+            new_line_end.push_back(y);
+            new_line_end.insert(new_line_end.end(), old_line.begin() + y_index, old_line.end());
+
+            old_line.setPoints(std::move(new_line_start.getPoints()));
+            infill_lines.push_back(new_line_end);
+        }
+        else
+        {
+            /* Different lines
+             * If the line_to_add has ends [front, back]
+             * Existing line (intersects front):       ...--A--(x)--B--...
+             * Other existing line (intersects back):  ...--C--(y)--D--...
+             * Result is Line:   ...--A--x--y--D--...
+             * And line:         x--B--...
+             * And line:         ...--C--y
+             */
+            OpenPolyline& old_front = infill_lines[front_line_index];
+            OpenPolyline& old_back = infill_lines[back_line_index];
+            OpenPolyline full_line, new_front, new_back;
+            const Point2LL x = line_to_add.front();
+            const Point2LL y = line_to_add.back();
+            const auto x_index = static_cast<std::ptrdiff_t>(front_point_index);
+            const auto y_index = static_cast<std::ptrdiff_t>(back_point_index);
+
+            new_front.push_back(x);
+            new_front.insert(new_front.end(), old_front.begin() + x_index, old_front.end());
+
+            new_back.insert(new_back.end(), old_back.begin(), old_back.begin() + y_index);
+            new_back.push_back(y);
+
+            full_line.insert(full_line.end(), old_front.begin(), old_front.begin() + x_index);
+            full_line.push_back(x);
+            full_line.push_back(y);
+            full_line.insert(full_line.end(), old_back.begin() + y_index, old_back.end());
+
+            old_front.setPoints(std::move(new_front.getPoints()));
+            old_back.setPoints(std::move(new_back.getPoints()));
+            infill_lines.push_back(full_line);
+        }
+    }
+    else
+    {
+        // One or other end touches something other than infill
+        // we will just suffer a travel move in this case
+        infill_lines.push_back(line_to_add);
+    }
+}
+
+void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths, OpenLinesSet& result)
+{
+    // We just want to grab all lines out of this datastructure
+    for (const auto& a : wall_tool_paths)
+    {
+        for (const VariableWidthLines& b : a)
+        {
+            for (const ExtrusionLine& c : b)
+            {
+                const Polygon poly = c.toPolygon();
+                if (c.is_closed_)
+                {
+                    result.push_back(poly.toPseudoOpenPolyline());
+                }
+            }
+        }
+    }
+}
+
+/* Create a set of extra lines to support skins above.
+ *
+ * Skins above need to be held up.
+ * A straight line needs support just at the ends.
+ * A curve needs support at various points along the curve.
+ *
+ * The strategy here is to figure out is currently printed on
+ * this layer within the infill area by taking all currently printed
+ * lines and turning them into a giant hole-y shape.
+ *
+ * Then figure out what will be printed on the layer above
+ * (all extruded lines, walls, polygons, all combined).
+ *
+ * Then intersect these two things.   For every 'hole', we 'simplify'
+ * the line through the hole, reducing curves to a few points.
+ *
+ * Then figure out extra infill_lines to add to support all points
+ * that lie within a hole.  The extra lines will always be straight
+ * and will always go between existing infill lines.
+ *
+ * Results get added to infill_lines.
+ */
+void addExtraLinesToSupportSurfacesAbove(
+    OpenLinesSet& infill_lines,
+    const Shape& infill_polygons,
+    const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths,
+    const SliceLayerPart& part,
+    coord_t infill_line_width,
+    const LayerPlan& gcode_layer,
+    const SliceMeshStorage& mesh)
+{
+    // Where needs support?
+
+    const auto enabled = mesh.settings.get<EExtraInfillLinesToSupportSkins>("extra_infill_lines_to_support_skins");
+    if (enabled == EExtraInfillLinesToSupportSkins::NONE)
+    {
+        return;
+    }
+
+    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1 + mesh.settings.get<size_t>("skin_edge_support_layers");
+    if (skin_layer_nr >= mesh.layers.size())
+    {
+        return;
+    }
+
+    OpenLinesSet printed_lines_on_layer_above;
+    for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
+    {
+        for (const SkinPart& skin_part : part_i.skin_parts)
+        {
+            OpenLinesSet skin_lines;
+            Shape skin_polygons;
+            std::vector<VariableWidthLines> skin_paths;
+
+            AngleDegrees skin_angle = 45;
+            if (mesh.skin_angles.size() > 0)
+            {
+                skin_angle = mesh.skin_angles.at(skin_layer_nr % mesh.skin_angles.size());
+            }
+
+            // Approximation of the skin.
+            Infill infill_comp(
+                mesh.settings.get<EFillMethod>("top_bottom_pattern"),
+                false,
+                false,
+                skin_part.outline,
+                infill_line_width,
+                infill_line_width,
+                0,
+                1,
+                skin_angle,
+                0,
+                0,
+                0,
+                0,
+                mesh.settings.get<size_t>("skin_outline_count"),
+                0,
+                {},
+                false);
+            infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, 0, SectionType::SKIN);
+
+            wall_tool_paths2lines({ skin_paths }, printed_lines_on_layer_above);
+            if (enabled == EExtraInfillLinesToSupportSkins::WALLS_AND_LINES)
+            {
+                for (const Polygon& poly : skin_polygons)
+                {
+                    printed_lines_on_layer_above.push_back(poly.toPseudoOpenPolyline());
+                }
+                printed_lines_on_layer_above.push_back(skin_lines);
+            }
+        }
+    }
+
+    /* move all points "inwards" by line_width to ensure a good overlap.
+     * Eg.     Old Point                New Point
+     *              |                       |
+     *              |                      X|
+     *       -------X               ---------
+     */
+    for (OpenPolyline& poly : printed_lines_on_layer_above)
+    {
+        OpenPolyline copy = poly;
+        auto orig_it = poly.begin();
+        for (auto it = copy.begin(); it != copy.end(); ++it, ++orig_it)
+        {
+            if (it > copy.begin())
+            {
+                *orig_it += normal(*(it - 1) - *(it), infill_line_width / 2);
+            }
+            if (it < copy.end() - 1)
+            {
+                *orig_it += normal(*(it + 1) - *(it), infill_line_width / 2);
+            }
+        }
+    }
+
+    if (printed_lines_on_layer_above.empty())
+    {
+        return;
+    }
+
+    // What shape is the supporting infill?
+    OpenLinesSet support_lines;
+    support_lines.push_back(infill_lines);
+    // The edge of the infill area is also considered supported
+    for (const auto& poly : part.getOwnInfillArea())
+    {
+        support_lines.push_back(poly.toPseudoOpenPolyline());
+    }
+    for (const auto& poly : infill_polygons)
+    {
+        support_lines.push_back(poly.toPseudoOpenPolyline());
+    }
+
+    // Infill walls can support the layer above
+    wall_tool_paths2lines(wall_tool_paths, support_lines);
+
+    // Turn the lines into a giant shape.
+    Shape supported_area = support_lines.offset(infill_line_width / 2);
+    if (supported_area.empty())
+    {
+        return;
+    }
+
+    // invert the supported_area by adding one huge polygon around the outside
+    supported_area.push_back(AABB{ supported_area }.toPolygon());
+
+    const Shape inv_supported_area = supported_area.intersection(part.getOwnInfillArea());
+
+    OpenLinesSet unsupported_line_segments = inv_supported_area.intersection(printed_lines_on_layer_above);
+
+    // This is to work around a rounding issue in the shape library with border points.
+    const Shape expanded_inv_supported_area = inv_supported_area.offset(-EPSILON);
+
+    Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
+                infill_line_width,
+                std::numeric_limits<coord_t>::max() };
+    // map each point into its area
+    std::map<size_t, PointsSet> map;
+
+    for (const OpenPolyline& a : unsupported_line_segments)
+    {
+        const OpenPolyline simplified = s.polyline(a);
+        for (const Point2LL& point : simplified)
+        {
+            size_t idx = expanded_inv_supported_area.findInside(point);
+            if (idx == NO_INDEX)
+            {
+                continue;
+            }
+
+            map[idx].push_back(point);
+        }
+    }
+
+    for (const auto& pair : map)
+    {
+        const Polygon& area = expanded_inv_supported_area[pair.first];
+        const PointsSet& points = pair.second;
+
+        OpenLinesSet result_lines;
+        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2 + EPSILON), points, infill_line_width);
+
+        for (const auto& line : part.getOwnInfillArea().intersection(result_lines))
+        {
+            integrateSupportingLine(infill_lines, line);
+        }
+    }
 }
 
 bool FffGcodeWriter::processSingleLayerInfill(
@@ -2236,6 +2679,16 @@ bool FffGcodeWriter::processSingleLayerInfill(
     }
 
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
+
+    if (mesh.settings.get<coord_t>("wall_line_count") // Disable feature if no walls - it can leave dangling lines at edges
+        && pattern != EFillMethod::LIGHTNING // Lightning doesn't make enclosed regions
+        && pattern != EFillMethod::CONCENTRIC // Doesn't handle 'holes' in infill lines very well
+        && pattern != EFillMethod::CROSS // Ditto
+        && pattern != EFillMethod::CROSS_3D) // Ditto
+    {
+        addExtraLinesToSupportSurfacesAbove(infill_lines, infill_polygons, wall_tool_paths, part, infill_line_width, gcode_layer, mesh);
+    }
+
     const bool walls_generated = std::any_of(
         wall_tool_paths.cbegin(),
         wall_tool_paths.cend(),
@@ -2302,6 +2755,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
                     mesh_config.infill_config[0],
                     mesh_config.infill_config[0],
                     mesh_config.infill_config[0],
+                    mesh_config.infill_config[0],
+                    mesh_config.infill_config[0],
                     retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
@@ -2318,7 +2773,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             constexpr bool force_comb_retract = false;
             // start the infill polygons at the nearest vertex to the current location
             gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
+            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], mesh.settings, ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
         }
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC
@@ -2468,7 +2923,7 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
     {
         return last ? extruder_use.back().extruder_nr : extruder_use.front().extruder_nr;
     }
-    else if (layer_nr <= -Raft::getTotalExtraLayers())
+    else if (layer_nr <= -LayerIndex(Raft::getTotalExtraLayers()))
     {
         // Asking for extruder use below first layer, give first extruder
         return getStartExtruder(storage);
@@ -2521,7 +2976,7 @@ bool FffGcodeWriter::processInsets(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    const SliceLayerPart& part) const
+    SliceLayerPart& part) const
 {
     bool added_something = false;
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_)
@@ -2536,33 +2991,31 @@ bool FffGcodeWriter::processInsets(
     bool spiralize = false;
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        const size_t initial_bottom_layers = mesh.settings.get<size_t>("initial_bottom_layers");
-        const int layer_nr = gcode_layer.getLayerNr();
-        if ((layer_nr < static_cast<LayerIndex>(initial_bottom_layers)
-             && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
-            || (layer_nr >= static_cast<LayerIndex>(initial_bottom_layers) && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
+        const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
+        const auto layer_nr = gcode_layer.getLayerNr();
+        if ((layer_nr < initial_bottom_layers && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
+            || (layer_nr >= initial_bottom_layers && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
         {
             // nothing to do
             return false;
         }
-        if (gcode_layer.getLayerNr() >= static_cast<LayerIndex>(initial_bottom_layers))
+        if (gcode_layer.getLayerNr() >= initial_bottom_layers)
         {
             spiralize = true;
         }
-        if (spiralize && gcode_layer.getLayerNr() == static_cast<LayerIndex>(initial_bottom_layers)
-            && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+        if (spiralize && gcode_layer.getLayerNr() == initial_bottom_layers && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
         { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
             added_something = true;
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             // start this first wall at the same vertex the spiral starts
             const Polygon& spiral_inset = part.spiral_wall[0];
-            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[initial_bottom_layers];
+            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[static_cast<size_t>(initial_bottom_layers.value)];
             if (spiral_start_vertex < spiral_inset.size())
             {
                 gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
             }
             int wall_0_wipe_dist(0);
-            gcode_layer.addPolygonsByOptimizer(part.spiral_wall, mesh_config.inset0_config, ZSeamConfig(), wall_0_wipe_dist);
+            gcode_layer.addPolygonsByOptimizer(part.spiral_wall, mesh_config.inset0_config, mesh.settings, ZSeamConfig(), wall_0_wipe_dist);
         }
     }
     // for non-spiralized layers, determine the shape of the unsupported areas below this part
@@ -2647,7 +3100,16 @@ bool FffGcodeWriter::processInsets(
             // which is required because when the walls are being generated, the vertices do not fall on the part's outline
             // but, instead, are 1/2 a line width inset from the outline
 
-            gcode_layer.setBridgeWallMask(compressed_air.offset(max_air_gap + half_outer_wall_width));
+            Shape bridge_mask = compressed_air.offset(max_air_gap + half_outer_wall_width);
+            gcode_layer.setBridgeWallMask(bridge_mask);
+
+            // Override flooring/skin areas to register bridging areas to be treated as normal skin
+            for (SkinPart& skin_part : part.skin_parts)
+            {
+                Shape moved_area = skin_part.flooring_fill.intersection(bridge_mask).offset(10);
+                skin_part.flooring_fill = skin_part.flooring_fill.difference(moved_area);
+                skin_part.skin_fill = skin_part.skin_fill.unionPolygons(moved_area);
+            }
         }
         else
         {
@@ -2655,21 +3117,90 @@ bool FffGcodeWriter::processInsets(
             gcode_layer.setBridgeWallMask(Shape());
         }
 
-        const auto get_overhang_region = [&](const AngleDegrees overhang_angle) -> Shape
+        const Shape fully_supported_region = outlines_below.offset(-half_outer_wall_width);
+        const Shape part_print_region = part.outline.offset(-half_outer_wall_width);
+
+        const auto get_supported_region = [&fully_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
         {
-            if (overhang_angle >= 90)
-            {
-                return Shape(); // keep empty to disable overhang detection
-            }
             // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
             // the supported region is made up of those areas that really are supported by either model or support on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
-            const coord_t overhang_width = layer_height * std::tan(overhang_angle / (180 / std::numbers::pi));
-            return part.outline.offset(-half_outer_wall_width).difference(outlines_below.offset(10 + overhang_width - half_outer_wall_width)).offset(10);
+            if (overhang_angle < 90.0)
+            {
+                const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
+                return fully_supported_region.offset(overhang_width + 10);
+            }
+
+            return Shape();
         };
-        gcode_layer.setOverhangMask(get_overhang_region(mesh.settings.get<AngleDegrees>("wall_overhang_angle")));
-        gcode_layer.setSeamOverhangMask(get_overhang_region(mesh.settings.get<AngleDegrees>("seam_overhang_angle")));
+
+        // Build supported regions for all the overhang speeds. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
+        std::vector<LayerPlan::OverhangMask> overhang_masks;
+        const auto overhang_speed_factors = mesh.settings.get<std::vector<Ratio>>("wall_overhang_speed_factors");
+        const size_t overhang_angles_count = overhang_speed_factors.size();
+        const auto wall_overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
+        if (overhang_angles_count > 0 && wall_overhang_angle < 90.0)
+        {
+            struct SpeedRegion
+            {
+                AngleDegrees overhang_angle;
+                Ratio speed_factor;
+                bool chunk = true;
+            };
+
+            // Create raw speed regions
+            const AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
+            std::vector<SpeedRegion> speed_regions;
+            speed_regions.reserve(overhang_angles_count + 2);
+
+            constexpr bool dont_chunk_first = false; // Never merge internal region in order to detect actual overhanging
+            speed_regions.push_back(SpeedRegion{ wall_overhang_angle, 1.0_r, dont_chunk_first }); // Initial internal region, always 100% speed factor
+
+            for (size_t angle_index = 1; angle_index <= overhang_angles_count; ++angle_index)
+            {
+                const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
+                const Ratio speed_factor = overhang_speed_factors[angle_index - 1];
+
+                speed_regions.push_back(SpeedRegion{ actual_wall_overhang_angle, speed_factor });
+            }
+
+            speed_regions.push_back(SpeedRegion{ 90.0, overhang_speed_factors.back() }); // Final "everything else" speed region
+
+            // Now merge regions that have similar speed factors (saves calculations and avoid generating micro-segments)
+            auto merged_regions = speed_regions
+                                | ranges::views::chunk_by(
+                                      [](const auto& region_a, const auto& region_b)
+                                      {
+                                          return region_a.chunk && region_b.chunk && region_a.speed_factor == region_b.speed_factor;
+                                      });
+
+            // If finally necessary, add actual calculated speed regions
+            if (ranges::distance(merged_regions) > 1)
+            {
+                for (const auto& regions : merged_regions)
+                {
+                    const SpeedRegion& last_region = *ranges::prev(regions.end());
+                    overhang_masks.push_back(LayerPlan::OverhangMask{ get_supported_region(last_region.overhang_angle), last_region.speed_factor });
+                }
+            }
+        }
+        gcode_layer.setOverhangMasks(overhang_masks);
+
+        // the seam overhang mask is set to the area of the current part's outline minus the region that is considered to be supported,
+        // which will then be empty if everything is considered supported i.r.t. the angle
+        const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
+        if (seam_overhang_angle < 90.0)
+        {
+            const Shape supported_region_seam = get_supported_region(seam_overhang_angle);
+            gcode_layer.setSeamOverhangMask(part_print_region.difference(supported_region_seam).offset(10));
+        }
+        else
+        {
+            gcode_layer.setSeamOverhangMask(Shape());
+        }
+
+        const auto wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
 
         const auto roofing_mask_fn = [&]() -> Shape
         {
@@ -2682,7 +3213,6 @@ bool FffGcodeWriter::processInsets(
                 return roofing_mask;
             }
 
-            const auto wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
             for (const auto& layer_part : mesh.layers[gcode_layer.getLayerNr() + roofing_layer_count].parts)
             {
                 if (boundaryBox.hit(layer_part.boundaryBox))
@@ -2691,20 +3221,45 @@ bool FffGcodeWriter::processInsets(
                 }
             }
             return roofing_mask;
-        }();
+        };
 
-        gcode_layer.setRoofingMask(roofing_mask_fn);
+        gcode_layer.setRoofingMask(roofing_mask_fn());
+
+        const auto flooring_mask_fn = [&]() -> Shape
+        {
+            const size_t flooring_layer_count = std::min(mesh.settings.get<size_t>("flooring_layer_count"), mesh.settings.get<size_t>("bottom_layers"));
+
+            auto flooring_mask = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_);
+
+            if (gcode_layer.getLayerNr() - flooring_layer_count < 0)
+            {
+                return flooring_mask;
+            }
+
+            for (const auto& layer_part : mesh.layers[gcode_layer.getLayerNr() - flooring_layer_count].parts)
+            {
+                if (boundaryBox.hit(layer_part.boundaryBox))
+                {
+                    flooring_mask = flooring_mask.difference(layer_part.outline.offset(-wall_line_width_0 / 4));
+                }
+            }
+            return flooring_mask;
+        };
+
+        gcode_layer.setFlooringMask(flooring_mask_fn());
     }
     else
     {
         // clear to disable use of bridging settings
         gcode_layer.setBridgeWallMask(Shape());
         // clear to disable overhang detection
-        gcode_layer.setOverhangMask(Shape());
+        gcode_layer.setOverhangMasks({});
         // clear to disable overhang detection
         gcode_layer.setSeamOverhangMask(Shape());
         // clear to disable use of roofing settings
         gcode_layer.setRoofingMask(Shape());
+        // clear to disable use of flooring settings
+        gcode_layer.setFlooringMask(Shape());
     }
 
     if (spiralize && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && ! part.spiral_wall.empty())
@@ -2722,7 +3277,7 @@ bool FffGcodeWriter::processInsets(
         else
         {
             // Print the spiral walls of other parts as single walls without Z gradient.
-            gcode_layer.addWalls(part.spiral_wall, mesh.settings, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config);
+            gcode_layer.addWalls(part.spiral_wall, mesh.settings, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config);
         }
     }
     else
@@ -2734,6 +3289,9 @@ bool FffGcodeWriter::processInsets(
             mesh.getZSeamHint(),
             mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
             mesh.settings.get<coord_t>("wall_line_width_0") * 2);
+        const Shape disallowed_areas_for_seams;
+        constexpr bool scarf_seam = true;
+        constexpr bool smooth_speed = true;
         InsetOrderOptimizer wall_orderer(
             *this,
             storage,
@@ -2744,6 +3302,8 @@ bool FffGcodeWriter::processInsets(
             mesh_config.insetX_config,
             mesh_config.inset0_roofing_config,
             mesh_config.insetX_roofing_config,
+            mesh_config.inset0_flooring_config,
+            mesh_config.insetX_flooring_config,
             mesh_config.bridge_inset0_config,
             mesh_config.bridge_insetX_config,
             mesh.settings.get<bool>("travel_retract_before_outer_wall"),
@@ -2753,7 +3313,11 @@ bool FffGcodeWriter::processInsets(
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
             z_seam_config,
             part.wall_toolpaths,
-            mesh.bounding_box.flatten().getMiddle());
+            mesh.bounding_box.flatten().getMiddle(),
+            disallowed_areas_for_seams,
+            scarf_seam,
+            smooth_speed,
+            gcode_layer.getSeamOverhangMask());
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;
@@ -2802,9 +3366,12 @@ bool FffGcodeWriter::processSkin(
 {
     const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
     const size_t roofing_extruder_nr = mesh.settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr_;
+    const size_t flooring_extruder_nr = mesh.settings.get<ExtruderTrain&>("flooring_extruder_nr").extruder_nr_;
     const size_t wall_0_extruder_nr = mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_;
     const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
-    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr && (extruder_nr != roofing_extruder_nr || roofing_layer_count <= 0))
+    const size_t flooring_layer_count = std::min(mesh.settings.get<size_t>("flooring_layer_count"), mesh.settings.get<size_t>("bottom_layers"));
+    if (extruder_nr != top_bottom_extruder_nr && extruder_nr != wall_0_extruder_nr && (extruder_nr != roofing_extruder_nr || roofing_layer_count == 0)
+        && (extruder_nr != flooring_extruder_nr || flooring_layer_count == 0))
     {
         return false;
     }
@@ -2839,51 +3406,60 @@ bool FffGcodeWriter::processSkinPart(
 
     gcode_layer.mode_skip_agressive_merge_ = true;
 
-    processRoofing(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
+    processRoofingFlooring(
+        storage,
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        roofing_settings_names,
+        skin_part.roofing_fill,
+        mesh_config.roofing_config,
+        mesh.roofing_angles,
+        added_something);
+    processRoofingFlooring(
+        storage,
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        flooring_settings_names,
+        skin_part.flooring_fill,
+        mesh_config.flooring_config,
+        mesh.flooring_angles,
+        added_something);
     processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
 
     gcode_layer.mode_skip_agressive_merge_ = false;
     return added_something;
 }
 
-void FffGcodeWriter::processRoofing(
+void FffGcodeWriter::processRoofingFlooring(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const MeshPathConfigs& mesh_config,
-    const SkinPart& skin_part,
+    const RoofingFlooringSettingsNames& settings_names,
+    const Shape& fill,
+    const GCodePathConfig& config,
+    const std::vector<AngleDegrees>& angles,
     bool& added_something) const
 {
-    const size_t roofing_extruder_nr = mesh.settings.get<ExtruderTrain&>("roofing_extruder_nr").extruder_nr_;
-    if (extruder_nr != roofing_extruder_nr)
+    const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>(settings_names.extruder_nr).extruder_nr_;
+    if (extruder_nr != skin_extruder_nr)
     {
         return;
     }
 
-    const EFillMethod pattern = mesh.settings.get<EFillMethod>("roofing_pattern");
+    const EFillMethod pattern = mesh.settings.get<EFillMethod>(settings_names.pattern);
     AngleDegrees roofing_angle = 45;
-    if (mesh.roofing_angles.size() > 0)
+    if (angles.size() > 0)
     {
-        roofing_angle = mesh.roofing_angles.at(gcode_layer.getLayerNr() % mesh.roofing_angles.size());
+        roofing_angle = angles.at(gcode_layer.getLayerNr() % angles.size());
     }
 
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
-    const bool monotonic = mesh.settings.get<bool>("roofing_monotonic");
-    processSkinPrintFeature(
-        storage,
-        gcode_layer,
-        mesh,
-        extruder_nr,
-        skin_part.roofing_fill,
-        mesh_config.roofing_config,
-        pattern,
-        roofing_angle,
-        skin_overlap,
-        skin_density,
-        monotonic,
-        added_something);
+    const bool monotonic = mesh.settings.get<bool>(settings_names.monotonic);
+    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, fill, config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, added_something);
 }
 
 void FffGcodeWriter::processTopBottom(
@@ -3151,44 +3727,42 @@ void FffGcodeWriter::processSkinPrintFeature(
         if (! skin_paths.empty())
         {
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
-            const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
-            if (extruder_nr == skin_extruder_nr)
-            {
-                constexpr bool retract_before_outer_wall = false;
-                constexpr coord_t wipe_dist = 0;
-                const ZSeamConfig z_seam_config(
-                    mesh.settings.get<EZSeamType>("z_seam_type"),
-                    mesh.getZSeamHint(),
-                    mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
-                    config.getLineWidth() * 2);
-                InsetOrderOptimizer wall_orderer(
-                    *this,
-                    storage,
-                    gcode_layer,
-                    mesh.settings,
-                    extruder_nr,
-                    config,
-                    config,
-                    config,
-                    config,
-                    config,
-                    config,
-                    retract_before_outer_wall,
-                    wipe_dist,
-                    wipe_dist,
-                    skin_extruder_nr,
-                    skin_extruder_nr,
-                    z_seam_config,
-                    skin_paths,
-                    mesh.bounding_box.flatten().getMiddle());
-                added_something |= wall_orderer.addToLayer();
-            }
+            constexpr bool retract_before_outer_wall = false;
+            constexpr coord_t wipe_dist = 0;
+            const ZSeamConfig z_seam_config(
+                mesh.settings.get<EZSeamType>("z_seam_type"),
+                mesh.getZSeamHint(),
+                mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
+                config.getLineWidth() * 2);
+            InsetOrderOptimizer wall_orderer(
+                *this,
+                storage,
+                gcode_layer,
+                mesh.settings,
+                extruder_nr,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                config,
+                retract_before_outer_wall,
+                wipe_dist,
+                wipe_dist,
+                extruder_nr,
+                extruder_nr,
+                z_seam_config,
+                skin_paths,
+                mesh.bounding_box.flatten().getMiddle());
+            added_something |= wall_orderer.addToLayer();
         }
         if (! skin_polygons.empty())
         {
             constexpr bool force_comb_retract = false;
             gcode_layer.addTravel(skin_polygons[0][0], force_comb_retract);
-            gcode_layer.addPolygonsByOptimizer(skin_polygons, config);
+            gcode_layer.addPolygonsByOptimizer(skin_polygons, config, mesh.settings);
         }
 
         if (monotonic)
@@ -3459,6 +4033,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 config,
                 config,
                 config,
+                config,
+                config,
                 retract_before_outer_wall,
                 wipe_dist,
                 wipe_dist,
@@ -3586,6 +4162,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 gcode_layer.addPolygonsByOptimizer(
                     support_polygons,
                     configs[combine_idx],
+                    mesh_group_settings,
                     z_seam_config,
                     wall_0_wipe_dist,
                     spiralize,
@@ -3636,6 +4213,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     gcode_layer,
                     infill_extruder.settings_,
                     extruder_nr,
+                    config,
+                    config,
                     config,
                     config,
                     config,
@@ -3776,13 +4355,13 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
             gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
             if (gcode_layer.getLayerNr() == 0)
             {
-                gcode_layer.addPolygonsByOptimizer(wall, current_roof_config, z_seam_config);
+                gcode_layer.addPolygonsByOptimizer(wall, current_roof_config, roof_extruder.settings_, z_seam_config);
             }
             if (! roof_polygons.empty())
             {
                 constexpr bool force_comb_retract = false;
                 gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config, z_seam_config);
+                gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config, roof_extruder.settings_, z_seam_config);
             }
             if (! roof_paths.empty())
             {
@@ -3802,7 +4381,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(
                     config,
                     config,
                     config,
-                    retract_before_outer_wall,
+                    config,
+            config,retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
                     roof_extruder_nr,
@@ -3899,7 +4479,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     {
         constexpr bool force_comb_retract = false;
         gcode_layer.addTravel(bottom_polygons[0][0], force_comb_retract);
-        gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage_.support_bottom_config);
+        gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage_.support_bottom_config, bottom_extruder.settings_);
     }
     if (! bottom_paths.empty())
     {
@@ -3914,6 +4494,8 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
             gcode_layer,
             bottom_extruder.settings_,
             bottom_extruder_nr,
+            config,
+            config,
             config,
             config,
             config,
@@ -4049,6 +4631,7 @@ void FffGcodeWriter::finalize()
     }
 
     gcode.writeComment("End of Gcode");
+    gcode.flushOutputStream();
     /*
     the profile string below can be executed since the M25 doesn't end the gcode on an UMO and when printing via USB.
     gcode.writeCode("M25 ;Stop reading from this point on.");

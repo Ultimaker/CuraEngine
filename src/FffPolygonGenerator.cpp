@@ -213,15 +213,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         slicerList.push_back(slicer);
 
-        /*
-        for(SlicerLayer& layer : slicer->layers)
-        {
-            //Reporting the outline here slows down the engine quite a bit, so only do so when debugging.
-            sendPolygons("outline", layer_nr, layer.z, layer.polygonList);
-            sendPolygons("openoutline", layer_nr, layer.openPolygonList);
-        }
-        */
-
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
 
@@ -557,7 +548,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
     coord_t surface_line_width = mesh.settings.get<coord_t>("wall_line_width_0");
 
     mesh.layer_nr_max_filled_layer = -1;
-    for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
+    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(mesh.layers.size()); layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
 
@@ -585,7 +576,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 break; // all previous meshes have been processed
             }
             SliceMeshStorage& other_mesh = *storage.meshes[other_mesh_idx];
-            if (layer_idx >= static_cast<LayerIndex>(other_mesh.layers.size()))
+            if (layer_idx >= LayerIndex(other_mesh.layers.size()))
             { // there can be no interaction between the infill mesh and this other non-infill mesh
                 continue;
             }
@@ -875,7 +866,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             }
             for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
             {
-                for (LayerIndex layer_nr = static_cast<LayerIndex>(mesh.layers.size()) - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
+                for (LayerIndex layer_nr = LayerIndex(mesh.layers.size()) - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
                 {
                     if (mesh.getExtruderIsUsed(extruder_nr, layer_nr))
                     {
@@ -1097,7 +1088,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         return false;
     };
 
-    for (LayerIndex layer_nr = start_layer_nr; layer_nr < mesh.layers.size(); layer_nr++)
+    for (LayerIndex layer_nr = start_layer_nr; layer_nr < LayerIndex(mesh.layers.size()); layer_nr++)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)

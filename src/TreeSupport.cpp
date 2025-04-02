@@ -150,7 +150,6 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             progress_offset,
             exclude);
 
-        const auto t_cradle_init = std::chrono::high_resolution_clock::now();
 
         // ### Evaluate cradle placement. Topmost cradle layer is needed tor precalculation
         std::vector<std::vector<TreeSupportCradle*>> cradle_data;
@@ -160,6 +159,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             cradle_gen.addMeshToCradleCalculation(storage, mesh_idx);
         }
 
+        const auto t_cradle_init = std::chrono::high_resolution_clock::now();
         // ### Precalculate avoidances, collision etc.
         const LayerIndex max_required_layer = precalculate(storage, processing.second, cradle_gen.getTopMostCradleLayer());
         if (max_required_layer < 0)
@@ -216,8 +216,12 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         const auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
         spdlog::info(
             "Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\n"
-            "Calculating Avoidance: {} ms Calculating Cradle: {} ms of which {} ms were initialising Creating initial influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
-            "support {} ms",
+            "Calculating Avoidance: {} ms\n"
+            "Calculating Cradle: {} ms and {} ms initialising cradle calculation\n"
+            "Creating initial influence areas: {} ms\n"
+            "Influence area creation: {} ms\n"
+            "Placement of Points in InfluenceAreas: {} ms\n"
+            "Drawing result as support {} ms\n",
             dur_total,
             dur_pre_gen,
             dur_cradle,
@@ -1369,7 +1373,7 @@ void TreeSupport::increaseAreas(
             // Proper way would be to offset getAccumulatedPlaceable0 by -radius first, but the small benefit to maybe detect an error, that should not be happening anyway is not
             // worth the performance impact in the expected case when a branch rests on the model.
             if (elem.to_buildplate_ || (elem.to_model_gracious_ && (parent->area_->intersection(volumes_.getPlaceableAreas(radius, layer_idx)).empty()))
-                || (! elem.to_model_gracious_ && (parent->area_->intersection(volumes_.getAccumulatedPlaceable0(layer_idx)).empty()))) // Error case.
+                || (! elem.to_model_gracious_ && layer_idx > volumes_.getMaxLayerIdxWithoutBlocker() && (parent->area_->intersection(volumes_.getAccumulatedPlaceable0(layer_idx)).empty()))) // Error case.
             {
                 // It is normal that we won't be able to find a new area at some point in time if we won't be able to reach layer 0 aka have to connect with the model.
                 insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, fast_speed * 1.5, ! increase_radius, ! no_error, elem.use_min_xy_dist_, ! use_anti_preferred, move), true);
@@ -2376,7 +2380,12 @@ void TreeSupport::dropNonGraciousAreas(
                                            && ! elem->to_buildplate_; // If an element has no child, it connects to whatever is below as no support further down for it will exist.
             if (non_gracious_model_contact)
             {
-                Shape rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
+                Shape rest_support = layer_tree_polygons[linear_data[idx].first][elem];
+                if(linear_data[idx].first > volumes_.getMaxLayerIdxWithoutBlocker())
+                {
+                    rest_support = rest_support.intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
+                }
+
                 for (LayerIndex counter = 1; rest_support.area() > 1 && counter < linear_data[idx].first; ++counter)
                 {
                     rest_support = rest_support.difference(volumes_.getCollision(0, linear_data[idx].first - counter));
@@ -2415,6 +2424,7 @@ void TreeSupport::prepareSupportAreas(
     std::mutex critical_cradle_support_line_areas;
     std::mutex critical_support_roof_storage;
     std::mutex critical_support_layer_storage;
+    std::mutex critical_cradle_support_line_roof_areas_with_start;
 
     cura::parallel_for<coord_t>(
         0,
@@ -2490,13 +2500,21 @@ void TreeSupport::prepareSupportAreas(
 
                             if (is_roof)
                             {
-                                std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
-
-                                if (cradle_support_line_roof_areas_with_start.size() <= layer_idx)
+                                if(is_base)
                                 {
-                                    cradle_support_line_roof_areas_with_start.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
+                                    std::lock_guard<std::mutex> critical_section_cradle(critical_support_roof_storage);
+                                    support_roof_storage[cradle_line_layer_idx].push_back(line_area);
                                 }
-                                cradle_support_line_roof_areas_with_start[cradle_line_layer_idx].emplace_back(line_area, print_cradle_towards_model ? back : front);
+                                else
+                                {
+                                    std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_support_line_roof_areas_with_start);
+
+                                    if (cradle_support_line_roof_areas_with_start.size() <= layer_idx)
+                                    {
+                                        cradle_support_line_roof_areas_with_start.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
+                                    }
+                                    cradle_support_line_roof_areas_with_start[cradle_line_layer_idx].emplace_back(line_area, print_cradle_towards_model ? back : front);
+                                }
                             }
                             else
                             {
@@ -2508,11 +2526,22 @@ void TreeSupport::prepareSupportAreas(
                                 }
                                 cradle_support_line_areas[cradle_line_layer_idx].push_back(line_area);
 
-                                if (cradle_support_line_areas_with_start.size() <= layer_idx)
+                                if(is_base)
                                 {
-                                    cradle_support_line_areas_with_start.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
+                                    //Dead code, Just here just in case something is refactored later.
+                                    std::lock_guard<std::mutex> critical_section_cradle(critical_support_layer_storage);
+                                    support_layer_storage[cradle_line_layer_idx].push_back(line_area);
                                 }
-                                cradle_support_line_areas_with_start[cradle_line_layer_idx].emplace_back(line_area, print_cradle_towards_model ? back : front);
+                                else
+                                {
+                                    std::lock_guard<std::mutex> critical_section_cradle(critical_cradle_support_line_roof_areas_with_start);
+
+                                    if (cradle_support_line_areas_with_start.size() <= layer_idx)
+                                    {
+                                        cradle_support_line_areas_with_start.resize(layer_idx + 1 + cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() - height_idx);
+                                    }
+                                    cradle_support_line_areas_with_start[cradle_line_layer_idx].emplace_back(line_area, print_cradle_towards_model ? back : front);
+                                }
                             }
                             if (! is_base)
                             {
@@ -2767,8 +2796,8 @@ void TreeSupport::calculateSupportHoles(std::vector<Shape>& support_layer_storag
 
                     for (auto [idx2, hole2] : hole_parts[layer_idx - 1] | ranges::views::enumerate)
                     {
-                        if (hole_aabb.hit(AABB(hole2))
-                            && ! hole.intersection(hole2).empty()) // TODO should technically be outline: Check if this is fine either way as it would save an offset
+                        // TODO should technically be outline: Check if this is fine either way as it would save an offset
+                        if (hole_aabb.hit(AABB(hole2)) && ! hole.intersection(PolygonUtils::clipPolygonWithAABB(hole2, hole_aabb)).empty())
                         {
                             hole_rest_map[layer_idx][idx].emplace_back(idx2);
                         }

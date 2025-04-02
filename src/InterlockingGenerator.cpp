@@ -222,10 +222,10 @@ void InterlockingGenerator::addBoundaryCells(const std::vector<Shape>& layers, c
 
 std::vector<Shape> InterlockingGenerator::computeUnionedVolumeRegions() const
 {
-    const size_t max_layer_count = std::max(mesh_a_.layers.size(), mesh_b_.layers.size()) + 1; // introduce ghost layer on top for correct skin computation of topmost layer.
+    const auto max_layer_count = std::max(mesh_a_.layers.size(), mesh_b_.layers.size()) + 1; // introduce ghost layer on top for correct skin computation of topmost layer.
     std::vector<Shape> layer_regions(max_layer_count);
 
-    for (LayerIndex layer_nr = 0; layer_nr < max_layer_count; layer_nr++)
+    for (LayerIndex layer_nr = 0; layer_nr < LayerIndex(max_layer_count); layer_nr++)
     {
         Shape& layer_region = layer_regions[static_cast<size_t>(layer_nr)];
         for (Slicer* mesh : { &mesh_a_, &mesh_b_ })

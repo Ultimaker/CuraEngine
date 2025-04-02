@@ -835,6 +835,10 @@ LayerIndex TreeModelVolumes::getFirstAntiPreferredLayerIdx()
     return first_anti_preferred_layer_idx_;
 }
 
+LayerIndex TreeModelVolumes::getMaxLayerIdxWithoutBlocker()
+{
+    return max_layer_idx_without_blocker_;
+}
 
 bool TreeModelVolumes::checkSettingsEquality(const Settings& me, const Settings& other) const
 {

@@ -604,7 +604,7 @@ const Shape& PrimeTower::getOuterPoly(const LayerIndex& layer_nr) const
 
 const Shape& PrimeTower::getGroundPoly() const
 {
-    return getOuterPoly(-Raft::getTotalExtraLayers());
+    return getOuterPoly(-LayerIndex(Raft::getTotalExtraLayers()));
 }
 
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const int extruder_nr) const

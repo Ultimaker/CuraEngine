@@ -51,12 +51,28 @@ broadcast_settings_request::value_type broadcast_settings_request::operator()(co
     }
 
     auto* object_settings = message.mutable_object_settings();
-    for (const auto& object : slice_message.object_lists())
+    for (const auto& mesh_group : slice_message.object_lists())
     {
-        auto* settings = object_settings->Add()->mutable_settings();
-        for (const auto& setting : object.settings())
+        std::unordered_map<std::string, std::string> mesh_group_settings;
+        for (const auto& setting : mesh_group.settings())
         {
-            settings->emplace(setting.name(), setting.value());
+            mesh_group_settings[setting.name()] = setting.value();
+        }
+        for (const auto& object : mesh_group.objects())
+        {
+            std::unordered_map<std::string, std::string> per_object_settings = mesh_group_settings;
+            for (const auto& setting : object.settings())
+            {
+                per_object_settings[setting.name()] = setting.value();
+            }
+
+            per_object_settings["mesh_name"] = object.name();
+
+            auto* settings = object_settings->Add()->mutable_settings();
+            for (const auto& key_value_pair : per_object_settings)
+            {
+                settings->emplace(key_value_pair.first, key_value_pair.second);
+            }
         }
     }
 
@@ -168,7 +184,8 @@ postprocess_response::native_value_type
 }
 
 infill_generate_request::value_type
-    infill_generate_request::operator()(const infill_generate_request::native_value_type& inner_contour, const std::string& pattern, const Settings& settings) const
+    infill_generate_request::operator()(const infill_generate_request::native_value_type& inner_contour, const std::string& pattern, const Settings& settings, const coord_t z)
+        const
 {
     value_type message{};
     message.set_pattern(pattern);
@@ -177,6 +194,11 @@ infill_generate_request::value_type
     {
         msg_settings->insert({ key, value });
     }
+
+    // ------------------------------------------------------------
+    // Add current z height to settings message
+    // ------------------------------------------------------------
+    msg_settings->insert({ "z", std::to_string(z) });
 
     if (inner_contour.empty())
     {
@@ -337,8 +359,9 @@ gcode_paths_modify_request::value_type
         for (const auto& point : path.points)
         {
             auto* points = gcode_path->mutable_path()->add_path();
-            points->set_x(point.X);
-            points->set_y(point.Y);
+            points->set_x(point.x_);
+            points->set_y(point.y_);
+            points->set_z(point.z_);
         }
         gcode_path->set_space_fill_type(getSpaceFillType(path.space_fill_type));
         gcode_path->set_flow(path.flow);
@@ -478,7 +501,7 @@ gcode_paths_modify_response::native_value_type
                     | ranges::views::transform(
                           [](const auto& point_msg)
                           {
-                              return Point2LL{ point_msg.x(), point_msg.y() };
+                              return Point3LL{ point_msg.x(), point_msg.y(), point_msg.z() };
                           })
                     | ranges::to_vector;
 

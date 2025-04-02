@@ -45,8 +45,7 @@ public:
                          //!< roofing and non-roofing.
     Shape skin_fill; //!< The part of the skin which is not roofing.
     Shape roofing_fill; //!< The inner infill which has air directly above
-    Shape top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
-    Shape bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
+    Shape flooring_fill; //!< The inner infill which has air directly below
 };
 
 /*!
@@ -69,6 +68,8 @@ public:
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
     std::vector<VariableWidthLines> wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets. Binned by inset_idx.
     std::vector<VariableWidthLines> infill_wall_toolpaths; //!< toolpaths for the walls of the infill areas. Binned by inset_idx.
+    Shape top_most_surface; //!< Sub-part of the outline containing the area that is not covered by something above
+    Shape bottom_most_surface; //!< Sub-part of the outline containing the area that has nothing below
 
     /*!
      * The areas inside of the mesh.
@@ -326,8 +327,8 @@ public:
     SupportGenerationModifier(Settings settings, size_t size)
         : settings_(settings)
         , areas_(size)
-        , is_anti_support_(settings.get<bool>("anti_support_mesh"))
-        , is_cradle_modifier_(settings.get<bool>("cradle_modifier_mesh"))
+        , is_anti_support_(settings.has("anti_support_mesh") && settings.get<bool>("anti_support_mesh"))
+        , is_cradle_modifier_(settings.has("cradle_modifier_mesh") && settings.get<bool>("cradle_modifier_mesh"))
         , is_anti_overhang_(! is_anti_support_ && ! is_cradle_modifier_ && settings.get<bool>("anti_overhang_mesh"))
     {
     }
@@ -394,6 +395,7 @@ public:
 
     std::vector<AngleDegrees> infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
     std::vector<AngleDegrees> roofing_angles; //!< a list of angle values which is cycled through to determine the roofing angle of each layer
+    std::vector<AngleDegrees> flooring_angles; //!< a list of angle values which is cycled through to determine the flooring angle of each layer
     std::vector<AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
     std::vector<Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
     std::vector<Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the

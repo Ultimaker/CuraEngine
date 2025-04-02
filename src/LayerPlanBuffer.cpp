@@ -91,7 +91,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     Point2LL first_location_new_layer = new_layer_destination_state->first;
 
     assert(newest_layer->extruder_plans_.front().paths_[0].points.size() == 1);
-    assert(newest_layer->extruder_plans_.front().paths_[0].points[0] == first_location_new_layer);
+    assert(newest_layer->extruder_plans_.front().paths_[0].points[0].toPoint2LL() == first_location_new_layer);
 
     // if the last planned position in the previous layer isn't the same as the first location of the new layer, travel to the new location
     if (! prev_layer->last_planned_position_ || *prev_layer->last_planned_position_ != first_location_new_layer)
@@ -99,10 +99,21 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_layer->extruder_plans_.back().extruder_nr_].settings_;
         prev_layer->setIsInside(new_layer_destination_state->second);
-        const bool force_retract = extruder_settings.get<bool>("retract_at_layer_change")
-                                || (mesh_group_settings.get<bool>("travel_retract_before_outer_wall")
-                                    && (mesh_group_settings.get<InsetDirection>("inset_direction") == InsetDirection::OUTSIDE_IN
-                                        || mesh_group_settings.get<size_t>("wall_line_count") == 1)); // Moving towards an outer wall.
+
+        const bool travel_retract_before_outer_wall = mesh_group_settings.get<bool>("travel_retract_before_outer_wall");
+        const bool retract_at_layer_change = extruder_settings.get<bool>("retract_at_layer_change");
+        bool next_mesh_retract_before_outer_wall = false;
+        std::shared_ptr<const SliceMeshStorage> first_printed_mesh = newest_layer->findFirstPrintedMesh();
+        if (! retract_at_layer_change && first_printed_mesh && travel_retract_before_outer_wall)
+        {
+            // Check whether we are moving toving towards an outer wall and it should be retracted
+            const Settings& mesh_settings = first_printed_mesh->settings;
+            const InsetDirection inset_direction = mesh_settings.get<InsetDirection>("inset_direction");
+            const size_t wall_line_count = mesh_settings.get<size_t>("wall_line_count");
+
+            next_mesh_retract_before_outer_wall = inset_direction == InsetDirection::OUTSIDE_IN || wall_line_count == 1;
+        }
+        const bool force_retract = retract_at_layer_change || next_mesh_retract_before_outer_wall;
         prev_layer->final_travel_z_ = newest_layer->z_;
         GCodePath& path = prev_layer->addTravel(first_location_new_layer, force_retract);
         if (force_retract && ! path.retract)

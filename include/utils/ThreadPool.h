@@ -82,7 +82,7 @@ public:
         }
     }
 
-    bool isInPool();
+    bool hasActiveTasks();
 
 private:
     void worker();
@@ -142,7 +142,7 @@ void parallel_for(T first, T last, F&& loop_body, size_t chunk_size_factor = 1, 
     ThreadPool* const thread_pool = Application::getInstance().thread_pool_;
 
     // This implementation does not really play nice if called nested, so lets not do that.
-    if (thread_pool->isInPool())
+    if (thread_pool->hasActiveTasks())
     {
         for (T val = first; val < last; val++)
         {

@@ -4,6 +4,8 @@
 #ifndef SKIN_H
 #define SKIN_H
 
+#include <optional>
+
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
@@ -127,22 +129,17 @@ protected:
     void generateInfill(SliceLayerPart& part);
 
     /*!
-     * Remove the areas which are 'directly' under air from the \ref SkinPart::inner_infill and
-     * save them in the \ref SkinPart::roofing_fill of the \p part.
+     * Remove the areas which are 'directly' under/over air from the \ref SkinPart::inner_infill and
+     * save them in the \ref SkinPart::roofing_fill and \ref SkinPart::flooring_fill of the \p part.
      *
-     * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing areas
+     * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing/flooring areas
      */
-    void generateRoofingFillAndSkinFill(SliceLayerPart& part);
+    void generateSkinRoofingFlooringFill(SliceLayerPart& part);
 
     /*!
-     * Remove the areas which are directly under air in the top-most surface and directly above air in bottom-most
-     * surfaces from the \ref SkinPart::inner_infill and save them in the \ref SkinPart::bottom_most_surface_fill and
-     * \ref SkinPart::top_most_surface_fill (respectively) of the \p part.
-     *
-     * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the top and bottom-most
-     * infill areas
+     * Generate the top and bottom-most surfaces of the given \p part, i.e. the surfaces that have nothing above or below
      */
-    void generateTopAndBottomMostSkinFill(SliceLayerPart& part);
+    void generateTopAndBottomMostSurfaces(SliceLayerPart& part);
 
     /*!
      * Helper function to calculate and return the areas which are 'directly' under air.
@@ -157,8 +154,9 @@ protected:
      *
      * \param part Where to get the SkinParts to get the outline info from
      * \param flooring_layer_count The number of layers below the layer which we are looking into
+     * \return The area that contains mesh parts below, or nullopt if the build plate is below, which actually means everything is considered supported
      */
-    Shape generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
+    std::optional<Shape> generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
 
 protected:
     LayerIndex layer_nr_; //!< The index of the layer for which to generate the skins and infill.

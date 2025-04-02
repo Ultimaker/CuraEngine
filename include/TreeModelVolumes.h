@@ -153,7 +153,10 @@ public:
      */
     coord_t getRadiusNextCeil(coord_t radius, bool min_xy_dist) const;
 
+    //todo doku
     LayerIndex getFirstAntiPreferredLayerIdx();
+
+    LayerIndex getMaxLayerIdxWithoutBlocker();
 
     /*!
      * \brief Provide hints which areas should be avoided in the future.

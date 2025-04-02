@@ -10,6 +10,7 @@
 #include <limits> //For numeric_limits::min and max.
 #include <type_traits> // for operations on any arithmetic number type
 
+#include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 #include "utils/types/generic.h"
 
@@ -20,9 +21,9 @@ namespace cura
 class Point3LL
 {
 public:
-    coord_t x_{};
-    coord_t y_{};
-    coord_t z_{};
+    coord_t x_{ 0 };
+    coord_t y_{ 0 };
+    coord_t z_{ 0 };
 
     Point3LL() = default;
 
@@ -35,6 +36,8 @@ public:
 
     Point3LL(Point3LL&& point) = default;
     Point3LL(const Point3LL& point) = default;
+    Point3LL(const Point2LL& point);
+
     Point3LL& operator=(const Point3LL& point) = default;
     Point3LL& operator=(Point3LL&& point) = default;
 
@@ -130,6 +133,11 @@ public:
         return x_ * x_ + y_ * y_ + z_ * z_;
     }
 
+    [[nodiscard]] double vSize2f()
+    {
+        return static_cast<double>(x_) * static_cast<double>(x_) + static_cast<double>(y_) * static_cast<double>(y_) + static_cast<double>(z_) * static_cast<double>(z_);
+    }
+
     [[nodiscard]] coord_t vSize() const
     {
         return std::llrint(sqrt(static_cast<double>(vSize2())));
@@ -147,6 +155,10 @@ public:
     {
         return x_ * p.x_ + y_ * p.y_ + z_ * p.z_;
     }
+
+    [[nodiscard]] Point2LL toPoint2LL() const;
+
+    [[nodiscard]] Point3LL resized(coord_t length) const;
 
     coord_t& operator[](const size_t index)
     {
@@ -178,6 +190,11 @@ template<utils::numeric T>
 inline Point3LL operator*(const T i, const Point3LL& rhs)
 {
     return rhs * i;
+}
+
+inline Point3LL lerp(const Point3LL& a, const Point3LL& b, const double t)
+{
+    return Point3LL(cura::lerp(a.x_, b.x_, t), cura::lerp(a.y_, b.y_, t), cura::lerp(a.z_, b.z_, t));
 }
 
 } // namespace cura

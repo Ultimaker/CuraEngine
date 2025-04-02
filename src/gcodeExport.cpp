@@ -167,7 +167,7 @@ void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extrude
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 {
     extruder_attr_[extruder_nr].initial_temp_ = temp;
-    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::ULTIGCODE)
+    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH || flavor_ == EGCodeFlavor::ULTIGCODE)
     {
         extruder_attr_[extruder_nr].current_temperature_ = temp;
     }
@@ -189,6 +189,8 @@ std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
         return "Marlin(Volumetric)";
     case EGCodeFlavor::GRIFFIN:
         return "Griffin";
+    case EGCodeFlavor::CHEETAH:
+        return "Cheetah";
     case EGCodeFlavor::REPETIER:
         return "Repetier";
     case EGCodeFlavor::REPRAP:
@@ -211,6 +213,7 @@ std::string GCodeExport::getFileHeader(
     switch (flavor_)
     {
     case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
         prefix << ";START_OF_HEADER" << new_line_;
         prefix << ";HEADER_VERSION:0.1" << new_line_;
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
@@ -417,7 +420,7 @@ const Point3LL& GCodeExport::getPosition() const
 }
 Point2LL GCodeExport::getPositionXY() const
 {
-    return Point2LL(current_position_.x_, current_position_.y_);
+    return current_position_.toPoint2LL();
 }
 
 int GCodeExport::getPositionZ() const
@@ -682,7 +685,12 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 
     writeComment("Generated with Cura_SteamEngine " CURA_ENGINE_VERSION);
 
-    if (getFlavor() == EGCodeFlavor::GRIFFIN)
+    if (mesh_group_settings.get<bool>("machine_start_gcode_first"))
+    {
+        writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
+    }
+
+    if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     {
         std::ostringstream tmp;
         tmp << "T" << start_extruder_nr;
@@ -693,8 +701,11 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         processInitialLayerTemperature(storage, start_extruder_nr);
     }
 
+    if (! mesh_group_settings.get<bool>("machine_start_gcode_first"))
+    {
+        writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
+    }
     writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
-    writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
 
     // in case of shared nozzle assume that the machine-start gcode reset the extruders as per machine description
     if (Application::getInstance().current_slice_->scene.settings.get<bool>("machine_extruders_share_nozzle"))
@@ -720,7 +731,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
         writeLine(tmp.str().c_str());
     }
-    else if (getFlavor() == EGCodeFlavor::GRIFFIN)
+    else if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     { // initialize extruder trains
         ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[start_extruder_nr];
         processInitialLayerTemperature(storage, start_extruder_nr);
@@ -734,7 +745,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     {
         writeExtrusionMode(true);
     }
-    if (getFlavor() != EGCodeFlavor::GRIFFIN)
+    if (getFlavor() != EGCodeFlavor::GRIFFIN && getFlavor() != EGCodeFlavor::CHEETAH)
     {
         if (mesh_group_settings.get<bool>("retraction_enable"))
         {
@@ -819,18 +830,20 @@ void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorag
 void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
-    const size_t num_extruders = scene.extruders.size();
     bool wait_start_extruder = false;
+    std::vector<bool> extruders_used = storage.getExtrudersUsed();
+    size_t used_extruders = std::count(extruders_used.begin(), extruders_used.end(), true);
 
     switch (getFlavor())
     {
     case EGCodeFlavor::ULTIGCODE:
         return;
     case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
         wait_start_extruder = true;
         break;
     default:
-        if (num_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP)
+        if (used_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP)
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
@@ -848,6 +861,7 @@ bool GCodeExport::needPrimeBlob() const
     switch (getFlavor())
     {
     case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
         return true;
     default:
         // TODO: change this once priming for other firmware types is implemented
@@ -975,7 +989,7 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     const PrintFeatureType travel_move_type = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
     const int display_width = extruder_attr_[current_extruder_].retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
     const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
-    Application::getInstance().communication_->sendLineTo(travel_move_type, Point2LL(x, y), display_width, layer_height, speed);
+    Application::getInstance().communication_->sendLineTo(travel_move_type, Point3LL(x, y, z), display_width, layer_height, speed);
 
     *output_stream_ << "G0";
     writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type);
@@ -1249,9 +1263,11 @@ void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*
             speed = extruder.settings_.get<Velocity>("speed_z_hop");
         }
         is_z_hopped_ = hop_height;
+        const coord_t target_z = current_layer_z_ + is_z_hopped_;
         current_speed_ = speed;
-        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ current_layer_z_ + is_z_hopped_ } << new_line_;
-        total_bounding_box_.includeZ(current_layer_z_ + is_z_hopped_);
+        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z } << new_line_;
+        Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);
+        total_bounding_box_.includeZ(target_z);
         assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }
@@ -1269,12 +1285,37 @@ void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/)
         current_position_.z_ = current_layer_z_;
         current_speed_ = speed;
         *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ current_layer_z_ } << new_line_;
+        Application::getInstance()
+            .communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, current_layer_z_), 0, 0, speed);
         assert(speed > 0.0 && "Z hop speed should be positive.");
     }
 }
 
 void GCodeExport::startExtruder(const size_t new_extruder)
 {
+    const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder].settings_;
+    const auto prestart_code = extruder_settings.get<std::string>("machine_extruder_prestart_code");
+    const auto start_code = extruder_settings.get<std::string>("machine_extruder_start_code");
+    const auto start_code_duration = extruder_settings.get<Duration>("machine_extruder_start_code_duration");
+    const auto extruder_change_duration = extruder_settings.get<Duration>("machine_extruder_change_duration");
+
+    // Be nice to be able to calculate the extruder change time verses time
+    // to heat and run this so it's run before the change call. **Future note**
+    if (! prestart_code.empty())
+    {
+        if (relative_extrusion_)
+        {
+            writeExtrusionMode(false); // ensure absolute extrusion mode is set before the prestart gcode
+        }
+
+        writeCode(prestart_code.c_str());
+
+        if (relative_extrusion_)
+        {
+            writeExtrusionMode(true); // restore relative extrusion mode
+        }
+    }
+
     extruder_attr_[new_extruder].is_used_ = true;
     if (new_extruder != current_extruder_) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
@@ -1286,15 +1327,16 @@ void GCodeExport::startExtruder(const size_t new_extruder)
         {
             *output_stream_ << "T" << new_extruder << new_line_;
         }
+        // Only add time is we are actually changing extruders
+        estimate_calculator_.addTime(extruder_change_duration);
     }
 
+    estimate_calculator_.addTime(start_code_duration);
     current_extruder_ = new_extruder;
 
     assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
-    const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder].settings_;
-    const auto start_code = extruder_settings.get<std::string>("machine_extruder_start_code");
     if (! start_code.empty())
     {
         if (relative_extrusion_)
@@ -1309,9 +1351,6 @@ void GCodeExport::startExtruder(const size_t new_extruder)
             writeExtrusionMode(true); // restore relative extrusion mode
         }
     }
-
-    const auto start_code_duration = extruder_settings.get<Duration>("machine_extruder_start_code_duration");
-    estimate_calculator_.addTime(start_code_duration);
 
     Application::getInstance().communication_->setExtruderForSend(Application::getInstance().current_slice_->scene.extruders[new_extruder]);
     Application::getInstance().communication_->sendCurrentPosition(getPositionXY());
@@ -1401,7 +1440,7 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
         writeTravel(prime_pos, travel_speed);
     }
 
-    if (flavor_ == EGCodeFlavor::GRIFFIN)
+    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
     {
         bool should_correct_z = false;
 
@@ -1620,7 +1659,7 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
 
 void GCodeExport::writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait)
 {
-    if (flavor_ == EGCodeFlavor::ULTIGCODE || flavor_ == EGCodeFlavor::GRIFFIN)
+    if (flavor_ == EGCodeFlavor::ULTIGCODE || flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
     {
         // Ultimaker printers don't support build volume temperature commands.
         return;
@@ -1701,12 +1740,23 @@ void GCodeExport::writeJerk(const Velocity& jerk)
         case EGCodeFlavor::REPRAP:
             *output_stream_ << "M566 X" << PrecisionedDouble{ 2, jerk * 60 } << " Y" << PrecisionedDouble{ 2, jerk * 60 } << new_line_;
             break;
+        case EGCodeFlavor::CHEETAH:
+            *output_stream_ << "M215 X" << PrecisionedDouble{ 2, jerk * 1000 } << " Y" << PrecisionedDouble{ 2, jerk * 1000 } << new_line_;
+            break;
         default:
             *output_stream_ << "M205 X" << PrecisionedDouble{ 2, jerk } << " Y" << PrecisionedDouble{ 2, jerk } << new_line_;
             break;
         }
         current_jerk_ = jerk;
-        estimate_calculator_.setMaxXyJerk(jerk);
+
+        if (getFlavor() == EGCodeFlavor::CHEETAH)
+        {
+            estimate_calculator_.setMaxXyJerk(jerk / 200);
+        }
+        else
+        {
+            estimate_calculator_.setMaxXyJerk(jerk);
+        }
     }
 }
 
@@ -1722,6 +1772,11 @@ void GCodeExport::finalize(const char* endCode)
     for (int n = 1; n < MAX_EXTRUDERS; n++)
         if (getTotalFilamentUsed(n) > 0)
             spdlog::info("Filament {}: {}", n + 1, int(getTotalFilamentUsed(n)));
+    flushOutputStream();
+}
+
+void GCodeExport::flushOutputStream()
+{
     output_stream_->flush();
 }
 

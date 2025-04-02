@@ -31,6 +31,19 @@ enum class EFillMethod
     PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
 };
 
+
+/*!
+ * Enum for the value of extra_infill_lines_to_support_skins
+ * This enum defines what extra lines should be added to infill to support
+ * skins above.
+ */
+enum class EExtraInfillLinesToSupportSkins
+{
+    WALLS_AND_LINES,
+    WALLS,
+    NONE,
+};
+
 /*!
  * Type of platform adhesion.
  */
@@ -213,6 +226,12 @@ enum class EGCodeFlavor
      *  M227 is used to initialize a single extrusion train.
      **/
     GRIFFIN = 6,
+    /**
+     * Cheetah flavored is Griffin based, but with the Cheetah planner.
+     *  This means it has a jerk-limited motion profile based on real jerk (instead of Marlin's jump).
+     *  The jerk value is set using M215 in m/s^3
+     **/
+    CHEETAH = 61,
 
     REPETIER = 7,
 

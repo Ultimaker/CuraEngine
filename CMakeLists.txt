@@ -63,6 +63,7 @@ set(engine_SRCS # Except main.cpp.
         src/Mold.cpp
         src/multiVolumes.cpp
         src/path_ordering.cpp
+        src/PathAdapter.cpp
         src/Preheat.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
@@ -97,6 +98,7 @@ set(engine_SRCS # Except main.cpp.
         src/communication/ArcusCommunication.cpp
         src/communication/ArcusCommunicationPrivate.cpp
         src/communication/CommandLine.cpp
+        src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
 
         src/infill/ImageBasedDensityProvider.cpp
@@ -141,7 +143,6 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
-        src/utils/Point3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -156,6 +157,14 @@ set(engine_SRCS # Except main.cpp.
         src/utils/VoxelUtils.cpp
         src/utils/MixedPolylineStitcher.cpp
 
+        src/utils/scoring/BestElementFinder.cpp
+        src/utils/scoring/CornerScoringCriterion.cpp
+        src/utils/scoring/DistanceScoringCriterion.cpp
+        src/utils/scoring/ExclusionAreaScoringCriterion.cpp
+        src/utils/scoring/RandomScoringCriterion.cpp
+
+        src/geometry/Point2LL.cpp
+        src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
         src/geometry/Shape.cpp
         src/geometry/PointsSet.cpp
@@ -188,6 +197,7 @@ target_compile_definitions(_CuraEngine
         $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
         $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
+        CURA_ENGINE_HASH=\"${CURA_ENGINE_HASH}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
         $<$<BOOL:${WIN32}>:NOMINMAX>
@@ -245,6 +255,7 @@ target_link_libraries(_CuraEngine
 
 target_compile_definitions(_CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        SENTRY_ENVIRONMENT=\"${SENTRY_ENVIRONMENT}\"
 )
 
 if (NOT WIN32)
@@ -271,7 +282,28 @@ endif ()
 
 if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
     message(STATUS "Building for Emscripten")
-    target_link_options(_CuraEngine PUBLIC -Wno-unused-command-line-argument -sINVOKE_RUN=0 -sEXPORT_NAME=CuraEngine -sEXPORTED_RUNTIME_METHODS=[callMain,FS] -sFORCE_FILESYSTEM=1 -sALLOW_MEMORY_GROWTH=1 -sEXPORT_ES6=1 -sMODULARIZE=1 -sSINGLE_FILE=1 -sENVIRONMENT=worker -sERROR_ON_UNDEFINED_SYMBOLS=0 -lembind --embind-emit-tsd CuraEngine.d.ts)
+    target_link_options(_CuraEngine
+            PUBLIC
+            "SHELL:-sINVOKE_RUN=0"
+            "SHELL:-sEXPORT_NAME=CuraEngine"
+            "SHELL:-sEXPORTED_RUNTIME_METHODS=[callMain,FS]"
+            "SHELL:-sFORCE_FILESYSTEM=1"
+            "SHELL:-sALLOW_MEMORY_GROWTH=1"
+            "SHELL:-sEXPORT_ES6=1"
+            "SHELL:-sMODULARIZE=1"
+            "SHELL:-sSINGLE_FILE=1"
+            "SHELL:-sENVIRONMENT=web"
+            "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
+            "SHELL:-sWASM_BIGINT=1"
+            "SHELL:-sSTACK_SIZE=196608"
+           $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
+            $<$<CONFIG:Debug>:SHELL:-sSAFE_HEAP=1>
+            $<$<CONFIG:Debug>:SHELL:-sSTACK_OVERFLOW_CHECK=2>
+            $<$<CONFIG:Debug>:SHELL:-g3>
+            $<$<CONFIG:Debug>:SHELL:-gsource-map>
+            "SHELL:-lembind"
+            "SHELL:--embind-emit-tsd CuraEngine.d.ts"
+    )
 endif ()
 
 target_link_libraries(CuraEngine PRIVATE
@@ -280,6 +312,7 @@ target_link_libraries(CuraEngine PRIVATE
 )
 target_compile_definitions(CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        SENTRY_ENVIRONMENT=\"${SENTRY_ENVIRONMENT}\"
         VERSION=\"${CURA_ENGINE_VERSION}\"
 )
 

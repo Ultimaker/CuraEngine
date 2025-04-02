@@ -38,7 +38,7 @@ public:
      * Mock away the communication channel where layer data is output by this
      * class.
      */
-    MockCommunication* mock_communication;
+    std::shared_ptr<MockCommunication> mock_communication;
 
     void SetUp() override
     {
@@ -68,15 +68,13 @@ public:
         gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice_ = new Slice(1);
-        mock_communication = new MockCommunication();
+        Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
+        mock_communication = std::make_shared<MockCommunication>();
         Application::getInstance().communication_ = mock_communication;
     }
 
     void TearDown() override
     {
-        delete Application::getInstance().current_slice_;
-        delete Application::getInstance().communication_;
         Application::getInstance().communication_ = nullptr;
     }
 };
@@ -224,12 +222,7 @@ public:
         gcode.machine_name_ = "Your favourite 3D printer";
 
         // Set up a scene so that we may request settings.
-        Application::getInstance().current_slice_ = new Slice(0);
-    }
-
-    void TearDown() override
-    {
-        delete Application::getInstance().current_slice_;
+        Application::getInstance().current_slice_ = std::make_shared<Slice>(0);
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -456,6 +449,8 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     scene.extruders.emplace_back(0, nullptr);
     ExtruderTrain& train1 = scene.extruders.back();
 
+    train1.settings_.add("machine_extruder_prestart_code", ";PRESTART FIRST EXTRUDER");
+    train1.settings_.add("machine_extruder_change_duration", "10.0");
     train1.settings_.add("machine_extruder_start_code", ";FIRST EXTRUDER START G-CODE!");
     train1.settings_.add("machine_extruder_end_code", ";FIRST EXTRUDER END G-CODE!");
     train1.settings_.add("machine_extruder_start_code_duration", "0.0");
@@ -466,6 +461,8 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     scene.extruders.emplace_back(1, nullptr);
     ExtruderTrain& train2 = scene.extruders.back();
 
+    train2.settings_.add("machine_extruder_prestart_code", ";PRESTART SECOND EXTRUDER");
+    train2.settings_.add("machine_extruder_change_duration", "11.1");
     train2.settings_.add("machine_extruder_start_code", ";SECOND EXTRUDER START G-CODE!");
     train2.settings_.add("machine_extruder_end_code", ";SECOND EXTRUDER END G-CODE!");
     train2.settings_.add("machine_extruder_start_code_duration", "0.0");
@@ -480,7 +477,7 @@ TEST_F(GCodeExportTest, SwitchExtruderSimple)
     EXPECT_CALL(*mock_communication, sendCurrentPosition(testing::_));
     gcode.switchExtruder(1, no_retraction);
 
-    EXPECT_EQ(std::string("G92 E0\n;FIRST EXTRUDER END G-CODE!\nT1\nG92 E0\n;SECOND EXTRUDER START G-CODE!\n"), output.str());
+    EXPECT_EQ(std::string("G92 E0\n;FIRST EXTRUDER END G-CODE!\n;PRESTART SECOND EXTRUDER\nT1\nG92 E0\n;SECOND EXTRUDER START G-CODE!\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, WriteZHopStartZero)
@@ -705,7 +702,7 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     config.move_speed = 10.0;
     config.pause = 0;
 
-    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(5);
     gcode.insertWipeScript(config);
 
     std::string token;

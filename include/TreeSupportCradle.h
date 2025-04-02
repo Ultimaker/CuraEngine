@@ -2,18 +2,21 @@
 #define CURAENGINE_TREESUPPORTCRADLE_H
 #include <spdlog/spdlog.h>
 
+#include "TreeModelVolumes.h"
+#include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
-#include "TreeModelVolumes.h"
-#include "TreeSupportEnums.h"
+#include "utils/MinimumBoundingBox.h"
 
 namespace cura
 {
 // todo rename file as now general TreeSupportTipDataStructures
 struct TreeSupportCradle;
+
+using CradleDeformationHalfCircle = std::array<double, 16>;
 
 struct OverhangInformation
 {
@@ -109,7 +112,7 @@ struct CradleConfig
         , large_cradle_base_(roof && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base")
         , large_cradle_line_tips_(retrieveSetting<bool>(mesh.settings, "support_tree_large_cradle_line_tips"))
         , cradle_z_distance_layers_(round_divide(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_z_distance"), mesh.settings.get<coord_t>("layer_height")))
-
+        , cradle_towards_center_(retrieveSetting<std::string>(mesh.settings, "support_tree_cradle_direction")  == "center")
     {
         TreeSupportSettings config(mesh.settings); //todo replace with gathering settings manually
         if (cradle_layers_)
@@ -235,6 +238,11 @@ struct CradleConfig
      */
     coord_t cradle_line_distance_;
 
+    /*!
+     * \brief Should cradle lines go toward the center of the model (true) or the closest point on the outline(false)
+     */
+    bool cradle_towards_center_;
+
 };
 
 struct TreeSupportCradle
@@ -245,6 +253,7 @@ struct TreeSupportCradle
     std::vector<Shape> base_below_;
     std::vector<Point2LL> centers_;
     std::vector<Shape> shadow_;
+    std::vector<Shape> part_outline_;
     std::unordered_map<LayerIndex, std::vector<OverhangInformation>> overhang_;
     CradlePlacementMethod cradle_placement_method_;
     const std::shared_ptr<const CradleConfig> config_;
@@ -426,11 +435,14 @@ private:
 
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang)
+        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang,
+            CradleDeformationHalfCircle deformation, MinimumBoundingBox min_box)
             : area{ area }
             , layer_idx{ layer_idx }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
+            , deformation{ deformation }
+            , min_box {min_box}
         {
         }
         const Shape area;
@@ -438,13 +450,39 @@ private:
         size_t height;
         coord_t accumulated_supportable_overhang;
         CradlePlacementMethod support_required = CradlePlacementMethod::NONE;
+        CradleDeformationHalfCircle deformation;
+        double deformation_limit_total = -1;
+        double deformation_limit_z = -1;
+
+        double deformation_total_calculated = -1;
+        MinimumBoundingBox min_box;
 
         // Contains identifiers of all cradles below
         std::vector<UnsupportedAreaInformation*> cradles_below;
-
         std::vector<UnsupportedAreaInformation*> areas_above;
         std::vector<UnsupportedAreaInformation*> areas_below;
     };
+
+    size_t getDirectionIdx(Point2LL a, Point2LL b) const;
+
+    CradleDeformationHalfCircle elementWiseSelect(CradleDeformationHalfCircle& a, CradleDeformationHalfCircle& b, std::function<double(double,double)> selector)
+    {
+        CradleDeformationHalfCircle result{};
+        for(int i = 0; i < a.size(); i++)
+        {
+            result[i]=selector(a[i],b[i]);
+        }
+        return result;
+    }
+
+    void getLayerDeformation(const SliceMeshStorage& mesh, MinimumBoundingBox& minimum_box, double assumed_part_thickness, CradleDeformationHalfCircle& deform_part);
+
+    std::pair<MinimumBoundingBox,CradleDeformationHalfCircle > getSimulatedConnection(const SliceMeshStorage& mesh,
+                                                                                      double assumed_part_thickness,
+                                                                                      std::set<UnsupportedAreaInformation*> elements);
+
+    //todo doku
+    double getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
 
     /*!
      * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
@@ -463,7 +501,7 @@ private:
      */
     void calculateFloatingParts(const SliceDataStorage& storage, size_t mesh_idx);
 
-    /*!
+/*!
      * \brief Generate the center points of all generated cradles.
      * \param mesh[in] The mesh that is currently processed.
      * \param mesh_idx[in] The idx of the mesh.
@@ -515,8 +553,12 @@ const bool only_gracious_ = false;
 LayerIndex top_most_cradle_layer_ = -1;
 
 mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
+mutable std::unordered_map<LayerIndex, std::vector<std::pair<std::set<UnsupportedAreaInformation*>,std::pair<MinimumBoundingBox,CradleDeformationHalfCircle>>>> simulated_connection_cache_;
 
 std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
+std::unique_ptr<std::mutex> critical_simulated_connection_cache_ = std::make_unique<std::mutex>();
+
+
 
 };
 
