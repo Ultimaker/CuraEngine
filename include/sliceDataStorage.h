@@ -327,8 +327,8 @@ public:
     SupportGenerationModifier(Settings settings, size_t size)
         : settings_(settings)
         , areas_(size)
-        , is_anti_support_(settings.get<bool>("anti_support_mesh"))
-        , is_cradle_modifier_(settings.get<bool>("cradle_modifier_mesh"))
+        , is_anti_support_(settings.has("anti_support_mesh") && settings.get<bool>("anti_support_mesh"))
+        , is_cradle_modifier_(settings.has("cradle_modifier_mesh") && settings.get<bool>("cradle_modifier_mesh"))
         , is_anti_overhang_(! is_anti_support_ && ! is_cradle_modifier_ && settings.get<bool>("anti_overhang_mesh"))
     {
     }
