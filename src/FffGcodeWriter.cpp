@@ -1317,7 +1317,8 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     // check the settings if the prime blob is disabled
     if (need_prime_blob)
     {
-        const bool is_extruder_used_overall = storage.getExtrudersUsed()[extruder_nr];
+        const auto& used_extruders = storage.getExtrudersUsed();
+        const bool is_extruder_used_overall = extruder_nr < used_extruders.size() && used_extruders[extruder_nr];
         const bool extruder_prime_blob_enabled = storage.getExtruderPrimeBlobEnabled(extruder_nr);
 
         need_prime_blob = is_extruder_used_overall && extruder_prime_blob_enabled;
