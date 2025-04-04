@@ -190,6 +190,11 @@ class CuraEngineConan(ConanFile):
         self.cpp.build.includedirs = ["."]  # To package the generated headers
         self.cpp.package.libs = ["_CuraEngine"]
 
+        if self.settings.os == "Emscripten":
+            self.cpp.build.bin = ["CuraEngine.js"]
+            self.cpp.package.bin = ["CuraEngine.js"]
+            self.cpp.build.bindirs += ["CuraEngine"]
+
     def build(self):
         cmake = CMake(self)
         cmake.configure()

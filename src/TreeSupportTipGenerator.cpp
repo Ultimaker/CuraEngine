@@ -66,7 +66,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
 
     if (max_overhang_speed < 2)
     {
-        max_overhang_insert_lag_ = std::numeric_limits<coord_t>::max();
+        max_overhang_insert_lag_ = std::numeric_limits<size_t>::max();
     }
     else
     {
