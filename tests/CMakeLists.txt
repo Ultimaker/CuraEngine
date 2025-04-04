@@ -5,6 +5,7 @@ message(STATUS "Building tests...")
 include(GoogleTest)
 
 set(TESTS_SRC_BASE
+        AntiOozeAmountsTest
         ClipperTest
         ExtruderPlanTest
         FffGcodeWriterTest
@@ -15,15 +16,15 @@ set(TESTS_SRC_BASE
         PathOrderMonotonicTest
         TimeEstimateCalculatorTest
         WallsComputationTest
-        )
+)
 
 set(TESTS_SRC_INTEGRATION
         SlicePhaseTest
-        )
+)
 
 set(TESTS_SRC_SETTINGS
         SettingsTest
-        )
+)
 
 set(TESTS_SRC_UTILS
         AABBTest
@@ -39,7 +40,7 @@ set(TESTS_SRC_UTILS
         SparseGridTest
         StringTest
         UnionFindTest
-        )
+)
 
 foreach (test ${TESTS_SRC_BASE})
     add_executable(${test} main.cpp ${test}.cpp)
