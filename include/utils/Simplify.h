@@ -5,6 +5,7 @@
 #define UTILS_SIMPLIFY_H
 
 #include "geometry/Point2LL.h"
+#include "geometry/SingleShape.h"
 #include "utils/Coord_t.h"
 
 
@@ -94,6 +95,13 @@ public:
      * \return The simplified polygons.
      */
     Shape polygon(const Shape& polygons) const;
+
+    /*!
+     * Simplify a batch of polygons representing a single area with holes.
+     * \param polygons The polygons to simplify.
+     * \return The simplified polygons.
+     */
+    SingleShape polygon(const SingleShape& polygons) const;
 
     /*!
      * Simplify a polygon.

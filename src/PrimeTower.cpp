@@ -585,7 +585,7 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
         AABB outside_polygon_boundary_box(outside_polygon);
         SupportLayer& support_layer = storage.support.supportLayers[layer];
         // take the differences of the support infill parts and the prime tower area
-        support_layer.excludeAreasFromSupportInfillAreas(outside_polygon, outside_polygon_boundary_box);
+        support_layer.excludeAreasFromSupportParts(support_layer.support_infill_parts, outside_polygon, outside_polygon_boundary_box);
     }
 }
 

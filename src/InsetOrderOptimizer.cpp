@@ -202,6 +202,9 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     case EZSeamType::USER_SPECIFIED:
         request_point = z_seam_config_.pos_;
         break;
+    case EZSeamType::INTERNAL_SPECIFIED:
+        request_point = z_seam_config_.pos_;
+        break;
     case EZSeamType::SHORTEST:
         request_point = gcode_layer_.getLastPlannedPositionOrStartingPosition();
         break;
@@ -214,7 +217,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     size_t closest_junction_idx = 0;
     coord_t closest_distance_sqd = std::numeric_limits<coord_t>::max();
     bool should_recalculate_closest = false;
-    if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED)
+    if (z_seam_config_.type_ == EZSeamType::USER_SPECIFIED || z_seam_config_.type_ == EZSeamType::INTERNAL_SPECIFIED)
     {
         // For user-defined seams you usually don't _actually_ want the _closest_ point, per-se,
         // since you want the seam-line to be continuous in 3D space.

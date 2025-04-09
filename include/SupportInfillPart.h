@@ -4,10 +4,12 @@
 #ifndef SUPPORT_INFILL_PART_H
 #define SUPPORT_INFILL_PART_H
 
+#include <optional>
 #include <vector>
 
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
+#include "settings/EnumSettings.h"
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 
@@ -36,8 +38,17 @@ public:
 
     coord_t custom_line_distance_; //!< The distance between support infill lines. 0 means use the default line distance instead.
     bool use_fractional_config_; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
+    EFillMethod custom_line_pattern_;
+    std::optional<Point2LL> start_near_location;
 
-    SupportInfillPart(const SingleShape& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
+    SupportInfillPart(const SingleShape& outline,
+                      coord_t support_line_width,
+                      bool use_fractional_config,
+                      int inset_count_to_generate = 0,
+                      coord_t custom_line_distance = 0,
+                      EFillMethod custom_line_pattern = EFillMethod::NONE,
+                      std::optional<Point2LL> start_near_location = std::optional<Point2LL>()
+                      );
 
     const Shape& getInfillArea() const;
 };
