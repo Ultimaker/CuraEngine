@@ -387,6 +387,8 @@ EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
         return EGCodeFlavor::REPETIER;
     case "RepRap (RepRap)"_sw:
         return EGCodeFlavor::REPRAP;
+    case "BambuLab"_sw:
+        return EGCodeFlavor::BAMBULAB;
     case "plugin"_sw:
         return EGCodeFlavor::PLUGIN;
     default:

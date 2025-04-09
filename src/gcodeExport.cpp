@@ -195,6 +195,8 @@ std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
         return "Repetier";
     case EGCodeFlavor::REPRAP:
         return "RepRap";
+    case EGCodeFlavor::BAMBULAB:
+        return "BambuLab";
     case EGCodeFlavor::MARLIN:
     default:
         return "Marlin";
@@ -302,7 +304,7 @@ std::string GCodeExport::getFileHeader(
 
             prefix << ";NOZZLE_DIAMETER:" << Application::getInstance().current_slice_->scene.extruders[0].settings_.get<double>("machine_nozzle_size") << new_line_;
         }
-        else if (flavor_ == EGCodeFlavor::REPRAP || flavor_ == EGCodeFlavor::MARLIN || flavor_ == EGCodeFlavor::MARLIN_VOLUMATRIC)
+        else if (flavor_ == EGCodeFlavor::REPRAP || flavor_ == EGCodeFlavor::MARLIN || flavor_ == EGCodeFlavor::MARLIN_VOLUMATRIC || flavor_ == EGCodeFlavor::BAMBULAB)
         {
             prefix << ";Filament used: ";
             if (filament_used.size() > 0)
@@ -1319,6 +1321,12 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     extruder_attr_[new_extruder].is_used_ = true;
     if (new_extruder != current_extruder_) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
+        if (flavor_ == EGCodeFlavor::BAMBULAB)
+        {
+            // Prepare AMS for extruder change
+            *output_stream_ << "M620 S" << new_extruder << "A" << new_line_;
+        }
+
         if (flavor_ == EGCodeFlavor::MAKERBOT)
         {
             *output_stream_ << "M135 T" << new_extruder << new_line_;
@@ -1594,7 +1602,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
 
     if (wait && flavor_ != EGCodeFlavor::MAKERBOT)
     {
-        if (flavor_ == EGCodeFlavor::MARLIN)
+        if (flavor_ == EGCodeFlavor::MARLIN || flavor_ == EGCodeFlavor::BAMBULAB)
         {
             *output_stream_ << "M105" << new_line_; // get temperatures from the last update, the M109 will not let get the target temperature
         }
@@ -1638,7 +1646,7 @@ void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, con
     {
         if (wait)
         {
-            if (flavor_ == EGCodeFlavor::MARLIN)
+            if (flavor_ == EGCodeFlavor::MARLIN || flavor_ == EGCodeFlavor::BAMBULAB)
             {
                 *output_stream_ << "M140 S"; // set the temperature, it will be used as target temperature from M105
                 *output_stream_ << PrecisionedDouble{ 1, temperature } << new_line_;

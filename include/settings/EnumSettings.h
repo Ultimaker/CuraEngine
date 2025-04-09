@@ -238,7 +238,13 @@ enum class EGCodeFlavor
      * Real RepRap GCode suitable for printers using RepRap firmware (e.g. Duet controllers)
      **/
     REPRAP = 8,
-    PLUGIN = 9,
+
+    /**
+     * Marlin-based GCode, with some variants to handle specific BambuLab instructions, e.g. AMS
+     **/
+    BAMBULAB = 9,
+
+    PLUGIN = 10,
 };
 
 /*!
