@@ -1339,6 +1339,13 @@ void GCodeExport::startExtruder(const size_t new_extruder)
         estimate_calculator_.addTime(extruder_change_duration);
     }
 
+    if (flavor_ == EGCodeFlavor::BAMBULAB)
+    {
+        // BambuLab printers handle the unretraction in the extruder change sequence
+        extruder_attr_[current_extruder_].retraction_e_amount_current_ = 0.0;
+        extruder_attr_[current_extruder_].retraction_e_amount_at_e_start_ = 0.0;
+    }
+
     estimate_calculator_.addTime(start_code_duration);
     current_extruder_ = new_extruder;
 
