@@ -724,7 +724,8 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     }
 
     Application::getInstance().communication_->sendCurrentPosition(getPositionXY());
-    startExtruder(start_extruder_nr);
+    constexpr bool initial_start = true;
+    startExtruder(start_extruder_nr, initial_start);
 
     if (getFlavor() == EGCodeFlavor::BFB)
     {
@@ -839,6 +840,7 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
     switch (getFlavor())
     {
     case EGCodeFlavor::ULTIGCODE:
+    case EGCodeFlavor::BAMBULAB:
         return;
     case EGCodeFlavor::GRIFFIN:
     case EGCodeFlavor::CHEETAH:
@@ -1293,8 +1295,20 @@ void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/)
     }
 }
 
-void GCodeExport::startExtruder(const size_t new_extruder)
+void GCodeExport::startExtruder(const size_t new_extruder, const bool initial_start)
 {
+    Application::getInstance().communication_->setExtruderForSend(Application::getInstance().current_slice_->scene.extruders[new_extruder]);
+    Application::getInstance().communication_->sendCurrentPosition(getPositionXY());
+
+    // Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.
+    current_position_.z_ += 1;
+
+    if (flavor_ == EGCodeFlavor::BAMBULAB && initial_start)
+    {
+        // Initial extruder setup is handled in start gcode
+        return;
+    }
+
     const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder].settings_;
     const auto prestart_code = extruder_settings.get<std::string>("machine_extruder_prestart_code");
     const auto start_code = extruder_settings.get<std::string>("machine_extruder_start_code");
@@ -1305,14 +1319,14 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     // to heat and run this so it's run before the change call. **Future note**
     if (! prestart_code.empty())
     {
-        if (relative_extrusion_)
+        if (relative_extrusion_ && flavor_ != EGCodeFlavor::BAMBULAB)
         {
             writeExtrusionMode(false); // ensure absolute extrusion mode is set before the prestart gcode
         }
 
         writeCode(prestart_code.c_str());
 
-        if (relative_extrusion_)
+        if (relative_extrusion_ && flavor_ != EGCodeFlavor::BAMBULAB)
         {
             writeExtrusionMode(true); // restore relative extrusion mode
         }
@@ -1354,24 +1368,18 @@ void GCodeExport::startExtruder(const size_t new_extruder)
 
     if (! start_code.empty())
     {
-        if (relative_extrusion_)
+        if (relative_extrusion_ && flavor_ != EGCodeFlavor::BAMBULAB)
         {
             writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
         }
 
         writeCode(start_code.c_str());
 
-        if (relative_extrusion_)
+        if (relative_extrusion_ && flavor_ != EGCodeFlavor::BAMBULAB)
         {
             writeExtrusionMode(true); // restore relative extrusion mode
         }
     }
-
-    Application::getInstance().communication_->setExtruderForSend(Application::getInstance().current_slice_->scene.extruders[new_extruder]);
-    Application::getInstance().communication_->sendCurrentPosition(getPositionXY());
-
-    // Change the Z position so it gets re-written again. We do not know if the switch code modified the Z position.
-    current_position_.z_ += 1;
 }
 
 void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop /*= 0*/)

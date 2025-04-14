@@ -520,7 +520,7 @@ public:
      *
      * \param new_extruder The extruder to start with
      */
-    void startExtruder(const size_t new_extruder);
+    void startExtruder(const size_t new_extruder, const bool initial_start = false);
 
     /*!
      * Switch to the new_extruder:
