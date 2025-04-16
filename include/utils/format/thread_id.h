@@ -4,11 +4,11 @@
 #ifndef UTILS_FORMAT_THREAD_ID_H
 #define UTILS_FORMAT_THREAD_ID_H
 
-#include <fmt/core.h>
-
 #include <sstream>
 #include <string_view>
 #include <thread>
+
+#include <fmt/core.h>
 
 namespace fmt
 {
@@ -16,7 +16,7 @@ template<>
 struct formatter<std::thread::id> : formatter<string_view>
 {
     template<typename FormatContext>
-    auto format(std::thread::id thread_id, FormatContext& ctx)
+    auto format(std::thread::id thread_id, FormatContext& ctx) const
     {
         std::ostringstream oss;
         oss << thread_id;
