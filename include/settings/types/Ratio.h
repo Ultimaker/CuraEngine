@@ -32,7 +32,7 @@ struct Ratio : public utils::NumericFacade<double>
         : base_type{ static_cast<value_type>(numerator) / static_cast<value_type>(divisor) } {};
 };
 
-constexpr Ratio operator"" _r(const long double ratio)
+constexpr Ratio operator""_r(const long double ratio)
 {
     return { ratio };
 }

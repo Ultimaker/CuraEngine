@@ -262,7 +262,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
 {
     if (empty())
     {
-        return 0;
+        return NO_INDEX;
     }
 
     // NOTE: Keep these vectors fixed-size, they replace an (non-standard, sized at runtime) arrays.
