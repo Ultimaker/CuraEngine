@@ -40,6 +40,16 @@ Shape Simplify::polygon(const Shape& polygons) const
     return result;
 }
 
+SingleShape Simplify::polygon(const SingleShape& polygons) const
+{
+    SingleShape result;
+    for (size_t i = 0; i < polygons.size(); ++i)
+    {
+        result.push_back(polygon(polygons[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
+    }
+    return result;
+}
+
 Polygon Simplify::polygon(const Polygon& polygon) const
 {
     constexpr bool is_closed = true;

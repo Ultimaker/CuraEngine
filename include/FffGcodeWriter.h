@@ -11,6 +11,7 @@
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
+#include "SupportInfillPart.h"
 #include "gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
@@ -649,12 +650,11 @@ private:
      * layer.
      *
      * \param[in] storage Where the slice data is stored.
-     * \param[in] support_roof_outlines which polygons to generate roofs for.
-     * \param[in] current_roof_config config to be used.
+     * \param[in] support_roof_outlines Collection of polygons to generate roofs for.
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
-    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
+    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const std::vector<SupportInfillPart>& support_roof_outlines, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support bottoms to the layer plan \p gcodeLayer of the current

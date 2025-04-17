@@ -90,8 +90,9 @@ public:
      * \param layer_idx[in] The current layer index.
      * \param support_infill_distance[in] The distance that should be between the infill lines.
      * \param cross_fill_provider[in] A SierpinskiFillProvider required for cross infill.
-     * \param include_walls[in] If the result should also contain walls, or only the infill.
-     * todo doku
+     * \param wall_count[in] Amount of walls the result should contain.
+     * \param special_pattern[in] Use a different pattern. None means the default pattern as in config will be used.
+     * \param disable_connect[in] If the connecting of Infill lines has to be disabled.
      * \return A Polygons object that represents the resulting infill lines.
      */
     [[nodiscard]] static OpenLinesSet generateSupportInfillLines(
@@ -101,20 +102,21 @@ public:
         LayerIndex layer_idx,
         coord_t support_infill_distance,
         std::shared_ptr<SierpinskiFillProvider> cross_fill_provider,
-        bool include_walls,
-        bool generate_support_supporting = false)
+        size_t wall_count,
+        EFillMethod special_pattern = EFillMethod::NONE,
+        bool disable_connect = false)
     {
         Shape gaps;
-        // As we effectivly use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
+        // As we effectively use lines to place our supportPoints we may use the Infill class for it, while not made for it, it works perfectly.
 
-        const EFillMethod pattern = generate_support_supporting ? EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
+        const EFillMethod pattern = (special_pattern != EFillMethod::NONE) ? special_pattern : roof ? config.roof_pattern : config.support_pattern;
 
-        const bool zig_zaggify_infill = roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support;
+        const bool zig_zaggify_infill = ! disable_connect && (roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support);
         const bool connect_polygons = false;
         constexpr coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;
         const int support_shift = roof ? 0 : support_infill_distance / 2;
-        const size_t wall_line_count = include_walls ? (! roof ? config.support_wall_count : config.support_roof_wall_count) : 0;
+        const size_t wall_line_count = wall_count;
         constexpr coord_t narrow_area_width = 0;
         const Point2LL infill_origin;
         constexpr bool skip_stitching = false;
@@ -202,11 +204,13 @@ public:
      * \param me[in] Shape object that has to be offset.
      * \param distance[in] The distance by which me should be offset. Expects values >=0.
      * \param collision[in] The area representing obstacles.
-     * \param last_step_offset_without_check[in] The most it is allowed to offset in one step.
+     * \param safe_step_size[in] The most it is allowed to offset in one step.
+     * \param last_step_offset_without_check[in] The amount of distance for which the collision could be violated at the end.
      * \param min_amount_offset[in] How many steps have to be done at least. As this uses round offset this increases the amount of vertices, which may be required if Shape get
-     * very small. Required as arcTolerance is not exposed in offset, which should result with a similar result, benefit may be eliminated by simplifying. \param
-     * min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy. \param simplifier[in] Pointer to Simplify object if
-     * the offset operation also simplify the Polygon. Improves performance. \return The resulting Shape object.
+     * very small. Required as arcTolerance is not exposed in offset, which should result with a similar result, benefit may be eliminated by simplifying.
+     * \param min_offset_per_step Don't get below this amount of offset per step taken. Fine-tune tradeoff between speed and accuracy.
+     * \param simplifier[in] Pointer to Simplify object if  the offset operation also simplify the Polygon. Improves performance.
+     * \return The resulting Shape object.
      */
     [[nodiscard]] static Shape safeOffsetInc(
         const Shape& me,

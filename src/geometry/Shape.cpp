@@ -108,8 +108,8 @@ void Shape::makeConvex()
 
         for (const auto window : poly | ranges::views::sliding(2))
         {
-            const Point2LL& current = window[0];
-            const Point2LL& after = window[1];
+            const auto& current = window[0];
+            const auto& after = window[1];
 
             if (LinearAlg2D::pointIsLeftOfLine(current, convexified.back(), after) < 0)
             {
@@ -122,6 +122,11 @@ void Shape::makeConvex()
                 }
                 convexified.push_back(current);
             }
+        }
+
+        while (convexified.size() >= 2 && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
+        {
+            convexified.pop_back();
         }
     };
 
@@ -365,6 +370,49 @@ OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool resti
 
     return result_lines;
 }
+
+template<class LineType>
+OpenLinesSet Shape::difference(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance) const
+{
+
+    OpenLinesSet split_polylines = polylines.splitIntoSegments();
+
+    ClipperLib::PolyTree result;
+    ClipperLib::Clipper clipper(clipper_init);
+    split_polylines.addPaths(clipper, ClipperLib::ptSubject);
+    addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctDifference, result);
+    ClipperLib::Paths result_paths;
+    ClipperLib::OpenPathsFromPolyTree(result, result_paths);
+
+    OpenLinesSet result_lines(std::move(result_paths));
+
+    if (restitch)
+    {
+        OpenLinesSet result_open_lines;
+        Shape result_closed_lines;
+
+        const coord_t snap_distance = 10_mu;
+        OpenPolylineStitcher::stitch(result_lines, result_open_lines, result_closed_lines, max_stitch_distance, snap_distance);
+
+        result_lines = std::move(result_open_lines);
+        // if open polylines got stitched into closed polylines, split them back up into open polylines again, because the result only admits open polylines
+        for (ClosedPolyline& closed_line : result_closed_lines)
+        {
+            if (! closed_line.empty())
+            {
+                if (closed_line.size() > 2)
+                {
+                    closed_line.push_back(closed_line.front());
+                }
+                result_lines.emplace_back(std::move(closed_line.getPoints()));
+            }
+        }
+    }
+
+    return result_lines;
+}
+
 
 Shape Shape::xorPolygons(const Shape& other, ClipperLib::PolyFillType pft) const
 {
@@ -1011,5 +1059,9 @@ void Shape::applyMatrix(const Point3Matrix& matrix)
 template OpenLinesSet Shape::intersection(const OpenLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
 template OpenLinesSet Shape::intersection(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
 template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;
+
+template OpenLinesSet Shape::difference(const OpenLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template OpenLinesSet Shape::difference(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template OpenLinesSet Shape::difference(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;
 
 } // namespace cura
