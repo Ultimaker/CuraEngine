@@ -730,7 +730,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
     {
         // If a line consists of enough tips, the assumption is that it is not a single tip, but part of a simulated support pattern.
         // Ovalisation should be disabled if they may be placed close to each other to prevent tip-areas merging. If the tips has to turn into roof, the area is most likely not
-        // large enough for this to cause issues. todo does this still make sense?
+        // large enough for this to cause issues. Todo does this still make sense?
         const bool disable_ovalization = ! connect_points && config_.min_radius < 3 * config_.support_line_width && roof_tip_layers == 0;
         for (auto [idx, point_data] : line | ranges::views::enumerate)
         {
@@ -776,7 +776,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
                 roof_type = TipRoofType::IS_ROOF;
                 // No information about the amount of missing roof layers for cradle bases is stored.
                 // So it is only known that there could be one layer of roof. So to keep consistent behaviour only add one roof tip layer.
-                // todo change that in the future?
+                // Todo[TR:Behavior] change that in the future?
                 dont_move_until = 1;
             }
 
@@ -971,8 +971,9 @@ void TreeSupportTipGenerator::generateTips(
 
             std::function<OpenLinesSet(const Shape&, bool, LayerIndex)> generateLines = [&](const Shape& area, bool roof, LayerIndex generate_layer_idx)
             {
-                // todo ensure larger tips have reasonable density. How would one do that though?
+                // Todo[TR:Behavior] ensure larger tips have reasonable density. How would one do that though?
                 //  If tips are 7mm thick, does 20% fill mean a distance of 35mm between tips? Does not make sense...
+                //  Also, shouldnt large tips have skin/fake roof anyway? So just make them connect and handle density there?
                 coord_t upper_line_distance = support_supporting_branch_distance_;
                 coord_t line_distance = std::max(roof ? support_roof_line_distance_ : support_tree_branch_distance, upper_line_distance);
                 coord_t current_tip_radius_generate = (force_initial_layer_radius_ && config_.recommendedMinRadius(generate_layer_idx) > config_.min_radius)
@@ -1016,7 +1017,7 @@ void TreeSupportTipGenerator::generateTips(
             }
             all_cradle_areas[layer_idx] = all_cradle_areas[layer_idx].unionPolygons().offset(EPSILON).unionPolygons();
             core_overhang = core_overhang.difference(support_free_areas[layer_idx]);
-            core_overhang = core_overhang.difference(all_cradle_areas[layer_idx].offset(config_.xy_distance + FUDGE_LENGTH).unionPolygons()); // todo what do if large tips?
+            core_overhang = core_overhang.difference(all_cradle_areas[layer_idx].offset(config_.xy_distance + FUDGE_LENGTH).unionPolygons());
 
             for (size_t cradle_idx = 0; cradle_idx < all_cradles_requiring_support[layer_idx].size(); cradle_idx++)
             {
@@ -1195,7 +1196,7 @@ void TreeSupportTipGenerator::generateTips(
                 }
                 else
                 {
-                    // todo can cause inconsistent support density if a line exactly aligns with the model
+                    // todo[TR:Behavior] can cause inconsistent support density if a line exactly aligns with the model
                     polylines = ensureMaximumDistancePolyline(
                         generateLines(overhang_outset, overhang_data.is_roof_, layer_idx + overhang_data.is_roof_),
                         ! overhang_data.is_roof_ ? current_tip_radius * 2

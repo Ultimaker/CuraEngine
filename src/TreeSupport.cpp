@@ -180,7 +180,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         for (size_t mesh_idx : processing.second)
         {
             std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh(move_bounds.size());
-            cradle_gen.pushCradleData(cradle_data_mesh, support_free_areas, mesh_idx); // todo the support free areas here are HORRIBLE
+            cradle_gen.pushCradleData(cradle_data_mesh, support_free_areas, mesh_idx); // todo[TR:CodeQuality] Should support_free_areas and fake_roof_areas be local variables instead?
             generateInitialAreas(*storage.meshes[mesh_idx], move_bounds, storage, cradle_data_mesh);
             if (cradle_data.size() < cradle_data_mesh.size())
             {
@@ -1504,7 +1504,7 @@ void TreeSupport::increaseAreas(
                     add = true;
                     // Do not merge if the branch should not move or the priority has to be to get farther away from the model.
                     bypass_merge = ! settings.move_ || (settings.use_min_distance_ && elem.distance_to_top_ < config.tip_layers)
-                                || ! elem.can_avoid_anti_preferred_; // todo less aggressive merge prevention?
+                                || ! elem.can_avoid_anti_preferred_; // todo[TR:Behavior] less aggressive merge prevention?
                     if (settings.move_)
                     {
                         elem.dont_move_until_ = 0;
@@ -1589,8 +1589,8 @@ void TreeSupport::handleCradleLineValidity(
         std::unordered_set<size_t> removed_lines_idx;
         // Evaluate which lines have to be removed for all influence areas to be valid.
         // Goal is to remove as few lines as possible
-        // Correctly solving this is very hard.
-        // So for now any solution will do. Todo find a better way. Also parallelize
+        // Correctly solving this is not obvious.
+        // So for now any solution will do. Todo[TR:Behavior][TR:Performance] find a better way. Also parallelize
 
         std::vector<const TreeSupportElement*> all_elements_on_layer;
         all_elements_on_layer.insert(all_elements_on_layer.end(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
@@ -1653,7 +1653,7 @@ void TreeSupport::handleCradleLineValidity(
                             }
                             else
                             {
-                                // todo Check if non remove options are available eg shortening cradle line...
+                                // todo [TR:Behavior]  Check if non remove options are available eg shortening cradle line...
                                 removed_lines_idx.emplace(cradle_idx);
                                 cradle.getCradleLine()->addLineToRemoved(cradle.getCradleLine()->line_);
                                 cradle.getCradleLine()->line_.clear();
@@ -1677,8 +1677,6 @@ void TreeSupport::handleCradleLineValidity(
             }
         }
     }
-
-    // todo would be great if removed cradle lines could be eliminated from the avoidance...
 
     std::vector<TreeSupportElement*> next_layer;
     next_layer.insert(next_layer.begin(), move_bounds[layer_idx].begin(), move_bounds[layer_idx].end());
@@ -2412,7 +2410,7 @@ void TreeSupport::prepareSupportAreas(
     const auto t_start = std::chrono::high_resolution_clock::now();
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
-    const bool print_cradle_towards_model = true; //todo make setting
+    const bool print_cradle_towards_model = true; //todo[TR:Frontend] make setting?
 
     std::vector<std::vector<ShapeWithStart>> cradle_support_line_roof_areas_with_start(support_layer_storage.size()); // All cradle lines that have to be added as roof
     std::vector<std::vector<ShapeWithStart>> cradle_support_line_areas_with_start(support_layer_storage.size()); // All cradle lines that have to be added as roof
@@ -2471,14 +2469,15 @@ void TreeSupport::prepareSupportAreas(
                                 continue;
                             }
 
-                            SingleShape line_area = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].area_.splitIntoParts(false).front(); //todo prettier.
-                            bool is_roof = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_roof_;
-                            LayerIndex cradle_line_layer_idx = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].layer_idx_;
-                            bool is_base = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].is_base_;
-                            bool was_line_above = height_idx + 1 < cradle_data[layer_idx][cradle_idx]->lines_[line_idx].size() &&
-                                                  ! cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx + 1].is_base_;
-                            Point2LL front = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].line_.front();
-                            Point2LL back = cradle_data[layer_idx][cradle_idx]->lines_[line_idx][height_idx].line_.back();
+                            std::deque<TreeSupportCradleLine>& cradle_lines = cradle_data[layer_idx][cradle_idx]->lines_[line_idx];
+                            SingleShape line_area = cradle_lines[height_idx].area_.splitIntoParts(false).front();
+                            bool is_roof = cradle_lines[height_idx].is_roof_;
+                            LayerIndex cradle_line_layer_idx = cradle_lines[height_idx].layer_idx_;
+                            bool is_base = cradle_lines[height_idx].is_base_;
+                            bool was_line_above = height_idx + 1 < cradle_lines.size() &&
+                                                  ! cradle_lines[height_idx + 1].is_base_;
+                            Point2LL front = cradle_lines[height_idx].line_.front();
+                            Point2LL back = cradle_lines[height_idx].line_.back();
 
                             if (was_line_above)
                             {
@@ -3263,7 +3262,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 fractional_skin = support_layer_storage_fractional[layer_idx].intersection(support_skin_storage[layer_idx - 1]);
 
                 // To remove the lines it needs to be known what the lines are. This can not be done in the loop above, so it needs to be done here again for fractional support.
-                //  todo deduplicate code
+                //  todo[TR:CodeQuality] deduplicate code
                 if (interface_pref == InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE)
                 {
                     Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
@@ -3546,7 +3545,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     for (const auto layer_idx : ranges::views::iota(0UL, support_layer_storage.size()))
     {
         scripta::log("tree_support_layer_storage", support_layer_storage[layer_idx], SectionType::SUPPORT, layer_idx);
-        // todo maybe also log support_skin_storage ?
+        scripta::log("tree_support_skin_storage", support_skin_storage[layer_idx], SectionType::SUPPORT, layer_idx);
     }
 
     const auto t_skin = std::chrono::high_resolution_clock::now();

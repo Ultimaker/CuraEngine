@@ -149,7 +149,7 @@ std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> SupportCradleGenerati
             PolygonUtils::moveInside(element_connect->area, connect_inside);
         }
         line.addSegment(current_inside, connect_inside);
-        //todo that line thickness calculation needs improvement.
+        //todo[TR:Behavior][TR:NeedsFixing] that line thickness calculation needs improvement.
         simulated_connection.push_back(line.offset(std::max(
             std::min(random_area->min_box.extent.X, random_area->min_box.extent.Y),
             std::min(element_connect->min_box.extent.X, element_connect->min_box.extent.Y))));
@@ -212,7 +212,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
     }
     std::set<UnsupportedAreaInformation*> iterate_elements;
 
-    // todo instead of doing a single maximum, do a window over a few mm ?
+    // todo[TR:Behavior] instead of doing a single maximum, do a window over a few mm ?
 
     double largest_deformation_in_z_direction_deformation = 0;
     double largest_deformation_in_xy_direction_deformation = 0;
@@ -230,7 +230,7 @@ double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const Slice
             CradleDeformationHalfCircle deformation_layer;
             MinimumBoundingBox min_box_layer;
 
-            for(UnsupportedAreaInformation* current_area : iterate_elements) //todo why do i iterate over all? It is either one or a simulated connection...
+            for(UnsupportedAreaInformation* current_area : iterate_elements) //todo[TR:CodeQuality][TR:Performance] why do i iterate over all? It is either one or a simulated connection...
             {
                 if(min_box_layer.center == Point2LL(0,0))
                 {
@@ -510,7 +510,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                         {
                             last_cradle_at_layer_idx = std::max(last_cradle_at_layer_idx, cradle->layer_idx);
                         }
-                        if(last_cradle_at_layer_idx != -1 && layer_idx - last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO
+                        if(last_cradle_at_layer_idx != -1 && layer_idx - last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO[TR:Behavior]
                         {
                             area_info->deformation_limit_total = EPSILON;
                         }
@@ -522,7 +522,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                         {
 
                             double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
-                            if(estimated_deformation > side_cradle_support_threshold) // todo additional cradle if it rests on cradle earlier
+                            if(estimated_deformation > side_cradle_support_threshold) // todo[TR:Behavior][TR:Frontend] Add option to add additional cradles if the part rests on cradle because of pointy overhang?
                             {
                                 top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
                                 area_info->support_required = CradlePlacementMethod::AUTOMATIC_SIDE;
@@ -734,14 +734,6 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
 
                 if (aborted)
                 {
-                    // If aborted remove all model information for the cradle generation except the pointy overhang, as it may be needed to cut a small hole in the large interface
-                    // base. todo reimplement that
-
-                    Shape cradle_0 = accumulated_model[0];
-                    accumulated_model.clear();
-                    accumulated_model.emplace_back(cradle_0);
-                    unsupported_model.clear();
-                    unsupported_model.emplace_back(cradle_0);
                     delete cradle_main;
                 }
                 else
@@ -962,9 +954,9 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                                 closest_on_prev_segment = LinearAlg2D::getClosestOnLineSegment(closer, cradle->lines_[angle_idx].back().line_.front(), cradle->lines_[angle_idx].back().line_.back());
                                 Point2LL closest_on_prev_line = LinearAlg2D::getClosestOnLine(closer, cradle->lines_[angle_idx].back().line_.front(), cradle->lines_[angle_idx].back().line_.back());
                                 coord_t xy_distance_jump = std::max(coord_t(0), previous_cradle_xy_distance - current_cradle_xy_distance);
-                                //todo if jump too long check if line could be shortened. Do that above!
+                                //todo[TR:Behavior] if jump too long check if line could be shortened. Do that above!
                                 too_long_jump = vSize(closest_on_prev_segment - closest_on_prev_line)  - (ignore_xy_dist_for_jumps? xy_distance_jump : 0)  >
-                                          max_cradle_jump_length_forward; //todo better non arbitrary limit
+                                          max_cradle_jump_length_forward; //todo[TR:Behavior][TR:CodeQuality] better non arbitrary limit
                             }
                             // a cradle line should also be removed if there will no way to support it
                             if (idx >= cradle->config_->cradle_z_distance_layers_ + 1)
@@ -1356,7 +1348,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                 if (centers_touch || std::min(vSize(center_down - existing_center.first), vSize(center_up - existing_center.second)) < min_distance_between_lines)
                                 {
                                     // This cradle line is to close to another.
-                                    // Move it back todo If line gets smaller than min length => abort
+                                    // Move it back todo[TR:Behavior] If line gets smaller than min length => abort
                                     coord_t tip_shift_here = (centers_touch && !cradle.config_->cradle_towards_center_)? min_distance_between_lines : outer_radius - vSize(center_front - cradle.getCenter(cradle_line->layer_idx_));
                                     tip_shift += tip_shift_here;
                                     center_front = center_front + normal(direction, tip_shift_here);
@@ -1532,7 +1524,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                         support_rests_on_model,
                                         ! xy_overrides);
 
-                                    Shape supported_by_roof_below = TreeSupportUtils::safeOffsetInc( //todo better safeStepOffset values to improve performance
+                                    Shape supported_by_roof_below = TreeSupportUtils::safeOffsetInc( //todo[TR:Performance] better safeStepOffset values to improve performance
                                         full_overhang_area,
                                         max_roof_movement,
                                         forbidden_before,

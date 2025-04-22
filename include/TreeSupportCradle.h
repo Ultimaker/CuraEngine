@@ -3,6 +3,7 @@
 #include <spdlog/spdlog.h>
 
 #include "TreeModelVolumes.h"
+#include "TreeSupport.h"
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "polyclipping/clipper.hpp"
@@ -528,8 +529,6 @@ void cleanCradleLineOverlaps();
  */
 void generateCradleLineAreasAndBase(const SliceDataStorage& storage);
 
-
-
 /*!
      * \brief Representation of all cradles ordered by mesh_idx and layer_idx.
  */
@@ -546,9 +545,9 @@ std::vector<Shape> support_free_areas_;
 TreeModelVolumes& volumes_;
 
 /*!
-     * \brief Whether only support that can rest on a flat surface should be supported. todo
+     * \brief Whether only support that can rest on a flat surface should be supported.
  */
-const bool only_gracious_ = false;
+const bool only_gracious_ = SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
 
 LayerIndex top_most_cradle_layer_ = -1;
 

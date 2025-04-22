@@ -56,7 +56,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
         SUPPORT_VANILLA
     };
     ModifierType modifier_type;
-    if (mesh_settings.get<bool>("anti_overhang_mesh")) // todo [TR] refactor to support_modifier_mesh
+    if (mesh_settings.get<bool>("anti_overhang_mesh")) // todo [TR:Frontend] refactor to support_modifier_mesh
     {
         modifier_type = ANTI_OVERHANG;
         storage.support.supportGenerationModifiers.emplace_back(mesh_settings, slicer->layers.size());
@@ -2065,7 +2065,7 @@ void AreaSupport::generateSupportRoof(
             mesh_outlines.push_back(mesh.layers[layer_idx_above].getOutlines());
         }
 
-        // Todo [TR] this is a rough way to prevent not wanted roofs. But there may be a good reason why one would want roof on a part of the cradle-line supporting support.
+        // Todo [TR:Behavior] this is a rough way to prevent not wanted roofs. But there may be a good reason why one would want roof on a part of the cradle-line supporting support.
         // Do more investigation into if this is good enough!
         for (auto layer_idx_above = top_layer_idx_above; layer_idx_above > layer_idx + z_distance_top_layers - 1; layer_idx_above -= 1)
         {

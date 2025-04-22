@@ -153,9 +153,11 @@ public:
      */
     coord_t getRadiusNextCeil(coord_t radius, bool min_xy_dist) const;
 
-    //todo doku
+    /*!
+     * \brief Get the first layer index that contains hints about to areas which should be avoided.
+     */
     LayerIndex getFirstAntiPreferredLayerIdx();
-
+    //todo[TR:CodeQuality] doku & refactor above or below to be identical (either give first layer with or last layer without)
     LayerIndex getMaxLayerIdxWithoutBlocker();
 
     /*!
@@ -165,6 +167,12 @@ public:
      */
     void addAreaToAntiPreferred(const Shape area, LayerIndex layer_idx);
 
+    /*!
+     * \brief Precalculate avoidances for the anti-preferred area hints
+     *
+     * Needs to be called so that anti preferred avoidances are available.
+     *
+     */
     void precalculateAntiPreferred();
 
     /*!
