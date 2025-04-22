@@ -843,7 +843,7 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
         wait_start_extruder = true;
         break;
     default:
-        if (used_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP)
+        if (used_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP || ! extruders_used[0])
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
