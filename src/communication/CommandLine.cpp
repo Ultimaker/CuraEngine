@@ -509,7 +509,7 @@ int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& 
     std::ifstream file(json_filename, std::ios::binary);
     if (! file)
     {
-        spdlog::error("Couldn't open JSON file: {}", json_filename);
+        spdlog::error("Couldn't open JSON file: {}", json_filename.generic_string());
         return 1;
     }
 
@@ -695,7 +695,7 @@ std::optional<container_setting_map> CommandLine::readResolvedJsonValues(const s
     std::ifstream file(json_filename, std::ios::binary);
     if (! file)
     {
-        spdlog::error("Couldn't open JSON file: {}", json_filename);
+        spdlog::error("Couldn't open JSON file: {}", json_filename.generic_string());
         return std::nullopt;
     }
 
