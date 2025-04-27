@@ -223,5 +223,6 @@ class CuraEngineConan(ConanFile):
         self.conf_info.define_path("user.curaengine:curaengine",
                                    os.path.join(self.package_folder, "bin", f"CuraEngine{ext}"))
 
+
         if self.settings.os == "Emscripten":
             self.python_requires["npmpackage"].module.conf_package_json(self)
