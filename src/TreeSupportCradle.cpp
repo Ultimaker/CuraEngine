@@ -103,7 +103,7 @@ std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> SupportCradleGenerati
                                                                                                            double assumed_part_thickness,
                                                                                                            std::set<UnsupportedAreaInformation*> elements)
 {
-
+    const coord_t support_line_width = mesh.settings.get<coord_t>("support_line_width");
     if(elements.empty())
     {
         return std::pair<MinimumBoundingBox,CradleDeformationHalfCircle>(MinimumBoundingBox(), CradleDeformationHalfCircle());
@@ -149,10 +149,11 @@ std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> SupportCradleGenerati
             PolygonUtils::moveInside(element_connect->area, connect_inside);
         }
         line.addSegment(current_inside, connect_inside);
-        //todo[TR:Behavior][TR:NeedsFixing] that line thickness calculation needs improvement.
-        simulated_connection.push_back(line.offset(std::max(
-            std::min(random_area->min_box.extent.X, random_area->min_box.extent.Y),
-            std::min(element_connect->min_box.extent.X, element_connect->min_box.extent.Y))));
+        // It is assumed that the simulated to be connected model parts are connected with a small line.
+        // The exact width of this line is not important, as it is only used to connect different model-parts to be able to get a MinimumBoundingBox.
+        // The width and orientation of these parts are what should determine the size of the resulting MinimumBoundingBox.
+        coord_t simulated_connection_width = support_line_width / 2;
+        simulated_connection.push_back(line.offset(simulated_connection_width));
         simulated_connection.push_back(element_connect->area);
     }
 
