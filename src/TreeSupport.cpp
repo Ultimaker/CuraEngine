@@ -3115,6 +3115,36 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS
                           + TREE_PROGRESS_SMOOTH_BRANCH_AREAS;
 
+    std::function<void(LayerIndex,Shape&, Shape& )> removeSupportLinesFromRoof = [&](LayerIndex layer_idx, Shape& support_area, Shape& skin_area)
+    {
+        Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
+
+        Shape tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
+                                                  support_area,
+                                                  config,
+                                                  false,
+                                                  layer_idx,
+                                                  config.support_line_distance,
+                                                  storage.support.cross_fill_provider,
+                                                  config.support_wall_count)
+                                                  .offset(config.support_line_width / 2));
+
+        Shape support_skin_lines = TreeSupportUtils::generateSupportInfillLines(
+                                                                  skin_area,
+                                                                  config,
+                                                                  false,
+                                                                  layer_idx,
+                                                                  config.support_skin_line_distance,
+                                                                  storage.support.cross_fill_provider,
+                                                                  std::max(0, config.support_wall_count - 1),
+                                                                  EFillMethod::LINES)
+                                                                  .offset(config.support_line_width / 2);
+
+        Shape invalid_roof = existing_roof.intersection(support_skin_lines.unionPolygons(tree_lines));
+        AABB invalid_roof_aabb = AABB(invalid_roof);
+        storage.support.supportLayers[layer_idx].excludeAreasFromSupportInfillAreas(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
+    };
+
     // Iterate over the generated circles in parallel and clean them up. Also add support floor.
     std::mutex critical_sections;
     cura::parallel_for<coord_t>(
@@ -3173,35 +3203,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
-                    Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
-
-                    Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              support_layer_storage[layer_idx],
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              config.support_wall_count)
-                                                              .offset(config.support_line_width / 2));
-
-                    Shape support_skin_lines;
-                    support_skin_lines = support_skin_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                                              support_skin_storage[layer_idx],
-                                                                              config,
-                                                                              false,
-                                                                              layer_idx,
-                                                                              config.support_skin_line_distance,
-                                                                              storage.support.cross_fill_provider,
-                                                                              std::max(0, config.support_wall_count - 1),
-                                                                              EFillMethod::LINES)
-                                                                              .offset(config.support_line_width / 2));
-
-                    Shape invalid_roof = existing_roof.intersection(support_skin_lines.unionPolygons(tree_lines));
-                    AABB invalid_roof_aabb = AABB(invalid_roof);
-                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportInfillAreas(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
-                    // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
+                    removeSupportLinesFromRoof(layer_idx, support_layer_storage[layer_idx], support_skin_storage[layer_idx]);
                 }
                 break;
 
@@ -3262,35 +3264,9 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 fractional_skin = support_layer_storage_fractional[layer_idx].intersection(support_skin_storage[layer_idx - 1]);
 
                 // To remove the lines it needs to be known what the lines are. This can not be done in the loop above, so it needs to be done here again for fractional support.
-                //  todo[TR:CodeQuality] deduplicate code
                 if (interface_pref == InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE)
                 {
-                    Shape existing_roof = storage.support.supportLayers[layer_idx].getTotalAreaFromParts(storage.support.supportLayers[layer_idx].support_roof);
-                    Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              fractional_support,
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              config.support_wall_count)
-                                                              .offset(config.support_line_width / 2));
-
-                    Shape support_skin_lines;
-                    support_skin_lines = support_skin_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                                              fractional_skin,
-                                                                              config,
-                                                                              false,
-                                                                              layer_idx,
-                                                                              config.support_skin_line_distance,
-                                                                              storage.support.cross_fill_provider,
-                                                                              std::max(0, config.support_wall_count - 1),
-                                                                              EFillMethod::LINES)
-                                                                              .offset(config.support_line_width / 2));
-                    Shape invalid_roof = existing_roof.intersection(tree_lines);
-                    AABB invalid_roof_aabb = AABB(invalid_roof);
-                    storage.support.supportLayers[layer_idx].excludeAreasFromSupportInfillAreas(storage.support.supportLayers[layer_idx].support_roof, invalid_roof, invalid_roof_aabb);
+                    removeSupportLinesFromRoof(layer_idx, fractional_support, fractional_skin);
                 }
 
                 // Remove overlap between fractional and regular support that may have been created in generateSupportSkin.
