@@ -852,6 +852,12 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
         break;
     }
 
+    if (scene.settings.get<size_t>("build_volume_fan_nr") != 0)
+    {
+        const auto fan_speed = scene.settings.get<Ratio>("build_volume_fan_speed_0") * 100.0;
+        writeSpecificFanCommand(fan_speed, scene.settings.get<size_t>("build_volume_fan_nr"));
+    }
+
     processInitialLayerBedTemperature();
     processInitialLayerExtrudersTemperatures(storage, wait_start_extruder, start_extruder_nr);
 }
