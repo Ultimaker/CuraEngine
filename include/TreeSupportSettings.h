@@ -20,6 +20,29 @@
 namespace cura
 {
 
+// The various stages of the process can be weighted differently in the progress bar.
+// These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.
+constexpr auto TREE_PROGRESS_TOTAL = 10000;
+constexpr auto TREE_PROGRESS_PRECALC_COLL = TREE_PROGRESS_TOTAL * 0.1;
+constexpr auto TREE_PROGRESS_PRECALC_AVO = TREE_PROGRESS_TOTAL * 0.4;
+constexpr auto TREE_PROGRESS_GENERATE_NODES = TREE_PROGRESS_TOTAL * 0.1;
+constexpr auto TREE_PROGRESS_AREA_CALC = TREE_PROGRESS_TOTAL * 0.3;
+constexpr auto TREE_PROGRESS_DRAW_AREAS = TREE_PROGRESS_TOTAL * 0.1;
+
+constexpr auto TREE_PROGRESS_GENERATE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+constexpr auto TREE_PROGRESS_SMOOTH_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+constexpr auto TREE_PROGRESS_FINALIZE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+
+constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA = 100.0;
+constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS = 1;
+constexpr auto SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT = false;
+constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
+constexpr coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
+constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
+constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
+constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
+
+
 template<typename A>
 static A retrieveSetting(const Settings& settings, const std::string& key)
 {
