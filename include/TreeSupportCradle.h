@@ -14,7 +14,7 @@
 
 namespace cura
 {
-// todo rename file as now general TreeSupportTipDataStructures
+//todo[TR:CodeQuality] rename file as now general TreeSupportTipDataStructures?
 struct TreeSupportCradle;
 
 using CradleDeformationHalfCircle = std::array<double, 16>;
@@ -115,7 +115,7 @@ struct CradleConfig
         , cradle_z_distance_layers_(round_divide(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_z_distance"), mesh.settings.get<coord_t>("layer_height")))
         , cradle_towards_center_(retrieveSetting<std::string>(mesh.settings, "support_tree_cradle_direction")  == "center")
     {
-        TreeSupportSettings config(mesh.settings); //todo replace with gathering settings manually
+        TreeSupportSettings config(mesh.settings); //todo[TR:CodeQuality] replace with gathering settings manually
         if (cradle_layers_)
         {
             cradle_layers_ += cradle_z_distance_layers_;
@@ -185,7 +185,7 @@ struct CradleConfig
     coord_t cradle_length_;
 
     /*!
-     * \brief Minimum length of lines used for the cradle. TODO Width is effectively added to length ... fix or document?
+     * \brief Minimum length of lines used for the cradle. todo[TR:CodeQuality] Width is effectively added to length ... fix or document?
      */
     coord_t cradle_length_min_;
 
@@ -482,7 +482,7 @@ private:
                                                                                       double assumed_part_thickness,
                                                                                       std::set<UnsupportedAreaInformation*> elements);
 
-    //todo doku
+    //todo[TR:CodeQuality] doku
     double getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
 
     /*!
