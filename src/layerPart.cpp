@@ -95,29 +95,16 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     }
 }
 
-Shape getBottom(size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
+Shape getTopOrBottom(int direction, const std::string& setting_name, size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
 {
     auto result = Shape();
-    if (settings.get<size_t>("wall_line_count_bottom") != settings.get<size_t>("wall_line_count") && ! settings.get<bool>("magic_spiralize"))
+    if (settings.get<size_t>(setting_name) != settings.get<size_t>("wall_line_count") && !settings.get<bool>("magic_spiralize"))
     {
         result = slayers[layer_nr].polygons_;
-        if (layer_nr > 0)
+        const auto next_layer = layer_nr + direction;
+        if (next_layer >= 0 && next_layer < slayers.size())
         {
-            result = result.difference(slayers[layer_nr - 1].polygons_);
-        }
-    }
-    return result;
-}
-
-Shape getTop(size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
-{
-    auto result = Shape();
-    if (settings.get<size_t>("wall_line_count_top") != settings.get<size_t>("wall_line_count") && ! settings.get<bool>("magic_spiralize"))
-    {
-        result = slayers[layer_nr].polygons_;
-        if (layer_nr < slayers.size() - 1)
-        {
-            result = result.difference(slayers[layer_nr + 1].polygons_);
+            result = result.difference(slayers[next_layer].polygons_);
         }
     }
     return result;
@@ -139,8 +126,8 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
                 mesh.settings,
                 layer_storage,
                 &slice_layer,
-                getBottom(layer_nr, slicer->layers, mesh.settings),
-                getTop(layer_nr, slicer->layers, mesh.settings)
+                getTopOrBottom(-1, "wall_line_count_bottom", layer_nr, slicer->layers, mesh.settings),
+                getTopOrBottom(+1, "wall_line_count_top", layer_nr, slicer->layers, mesh.settings)
             );
         });
 
