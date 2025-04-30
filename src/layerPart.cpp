@@ -98,7 +98,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
 Shape getTopOrBottom(int direction, const std::string& setting_name, size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
 {
     auto result = Shape();
-    if (settings.get<size_t>(setting_name) != settings.get<size_t>("wall_line_count") && !settings.get<bool>("magic_spiralize"))
+    if (settings.get<size_t>(setting_name) != settings.get<size_t>("wall_line_count") && ! settings.get<bool>("magic_spiralize"))
     {
         result = slayers[layer_nr].polygons_;
         const auto next_layer = layer_nr + direction;
@@ -127,8 +127,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
                 layer_storage,
                 &slice_layer,
                 getTopOrBottom(-1, "wall_line_count_bottom", layer_nr, slicer->layers, mesh.settings),
-                getTopOrBottom(+1, "wall_line_count_top", layer_nr, slicer->layers, mesh.settings)
-            );
+                getTopOrBottom(+1, "wall_line_count_top", layer_nr, slicer->layers, mesh.settings));
         });
 
     for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
