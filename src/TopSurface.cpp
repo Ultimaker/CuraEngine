@@ -19,8 +19,14 @@ TopSurface::TopSurface()
 
 void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number, bool original_outlines /*= false*/)
 {
-    constexpr auto get_outlines_pre_wall_func = [](const SliceLayer& layer) { return layer.getOriginalOutlines(); };
-    constexpr auto get_outlines_as_printed_func = [](const SliceLayer& layer) { return layer.getOutlines(); };
+    constexpr auto get_outlines_pre_wall_func = [](const SliceLayer& layer)
+    {
+        return layer.getOriginalOutlines();
+    };
+    constexpr auto get_outlines_as_printed_func = [](const SliceLayer& layer)
+    {
+        return layer.getOutlines();
+    };
     const auto get_outlines_func = original_outlines ? get_outlines_pre_wall_func : get_outlines_as_printed_func;
 
     // The top surface is all parts of the mesh where there's no mesh above it, so find the layer above it first.
