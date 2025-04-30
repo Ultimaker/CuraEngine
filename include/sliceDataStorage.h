@@ -176,6 +176,7 @@ public:
      * This is filled only when the top surface is needed.
      */
     TopSurface top_surface;
+    TopSurface pre_wall_top_surface;
 
     /*!
      * \brief The parts of the model that are exposed at the bottom(s) of the model.
@@ -183,6 +184,7 @@ public:
      * Note: Filled only when needed.
      */
     Shape bottom_surface;
+    Shape pre_wall_bottom_surface;
 
     /*!
      * Get the all outlines of all layer parts in this layer.
@@ -200,6 +202,9 @@ public:
      * \param result The result: a collection of all the outline polygons
      */
     void getOutlines(Shape& result, bool external_polys_only = false) const;
+
+    Shape getOriginalOutlines() const;
+    void getOriginalOutlines(Shape& result) const;
 
     ~SliceLayer();
 };

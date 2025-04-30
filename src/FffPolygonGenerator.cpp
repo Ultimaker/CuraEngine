@@ -483,7 +483,20 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
         }
     } guarded_progress = { inset_skin_progress_estimate };
 
+    // Top/bottom is also needed (be)for(e) the wall computation in some instances.
+    // For this we use the original outlines instead of the 'printed' ones, by obvious nececity.
+    cura::parallel_for<size_t>(
+        0,
+        mesh_layer_count,
+        [&](size_t layer_number)
+        {
+            spdlog::debug("Processing 'pre-wall' top/bottom areas for layer {} of {}", layer_number, mesh.layers.size());
+            processPreWallTopBottom(mesh, layer_number);
+            guarded_progress++;
+        });
+
     // walls
+    guarded_progress.reset();
     cura::parallel_for<size_t>(
         0,
         mesh_layer_count,
@@ -843,6 +856,24 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const La
         if (layer_nr > 0)
         {
             mesh.layers[layer_nr].bottom_surface = mesh.layers[layer_nr].bottom_surface.difference(mesh.layers[layer_nr - 1].getOutlines());
+        }
+    }
+}
+
+void FffPolygonGenerator::processPreWallTopBottom(SliceMeshStorage& mesh, const LayerIndex layer_nr)
+{
+    if (mesh.settings.get<size_t>("wall_line_count_top") != mesh.settings.get<size_t>("wall_line_count"))
+    {
+        constexpr bool original_outlines = true;
+        mesh.layers[layer_nr].pre_wall_top_surface.setAreasFromMeshAndLayerNumber(mesh, layer_nr, original_outlines);
+    }
+
+    if (mesh.settings.get<size_t>("wall_line_count_bottom") != mesh.settings.get<size_t>("wall_line_count"))
+    {
+        mesh.layers[layer_nr].pre_wall_bottom_surface = mesh.layers[layer_nr].getOriginalOutlines();
+        if (layer_nr > 0)
+        {
+            mesh.layers[layer_nr].pre_wall_bottom_surface = mesh.layers[layer_nr].pre_wall_bottom_surface.difference(mesh.layers[layer_nr - 1].getOriginalOutlines());
         }
     }
 }

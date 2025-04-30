@@ -94,6 +94,21 @@ void SliceLayer::getOutlines(Shape& result, bool external_polys_only) const
     }
 }
 
+Shape SliceLayer::getOriginalOutlines() const
+{
+    Shape ret;
+    getOriginalOutlines(ret);
+    return ret;
+}
+
+void SliceLayer::getOriginalOutlines(Shape& result) const
+{
+    for (const SliceLayerPart& part : parts)
+    {
+        result.push_back(part.outline);
+    }
+}
+
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     : settings(mesh->settings_)
     , mesh_name(mesh->mesh_name_)

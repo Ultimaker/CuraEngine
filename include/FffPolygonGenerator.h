@@ -149,6 +149,17 @@ private:
     void processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill);
 
     /*!
+     * Get the closest known top/bottom areas that we can calculate _before_ the wall/inset generation.
+     * 
+     * Sometimes, we might also want to calculate the top/bottom areas _before_ the walls (since we might need those).
+     * Yet since the rewrite of inset generation, we've done that the other way around, first generating the actual print outlines in the walls generation.
+     * 
+     * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
+     * \param layer_nr The layer for which to generate the skin areas.
+     */
+    void processPreWallTopBottom(SliceMeshStorage& mesh, const LayerIndex layer_nr);
+
+    /*!
      * Generate the polygons where the draft screen should be.
      *
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage

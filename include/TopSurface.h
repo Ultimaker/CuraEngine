@@ -34,8 +34,9 @@ public:
      *
      * \param mesh The mesh to generate the top surface area for.
      * \param layer_number The layer to generate the top surface area for.
+     * \param original_outlines Use the original 'pre-wall' outlines, not 'as printed' (useful in case those haven't been calculated yet).
      */
-    void setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number);
+    void setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number, bool original_outlines = false);
 
     /*!
      * \brief Generate paths for ironing over the top surface.
@@ -56,7 +57,7 @@ public:
 
 public:
     /*!
-     * \brief The areas of top surface, for each layer.
+     * \brief The areas of top surface, taking into account the layers above.
      */
     Shape areas;
 };

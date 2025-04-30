@@ -35,9 +35,20 @@ WallsComputation::WallsComputation(const Settings& settings, const LayerIndex la
  *
  * generateWalls only reads and writes data for the current layer
  */
-void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_type)
+void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_type, Shape* bottom_surface, TopSurface* top_surface)
 {
     size_t wall_count = settings_.get<size_t>("wall_line_count");
+
+    // Figure out if the wall-count needs to be changed because of altered top/bottom wall-count.
+    if (settings_.get<size_t>("wall_line_count_bottom") != settings_.get<size_t>("wall_line_count") && bottom_surface->intersection(part->outline).area() > 0.0)
+    {
+        wall_count = settings_.get<size_t>("wall_line_count_bottom");
+    }
+    if (settings_.get<size_t>("wall_line_count_top") != settings_.get<size_t>("wall_line_count") && top_surface->areas.intersection(part->outline).area() > 0.0)
+    {
+        wall_count = settings_.get<size_t>("wall_line_count_top");
+    }
+
     if (wall_count == 0) // Early out if no walls are to be generated
     {
         part->print_outline = part->outline;
@@ -99,7 +110,7 @@ void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
 {
     for (SliceLayerPart& part : layer->parts)
     {
-        generateWalls(&part, section);
+        generateWalls(&part, section, &layer->pre_wall_bottom_surface, &layer->pre_wall_top_surface);
     }
 
     // Remove the parts which did not generate a wall. As these parts are too small to print,

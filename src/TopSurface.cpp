@@ -17,13 +17,17 @@ TopSurface::TopSurface()
     // Do nothing. Areas stays empty.
 }
 
-void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number)
+void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number, bool original_outlines /*= false*/)
 {
+    constexpr auto get_outlines_pre_wall_func = [](const SliceLayer& layer) { return layer.getOriginalOutlines(); };
+    constexpr auto get_outlines_as_printed_func = [](const SliceLayer& layer) { return layer.getOutlines(); };
+    const auto get_outlines_func = original_outlines ? get_outlines_pre_wall_func : get_outlines_as_printed_func;
+
     // The top surface is all parts of the mesh where there's no mesh above it, so find the layer above it first.
     Shape mesh_above;
     if (layer_number < mesh.layers.size() - 1)
     {
-        mesh_above = mesh.layers[layer_number + 1].getOutlines();
+        mesh_above = get_outlines_func(mesh.layers[layer_number + 1]);
     } // If this is the top-most layer, mesh_above stays empty.
 
     if (mesh.settings.get<bool>("magic_spiralize"))
@@ -32,12 +36,12 @@ void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t l
         // in this situation, just iron the topmost of the bottom layers
         if (layer_number == mesh.settings.get<size_t>("initial_bottom_layers") - 1)
         {
-            areas = mesh.layers[layer_number].getOutlines();
+            areas = get_outlines_func(mesh.layers[layer_number]);
         }
     }
     else
     {
-        areas = mesh.layers[layer_number].getOutlines().difference(mesh_above);
+        areas = get_outlines_func(mesh.layers[layer_number]).difference(mesh_above);
     }
 }
 

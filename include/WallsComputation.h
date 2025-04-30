@@ -14,6 +14,8 @@ namespace cura
 
 class SliceLayer;
 class SliceLayerPart;
+class Shape;
+class TopSurface;
 
 /*!
  * Function container for computing the outer walls / insets / perimeters polygons of a layer
@@ -57,7 +59,7 @@ private:
      *
      * \param part The part for which to generate the insets.
      */
-    void generateWalls(SliceLayerPart* part, SectionType section);
+    void generateWalls(SliceLayerPart* part, SectionType section, Shape* bottom_surface, TopSurface* top_surface);
 
     /*!
      * Generates the outer inset / perimeter used in spiralize mode for a single layer part. The spiral inset is
