@@ -28,7 +28,7 @@ It's also the first step that stores the result in the "data storage" so all oth
 namespace cura
 {
 
-void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
+void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer, const Shape& bottom_parts, const Shape& top_parts)
 {
     OpenPolylineStitcher::stitch(layer->open_polylines_, storageLayer.open_polylines, layer->polygons_, settings.get<coord_t>("wall_line_width_0"));
 
@@ -65,20 +65,62 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         result = layer->polygons_.splitIntoParts(union_layers || union_all_remove_holes);
     }
 
-    for (auto& part : result)
+    for (auto& main_part : result)
     {
-        storageLayer.parts.emplace_back();
-        if (part.empty())
+        std::vector<std::pair<SliceLayerPart::WallExposedType, std::vector<SingleShape>>> parts_by_type = {
+            { SliceLayerPart::WallExposedType::BOTTOM, bottom_parts.splitIntoParts() },
+            { SliceLayerPart::WallExposedType::TOP, top_parts.difference(bottom_parts).splitIntoParts() },
+            { SliceLayerPart::WallExposedType::SIDE_ONLY, main_part.difference(bottom_parts).difference(top_parts).splitIntoParts() },
+        };
+
+        for (auto& [wall_exposed, parts] : parts_by_type)
         {
-            continue;
-        }
-        storageLayer.parts.back().outline = part;
-        storageLayer.parts.back().boundaryBox.calculate(storageLayer.parts.back().outline);
-        if (storageLayer.parts.back().outline.empty())
-        {
-            storageLayer.parts.pop_back();
+            for (auto& part : parts)
+            {
+                storageLayer.parts.emplace_back();
+                if (part.empty())
+                {
+                    continue;
+                }
+                auto& back_part = storageLayer.parts.back();
+                back_part.wall_exposed = wall_exposed;
+                back_part.outline = part;
+                back_part.boundaryBox.calculate(back_part.outline);
+                if (back_part.outline.empty())
+                {
+                    storageLayer.parts.pop_back();
+                }
+            }
         }
     }
+}
+
+Shape getBottom(size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
+{
+    auto result = Shape();
+    if (settings.get<size_t>("wall_line_count_bottom") != settings.get<size_t>("wall_line_count") && ! settings.get<bool>("magic_spiralize"))
+    {
+        result = slayers[layer_nr].polygons_;
+        if (layer_nr > 0)
+        {
+            result = result.difference(slayers[layer_nr - 1].polygons_);
+        }
+    }
+    return result;
+}
+
+Shape getTop(size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
+{
+    auto result = Shape();
+    if (settings.get<size_t>("wall_line_count_top") != settings.get<size_t>("wall_line_count") && ! settings.get<bool>("magic_spiralize"))
+    {
+        result = slayers[layer_nr].polygons_;
+        if (layer_nr < slayers.size() - 1)
+        {
+            result = result.difference(slayers[layer_nr + 1].polygons_);
+        }
+    }
+    return result;
 }
 
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
@@ -93,7 +135,13 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
         {
             SliceLayer& layer_storage = mesh.layers[layer_nr];
             SlicerLayer& slice_layer = slicer->layers[layer_nr];
-            createLayerWithParts(mesh.settings, layer_storage, &slice_layer);
+            createLayerWithParts(
+                mesh.settings,
+                layer_storage,
+                &slice_layer,
+                getBottom(layer_nr, slicer->layers, mesh.settings),
+                getTop(layer_nr, slicer->layers, mesh.settings)
+            );
         });
 
     for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
