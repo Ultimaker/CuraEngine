@@ -1060,10 +1060,6 @@ void TreeModelVolumes::calculateCollision(const std::deque<RadiusLayerPair>& key
                         collision_cache_[ins_elem.first] = ins_elem.second;
                     }
                 }
-                if (! added_requested && ! collision_cache_.contains(keys[i]))
-                {
-                    printf("ERROR %d, %d\n\n", keys[i].second);
-                }
             }
             if (radius == 0)
             {
