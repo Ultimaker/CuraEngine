@@ -4,9 +4,12 @@
 #ifndef MESH_H
 #define MESH_H
 
+#include <optional>
+
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
 #include "utils/Matrix4x3D.h"
+#include "utils/Point2F.h"
 
 namespace cura
 {
@@ -54,6 +57,7 @@ class MeshFace
 public:
     int vertex_index_[3] = { -1 }; //!< counter-clockwise ordering
     int connected_face_index_[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
+    std::optional<Point2F> uv_coordinates_[3]; //!< UV coordinates for each vertex of the face
 };
 
 
@@ -77,7 +81,13 @@ public:
     Mesh(Settings& parent);
     Mesh();
 
-    void addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2); //!< add a face to the mesh without settings it's connected_faces.
+    void addFace(
+        const Point3LL& v0,
+        const Point3LL& v1,
+        const Point3LL& v2,
+        const std::optional<Point2F> uv0 = std::nullopt,
+        const std::optional<Point2F> uv1 = std::nullopt,
+        const std::optional<Point2F> uv2 = std::nullopt); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 

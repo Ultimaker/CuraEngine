@@ -122,17 +122,18 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         ExtruderTrain& extruder = mesh.settings_.get<ExtruderTrain&>("extruder_nr"); // Set the parent setting to the correct extruder.
         mesh.settings_.setParent(&extruder.settings_);
 
-        for (size_t face = 0; face < face_count; face++)
-        {
-            const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
-            const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
-
-            Point3LL verts[3];
-            verts[0] = matrix.apply(float_vertices[0].toPoint3d());
-            verts[1] = matrix.apply(float_vertices[1].toPoint3d());
-            verts[2] = matrix.apply(float_vertices[2].toPoint3d());
-            mesh.addFace(verts[0], verts[1], verts[2]);
-        }
+        // for (size_t face = 0; face < face_count; face++)
+        // {
+        //     const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
+        //     const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
+        //
+        //     Point3LL verts[3];
+        //     verts[0] = matrix.apply(float_vertices[0].toPoint3d());
+        //     verts[1] = matrix.apply(float_vertices[1].toPoint3d());
+        //     verts[2] = matrix.apply(float_vertices[2].toPoint3d());
+        //     mesh.addFace(verts[0], verts[1], verts[2]);
+        // }
+        loadMeshOBJ(&mesh, "/home/erwan/test/CURA-12449_handling-painted-models/cube.obj", matrix);
 
         mesh.mesh_name_ = object.name();
         mesh.finish();
