@@ -4,10 +4,10 @@
 #ifndef TREESUPPORTTIPGENERATOR_H
 #define TREESUPPORTTIPGENERATOR_H
 
+#include "SupportCradle.h"
 #include "TreeModelVolumes.h"
 #include "TreeSupport.h"
 #include "TreeSupportBaseCircle.h"
-#include "TreeSupportCradle.h"
 #include "TreeSupportElement.h"
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
@@ -46,7 +46,7 @@ public:
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
         std::vector<Shape>& support_free_areas,
-        std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
+        std::vector<std::vector<SupportCradle*>>& cradle_data);
 
 private:
     enum class LineStatus
@@ -140,7 +140,7 @@ private:
      * \param mesh[in] The mesh that is currently processed.
      * \param cradle_data[in] Cradles for this mesh if applicable
      */
-    void calculateRoofAreas(const SliceMeshStorage& mesh, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
+    void calculateRoofAreas(const SliceMeshStorage& mesh, std::vector<std::vector<SupportCradle*>>& cradle_data);
 
     /*!
      * \brief Add a point as a tip
@@ -194,7 +194,7 @@ private:
      * \param storage[in] Background storage, required for adding roofs.
      * \param cradle_data[in] Cradles for this mesh if applicable
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<SupportCradle*>>& cradle_data);
 
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.

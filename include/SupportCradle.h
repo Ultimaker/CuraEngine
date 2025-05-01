@@ -1,9 +1,8 @@
-#ifndef CURAENGINE_TREESUPPORTCRADLE_H
-#define CURAENGINE_TREESUPPORTCRADLE_H
+#ifndef CURAENGINE_SUPPORTCRADLE_H
+#define CURAENGINE_SUPPORTCRADLE_H
 #include <spdlog/spdlog.h>
 
 #include "TreeModelVolumes.h"
-#include "TreeSupport.h"
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
 #include "polyclipping/clipper.hpp"
@@ -14,8 +13,8 @@
 
 namespace cura
 {
-//todo[TR:CodeQuality] rename file as now general TreeSupportTipDataStructures?
-struct TreeSupportCradle;
+
+struct SupportCradle;
 
 using CradleDeformationHalfCircle = std::array<double, 16>;
 
@@ -31,7 +30,7 @@ struct OverhangInformation
     {
     }
 
-    OverhangInformation(Shape overhang, bool roof, TreeSupportCradle* cradle, int32_t cradle_layer_idx = -1, int32_t cradle_line_idx = -1)
+    OverhangInformation(Shape overhang, bool roof, SupportCradle* cradle, int32_t cradle_layer_idx = -1, int32_t cradle_line_idx = -1)
         : overhang_(overhang)
         , is_roof_(roof)
         , is_cradle_(true)
@@ -46,22 +45,22 @@ struct OverhangInformation
     bool is_cradle_;
     int32_t cradle_layer_idx_;
     int32_t cradle_line_idx_;
-    TreeSupportCradle* cradle_;
+    SupportCradle* cradle_;
 
     bool isCradleLine()
     {
         return is_cradle_ && cradle_line_idx_ >= 0 && cradle_layer_idx_ >= 0;
     }
 };
-struct TreeSupportCradleLine
+struct CradleLine
 {
     // required to shrink a vector using resize
-    TreeSupportCradleLine()
+    CradleLine()
     {
-        spdlog::error("Dummy TreeSupportCradleLine constructor called");
+        spdlog::error("Dummy CradleLine constructor called");
     }
 
-    TreeSupportCradleLine(OpenPolyline line, LayerIndex layer_idx, bool is_roof)
+    CradleLine(OpenPolyline line, LayerIndex layer_idx, bool is_roof)
         : line_(line)
         , layer_idx_(layer_idx)
         , is_roof_(is_roof)
@@ -99,21 +98,21 @@ struct TreeSupportCradleLine
 struct CradleConfig
 {
     CradleConfig(const SliceMeshStorage& mesh, bool roof):
-        cradle_layers_(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_height") / mesh.settings.get<coord_t>("layer_height"))
-        , cradle_layers_min_(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_min_height") / mesh.settings.get<coord_t>("layer_height"))
-        , cradle_line_count_(retrieveSetting<size_t>(mesh.settings, "support_tree_cradle_line_count"))
-        , cradle_length_(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_length"))
-        , cradle_length_min_(retrieveSetting<coord_t>(mesh.settings, "support_tree_min_cradle_length"))
-        , cradle_line_width_(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_line_width"))
-        , cradle_lines_roof_(roof && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") != "none")
+        cradle_layers_(retrieveSetting<coord_t>(mesh.settings, "support_cradle_height") / mesh.settings.get<coord_t>("layer_height"))
+        , cradle_layers_min_(retrieveSetting<coord_t>(mesh.settings, "support_cradle_min_height") / mesh.settings.get<coord_t>("layer_height"))
+        , cradle_line_count_(retrieveSetting<size_t>(mesh.settings, "support_cradle_line_count"))
+        , cradle_length_(retrieveSetting<coord_t>(mesh.settings, "support_cradle_length"))
+        , cradle_length_min_(retrieveSetting<coord_t>(mesh.settings, "support_cradle_min_length"))
+        , cradle_line_width_(retrieveSetting<coord_t>(mesh.settings, "support_cradle_line_width"))
+        , cradle_lines_roof_(roof && retrieveSetting<std::string>(mesh.settings, "support_cradle_roof") != "none")
         , cradle_base_roof_(roof && (
-                                      retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "cradle_and_base" ||
-                                      retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base"
+                                      retrieveSetting<std::string>(mesh.settings, "support_cradle_roof") == "cradle_and_base" ||
+                                      retrieveSetting<std::string>(mesh.settings, "support_cradle_roof") == "large_cradle_and_base"
                                     ))
-        , large_cradle_base_(roof && retrieveSetting<std::string>(mesh.settings, "support_tree_roof_cradle") == "large_cradle_and_base")
+        , large_cradle_base_(roof && retrieveSetting<std::string>(mesh.settings, "support_cradle_roof") == "large_cradle_and_base")
         , large_cradle_line_tips_(retrieveSetting<bool>(mesh.settings, "support_tree_large_cradle_line_tips"))
-        , cradle_z_distance_layers_(round_divide(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_z_distance"), mesh.settings.get<coord_t>("layer_height")))
-        , cradle_towards_center_(retrieveSetting<std::string>(mesh.settings, "support_tree_cradle_direction")  == "center")
+        , cradle_z_distance_layers_(round_divide(retrieveSetting<coord_t>(mesh.settings, "support_cradle_z_distance"), mesh.settings.get<coord_t>("layer_height")))
+        , cradle_towards_center_(retrieveSetting<std::string>(mesh.settings, "support_cradle_direction")  == "center")
     {
         TreeSupportSettings config(mesh.settings); //todo[TR:CodeQuality] replace with gathering settings manually
         if (cradle_layers_)
@@ -126,8 +125,8 @@ struct CradleConfig
             cradle_length_min_ -= cradle_line_width_;
         }
 
-        cradle_z_distance_layers_ = round_divide(retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_z_distance"), config.layer_height);
-        cradle_support_base_area_radius_ = retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_base_diameter") / 2;
+        cradle_z_distance_layers_ = round_divide(retrieveSetting<coord_t>(mesh.settings, "support_cradle_z_distance"), config.layer_height);
+        cradle_support_base_area_radius_ = retrieveSetting<coord_t>(mesh.settings, "support_cradle_base_diameter") / 2;
 
         for (size_t cradle_z_dist_ctr = 0; cradle_z_dist_ctr < cradle_z_distance_layers_ + 1; cradle_z_dist_ctr++)
         {
@@ -137,11 +136,11 @@ struct CradleConfig
         for (int i = 0; i < 9; i++)
         {
             std::stringstream setting_name_dist;
-            setting_name_dist << "support_tree_cradle_xy_dist_";
+            setting_name_dist << "support_cradle_xy_dist_";
             setting_name_dist << i;
             coord_t next_cradle_xy_dist = retrieveSetting<coord_t>(mesh.settings, setting_name_dist.str());
             std::stringstream setting_name_height;
-            setting_name_height << "support_tree_cradle_xy_height_";
+            setting_name_height << "support_cradle_xy_height_";
             setting_name_height << i;
             coord_t next_cradle_xy_dist_height = retrieveSetting<coord_t>(mesh.settings, setting_name_height.str());
             if (next_cradle_xy_dist_height == 0)
@@ -246,9 +245,9 @@ struct CradleConfig
 
 };
 
-struct TreeSupportCradle
+struct SupportCradle
 {
-    std::vector<std::deque<TreeSupportCradleLine>> lines_;
+    std::vector<std::deque<CradleLine>> lines_;
     bool is_roof_;
     LayerIndex layer_idx_;
     std::vector<Shape> base_below_;
@@ -261,7 +260,7 @@ struct TreeSupportCradle
     size_t mesh_idx_;
 
 
-    TreeSupportCradle(LayerIndex layer_idx, Point2LL center, bool roof, CradlePlacementMethod cradle_placement_method, std::shared_ptr<const CradleConfig> config, size_t mesh_idx)
+    SupportCradle(LayerIndex layer_idx, Point2LL center, bool roof, CradlePlacementMethod cradle_placement_method, std::shared_ptr<const CradleConfig> config, size_t mesh_idx)
         : layer_idx_(layer_idx)
         , centers_({ center })
         , is_roof_(roof)
@@ -272,7 +271,7 @@ struct TreeSupportCradle
     }
 
 
-    std::optional<TreeSupportCradleLine*> getCradleLineOfIndex(LayerIndex requested_layer_idx, size_t cradle_line_idx)
+    std::optional<CradleLine*> getCradleLineOfIndex(LayerIndex requested_layer_idx, size_t cradle_line_idx)
     {
         if (cradle_line_idx < lines_.size())
         {
@@ -370,17 +369,17 @@ struct TreeSupportCradle
 
 struct CradlePresenceInformation
 {
-    CradlePresenceInformation(TreeSupportCradle* cradle, LayerIndex layer_idx, size_t line_idx)
+    CradlePresenceInformation(SupportCradle* cradle, LayerIndex layer_idx, size_t line_idx)
         : cradle_(cradle)
         , layer_idx_(layer_idx)
         , line_idx_(line_idx)
     {
     }
-    TreeSupportCradle* cradle_;
+    SupportCradle* cradle_;
     LayerIndex layer_idx_;
     size_t line_idx_;
 
-    TreeSupportCradleLine* getCradleLine()
+    CradleLine* getCradleLine()
     {
         return cradle_->getCradleLineOfIndex(layer_idx_, line_idx_).value();
     }
@@ -412,7 +411,6 @@ public:
      * \brief Generate all cradle areas and line areas for the previously added meshes. Not threadsafe! Should only called once.
      * \param storage[in] The storage that contains all meshes. Used to access mesh specific settings
      */
-
     void generate(const SliceDataStorage& storage);
 
     /*!
@@ -421,7 +419,7 @@ public:
      * \param support_free_areas[out] Areas where support should be removed to ensure the pointy overhang to supported.
      * \param mesh_idx[in] The idx of the mesh for which the cradles are retrieved.
      */
-    void pushCradleData(std::vector<std::vector<TreeSupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx);
+    void pushCradleData(std::vector<std::vector<SupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx);
 
     /*!
      * \brief Give the largest layer index that contains the first layer of a cradle. Only considers meshes that were added with addMeshToCradleCalculation.
@@ -464,8 +462,21 @@ private:
         std::vector<UnsupportedAreaInformation*> areas_below;
     };
 
+    /*!
+     * \brief Get the index of a value in a CradleDeformationHalfCircle. The index depends on the angle between the connection of two points and an axis.
+     * \param a[in] The first Point
+     * \param b[in] The second Point
+     * \return The index representing the angle in a CradleDeformationHalfCircle.
+     */
     size_t getDirectionIdx(Point2LL a, Point2LL b) const;
 
+    /*!
+     * \brief Combine two CradleDeformationHalfCircles
+     * \param a[in] The first CradleDeformationHalfCircle
+     * \param b[in] The second CradleDeformationHalfCircle
+     * \param selector[in] The function selecting a value from two supplied. Function does not need to return one of the supplied values.
+     * \return The resulting CradleDeformationHalfCircle
+     */
     CradleDeformationHalfCircle elementWiseSelect(CradleDeformationHalfCircle& a, CradleDeformationHalfCircle& b, std::function<double(double,double)> selector)
     {
         CradleDeformationHalfCircle result{};
@@ -476,21 +487,40 @@ private:
         return result;
     }
 
-    void getLayerDeformation(const SliceMeshStorage& mesh, MinimumBoundingBox& minimum_box, double assumed_part_thickness, CradleDeformationHalfCircle& deform_part);
+    /*!
+     * \brief Get the deformation capacity of an single shape represented by a MinimumBoundingBox
+     * \param mesh[in] The mesh the area belong to. Used to access settings
+     * \param minimum_box[in] The MinimumBoundingBox describing the shape.
+     * \param assumed_part_thickness[in] Assumed vertical thickness of the shape.
+     * \param deform_part[out] Deformation values based on force direction in a half circle.
+     */
+    void getLayerDeformation(const SliceMeshStorage& mesh, const MinimumBoundingBox& minimum_box, double assumed_part_thickness, CradleDeformationHalfCircle& deform_part);
 
+    /*!
+     * \brief Calculates deformation values if all supplied areas would be connected.
+     * \param mesh[in] The mesh the areas belong to.
+     * \param assumed_part_thickness[in] An approximation of the smallest vertical width of the areas supplied. Used in call to getLayerDeformation.
+     * \param elements[in] The areas as UnsupportedAreaInformation that should be assumed to be connected.
+     * \return A pair of the minimum bounding box of the supplied areas and the per-layer deformation values.
+     */
     std::pair<MinimumBoundingBox,CradleDeformationHalfCircle > getSimulatedConnection(const SliceMeshStorage& mesh,
                                                                                       double assumed_part_thickness,
                                                                                       std::set<UnsupportedAreaInformation*> elements);
 
-    //todo[TR:CodeQuality] doku
-    double getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
+    /*!
+     * \brief Calculates total displacement of one element from the intended location. Result should be seen as an indicator not as an exact prediction.
+     * \param mesh[in] The mesh the area belong to.
+     * \param element[in] The area as UnsupportedAreaInformation
+     * \return Total displacement in pseodo-microns.
+     */
+    double getTotalDeformation(const SliceMeshStorage& mesh, UnsupportedAreaInformation* element);
 
     /*!
      * \brief Provides areas that do not have a connection to the buildplate or any other non support material below it.
      * \param mesh_idx[in] The idx of the mesh.
-     * \param layer_idx The layer said area is on.
+     * \param layer_idx[in] The layer said area is on.
      * \return A vector containing the areas, how many layers of material they have below them (always 0) and the idx of each area usable to get the next one layer above.
- */
+    */
     std::vector<UnsupportedAreaInformation*> getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx);
 
     /*!
@@ -508,7 +538,7 @@ private:
      * \param mesh_idx[in] The idx of the mesh.
      * \returns The calculated cradle centers for the mesh.
  */
-std::vector<std::vector<TreeSupportCradle*>> generateCradleCenters(const SliceMeshStorage& mesh, size_t mesh_idx);
+std::vector<std::vector<SupportCradle*>> generateCradleCenters(const SliceMeshStorage& mesh, size_t mesh_idx);
 
 /*!
      * \brief Generate lines from center and model information
@@ -516,7 +546,7 @@ std::vector<std::vector<TreeSupportCradle*>> generateCradleCenters(const SliceMe
      * \param cradle_data_mesh[in] The calculated cradle centers for the mesh.
      * \param mesh[in] The mesh that is currently processed.
  */
-void generateCradleLines(std::vector<std::vector<TreeSupportCradle*>>& cradle_data_mesh, const SliceMeshStorage& mesh);
+void generateCradleLines(std::vector<std::vector<SupportCradle*>>& cradle_data_mesh, const SliceMeshStorage& mesh);
 
 /*!
      * \brief Ensures cradle-lines do not intersect with each other.
@@ -532,7 +562,7 @@ void generateCradleLineAreasAndBase(const SliceDataStorage& storage);
 /*!
      * \brief Representation of all cradles ordered by mesh_idx and layer_idx.
  */
-std::vector<std::vector<std::vector<TreeSupportCradle*>>> cradle_data_;
+std::vector<std::vector<std::vector<SupportCradle*>>> cradle_data_;
 
 /*!
      * \brief Representation of areas that have to be removed to ensure lines below the pointy overhang.
@@ -557,11 +587,9 @@ mutable std::unordered_map<LayerIndex, std::vector<std::pair<std::set<Unsupporte
 std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
 std::unique_ptr<std::mutex> critical_simulated_connection_cache_ = std::make_unique<std::mutex>();
 
-
-
 };
 
 
 } // namespace cura
 
-#endif // CURAENGINE_TREESUPPORTCRADLE_H
+#endif // CURAENGINE_SUPPORTCRADLE_H

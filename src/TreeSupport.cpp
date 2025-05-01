@@ -152,7 +152,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
 
         // ### Evaluate cradle placement. Topmost cradle layer is needed tor precalculation
-        std::vector<std::vector<TreeSupportCradle*>> cradle_data;
+        std::vector<std::vector<SupportCradle*>> cradle_data;
         SupportCradleGeneration cradle_gen(storage, volumes_);
         for (size_t mesh_idx : processing.second)
         {
@@ -179,7 +179,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         // ### Place tips of the support tree
         for (size_t mesh_idx : processing.second)
         {
-            std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh(move_bounds.size());
+            std::vector<std::vector<SupportCradle*>> cradle_data_mesh(move_bounds.size());
             cradle_gen.pushCradleData(cradle_data_mesh, support_free_areas, mesh_idx); // todo[TR:CodeQuality] Should support_free_areas and fake_roof_areas be local variables instead?
             generateInitialAreas(*storage.meshes[mesh_idx], move_bounds, storage, cradle_data_mesh);
             if (cradle_data.size() < cradle_data_mesh.size())
@@ -289,7 +289,7 @@ void TreeSupport::generateInitialAreas(
     const SliceMeshStorage& mesh,
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
     SliceDataStorage& storage,
-    std::vector<std::vector<TreeSupportCradle*>>& cradle_data_model)
+    std::vector<std::vector<SupportCradle*>>& cradle_data_model)
 {
     TreeSupportTipGenerator tip_gen(mesh, volumes_);
     tip_gen.generateTips(storage, mesh, move_bounds, fake_roof_areas, support_free_areas, cradle_data_model);
@@ -1692,7 +1692,7 @@ void TreeSupport::handleCradleLineValidity(
 }
 
 
-void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
+void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<std::vector<SupportCradle*>>& cradle_data)
 {
     const double data_size_inverse = 1 / double(move_bounds.size());
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES;
@@ -2404,7 +2404,7 @@ void TreeSupport::prepareSupportAreas(
     std::vector<Shape>& cradle_base_areas,
     std::vector<Shape>& cradle_support_line_areas,
     SliceDataStorage& storage,
-    std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
+    std::vector<std::vector<SupportCradle*>>& cradle_data)
 {
     using ShapeWithStart = std::pair<SingleShape,Point2LL>;
     const auto t_start = std::chrono::high_resolution_clock::now();
@@ -2469,7 +2469,7 @@ void TreeSupport::prepareSupportAreas(
                                 continue;
                             }
 
-                            std::deque<TreeSupportCradleLine>& cradle_lines = cradle_data[layer_idx][cradle_idx]->lines_[line_idx];
+                            std::deque<CradleLine>& cradle_lines = cradle_data[layer_idx][cradle_idx]->lines_[line_idx];
                             SingleShape line_area = cradle_lines[height_idx].area_.splitIntoParts(false).front();
                             bool is_roof = cradle_lines[height_idx].is_roof_;
                             LayerIndex cradle_line_layer_idx = cradle_lines[height_idx].layer_idx_;
@@ -3323,7 +3323,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         });
 }
 
-void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
+void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<SupportCradle*>>& cradle_data)
 {
     std::vector<Shape> support_layer_storage(move_bounds.size());
     std::vector<Shape> support_layer_storage_fractional(move_bounds.size());

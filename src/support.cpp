@@ -25,7 +25,7 @@
 #include "ExtruderTrain.h"
 #include "SkeletalTrapezoidation.h"
 #include "Slice.h"
-#include "TreeSupportCradle.h"
+#include "SupportCradle.h"
 #include "infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
@@ -1021,7 +1021,7 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
     cradle_gen.addMeshToCradleCalculation(storage, mesh_idx);
     cradle_gen.generateCradleForMesh(storage, mesh_idx);
     cradle_gen.generate(storage);
-    std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh(storage.support.supportLayers.size());
+    std::vector<std::vector<SupportCradle*>> cradle_data_mesh(storage.support.supportLayers.size());
     std::vector<Shape> support_free_areas = std::vector<Shape>(storage.support.supportLayers.size(), Shape());
     cradle_gen.pushCradleData(cradle_data_mesh, support_free_areas, mesh_idx);
 
@@ -1046,7 +1046,7 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
         {
             for (size_t cradle_idx = 0; cradle_idx < cradle_data_mesh[layer_idx].size(); cradle_idx++)
             {
-                TreeSupportCradle* cradle = cradle_data_mesh[layer_idx][cradle_idx];
+                SupportCradle* cradle = cradle_data_mesh[layer_idx][cradle_idx];
                 for (auto overhang_pair : cradle->overhang_)
                 {
                     if(overhang_pair.second.empty())
@@ -1061,7 +1061,7 @@ void AreaSupport::generateCradlesForMesh(SliceDataStorage& storage, size_t mesh_
                         overhang_area_regular.push_back(overhang.overhang_);
                         if (overhang.isCradleLine())
                         {
-                            std::optional<TreeSupportCradleLine*> cradle_line_opt = cradle->getCradleLineOfIndex(overhang.cradle_layer_idx_, overhang.cradle_line_idx_);
+                            std::optional<CradleLine*> cradle_line_opt = cradle->getCradleLineOfIndex(overhang.cradle_layer_idx_, overhang.cradle_line_idx_);
                             if (cradle_line_opt)
                             {
                                 overhang_outer_area_part.emplace_back(cradle_line_opt.value()->line_.back());

@@ -1,6 +1,5 @@
 
-#include "TreeSupportCradle.h"
-
+#include "SupportCradle.h"
 #include "TreeSupportUtils.h"
 #include "utils/MinimumBoundingBox.h"
 #include "utils/ThreadPool.h"
@@ -14,7 +13,7 @@ namespace cura
 
 SupportCradleGeneration::SupportCradleGeneration(const SliceDataStorage& storage, TreeModelVolumes& volumes_s)
     : volumes_(volumes_s)
-    , cradle_data_(storage.meshes.size(), std::vector<std::vector<TreeSupportCradle*>>(storage.print_layer_count))
+    , cradle_data_(storage.meshes.size(), std::vector<std::vector<SupportCradle*>>(storage.print_layer_count))
     , floating_parts_cache_(storage.meshes.size())
     , support_free_areas_(storage.print_layer_count)
 {
@@ -53,12 +52,12 @@ size_t SupportCradleGeneration::getDirectionIdx(Point2LL a, Point2LL b) const
 
 void SupportCradleGeneration::getLayerDeformation(
     const SliceMeshStorage& mesh,
-    MinimumBoundingBox& minimum_box,
+    const MinimumBoundingBox& minimum_box,
     double assumed_part_thickness,
     CradleDeformationHalfCircle& deform_part)
 {
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant");
+    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_side_cradle_deformation_constant");
     const coord_t min_wall_line_width = mesh.settings.get<coord_t>("min_wall_line_width");
 
     coord_t extent_x = 2*std::max(min_wall_line_width / 2, minimum_box.extent.X);
@@ -169,17 +168,17 @@ std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> SupportCradleGenerati
 
 }
 
-double SupportCradleGeneration::getTotalDeformation(size_t mesh_idx, const SliceMeshStorage& mesh, UnsupportedAreaInformation* element)
+double SupportCradleGeneration::getTotalDeformation(const SliceMeshStorage& mesh, UnsupportedAreaInformation* element)
 {
     if (element->deformation_total_calculated >= 0)
     {
         return element->deformation_total_calculated;
     }
     const size_t cradle_deformation_half_circle_size = CradleDeformationHalfCircle().size();
-    const coord_t part_stable_radius = retrieveSetting<coord_t>(mesh.settings, "support_tree_part_deformation_diameter") / 2;
+    const coord_t part_stable_radius = retrieveSetting<coord_t>(mesh.settings, "support_side_cradle_stable_diameter") / 2;
     LayerIndex layer_idx = element->layer_idx;
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
-    const double horizontal_movement_weight = retrieveSetting<double>(mesh.settings, "support_tree_side_cradle_xy_factor");
+    const double horizontal_movement_weight = retrieveSetting<double>(mesh.settings, "support_side_cradle_xy_factor");
     std::unordered_set<UnsupportedAreaInformation*> elements_on_path_down {element};
     const double layer_per_mm = 1000.0 / double(layer_height);
     std::vector<std::vector<UnsupportedAreaInformation*>> root_areas(layer_idx + 1);
@@ -320,12 +319,12 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
     const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const coord_t min_wall_line_width = mesh.settings.get<coord_t>("min_wall_line_width");
-    const size_t cradle_layers = retrieveSetting<coord_t>(mesh.settings, "support_tree_cradle_height") / layer_height;
-    const double cradle_area_threshold = 1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_tree_maximum_pointy_area");
-    const bool side_cradle_enabled = retrieveSetting<bool>(mesh.settings, "support_tree_side_cradle_enabled");
-    const coord_t part_stable_radius = retrieveSetting<coord_t>(mesh.settings, "support_tree_part_deformation_diameter") / 2;
-    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_tree_part_deformation_constant") / 1000.0;
-    const coord_t side_cradle_support_threshold = retrieveSetting<coord_t>(mesh.settings, "support_tree_part_side_cradle_support_threshold");
+    const size_t cradle_layers = retrieveSetting<coord_t>(mesh.settings, "support_cradle_height") / layer_height;
+    const double cradle_area_threshold = 1000 * 1000 * retrieveSetting<double>(mesh.settings, "support_cradle_area_threshold");
+    const bool side_cradle_enabled = retrieveSetting<bool>(mesh.settings, "support_side_cradle_enabled");
+    const coord_t part_stable_radius = retrieveSetting<coord_t>(mesh.settings, "support_side_cradle_stable_diameter") / 2;
+    const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_side_cradle_deformation_constant") / 1000.0;
+    const coord_t side_cradle_support_threshold = retrieveSetting<coord_t>(mesh.settings, "support_side_cradle_deformation_threshold");
 
     LayerIndex max_layer = mesh.layers.size();
 
@@ -522,7 +521,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                         else if(area_info->support_required == CradlePlacementMethod::NONE && layer_idx % (std::max(coord_t(1),5000/layer_height)) == 0) // Only check total deformation every 5mm
                         {
 
-                            double estimated_deformation = getTotalDeformation(mesh_idx, mesh, area_info);
+                           double estimated_deformation = getTotalDeformation(mesh, area_info);
                             if(estimated_deformation > side_cradle_support_threshold) // todo[TR:Behavior][TR:Frontend] Add option to add additional cradles if the part rests on cradle because of pointy overhang?
                             {
                                 top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
@@ -571,7 +570,7 @@ std::vector<SupportCradleGeneration::UnsupportedAreaInformation*> SupportCradleG
     return result;
 }
 
-std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCradleCenters(const SliceMeshStorage& mesh, size_t mesh_idx)
+std::vector<std::vector<SupportCradle*>> SupportCradleGeneration::generateCradleCenters(const SliceMeshStorage& mesh, size_t mesh_idx)
 {
     std::shared_ptr<CradleConfig> cradle_config = std::make_shared<CradleConfig>(mesh, mesh.settings.get<bool>("support_roof_enable"));
 
@@ -588,7 +587,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
     }
     std::mutex critical_dedupe;
     std::vector<std::unordered_set<UnsupportedAreaInformation*>> dedupe(mesh.overhang_areas.size());
-    std::vector<std::vector<TreeSupportCradle*>> result(mesh.overhang_areas.size());
+    std::vector<std::vector<SupportCradle*>> result(mesh.overhang_areas.size());
     cura::parallel_for<coord_t>(
         1,
         mesh.layers.size() - (z_distance_delta_ + 1),
@@ -616,8 +615,8 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
 
                 Point2LL center_prev = Polygon(pointy_info->area.getOutsidePolygons()[0]).centerOfMass();
                 std::vector<Point2LL> additional_centers;
-                TreeSupportCradle* cradle_main
-                    = new TreeSupportCradle(layer_idx, center_prev, cradle_config->cradle_base_roof_, pointy_info->support_required, cradle_config, mesh_idx);
+                SupportCradle* cradle_main
+                    = new SupportCradle(layer_idx, center_prev, cradle_config->cradle_base_roof_, pointy_info->support_required, cradle_config, mesh_idx);
                 for (size_t z_distance = 0; z_distance < z_distance_top_layers; z_distance++)
                 {
                     accumulated_model[z_distance] = pointy_info->area;
@@ -748,7 +747,7 @@ std::vector<std::vector<TreeSupportCradle*>> SupportCradleGeneration::generateCr
     return result;
 }
 
-void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSupportCradle*>>& cradle_data_mesh, const SliceMeshStorage& mesh)
+void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<SupportCradle*>>& cradle_data_mesh, const SliceMeshStorage& mesh)
 {
 
     const size_t z_distance_top_layers = round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), mesh.settings.get<coord_t>("layer_height"));
@@ -1012,11 +1011,11 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<TreeSu
                             // Handle cradle_z_distance_layers by overwriting first element in the vector until valid distance is reached.
                             if (idx <= cradle->config_->cradle_z_distance_layers_ + 1 && ! cradle->lines_[angle_idx].empty())
                             {
-                                cradle->lines_[angle_idx][0] = TreeSupportCradleLine(line, layer_idx + idx, cradle->config_->cradle_lines_roof_);
+                                cradle->lines_[angle_idx][0] = CradleLine(line, layer_idx + idx, cradle->config_->cradle_lines_roof_);
                             }
                             else
                             {
-                                cradle->lines_[angle_idx].emplace_back(TreeSupportCradleLine(line, layer_idx + idx, cradle->config_->cradle_lines_roof_));
+                                cradle->lines_[angle_idx].emplace_back(CradleLine(line, layer_idx + idx, cradle->config_->cradle_lines_roof_));
                             }
                         }
                     }
@@ -1104,7 +1103,7 @@ void SupportCradleGeneration::cleanCradleLineOverlaps()
 
             std::function<void(size_t, Point2LL)> handleNewEnd = [&](size_t cradle_line_idx, Point2LL new_end)
             {
-                TreeSupportCradleLine* cradle_line = all_cradles_on_layer[cradle_line_idx].getCradleLine();
+                CradleLine* cradle_line = all_cradles_on_layer[cradle_line_idx].getCradleLine();
                 if (LinearAlg2D::pointIsProjectedBeyondLine(new_end, cradle_line->line_.front(), cradle_line->line_.back()) || vSize(new_end - cradle_line->line_.front()) < all_cradles_on_layer[cradle_line_idx].cradle_->config_->cradle_length_min_)
                 {
                     cradle_line->addLineToRemoved(cradle_line->line_);
@@ -1118,12 +1117,12 @@ void SupportCradleGeneration::cleanCradleLineOverlaps()
 
             for (size_t cradle_idx = 0; cradle_idx < all_cradles_on_layer.size(); cradle_idx++)
             {
-                TreeSupportCradleLine* cradle_line = all_cradles_on_layer[cradle_idx].getCradleLine();
+                CradleLine* cradle_line = all_cradles_on_layer[cradle_idx].getCradleLine();
 
                 AABB bounding_box_outer = AABB(cradle_line->line_);
                 for (size_t cradle_idx_inner = cradle_idx + 1; cradle_idx_inner < all_cradles_on_layer.size(); cradle_idx_inner++)
                 {
-                    TreeSupportCradleLine* cradle_line_inner = all_cradles_on_layer[cradle_idx_inner].getCradleLine();
+                    CradleLine* cradle_line_inner = all_cradles_on_layer[cradle_idx_inner].getCradleLine();
 
                     const coord_t min_distance_between_lines
                         = std::max(all_cradles_on_layer[cradle_idx].cradle_->config_->cradle_line_width_, all_cradles_on_layer[cradle_idx_inner].cradle_->config_->cradle_line_width_)
@@ -1212,7 +1211,7 @@ void SupportCradleGeneration::cleanCradleLineOverlaps()
             {
                 for (size_t cradle_idx = 0; cradle_idx < cradle_data_[mesh_idx][layer_idx].size(); cradle_idx++)
                 {
-                    TreeSupportCradle* cradle = cradle_data_[mesh_idx][layer_idx][cradle_idx];
+                    SupportCradle* cradle = cradle_data_[mesh_idx][layer_idx][cradle_idx];
                     const coord_t max_cradle_xy_distance = *std::max_element(cradle->config_->cradle_xy_distance_.begin(), cradle->config_->cradle_xy_distance_.end());
 
                     cradle->verifyLines();
@@ -1293,10 +1292,10 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
             cradle_data_[mesh_idx].size(),
             [&](const LayerIndex layer_idx)
             {
-                std::vector<TreeSupportCradle*> valid_cradles;
+                std::vector<SupportCradle*> valid_cradles;
                 for (size_t cradle_idx = 0; cradle_idx < cradle_data_[mesh_idx][layer_idx].size(); cradle_idx++)
                 {
-                    TreeSupportCradle& cradle = *cradle_data_[mesh_idx][layer_idx][cradle_idx];
+                    SupportCradle& cradle = *cradle_data_[mesh_idx][layer_idx][cradle_idx];
                     const coord_t min_distance_between_lines = FUDGE_LENGTH + cradle.config_->min_distance_between_lines_areas_;
                     // Some angles needed to move cradle lines outwards to prevent them from toughing.
                     double center_angle = (2.0 * std::numbers::pi) / double(cradle.config_->cradle_line_count_);
@@ -1311,12 +1310,12 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 
                         for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
                         {
-                            std::optional<TreeSupportCradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle_height, line_idx);
+                            std::optional<CradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle_height, line_idx);
                             if (! line_opt)
                             {
                                 continue;
                             }
-                            TreeSupportCradleLine* cradle_line = line_opt.value();
+                            CradleLine* cradle_line = line_opt.value();
                             OpenPolyline line = cradle_line->line_;
 
                             coord_t current_cradle_line_width = cradle.config_->cradle_line_width_;
@@ -1434,7 +1433,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             OpenLinesSet connected_cradle_base;
                             for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
                             {
-                                std::optional<TreeSupportCradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle.config_->cradle_z_distance_layers_ + 1, line_idx);
+                                std::optional<CradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle.config_->cradle_z_distance_layers_ + 1, line_idx);
                                 if (line_opt)
                                 {
                                     connected_cradle_base.addSegment(cradle.getCenter(line_opt.value()->layer_idx_), line_opt.value()->line_.front());
@@ -1463,7 +1462,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 
                         for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
                         {
-                            std::optional<TreeSupportCradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle.config_->cradle_z_distance_layers_ + 1, line_idx);
+                            std::optional<CradleLine*> line_opt = cradle.getCradleLineOfIndex(layer_idx + cradle.config_->cradle_z_distance_layers_ + 1, line_idx);
                             if (! line_opt)
                             {
                                 continue;
@@ -1501,7 +1500,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                 {
                                     if (roof_area_pair.second != -1) // If is_line
                                     {
-                                        TreeSupportCradleLine roof_base_line(cradle.lines_[roof_area_pair.second].front());
+                                        CradleLine roof_base_line(cradle.lines_[roof_area_pair.second].front());
                                         roof_base_line.area_ = full_overhang_area;
                                         roof_base_line.is_base_ = true;
                                         roof_base_line.layer_idx_ = layer_idx - dtt_roof;
@@ -1614,7 +1613,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 void SupportCradleGeneration::addMeshToCradleCalculation(const SliceDataStorage& storage, size_t mesh_idx)
 {
     const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
-    if (! retrieveSetting<bool>(mesh.settings, "support_tree_cradle_enable"))
+    if (! retrieveSetting<bool>(mesh.settings, "support_cradle_enable"))
     {
         return;
     }
@@ -1624,7 +1623,7 @@ void SupportCradleGeneration::addMeshToCradleCalculation(const SliceDataStorage&
 void SupportCradleGeneration::generateCradleForMesh(const SliceDataStorage& storage, size_t mesh_idx)
 {
     const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
-    if (! retrieveSetting<bool>(mesh.settings, "support_tree_cradle_enable"))
+    if (! retrieveSetting<bool>(mesh.settings, "support_cradle_enable"))
     {
         return;
     }
@@ -1632,7 +1631,7 @@ void SupportCradleGeneration::generateCradleForMesh(const SliceDataStorage& stor
     {
         addMeshToCradleCalculation(storage, mesh_idx);
     }
-    std::vector<std::vector<TreeSupportCradle*>> cradle_data_mesh = generateCradleCenters(mesh, mesh_idx);
+    std::vector<std::vector<SupportCradle*>> cradle_data_mesh = generateCradleCenters(mesh, mesh_idx);
     generateCradleLines(cradle_data_mesh, mesh);
     if(cradle_data_[mesh_idx].size() < cradle_data_mesh.size())
     {
@@ -1650,7 +1649,7 @@ void SupportCradleGeneration::generate(const SliceDataStorage& storage)
     generateCradleLineAreasAndBase(storage);
 }
 
-void SupportCradleGeneration::pushCradleData(std::vector<std::vector<TreeSupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx)
+void SupportCradleGeneration::pushCradleData(std::vector<std::vector<SupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx)
 {
 
     if(target.size() < cradle_data_[mesh_idx].size())

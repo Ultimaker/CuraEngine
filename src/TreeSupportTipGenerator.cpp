@@ -471,7 +471,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
         });
 }
 
-void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
+void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh, std::vector<std::vector<SupportCradle*>>& cradle_data)
 {
     std::vector<Shape> potential_support_roofs(mesh.overhang_areas.size(), Shape());
     std::mutex critical_potential_support_roofs;
@@ -805,7 +805,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
 }
 
 
-void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
+void TreeSupportTipGenerator::removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<SupportCradle*>>& cradle_data)
 {
     std::vector<Shape> all_cradle_roofs(storage.support.supportLayers.size());
     for (auto [layer_idx, cradles] : cradle_data | ranges::views::enumerate)
@@ -876,7 +876,7 @@ void TreeSupportTipGenerator::generateTips(
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
     std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
     std::vector<Shape>& support_free_areas,
-    std::vector<std::vector<TreeSupportCradle*>>& cradle_data)
+    std::vector<std::vector<SupportCradle*>>& cradle_data)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
     std::vector<std::set<TreeSupportElement*>> new_tips(move_bounds.size());
@@ -905,7 +905,7 @@ void TreeSupportTipGenerator::generateTips(
     const auto t_roof = std::chrono::high_resolution_clock::now();
 
 
-    std::vector<std::vector<TreeSupportCradle*>> all_cradles_requiring_support(cradle_data.size());
+    std::vector<std::vector<SupportCradle*>> all_cradles_requiring_support(cradle_data.size());
     std::vector<Shape> all_cradle_areas(cradle_data.size());
     for (LayerIndex layer_idx = 0; layer_idx < cradle_data.size(); layer_idx++)
     {
@@ -1184,7 +1184,7 @@ void TreeSupportTipGenerator::generateTips(
                 if (overhang_data.isCradleLine() &&
                     overhang_data.cradle_->config_->cradle_line_width_ / 2 < std::max(current_tip_radius, overhang_data.cradle_->config_->cradle_support_base_area_radius_))
                 {
-                    std::optional<TreeSupportCradleLine*> cradle_line_opt
+                    std::optional<CradleLine*> cradle_line_opt
                         = overhang_data.cradle_->getCradleLineOfIndex(overhang_data.cradle_layer_idx_, overhang_data.cradle_line_idx_);
                     if(cradle_line_opt)
                     {

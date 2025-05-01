@@ -4,9 +4,9 @@
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
 
+#include "SupportCradle.h"
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
-#include "TreeSupportCradle.h"
 #include "TreeSupportElement.h"
 #include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
@@ -97,7 +97,7 @@ private:
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         SliceDataStorage& storage,
-        std::vector<std::vector<TreeSupportCradle*>>& cradle_data_model);
+        std::vector<std::vector<SupportCradle*>>& cradle_data_model);
 
 
     /*!
@@ -237,7 +237,7 @@ private:
      * \param move_bounds[in,out] All currently existing influence areas
      * \param cradle_data[in,out] All currently existing cradles, with its corresponding cradle lines.
      */
-    void createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
+    void createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, std::vector<std::vector<SupportCradle*>>& cradle_data);
 
 
     /*!
@@ -324,7 +324,7 @@ private:
         std::vector<Shape>& cradle_base_areas,
         std::vector<Shape>& cradle_support_line_areas,
         SliceDataStorage& storage,
-        std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
+        std::vector<std::vector<SupportCradle*>>& cradle_data);
 
     /*!
      * \brief Calculates which holes are valid (rest on walls) and which holes rest on which other holes
@@ -404,7 +404,7 @@ private:
      * \param storage[in,out] The storage where the support should be stored.
      * \param cradle_data[in] All currently existing cradles, with its corresponding cradle lines.
      */
-    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<TreeSupportCradle*>>& cradle_data);
+    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<SupportCradle*>>& cradle_data);
 
     /*!
      * \brief Settings with the indexes of meshes that use these settings.
