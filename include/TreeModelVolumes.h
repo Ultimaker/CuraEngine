@@ -154,10 +154,13 @@ public:
     coord_t getRadiusNextCeil(coord_t radius, bool min_xy_dist) const;
 
     /*!
-     * \brief Get the first layer index that contains hints about to areas which should be avoided.
+     * \brief Get the uppermost layer index that does not contain hints about to areas which should be avoided. Returns -1 if anti preferred is present on layer 0.
      */
-    LayerIndex getFirstAntiPreferredLayerIdx();
-    //todo[TR:CodeQuality] doku & refactor above or below to be identical (either give first layer with or last layer without)
+    LayerIndex getMaxLayerIdxWithoutAntiPreferred();
+
+    /*!
+     * \brief Get the uppermost layer index that does not have support blocker present. Returns -1 if support blocker is present on layer 0.
+     */
     LayerIndex getMaxLayerIdxWithoutBlocker();
 
     /*!
@@ -528,7 +531,7 @@ private:
      */
     size_t max_cradle_dtt = 0;
 
-    LayerIndex first_anti_preferred_layer_idx_ = 0;
+    LayerIndex max_layer_idx_without_anti_preferred_ = 0;
 
     /*!
      * \brief radii for which avoidance was already precalculated. Used to calculate anti preferred avoidance.

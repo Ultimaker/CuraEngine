@@ -773,7 +773,7 @@ std::optional<TreeSupportElement> TreeSupport::increaseSingleArea(
     coord_t actual_radius = config.getRadius(current_elem);
     // Removing cradle areas from influence areas if possible.
     Shape anti_preferred_areas = volumes_.getAntiPreferredAreas(layer_idx - 1, actual_radius);
-    bool anti_preferred_exists = volumes_.getFirstAntiPreferredLayerIdx() < layer_idx;
+    bool anti_preferred_exists = volumes_.getMaxLayerIdxWithoutAntiPreferred() + 1 < layer_idx;
     if (! anti_preferred_areas.empty())
     {
         bool is_fast = settings.type_ != AvoidanceType::SLOW;
@@ -1317,7 +1317,7 @@ void TreeSupport::increaseAreas(
                 insertSetting(AreaIncreaseSettings(AvoidanceType::FAST_SAFE, fast_speed, ! increase_radius, no_error, ! use_min_radius, use_anti_preferred, move), true);
             }
 
-            if (! elem.can_avoid_anti_preferred_ && layer_idx > volumes_.getFirstAntiPreferredLayerIdx() )
+            if (! elem.can_avoid_anti_preferred_ && layer_idx > volumes_.getMaxLayerIdxWithoutAntiPreferred() + 1)
             {
                 std::deque<AreaIncreaseSettings> old_order = order;
                 for (AreaIncreaseSettings settings : old_order)

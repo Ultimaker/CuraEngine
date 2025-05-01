@@ -39,7 +39,7 @@ TreeModelVolumes::TreeModelVolumes(
     , progress_offset_{ progress_offset }
     , machine_border_{ calculateMachineBorderCollision(storage.getMachineBorder()) }
     , machine_area_{ storage.getMachineBorder() }
-    , first_anti_preferred_layer_idx_{ storage.support.supportLayers.size() }
+    , max_layer_idx_without_anti_preferred_{ storage.support.supportLayers.size() - 1 }
 {
     anti_overhang_ = std::vector<Shape>(storage.support.supportLayers.size(), Shape());
     std::unordered_map<size_t, size_t> mesh_to_layeroutline_idx;
@@ -165,7 +165,7 @@ TreeModelVolumes::TreeModelVolumes(
             anti_overhang_[layer_idx] = anti_overhang_[layer_idx].unionPolygons();
         });
 
-    for (max_layer_idx_without_blocker_ = 0; max_layer_idx_without_blocker_ + 1 < anti_overhang_.size(); max_layer_idx_without_blocker_++)
+    for (max_layer_idx_without_blocker_ = -1; max_layer_idx_without_blocker_ + 1 < anti_overhang_.size(); max_layer_idx_without_blocker_++)
     {
         if (! anti_overhang_[max_layer_idx_without_blocker_ + 1].empty())
         {
@@ -601,7 +601,7 @@ void TreeModelVolumes::addAreaToAntiPreferred(const Shape area, LayerIndex layer
     RadiusLayerPair key(0, layer_idx);
     std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
     anti_preferred_[key] = anti_preferred_[key].unionPolygons(area);
-    first_anti_preferred_layer_idx_ = std::min(first_anti_preferred_layer_idx_, layer_idx);
+    max_layer_idx_without_anti_preferred_ = std::min(max_layer_idx_without_anti_preferred_, layer_idx - 1);
 }
 
 
@@ -659,7 +659,7 @@ void TreeModelVolumes::precalculateAntiPreferred()
                     }
 
                     std::lock_guard<std::mutex> critical_section(*critical_anti_preferred_);
-                    first_anti_preferred_layer_idx_ = layer;
+                    max_layer_idx_without_anti_preferred_ = layer - 1;
                 }
                 if (! encountered_anti)
                 {
@@ -830,9 +830,9 @@ coord_t TreeModelVolumes::getRadiusNextCeil(coord_t radius, bool min_xy_dist) co
     return ceilRadius(radius, min_xy_dist) - (min_xy_dist ? 0 : current_min_xy_dist_delta_);
 }
 
-LayerIndex TreeModelVolumes::getFirstAntiPreferredLayerIdx()
+LayerIndex TreeModelVolumes::getMaxLayerIdxWithoutAntiPreferred()
 {
-    return first_anti_preferred_layer_idx_;
+    return max_layer_idx_without_anti_preferred_;
 }
 
 LayerIndex TreeModelVolumes::getMaxLayerIdxWithoutBlocker()
