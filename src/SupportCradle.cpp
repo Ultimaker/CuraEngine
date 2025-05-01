@@ -1,5 +1,6 @@
 
 #include "SupportCradle.h"
+
 #include "TreeSupportUtils.h"
 #include "utils/MinimumBoundingBox.h"
 #include "utils/ThreadPool.h"
@@ -17,7 +18,6 @@ SupportCradleGeneration::SupportCradleGeneration(const SliceDataStorage& storage
     , floating_parts_cache_(storage.meshes.size())
     , support_free_areas_(storage.print_layer_count)
 {
-
 }
 
 size_t SupportCradleGeneration::getDirectionIdx(Point2LL a, Point2LL b) const
@@ -60,8 +60,8 @@ void SupportCradleGeneration::getLayerDeformation(
     const double deformation_constant = retrieveSetting<double>(mesh.settings, "support_side_cradle_deformation_constant");
     const coord_t min_wall_line_width = mesh.settings.get<coord_t>("min_wall_line_width");
 
-    coord_t extent_x = 2*std::max(min_wall_line_width / 2, minimum_box.extent.X);
-    coord_t extent_y = 2*std::max(min_wall_line_width / 2, minimum_box.extent.Y);
+    coord_t extent_x = 2 * std::max(min_wall_line_width / 2, minimum_box.extent.X);
+    coord_t extent_y = 2 * std::max(min_wall_line_width / 2, minimum_box.extent.Y);
 
     Point2LL axis_min = extent_x < extent_y ? minimum_box.axis[0] : minimum_box.axis[1];
     Point2LL axis_max = extent_x < extent_y ? minimum_box.axis[1] : minimum_box.axis[0];
@@ -94,7 +94,7 @@ void SupportCradleGeneration::getLayerDeformation(
         double assumed_thickness_opposite_direction
             = percent_angle * double(std::max(extent_x, extent_y)) + (1.0 - percent_angle) * std::min(assumed_part_thickness, double(std::min(extent_x, extent_y)));
 
-        deform_part[direction_idx] = (deformation_constant / (std::pow(assumed_thickness_in_direction, 1) * (std::pow(assumed_thickness_opposite_direction , 0.33))));
+        deform_part[direction_idx] = (deformation_constant / (std::pow(assumed_thickness_in_direction, 1) * (std::pow(assumed_thickness_opposite_direction, 0.33))));
     }
 }
 
@@ -103,23 +103,23 @@ std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> SupportCradleGenerati
                                                                                                            std::set<UnsupportedAreaInformation*> elements)
 {
     const coord_t support_line_width = mesh.settings.get<coord_t>("support_line_width");
-    if(elements.empty())
+    if (elements.empty())
     {
-        return std::pair<MinimumBoundingBox,CradleDeformationHalfCircle>(MinimumBoundingBox(), CradleDeformationHalfCircle());
+        return std::pair<MinimumBoundingBox, CradleDeformationHalfCircle>(MinimumBoundingBox(), CradleDeformationHalfCircle());
     }
 
     UnsupportedAreaInformation* random_area = *elements.begin();
 
-    if(elements.size() == 1)
+    if (elements.size() == 1)
     {
-        return std::pair<MinimumBoundingBox,CradleDeformationHalfCircle>(random_area->min_box, random_area->deformation);
+        return std::pair<MinimumBoundingBox, CradleDeformationHalfCircle>(random_area->min_box, random_area->deformation);
     }
 
     {
         std::lock_guard<std::mutex> critical_section(*critical_simulated_connection_cache_);
-        for(auto& cache_elements:simulated_connection_cache_[random_area->layer_idx])
+        for (auto& cache_elements : simulated_connection_cache_[random_area->layer_idx])
         {
-            if(cache_elements.first == elements)
+            if (cache_elements.first == elements)
             {
                 return cache_elements.second;
             }
@@ -137,7 +137,7 @@ std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> SupportCradleGenerati
 
     for (UnsupportedAreaInformation* element_connect : elements)
     {
-        if(random_area == element_connect)
+        if (random_area == element_connect)
         {
             continue;
         }
@@ -165,7 +165,6 @@ std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> SupportCradleGenerati
     std::lock_guard<std::mutex> critical_section(*critical_simulated_connection_cache_);
     simulated_connection_cache_[random_area->layer_idx].emplace_back(elements, result);
     return result;
-
 }
 
 double SupportCradleGeneration::getTotalDeformation(const SliceMeshStorage& mesh, UnsupportedAreaInformation* element)
@@ -179,29 +178,29 @@ double SupportCradleGeneration::getTotalDeformation(const SliceMeshStorage& mesh
     LayerIndex layer_idx = element->layer_idx;
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const double horizontal_movement_weight = retrieveSetting<double>(mesh.settings, "support_side_cradle_xy_factor");
-    std::unordered_set<UnsupportedAreaInformation*> elements_on_path_down {element};
+    std::unordered_set<UnsupportedAreaInformation*> elements_on_path_down{ element };
     const double layer_per_mm = 1000.0 / double(layer_height);
     std::vector<std::vector<UnsupportedAreaInformation*>> root_areas(layer_idx + 1);
 
     {
         // Using a unordered_set to ensure no duplicates!
-        std::unordered_set<UnsupportedAreaInformation*> all_scan_elements {element};
+        std::unordered_set<UnsupportedAreaInformation*> all_scan_elements{ element };
         LayerIndex scan_layer_idx = element->layer_idx;
-        while(!all_scan_elements.empty() && scan_layer_idx > 0)
+        while (! all_scan_elements.empty() && scan_layer_idx > 0)
         {
             std::unordered_set<UnsupportedAreaInformation*> next_scan_elements;
 
-            for(UnsupportedAreaInformation* current_scan_element : all_scan_elements)
+            for (UnsupportedAreaInformation* current_scan_element : all_scan_elements)
             {
-                for(UnsupportedAreaInformation* scan_element_below: current_scan_element->areas_below)
+                for (UnsupportedAreaInformation* scan_element_below : current_scan_element->areas_below)
                 {
-                    if(scan_element_below->height > 0)
+                    if (scan_element_below->height > 0)
                     {
                         next_scan_elements.emplace(scan_element_below);
                     }
                     else
                     {
-                        root_areas[scan_layer_idx-1].emplace_back(scan_element_below);
+                        root_areas[scan_layer_idx - 1].emplace_back(scan_element_below);
                     }
                     elements_on_path_down.emplace(scan_element_below);
                 }
@@ -217,13 +216,13 @@ double SupportCradleGeneration::getTotalDeformation(const SliceMeshStorage& mesh
     double largest_deformation_in_z_direction_deformation = 0;
     double largest_deformation_in_xy_direction_deformation = 0;
 
-    for(LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
+    for (LayerIndex iterate_layer_idx = 0; iterate_layer_idx <= layer_idx; iterate_layer_idx++)
     {
         std::set<UnsupportedAreaInformation*> next_iterate_elements;
-        iterate_elements.insert(root_areas[iterate_layer_idx].begin(),root_areas[iterate_layer_idx].end());
+        iterate_elements.insert(root_areas[iterate_layer_idx].begin(), root_areas[iterate_layer_idx].end());
 
 
-        if(!iterate_elements.empty())
+        if (! iterate_elements.empty())
         {
             double deformation_limit_total_layer = -1;
             double deformation_limit_z_layer = -1;
@@ -232,13 +231,13 @@ double SupportCradleGeneration::getTotalDeformation(const SliceMeshStorage& mesh
 
             for(UnsupportedAreaInformation* current_area : iterate_elements) //todo[TR:CodeQuality][TR:Performance] why do i iterate over all? It is either one or a simulated connection...
             {
-                if(min_box_layer.center == Point2LL(0,0))
+                if (min_box_layer.center == Point2LL(0, 0))
                 {
                     deformation_layer = current_area->deformation;
                 }
 
-                //basically just a random init. If there are multiple present the simulated connection below will deal with it anyway.
-                if(current_area->min_box.area > min_box_layer.area)
+                // basically just a random init. If there are multiple present the simulated connection below will deal with it anyway.
+                if (current_area->min_box.area > min_box_layer.area)
                 {
                     min_box_layer = current_area->min_box;
                 }
@@ -262,7 +261,6 @@ double SupportCradleGeneration::getTotalDeformation(const SliceMeshStorage& mesh
             }
             if (iterate_elements.size() > 1)
             {
-
                 std::pair<MinimumBoundingBox, CradleDeformationHalfCircle> simulated_connect_result = getSimulatedConnection(mesh, part_stable_radius, iterate_elements);
 
                 deformation_layer = elementWiseSelect(
@@ -294,11 +292,12 @@ double SupportCradleGeneration::getTotalDeformation(const SliceMeshStorage& mesh
             {
                 largest_deformation_in_z_direction_deformation = deformation_in_z_direction;
             }
-            if(deformation_limit_z_layer > 0 && deformation_limit_z_layer < largest_deformation_in_z_direction_deformation)
+            if (deformation_limit_z_layer > 0 && deformation_limit_z_layer < largest_deformation_in_z_direction_deformation)
             {
                 largest_deformation_in_z_direction_deformation = std::min(largest_deformation_in_z_direction_deformation, deformation_limit_z_layer);
             }
-            if(deformation_limit_total_layer > 0 && deformation_limit_total_layer < largest_deformation_in_z_direction_deformation + largest_deformation_in_xy_direction_deformation)
+            if (deformation_limit_total_layer > 0
+                && deformation_limit_total_layer < largest_deformation_in_z_direction_deformation + largest_deformation_in_xy_direction_deformation)
             {
                 largest_deformation_in_z_direction_deformation = std::min(largest_deformation_in_z_direction_deformation, deformation_limit_total_layer);
                 largest_deformation_in_xy_direction_deformation = std::min(largest_deformation_in_xy_direction_deformation, deformation_limit_total_layer);
@@ -390,7 +389,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
 
                 CradleDeformationHalfCircle deform_part = {};
                 double deform_radius = 0;
-                if(side_cradle_enabled)
+                if (side_cradle_enabled)
                 {
                     deform_radius = std::min(minimum_box.extent.X, minimum_box.extent.Y);
                     bool found_limit_down = false;
@@ -503,32 +502,34 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                     }
                     floating_parts_cache_[mesh_idx][layer_idx].emplace_back(area_info);
 
-                    if(side_cradle_enabled)
+                    if (side_cradle_enabled)
                     {
                         LayerIndex last_cradle_at_layer_idx = -1;
-                        for(auto& cradle : cradles_below)
+                        for (auto& cradle : cradles_below)
                         {
                             last_cradle_at_layer_idx = std::max(last_cradle_at_layer_idx, cradle->layer_idx);
                         }
-                        if(last_cradle_at_layer_idx != -1 && layer_idx - last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO[TR:Behavior]
+                        if (last_cradle_at_layer_idx != -1
+                            && layer_idx - last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO[TR:Behavior]
                         {
                             area_info->deformation_limit_total = EPSILON;
                         }
-                        else if(overhang_area > EPSILON)
+                        else if (overhang_area > EPSILON)
                         {
                             area_info->deformation_limit_z = EPSILON;
                         }
-                        else if(area_info->support_required == CradlePlacementMethod::NONE && layer_idx % (std::max(coord_t(1),5000/layer_height)) == 0) // Only check total deformation every 5mm
+                        else if (area_info->support_required == CradlePlacementMethod::NONE && layer_idx % (std::max(coord_t(1), 5000 / layer_height)) == 0) // Only check total
+                                                                                                                                                             // deformation every
+                                                                                                                                                             // 5mm
                         {
-
-                           double estimated_deformation = getTotalDeformation(mesh, area_info);
-                            if(estimated_deformation > side_cradle_support_threshold) // todo[TR:Behavior][TR:Frontend] Add option to add additional cradles if the part rests on cradle because of pointy overhang?
+                            double estimated_deformation = getTotalDeformation(mesh, area_info);
+                            if (estimated_deformation > side_cradle_support_threshold) // todo[TR:Behavior][TR:Frontend] Add option to add additional cradles if the part rests on
+                                                                                       // cradle because of pointy overhang?
                             {
                                 top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
                                 area_info->support_required = CradlePlacementMethod::AUTOMATIC_SIDE;
                                 area_info->deformation_limit_total = EPSILON;
                             }
-
                         }
                     }
                 }
@@ -579,7 +580,7 @@ std::vector<std::vector<SupportCradle*>> SupportCradleGeneration::generateCradle
     const bool support_moves = mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::NORMAL;
     coord_t maximum_move_distance = 0;
     coord_t maximum_move_distance_slow = 0;
-    if(support_moves)
+    if (support_moves)
     {
         TreeSupportSettings config(mesh.settings);
         maximum_move_distance = config.maximum_move_distance;
@@ -600,7 +601,7 @@ std::vector<std::vector<SupportCradle*>> SupportCradleGeneration::generateCradle
 
             for (auto pointy_info : getFullyUnsupportedArea(mesh_idx, layer_idx + z_distance_delta_))
             {
-                if(pointy_info->height  == 0)
+                if (pointy_info->height == 0)
                 {
                     AABB overhang_aabb(mesh.overhang_areas[layer_idx + z_distance_delta_]);
                     if (PolygonUtils::clipPolygonWithAABB(mesh.overhang_areas[layer_idx + z_distance_delta_], overhang_aabb).intersection(pointy_info->area).empty())
@@ -615,8 +616,7 @@ std::vector<std::vector<SupportCradle*>> SupportCradleGeneration::generateCradle
 
                 Point2LL center_prev = Polygon(pointy_info->area.getOutsidePolygons()[0]).centerOfMass();
                 std::vector<Point2LL> additional_centers;
-                SupportCradle* cradle_main
-                    = new SupportCradle(layer_idx, center_prev, cradle_config->cradle_base_roof_, pointy_info->support_required, cradle_config, mesh_idx);
+                SupportCradle* cradle_main = new SupportCradle(layer_idx, center_prev, cradle_config->cradle_base_roof_, pointy_info->support_required, cradle_config, mesh_idx);
                 for (size_t z_distance = 0; z_distance < z_distance_top_layers; z_distance++)
                 {
                     accumulated_model[z_distance] = pointy_info->area;
@@ -749,17 +749,16 @@ std::vector<std::vector<SupportCradle*>> SupportCradleGeneration::generateCradle
 
 void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<SupportCradle*>>& cradle_data_mesh, const SliceMeshStorage& mesh)
 {
-
     const size_t z_distance_top_layers = round_up_divide(mesh.settings.get<coord_t>("support_top_distance"), mesh.settings.get<coord_t>("layer_height"));
     const size_t z_distance_bottom_layers = round_up_divide(mesh.settings.get<coord_t>("support_bottom_distance"), mesh.settings.get<coord_t>("layer_height"));
     const bool support_rests_on_model = mesh.settings.get<ESupportType>("support_type") == ESupportType::EVERYWHERE;
     const coord_t support_line_width = mesh.settings.get<coord_t>("support_line_width");
     const coord_t xy_distance = mesh.settings.get<coord_t>("support_xy_distance");
     const bool xy_overrides = mesh.settings.get<SupportDistPriority>("support_xy_overrides_z") == SupportDistPriority::XY_OVERRIDES_Z;
-    const coord_t xy_min_distance = !xy_overrides ? mesh.settings.get<coord_t>("support_xy_distance_overhang") : xy_distance;
+    const coord_t xy_min_distance = ! xy_overrides ? mesh.settings.get<coord_t>("support_xy_distance_overhang") : xy_distance;
     const bool support_moves = mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::NORMAL;
     coord_t maximum_move_distance_slow = 0;
-    if(support_moves)
+    if (support_moves)
     {
         TreeSupportSettings config(mesh.settings);
         maximum_move_distance_slow = config.maximum_move_distance_slow;
@@ -783,7 +782,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<Suppor
                 {
                     Point2LL center = cradle->getCenter(layer_idx + idx);
                     const coord_t current_cradle_xy_distance = cradle->config_->cradle_xy_distance_[idx];
-                    const coord_t previous_cradle_xy_distance = idx > 0 ? cradle->config_->cradle_xy_distance_[idx-1] : current_cradle_xy_distance;
+                    const coord_t previous_cradle_xy_distance = idx > 0 ? cradle->config_->cradle_xy_distance_[idx - 1] : current_cradle_xy_distance;
                     const coord_t current_cradle_length = cradle->config_->cradle_length_ + max_cradle_xy_distance - current_cradle_xy_distance;
 
                     if (cradle->lines_.empty())
@@ -836,10 +835,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<Suppor
                             }
                         }
 
-                        ClosedPolyline max_outer_points = PolygonUtils::makeCircle(
-                            center,
-                            sqrt(max_distance2) + current_cradle_length * 2.0,
-                            cradle->config_->cradle_line_count_);
+                        ClosedPolyline max_outer_points = PolygonUtils::makeCircle(center, sqrt(max_distance2) + current_cradle_length * 2.0, cradle->config_->cradle_line_count_);
 
                         // Create lines that go from the furthest possible location to the center or model outline
                         OpenLinesSet lines_to_center;
@@ -869,7 +865,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<Suppor
 
 
                                 // Place inner line-end on the outline closest to the point_on_outer_outline, and correct it if this would be causing a too large jump compared to the cradle line below.
-                                inner = LinearAlg2D::getClosestOnLine(point_on_outer_outline, inner, outer);;
+                                inner = LinearAlg2D::getClosestOnLine(point_on_outer_outline, inner, outer);
                                 PolygonUtils::moveInside(part_outline.empty() ? model_shadow : part_outline, inner);
                                 if (idx > 0 && idx > cradle->config_->cradle_z_distance_layers_ + 1 && ! cradle->lines_[angle_idx].empty())
                                 {
@@ -949,14 +945,13 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<Suppor
                             bool too_short = (vSize(closer - further)) < cradle->config_->cradle_length_min_;
                             bool too_long_jump = false;
                             Point2LL closest_on_prev_segment;
-                            if(! cradle->lines_[angle_idx].empty())
+                            if (! cradle->lines_[angle_idx].empty())
                             {
                                 closest_on_prev_segment = LinearAlg2D::getClosestOnLineSegment(closer, cradle->lines_[angle_idx].back().line_.front(), cradle->lines_[angle_idx].back().line_.back());
                                 Point2LL closest_on_prev_line = LinearAlg2D::getClosestOnLine(closer, cradle->lines_[angle_idx].back().line_.front(), cradle->lines_[angle_idx].back().line_.back());
                                 coord_t xy_distance_jump = std::max(coord_t(0), previous_cradle_xy_distance - current_cradle_xy_distance);
-                                //todo[TR:Behavior] if jump too long check if line could be shortened. Do that above!
-                                too_long_jump = vSize(closest_on_prev_segment - closest_on_prev_line)  - (ignore_xy_dist_for_jumps? xy_distance_jump : 0)  >
-                                          max_cradle_jump_length_forward; //todo[TR:Behavior][TR:CodeQuality] better non arbitrary limit
+                                // todo[TR:Behavior] if jump too long check if line could be shortened. Do that above!
+                                too_long_jump = vSize(closest_on_prev_segment - closest_on_prev_line)  - (ignore_xy_dist_for_jumps? xy_distance_jump : 0)  > max_cradle_jump_length_forward; // todo[TR:Behavior][TR:CodeQuality] better non arbitrary limit
                             }
                             // a cradle line should also be removed if there will no way to support it
                             if (idx >= cradle->config_->cradle_z_distance_layers_ + 1)
@@ -1072,7 +1067,7 @@ void SupportCradleGeneration::generateCradleLines(std::vector<std::vector<Suppor
 void SupportCradleGeneration::cleanCradleLineOverlaps()
 {
     std::vector<std::vector<CradlePresenceInformation>> all_cradles_per_layer(cradle_data_.front().size());
-    for(size_t mesh_idx = 0; mesh_idx < cradle_data_.size(); mesh_idx++)
+    for (size_t mesh_idx = 0; mesh_idx < cradle_data_.size(); mesh_idx++)
     {
         for (LayerIndex layer_idx = 0; layer_idx < cradle_data_[mesh_idx].size(); layer_idx++)
         {
@@ -1083,7 +1078,7 @@ void SupportCradleGeneration::cleanCradleLineOverlaps()
                     for (size_t height = 0; height < cradle_data_[mesh_idx][layer_idx][cradle_idx]->lines_[cradle_line_idx].size(); height++)
                     {
                         LayerIndex cradle_line_layer_idx = cradle_data_[mesh_idx][layer_idx][cradle_idx]->lines_[cradle_line_idx][height].layer_idx_;
-                        if(all_cradles_per_layer.size() <= layer_idx + height)
+                        if (all_cradles_per_layer.size() <= layer_idx + height)
                         {
                             all_cradles_per_layer.resize(cradle_data_[mesh_idx][layer_idx][cradle_idx]->config_->cradle_layers_ + 1);
                         }
@@ -1202,7 +1197,7 @@ void SupportCradleGeneration::cleanCradleLineOverlaps()
                 }
             }
         });
-    for(size_t mesh_idx = 0; mesh_idx < cradle_data_.size(); mesh_idx++)
+    for (size_t mesh_idx = 0; mesh_idx < cradle_data_.size(); mesh_idx++)
     {
         cura::parallel_for<coord_t>(
             1,
@@ -1260,16 +1255,13 @@ void SupportCradleGeneration::cleanCradleLineOverlaps()
 
 void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStorage& storage)
 {
-
     std::mutex critical_support_free_areas_and_cradle_areas;
 
-    for(size_t mesh_idx = 0; mesh_idx < cradle_data_.size(); mesh_idx++)
+    for (size_t mesh_idx = 0; mesh_idx < cradle_data_.size(); mesh_idx++)
     {
-
-        if(cradle_data_[mesh_idx].empty())
+        if (cradle_data_[mesh_idx].empty())
         {
             continue;
-
         }
 
         const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
@@ -1280,7 +1272,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
         const size_t support_roof_layers = mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), layer_height) : 0;
         const bool xy_overrides = mesh.settings.get<SupportDistPriority>("support_xy_overrides_z") == SupportDistPriority::XY_OVERRIDES_Z;
         const coord_t xy_distance = mesh.settings.get<coord_t>("support_xy_distance");
-        const coord_t xy_min_distance = !xy_overrides ? mesh.settings.get<coord_t>("support_xy_distance_overhang") : xy_distance;
+        const coord_t xy_min_distance = ! xy_overrides ? mesh.settings.get<coord_t>("support_xy_distance_overhang") : xy_distance;
         const coord_t roof_outset = support_roof_layers > 0 ? mesh.settings.get<coord_t>("support_roof_offset") : 0;
         const bool support_moves = mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::NORMAL;
 
@@ -1455,7 +1447,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             ! xy_overrides);
                         std::vector<std::pair<Shape, int32_t>> roofs;
 
-                        if(cradle.is_roof_)
+                        if (cradle.is_roof_)
                         {
                             roofs.emplace_back(cradle_base, -1);
                         }
@@ -1524,7 +1516,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                         support_rests_on_model,
                                         ! xy_overrides);
 
-                                    Shape supported_by_roof_below = TreeSupportUtils::safeOffsetInc( //todo[TR:Performance] better safeStepOffset values to improve performance
+                                    Shape supported_by_roof_below = TreeSupportUtils::safeOffsetInc( // todo[TR:Performance] better safeStepOffset values to improve performance
                                         full_overhang_area,
                                         max_roof_movement,
                                         forbidden_before,
@@ -1542,10 +1534,9 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                                 }
                                 else
                                 {
-
-                                    if(dtt_roof == 0 && roof_area_pair.second < 0) // There was no roof base!
+                                    if (dtt_roof == 0 && roof_area_pair.second < 0) // There was no roof base!
                                     {
-                                        cradle.is_roof_ = false; //Try a regular base
+                                        cradle.is_roof_ = false; // Try a regular base
                                     }
                                     else if (roof_area_before.area() > 1)
                                     {
@@ -1561,7 +1552,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                         }
                     }
 
-                    if(!cradle.is_roof_)
+                    if (! cradle.is_roof_)
                     {
                         Shape forbidden_here = volumes_.getAvoidance(
                             0,
@@ -1578,7 +1569,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             cradle.overhang_[layer_idx].emplace_back(cradle_overhang);
                         }
                     }
-                    if(!cradle.config_->cradle_lines_roof_)
+                    if (! cradle.config_->cradle_lines_roof_)
                     {
                         for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
                         {
@@ -1633,11 +1624,11 @@ void SupportCradleGeneration::generateCradleForMesh(const SliceDataStorage& stor
     }
     std::vector<std::vector<SupportCradle*>> cradle_data_mesh = generateCradleCenters(mesh, mesh_idx);
     generateCradleLines(cradle_data_mesh, mesh);
-    if(cradle_data_[mesh_idx].size() < cradle_data_mesh.size())
+    if (cradle_data_[mesh_idx].size() < cradle_data_mesh.size())
     {
         cradle_data_[mesh_idx].resize(cradle_data_mesh.size());
     }
-    for (auto [layer_idx, cradles_on_layer] :cradle_data_mesh | ranges::views::enumerate)
+    for (auto [layer_idx, cradles_on_layer] : cradle_data_mesh | ranges::views::enumerate)
     {
         cradle_data_[mesh_idx][layer_idx].insert(cradle_data_[mesh_idx][layer_idx].end(), cradles_on_layer.begin(), cradles_on_layer.end());
     }
@@ -1651,18 +1642,17 @@ void SupportCradleGeneration::generate(const SliceDataStorage& storage)
 
 void SupportCradleGeneration::pushCradleData(std::vector<std::vector<SupportCradle*>>& target, std::vector<Shape>& support_free_areas, size_t mesh_idx)
 {
-
-    if(target.size() < cradle_data_[mesh_idx].size())
+    if (target.size() < cradle_data_[mesh_idx].size())
     {
         target.resize(cradle_data_[mesh_idx].size());
     }
 
-    for (auto [layer_idx, cradles_on_layer] :cradle_data_[mesh_idx] | ranges::views::enumerate)
+    for (auto [layer_idx, cradles_on_layer] : cradle_data_[mesh_idx] | ranges::views::enumerate)
     {
         target[layer_idx].insert(target[layer_idx].end(), cradles_on_layer.begin(), cradles_on_layer.end());
     }
 
-    if(support_free_areas.size() < support_free_areas_.size())
+    if (support_free_areas.size() < support_free_areas_.size())
     {
         support_free_areas.resize(support_free_areas_.size());
     }
@@ -1672,4 +1662,4 @@ void SupportCradleGeneration::pushCradleData(std::vector<std::vector<SupportCrad
     }
 }
 
-} //End Namespace
+} // namespace cura

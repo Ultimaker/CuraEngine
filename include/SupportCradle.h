@@ -112,9 +112,9 @@ struct CradleConfig
         , large_cradle_base_(roof && retrieveSetting<std::string>(mesh.settings, "support_cradle_roof") == "large_cradle_and_base")
         , large_cradle_line_tips_(retrieveSetting<bool>(mesh.settings, "support_tree_large_cradle_line_tips"))
         , cradle_z_distance_layers_(round_divide(retrieveSetting<coord_t>(mesh.settings, "support_cradle_z_distance"), mesh.settings.get<coord_t>("layer_height")))
-        , cradle_towards_center_(retrieveSetting<std::string>(mesh.settings, "support_cradle_direction")  == "center")
+        , cradle_towards_center_(retrieveSetting<std::string>(mesh.settings, "support_cradle_direction") == "center")
     {
-        TreeSupportSettings config(mesh.settings); //todo[TR:CodeQuality] replace with gathering settings manually
+        TreeSupportSettings config(mesh.settings); // todo[TR:CodeQuality] replace with gathering settings manually
         if (cradle_layers_)
         {
             cradle_layers_ += cradle_z_distance_layers_;
@@ -242,7 +242,6 @@ struct CradleConfig
      * \brief Should cradle lines go toward the center of the model (true) or the closest point on the outline(false)
      */
     bool cradle_towards_center_;
-
 };
 
 struct SupportCradle
@@ -265,7 +264,7 @@ struct SupportCradle
         , centers_({ center })
         , is_roof_(roof)
         , cradle_placement_method_(cradle_placement_method)
-        , config_ (config)
+        , config_(config)
         , mesh_idx_(mesh_idx)
     {
     }
@@ -304,7 +303,7 @@ struct SupportCradle
     {
         Point2LL current_direction = line_end - getCenter(layer_idx_req);
         double angle = std::atan2(current_direction.Y, current_direction.X);
-        if(angle < 0)
+        if (angle < 0)
         {
             angle = 2.0 * std::numbers::pi + angle;
         }
@@ -430,18 +429,23 @@ public:
     }
 
     SupportCradleGeneration(const SliceDataStorage& storage, TreeModelVolumes& volumes_);
-private:
 
+private:
     struct UnsupportedAreaInformation
     {
-        UnsupportedAreaInformation(const Shape area, LayerIndex layer_idx, size_t height, coord_t accumulated_supportable_overhang,
-            CradleDeformationHalfCircle deformation, MinimumBoundingBox min_box)
+        UnsupportedAreaInformation(
+            const Shape area,
+            LayerIndex layer_idx,
+            size_t height,
+            coord_t accumulated_supportable_overhang,
+            CradleDeformationHalfCircle deformation,
+            MinimumBoundingBox min_box)
             : area{ area }
             , layer_idx{ layer_idx }
             , height{ height }
             , accumulated_supportable_overhang{ accumulated_supportable_overhang }
             , deformation{ deformation }
-            , min_box {min_box}
+            , min_box{ min_box }
         {
         }
         const Shape area;
@@ -477,12 +481,12 @@ private:
      * \param selector[in] The function selecting a value from two supplied. Function does not need to return one of the supplied values.
      * \return The resulting CradleDeformationHalfCircle
      */
-    CradleDeformationHalfCircle elementWiseSelect(CradleDeformationHalfCircle& a, CradleDeformationHalfCircle& b, std::function<double(double,double)> selector)
+    CradleDeformationHalfCircle elementWiseSelect(CradleDeformationHalfCircle& a, CradleDeformationHalfCircle& b, std::function<double(double, double)> selector)
     {
         CradleDeformationHalfCircle result{};
-        for(int i = 0; i < a.size(); i++)
+        for (int i = 0; i < a.size(); i++)
         {
-            result[i]=selector(a[i],b[i]);
+            result[i] = selector(a[i], b[i]);
         }
         return result;
     }
@@ -503,9 +507,8 @@ private:
      * \param elements[in] The areas as UnsupportedAreaInformation that should be assumed to be connected.
      * \return A pair of the minimum bounding box of the supplied areas and the per-layer deformation values.
      */
-    std::pair<MinimumBoundingBox,CradleDeformationHalfCircle > getSimulatedConnection(const SliceMeshStorage& mesh,
-                                                                                      double assumed_part_thickness,
-                                                                                      std::set<UnsupportedAreaInformation*> elements);
+    std::pair<MinimumBoundingBox, CradleDeformationHalfCircle>
+        getSimulatedConnection(const SliceMeshStorage& mesh, double assumed_part_thickness, std::set<UnsupportedAreaInformation*> elements);
 
     /*!
      * \brief Calculates total displacement of one element from the intended location. Result should be seen as an indicator not as an exact prediction.
@@ -520,7 +523,7 @@ private:
      * \param mesh_idx[in] The idx of the mesh.
      * \param layer_idx[in] The layer said area is on.
      * \return A vector containing the areas, how many layers of material they have below them (always 0) and the idx of each area usable to get the next one layer above.
-    */
+     */
     std::vector<UnsupportedAreaInformation*> getFullyUnsupportedArea(size_t mesh_idx, LayerIndex layer_idx);
 
     /*!
@@ -532,61 +535,61 @@ private:
      */
     void calculateFloatingParts(const SliceDataStorage& storage, size_t mesh_idx);
 
-/*!
+    /*!
      * \brief Generate the center points of all generated cradles.
      * \param mesh[in] The mesh that is currently processed.
      * \param mesh_idx[in] The idx of the mesh.
      * \returns The calculated cradle centers for the mesh.
- */
-std::vector<std::vector<SupportCradle*>> generateCradleCenters(const SliceMeshStorage& mesh, size_t mesh_idx);
+     */
+    std::vector<std::vector<SupportCradle*>> generateCradleCenters(const SliceMeshStorage& mesh, size_t mesh_idx);
 
-/*!
+    /*!
      * \brief Generate lines from center and model information
      * Only area up to the required maximum height are stored.
      * \param cradle_data_mesh[in] The calculated cradle centers for the mesh.
      * \param mesh[in] The mesh that is currently processed.
- */
-void generateCradleLines(std::vector<std::vector<SupportCradle*>>& cradle_data_mesh, const SliceMeshStorage& mesh);
+     */
+    void generateCradleLines(std::vector<std::vector<SupportCradle*>>& cradle_data_mesh, const SliceMeshStorage& mesh);
 
-/*!
+    /*!
      * \brief Ensures cradle-lines do not intersect with each other.
- */
-void cleanCradleLineOverlaps();
+     */
+    void cleanCradleLineOverlaps();
 
-/*!
+    /*!
      * \brief Finishes the cradle areas that represent cradle base and lines and calculates overhang for them.
      * \param storage[in] The storage that contains all meshes. Used to access mesh specific settings
- */
-void generateCradleLineAreasAndBase(const SliceDataStorage& storage);
+     */
+    void generateCradleLineAreasAndBase(const SliceDataStorage& storage);
 
-/*!
+    /*!
      * \brief Representation of all cradles ordered by mesh_idx and layer_idx.
- */
-std::vector<std::vector<std::vector<SupportCradle*>>> cradle_data_;
+     */
+    std::vector<std::vector<std::vector<SupportCradle*>>> cradle_data_;
 
-/*!
+    /*!
      * \brief Representation of areas that have to be removed to ensure lines below the pointy overhang.
- */
-std::vector<Shape> support_free_areas_;
+     */
+    std::vector<Shape> support_free_areas_;
 
-/*!
+    /*!
      * \brief Generator for model collision, avoidance and internal guide volumes.
- */
-TreeModelVolumes& volumes_;
+     */
+    TreeModelVolumes& volumes_;
 
-/*!
+    /*!
      * \brief Whether only support that can rest on a flat surface should be supported.
- */
-const bool only_gracious_ = SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
+     */
+    const bool only_gracious_ = SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL;
 
-LayerIndex top_most_cradle_layer_ = -1;
+    LayerIndex top_most_cradle_layer_ = -1;
 
-mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
-mutable std::unordered_map<LayerIndex, std::vector<std::pair<std::set<UnsupportedAreaInformation*>,std::pair<MinimumBoundingBox,CradleDeformationHalfCircle>>>> simulated_connection_cache_;
+    mutable std::vector<std::vector<std::vector<UnsupportedAreaInformation*>>> floating_parts_cache_;
+    mutable std::unordered_map<LayerIndex, std::vector<std::pair<std::set<UnsupportedAreaInformation*>, std::pair<MinimumBoundingBox, CradleDeformationHalfCircle>>>>
+        simulated_connection_cache_;
 
-std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
-std::unique_ptr<std::mutex> critical_simulated_connection_cache_ = std::make_unique<std::mutex>();
-
+    std::unique_ptr<std::mutex> critical_floating_parts_cache_ = std::make_unique<std::mutex>();
+    std::unique_ptr<std::mutex> critical_simulated_connection_cache_ = std::make_unique<std::mutex>();
 };
 
 
