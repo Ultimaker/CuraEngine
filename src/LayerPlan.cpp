@@ -2719,7 +2719,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         // The machine has a build volume fan.
         if (layer_nr_ == mesh_group_settings.get<size_t>("build_fan_full_layer"))
         {
-            gcode.writeSpecificFanCommand(100, mesh_group_settings.get<size_t>("build_volume_fan_nr"));
+            const auto fan_speed = mesh_group_settings.get<Ratio>("build_volume_fan_speed") * 100.0;
+            gcode.writeSpecificFanCommand(fan_speed, mesh_group_settings.get<size_t>("build_volume_fan_nr"));
         }
     }
 
