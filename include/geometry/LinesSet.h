@@ -255,9 +255,10 @@ public:
      *        not the shape.
      * \param outer_offset Offset relative to the original shape-outline towards the outside of the
      *        shape. Comparable to normal offset.
+     * \param jt JoinType for the offsets.
      * \return The resulting polygons.
      */
-    [[nodiscard]] Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
+    [[nodiscard]] Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset, const ClipperLib::JoinType jt = ClipperLib::jtMiter) const;
 
     void translate(const Point2LL& delta);
 

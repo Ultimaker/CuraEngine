@@ -819,6 +819,19 @@ std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
 }
 
 template<>
+std::vector<coord_t> Settings::get<std::vector<coord_t>>(const std::string& key) const
+{
+    std::vector<double> values_doubles = get<std::vector<double>>(key);
+    std::vector<coord_t> values_ints;
+    values_ints.reserve(values_doubles.size());
+    for (double value : values_doubles)
+    {
+        values_ints.push_back(std::round(MM2INT(value))); // Round to nearest integer.
+    }
+    return values_ints;
+}
+
+template<>
 std::vector<AngleDegrees> Settings::get<std::vector<AngleDegrees>>(const std::string& key) const
 {
     std::vector<double> values_doubles = get<std::vector<double>>(key);

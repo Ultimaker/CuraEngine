@@ -17,6 +17,7 @@
 namespace cura
 {
 
+struct CradlePresenceInformation;
 struct AreaIncreaseSettings
 {
     AreaIncreaseSettings()
@@ -25,16 +26,18 @@ struct AreaIncreaseSettings
         , increase_radius_(false)
         , no_error_(false)
         , use_min_distance_(false)
+        , use_anti_preferred_(false)
         , move_(false)
     {
     }
 
-    AreaIncreaseSettings(AvoidanceType type, coord_t increase_speed, bool increase_radius, bool simplify, bool use_min_distance, bool move)
+    AreaIncreaseSettings(AvoidanceType type, coord_t increase_speed, bool increase_radius, bool simplify, bool use_min_distance, bool use_anti_preferred, bool move)
         : type_(type)
         , increase_speed_(increase_speed)
         , increase_radius_(increase_radius)
         , no_error_(simplify)
         , use_min_distance_(use_min_distance)
+        , use_anti_preferred_(use_anti_preferred)
         , move_(move)
     {
     }
@@ -44,6 +47,7 @@ struct AreaIncreaseSettings
     bool increase_radius_;
     bool no_error_;
     bool use_min_distance_;
+    bool use_anti_preferred_;
     bool move_;
 
     bool operator==(const AreaIncreaseSettings& other) const
@@ -64,16 +68,18 @@ struct TreeSupportElement
         bool use_min_xy_dist,
         size_t dont_move_until,
         bool supports_roof,
+        bool supports_cradle,
         bool can_use_safe_radius,
         bool force_tips_to_roof,
         bool skip_ovalisation,
         bool influence_area_limit_active,
-        coord_t influence_area_limit_range)
+        coord_t influence_area_limit_range,
+        double hidden_radius_increase)
         : target_height_(target_height)
         , target_position_(target_position)
         , next_position_(target_position)
         , next_height_(target_height)
-        , effective_radius_height_(distance_to_top)
+        , effective_radius_height_(0)
         , to_buildplate_(to_buildplate)
         , distance_to_top_(distance_to_top)
         , area_(nullptr)
@@ -83,78 +89,32 @@ struct TreeSupportElement
         , buildplate_radius_increases_(0)
         , use_min_xy_dist_(use_min_xy_dist)
         , supports_roof_(supports_roof)
+        , supports_cradle_(supports_cradle)
         , dont_move_until_(dont_move_until)
         , can_use_safe_radius_(can_use_safe_radius)
-        , last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false))
+        , can_avoid_anti_preferred_(false)
+        , ensure_valid_anti_preferred_(false)
+        , last_area_increase_(AreaIncreaseSettings(AvoidanceType::FAST, 0, false, false, false, false, false))
         , missing_roof_layers_(force_tips_to_roof ? dont_move_until : 0)
+        , roof_with_enforced_walls(false)
         , skip_ovalisation_(skip_ovalisation)
         , all_tips_({ target_position })
         , influence_area_limit_active_(influence_area_limit_active)
         , influence_area_limit_range_(influence_area_limit_range)
+        , hidden_radius_increase_(hidden_radius_increase)
     {
         RecreateInfluenceLimitArea();
     }
 
-    TreeSupportElement(const TreeSupportElement& elem, Shape* newArea = nullptr)
-        : // copy constructor with possibility to set a new area
-        target_height_(elem.target_height_)
-        , target_position_(elem.target_position_)
-        , next_position_(elem.next_position_)
-        , next_height_(elem.next_height_)
-        , effective_radius_height_(elem.effective_radius_height_)
-        , to_buildplate_(elem.to_buildplate_)
-        , distance_to_top_(elem.distance_to_top_)
-        , area_(newArea != nullptr ? newArea : elem.area_)
-        , result_on_layer_(elem.result_on_layer_)
-        , increased_to_model_radius_(elem.increased_to_model_radius_)
-        , to_model_gracious_(elem.to_model_gracious_)
-        , buildplate_radius_increases_(elem.buildplate_radius_increases_)
-        , use_min_xy_dist_(elem.use_min_xy_dist_)
-        , supports_roof_(elem.supports_roof_)
-        , dont_move_until_(elem.dont_move_until_)
-        , can_use_safe_radius_(elem.can_use_safe_radius_)
-        , last_area_increase_(elem.last_area_increase_)
-        , missing_roof_layers_(elem.missing_roof_layers_)
-        , skip_ovalisation_(elem.skip_ovalisation_)
-        , all_tips_(elem.all_tips_)
-        , influence_area_limit_active_(elem.influence_area_limit_active_)
-        , influence_area_limit_range_(elem.influence_area_limit_range_)
-        , influence_area_limit_area_(elem.influence_area_limit_area_)
+    TreeSupportElement(const TreeSupportElement& elem, Shape* new_area)
+        : // copy constructor that sets a new area
+        TreeSupportElement(elem)
     {
-        parents_.insert(parents_.begin(), elem.parents_.begin(), elem.parents_.end());
+        area_ = new_area;
+        additional_ovalization_targets_.clear();
+        cradle_line_ = nullptr;
     }
 
-    /*!
-     * \brief Create a new Element for one layer below the element of the pointer supplied.
-     */
-    TreeSupportElement(TreeSupportElement* element_above)
-        : target_height_(element_above->target_height_)
-        , target_position_(element_above->target_position_)
-        , next_position_(element_above->next_position_)
-        , next_height_(element_above->next_height_)
-        , effective_radius_height_(element_above->effective_radius_height_)
-        , to_buildplate_(element_above->to_buildplate_)
-        , distance_to_top_(element_above->distance_to_top_ + 1)
-        , area_(element_above->area_)
-        , result_on_layer_(Point2LL(-1, -1))
-        , // set to invalid as we are a new node on a new layer
-        increased_to_model_radius_(element_above->increased_to_model_radius_)
-        , to_model_gracious_(element_above->to_model_gracious_)
-        , buildplate_radius_increases_(element_above->buildplate_radius_increases_)
-        , use_min_xy_dist_(element_above->use_min_xy_dist_)
-        , supports_roof_(element_above->supports_roof_)
-        , dont_move_until_(element_above->dont_move_until_)
-        , can_use_safe_radius_(element_above->can_use_safe_radius_)
-        , last_area_increase_(element_above->last_area_increase_)
-        , missing_roof_layers_(element_above->missing_roof_layers_)
-        , skip_ovalisation_(false)
-        , all_tips_(element_above->all_tips_)
-        , influence_area_limit_active_(element_above->influence_area_limit_active_)
-        , influence_area_limit_range_(element_above->influence_area_limit_range_)
-        , influence_area_limit_area_(element_above->influence_area_limit_area_)
-    {
-        parents_ = { element_above };
-    }
 
     // ONLY to be called in merge as it assumes a few assurances made by it.
     TreeSupportElement(
@@ -173,9 +133,13 @@ struct TreeSupportElement
         , increased_to_model_radius_(increased_to_model_radius)
         , use_min_xy_dist_(first.use_min_xy_dist_ || second.use_min_xy_dist_)
         , supports_roof_(first.supports_roof_ || second.supports_roof_)
+        , supports_cradle_(first.supports_cradle_ || second.supports_cradle_)
         , dont_move_until_(std::max(first.dont_move_until_, second.dont_move_until_))
         , can_use_safe_radius_(first.can_use_safe_radius_ || second.can_use_safe_radius_)
+        , can_avoid_anti_preferred_(first.can_avoid_anti_preferred_ || second.can_avoid_anti_preferred_)
+        , ensure_valid_anti_preferred_(first.ensure_valid_anti_preferred_ || second.ensure_valid_anti_preferred_)
         , missing_roof_layers_(std::min(first.missing_roof_layers_, second.missing_roof_layers_))
+        , roof_with_enforced_walls(first.roof_with_enforced_walls && second.roof_with_enforced_walls)
         , skip_ovalisation_(false)
     {
         if (first.target_height_ > second.target_height_)
@@ -208,6 +172,13 @@ struct TreeSupportElement
             // 'buildplate_radius_increases' has to be recalculated, as when a smaller tree with a larger buildplate_radius_increases merge with a larger branch,
             //   the buildplate_radius_increases may have to be lower as otherwise the radius suddenly increases. This results often in a non integer value.
             buildplate_radius_increases_ = foot_increase_radius / (branch_radius * (diameter_scale_bp_radius - diameter_angle_scale_factor));
+
+            const coord_t hidden_increase_radius = std::abs(
+                std::max(
+                    getRadius(second.effective_radius_height_, second.buildplate_radius_increases_ + second.hidden_radius_increase_),
+                    getRadius(first.effective_radius_height_, first.buildplate_radius_increases_ + first.hidden_radius_increase_))
+                - getRadius(effective_radius_height_, buildplate_radius_increases_));
+            hidden_radius_increase_ = hidden_increase_radius / (branch_radius * (diameter_scale_bp_radius - diameter_angle_scale_factor));
         }
 
         // set last settings to the best out of both parents. If this is wrong, it will only cause a small performance penalty instead of weird behavior.
@@ -217,6 +188,7 @@ struct TreeSupportElement
             first.last_area_increase_.increase_radius_ || second.last_area_increase_.increase_radius_,
             first.last_area_increase_.no_error_ || second.last_area_increase_.no_error_,
             first.last_area_increase_.use_min_distance_ && second.last_area_increase_.use_min_distance_,
+            first.can_avoid_anti_preferred_ && second.can_avoid_anti_preferred_,
             first.last_area_increase_.move_ || second.last_area_increase_.move_);
 
         all_tips_ = first.all_tips_;
@@ -309,6 +281,11 @@ struct TreeSupportElement
     bool supports_roof_;
 
     /*!
+     * \brief True if this Element or any parent provides support to a cradle or cradle line.
+     */
+    bool supports_cradle_;
+
+    /*!
      * \brief The element trys not to move until this dtt is reached, is set to 0 if the element had to move.
      */
     size_t dont_move_until_;
@@ -319,6 +296,16 @@ struct TreeSupportElement
     bool can_use_safe_radius_;
 
     /*!
+     * \brief An influence area can avoid anti-preferred when the difference with it is non empty.
+     */
+    bool can_avoid_anti_preferred_;
+
+    /*!
+     * \brief If the influence area ensures no collision with anti preferred on this layer.
+     */
+    bool ensure_valid_anti_preferred_;
+
+    /*!
      * \brief Settings used to increase the influence area to its current state.
      */
     AreaIncreaseSettings last_area_increase_;
@@ -327,6 +314,11 @@ struct TreeSupportElement
      * \brief Amount of roof layers that were not yet added, because the branch needed to move.
      */
     size_t missing_roof_layers_;
+
+    /*!
+     * \brief True if interface with walls has to be used, even though regular interface does not have walls.
+     */
+    bool roof_with_enforced_walls;
 
     /*!
      * \brief Skip the ovalisation to parent and children when generating the final circles.
@@ -357,6 +349,16 @@ struct TreeSupportElement
      * \brief Additional locations that the tip should reach
      */
     std::vector<Point2LL> additional_ovalization_targets_;
+
+    /*!
+     * \brief Pointer to the cradle line it supports if it does support a cradle line.
+     */
+    std::shared_ptr<CradlePresenceInformation> cradle_line_;
+
+    /*!
+     * \brief Counter about the times the radius was increased to reach the correct initial radius. Uses logic intended for buildplate_radius_increases_
+     */
+    double hidden_radius_increase_;
 
 
     bool operator==(const TreeSupportElement& other) const
@@ -437,6 +439,21 @@ struct TreeSupportElement
     inline bool isResultOnLayerSet() const
     {
         return result_on_layer_ != Point2LL(-1, -1);
+    }
+    /*!
+     * \brief Create a new Element for one layer below the element.
+     */
+
+    TreeSupportElement createNewElement()
+    {
+        TreeSupportElement result(*this);
+        result.parents_ = { this };
+        result.distance_to_top_ += 1;
+        result.skip_ovalisation_ = false;
+        result.result_on_layer_ = Point2LL(-1, -1);
+        result.area_ = nullptr;
+        result.ensure_valid_anti_preferred_ = false;
+        return result;
     }
 };
 

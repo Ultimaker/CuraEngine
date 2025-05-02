@@ -386,7 +386,10 @@ Shape SliceDataStorage::getLayerOutlines(
                     total.push_back(support_infill_part.outline_);
                 }
                 total.push_back(support_layer.support_bottom);
-                total.push_back(support_layer.support_roof);
+                for (const SupportInfillPart& support_infill_part : support_layer.support_roof)
+                {
+                    total.push_back(support_infill_part.outline_);
+                }
             }
         }
         if (include_prime_tower && prime_tower_)
@@ -736,15 +739,15 @@ void SliceDataStorage::initializePrimeTower()
     prime_tower_ = PrimeTower::createPrimeTower(*this);
 }
 
-void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
+void SupportLayer::excludeAreasFromSupportInfillAreas(std::vector<SupportInfillPart>& parts, const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
     // record the indexes that need to be removed and do that after
     std::list<size_t> to_remove_part_indices; // LIFO for removing
 
-    unsigned int part_count_to_check = support_infill_parts.size(); // note that support_infill_parts.size() changes during the computation below
+    unsigned int part_count_to_check = parts.size(); // note that parts.size() changes during the computation below
     for (size_t part_idx = 0; part_idx < part_count_to_check; ++part_idx)
     {
-        SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
+        SupportInfillPart& support_infill_part = parts[part_idx];
 
         // if the areas don't overlap, do nothing
         if (! exclude_polygons_boundary_box.hit(support_infill_part.outline_boundary_box_))
@@ -771,13 +774,13 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polyg
 
         // there are one or more smaller parts.
         // we first replace the current part with one of the smaller parts,
-        // the rest we add to the support_infill_parts (but after part_count_to_check)
+        // the rest we add to the parts (but after part_count_to_check)
         support_infill_part.outline_ = smaller_support_islands[0];
 
         for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
         {
             const SingleShape& smaller_island = smaller_support_islands[support_island_idx];
-            support_infill_parts.emplace_back(smaller_island, support_infill_part.support_line_width_, support_infill_part.inset_count_to_generate_);
+            parts.emplace_back(smaller_island, support_infill_part.support_line_width_, support_infill_part.use_fractional_config_, support_infill_part.inset_count_to_generate_, support_infill_part.custom_line_distance_, support_infill_part.custom_line_pattern_, support_infill_part.start_near_location);
         }
     }
 
@@ -786,15 +789,15 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polyg
     {
         const size_t remove_idx = to_remove_part_indices.back();
         to_remove_part_indices.pop_back();
-        if (support_infill_parts.empty())
+        if (parts.empty())
         {
             continue;
         }
-        if (remove_idx < support_infill_parts.size() - 1)
+        if (remove_idx < parts.size() - 1)
         { // move last element to the to-be-removed element so that we can erase the last place in the vector
-            support_infill_parts[remove_idx] = std::move(support_infill_parts.back());
+            parts[remove_idx] = std::move(parts.back());
         }
-        support_infill_parts.pop_back(); // always erase last place in the vector
+        parts.pop_back(); // always erase last place in the vector
     }
 }
 
@@ -807,7 +810,8 @@ void SupportLayer::fillInfillParts(
     const coord_t wall_line_count,
     const coord_t grow_layer_above /*has default 0*/,
     const bool unionAll /*has default false*/,
-    const coord_t custom_line_distance /*has default 0*/)
+    const coord_t custom_line_distance /*has default false*/,
+    const EFillMethod custom_pattern /*has default None*/)
 {
     // Find the model exactly z-distance above the support layer.
     Shape overhang_z_dist_above;
@@ -830,7 +834,7 @@ void SupportLayer::fillInfillParts(
     {
         for (const SingleShape& island_outline : support_areas.splitIntoParts(unionAll))
         {
-            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance);
+            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance, custom_pattern);
         }
         use_fractional_config = false;
     }

@@ -11,6 +11,7 @@
 #include <unordered_set>
 
 #include "TreeSupportEnums.h"
+#include "TreeSupportEnums.h"
 #include "geometry/Shape.h"
 #include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
@@ -40,6 +41,7 @@ public:
         coord_t max_move,
         coord_t max_move_slow,
         coord_t min_offset_per_step,
+        const coord_t min_radius,
         size_t current_mesh_idx,
         double progress_multiplier,
         double progress_offset,
@@ -50,6 +52,7 @@ public:
     TreeModelVolumes(const TreeModelVolumes&) = delete;
     TreeModelVolumes& operator=(const TreeModelVolumes&) = delete;
 
+
     /*!
      * \brief Precalculate avoidances and collisions up to this layer.
      *
@@ -57,7 +60,7 @@ public:
      * Not calling this will cause the class to lazily calculate avoidances and collisions as needed, which will be a lot slower on systems with more then one or two cores!
      *
      */
-    void precalculate(coord_t max_layer);
+    void precalculate(LayerIndex max_layer);
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
@@ -129,6 +132,7 @@ public:
      */
     const Shape& getWallRestriction(coord_t radius, LayerIndex layer_idx, bool min_xy_dist);
 
+
     /*!
      * \brief Round \p radius upwards to either a multiple of radius_sample_resolution_ or a exponentially increasing value
      *
@@ -143,11 +147,59 @@ public:
     /*!
      * \brief Round \p radius upwards to the maximum that would still round up to the same value as the provided one.
      *
-     * \param radius The radius of the node of interest
+     * \param radius The radius of the element of interest
      * \param min_xy_dist is the minimum xy distance used.
      * \return The maximum radius, resulting in the same rounding.
      */
     coord_t getRadiusNextCeil(coord_t radius, bool min_xy_dist) const;
+
+    /*!
+     * \brief Get the uppermost layer index that does not contain hints about to areas which should be avoided. Returns -1 if anti preferred is present on layer 0.
+     */
+    LayerIndex getMaxLayerIdxWithoutAntiPreferred();
+
+    /*!
+     * \brief Get the uppermost layer index that does not have support blocker present. Returns -1 if support blocker is present on layer 0.
+     */
+    LayerIndex getMaxLayerIdxWithoutBlocker();
+
+    /*!
+     * \brief Provide hints which areas should be avoided in the future.
+     * \param area The area that should be avoided in the future.
+     * \param layer_idx The layer said area is on.
+     */
+    void addAreaToAntiPreferred(const Shape area, LayerIndex layer_idx);
+
+    /*!
+     * \brief Precalculate avoidances for the anti-preferred area hints
+     *
+     * Needs to be called so that anti preferred avoidances are available.
+     *
+     */
+    void precalculateAntiPreferred();
+
+    /*!
+     * \brief Get areas that were additionally set to be avoided
+     * \param layer_idx The layer said area is on.
+     * \param radius The radius of the node of interest.
+     * \returns The area that should be avoided
+     */
+    const Shape& getAntiPreferredAreas(LayerIndex layer_idx, coord_t radius);
+
+    /*!
+     * \brief Get avoidance areas for areas that were additionally set to be avoided
+     * \param layer_idx The layer said area is on.
+     * \param radius The radius of the node of interest.
+     * \returns The area that should be avoided
+     */
+    const Shape& getAntiPreferredAvoidance(coord_t radius, LayerIndex layer_idx, AvoidanceType type, bool to_model, bool min_xy_dist);
+
+    /*!
+     * \brief Get areas that were are classified as support blocker
+     * \param layer_idx The layer said area is on.
+     * \returns The area should not contain support
+     */
+    const Shape& getSupportBlocker(LayerIndex layer_idx);
 
 
 private:
@@ -310,6 +362,17 @@ private:
     }
 
     /*!
+     * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model with radius 0 from the smallest actual avoidance.
+     * This is done as a real 0 radius avoidance would not be able to be printed. These 0 radius avoidances are used for calculating roof and cradle.
+     *
+     * The result is a 2D area that would cause nodes of radius 0 to
+     * collide with the model in a not wanted way. Result is saved in the cache.
+     * \param max_layer The result will be calculated up to the this layer.
+     */
+    void calculateFake0Avoidances(const LayerIndex max_layer);
+
+
+    /*!
      * \brief Creates the areas that can not be passed when expanding an area downwards. As such these areas are an somewhat abstract representation of a wall (as in a printed
      * object).
      *
@@ -464,6 +527,18 @@ private:
     RestPreference support_rest_preference_;
 
     /*!
+     * \brief Largest DTT a cradle supporting tip may have.
+     */
+    size_t max_cradle_dtt = 0;
+
+    LayerIndex max_layer_idx_without_anti_preferred_ = 0;
+
+    /*!
+     * \brief radii for which avoidance was already precalculated. Used to calculate anti preferred avoidance.
+     */
+    std::deque<RadiusLayerPair> precalculated_avoidance_radii;
+
+    /*!
      * \brief Caches for the collision, avoidance and areas on the model where support can be placed safely
      * at given radius and layer indices.
      *
@@ -520,9 +595,45 @@ private:
     mutable std::unordered_map<RadiusLayerPair, Shape> wall_restrictions_cache_min_;
     std::unique_ptr<std::mutex> critical_wall_restrictions_cache_min_ = std::make_unique<std::mutex>();
 
+    mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_;
+    std::unique_ptr<std::mutex> critical_anti_preferred_ = std::make_unique<std::mutex>();
+
+    mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_cache_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_cache_to_model_;
+    mutable std::unordered_map<RadiusLayerPair, Shape> anti_preferred_cache_collision;
+    std::unique_ptr<std::mutex> critical_anti_preferred_caches = std::make_unique<std::mutex>();
+
+    enum class CalculationType
+    {
+        AVOIDANCE,
+        AVOIDANCE_0,
+        AVOIDANCE_TO_MODEL,
+        AVOIDANCE_COLLISION,
+        COLLISION,
+        COLLISION_HOLEFREE,
+        PLACEABLE,
+        PLACEABLE_ACCUMULATED,
+        WALL_RESTRICTION
+    };
+    std::unique_ptr<std::mutex> critical_calculation_request_ = std::make_unique<std::mutex>();
+    std::unordered_map<std::pair<coord_t, CalculationType>, std::shared_ptr<std::mutex>> critical_calculation_map_;
+
+    std::shared_ptr<std::mutex> getLockForCalculation(coord_t radius, CalculationType type)
+    {
+        std::lock_guard<std::mutex> critical_section(*critical_calculation_request_);
+        std::pair<coord_t, CalculationType> key(radius, type);
+        if (! critical_calculation_map_.contains(key))
+        {
+            critical_calculation_map_[key] = std::make_shared<std::mutex>();
+        }
+        return critical_calculation_map_[key];
+    }
+
     std::unique_ptr<std::mutex> critical_progress_ = std::make_unique<std::mutex>();
 
     Simplify simplifier_ = Simplify(0, 0, 0); // a simplifier to simplify polygons. Will be properly initialised in the constructor.
+
+    Shape empty_polygon = Shape();
 };
 
 } // namespace cura

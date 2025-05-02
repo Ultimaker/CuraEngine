@@ -72,12 +72,13 @@ double bridgeAngle(
 
         if (! support_layer->support_roof.empty())
         {
-            AABB support_roof_bb(support_layer->support_roof);
+            Shape all_roofs = support_layer->getTotalAreaFromParts(support_layer->support_roof);
+            AABB support_roof_bb(all_roofs);
             if (boundary_box.hit(support_roof_bb))
             {
-                prev_layer_outline.push_back(support_layer->support_roof); // not intersected with skin
+                prev_layer_outline.push_back(all_roofs); // not intersected with skin
 
-                Shape supported_skin(skin_outline.intersection(support_layer->support_roof));
+                Shape supported_skin(skin_outline.intersection(all_roofs));
                 if (! supported_skin.empty())
                 {
                     supported_regions.push_back(supported_skin);

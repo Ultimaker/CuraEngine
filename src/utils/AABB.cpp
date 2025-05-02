@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <limits>
 
+#include "geometry/Polyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 #include "utils/linearAlg2D.h"

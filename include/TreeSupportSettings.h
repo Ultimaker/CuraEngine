@@ -20,6 +20,49 @@
 namespace cura
 {
 
+// The various stages of the process can be weighted differently in the progress bar.
+// These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.
+constexpr auto TREE_PROGRESS_TOTAL = 10000;
+constexpr auto TREE_PROGRESS_PRECALC_COLL = TREE_PROGRESS_TOTAL * 0.1;
+constexpr auto TREE_PROGRESS_PRECALC_AVO = TREE_PROGRESS_TOTAL * 0.4;
+constexpr auto TREE_PROGRESS_GENERATE_NODES = TREE_PROGRESS_TOTAL * 0.1;
+constexpr auto TREE_PROGRESS_AREA_CALC = TREE_PROGRESS_TOTAL * 0.3;
+constexpr auto TREE_PROGRESS_DRAW_AREAS = TREE_PROGRESS_TOTAL * 0.1;
+
+constexpr auto TREE_PROGRESS_GENERATE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+constexpr auto TREE_PROGRESS_SMOOTH_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+constexpr auto TREE_PROGRESS_FINALIZE_BRANCH_AREAS = TREE_PROGRESS_DRAW_AREAS / 3;
+
+constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA = 100.0;
+constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS = 1;
+constexpr auto SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT = false;
+constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
+constexpr coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
+constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
+constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
+constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
+
+
+template<typename A>
+static A retrieveSetting(const Settings& settings, const std::string& key)
+{
+    if (settings.has(key))
+    {
+        return settings.get<A>(key);
+    }
+    else
+    {
+        for (std::string setting_key : settings.getKeys())
+        {
+            if (setting_key.find(key) != std::string::npos)
+            {
+                return settings.get<A>(setting_key);
+            }
+        }
+        return settings.get<A>(key); // this will cause a crash, but that's the expected behaviour in this case anyway
+    }
+}
+
 /*!
  * \brief This struct contains settings used in the tree support. Thanks to this most functions do not need to know of meshes etc. Also makes the code shorter.
  */
@@ -82,6 +125,9 @@ struct TreeSupportSettings
         , min_feature_size(mesh_group_settings.get<coord_t>("min_feature_size"))
         , min_wall_line_width(settings.get<coord_t>("min_wall_line_width"))
         , fill_outline_gaps(settings.get<bool>("fill_outline_gaps"))
+        , support_skin_layers(round_up_divide(retrieveSetting<coord_t>(mesh_group_settings, "support_tree_support_skin_height"), layer_height))
+        , support_skin_line_distance(retrieveSetting<coord_t>(mesh_group_settings, "support_tree_support_skin_line_distance"))
+        , support_tree_skin_for_large_tips_radius_threshold(retrieveSetting<coord_t>(mesh_group_settings, "support_tree_skin_for_large_tips_threshold") / 2)
         , simplifier(Simplify(mesh_group_settings))
     {
         layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
@@ -384,6 +430,21 @@ public:
     bool fill_outline_gaps;
 
     /*!
+     * \brief How many high density layers should be below roof and cradle.
+     */
+    size_t support_skin_layers;
+
+    /*!
+     * \brief Distance between lines of the high density line pattern.
+     */
+    coord_t support_skin_line_distance;
+
+    /*!
+     * \brief Tips with a radius of at least this should have skin.
+     */
+    coord_t support_tree_skin_for_large_tips_radius_threshold;
+
+    /*!
      * \brief Simplifier to simplify polygons.
      */
     Simplify simplifier = Simplify(0, 0, 0);
@@ -412,8 +473,9 @@ public:
             && zag_skip_count == other.zag_skip_count && connect_zigzags == other.connect_zigzags && interface_preference == other.interface_preference
             && min_feature_size == other.min_feature_size && // interface_preference should be identical to ensure the tree will correctly interact with the roof.
                support_rest_preference == other.support_rest_preference && max_radius == other.max_radius && min_wall_line_width == other.min_wall_line_width
-            && fill_outline_gaps == other.fill_outline_gaps &&
-               // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for
+            && fill_outline_gaps == other.fill_outline_gaps && support_skin_layers == other.support_skin_layers && support_skin_line_distance == other.support_skin_line_distance
+            && support_tree_skin_for_large_tips_radius_threshold == other.support_tree_skin_for_large_tips_radius_threshold &&
+               // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for//
                // interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
                (interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT || interface_preference == InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE
                 || (settings.get<bool>("fill_outline_gaps") == other.settings.get<bool>("fill_outline_gaps")
@@ -431,7 +493,9 @@ public:
 
     /*!
      * \brief Get the Distance to top regarding the real radius this part will have. This is different from distance_to_top, which is can be used to calculate the top most layer of
-     * the branch. \param elem[in] The SupportElement one wants to know the effectiveDTT \return The Effective DTT.
+     * the branch.
+     * \param elem[in] The SupportElement one wants to know the effectiveDTT
+     * \return The Effective DTT.
      */
     [[nodiscard]] inline size_t getEffectiveDTT(const TreeSupportElement& elem) const
     {
@@ -463,7 +527,9 @@ public:
      */
     [[nodiscard]] inline coord_t getRadius(const TreeSupportElement& elem) const
     {
-        return getRadius(getEffectiveDTT(elem), (elem.isResultOnLayerSet() || ! support_rests_on_model) && elem.to_buildplate_ ? elem.buildplate_radius_increases_ : 0);
+        return getRadius(
+            getEffectiveDTT(elem),
+            elem.hidden_radius_increase_ + ((elem.isResultOnLayerSet() || ! support_rests_on_model) && elem.to_buildplate_ ? elem.buildplate_radius_increases_ : 0));
     }
 
     /*!

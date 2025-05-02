@@ -4,6 +4,7 @@
 #ifndef TREESUPPORTTIPGENERATOR_H
 #define TREESUPPORTTIPGENERATOR_H
 
+#include "SupportCradle.h"
 #include "TreeModelVolumes.h"
 #include "TreeSupport.h"
 #include "TreeSupportBaseCircle.h"
@@ -34,16 +35,18 @@ public:
      * \param storage[in] Background storage, required for adding roofs.
      * \param mesh[in] The mesh that is currently processed. Contains the overhangs.
      * \param move_bounds[out] The storage for the tips.
-     * \param additional_support_areas[out] Areas that should have been roofs, but are now support, as they would not generate any lines as roof. Should already be initialised.
-     * \param placed_fake_roof_areas[out] Areas where fake roof has to be placed.
+     * \param placed_support_lines_support_areas[out] Support-lines that were already placed represented as the area the lines will take when printed.
+     * \param support_free_areas[out] Areas where no support (including roof) of any kind is to be drawn.
+     * \param cradle_data[in] Generated cradle lines.
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
     void generateTips(
         SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
-        std::vector<Shape>& additional_support_areas,
-        std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas);
+        std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas,
+        std::vector<Shape>& support_free_areas,
+        std::vector<std::vector<SupportCradle*>>& cradle_data);
 
 private:
     enum class LineStatus
@@ -55,6 +58,14 @@ private:
         TO_BP,
         TO_BP_SAFE
     };
+
+    enum class TipRoofType
+    {
+        NONE,
+        SUPPORTS_ROOF,
+        IS_ROOF
+    };
+
 
     using LineInformation = std::vector<std::pair<Point2LL, TreeSupportTipGenerator::LineStatus>>;
 
@@ -112,10 +123,9 @@ private:
      * \param mesh[in] The mesh that is currently processed.
      * \param line_distance[in] The distance between the infill lines of the resulting infill
      * \param line_width[in] What is the width of a line used in the infill.
-     * \return A valid CrossInfillProvider. Has to be freed manually to avoid a memory leak.
+     * \return A valid CrossInfillProvider.
      */
-    std::shared_ptr<SierpinskiFillProvider> generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const;
-
+    std::shared_ptr<SierpinskiFillProvider> getCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width);
 
     /*!
      * \brief Drops overhang areas further down until they are valid (at most max_overhang_insert_lag layers)
@@ -128,26 +138,31 @@ private:
     /*!
      * \brief Calculates which areas should be supported with roof, and saves these in roof support_roof_drawn
      * \param mesh[in] The mesh that is currently processed.
+     * \param cradle_data[in] Cradles for this mesh if applicable
      */
-    void calculateRoofAreas(const SliceMeshStorage& mesh);
+    void calculateRoofAreas(const SliceMeshStorage& mesh, std::vector<std::vector<SupportCradle*>>& cradle_data);
 
     /*!
      * \brief Add a point as a tip
      * \param move_bounds[out] The storage for the tips.
      * \param p[in] The point that will be added and its LineStatus.
      * \param dtt[in] The distance to top the added tip will have.
+     * \param hidden_radius_increase[in] Additional bp increases hidden from the collision calculation. Used to ensure branches are large enough to reach initial layer diameter.
      * \param insert_layer[in] The layer the tip will be on.
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      * \param roof[in] Whether the tip supports a roof.
      * \param skip_ovalisation[in] Whether the tip may be ovalized when drawn later.
+     * \param additional_ovalization_targets[in] Additional targets the ovalization should reach.
      */
-    void addPointAsInfluenceArea(
+    TreeSupportElement* addPointAsInfluenceArea(
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
-        std::pair<Point2LL, LineStatus> p,
+        std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> p,
         size_t dtt,
+        double hidden_radius_increase,
         LayerIndex insert_layer,
         size_t dont_move_until,
-        bool roof,
+        TipRoofType roof,
+        bool cradle,
         bool skip_ovalisation,
         std::vector<Point2LL> additional_ovalization_targets = std::vector<Point2LL>());
 
@@ -158,15 +173,18 @@ private:
      * \param lines[in] The lines of which points will be added.
      * \param roof_tip_layers[in] Amount of layers the tip should be drawn as roof.
      * \param insert_layer_idx[in] The layer the tip will be on.
+     * \param tip_radius[in] Target radius of the tips.
      * \param supports_roof[in] Whether the tip supports a roof.
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
+     * \param connect_points [in] If the points of said line should be connected by ovalization.
      */
     void addLinesAsInfluenceAreas(
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::vector<TreeSupportTipGenerator::LineInformation> lines,
         size_t roof_tip_layers,
         LayerIndex insert_layer_idx,
-        bool supports_roof,
+        coord_t tip_radius,
+        OverhangInformation& overhang_data,
         size_t dont_move_until,
         bool connect_points);
 
@@ -174,9 +192,9 @@ private:
      * \brief Remove tips that should not have been added in the first place.
      * \param move_bounds[in,out] The already added tips
      * \param storage[in] Background storage, required for adding roofs.
-     * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
+     * \param cradle_data[in] Cradles for this mesh if applicable
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Shape>& additional_support_areas);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<std::vector<SupportCradle*>>& cradle_data);
 
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
@@ -209,14 +227,9 @@ private:
     const size_t support_roof_layers_;
 
     /*!
-     * \brief Distance between tips, so that the tips form a lime. Is smaller than Tip Diameter.
+     * \brief Density the tips should have when supporting overhangs
      */
-    const coord_t connect_length_;
-
-    /*!
-     * \brief Distance between tips, if the tips support an overhang.
-     */
-    const coord_t support_tree_branch_distance_;
+    const double support_tree_top_rate_;
 
     /*!
      * \brief Distance between support roof lines. Is required for generating roof patterns.
@@ -233,11 +246,6 @@ private:
      * \brief Amount of offset to each overhang for support with roof (as opposed to regular branches).
      */
     const coord_t roof_outset_;
-
-    /*!
-     * \brief Whether tips should be printed as roof
-     */
-    const bool force_tip_to_roof_;
 
     /*!
      * \brief Whether the maximum distance a branch should from a point they support should be limited. Can be violated if required.
@@ -264,10 +272,6 @@ private:
      */
     size_t max_overhang_insert_lag_;
 
-    /*!
-     * \brief Area of a tip.
-     */
-    const double tip_roof_size_;
 
     /*!
      * \brief Whether only support that can rest on a flat surface should be supported.
@@ -281,14 +285,19 @@ private:
     const bool force_minimum_roof_area_ = SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT;
 
     /*!
+     * \brief Whether tips should be larger to enable reaching initial_layer_diameter.
+     */
+    const bool force_initial_layer_radius_;
+
+    /*!
      * \brief Distance between branches when the branches support a support pattern
      */
     coord_t support_supporting_branch_distance_;
 
     /*!
-     * \brief Required to generate cross infill patterns
+     * \brief Required to generate cross infill patterns. Key: Distance between lines
      */
-    std::shared_ptr<SierpinskiFillProvider> cross_fill_provider_;
+    std::unordered_map<std::pair<coord_t, coord_t>, std::shared_ptr<SierpinskiFillProvider>> cross_fill_providers_;
 
     /*!
      * \brief Map that saves locations of already inserted tips. Used to prevent tips far to close together from being added.
@@ -301,19 +310,20 @@ private:
     std::vector<Shape> support_roof_drawn_;
 
     /*!
-     * \brief Areas that require fractional roof above it.
+     * \brief Areas that should have fractional roof above it.
      */
     std::vector<Shape> support_roof_drawn_fractional_;
 
     /*!
-     * \brief Areas that will be saved as support roof, originating from tips being replaced with roof areas.
+     * \brief If the cradle lines should also be supported by larger tips.
      */
-    std::vector<Shape> roof_tips_drawn_;
+    bool large_cradle_line_tips_;
 
     std::mutex critical_move_bounds_;
-    std::mutex critical_roof_tips_;
+    std::mutex critical_cross_fill_;
+
 };
 
 } // namespace cura
 
-#endif /* TREESUPPORT_H */
+#endif /* TREESUPPORTTIPGENERATOR_H */

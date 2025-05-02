@@ -15,6 +15,11 @@ ThreadPool::ThreadPool(size_t nthreads)
     }
 }
 
+bool ThreadPool::hasActiveTasks()
+{
+    return !tasks.empty();
+}
+
 void ThreadPool::worker()
 {
     lock_t lock = get_lock();
