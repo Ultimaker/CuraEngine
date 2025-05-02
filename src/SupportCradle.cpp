@@ -1434,7 +1434,8 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
 
                     cradle_base = cradle_base.unionPolygons();
 
-                    if (cradle.config_->cradle_lines_roof_)
+                    // Overhang for roof cradle lines that are not part of the base will be handled below like regular cradle lines
+                    if (cradle.config_->cradle_lines_roof_ && cradle.config_->cradle_base_roof_)
                     {
                         Shape forbidden_here = volumes_.getAvoidance(
                             0,
@@ -1460,7 +1461,6 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             coord_t line_base_offset = cradle.config_->large_cradle_base_ ? std::max(coord_t(0), cradle.config_->cradle_support_base_area_radius_ - cradle.config_->cradle_line_width_ / 2) : 0;
                             roofs.emplace_back(line_opt.value()->area_.offset(line_base_offset, ClipperLib::jtRound), line_idx);
                         }
-
 
                         for (auto roof_area_pair : roofs)
                         {
@@ -1566,7 +1566,7 @@ void SupportCradleGeneration::generateCradleLineAreasAndBase(const SliceDataStor
                             cradle.overhang_[layer_idx].emplace_back(cradle_overhang);
                         }
                     }
-                    if (! cradle.config_->cradle_lines_roof_)
+                    if (! cradle.config_->cradle_lines_roof_ || !cradle.config_->cradle_base_roof_)
                     {
                         for (size_t line_idx = 0; line_idx < cradle.lines_.size(); line_idx++)
                         {
