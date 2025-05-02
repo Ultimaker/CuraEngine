@@ -228,17 +228,16 @@ double SupportCradleGeneration::getTotalDeformation(const SliceMeshStorage& mesh
             double deformation_limit_z_layer = -1;
             CradleDeformationHalfCircle deformation_layer;
             MinimumBoundingBox min_box_layer;
-
-            for(UnsupportedAreaInformation* current_area : iterate_elements) //todo[TR:CodeQuality][TR:Performance] why do i iterate over all? It is either one or a simulated connection...
+            bool initialized = false;
+            //Iterate over all elements to gather elements above them and check if they were already supported, therefore limiting the total deformation
+            for(UnsupportedAreaInformation* current_area : iterate_elements)
             {
-                if (min_box_layer.center == Point2LL(0, 0))
+                // Basically just initialise some variables with a random element in the list.
+                // If there are multiple elements present the simulated connection below will deal with it anyway.
+                if(! initialized)
                 {
+                    initialized = true;
                     deformation_layer = current_area->deformation;
-                }
-
-                // basically just a random init. If there are multiple present the simulated connection below will deal with it anyway.
-                if (current_area->min_box.area > min_box_layer.area)
-                {
                     min_box_layer = current_area->min_box;
                 }
 
@@ -509,8 +508,7 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                         {
                             last_cradle_at_layer_idx = std::max(last_cradle_at_layer_idx, cradle->layer_idx);
                         }
-                        if (last_cradle_at_layer_idx != -1
-                            && layer_idx - last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO[TR:Behavior]
+                        if (last_cradle_at_layer_idx != -1 && layer_idx - last_cradle_at_layer_idx < cradle_layers) // Assume any cradle reaches full height. This can be wrong! TODO[TR:Behavior]
                         {
                             area_info->deformation_limit_total = EPSILON;
                         }
@@ -518,13 +516,12 @@ void SupportCradleGeneration::calculateFloatingParts(const SliceDataStorage& sto
                         {
                             area_info->deformation_limit_z = EPSILON;
                         }
-                        else if (area_info->support_required == CradlePlacementMethod::NONE && layer_idx % (std::max(coord_t(1), 5000 / layer_height)) == 0) // Only check total
-                                                                                                                                                             // deformation every
-                                                                                                                                                             // 5mm
+                        // Only check total deformation every 5mm
+                        else if (area_info->support_required == CradlePlacementMethod::NONE && layer_idx % (std::max(coord_t(1), 5000 / layer_height)) == 0)
                         {
                             double estimated_deformation = getTotalDeformation(mesh, area_info);
-                            if (estimated_deformation > side_cradle_support_threshold) // todo[TR:Behavior][TR:Frontend] Add option to add additional cradles if the part rests on
-                                                                                       // cradle because of pointy overhang?
+                            // todo[TR:Behavior][TR:Frontend] Add option to add additional cradles if the part rests on cradle because of pointy overhang?
+                            if (estimated_deformation > side_cradle_support_threshold)
                             {
                                 top_most_cradle_layer_ = std::max(layer_idx + cradle_layers + 1, top_most_cradle_layer_);
                                 area_info->support_required = CradlePlacementMethod::AUTOMATIC_SIDE;

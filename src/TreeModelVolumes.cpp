@@ -1270,7 +1270,7 @@ Shape TreeModelVolumes::safeOffset(const Shape& me, coord_t distance, ClipperLib
     return ret.unionPolygons(collision);
 }
 
-void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& keys) // todo limit to certain avoidance types for better normal support performance
+void TreeModelVolumes::calculateAvoidance(const std::deque<RadiusLayerPair>& keys) // todo[TR:Performance] limit to certain avoidance types for better normal support performance
 {
     // For every RadiusLayer pair there are 3 avoidances that have to be calculate, calculated in the same paralell_for loop for better parallelization.
     const std::vector<AvoidanceType> all_types = { AvoidanceType::SLOW, AvoidanceType::FAST_SAFE, AvoidanceType::FAST };
