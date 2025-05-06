@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
@@ -110,6 +110,13 @@ Shape getTopOrBottom(int direction, const std::string& setting_name, size_t laye
     return result;
 }
 
+/*!
+ * \brief Split a layer into parts.
+ * \param settings The settings to get the settings from (whether to union or
+ * not).
+ * \param storageLayer Where to store the parts.
+ * \param layer The layer to split.
+ */
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();
