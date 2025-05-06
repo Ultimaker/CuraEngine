@@ -1,5 +1,5 @@
-//Copyright (c) 2025 UltiMaker
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2025 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LAYERPART_H
 #define LAYERPART_H
@@ -29,6 +29,6 @@ class SliceMeshStorage;
  */
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
-}//namespace cura
+} // namespace cura
 
-#endif//LAYERPART_H
+#endif // LAYERPART_H
