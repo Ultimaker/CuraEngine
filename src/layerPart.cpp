@@ -68,7 +68,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     for (auto& main_part : result)
     {
         std::vector<std::pair<SliceLayerPart::WallExposedType, std::vector<SingleShape>>> parts_by_type = {
-            { SliceLayerPart::WallExposedType::BOTTOM, bottom_parts.splitIntoParts() },
+            { SliceLayerPart::WallExposedType::BOTTOM_0, bottom_parts.splitIntoParts() },
             { SliceLayerPart::WallExposedType::TOP, top_parts.difference(bottom_parts).splitIntoParts() },
             { SliceLayerPart::WallExposedType::SIDE_ONLY, main_part.difference(bottom_parts).difference(top_parts).splitIntoParts() },
         };
@@ -126,7 +126,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
                 mesh.settings,
                 layer_storage,
                 &slice_layer,
-                getTopOrBottom(-1, "wall_line_count_bottom", layer_nr, slicer->layers, mesh.settings),
+                layer_nr == 0 ? getTopOrBottom(-1, "wall_line_count_0", layer_nr, slicer->layers, mesh.settings) : Shape(),
                 getTopOrBottom(+1, "wall_line_count_top", layer_nr, slicer->layers, mesh.settings));
         });
 

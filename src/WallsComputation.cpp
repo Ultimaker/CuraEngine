@@ -41,8 +41,8 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
     {
         switch (part->wall_exposed)
         {
-        case SliceLayerPart::WallExposedType::BOTTOM:
-            return "wall_line_count_bottom";
+        case SliceLayerPart::WallExposedType::BOTTOM_0:
+            return "wall_line_count_0";
         case SliceLayerPart::WallExposedType::TOP:
             return "wall_line_count_top";
         case SliceLayerPart::WallExposedType::SIDE_ONLY:
