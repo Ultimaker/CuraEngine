@@ -58,8 +58,8 @@ class SliceLayerPart
 public:
     enum class WallExposedType
     {
-        BOTTOM_0,
-        TOP,
+        LAYER_0,
+        ROOFING,
         SIDE_ONLY,
     };
     WallExposedType wall_exposed = WallExposedType::SIDE_ONLY;
