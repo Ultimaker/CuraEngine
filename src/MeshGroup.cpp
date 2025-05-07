@@ -328,7 +328,7 @@ bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matr
             const float z = std::stof(matches[3].str());
             vertices.push_back(matrix.apply(Point3D(x, y, z)));
         }
-        else if (line_identifier == "vt" && std::regex_match(line, matches, uv_regex))
+        else if (line_identifier == "vt" && std::regex_match(payload, matches, uv_regex))
         {
             const float u = std::stof(matches[1].str());
             const float v = std::stof(matches[2].str());

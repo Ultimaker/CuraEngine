@@ -37,7 +37,13 @@ Mesh::Mesh()
 {
 }
 
-void Mesh::addFace(const Point3LL& v0, const Point3LL& v1, const Point3LL& v2, const std::optional<Point2F> uv0, const std::optional<Point2F> uv1, const std::optional<Point2F> uv2)
+void Mesh::addFace(
+    const Point3LL& v0,
+    const Point3LL& v1,
+    const Point3LL& v2,
+    const std::optional<Point2F>& uv0,
+    const std::optional<Point2F>& uv1,
+    const std::optional<Point2F>& uv2)
 {
     int vi0 = findIndexOfVertex(v0);
     int vi1 = findIndexOfVertex(v1);

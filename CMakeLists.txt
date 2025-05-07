@@ -60,6 +60,7 @@ set(engine_SRCS # Except main.cpp.
         src/LayerPlanBuffer.cpp
         src/mesh.cpp
         src/MeshGroup.cpp
+        src/MeshMaterialSplitter.cpp
         src/Mold.cpp
         src/multiVolumes.cpp
         src/path_ordering.cpp
@@ -224,6 +225,8 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
+find_package(cgal REQUIRED)
+find_package(pngpp REQUIRED)
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)
@@ -244,6 +247,8 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
+        CGAL::CGAL
+        pngpp::pngpp
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
@@ -295,7 +300,7 @@ if (EMSCRIPTEN)
             "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
             "SHELL:-sWASM_BIGINT=1"
             "SHELL:-sSTACK_SIZE=196608"
-           $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
+            $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
             $<$<CONFIG:Debug>:SHELL:-sSAFE_HEAP=1>
             $<$<CONFIG:Debug>:SHELL:-sSTACK_OVERFLOW_CHECK=2>
             $<$<CONFIG:Debug>:SHELL:-g3>

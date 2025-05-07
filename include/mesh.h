@@ -85,9 +85,9 @@ public:
         const Point3LL& v0,
         const Point3LL& v1,
         const Point3LL& v2,
-        const std::optional<Point2F> uv0 = std::nullopt,
-        const std::optional<Point2F> uv1 = std::nullopt,
-        const std::optional<Point2F> uv2 = std::nullopt); //!< add a face to the mesh without settings it's connected_faces.
+        const std::optional<Point2F>& uv0 = std::nullopt,
+        const std::optional<Point2F>& uv1 = std::nullopt,
+        const std::optional<Point2F>& uv2 = std::nullopt); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 
