@@ -28,6 +28,15 @@ It's also the first step that stores the result in the "data storage" so all oth
 namespace cura
 {
 
+/*!
+ * \brief Split a layer into parts.
+ * \param settings The settings to get the settings from (whether to union or
+ * not).
+ * \param storageLayer Where to store the parts.
+ * \param layer The layer to split.
+ * \param bottom_parts The bottom parts of the layer.
+ * \param top_parts The top parts of the layer.
+ */
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer, const Shape& bottom_parts, const Shape& top_parts)
 {
     OpenPolylineStitcher::stitch(layer->open_polylines_, storageLayer.open_polylines, layer->polygons_, settings.get<coord_t>("wall_line_width_0"));
@@ -67,7 +76,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
 
     for (auto& main_part : result)
     {
-        std::vector<std::pair<SliceLayerPart::WallExposedType, std::vector<SingleShape>>> parts_by_type = {
+        std::map<SliceLayerPart::WallExposedType, std::vector<SingleShape>> parts_by_type = {
             { SliceLayerPart::WallExposedType::LAYER_0, bottom_parts.splitIntoParts() },
             { SliceLayerPart::WallExposedType::ROOFING, top_parts.difference(bottom_parts).splitIntoParts() },
             { SliceLayerPart::WallExposedType::SIDE_ONLY, main_part.difference(bottom_parts).difference(top_parts).splitIntoParts() },
@@ -97,7 +106,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
 
 Shape getTopOrBottom(int direction, const std::string& setting_name, size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
 {
-    auto result = Shape();
+    Shape result;
     if (settings.get<size_t>(setting_name) != settings.get<size_t>("wall_line_count") && ! settings.get<bool>("magic_spiralize"))
     {
         result = slayers[layer_nr].polygons_;
@@ -112,13 +121,6 @@ Shape getTopOrBottom(int direction, const std::string& setting_name, size_t laye
     return result;
 }
 
-/*!
- * \brief Split a layer into parts.
- * \param settings The settings to get the settings from (whether to union or
- * not).
- * \param storageLayer Where to store the parts.
- * \param layer The layer to split.
- */
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();
