@@ -188,6 +188,8 @@ private:
      */
     bool forceMinimalLayerTime(double maximum_cool_min_layer_time, double time_other_extr_plans);
 
+    static bool forceMinimalLayerTimes(ExtruderPlan& a, ExtruderPlan& b, double minTime);
+
     /*!
      * @return The time needed for (un)retract the path
      */

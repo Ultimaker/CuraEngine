@@ -2500,6 +2500,116 @@ bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
     return false;
 }
 
+/*static*/ bool ExtruderPlan::forceMinimalLayerTimes(ExtruderPlan& a, ExtruderPlan& b, double minTime)
+{
+    /* WARNING! Very crude sketch of how one proposal of a 'proper' implementation of minimal layer time would work for (exactly) 2 extruders.
+     * Mostly copied, non-DRY code and rough assumptions abound.
+     */
+
+    const double minimalSpeed = std::min(a.fan_speed_layer_time_settings_.cool_min_speed, b.fan_speed_layer_time_settings_.cool_min_speed);
+    const double travelTime = a.estimates_.getTravelTime() + b.estimates_.getTravelTime();
+    const double extrudeTime = a.estimates_.extrude_time + b.estimates_.extrude_time;
+    const double factor_a = a.estimates_.extrude_time / extrudeTime;
+    const double factor_b = b.estimates_.extrude_time / extrudeTime;
+
+    const double totalTime = travelTime + extrudeTime;
+    constexpr double epsilon = 0.01;
+
+    double total_extrude_time_at_minimum_speed = 0.0;
+    double total_extrude_time_at_slowest_speed = 0.0;
+    for (GCodePath& path : a.paths_ )
+    {
+        total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
+        total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_path_speed;
+    }
+    for (GCodePath& path : b.paths_)
+    {
+        total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
+        total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_path_speed;
+    }
+
+    if (totalTime < minTime - epsilon && extrudeTime > 0.0)
+    {
+        const double minExtrudeTime = minTime - (totalTime - extrudeTime);
+
+        double target_speed = 0.0;
+        std::function<double(const GCodePath&)> slow_down_func{ [&target_speed](const GCodePath& path)
+                                                                {
+                                                                    return std::min(target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
+                                                                } };
+
+        if (minExtrudeTime >= total_extrude_time_at_minimum_speed)
+        {
+            // Even at cool min speed extrusion is not taken enough time. So speed is set to cool min speed.
+            target_speed = minimalSpeed;
+            a.temperature_factor_ = 1.0;
+            b.temperature_factor_ = 1.0;
+
+            // Update stored naive time estimates
+            a.estimates_.extrude_time = total_extrude_time_at_minimum_speed * factor_a;
+            b.estimates_.extrude_time = total_extrude_time_at_minimum_speed * factor_b;
+            if (minTime - total_extrude_time_at_minimum_speed - travelTime > epsilon)
+            {
+                a.extra_time_ = (minTime - total_extrude_time_at_minimum_speed - travelTime) * factor_a;
+                b.extra_time_ = (minTime - total_extrude_time_at_minimum_speed - travelTime) * factor_b;
+            }
+        }
+        else if (minExtrudeTime >= total_extrude_time_at_slowest_speed && std::abs(total_extrude_time_at_minimum_speed - total_extrude_time_at_slowest_speed) >= epsilon)
+        {
+            // Slowing down to the slowest path speed is not sufficient, need to slow down further to the minimum speed.
+            // Linear interpolate between total_extrude_time_at_slowest_speed and total_extrude_time_at_minimum_speed
+            const double factor
+                = (1 / total_extrude_time_at_minimum_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_minimum_speed - 1 / total_extrude_time_at_slowest_speed);
+            target_speed = minimalSpeed * (1.0 - factor) + std::max(a.slowest_path_speed_, b.slowest_path_speed_) * factor;
+            a.temperature_factor_ = (1.0 - factor) * factor_a;
+            b.temperature_factor_ = (1.0 - factor) * factor_b;
+
+            // Update stored naive time estimates
+            a.estimates_.extrude_time = minExtrudeTime * factor_a;
+            b.estimates_.extrude_time = minExtrudeTime * factor_b;
+        }
+        else
+        {
+            // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
+            // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
+            const double factor = (1 / total_extrude_time_at_slowest_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_slowest_speed - 1 / extrudeTime);
+            slow_down_func = [slowest_path_speed = std::max(a.slowest_path_speed_, b.slowest_path_speed_), factor](const GCodePath& path)
+                {
+                    const double actual_target_speed = slowest_path_speed * (1.0 - factor) + (path.config.getSpeed() * path.speed_factor) * factor;
+                    return std::min(actual_target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
+                };
+
+            // Update stored naive time estimates
+            a.estimates_.extrude_time = minExtrudeTime * factor_a;
+            b.estimates_.extrude_time = minExtrudeTime * factor_b;
+        }
+
+        for (GCodePath& path : a.paths_)
+        {
+            if (path.isTravelPath())
+            {
+                continue;
+            }
+            Ratio slow_down_factor = slow_down_func(path);
+            path.speed_factor *= slow_down_factor;
+            path.estimates.extrude_time /= slow_down_factor;
+        }
+        for (GCodePath& path : b.paths_)
+        {
+            if (path.isTravelPath())
+            {
+                continue;
+            }
+            Ratio slow_down_factor = slow_down_func(path);
+            path.speed_factor *= slow_down_factor;
+            path.estimates.extrude_time /= slow_down_factor;
+        }
+
+        return true;
+    }
+    return false;
+}
+
 double ExtruderPlan::getRetractTime(const GCodePath& path)
 {
     return retraction_config_.distance / (path.retract ? retraction_config_.speed : retraction_config_.primeSpeed);
@@ -2638,32 +2748,45 @@ void ExtruderPlan::processFanSpeedForFirstLayers()
     }
 }
 
-void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
+void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position, LayerPlan* prev_layerplan)
 {
-    // the minimum layer time behaviour is only applied to the last extruder.
-    const size_t last_extruder_nr = ranges::max_element(
-                                        extruder_plans_,
-                                        [](const ExtruderPlan& a, const ExtruderPlan& b)
-                                        {
-                                            return a.extruder_nr_ < b.extruder_nr_;
-                                        })
-                                        ->extruder_nr_;
-    unsigned int last_extruder_idx;
+    // the minimum layer time behaviour is only applied to the lastest extruder (not to be confused with last)
+    const size_t last_extruder_nr = extruder_plans_.rbegin()->extruder_nr_;
+    unsigned int last_extruder_idx = extruder_plans_.size() - 1;
     double other_extr_plan_time = 0.0;
     Duration maximum_cool_min_layer_time;
 
-    for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans_.size(); extr_plan_idx++)
+    // The extruder plans are either:
+    // - in case both the previous and current layer have exactly 2 exruder(plan)s _and_ the last one of the previous matches the first one of the current:
+    //     the _lastest_ extruder plan of the previous layer and the _first_ extruderplan from the current layer
+    // - otherwise: all of the extruder plans in the _current_ layer
+    std::vector<ExtruderPlan*> extruder_plan_ptrs;
+    const bool handle_2 =
+        extruder_plans_.size() == 2 &&
+        prev_layerplan != nullptr &&
+        prev_layerplan->extruder_plans_.size() == 2 &&
+        prev_layerplan->extruder_plans_.rbegin()->extruder_nr_ == extruder_plans_.begin()->extruder_nr_;
+    if (handle_2)
+    {
+        extruder_plan_ptrs.push_back(&*prev_layerplan->extruder_plans_.rbegin());
+        extruder_plan_ptrs.push_back(&*extruder_plans_.begin());
+    }
+    else
+    {
+        for (auto& extruder_plan : extruder_plans_)
+        {
+            extruder_plan_ptrs.push_back(&extruder_plan);
+        }
+    }
+
+    for (auto p_extruder_plan : extruder_plan_ptrs)
     {
         {
-            ExtruderPlan& extruder_plan = extruder_plans_[extr_plan_idx];
+            ExtruderPlan& extruder_plan = *p_extruder_plan;
 
             // Precalculate the time estimates. Don't call this function twice, since it is works cumulative.
             extruder_plan.computeNaiveTimeEstimates(starting_position);
-            if (extruder_plan.extruder_nr_ == last_extruder_nr)
-            {
-                last_extruder_idx = extr_plan_idx;
-            }
-            else
+            if (extruder_plan.extruder_nr_ != last_extruder_nr)
             {
                 other_extr_plan_time += extruder_plan.estimates_.getTotalTime();
             }
@@ -2685,7 +2808,14 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
 
     // apply minimum layer time behaviour
     ExtruderPlan& last_extruder_plan = extruder_plans_[last_extruder_idx];
-    min_layer_time_used |= last_extruder_plan.forceMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
+    if (handle_2)
+    {
+        min_layer_time_used |= ExtruderPlan::forceMinimalLayerTimes(*prev_layerplan->extruder_plans_.rbegin(), *extruder_plans_.begin(), maximum_cool_min_layer_time);
+    }
+    else
+    {
+        min_layer_time_used |= last_extruder_plan.forceMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
+    }
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 

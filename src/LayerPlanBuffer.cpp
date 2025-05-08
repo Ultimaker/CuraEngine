@@ -137,17 +137,17 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
     // This introduces small inaccuracies for the naive layer time estimates of the first layer of the second mesh group.
     // It's not that bad, though. They are naive estimates any way.
     Point2LL starting_position(0, 0);
+    LayerPlan* prev_layer = nullptr;
     if (buffer_.size() >= 2)
     {
         auto prev_layer_it = newest_layer_it;
         prev_layer_it--;
-        const LayerPlan* prev_layer = *prev_layer_it;
+        prev_layer = *prev_layer_it;
         starting_position = prev_layer->getLastPlannedPositionOrStartingPosition();
     }
     LayerPlan* newest_layer = *newest_layer_it;
-    newest_layer->processFanSpeedAndMinimalLayerTime(starting_position);
+    newest_layer->processFanSpeedAndMinimalLayerTime(starting_position, prev_layer);
 }
-
 
 void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp)
 {

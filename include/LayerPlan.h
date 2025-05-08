@@ -768,8 +768,9 @@ public:
      * Applying speed corrections for minimal layer times and determine the fanSpeed.
      *
      * \param starting_position The position of the print head when the first extruder plan of this layer starts
+     * \param last_plan_per_extruder A mapping from extruder-id to the plan on previous layer(s) last used by that extruder.
      */
-    void processFanSpeedAndMinimalLayerTime(Point2LL starting_position);
+    void processFanSpeedAndMinimalLayerTime(Point2LL starting_position, LayerPlan* last_layerplan);
 
     /*!
      * Add a travel move to the layer plan to move inside the current layer part
