@@ -117,8 +117,6 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         return false; // Nothing to do.
     }
 
-    layer.mode_skip_agressive_merge_ = true;
-
     bool added = false;
     if (! ironing_polygons.empty())
     {
@@ -192,8 +190,6 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         wall_orderer.addToLayer();
         added = true;
     }
-
-    layer.mode_skip_agressive_merge_ = false;
     return added;
 }
 
