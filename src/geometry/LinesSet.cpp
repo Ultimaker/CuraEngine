@@ -3,6 +3,7 @@
 
 #include "geometry/LinesSet.h"
 
+#include <cassert>
 #include <numeric>
 
 #include "geometry/ClosedLinesSet.h"
