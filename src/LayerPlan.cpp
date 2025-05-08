@@ -2517,7 +2517,7 @@ bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
 
     double total_extrude_time_at_minimum_speed = 0.0;
     double total_extrude_time_at_slowest_speed = 0.0;
-    for (GCodePath& path : a.paths_ )
+    for (GCodePath& path : a.paths_)
     {
         total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
         total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_path_speed;
@@ -2574,10 +2574,10 @@ bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
             // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
             const double factor = (1 / total_extrude_time_at_slowest_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_slowest_speed - 1 / extrudeTime);
             slow_down_func = [slowest_path_speed = std::max(a.slowest_path_speed_, b.slowest_path_speed_), factor](const GCodePath& path)
-                {
-                    const double actual_target_speed = slowest_path_speed * (1.0 - factor) + (path.config.getSpeed() * path.speed_factor) * factor;
-                    return std::min(actual_target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
-                };
+            {
+                const double actual_target_speed = slowest_path_speed * (1.0 - factor) + (path.config.getSpeed() * path.speed_factor) * factor;
+                return std::min(actual_target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
+            };
 
             // Update stored naive time estimates
             a.estimates_.extrude_time = minExtrudeTime * factor_a;
@@ -2761,11 +2761,8 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position, L
     //     the _lastest_ extruder plan of the previous layer and the _first_ extruderplan from the current layer
     // - otherwise: all of the extruder plans in the _current_ layer
     std::vector<ExtruderPlan*> extruder_plan_ptrs;
-    const bool handle_2 =
-        extruder_plans_.size() == 2 &&
-        prev_layerplan != nullptr &&
-        prev_layerplan->extruder_plans_.size() == 2 &&
-        prev_layerplan->extruder_plans_.rbegin()->extruder_nr_ == extruder_plans_.begin()->extruder_nr_;
+    const bool handle_2 = extruder_plans_.size() == 2 && prev_layerplan != nullptr && prev_layerplan->extruder_plans_.size() == 2
+                       && prev_layerplan->extruder_plans_.rbegin()->extruder_nr_ == extruder_plans_.begin()->extruder_nr_;
     if (handle_2)
     {
         extruder_plan_ptrs.push_back(&*prev_layerplan->extruder_plans_.rbegin());
