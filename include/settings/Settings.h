@@ -44,7 +44,7 @@ public:
      * \param value The value of the setting. The value is always added and
      * stored in serialised form as a string.
      */
-    void add(const std::string& key, const std::string value);
+    void add(const std::string& key, const std::string& value);
 
     /*!
      * \brief Get the value of a setting.
