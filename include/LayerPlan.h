@@ -850,7 +850,7 @@ private:
      *  @param position The start position (which is not included in the path points)
      *  @param extrude_speed The actual used extrusion speed
      */
-    void sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed);
+    void sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed, const std::optional<coord_t>& line_thickness = std::nullopt);
 
     /*!
      *  @brief Write a travel move and properly apply the various Z offsets

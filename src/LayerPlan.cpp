@@ -2174,13 +2174,13 @@ void LayerPlan::addLinesInGivenOrder(
     }
 }
 
-void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed)
+void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed, const std::optional<coord_t>& line_thickness)
 {
     Application::getInstance().communication_->sendLineTo(
         path.config.type,
         position + Point3LL(0, 0, z_ + path.z_offset),
         path.getLineWidthForLayerView(),
-        path.config.getLayerThickness() + path.z_offset + position.z_,
+        line_thickness.value_or(path.config.getLayerThickness() + path.z_offset + position.z_),
         extrude_speed);
 }
 
@@ -2410,7 +2410,18 @@ void LayerPlan::spiralizeWallSlice(
             }
             // reduce number of paths created when polygon has many points by limiting precision of flow
             constexpr bool no_spiralize = false;
-            addExtrusionMove(p, config, SpaceFillType::Polygons, ((int)(flow * 20)) / 20.0, width_factor, no_spiralize, speed_factor);
+            constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+            constexpr bool travel_to_z = false;
+            addExtrusionMove(
+                Point3LL(p, layer_thickness_ / 2.0),
+                config,
+                SpaceFillType::Polygons,
+                ((int)(flow * 20)) / 20.0,
+                width_factor,
+                no_spiralize,
+                speed_factor,
+                fan_speed,
+                travel_to_z);
         }
     }
 }
@@ -3040,23 +3051,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
                     Point3LL prev_point = gcode.getPosition();
-                    for (unsigned int point_idx = 0; point_idx < path.points.size(); point_idx++)
+                    for (const auto& pt : path.points)
                     {
-                        const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, path.points[point_idx], path);
+                        const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        writeExtrusionRelativeZ(
-                            gcode,
-                            path.points[point_idx],
-                            extrude_speed,
-                            path.z_offset,
-                            path.getExtrusionMM3perMM(),
-                            path.config.type,
-                            update_extrusion_offset);
-                        sendLineTo(path, path.points[point_idx], extrude_speed);
+                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
+                        sendLineTo(path, pt, extrude_speed);
 
-                        prev_point = path.points[point_idx];
+                        prev_point = pt;
                     }
                 }
             }
@@ -3078,38 +3082,43 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                 double length = 0.0;
                 p0 = gcode.getPositionXY();
-                for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
-                { // handle all consecutive spiralized paths > CHANGES path_idx!
-                    GCodePath& spiral_path = paths[path_idx];
-
-                    for (unsigned int point_idx = 0; point_idx < spiral_path.points.size(); point_idx++)
+                const auto writeSpiralPath = [&](const GCodePath& spiral_path, const bool end_layer) -> void
+                {
+                    for (const auto& p1 : spiral_path.points)
                     {
-                        const Point2LL p1 = spiral_path.points[point_idx].toPoint2LL();
-                        length += vSizeMM(p0 - p1);
-                        p0 = p1;
+                        const Point2LL p1_2d = p1.toPoint2LL();
+                        length += vSizeMM(p0 - p1_2d);
+                        p0 = p1_2d;
 
-                        const coord_t z_offset = std::round(layer_thickness_ * length / totalLength);
+                        const coord_t z_offset = end_layer ? layer_thickness_ / 2 : std::round(layer_thickness_ * length / totalLength);
                         const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
                         writeExtrusionRelativeZ(
                             gcode,
-                            spiral_path.points[point_idx],
+                            p1,
                             extrude_speed,
                             path.z_offset + z_offset,
                             spiral_path.getExtrusionMM3perMM(),
                             spiral_path.config.type,
                             update_extrusion_offset);
-                        sendLineTo(spiral_path, spiral_path.points[point_idx], extrude_speed);
+                        sendLineTo(spiral_path, Point3LL(p1.x_, p1.y_, z_offset), extrude_speed, layer_thickness_);
                     }
-                    // for layer display only - the loop finished at the seam vertex but as we started from
-                    // the location of the previous layer's seam vertex the loop may have a gap if this layer's
-                    // seam vertex is "behind" the previous layer's seam vertex. So output another line segment
-                    // that joins this layer's seam vertex to the following vertex. If the layers have been blended
-                    // then this can cause a visible ridge (on the screen, not on the print) because the first vertex
-                    // would have been shifted in x/y to make it nearer to the previous layer outline but the seam
-                    // vertex would not be shifted (as it's the last vertex in the sequence). The smoother the model,
-                    // the less the vertices are shifted and the less obvious is the ridge. If the layer display
-                    // really displayed a spiral rather than slices of a spiral, this would not be required.
-                    sendLineTo(spiral_path, spiral_path.points[0], speed);
+                };
+
+                for (; path_idx < paths.size() && paths[path_idx].spiralize; path_idx++)
+                { // handle all consecutive spiralized paths > CHANGES path_idx!
+                    constexpr bool not_end_layer = false;
+                    writeSpiralPath(paths[path_idx], not_end_layer);
+                }
+
+                if (path_idx < paths.size())
+                {
+                    // Handle last path & exit.
+                    constexpr bool end_layer = true;
+                    for (; path_idx < paths.size(); path_idx++)
+                    {
+                        writeSpiralPath(paths[path_idx], end_layer);
+                    }
+                    break;
                 }
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
