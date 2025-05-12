@@ -13,6 +13,10 @@
 // #include <CGAL/Surface_mesh_shortest_path.h>
 #include <CGAL/alpha_wrap_3.h>
 
+#include <range/v3/algorithm/remove.hpp>
+#include <range/v3/algorithm/remove_if.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/join.hpp>
 #include <spdlog/spdlog.h>
 
 #include "MeshGroup.h"
@@ -32,6 +36,10 @@ using Point_3 = Kernel::Point_3;
 using Point_2 = Kernel::Point_2;
 using Segment_2 = Kernel::Segment_2;
 using Triangle_2 = Kernel::Triangle_2;
+using Triangle_3 = Kernel::Triangle_3;
+using Plane_3 = Kernel::Plane_3;
+using Vector_3 = Kernel::Vector_3;
+using Direction_3 = Kernel::Direction_3;
 using Delaunay = CGAL::Delaunay_triangulation_3<Kernel>;
 using PolygonMesh = CGAL::Surface_mesh<Kernel::Point_3>;
 // using Polygon_2 = CGAL::Polygon_2<Kernel>;
@@ -61,27 +69,331 @@ void exportPointsCloud(const std::vector<Point_3>& points_cloud, const std::stri
     exportMesh(exported_mesh, filename);
 }
 
-Point2F getPixelCoordinates(const Point2F& uv_coordinates, const png::image<png::rgb_pixel>& image)
+void exportPointsCloud(const std::vector<Point3LL>& points_cloud, const std::string& filename)
+{
+    PolygonMesh exported_mesh;
+    for (const Point3LL& point : points_cloud)
+    {
+        exported_mesh.add_vertex(Point_3(point.x_, point.y_, point.z_));
+    }
+    exportMesh(exported_mesh, filename);
+}
+
+class GrowingPointsCloud
+{
+public:
+    explicit GrowingPointsCloud(const size_t extruder_nr)
+        : extruder_nr_(extruder_nr)
+        , grown_shells_({ {} }) {};
+
+    size_t getExtruderNr() const
+    {
+        return extruder_nr_;
+    }
+
+    void addInitialPoint(const Point3LL& point)
+    {
+        std::vector<Point3LL>& outer_shell = grown_shells_.back();
+        constexpr coord_t epsilon = 5 * 5;
+        for (const Point3LL& actual_point : outer_shell)
+        {
+            if ((point - actual_point).vSize2() < epsilon)
+            {
+                return;
+            }
+        }
+
+        outer_shell.push_back(point);
+    }
+
+    const std::deque<std::vector<Point3LL>>& getShellPoints() const
+    {
+        return grown_shells_;
+    }
+
+    const std::vector<Point3LL>& getContour() const
+    {
+        return contour_points_;
+    }
+
+    void exportTo(const std::string& filename) const
+    {
+        PolygonMesh exported_mesh;
+        for (const Point3LL& point : getShellPoints() | ranges::views::join)
+        {
+            exported_mesh.add_vertex(Point_3(point.x_, point.y_, point.z_));
+        }
+        exportMesh(exported_mesh, filename);
+    }
+
+    static std::vector<Point3LL> makeGrowDeltas()
+    {
+        std::vector<Point3LL> grow_deltas;
+
+        for (coord_t delta_x : { grow_radius, -grow_radius })
+        {
+            grow_deltas.emplace_back(delta_x, 0, 0);
+        }
+
+        for (coord_t delta_y : { grow_radius, -grow_radius })
+        {
+            grow_deltas.emplace_back(0, delta_y, 0);
+        }
+
+        for (coord_t delta_z : { grow_radius, -grow_radius })
+        {
+            grow_deltas.emplace_back(0, 0, delta_z);
+        }
+
+        const coord_t grow_edge = static_cast<coord_t>(grow_radius / std::sqrt(2.0));
+        for (coord_t delta_x : { grow_edge, -grow_edge })
+        {
+            for (coord_t delta_y : { grow_edge, -grow_edge })
+            {
+                for (coord_t delta_z : { grow_edge, -grow_edge })
+                {
+                    grow_deltas.emplace_back(delta_x, delta_y, delta_z);
+                }
+            }
+        }
+
+        return grow_deltas;
+    }
+
+    void makeGrowCandidates(const std::vector<Point3LL>& grow_deltas)
+    {
+#warning Maybe we dont need to generate them all beforehand
+        const std::vector<Point3LL>& outer_shell = grown_shells_.back();
+        growable_points_.clear();
+        growable_points_.reserve(outer_shell.size());
+        for (const Point3LL& last_grown_points : outer_shell)
+        {
+            GrowingPoint growing_point;
+
+            for (const Point3LL& grow_delta : grow_deltas)
+            {
+                growing_point.grow_candidates.push_back({ .position = last_grown_points + grow_delta });
+            }
+
+            growable_points_.push_back(growing_point);
+        }
+    }
+
+    static void doWatershed(std::vector<GrowingPointsCloud>& points_clouds, const AABB3D& boundaries)
+    {
+        std::vector<Point3LL> grow_deltas = makeGrowDeltas();
+
+        bool point_grown;
+
+        size_t iteration = 0;
+        do
+        {
+            point_grown = false;
+
+            for (GrowingPointsCloud& points_cloud : points_clouds)
+            {
+                points_cloud.makeGrowCandidates(grow_deltas);
+            }
+
+            for (auto [index, points_cloud] : points_clouds | ranges::views::enumerate)
+            {
+                points_cloud.exportTo(fmt::format("points_cloud_{}_it_{}", index, iteration));
+                spdlog::info("Start evaluating {} points cloud candidates for ex {}", (points_cloud.growable_points_.size() * grow_deltas.size()), points_cloud.getExtruderNr());
+                points_cloud.evaluateGrowCandidates(points_clouds, boundaries);
+                spdlog::info("Ended evaluating points cloud candidates");
+            }
+
+            for (GrowingPointsCloud& points_cloud : points_clouds)
+            {
+                spdlog::info("Apply growing for ex {}", points_cloud.getExtruderNr());
+                point_grown |= points_cloud.applyGrowing();
+                spdlog::info("Ended applying growing");
+            }
+
+            iteration++;
+        } while (point_grown);
+    }
+
+
+private:
+    enum class GrowCapacity
+    {
+        Unknown, // We don't know yet
+        CanGrow, // Growable point can be accepted, it is not close to anything else
+        BlockedBySimilar, // Growable point is blocked because too close to other points of a similar points cloud
+        BlockedByDifferent, // Growable point is blocked because too close to other points of a different points cloud, or outside boundaries
+    };
+
+    struct GrowingCandidate
+    {
+        Point3LL position;
+        GrowCapacity capacity{ GrowCapacity::Unknown };
+    };
+
+    struct GrowingPoint
+    {
+        std::vector<GrowingCandidate> grow_candidates;
+    };
+
+private:
+    GrowCapacity evaluateGrowCandidate(
+        const GrowingCandidate& grow_candidate,
+        const size_t grow_candidate_index,
+        const std::vector<GrowingPointsCloud>& points_clouds,
+        const AABB3D& boundaries) const
+    {
+        const Point3LL& grow_position = grow_candidate.position;
+
+        if (! boundaries.is_inside(grow_position))
+        {
+            return GrowCapacity::BlockedByDifferent;
+        }
+
+        GrowCapacity grow_capacity = GrowCapacity::CanGrow;
+
+        for (const GrowingPointsCloud& points_cloud : points_clouds)
+        {
+            for (auto [index, shell_point] : points_cloud.grown_shells_ | ranges::views::join | ranges::views::enumerate)
+            {
+                if (&points_cloud == this && (index == grow_candidate_index || grow_capacity == GrowCapacity::BlockedBySimilar))
+                {
+                    // Ignore origin point, we are allowed to be close to it
+                    continue;
+                }
+
+                const coord_t distance = (shell_point - grow_position).vSize2();
+                if (distance < grow_radius_squared)
+                {
+                    GrowCapacity new_capacity = points_cloud.getExtruderNr() == getExtruderNr() ? GrowCapacity::BlockedBySimilar : GrowCapacity::BlockedByDifferent;
+                    grow_capacity = std::max(grow_capacity, new_capacity);
+
+                    if (grow_capacity == GrowCapacity::BlockedByDifferent)
+                    {
+                        return grow_capacity;
+                    }
+                }
+            }
+        }
+
+        return grow_capacity;
+    }
+
+    void evaluateGrowCandidates(const std::vector<GrowingPointsCloud>& points_clouds, const AABB3D& boundaries)
+    {
+        cura::parallel_for(
+            growable_points_,
+            [&](auto iterator)
+            {
+                GrowingPoint& growing_point = *iterator;
+                for (auto [index, grow_candidate] : growing_point.grow_candidates | ranges::views::enumerate)
+                {
+                    grow_candidate.capacity = evaluateGrowCandidate(grow_candidate, index, points_clouds, boundaries);
+                }
+            });
+    }
+
+    bool applyGrowing()
+    {
+        std::vector<Point3LL> new_shell;
+
+        for (auto [index, growing_point] : growable_points_ | ranges::views::enumerate)
+        {
+            bool point_is_contour = false;
+            for (const GrowingCandidate& grow_candidate : growing_point.grow_candidates)
+            {
+                switch (grow_candidate.capacity)
+                {
+                case GrowCapacity::CanGrow:
+                    new_shell.push_back(grow_candidate.position);
+                    break;
+
+                case GrowCapacity::BlockedBySimilar:
+                    // Point has grown inside or is too close to other shell points, just discard it
+                    break;
+
+                case GrowCapacity::BlockedByDifferent:
+                    // Point has reached an different points cloud, discard it and tag origin point as being part of the contour
+                    point_is_contour = true;
+                    break;
+
+                case GrowCapacity::Unknown:
+                    // This should never happen
+                    break;
+                }
+            }
+
+            if (point_is_contour)
+            {
+                contour_points_.push_back(grown_shells_.back().at(index));
+            }
+        }
+
+        const bool has_grown_shell = ! new_shell.empty();
+        grown_shells_.push_back(std::move(new_shell));
+
+        // Remove inner shells, we don't need them anymore
+        while (grown_shells_.size() > 2)
+        {
+            grown_shells_.pop_front();
+        }
+
+        return has_grown_shell;
+    }
+
+public:
+    static constexpr coord_t grow_radius = 500;
+    static constexpr coord_t grow_radius_squared = grow_radius * grow_radius;
+
+private:
+    const size_t extruder_nr_;
+    std::vector<GrowingPoint> growable_points_;
+    std::deque<std::vector<Point3LL>> grown_shells_;
+    std::vector<Point3LL> contour_points_;
+};
+
+void exportPointsClouds(const std::vector<GrowingPointsCloud>& points_clouds, const std::string& filename)
+{
+    PolygonMesh exported_mesh;
+    for (const GrowingPointsCloud& points_cloud : points_clouds)
+    {
+        for (const Point3LL& point : points_cloud.getShellPoints() | ranges::views::join)
+        {
+            exported_mesh.add_vertex(Point_3(point.x_, point.y_, point.z_));
+        }
+    }
+    exportMesh(exported_mesh, filename);
+}
+
+Point_2 getPixelCoordinates(const Point2F& uv_coordinates, const png::image<png::rgb_pixel>& image)
 {
     const uint32_t width = image.get_width();
     const uint32_t height = image.get_height();
-    return Point2F(
+    return Point_2(
         std::clamp(static_cast<uint32_t>(uv_coordinates.x_ * width), static_cast<uint32_t>(0), width - 1),
         std::clamp(static_cast<uint32_t>(height - uv_coordinates.y_ * height), static_cast<uint32_t>(0), height - 1));
 }
 
-#if 0
-Point3LL getSpaceCoordinates(const Point_2& pixel_coordinates, const Point2F triangle_coordinates[3], const Mesh& mesh, const MeshFace& face)
+Point_2 getPixelCoordinates(const Point_2& uv_coordinates, const png::image<png::rgb_pixel>& image)
+{
+    const uint32_t width = image.get_width();
+    const uint32_t height = image.get_height();
+    return Point_2(
+        std::clamp(static_cast<uint32_t>(uv_coordinates.x() * width), static_cast<uint32_t>(0), width - 1),
+        std::clamp(static_cast<uint32_t>(height - uv_coordinates.y() * height), static_cast<uint32_t>(0), height - 1));
+}
+
+#if 1
+Point3LL getSpaceCoordinates(const Point_2& pixel_coordinates, const Point_2 triangle_coordinates[3], const Mesh& mesh, const MeshFace& face)
 {
     // Calculate 3D space coordinates from pixel coordinates using barycentric coordinates
-    const Point2F p0 = triangle_coordinates[0];
-    const Point2F p1 = triangle_coordinates[1];
-    const Point2F p2 = triangle_coordinates[2];
+    const Point_2& p0 = triangle_coordinates[0];
+    const Point_2& p1 = triangle_coordinates[1];
+    const Point_2& p2 = triangle_coordinates[2];
 
     // Calculate barycentric coordinates
-    const float area = 0.5f * ((p1.x_ - p0.x_) * (p2.y_ - p0.y_) - (p2.x_ - p0.x_) * (p1.y_ - p0.y_));
-    const float u = 0.5f * ((p1.x_ - pixel_coordinates.x()) * (p2.y_ - pixel_coordinates.y()) - (p2.x_ - pixel_coordinates.x()) * (p1.y_ - pixel_coordinates.y())) / area;
-    const float v = 0.5f * ((pixel_coordinates.x() - p0.x_) * (p2.y_ - p0.y_) - (p2.x_ - p0.x_) * (pixel_coordinates.y() - p0.y_)) / area;
+    const float area = 0.5f * ((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
+    const float u = 0.5f * ((p1.x() - pixel_coordinates.x()) * (p2.y() - pixel_coordinates.y()) - (p2.x() - pixel_coordinates.x()) * (p1.y() - pixel_coordinates.y())) / area;
+    const float v = 0.5f * ((pixel_coordinates.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (pixel_coordinates.y() - p0.y())) / area;
     const float w = 1.0f - u - v;
 
     // Apply barycentric coordinates to get 3D position
@@ -133,6 +445,46 @@ std::optional<Point_3> getBarycentricCoordinates(const Point_3& point, const Poi
 
     return Point_3(u, v, w);
 }
+
+std::optional<Point_3> getBarycentricCoordinates(const Point_2& point, const Point_2& p0, const Point_2& p1, const Point_2& p2)
+{
+    // Calculate vectors from p0 to p1 and p0 to p2
+    const Kernel::Vector_2 v0(p1 - p0);
+    const Kernel::Vector_2 v1(p2 - p0);
+    const Kernel::Vector_2 v2(point - p0);
+
+    // Compute dot products
+    const double d00 = v0 * v0;
+    const double d01 = v0 * v1;
+    const double d11 = v1 * v1;
+    const double d20 = v2 * v0;
+    const double d21 = v2 * v1;
+
+    // Calculate denominator for barycentric coordinates
+    const double denom = d00 * d11 - d01 * d01;
+
+    // Check if triangle is degenerate
+    if (std::abs(denom) < 0.000001)
+    {
+        return std::nullopt;
+    }
+
+    // Calculate barycentric coordinates
+    const double v = (d11 * d20 - d01 * d21) / denom;
+    const double w = (d00 * d21 - d01 * d20) / denom;
+    const double u = 1.0 - v - w;
+
+    // Return as a Point_3 where x/y/z represent the barycentric coordinates u/v/w
+    return Point_3(u, v, w);
+}
+
+Point_2 getUVFromBarycentricCoordinates(const Point_3& barycentric_coordinates, const std::array<Point_2, 3>& face_uvs)
+{
+    return Point_2(
+        barycentric_coordinates.x() * face_uvs[0].x() + barycentric_coordinates.y() * face_uvs[1].x() + barycentric_coordinates.z() * face_uvs[2].x(),
+        barycentric_coordinates.x() * face_uvs[0].y() + barycentric_coordinates.y() * face_uvs[1].y() + barycentric_coordinates.z() * face_uvs[2].y());
+}
+
 #if 0
 void splitFaceToTexture(const Mesh& mesh, const MeshFace& face, const png::image<png::rgb_pixel>& image, Mesh& output_mesh)
 {
@@ -288,7 +640,7 @@ std::tuple<Point_3, Point_3, Point_3> getFaceVertices(const PolygonMesh& mesh, C
 
     return std::make_tuple(point_A, point_B, point_C);
 }
-
+#if 0
 void makeModifierMesh(const PolygonMesh& mesh, const AABB3D& bounding_box, const png::image<png::rgb_pixel>& image, PolygonMesh& output_mesh)
 {
     constexpr coord_t points_grid_resolution = 400;
@@ -400,6 +752,223 @@ void makeModifierMesh(const PolygonMesh& mesh, const AABB3D& bounding_box, const
     spdlog::info("Make mesh from points cloud");
     makeMeshFromPointsCloud(points_cloud, output_mesh, points_grid_resolution);
 }
+#endif
+std::vector<GrowingPointsCloud> makeInitialPointsCloudsFromTexture(const Mesh& mesh, const png::image<png::rgb_pixel>& image)
+{
+    std::vector<GrowingPointsCloud> points_clouds;
+
+    for (const MeshFace& face : mesh.faces_)
+    {
+        // First, convert UV coordinates of the 3 points to pixel coordinates on the image
+#warning Replace this by Triangle_2
+        Point_2 face_pixel_coordinates[3];
+        bool all_uv_coordinates = true;
+
+        for (size_t i = 0; i < 3 && all_uv_coordinates; ++i)
+        {
+            if (face.uv_coordinates_[i].has_value())
+            {
+                face_pixel_coordinates[i] = getPixelCoordinates(face.uv_coordinates_[i].value(), image);
+            }
+            else
+            {
+                all_uv_coordinates = false;
+            }
+        }
+
+        if (all_uv_coordinates)
+        {
+            // Now get the bounding box of the triangle on the image
+            Point2F min;
+            min.x_ = std::min({ face_pixel_coordinates[0].x(), face_pixel_coordinates[1].x(), face_pixel_coordinates[2].x() });
+            min.y_ = std::min({ face_pixel_coordinates[0].y(), face_pixel_coordinates[1].y(), face_pixel_coordinates[2].y() });
+
+            Point2F max;
+            max.x_ = std::max({ face_pixel_coordinates[0].x(), face_pixel_coordinates[1].x(), face_pixel_coordinates[2].x() });
+            max.y_ = std::max({ face_pixel_coordinates[0].y(), face_pixel_coordinates[1].y(), face_pixel_coordinates[2].y() });
+
+            const Point2LL min_pixel(min.x_, min.y_);
+            const Point2LL max_pixel(max.x_, max.y_);
+
+            for (coord_t x = min_pixel.X; x < max_pixel.X; ++x)
+            {
+                for (coord_t y = min_pixel.Y; y < max_pixel.Y; ++y)
+                {
+                    const Point_2 pixel_center(Point_2(x + 0.5, y + 0.5));
+                    const std::optional<Point_3> barycentric_coordinates
+                        = getBarycentricCoordinates(pixel_center, face_pixel_coordinates[0], face_pixel_coordinates[1], face_pixel_coordinates[2]);
+
+                    if (! barycentric_coordinates.has_value() || barycentric_coordinates.value().x() < 0 || barycentric_coordinates.value().y() < 0
+                        || barycentric_coordinates.value().z() < 0)
+                    {
+                        // Triangle is invalid, or point is outside the triangle
+                        continue;
+                    }
+
+                    const Point3LL pixel_3d = getSpaceCoordinates(pixel_center, face_pixel_coordinates, mesh, face);
+                    const png::rgb_pixel color = image.get_pixel(x, y);
+
+                    const size_t extruder_nr = color.red > 128 ? 0 : 1;
+                    auto iterator = ranges::find_if(
+                        points_clouds,
+                        [&extruder_nr](const GrowingPointsCloud& points_cloud)
+                        {
+                            return points_cloud.getExtruderNr() == extruder_nr;
+                        });
+                    if (iterator == points_clouds.end())
+                    {
+                        points_clouds.emplace_back(extruder_nr);
+                    }
+                    iterator = ranges::find_if(
+                        points_clouds,
+                        [&extruder_nr](const GrowingPointsCloud& points_cloud)
+                        {
+                            return points_cloud.getExtruderNr() == extruder_nr;
+                        });
+
+                    iterator->addInitialPoint(pixel_3d);
+                }
+            }
+        }
+    }
+
+    return points_clouds;
+}
+
+struct OrthonormalPlane
+{
+    Point_3 origin;
+    Vector_3 base1;
+    Vector_3 base2;
+
+    OrthonormalPlane(const Plane_3& plane)
+    {
+        origin = plane.point();
+        base1 = plane.base1();
+        base1 /= std::sqrt(base1.squared_length());
+        base2 = plane.base2();
+        base2 /= std::sqrt(base2.squared_length());
+    }
+};
+
+Point_2 toPlanCoordinates(const Point_3& point, const OrthonormalPlane& plane)
+{
+    const Vector_3 delta = point - plane.origin;
+    return Point_2(delta * plane.base1, delta * plane.base2);
+}
+
+Point_3 fromPlanCoordinates(const Point_2& point, const OrthonormalPlane& plane)
+{
+    return plane.origin + point.x() * plane.base1 + point.y() * plane.base2;
+}
+
+std::vector<GrowingPointsCloud> makeInitialPointsCloudsFromTexture2(const Mesh& mesh, const png::image<png::rgb_pixel>& image)
+{
+    std::vector<GrowingPointsCloud> points_clouds;
+
+    for (const MeshFace& face : mesh.faces_)
+    {
+        // First, convert UV coordinates of the 3 points to pixel coordinates on the image
+        std::array<Point_2, 3> face_uvs;
+        bool all_uv_coordinates = true;
+        for (size_t i = 0; i < 3 && all_uv_coordinates; ++i)
+        {
+            if (face.uv_coordinates_[i].has_value())
+            {
+                face_uvs[i] = Point_2(face.uv_coordinates_[i].value().x_, face.uv_coordinates_[i].value().y_);
+            }
+            else
+            {
+                all_uv_coordinates = false;
+            }
+        }
+
+        if (all_uv_coordinates)
+        {
+            // Now get the bounding box of the triangle on the supporting plane
+            const Point3LL& p0 = mesh.vertices_[face.vertex_index_[0]].p_;
+            const Point3LL& p1 = mesh.vertices_[face.vertex_index_[1]].p_;
+            const Point3LL& p2 = mesh.vertices_[face.vertex_index_[2]].p_;
+            Triangle_3 triangle(Point_3(p0.x_, p0.y_, p0.z_), Point_3(p1.x_, p1.y_, p1.z_), Point_3(p2.x_, p2.y_, p2.z_));
+            const OrthonormalPlane plane(triangle.supporting_plane());
+
+            Triangle_2 triangle_on_plane(toPlanCoordinates(triangle[0], plane), toPlanCoordinates(triangle[1], plane), toPlanCoordinates(triangle[2], plane));
+
+            CGAL::Bbox_2 bounding_box = triangle_on_plane.bbox();
+            bounding_box.dilate(-GrowingPointsCloud::grow_radius / 2);
+
+            constexpr double distance = 0.95 * GrowingPointsCloud::grow_radius;
+
+            for (double x = bounding_box.xmin(); x <= bounding_box.xmax(); x += distance)
+            {
+                for (double y = bounding_box.ymin(); y <= bounding_box.ymax(); y += distance)
+                {
+                    const Point_2 sampled_triangle_point(Point_2(x, y));
+                    const std::optional<Point_3> barycentric_coordinates
+                        = getBarycentricCoordinates(sampled_triangle_point, triangle_on_plane[0], triangle_on_plane[1], triangle_on_plane[2]);
+
+                    if (! barycentric_coordinates.has_value() || barycentric_coordinates.value().x() < 0 || barycentric_coordinates.value().y() < 0
+                        || barycentric_coordinates.value().z() < 0)
+                    {
+                        // Triangle is invalid, or point is outside the triangle
+                        continue;
+                    }
+
+                    const Point_2 uv_coords_at_point = getUVFromBarycentricCoordinates(barycentric_coordinates.value(), face_uvs);
+                    const Point_2 pixel_coordinates = getPixelCoordinates(uv_coords_at_point, image);
+
+                    // Get the color at this position
+                    const png::rgb_pixel color = image.get_pixel(pixel_coordinates.x(), pixel_coordinates.y());
+
+                    const size_t extruder_nr = color.red > 128 ? 0 : 1;
+                    auto iterator = ranges::find_if(
+                        points_clouds,
+                        [&extruder_nr](const GrowingPointsCloud& points_cloud)
+                        {
+                            return points_cloud.getExtruderNr() == extruder_nr;
+                        });
+                    if (iterator == points_clouds.end())
+                    {
+                        points_clouds.emplace_back(extruder_nr);
+                    }
+                    iterator = ranges::find_if(
+                        points_clouds,
+                        [&extruder_nr](const GrowingPointsCloud& points_cloud)
+                        {
+                            return points_cloud.getExtruderNr() == extruder_nr;
+                        });
+
+                    const Point_3 point_3d = fromPlanCoordinates(sampled_triangle_point, plane);
+                    iterator->addInitialPoint(Point3LL(point_3d.x(), point_3d.y(), point_3d.z()));
+                }
+            }
+        }
+    }
+
+    return points_clouds;
+}
+
+void makeModifierMeshWatershed(const Mesh& mesh, const png::image<png::rgb_pixel>& image, PolygonMesh& output_mesh)
+{
+    std::vector<GrowingPointsCloud> points_clouds = makeInitialPointsCloudsFromTexture2(mesh, image);
+    exportPointsClouds(points_clouds, "initial_points_cloud");
+
+    AABB3D expanded_bounding_box = mesh.getAABB();
+    expanded_bounding_box.expand(GrowingPointsCloud::grow_radius * 2);
+
+    GrowingPointsCloud::doWatershed(points_clouds, expanded_bounding_box);
+
+
+    const std::vector<Point3LL>& contour = points_clouds[1].getContour();
+    std::vector<Point_3> converted_contour;
+    for (const Point3LL& point : contour)
+    {
+        converted_contour.emplace_back(point.x_, point.y_, point.z_);
+    }
+
+    exportPointsCloud(contour, "final_contour");
+    makeMeshFromPointsCloud(converted_contour, output_mesh, GrowingPointsCloud::grow_radius);
+}
 
 void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh)
 {
@@ -423,7 +992,7 @@ void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh)
 
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 {
-    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/dino-texture.png");
+    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture.png");
 
     // Copy mesh but clear faces, so that we keep the settings data
     // Mesh texture_split_mesh = mesh;
@@ -433,6 +1002,7 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
     //     splitFaceToTexture(mesh, face, image, texture_split_mesh);
     // }
     // mesh = texture_split_mesh;
+    // bla
 
     PolygonMesh converted_mesh;
 
@@ -471,7 +1041,8 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
     }
 
     PolygonMesh output_mesh;
-    makeModifierMesh(converted_mesh, mesh.getAABB(), image, output_mesh);
+    // makeModifierMesh(converted_mesh, mesh.getAABB(), image, output_mesh);
+    makeModifierMeshWatershed(mesh, image, output_mesh);
     registerModifiedMesh(meshgroup, output_mesh);
 
     exportMesh(converted_mesh, "converted_mesh");

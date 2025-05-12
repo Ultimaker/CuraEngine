@@ -104,6 +104,8 @@ struct AABB3D
      * \return this object (which has changed)
      */
     AABB3D expandXY(coord_t outset);
+
+    bool is_inside(const Point3LL& p) const;
 };
 
 } // namespace cura
