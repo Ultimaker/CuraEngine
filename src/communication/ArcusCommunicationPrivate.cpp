@@ -134,6 +134,7 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         //     mesh.addFace(verts[0], verts[1], verts[2]);
         // }
         loadMeshOBJ(&mesh, "/home/erwan/test/CURA-12449_handling-painted-models/cube.obj", matrix);
+        // loadMeshOBJ(&mesh, "/home/erwan/test/CURA-12449_handling-painted-models/dino-textured.obj", matrix);
 
         // Matrix4x3D transform;
         // transform = transform.scale(0.5, Point3LL());
