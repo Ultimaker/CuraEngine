@@ -12,8 +12,8 @@
 #include <CGAL/alpha_wrap_3.h>
 #include <CGAL/number_type_basic.h>
 
+#include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
-#include <boost/unordered_map.hpp>
 #include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/max_element.hpp>
 #include <range/v3/algorithm/remove.hpp>
@@ -353,7 +353,7 @@ public:
 
         max_coordinate_ = (1 << max_depth_) - 1;
 
-        nodes_[toKey(LocalCoordinates(0, 0, 0), 0)] = OctreeNode::ExtruderOccupation::Unknown;
+        // nodes_[toKey(LocalCoordinates(0, 0, 0), 0)] = OctreeNode::ExtruderOccupation::Unknown;
     }
 
     const Point_3& getDefinition() const
@@ -376,36 +376,9 @@ public:
         setOccupation(toLocalCoordinates(position), occupation);
     }
 
-    bool setOccupation(const LocalCoordinates& position, const OctreeNode::ExtruderOccupation& occupation)
+    void setOccupation(const LocalCoordinates& position, const OctreeNode::ExtruderOccupation& occupation)
     {
-        auto [depth, iterator] = getNode(position);
-        if (iterator->second != occupation)
-        {
-            if (depth == max_depth_)
-            {
-                // This is already the leaf node, just change its value
-                iterator->second = occupation;
-            }
-            else
-            {
-                // We don't have a leaf node for this voxel yet, create it
-                nodes_[toKey(position)] = occupation;
-            }
-
-            // if (! children_split)
-            // {
-            //     // We have just changed the occupation value of an existing node, so try and check whether the tree can be compressed now
-            //     OctreeNode* node_ptr = node.get();
-            //     do
-            //     {
-            //         node_ptr = node_ptr->getParent();
-            //     } while (node_ptr && node_ptr->compressIfPossible());
-            // }
-
-            return true;
-        }
-
-        return false;
+        nodes_.insert_or_assign(toKey(position), occupation);
     }
 
     uint8_t getExtruderNr(const LocalCoordinates& local_position) const
@@ -415,7 +388,14 @@ public:
 
     OctreeNode::ExtruderOccupation getOccupation(const LocalCoordinates& local_position) const
     {
-        return std::get<1>(getNode(local_position))->second;
+        OctreeNode::ExtruderOccupation result = OctreeNode::ExtruderOccupation::Unknown;
+        nodes_.visit(
+            toKey(local_position),
+            [&result](const auto& occupation)
+            {
+                result = occupation.second;
+            });
+        return result;
     }
 
     OctreeNode::ExtruderOccupation getOccupation(const Point_3& position) const
@@ -423,18 +403,21 @@ public:
         return getOccupation(toLocalCoordinates(position));
     }
 
+    template<class... Args>
+    void setOccupationIfUnknown(const LocalCoordinates& local_position, Args&&... args)
+    {
+        nodes_.try_emplace(toKey(local_position), std::forward<Args>(args)...);
+    }
+
     std::vector<LocalCoordinates> getFilledVoxels() const
     {
         std::vector<LocalCoordinates> filled_voxels;
 
-        for (auto iterator = nodes_.begin(); iterator != nodes_.end(); ++iterator)
-        {
-            const auto [depth, coordinates] = toCoordinates(iterator->first);
-            if (depth == max_depth_)
+        nodes_.visit_all(
+            [&filled_voxels](const auto& voxel)
             {
-                filled_voxels.push_back(coordinates);
-            }
-        }
+                filled_voxels.push_back(toCoordinates(voxel.first));
+            });
 
 #if 0
         std::function<void(const std::shared_ptr<OctreeNode>&, LocalCoordinates, int)> collect_filled_voxels;
@@ -581,24 +564,21 @@ public:
     static constexpr double max_definition_ = 200;
 
 private:
-    KeyType toKey(const LocalCoordinates& coordinate, const uint8_t depth) const
+    // KeyType toKey(const LocalCoordinates& coordinate, const uint8_t depth) const
+    // {
+    //     const uint8_t depth_delta = max_depth_ - depth;
+    //     return (static_cast<KeyType>(coordinate.x()) >> depth_delta) | ((static_cast<KeyType>(coordinate.y()) >> depth_delta) << 16)
+    //          | ((static_cast<KeyType>(coordinate.z()) >> depth_delta) << 32) | (static_cast<KeyType>(depth) << 48);
+    // }
+
+    static KeyType toKey(const LocalCoordinates& coordinate)
     {
-        const uint8_t depth_delta = max_depth_ - depth;
-        return (static_cast<KeyType>(coordinate.x()) >> depth_delta) | ((static_cast<KeyType>(coordinate.y()) >> depth_delta) << 16)
-             | ((static_cast<KeyType>(coordinate.z()) >> depth_delta) << 32) | (static_cast<KeyType>(depth) << 48);
+        return static_cast<KeyType>(coordinate.x()) | (static_cast<KeyType>(coordinate.y()) << 16) | (static_cast<KeyType>(coordinate.z()) << 32);
     }
 
-    KeyType toKey(const LocalCoordinates& coordinate) const
+    static LocalCoordinates toCoordinates(const uint64_t key)
     {
-        return static_cast<KeyType>(coordinate.x()) | (static_cast<KeyType>(coordinate.y()) << 16) | (static_cast<KeyType>(coordinate.z()) << 32)
-             | (static_cast<KeyType>(max_depth_) << 48);
-    }
-
-    std::tuple<DepthType, LocalCoordinates> toCoordinates(const uint64_t key) const
-    {
-        const uint8_t depth = key >> 48;
-        const uint8_t depth_delta = max_depth_ - depth;
-        return std::make_tuple(depth, LocalCoordinates(key << depth_delta, (key >> 16) << depth_delta, (key >> 32) << depth_delta));
+        return LocalCoordinates(key, key >> 16, key >> 32);
     }
 
     LocalCoordinates toLocalCoordinates(const Point_3& position) const
@@ -607,44 +587,24 @@ private:
         return LocalCoordinates(position_in_space.x() / definition_.x(), position_in_space.y() / definition_.y(), position_in_space.z() / definition_.z());
     }
 
-    OctreeNode::Ptr findSubNode(const OctreeNode::Ptr& parent, const uint8_t parent_depth, const LocalCoordinates& local_position) const
-    {
-        // Calculate the child index based on the current depth and position
-        uint8_t child_index = 0;
-        const uint8_t bit = max_depth_ - parent_depth - 1;
-        child_index |= (local_position.x() >> bit) & 1;
-        child_index |= ((local_position.y() >> bit) & 1) << 1;
-        child_index |= ((local_position.z() >> bit) & 1) << 2;
-
-        return parent->getChild(child_index);
-    }
-
-    std::tuple<DepthType, boost::unordered_flat_map<KeyType, OctreeNode::ExtruderOccupation>::iterator> getNode(const LocalCoordinates& local_position)
-    {
-        boost::unordered_flat_map<KeyType, OctreeNode::ExtruderOccupation>::iterator iterator;
-        DepthType actual_depth = max_depth_ + 1;
-        do
-        {
-            actual_depth--;
-            iterator = nodes_.find(toKey(local_position, actual_depth));
-        } while (iterator == nodes_.end() && actual_depth > 0);
-
-        return std::make_tuple(actual_depth, iterator);
-    }
-
-    std::tuple<DepthType, boost::unordered_flat_map<KeyType, OctreeNode::ExtruderOccupation>::const_iterator> getNode(const LocalCoordinates& local_position) const
-    {
-        // Reuse the non-const version and cast the iterator to const_iterator
-        auto [depth, it] = const_cast<VoxelOctree*>(this)->getNode(local_position);
-        return std::make_tuple(depth, static_cast<boost::unordered_flat_map<KeyType, OctreeNode::ExtruderOccupation>::const_iterator>(it));
-    }
+    // OctreeNode::Ptr findSubNode(const OctreeNode::Ptr& parent, const uint8_t parent_depth, const LocalCoordinates& local_position) const
+    // {
+    //     // Calculate the child index based on the current depth and position
+    //     uint8_t child_index = 0;
+    //     const uint8_t bit = max_depth_ - parent_depth - 1;
+    //     child_index |= (local_position.x() >> bit) & 1;
+    //     child_index |= ((local_position.y() >> bit) & 1) << 1;
+    //     child_index |= ((local_position.z() >> bit) & 1) << 2;
+    //
+    //     return parent->getChild(child_index);
+    // }
 
 private:
     DepthType max_depth_{ 0 };
     Point_3 definition_;
     Vector_3 origin_;
     uint32_t max_coordinate_;
-    boost::unordered_flat_map<KeyType, OctreeNode::ExtruderOccupation> nodes_;
+    boost::concurrent_flat_map<KeyType, OctreeNode::ExtruderOccupation> nodes_;
 };
 
 void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const png::image<png::rgb_pixel>& image, VoxelOctree& voxel_space)
@@ -754,47 +714,34 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
     {
         spdlog::info("Voting for {} voxels", filled_voxels.size());
 
-        std::mutex mutex;
-        std::map<VoxelOctree::LocalCoordinates, std::map<OctreeNode::ExtruderOccupation, uint8_t>> voxels_votes;
+        boost::concurrent_flat_map<VoxelOctree::LocalCoordinates, std::map<OctreeNode::ExtruderOccupation, uint8_t>> voxels_votes;
 
         cura::parallel_for(
             filled_voxels,
             [&](auto iterator)
             {
                 const VoxelOctree::LocalCoordinates& filled_voxel = *iterator;
-                mutex.lock();
                 const OctreeNode::ExtruderOccupation actual_filled_occupation = voxel_space.getOccupation(filled_voxel);
-                mutex.unlock();
                 std::map<VoxelOctree::LocalCoordinates, std::map<uint8_t, uint8_t>> voxels_votes_local;
 
                 for (const VoxelOctree::LocalCoordinates& voxel_around : voxel_space.getVoxelsAround(filled_voxel))
                 {
-                    mutex.lock();
-                    OctreeNode::ExtruderOccupation occupation = voxel_space.getOccupation(voxel_around);
-                    mutex.unlock();
-                    if (occupation == OctreeNode::ExtruderOccupation::Unknown)
-                    {
-                        const Point_3 global_voxel_point = voxel_space.toGlobalCoordinates(voxel_around);
-                        if (inside_mesh(global_voxel_point) == CGAL::ON_UNBOUNDED_SIDE)
-                        {
-                            occupation = OctreeNode::ExtruderOccupation::OutsideMesh;
-                        }
-                        else
-                        {
-                            occupation = OctreeNode::ExtruderOccupation::InsideMesh;
-                        }
-
-                        mutex.lock();
-                        voxel_space.setOccupation(voxel_around, occupation);
-                        mutex.unlock();
-                    }
+                    voxel_space.setOccupationIfUnknown(
+                        voxel_around,
+                        inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) == CGAL::ON_UNBOUNDED_SIDE ? OctreeNode::ExtruderOccupation::OutsideMesh
+                                                                                                              : OctreeNode::ExtruderOccupation::InsideMesh);
+                    const OctreeNode::ExtruderOccupation occupation = voxel_space.getOccupation(voxel_around);
 
                     if (occupation == OctreeNode::ExtruderOccupation::InsideMesh)
                     {
                         // Voxel is not occupied yet, so vote to fill it
-                        mutex.lock();
-                        ++voxels_votes[voxel_around][actual_filled_occupation];
-                        mutex.unlock();
+                        voxels_votes.emplace_or_visit(
+                            voxel_around,
+                            std::map<OctreeNode::ExtruderOccupation, uint8_t>{ { actual_filled_occupation, 1 } },
+                            [&actual_filled_occupation](auto& voxel_votes)
+                            {
+                                ++voxel_votes.second[actual_filled_occupation];
+                            });
                     }
                 }
             });
@@ -803,20 +750,21 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
 
         std::vector<VoxelOctree::LocalCoordinates> new_filled_voxels;
         new_filled_voxels.reserve(voxels_votes.size());
-        for (auto iterator = voxels_votes.begin(); iterator != voxels_votes.end(); ++iterator)
-        {
-            const auto max_vote = ranges::max_element(
-                iterator->second,
-                [](const auto& vote_a, const auto& vote_b)
-                {
-                    return vote_a.second < vote_b.second;
-                });
+        voxels_votes.visit_all(
+            [&voxel_space, &new_filled_voxels](const auto& voxel_votes)
             {
-            }
+                const auto max_vote = ranges::max_element(
+                    voxel_votes.second,
+                    [](const auto& vote_a, const auto& vote_b)
+                    {
+                        return vote_a.second < vote_b.second;
+                    });
+                {
+                }
 
-            voxel_space.setOccupation(iterator->first, max_vote->first);
-            new_filled_voxels.push_back(iterator->first);
-        }
+                voxel_space.setOccupation(voxel_votes.first, max_vote->first);
+                new_filled_voxels.push_back(voxel_votes.first);
+            });
 
         filled_voxels = std::move(new_filled_voxels);
     }
@@ -839,8 +787,8 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
 
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 {
-    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture.png");
-    // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture-high.png");
+    // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture.png");
+    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture-high.png");
     // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/dino-texture.png");
 
     // Copy mesh but clear faces, so that we keep the settings data
