@@ -332,7 +332,41 @@ private:
 class VoxelOctree
 {
 public:
-    using LocalCoordinates = Point_3U16;
+    struct SimplePoint_3U16
+    {
+        uint16_t x;
+        uint16_t y;
+        uint16_t z;
+    };
+
+    union LocalCoordinates
+    {
+        uint64_t key{ 0 };
+        SimplePoint_3U16 position;
+
+        LocalCoordinates()
+        {
+        }
+
+        LocalCoordinates(uint16_t x, uint16_t y, uint16_t z)
+            : position{ x, y, z }
+        {
+        }
+
+        bool operator==(const LocalCoordinates& other) const
+        {
+            return key == other.key;
+        }
+        bool operator!=(const LocalCoordinates& other) const
+        {
+            return key != other.key;
+        }
+        bool operator<(const LocalCoordinates& other) const
+        {
+            return key < other.key;
+        }
+    };
+
     using KeyType = uint64_t;
     using DepthType = uint8_t;
 
@@ -352,8 +386,6 @@ public:
         } while (max_definition > max_definition_);
 
         max_coordinate_ = (1 << max_depth_) - 1;
-
-        // nodes_[toKey(LocalCoordinates(0, 0, 0), 0)] = OctreeNode::ExtruderOccupation::Unknown;
     }
 
     const Point_3& getDefinition() const
@@ -363,7 +395,7 @@ public:
 
     Point_3 toGlobalCoordinates(const LocalCoordinates& position) const
     {
-        return Point_3(position.x() * definition_.x(), position.y() * definition_.y(), position.z() * definition_.z()) + origin_;
+        return Point_3(position.position.x * definition_.x(), position.position.y * definition_.y(), position.position.z * definition_.z()) + origin_;
     }
 
     void setExtruderNr(const Point_3& position, const size_t extruder_nr)
@@ -378,7 +410,7 @@ public:
 
     void setOccupation(const LocalCoordinates& position, const OctreeNode::ExtruderOccupation& occupation)
     {
-        nodes_.insert_or_assign(toKey(position), occupation);
+        nodes_.insert_or_assign(position, occupation);
     }
 
     uint8_t getExtruderNr(const LocalCoordinates& local_position) const
@@ -386,11 +418,16 @@ public:
         return static_cast<uint8_t>(getOccupation(local_position)) - static_cast<uint8_t>(OctreeNode::ExtruderOccupation::Occupied);
     }
 
+    bool isFilled(const LocalCoordinates& local_position) const
+    {
+        return nodes_.contains(local_position);
+    }
+
     OctreeNode::ExtruderOccupation getOccupation(const LocalCoordinates& local_position) const
     {
         OctreeNode::ExtruderOccupation result = OctreeNode::ExtruderOccupation::Unknown;
         nodes_.visit(
-            toKey(local_position),
+            local_position,
             [&result](const auto& occupation)
             {
                 result = occupation.second;
@@ -404,9 +441,9 @@ public:
     }
 
     template<class... Args>
-    void setOccupationIfUnknown(const LocalCoordinates& local_position, Args&&... args)
+    void setOccupationIfUnknown(const LocalCoordinates& position, Args&&... args)
     {
-        nodes_.try_emplace(toKey(local_position), std::forward<Args>(args)...);
+        nodes_.try_emplace(position, std::forward<Args>(args)...);
     }
 
     std::vector<LocalCoordinates> getFilledVoxels() const
@@ -416,7 +453,7 @@ public:
         nodes_.visit_all(
             [&filled_voxels](const auto& voxel)
             {
-                filled_voxels.push_back(toCoordinates(voxel.first));
+                filled_voxels.push_back(voxel.first);
             });
 
 #if 0
@@ -485,13 +522,13 @@ public:
 
     std::vector<LocalCoordinates> getVoxelsAround(const LocalCoordinates& point) const
     {
+        const SimplePoint_3U16& position = point.position;
         std::vector<LocalCoordinates> voxels_around;
-#if 1
         voxels_around.reserve(3 * 3 * 3 - 1);
 
         for (const int8_t delta_x : { -1, 0, 1 })
         {
-            const int64_t pos_x = point.x() + delta_x;
+            const int64_t pos_x = position.x + delta_x;
             if (pos_x < 0 || pos_x > max_coordinate_)
             {
                 continue;
@@ -499,7 +536,7 @@ public:
 
             for (const int8_t delta_y : { -1, 0, 1 })
             {
-                const int64_t pos_y = point.y() + delta_y;
+                const int64_t pos_y = position.y + delta_y;
                 if (pos_y < 0 || pos_y > max_coordinate_)
                 {
                     continue;
@@ -507,7 +544,7 @@ public:
 
                 for (const int8_t delta_z : { -1, 0, 1 })
                 {
-                    const int64_t pos_z = point.z() + delta_z;
+                    const int64_t pos_z = position.z + delta_z;
                     if (pos_z < 0 || pos_z > max_coordinate_)
                     {
                         continue;
@@ -515,70 +552,13 @@ public:
 
                     if (delta_x || delta_y || delta_z)
                     {
-                        voxels_around.emplace_back(pos_x, pos_y, pos_z);
+                        voxels_around.emplace_back(LocalCoordinates(pos_x, pos_y, pos_z));
                     }
                 }
             }
         }
-#else
-        voxels_around.reserve(2 * 3);
-
-        for (const int8_t delta_x : { -1, 1 })
-        {
-            const int64_t pos_x = point.x() + delta_x;
-            if (pos_x < 0 || pos_x > max_coordinate_)
-            {
-                continue;
-            }
-
-            voxels_around.emplace_back(pos_x, point.y(), point.z());
-        }
-
-        for (const int8_t delta_y : { -1, 1 })
-        {
-            const int64_t pos_y = point.y() + delta_y;
-            if (pos_y < 0 || pos_y > max_coordinate_)
-            {
-                continue;
-            }
-
-            voxels_around.emplace_back(point.x(), pos_y, point.z());
-        }
-
-        for (const int8_t delta_z : { -1, 1 })
-        {
-            const int64_t pos_z = point.z() + delta_z;
-            if (pos_z < 0 || pos_z > max_coordinate_)
-            {
-                continue;
-            }
-
-            voxels_around.emplace_back(point.x(), point.y(), pos_z);
-        }
-#endif
 
         return voxels_around;
-    }
-
-public:
-    static constexpr double max_definition_ = 200;
-
-private:
-    // KeyType toKey(const LocalCoordinates& coordinate, const uint8_t depth) const
-    // {
-    //     const uint8_t depth_delta = max_depth_ - depth;
-    //     return (static_cast<KeyType>(coordinate.x()) >> depth_delta) | ((static_cast<KeyType>(coordinate.y()) >> depth_delta) << 16)
-    //          | ((static_cast<KeyType>(coordinate.z()) >> depth_delta) << 32) | (static_cast<KeyType>(depth) << 48);
-    // }
-
-    static KeyType toKey(const LocalCoordinates& coordinate)
-    {
-        return static_cast<KeyType>(coordinate.x()) | (static_cast<KeyType>(coordinate.y()) << 16) | (static_cast<KeyType>(coordinate.z()) << 32);
-    }
-
-    static LocalCoordinates toCoordinates(const uint64_t key)
-    {
-        return LocalCoordinates(key, key >> 16, key >> 32);
     }
 
     LocalCoordinates toLocalCoordinates(const Point_3& position) const
@@ -587,24 +567,15 @@ private:
         return LocalCoordinates(position_in_space.x() / definition_.x(), position_in_space.y() / definition_.y(), position_in_space.z() / definition_.z());
     }
 
-    // OctreeNode::Ptr findSubNode(const OctreeNode::Ptr& parent, const uint8_t parent_depth, const LocalCoordinates& local_position) const
-    // {
-    //     // Calculate the child index based on the current depth and position
-    //     uint8_t child_index = 0;
-    //     const uint8_t bit = max_depth_ - parent_depth - 1;
-    //     child_index |= (local_position.x() >> bit) & 1;
-    //     child_index |= ((local_position.y() >> bit) & 1) << 1;
-    //     child_index |= ((local_position.z() >> bit) & 1) << 2;
-    //
-    //     return parent->getChild(child_index);
-    // }
+public:
+    static constexpr double max_definition_ = 200;
 
 private:
     DepthType max_depth_{ 0 };
     Point_3 definition_;
     Vector_3 origin_;
     uint32_t max_coordinate_;
-    boost::concurrent_flat_map<KeyType, OctreeNode::ExtruderOccupation> nodes_;
+    boost::concurrent_flat_map<LocalCoordinates, OctreeNode::ExtruderOccupation> nodes_;
 };
 
 void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const png::image<png::rgb_pixel>& image, VoxelOctree& voxel_space)
@@ -679,6 +650,11 @@ void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh)
     meshgroup->meshes.push_back(modifier_mesh);
 }
 
+std::size_t hash_value(VoxelOctree::LocalCoordinates const& position)
+{
+    return boost::hash<uint64_t>()(position.key);
+}
+
 void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::rgb_pixel>& image, PolygonMesh& output_mesh)
 {
     spdlog::info("Fill original voxels based on texture data");
@@ -709,6 +685,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
     exportMesh(cleaned_mesh, "cleaned_mesh");
 
     CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(cleaned_mesh);
+    bool check_inside = true;
 
     while (! filled_voxels.empty())
     {
@@ -716,23 +693,39 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
 
         boost::concurrent_flat_map<VoxelOctree::LocalCoordinates, std::map<OctreeNode::ExtruderOccupation, uint8_t>> voxels_votes;
 
+        std::atomic_bool keep_checking_inside(false);
+
         cura::parallel_for(
             filled_voxels,
             [&](auto iterator)
             {
                 const VoxelOctree::LocalCoordinates& filled_voxel = *iterator;
                 const OctreeNode::ExtruderOccupation actual_filled_occupation = voxel_space.getOccupation(filled_voxel);
-                std::map<VoxelOctree::LocalCoordinates, std::map<uint8_t, uint8_t>> voxels_votes_local;
 
                 for (const VoxelOctree::LocalCoordinates& voxel_around : voxel_space.getVoxelsAround(filled_voxel))
                 {
-                    voxel_space.setOccupationIfUnknown(
-                        voxel_around,
-                        inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) == CGAL::ON_UNBOUNDED_SIDE ? OctreeNode::ExtruderOccupation::OutsideMesh
-                                                                                                              : OctreeNode::ExtruderOccupation::InsideMesh);
-                    const OctreeNode::ExtruderOccupation occupation = voxel_space.getOccupation(voxel_around);
+                    bool vote_for_voxel;
+                    if (check_inside)
+                    {
+                        voxel_space.setOccupationIfUnknown(
+                            voxel_around,
+                            inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) != CGAL::ON_UNBOUNDED_SIDE ? OctreeNode::ExtruderOccupation::InsideMesh
+                                                                                                                  : OctreeNode::ExtruderOccupation::OutsideMesh);
+                        const OctreeNode::ExtruderOccupation occupation = voxel_space.getOccupation(voxel_around);
+                        vote_for_voxel = (occupation == OctreeNode::ExtruderOccupation::InsideMesh);
+                        if (occupation == OctreeNode::ExtruderOccupation::OutsideMesh)
+                        {
+                            // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
+                            // is complete and we are only growing inside, thus we can skip checking for insideness
+                            keep_checking_inside.store(true);
+                        }
+                    }
+                    else
+                    {
+                        vote_for_voxel = ! voxel_space.isFilled(voxel_around);
+                    }
 
-                    if (occupation == OctreeNode::ExtruderOccupation::InsideMesh)
+                    if (vote_for_voxel)
                     {
                         // Voxel is not occupied yet, so vote to fill it
                         voxels_votes.emplace_or_visit(
@@ -745,6 +738,12 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
                     }
                 }
             });
+
+        if (check_inside && ! keep_checking_inside.load())
+        {
+            spdlog::info("Stop checking for voxels insideness");
+            check_inside = false;
+        }
 
         spdlog::info("Apply growing with {} voted voxels", voxels_votes.size());
 
@@ -788,8 +787,8 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 {
     // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture.png");
-    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture-high.png");
-    // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/dino-texture.png");
+    // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture-high.png");
+    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/dino-texture.png");
 
     // Copy mesh but clear faces, so that we keep the settings data
     // Mesh texture_split_mesh = mesh;
