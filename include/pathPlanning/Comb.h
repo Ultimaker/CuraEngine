@@ -177,9 +177,16 @@ private:
      * \param inside_loc_to_line[in] A SparseGrid mapping locations to line segments of \p polygons
      * \param dest_point[in,out] The point to move
      * \param start_inside_poly[out] The polygon in which the point has been moved
+     * \param max_move_inside_distance_squared[in] A specific maximum tolerated (squared) distance to move inside the boundaries, or nullopt to use the global one
      * \return Whether we have moved the point inside
      */
-    bool moveInside(Shape& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& start_inside_poly);
+    bool moveInside(
+        Shape& boundary_inside,
+        bool is_inside,
+        LocToLineGrid* inside_loc_to_line,
+        Point2LL& dest_point,
+        size_t& start_inside_poly,
+        const std::optional<coord_t>& max_move_inside_distance_squared = std::nullopt);
 
     void moveCombPathInside(Shape& boundary_inside, Shape& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
 
