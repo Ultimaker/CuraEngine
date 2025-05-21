@@ -130,6 +130,9 @@ private:
     const coord_t offset_from_outlines_; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     const coord_t
         max_moveInside_distance2_; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    const coord_t max_move_inside_distance_enlarged2_; //!< Enlarged distance for moving points inside, useful when checking for points that are likely to be close to the limit and
+                                                       //!< should be accepted
+    static constexpr coord_t max_move_inside_enlarge_distance_ = 250; //!< Distance to enlarge the move_inside distance with for specific cases with on-border issues
     const coord_t offset_from_inside_to_outside_; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
     const coord_t max_crossing_dist2_; //!< The maximal distance by which to cross the in_between area between inside and outside
     static const coord_t max_moveOutside_distance2_ = std::numeric_limits<coord_t>::max(); //!< Any point which is not inside should be considered outside.

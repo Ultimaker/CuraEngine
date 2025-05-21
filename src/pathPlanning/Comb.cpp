@@ -71,6 +71,7 @@ Comb::Comb(
     , travel_avoid_distance_(travel_avoid_distance)
     , offset_from_outlines_(comb_boundary_offset) // between second wall and infill / other walls
     , max_moveInside_distance2_(offset_from_outlines_ * offset_from_outlines_)
+    , max_move_inside_distance_enlarged2_(std::pow(offset_from_outlines_ + max_move_inside_enlarge_distance_, 2))
     , offset_from_inside_to_outside_(offset_from_outlines_ + travel_avoid_distance)
     , max_crossing_dist2_(
           offset_from_inside_to_outside_ * offset_from_inside_to_outside_
@@ -138,14 +139,13 @@ bool Comb::calc(
 
     // Move start and end point inside the optimal comb boundary
     // Give more tolerancy when calculating move inside positions, because the target points in this case will be on the borders
-    const coord_t max_move_inside_distance_enlarged = max_moveInside_distance2_ * 1.05;
     size_t start_inside_poly_optimal = NO_INDEX;
     const bool start_inside_optimal
-        = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly_optimal, max_move_inside_distance_enlarged);
+        = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly_optimal, max_move_inside_distance_enlarged2_);
 
     size_t end_inside_poly_optimal = NO_INDEX;
     const bool end_inside_optimal
-        = moveInside(boundary_inside_optimal_, _end_inside, inside_loc_to_line_optimal_.get(), end_point, end_inside_poly_optimal, max_move_inside_distance_enlarged);
+        = moveInside(boundary_inside_optimal_, _end_inside, inside_loc_to_line_optimal_.get(), end_point, end_inside_poly_optimal, max_move_inside_distance_enlarged2_);
 
     size_t start_part_boundary_poly_idx_optimal{};
     size_t end_part_boundary_poly_idx_optimal{};
