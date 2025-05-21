@@ -69,7 +69,6 @@ public:
     const PathConfigStorage configs_storage_; //!< The line configs for this layer for each feature type
     const coord_t z_;
     coord_t final_travel_z_;
-    bool mode_skip_agressive_merge_; //!< Whether to give every new path the 'skip_agressive_merge_hint' property (see GCodePath); default is false.
 
 private:
     // Indicates how coasting should be processed on the given path.
@@ -851,7 +850,7 @@ private:
      *  @param position The start position (which is not included in the path points)
      *  @param extrude_speed The actual used extrusion speed
      */
-    void sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed);
+    void sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed, const std::optional<coord_t>& line_thickness = std::nullopt);
 
     /*!
      *  @brief Write a travel move and properly apply the various Z offsets
