@@ -4,6 +4,7 @@
 #ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
 #define SKELETAL_TRAPEZOIDATION_EDGE_H
 
+#include <cassert>
 #include <list>
 #include <memory> // smart pointers
 #include <vector>

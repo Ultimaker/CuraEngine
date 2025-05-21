@@ -374,7 +374,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_unretract_before_last_travel_move(path.unretract_before_last_travel_move);
         gcode_path->set_perform_z_hop(path.perform_z_hop);
         gcode_path->set_perform_prime(path.perform_prime);
-        gcode_path->set_skip_agressive_merge_hint(path.skip_agressive_merge_hint);
+        gcode_path->set_skip_agressive_merge_hint(false); // FIXME: Not used anymore.
         gcode_path->set_done(path.done);
         gcode_path->set_fan_speed(path.getFanSpeed());
         gcode_path->set_mesh_name(path.mesh ? path.mesh->mesh_name : "");
@@ -492,7 +492,6 @@ gcode_paths_modify_response::native_value_type
             .unretract_before_last_travel_move = gcode_path_msg.unretract_before_last_travel_move(),
             .perform_z_hop = gcode_path_msg.perform_z_hop(),
             .perform_prime = gcode_path_msg.perform_prime(),
-            .skip_agressive_merge_hint = gcode_path_msg.skip_agressive_merge_hint(),
             .done = gcode_path_msg.done(),
             .fan_speed = gcode_path_msg.fan_speed(),
         };

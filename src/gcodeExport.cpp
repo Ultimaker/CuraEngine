@@ -875,13 +875,19 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
         wait_start_extruder = true;
         break;
     default:
-        if (used_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP)
+        if (used_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP || ! extruders_used[0])
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
             writeLine(tmp.str().c_str());
         }
         break;
+    }
+
+    if (scene.settings.get<size_t>("build_volume_fan_nr") != 0)
+    {
+        const auto fan_speed = scene.settings.get<Ratio>("build_volume_fan_speed_0") * 100.0;
+        writeSpecificFanCommand(fan_speed, scene.settings.get<size_t>("build_volume_fan_nr"));
     }
 
     processInitialLayerBedTemperature();

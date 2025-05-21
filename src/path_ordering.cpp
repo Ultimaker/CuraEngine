@@ -29,6 +29,12 @@ const PointsSet& PathOrdering<const SliceLayerPart*>::getVertexData()
 }
 
 template<>
+const PointsSet& PathOrdering<SliceLayerPart*>::getVertexData()
+{
+    return vertices_->outline.outerPolygon();
+}
+
+template<>
 const PointsSet& PathOrdering<const SupportInfillPart*>::getVertexData()
 {
     return vertices_->outline_.outerPolygon();
