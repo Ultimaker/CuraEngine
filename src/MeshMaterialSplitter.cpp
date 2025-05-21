@@ -201,6 +201,7 @@ public:
 
     using KeyType = uint64_t;
     using DepthType = uint8_t;
+    static constexpr uint8_t nb_voxels_around = 3 * 3 * 3 - 1;
 
 public:
     explicit VoxelGrid(const PolygonMesh& mesh, const double max_resolution)
@@ -229,9 +230,14 @@ public:
         return Point_3(position.position.x * resolution_.x(), position.position.y * resolution_.y(), position.position.z * resolution_.z()) + origin_;
     }
 
+    static ExtruderOccupation makeOccupation(const size_t extruder_nr)
+    {
+        return static_cast<ExtruderOccupation>(static_cast<uint8_t>(ExtruderOccupation::Occupied) + extruder_nr);
+    }
+
     void setExtruderNr(const Point_3& position, const size_t extruder_nr)
     {
-        setOccupation(toLocalCoordinates(position), static_cast<ExtruderOccupation>(static_cast<uint8_t>(ExtruderOccupation::Occupied) + extruder_nr));
+        setOccupation(toLocalCoordinates(position), makeOccupation(extruder_nr));
     }
 
     void setOccupation(const LocalCoordinates& position, const ExtruderOccupation& occupation)
@@ -267,6 +273,12 @@ public:
         nodes_.try_emplace(position, std::forward<Args>(args)...);
     }
 
+    template<class... Args>
+    void visitFilledVoxels(Args&&... args)
+    {
+        nodes_.visit_all(args...);
+    }
+
     std::vector<LocalCoordinates> getFilledVoxels() const
     {
         std::vector<LocalCoordinates> filled_voxels;
@@ -284,7 +296,7 @@ public:
     {
         const SimplePoint_3U16& position = point.position;
         std::vector<LocalCoordinates> voxels_around;
-        voxels_around.reserve(3 * 3 * 3 - 1);
+        voxels_around.reserve(nb_voxels_around);
 
         for (int8_t delta_x = -1; delta_x < 2; ++delta_x)
         {
@@ -516,19 +528,27 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
 
         std::vector<VoxelGrid::LocalCoordinates> new_filled_voxels;
         new_filled_voxels.reserve(voxels_votes.size());
+
         voxels_votes.visit_all(
             [&voxel_space, &new_filled_voxels](const auto& voxel_votes)
             {
-                const auto max_vote = ranges::max_element(
-                    voxel_votes.second,
-                    [](const auto& vote_a, const auto& vote_b)
-                    {
-                        return vote_a.second < vote_b.second;
-                    });
+                const std::map<ExtruderOccupation, uint8_t>& occupation_votes = voxel_votes.second;
+                ExtruderOccupation most_voted_occupation;
+                if (occupation_votes.size() == 1)
                 {
+                    most_voted_occupation = occupation_votes.begin()->first;
                 }
-
-                voxel_space.setOccupation(voxel_votes.first, max_vote->first);
+                else
+                {
+                    const auto max_vote = ranges::max_element(
+                        occupation_votes,
+                        [](const auto& vote_a, const auto& vote_b)
+                        {
+                            return vote_a.second < vote_b.second;
+                        });
+                    most_voted_occupation = max_vote->first;
+                }
+                voxel_space.setOccupation(voxel_votes.first, most_voted_occupation);
                 new_filled_voxels.push_back(voxel_votes.first);
             });
 
@@ -536,14 +556,16 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
     }
 
     spdlog::info("Making final points cloud");
-    std::vector<Point_3> points_cloud;
-    for (const VoxelGrid::LocalCoordinates& local_coord : voxel_space.getFilledVoxels())
-    {
-        if (voxel_space.getExtruderNr(local_coord) == 1)
+    std::list<Point_3> points_cloud;
+    ExtruderOccupation occupation_extruder_1 = VoxelGrid::makeOccupation(1);
+    voxel_space.visitFilledVoxels(
+        [&occupation_extruder_1, &points_cloud, &voxel_space](const auto& filled_voxel)
         {
-            points_cloud.push_back(voxel_space.toGlobalCoordinates(local_coord));
-        }
-    }
+            if (filled_voxel.second == occupation_extruder_1)
+            {
+                points_cloud.push_back(voxel_space.toGlobalCoordinates(filled_voxel.first));
+            }
+        });
     exportPointsCloud(points_cloud, "final_contour");
 
     spdlog::info("Making mesh from points cloud");
