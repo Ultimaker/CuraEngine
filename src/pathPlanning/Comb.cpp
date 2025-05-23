@@ -12,11 +12,11 @@
 #include "Slice.h"
 #include "pathPlanning/CombPaths.h"
 #include "pathPlanning/LinePolygonsCrossings.h"
+#include "settings/EnumSettings.h" // Added for CombingPolygonType
 #include "sliceDataStorage.h"
 #include "utils/PolygonsPointIndex.h"
 #include "utils/SVG.h"
 #include "utils/linearAlg2D.h"
-#include "settings/EnumSettings.h" // Added for CombingPolygonType
 
 namespace cura
 {
@@ -127,56 +127,56 @@ bool Comb::calc(
     // Determine if alternative boundaries are needed based on the setting
     switch (combing_polygon_type)
     {
-        case CombingPolygonType::OUTER_WALL:
-            // Default behavior, use original boundaries
-            use_original_boundaries = true;
-            break;
-        case CombingPolygonType::OUTLINE:
+    case CombingPolygonType::OUTER_WALL:
+        // Default behavior, use original boundaries
+        use_original_boundaries = true;
+        break;
+    case CombingPolygonType::OUTLINE:
+    {
+        // Use the general layer outlines for combing.
+        // travel_avoid_supports is set to false as we are defining the combing boundary itself, not an avoidance area.
+        Polygons outline_polys = storage_.getLayerOutlines(layer_nr_, false, false);
+        if (! outline_polys.empty())
         {
-            // Use the general layer outlines for combing.
-            // travel_avoid_supports is set to false as we are defining the combing boundary itself, not an avoidance area.
-            Polygons outline_polys = storage_.getLayerOutlines(layer_nr_, false, false);
-            if (!outline_polys.empty())
-            {
-                local_boundary_optimal = outline_polys; // Shape can be constructed from Polygons
-                local_boundary_minimum = outline_polys; // Use the same for minimum
-                use_original_boundaries = false;
-            }
-            else
-            {
-                // No outline polygons, fall back to original boundaries (OuterWall)
-                use_original_boundaries = true;
-            }
-            break;
+            local_boundary_optimal = outline_polys; // Shape can be constructed from Polygons
+            local_boundary_minimum = outline_polys; // Use the same for minimum
+            use_original_boundaries = false;
         }
-        case CombingPolygonType::SECOND_WALL:
+        else
         {
-            const Walls& walls = storage_.getWalls(layer_nr_, train.extruder_nr_);
-            if (!walls.second_wall_polys.empty())
-            {
-                local_boundary_optimal = walls.second_wall_polys; // Shape can be constructed from PolygonsPart
-                local_boundary_minimum = walls.second_wall_polys; // Use second wall for both
-                use_original_boundaries = false;
-            }
-            else
-            {
-                // No second wall, fall back to original boundaries (OuterWall)
-                use_original_boundaries = true;
-            }
-            break;
+            // No outline polygons, fall back to original boundaries (OuterWall)
+            use_original_boundaries = true;
         }
-        case CombingPolygonType::PLUGIN:
-            // Plugin handling, assume default for now or specific logic if defined
+        break;
+    }
+    case CombingPolygonType::SECOND_WALL:
+    {
+        const Walls& walls = storage_.getWalls(layer_nr_, train.extruder_nr_);
+        if (! walls.second_wall_polys.empty())
+        {
+            local_boundary_optimal = walls.second_wall_polys; // Shape can be constructed from PolygonsPart
+            local_boundary_minimum = walls.second_wall_polys; // Use second wall for both
+            use_original_boundaries = false;
+        }
+        else
+        {
+            // No second wall, fall back to original boundaries (OuterWall)
             use_original_boundaries = true;
-            break;
-        default:
-            // Unknown value, fall back to default behavior
-            use_original_boundaries = true;
-            break;
+        }
+        break;
+    }
+    case CombingPolygonType::PLUGIN:
+        // Plugin handling, assume default for now or specific logic if defined
+        use_original_boundaries = true;
+        break;
+    default:
+        // Unknown value, fall back to default behavior
+        use_original_boundaries = true;
+        break;
     }
 
     // If alternative boundaries are chosen and valid, set them up
-    if (!use_original_boundaries)
+    if (! use_original_boundaries)
     {
         // Initialize local PartsView and LocToLineGrid for the selected polygons
         // Note: Splitting into PartsView might reorder polygons in local_boundary_optimal/minimum
@@ -202,7 +202,7 @@ bool Comb::calc(
     size_t end_inside_poly = NO_INDEX;
     const bool end_inside = moveInside(*current_boundary_optimal, _end_inside, current_loc_to_line_optimal, end_point, end_inside_poly);
 
-    size_t start_part_boundary_poly_idx = NO_INDEX; 
+    size_t start_part_boundary_poly_idx = NO_INDEX;
     size_t end_part_boundary_poly_idx = NO_INDEX;
     size_t start_part_idx = (start_inside_poly == NO_INDEX) ? NO_INDEX : current_parts_view_optimal->getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
     size_t end_part_idx = (end_inside_poly == NO_INDEX) ? NO_INDEX : current_parts_view_optimal->getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
@@ -416,7 +416,8 @@ bool Comb::calc(
             }
             else
             { // both start and end are outside
-                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train)); // Uses original model boundary logic
+                comb_paths.back().cross_boundary
+                    = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train)); // Uses original model boundary logic
             }
         }
         else
