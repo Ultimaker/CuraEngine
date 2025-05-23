@@ -108,7 +108,7 @@ TEST_P(AntiOozeAmountsTest, ComputeAntiOozeAmounts)
 {
     const AntiOozeAmountsTestCase& test_case = GetParam();
     const AntiOozeAmountsTestDataSet& data = test_case.data;
-    const AntiOozeAmountsTestResult& result = test_case.result;
+    const AntiOozeAmountsTestResult& expected = test_case.result;
 
     std::optional<TravelAntiOozing> retraction_amounts;
     std::optional<TravelAntiOozing> priming_amounts;
@@ -118,27 +118,27 @@ TEST_P(AntiOozeAmountsTest, ComputeAntiOozeAmounts)
     constexpr double threshold = 0.001; // We don't need a very low threshold, we just want to make sure the values are consistent
 
     EXPECT_TRUE(retraction_amounts.has_value());
-    EXPECT_NEAR(retraction_amounts->amount_while_still, result.retraction.amount_while_still, threshold);
-    EXPECT_NEAR(retraction_amounts->z_hop.amount, result.retraction.z_hop.amount, threshold);
-    EXPECT_NEAR(retraction_amounts->z_hop.ratio, result.retraction.z_hop.ratio, threshold);
-    EXPECT_NEAR(retraction_amounts->amount_while_travel, result.retraction.amount_while_travel, threshold);
-    EXPECT_EQ(retraction_amounts->segment_split_position, result.retraction.segment_split_position);
-    EXPECT_EQ(retraction_amounts->amount_by_segment.size(), result.retraction.amount_by_segment.size());
-    for (size_t i = 0; i < retraction_amounts->amount_by_segment.size() && i < result.retraction.amount_by_segment.size(); ++i)
+    EXPECT_NEAR(retraction_amounts->amount_while_still, expected.retraction.amount_while_still, threshold);
+    EXPECT_NEAR(retraction_amounts->z_hop.amount, expected.retraction.z_hop.amount, threshold);
+    EXPECT_NEAR(retraction_amounts->z_hop.ratio, expected.retraction.z_hop.ratio, threshold);
+    EXPECT_NEAR(retraction_amounts->amount_while_travel, expected.retraction.amount_while_travel, threshold);
+    EXPECT_EQ(retraction_amounts->segment_split_position, expected.retraction.segment_split_position);
+    EXPECT_EQ(retraction_amounts->amount_by_segment.size(), expected.retraction.amount_by_segment.size());
+    for (size_t i = 0; i < retraction_amounts->amount_by_segment.size() && i < expected.retraction.amount_by_segment.size(); ++i)
     {
-        EXPECT_NEAR(retraction_amounts->amount_by_segment.at(i), result.retraction.amount_by_segment.at(i), threshold);
+        EXPECT_NEAR(retraction_amounts->amount_by_segment.at(i), expected.retraction.amount_by_segment.at(i), threshold);
     }
 
     EXPECT_TRUE(priming_amounts.has_value());
-    EXPECT_NEAR(priming_amounts->amount_while_still, result.priming.amount_while_still, threshold);
-    EXPECT_NEAR(priming_amounts->z_hop.amount, result.priming.z_hop.amount, threshold);
-    EXPECT_NEAR(priming_amounts->z_hop.ratio, result.priming.z_hop.ratio, threshold);
-    EXPECT_NEAR(priming_amounts->amount_while_travel, result.priming.amount_while_travel, threshold);
-    EXPECT_EQ(priming_amounts->segment_split_position, result.priming.segment_split_position);
-    EXPECT_EQ(priming_amounts->amount_by_segment.size(), result.priming.amount_by_segment.size());
-    for (size_t i = 0; i < priming_amounts->amount_by_segment.size() && i < result.priming.amount_by_segment.size(); ++i)
+    EXPECT_NEAR(priming_amounts->amount_while_still, expected.priming.amount_while_still, threshold);
+    EXPECT_NEAR(priming_amounts->z_hop.amount, expected.priming.z_hop.amount, threshold);
+    EXPECT_NEAR(priming_amounts->z_hop.ratio, expected.priming.z_hop.ratio, threshold);
+    EXPECT_NEAR(priming_amounts->amount_while_travel, expected.priming.amount_while_travel, threshold);
+    EXPECT_EQ(priming_amounts->segment_split_position, expected.priming.segment_split_position);
+    EXPECT_EQ(priming_amounts->amount_by_segment.size(), expected.priming.amount_by_segment.size());
+    for (size_t i = 0; i < priming_amounts->amount_by_segment.size() && i < expected.priming.amount_by_segment.size(); ++i)
     {
-        EXPECT_NEAR(priming_amounts->amount_by_segment.at(i), result.priming.amount_by_segment.at(i), threshold);
+        EXPECT_NEAR(priming_amounts->amount_by_segment.at(i), expected.priming.amount_by_segment.at(i), threshold);
     }
 }
 
@@ -146,7 +146,12 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
 {
     std::vector<AntiOozeAmountsTestCase> data_sets;
 
-    std::vector path_simple = { Point3LL(0, 0, 0), Point3LL(100000, 0, 0) }; // Straight 10cm path on X
+    const std::vector path_simple = { Point3LL(0, 0, 0), Point3LL(100000, 0, 0) }; // Straight 10cm path on X
+
+    // 10cm corner path, split by 1cm segments
+    const std::vector path_corner
+        = { Point3LL(0, 0, 0),         Point3LL(10000, 0, 0),     Point3LL(20000, 0, 0),     Point3LL(30000, 0, 0),     Point3LL(40000, 0, 0),    Point3LL(50000, 0, 0),
+            Point3LL(50000, 10000, 0), Point3LL(50000, 20000, 0), Point3LL(50000, 30000, 0), Point3LL(50000, 40000, 0), Point3LL(50000, 50000, 0) };
 
     // Single segment, all retraction/prime during stationary
     data_sets.push_back(
@@ -166,7 +171,6 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .amount_while_travel = 5.0,
                                                                                                    .segment_split_position = Point2LL(100000, 0),
                                                                                                    .amount_by_segment = { 5.0 } } } });
-
     // Single segment, all retraction/prime during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
@@ -185,6 +189,24 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .amount_while_travel = 2.0,
                                                                                                    .segment_split_position = Point2LL(80000, 0),
                                                                                                    .amount_by_segment = { 0.0 } } } });
+    // Single segment, all retraction/prime during travel, no z-hop, extra prime volume
+    data_sets.push_back(
+        AntiOozeAmountsTestCase{ .data
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                                               .z_hop = { .speed = 50, .height = 0 },
+                                                               .travel = { .path = path_simple, .speed = 100.0 },
+                                                               .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 2.0 },
+                                                               .prime = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .extra_prime_volume = 1.0 } },
+                                 .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
+                                                                                                      .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
+                                                                                                      .amount_while_travel = 2.0,
+                                                                                                      .segment_split_position = Point2LL(20000, 0),
+                                                                                                      .amount_by_segment = { 2.0 } },
+                                                                      .priming = TravelAntiOozing{ .amount_while_still = -1.0,
+                                                                                                   .z_hop = ZHopAntiOozing{ .amount = -1.0, .ratio = 0.0_r },
+                                                                                                   .amount_while_travel = 2.0,
+                                                                                                   .segment_split_position = Point2LL(70000, 0),
+                                                                                                   .amount_by_segment = { -1.0 } } } });
 
     // Single segment, retraction/prime 50% during travel, no z-hop
     data_sets.push_back(
@@ -204,7 +226,6 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .amount_while_travel = 2.0,
                                                                                                    .segment_split_position = Point2LL(90000, 0),
                                                                                                    .amount_by_segment = { 1.0 } } } });
-
     // Single segment, retraction 50% during travel, prime 100 %during stationary, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
@@ -223,7 +244,6 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .amount_while_travel = 2.0,
                                                                                                    .segment_split_position = Point2LL(100000, 0),
                                                                                                    .amount_by_segment = { 2.0 } } } });
-
     // Single segment, retraction 100% during stationary, prime 50 %during travel, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
@@ -242,12 +262,6 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .amount_while_travel = 2.0,
                                                                                                    .segment_split_position = Point2LL(92000, 0),
                                                                                                    .amount_by_segment = { 1.2 } } } });
-
-    // 10cm corner path, split by 1cm segments
-    std::vector path_corner
-        = { Point3LL(0, 0, 0),         Point3LL(10000, 0, 0),     Point3LL(20000, 0, 0),     Point3LL(30000, 0, 0),     Point3LL(40000, 0, 0),    Point3LL(50000, 0, 0),
-            Point3LL(50000, 10000, 0), Point3LL(50000, 20000, 0), Point3LL(50000, 30000, 0), Point3LL(50000, 40000, 0), Point3LL(50000, 50000, 0) };
-
     // Multi segment, all retraction/prime during stationary
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
@@ -266,7 +280,6 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .amount_while_travel = 5.0,
                                                                                                    .segment_split_position = Point2LL(50000, 50000),
                                                                                                    .amount_by_segment = { 5.0 } } } });
-
     // Multi segment, all retraction/prime during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
@@ -305,7 +318,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .segment_split_position = Point2LL(50000, 32000),
                                                                                                    .amount_by_segment = { 0.2, 1.2 } } } });
 
-    // Multi segment, all retraction/prime during travel, extra stationary time, with z-hop
+    // Multi segment, partial retraction/prime during travel, with z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
                                  = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
@@ -313,18 +326,18 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                .travel = { .path = path_corner, .speed = 100.0 },
                                                                .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 10.0 },
                                                                .prime = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .extra_prime_volume = 0.0 } },
-                                 .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 4.8,
-                                                                                                      .z_hop = ZHopAntiOozing{ .amount = 5.0, .ratio = 1.0_r },
-                                                                                                      .amount_while_travel = 10.0,
+                                 .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
+                                                                                                      .z_hop = ZHopAntiOozing{ .amount = 0.2, .ratio = 1.0_r },
+                                                                                                      .amount_while_travel = 5.2,
                                                                                                       .segment_split_position = Point2LL(50000, 0),
-                                                                                                      .amount_by_segment = { 6.0, 7.0, 8.0, 9.0, 10.0 } },
-                                                                      .priming = TravelAntiOozing{ .amount_while_still = 4.8,
-                                                                                                   .z_hop = ZHopAntiOozing{ .amount = 5.0, .ratio = 1.0_r },
-                                                                                                   .amount_while_travel = 10.0,
+                                                                                                      .amount_by_segment = { 1.2, 2.2, 3.2, 4.2, 5.2 } },
+                                                                      .priming = TravelAntiOozing{ .amount_while_still = 0.0,
+                                                                                                   .z_hop = ZHopAntiOozing{ .amount = 0.2, .ratio = 1.0_r },
+                                                                                                   .amount_while_travel = 5.2,
                                                                                                    .segment_split_position = Point2LL(50000, 0),
-                                                                                                   .amount_by_segment = { 5.0, 6.0, 7.0, 8.0, 9.0 } } } });
+                                                                                                   .amount_by_segment = { 0.2, 1.2, 2.2, 3.2, 4.2 } } } });
 
-    // Worst-case scenario: multi segment, all retraction/prime during travel, extra stationary time, with z-hop, with extra prime volume
+    // Worst-case scenario: multi segment, partial retraction/prime during travel, with z-hop, with extra prime volume
     data_sets.push_back(
         AntiOozeAmountsTestCase{
             .data = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
@@ -332,16 +345,16 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                 .travel = { .path = path_corner, .speed = 100.0 },
                                                 .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 10.0 },
                                                 .prime = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .extra_prime_volume = 5.0 } },
-            .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 5.816,
-                                                                                 .z_hop = ZHopAntiOozing{ .amount = 6.016, .ratio = 1.0_r },
-                                                                                 .amount_while_travel = 10.0,
+            .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
+                                                                                 .z_hop = ZHopAntiOozing{ .amount = 0.2, .ratio = 1.0_r },
+                                                                                 .amount_while_travel = 4.184,
                                                                                  .segment_split_position = Point2LL(39837, 0),
-                                                                                 .amount_by_segment = { 7.016, 8.016, 9.016, 10.0 } },
-                                                 .priming = TravelAntiOozing{ .amount_while_still = 8.783,
-                                                                              .z_hop = ZHopAntiOozing{ .amount = 8.983, .ratio = 1.0_r },
-                                                                              .amount_while_travel = 15.0,
+                                                                                 .amount_by_segment = { 1.2, 2.2, 3.2, 4.184 } },
+                                                 .priming = TravelAntiOozing{ .amount_while_still = -2.033,
+                                                                              .z_hop = ZHopAntiOozing{ .amount = -1.833, .ratio = 1.0_r },
+                                                                              .amount_while_travel = 4.184,
                                                                               .segment_split_position = Point2LL(39837, 0),
-                                                                              .amount_by_segment = { 8.983, 9.983, 10.983, 11.983, 12.983, 13.983, 14.983 } } } });
+                                                                              .amount_by_segment = { -1.833, -0.833, 0.167, 1.167, 2.167, 3.167, 4.167 } } } });
 
     return data_sets;
 }

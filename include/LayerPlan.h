@@ -94,12 +94,28 @@ private:
         Duration travel; //!< The duration of the full travel
     };
 
+    struct AntiOozeSettings
+    {
+        double distance;
+        Velocity speed;
+        Ratio during_travel_ratio;
+    };
+
+    struct AntiOozeIntermediateAmounts
+    {
+        Ratio actual_during_travel_ratio;
+        Duration total_expected_duration;
+        Duration expected_duration_during_travel;
+        double expected_amount_during_travel;
+        double actual_amount_during_travel;
+    };
+
     enum class TravelRetractionState
     {
         None, // There is no retraction/prime
-        Retracting, // We are retracting while travelling
-        Travelling, // We are travelling, but neither retracting or priming, just moving
-        Priming, // We are priming while travelling
+        Retracting, // We are retracting while traveling
+        Travelling, // We are traveling, but neither retracting nor priming, just moving
+        Priming, // We are priming while traveling
     };
 
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
@@ -1099,21 +1115,16 @@ private:
      * @param travel_durations The pre-calculated travel durations
      * @param gcode The gcode exporter
      * @param path The raw travel path to be exported
-     * @param distance The retraction/prime distance to be applied
-     * @param during_travel_ratio The ratio of much of the retraction/prime should be processed during travel
-     * @param speed The retraction/prime speed
-     * @param extra_time_still The extra time to be allowed during stationary retraction/prime
+     * @param settings The anti-ooze settings to be applied
      * @param reversed Indicates if we should process the path forwards (retraction at the beginning) or backwards (prime at the end)
      */
-    static TravelAntiOozing computeAntiOozeAmount(
-        const TravelDurations& travel_durations,
+    static void computeAntiOozeTravelSplit(
         const GCodeExport& gcode,
         const GCodePath& path,
-        const double distance,
-        const Ratio& during_travel_ratio,
         const Velocity& speed,
-        const Duration& extra_time_still,
-        const bool reversed);
+        const double amount_during_travel,
+        const bool reversed,
+        TravelAntiOozing& anti_oozing);
 
     /*!
      * Write a single travel segment, taking care of the retraction and priming during travel
