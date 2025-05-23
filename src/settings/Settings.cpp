@@ -54,6 +54,26 @@ void Settings::add(const std::string& key, const std::string value)
 }
 
 template<>
+CombingPolygonType Settings::get<CombingPolygonType>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    using namespace cura::utils;
+    switch (hash_enum(value))
+    {
+    case "outer_wall"_sw:
+        return CombingPolygonType::OUTER_WALL;
+    case "outline"_sw:
+        return CombingPolygonType::OUTLINE;
+    case "second_wall"_sw:
+        return CombingPolygonType::SECOND_WALL;
+    case "plugin"_sw:
+        return CombingPolygonType::PLUGIN;
+    default:
+        return CombingPolygonType::OUTER_WALL; // Default value
+    }
+}
+
+template<>
 std::string Settings::get<std::string>(const std::string& key) const
 {
     // If this settings base has a setting value for it, look that up.
