@@ -576,7 +576,8 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 {
     // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture.png");
     // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture-high.png");
-    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/dino-texture.png");
+    // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/dino-texture.png");
+    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/ultibot-texture.png");
 
     PolygonMesh converted_mesh;
     for (const MeshVertex& vertex : mesh.vertices_)
