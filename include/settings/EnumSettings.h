@@ -306,10 +306,10 @@ enum class CoolDuringExtruderSwitch
  */
 enum class CombingPolygonType
 {
-    OUTER_WALL,
-    OUTLINE,
-    SECOND_WALL,
-    PLUGIN,
+    OUTER_WALL, // Maps to "outer_wall"
+    OUTLINE, // Maps to "outline"
+    SECOND_WALL, // Maps to "second_wall"
+    PLUGIN, // Maps to "plugin"
 };
 
 /*!

@@ -109,8 +109,10 @@ bool Comb::calc(
     // Default to the ones initialized in the constructor.
     Shape* current_boundary_optimal = &boundary_inside_optimal_;
     Shape* current_boundary_minimum = &boundary_inside_minimum_;
-    PartsView* current_parts_view_optimal = const_cast<PartsView*>(&parts_view_inside_optimal_);
-    PartsView* current_parts_view_minimum = const_cast<PartsView*>(&parts_view_inside_minimum_);
+    PartsView local_parts_view_inside_optimal = parts_view_inside_optimal_;
+    PartsView local_parts_view_inside_minimum = parts_view_inside_minimum_;
+    PartsView* current_parts_view_optimal = &local_parts_view_inside_optimal;
+    PartsView* current_parts_view_minimum = &local_parts_view_inside_minimum;
     LocToLineGrid* current_loc_to_line_optimal = inside_loc_to_line_optimal_.get();
     LocToLineGrid* current_loc_to_line_minimum = inside_loc_to_line_minimum_.get();
 

@@ -53,6 +53,15 @@ void Settings::add(const std::string& key, const std::string value)
     }
 }
 
+// Specialization of the `get` method for `CombingPolygonType`.
+// This function maps string values to `CombingPolygonType` enum values.
+// The supported string values and their corresponding enum values are:
+// - "outer_wall" -> CombingPolygonType::OUTER_WALL
+// - "outline" -> CombingPolygonType::OUTLINE
+// - "second_wall" -> CombingPolygonType::SECOND_WALL
+// - "plugin" -> CombingPolygonType::PLUGIN
+// If the string value does not match any of the above, the default value
+// `CombingPolygonType::OUTER_WALL` is returned.
 template<>
 CombingPolygonType Settings::get<CombingPolygonType>(const std::string& key) const
 {

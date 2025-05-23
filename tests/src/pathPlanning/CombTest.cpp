@@ -10,7 +10,6 @@
 #include "geometry/Point.h" // For cura::Point / cura::Point2LL
 #include "geometry/Polygon.h" // For cura::Polygon / cura::Polygons / cura::ConstPolygonRef
 #include "geometry/Shape.h" // For cura::Shape
-#include "sliceDataStorage.h" // For cura::SliceLayer, cura::SliceLayerPart, cura::Walls
 #include "Application.h"      // For cura::Application and cura::Scene
 
 
