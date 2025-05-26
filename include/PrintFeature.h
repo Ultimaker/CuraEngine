@@ -4,7 +4,7 @@
 namespace cura
 {
 
-enum class PrintFeatureType: unsigned char
+enum class PrintFeatureType : unsigned char
 {
     NoneType = 0, // used to mark unspecified jumps in polygons. libArcus depends on it
     OuterWall = 1,
@@ -14,16 +14,16 @@ enum class PrintFeatureType: unsigned char
     SkirtBrim = 5,
     Infill = 6,
     SupportInfill = 7,
-    MoveCombing = 8,
-    MoveRetraction = 9,
+    MoveUnretracted = 8,
+    MoveRetracted = 9,
     SupportInterface = 10,
     PrimeTower = 11,
-    NumPrintFeatureTypes = 12 // this number MUST be the last one because other modules will
+    MoveWhileRetracting = 12,
+    MoveWhileUnretracting = 13,
+    NumPrintFeatureTypes = 14 // this number MUST be the last one because other modules will
                               // use this symbol to get the total number of types, which can
                               // be used to create an array or so
 };
-
-
 
 
 } // namespace cura

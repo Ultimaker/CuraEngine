@@ -94,17 +94,19 @@ TEST_F(GCodeExportTest, CommentSimple)
 
 TEST_F(GCodeExportTest, CommentMultiLine)
 {
-    gcode.writeComment("If you catch a chinchilla in Chile\n"
-                       "And cut off its beard, willy-nilly\n"
-                       "You can honestly say\n"
-                       "You made on that day\n"
-                       "A Chilean chinchilla's chin chilly");
+    gcode.writeComment(
+        "If you catch a chinchilla in Chile\n"
+        "And cut off its beard, willy-nilly\n"
+        "You can honestly say\n"
+        "You made on that day\n"
+        "A Chilean chinchilla's chin chilly");
     EXPECT_EQ(
-        std::string(";If you catch a chinchilla in Chile\n"
-                    ";And cut off its beard, willy-nilly\n"
-                    ";You can honestly say\n"
-                    ";You made on that day\n"
-                    ";A Chilean chinchilla's chin chilly\n"),
+        std::string(
+            ";If you catch a chinchilla in Chile\n"
+            ";And cut off its beard, willy-nilly\n"
+            ";You can honestly say\n"
+            ";You made on that day\n"
+            ";A Chilean chinchilla's chin chilly\n"),
         output.str())
         << "Each line must be preceded by a semicolon.";
 }
@@ -115,9 +117,10 @@ TEST_F(GCodeExportTest, CommentMultiple)
     gcode.writeComment("Very very frightening me");
     gcode.writeComment(" - Galileo (1638)");
     EXPECT_EQ(
-        std::string(";Thunderbolt and lightning\n"
-                    ";Very very frightening me\n"
-                    "; - Galileo (1638)\n"),
+        std::string(
+            ";Thunderbolt and lightning\n"
+            ";Very very frightening me\n"
+            "; - Galileo (1638)\n"),
         output.str())
         << "Semicolon before each line, and newline in between.";
 }
@@ -145,7 +148,8 @@ TEST_F(GCodeExportTest, CommentTypeAllTypesCovered)
     for (auto type = static_cast<PrintFeatureType>(0); type < PrintFeatureType::NumPrintFeatureTypes; type = static_cast<PrintFeatureType>(static_cast<size_t>(type) + 1))
     {
         gcode.writeTypeComment(type);
-        if (type == PrintFeatureType::MoveCombing || type == PrintFeatureType::MoveRetraction)
+        if (type == PrintFeatureType::MoveUnretracted || type == PrintFeatureType::MoveRetracted || type == PrintFeatureType::MoveWhileRetracting
+            || type == PrintFeatureType::MoveWhileUnretracting)
         {
             EXPECT_EQ(std::string(""), output.str()) << "Travel moves shouldn't output a type.";
         }

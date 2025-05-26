@@ -91,7 +91,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-        travel_config_per_extruder.emplace_back(GCodePathConfig{ .type = PrintFeatureType::MoveCombing,
+        travel_config_per_extruder.emplace_back(GCodePathConfig{ .type = PrintFeatureType::MoveUnretracted,
                                                                  .line_width = 0,
                                                                  .layer_thickness = 0,
                                                                  .flow = 0.0,

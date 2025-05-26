@@ -121,7 +121,7 @@ private:
     {
         double old_e{ 0.0 }; // The previous absolute retraction amount
         double new_e{ 0.0 }; // The new absolute retraction amount
-        double diff_e{ 0.0 }; // The difference between the new and previous amount, which is to be processed
+        double diff_e{ 0.0 }; // The difference between the new and previous amount, which is to be processed. Positive means retraction.
 
         /*!
          * Indicates whether this retraction actually has something to process
@@ -536,6 +536,9 @@ private:
      * \param retract_distance The absolute retraction distance to be reached while doing the z-hop move, or nullopt to leave it unchanged
      */
     void writeZhop(Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
+
+    static PrintFeatureType
+        sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
 
 public:
     /*!

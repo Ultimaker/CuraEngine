@@ -623,8 +623,10 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
     case PrintFeatureType::PrimeTower:
         *output_stream_ << ";TYPE:PRIME-TOWER" << new_line_;
         break;
-    case PrintFeatureType::MoveCombing:
-    case PrintFeatureType::MoveRetraction:
+    case PrintFeatureType::MoveUnretracted:
+    case PrintFeatureType::MoveRetracted:
+    case PrintFeatureType::MoveWhileRetracting:
+    case PrintFeatureType::MoveWhileUnretracting:
     case PrintFeatureType::NoneType:
     case PrintFeatureType::NumPrintFeatureTypes:
         // do nothing
@@ -926,7 +928,7 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const st
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {
-        writeMoveBFB(p.x_, p.y_, p.z_ + is_z_hopped_, speed, 0.0, PrintFeatureType::MoveCombing);
+        writeMoveBFB(p.x_, p.y_, p.z_ + is_z_hopped_, speed, 0.0, PrintFeatureType::MoveUnretracted);
         return;
     }
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed, retract_distance);
@@ -1028,10 +1030,7 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
 #endif // ASSERT_INSANE_OUTPUT
 
-    const PrintFeatureType travel_move_type = extruder_attr.retraction_e_amount_current_ ? PrintFeatureType::MoveRetraction : PrintFeatureType::MoveCombing;
-    const int display_width = extruder_attr.retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
-    const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
-    Application::getInstance().communication_->sendLineTo(travel_move_type, Point3LL(x, y, z), display_width, layer_height, speed);
+    const PrintFeatureType travel_move_type = sendTravel(Point3LL(x, y, z), speed, extruder_attr, retraction_amounts);
 
     *output_stream_ << "G0";
     writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type, retraction_amounts);
@@ -1179,7 +1178,7 @@ void GCodeExport::writeUnretractionAndPrime()
             estimate_calculator_.plan(
                 TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
                 25.0,
-                PrintFeatureType::MoveRetraction);
+                PrintFeatureType::MoveRetracted);
         }
         else
         {
@@ -1191,7 +1190,7 @@ void GCodeExport::writeUnretractionAndPrime()
             estimate_calculator_.plan(
                 TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
                 current_speed_,
-                PrintFeatureType::MoveRetraction);
+                PrintFeatureType::MoveRetracted);
         }
     }
     else if (prime_volume != 0.0)
@@ -1288,7 +1287,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
                 INT2MM(current_position_.z_),
                 eToMm(current_e_value_ + retraction_amounts.diff_e)),
             25.0,
-            PrintFeatureType::MoveRetraction); // TODO: hardcoded values!
+            PrintFeatureType::MoveRetracted); // TODO: hardcoded values!
 
         extr_attr.retraction_e_amount_current_ = retraction_amounts.new_e; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     }
@@ -1302,7 +1301,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         estimate_calculator_.plan(
             TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
             current_speed_,
-            PrintFeatureType::MoveRetraction);
+            PrintFeatureType::MoveRetracted);
         extr_attr.last_retraction_prime_speed_ = config.primeSpeed;
     }
 
@@ -1359,10 +1358,11 @@ void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const 
         speed = extruder.settings_.get<Velocity>("speed_z_hop");
     }
 
+    const ExtruderTrainAttributes extruder_attr = extruder_attr_[current_extruder_];
     RetractionAmounts retraction_amounts;
     if (retract_distance.has_value())
     {
-        retraction_amounts = computeRetractionAmounts(extruder_attr_[current_extruder_], *retract_distance);
+        retraction_amounts = computeRetractionAmounts(extruder_attr, *retract_distance);
     }
 
     is_z_hopped_ = height;
@@ -1374,9 +1374,30 @@ void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const 
         writeRawRetract(retraction_amounts);
     }
     *output_stream_ << new_line_;
-    Application::getInstance().communication_->sendLineTo(PrintFeatureType::MoveRetraction, Point3LL(current_position_.x_, current_position_.y_, target_z), 0, 0, speed);
+
+    sendTravel(Point3LL(current_position_.x_, current_position_.y_, target_z), speed, extruder_attr, retraction_amounts);
+
     assert(speed > 0.0 && "Z hop speed should be positive.");
     total_bounding_box_.includeZ(target_z);
+}
+
+PrintFeatureType
+    GCodeExport::sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts)
+{
+    PrintFeatureType travel_move_type;
+    if (retraction_amounts.has_value() && retraction_amounts.value().has_retraction())
+    {
+        travel_move_type = retraction_amounts.value().diff_e < 0.0 ? PrintFeatureType::MoveWhileRetracting : PrintFeatureType::MoveWhileUnretracting;
+    }
+    else
+    {
+        travel_move_type = extruder_attr.retraction_e_amount_current_ ? PrintFeatureType::MoveRetracted : PrintFeatureType::MoveUnretracted;
+    }
+    const int display_width = extruder_attr.retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
+    const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
+    Application::getInstance().communication_->sendLineTo(travel_move_type, p, display_width, layer_height, speed);
+
+    return travel_move_type;
 }
 
 void GCodeExport::startExtruder(const size_t new_extruder)

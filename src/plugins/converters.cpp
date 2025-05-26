@@ -328,9 +328,9 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         return v0::PrintFeature::INFILL;
     case PrintFeatureType::SupportInfill:
         return v0::PrintFeature::SUPPORTINFILL;
-    case PrintFeatureType::MoveCombing:
+    case PrintFeatureType::MoveUnretracted:
         return v0::PrintFeature::MOVECOMBING;
-    case PrintFeatureType::MoveRetraction:
+    case PrintFeatureType::MoveRetracted:
         return v0::PrintFeature::MOVERETRACTION;
     case PrintFeatureType::SupportInterface:
         return v0::PrintFeature::SUPPORTINTERFACE;
@@ -413,9 +413,9 @@ gcode_paths_modify_request::value_type
     case v0::PrintFeature::SUPPORTINFILL:
         return PrintFeatureType::SupportInfill;
     case v0::PrintFeature::MOVECOMBING:
-        return PrintFeatureType::MoveCombing;
+        return PrintFeatureType::MoveUnretracted;
     case v0::PrintFeature::MOVERETRACTION:
-        return PrintFeatureType::MoveRetraction;
+        return PrintFeatureType::MoveRetracted;
     case v0::PrintFeature::SUPPORTINTERFACE:
         return PrintFeatureType::SupportInterface;
     case v0::PrintFeature::PRIMETOWER:
