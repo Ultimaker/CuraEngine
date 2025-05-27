@@ -1391,7 +1391,7 @@ PrintFeatureType
     }
     else
     {
-        travel_move_type = extruder_attr.retraction_e_amount_current_ ? PrintFeatureType::MoveRetracted : PrintFeatureType::MoveUnretracted;
+        travel_move_type = extruder_attr.retraction_e_amount_current_ > 0.0 ? PrintFeatureType::MoveRetracted : PrintFeatureType::MoveUnretracted;
     }
     const int display_width = extruder_attr.retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
     const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
