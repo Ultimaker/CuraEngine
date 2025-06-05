@@ -104,7 +104,13 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     }
 }
 
-Shape getTopOrBottom(int direction, const std::string& setting_name, size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
+Shape getTopOrBottom(
+    int direction,
+    const std::string& setting_name,
+    size_t layer_nr,
+    const std::vector<SlicerLayer>& slayers,
+    const Settings& settings,
+    const std::optional<coord_t> extension)
 {
     Shape result;
     if (settings.get<size_t>(setting_name) != settings.get<size_t>("wall_line_count") && ! settings.get<bool>("magic_spiralize"))
@@ -114,8 +120,8 @@ Shape getTopOrBottom(int direction, const std::string& setting_name, size_t laye
         if (next_layer >= 0 && next_layer < slayers.size())
         {
             constexpr coord_t EPSILON = 5;
-            const auto wall_line_width = settings.get<coord_t>(layer_nr == 0 ? "wall_line_width_0" : "wall_line_width") - 5;
-            result = result.offset(-wall_line_width).difference(slayers[next_layer].polygons_).offset(wall_line_width);
+            const auto wall_line_width = settings.get<coord_t>(layer_nr == 0 ? "wall_line_width_0" : "wall_line_width");
+            result = result.offset(-wall_line_width - EPSILON).difference(slayers[next_layer].polygons_).offset(extension.value_or(wall_line_width) + EPSILON);
         }
     }
     return result;
@@ -125,11 +131,12 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
+    const coord_t roofing_extension = mesh.settings.get<coord_t>("roofing_extension");
 
     cura::parallel_for<size_t>(
         0,
         total_layers,
-        [slicer, &mesh](size_t layer_nr)
+        [slicer, &mesh, &roofing_extension](size_t layer_nr)
         {
             SliceLayer& layer_storage = mesh.layers[layer_nr];
             SlicerLayer& slice_layer = slicer->layers[layer_nr];
@@ -137,8 +144,8 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
                 mesh.settings,
                 layer_storage,
                 &slice_layer,
-                layer_nr == 0 ? getTopOrBottom(-1, "wall_line_count_layer_0", layer_nr, slicer->layers, mesh.settings) : Shape(),
-                getTopOrBottom(+1, "wall_line_count_roofing", layer_nr, slicer->layers, mesh.settings));
+                layer_nr == 0 ? getTopOrBottom(-1, "wall_line_count_layer_0", layer_nr, slicer->layers, mesh.settings, std::nullopt) : Shape(),
+                getTopOrBottom(+1, "wall_line_count_roofing", layer_nr, slicer->layers, mesh.settings, roofing_extension));
         });
 
     for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
