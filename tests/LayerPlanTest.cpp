@@ -579,7 +579,7 @@ TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
         { .path_idx = 1, .extruder = 1, .temperature = 120., .wait = true }, { .path_idx = 5, .extruder = 1, .temperature = 130., .wait = false, .time_after_path_start = 1. },
         { .path_idx = 5, .extruder = 1, .temperature = 140., .wait = true }, { .path_idx = 2, .extruder = 1, .temperature = 150., .wait = false, .time_after_path_start = 1. },
     };
-    std::sort(nozzle_temp_inserts.begin(), nozzle_temp_inserts.end());
+    std::stable_sort(nozzle_temp_inserts.begin(), nozzle_temp_inserts.end());
     EXPECT_EQ(nozzle_temp_inserts[0].temperature, 100.);
     EXPECT_EQ(nozzle_temp_inserts[1].temperature, 120.);
     EXPECT_EQ(nozzle_temp_inserts[2].temperature, 150.);

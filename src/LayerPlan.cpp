@@ -57,14 +57,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -617,7 +618,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     for (const OverhangMask& overhang_region : overhang_masks_ | ranges::views::drop_last(1))
     {
         std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start, end);
-        ranges::sort(intersections);
+        ranges::stable_sort(intersections);
         speed_regions_intersections.push_back(intersections);
     }
 
@@ -1076,7 +1077,7 @@ void LayerPlan::addWallLine(
                     std::reverse(line_poly.begin(), line_poly.end());
                 }
             }
-            std::sort(
+            std::stable_sort(
                 skin_line_segments.begin(),
                 skin_line_segments.end(),
                 [&](auto& a, auto& b)

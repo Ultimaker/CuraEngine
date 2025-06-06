@@ -125,7 +125,7 @@ void Shape::makeConvex()
         }
     };
 
-    std::sort(
+    std::stable_sort(
         points.begin(),
         points.end(),
         [](const Point2LL& a, const Point2LL& b)

@@ -32,7 +32,7 @@ std::vector<size_t> order(const std::vector<T> &in)
     std::iota(order.begin(), order.end(), 0); // fill vector with 1, 2, 3,.. etc
 
     // sort indexes based on comparing values in v
-    std::sort(order.begin(), order.end(),
+    std::stable_sort(order.begin(), order.end(),
         [&in](size_t i1, size_t i2)
         {
             return in[i1] < in[i2];

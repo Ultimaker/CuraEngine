@@ -1585,7 +1585,7 @@ void SkeletalTrapezoidation::generateSegments()
         }
     }
 
-    std::sort(
+    std::stable_sort(
         upward_quad_mids.begin(),
         upward_quad_mids.end(),
         [this](edge_t* a, edge_t* b)

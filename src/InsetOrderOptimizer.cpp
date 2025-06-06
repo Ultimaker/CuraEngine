@@ -7,7 +7,7 @@
 #include <tuple>
 
 #include <range/v3/algorithm/max.hpp>
-#include <range/v3/algorithm/sort.hpp>
+#include <range/v3/algorithm/stable_sort.hpp>
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
@@ -314,7 +314,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
                                         })
                                   | ranges::to_vector;
 
-        ranges::sort(
+        ranges::stable_sort(
             extrusion_lines_area,
             [](const auto& lhs, const auto& rhs)
             {
