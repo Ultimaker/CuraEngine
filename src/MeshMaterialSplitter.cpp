@@ -199,6 +199,12 @@ public:
         }
     };
 
+    struct WeighedLocalCoordinates
+    {
+        double weight;
+        LocalCoordinates position;
+    };
+
     using KeyType = uint64_t;
     using DepthType = uint8_t;
     static constexpr uint8_t nb_voxels_around = 3 * 3 * 3 - 1;
@@ -292,10 +298,10 @@ public:
         return filled_voxels;
     }
 
-    std::vector<LocalCoordinates> getVoxelsAround(const LocalCoordinates& point) const
+    std::vector<WeighedLocalCoordinates> getVoxelsAround(const LocalCoordinates& point) const
     {
         const SimplePoint_3U16& position = point.position;
-        std::vector<LocalCoordinates> voxels_around;
+        std::vector<WeighedLocalCoordinates> voxels_around;
         voxels_around.reserve(nb_voxels_around);
 
         for (int8_t delta_x = -1; delta_x < 2; ++delta_x)
@@ -324,7 +330,8 @@ public:
 
                     if (delta_x || delta_y || delta_z)
                     {
-                        voxels_around.emplace_back(LocalCoordinates(pos_x, pos_y, pos_z));
+                        int8_t distance = std::abs(delta_x) + std::abs(delta_y) + std::abs(delta_z);
+                        voxels_around.emplace_back(1.0 / distance, LocalCoordinates(pos_x, pos_y, pos_z));
                     }
                 }
             }
@@ -338,6 +345,22 @@ public:
         const Point_3 position_in_space = position - origin_;
         return LocalCoordinates(position_in_space.x() / resolution_.x(), position_in_space.y() / resolution_.y(), position_in_space.z() / resolution_.z());
     }
+
+    void exportToFile(const std::string& basename) const
+    {
+        std::vector<LocalCoordinates> filled_voxels = getFilledVoxels();
+
+        std::map<size_t, PolygonMesh> meshes;
+        for (const LocalCoordinates& local_coord : filled_voxels)
+        {
+            meshes[getExtruderNr(local_coord)].add_vertex(toGlobalCoordinates(local_coord));
+        }
+        for (auto iterator = meshes.begin(); iterator != meshes.end(); ++iterator)
+        {
+            exportMesh(iterator->second, fmt::format("{}_{}", basename, iterator->first));
+        }
+    }
+
 
 private:
     Point_3 resolution_;
@@ -439,15 +462,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
     std::vector<VoxelGrid::LocalCoordinates> filled_voxels = voxel_space.getFilledVoxels();
 
     spdlog::info("Export initial meshes");
-    std::map<size_t, PolygonMesh> initial_meshes;
-    for (const VoxelGrid::LocalCoordinates& local_coord : filled_voxels)
-    {
-        initial_meshes[voxel_space.getExtruderNr(local_coord)].add_vertex(voxel_space.toGlobalCoordinates(local_coord));
-    }
-    for (auto iterator = initial_meshes.begin(); iterator != initial_meshes.end(); ++iterator)
-    {
-        exportMesh(iterator->second, fmt::format("initial_points_cloud_{}", iterator->first));
-    }
+    voxel_space.exportToFile("initial_points_cloud");
 
     spdlog::info("prepare cleaned mesh");
     // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper inside-mesh checking
@@ -461,12 +476,13 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
     CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(cleaned_mesh);
     bool check_inside = true;
     uint16_t shells = 0;
+    uint16_t iteration = 0;
 
     while (! filled_voxels.empty() && shells < max_shells)
     {
         spdlog::info("Voting for {} voxels", filled_voxels.size());
 
-        boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::map<ExtruderOccupation, uint8_t>> voxels_votes;
+        boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::map<ExtruderOccupation, double>> voxels_votes;
 
         std::atomic_bool keep_checking_inside(false);
 
@@ -477,16 +493,16 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
                 const VoxelGrid::LocalCoordinates& filled_voxel = *iterator;
                 const ExtruderOccupation actual_filled_occupation = voxel_space.getOccupation(filled_voxel);
 
-                for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_space.getVoxelsAround(filled_voxel))
+                for (const VoxelGrid::WeighedLocalCoordinates& voxel_around : voxel_space.getVoxelsAround(filled_voxel))
                 {
                     bool vote_for_voxel;
                     if (check_inside)
                     {
                         voxel_space.setOccupationIfUnknown(
-                            voxel_around,
-                            inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) != CGAL::ON_UNBOUNDED_SIDE ? ExtruderOccupation::InsideMesh
-                                                                                                                  : ExtruderOccupation::OutsideMesh);
-                        const ExtruderOccupation occupation = voxel_space.getOccupation(voxel_around);
+                            voxel_around.position,
+                            inside_mesh(voxel_space.toGlobalCoordinates(voxel_around.position)) != CGAL::ON_UNBOUNDED_SIDE ? ExtruderOccupation::InsideMesh
+                                                                                                                           : ExtruderOccupation::OutsideMesh);
+                        const ExtruderOccupation occupation = voxel_space.getOccupation(voxel_around.position);
                         vote_for_voxel = (occupation == ExtruderOccupation::InsideMesh);
                         if (occupation == ExtruderOccupation::OutsideMesh)
                         {
@@ -497,18 +513,18 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
                     }
                     else
                     {
-                        vote_for_voxel = ! voxel_space.isFilled(voxel_around);
+                        vote_for_voxel = ! voxel_space.isFilled(voxel_around.position);
                     }
 
                     if (vote_for_voxel)
                     {
                         // Voxel is not occupied yet, so vote to fill it
                         voxels_votes.emplace_or_visit(
-                            voxel_around,
-                            std::map<ExtruderOccupation, uint8_t>{ { actual_filled_occupation, 1 } },
-                            [&actual_filled_occupation](auto& voxel_votes)
+                            voxel_around.position,
+                            std::map<ExtruderOccupation, double>{ { actual_filled_occupation, voxel_around.weight } },
+                            [&actual_filled_occupation, &voxel_around](auto& voxel_votes)
                             {
-                                ++voxel_votes.second[actual_filled_occupation];
+                                voxel_votes.second[actual_filled_occupation] += voxel_around.weight;
                             });
                     }
                 }
@@ -532,7 +548,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
         voxels_votes.visit_all(
             [&voxel_space, &new_filled_voxels](const auto& voxel_votes)
             {
-                const std::map<ExtruderOccupation, uint8_t>& occupation_votes = voxel_votes.second;
+                const std::map<ExtruderOccupation, double>& occupation_votes = voxel_votes.second;
                 ExtruderOccupation most_voted_occupation;
                 if (occupation_votes.size() == 1)
                 {
@@ -553,6 +569,8 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
             });
 
         filled_voxels = std::move(new_filled_voxels);
+
+        // voxel_space.exportToFile(fmt::format("points_cloud_iteration_{}", iteration++));
     }
 
     spdlog::info("Making final points cloud");
