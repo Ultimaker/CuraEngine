@@ -71,6 +71,7 @@ Comb::Comb(
     , travel_avoid_distance_(travel_avoid_distance)
     , offset_from_outlines_(comb_boundary_offset) // between second wall and infill / other walls
     , max_moveInside_distance2_(offset_from_outlines_ * offset_from_outlines_)
+    , max_move_inside_distance_enlarged2_(std::pow(offset_from_outlines_ + max_move_inside_enlarge_distance_, 2))
     , offset_from_inside_to_outside_(offset_from_outlines_ + travel_avoid_distance)
     , max_crossing_dist2_(
           offset_from_inside_to_outside_ * offset_from_inside_to_outside_
@@ -136,6 +137,47 @@ bool Comb::calc(
         return combing_succeeded;
     }
 
+    // Move start and end point inside the optimal comb boundary
+    // Give more tolerancy when calculating move inside positions, because the target points in this case will be on the borders
+    size_t start_inside_poly_optimal = NO_INDEX;
+    const bool start_inside_optimal
+        = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly_optimal, max_move_inside_distance_enlarged2_);
+
+    size_t end_inside_poly_optimal = NO_INDEX;
+    const bool end_inside_optimal
+        = moveInside(boundary_inside_optimal_, _end_inside, inside_loc_to_line_optimal_.get(), end_point, end_inside_poly_optimal, max_move_inside_distance_enlarged2_);
+
+    size_t start_part_boundary_poly_idx_optimal{};
+    size_t end_part_boundary_poly_idx_optimal{};
+    size_t start_part_idx_optimal
+        = (start_inside_poly_optimal == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(start_inside_poly_optimal, &start_part_boundary_poly_idx_optimal);
+    size_t end_part_idx_optimal
+        = (end_inside_poly_optimal == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(end_inside_poly_optimal, &end_part_boundary_poly_idx_optimal);
+
+    CombPath result_path;
+    bool comb_result;
+
+    if (start_inside_optimal && end_inside_optimal && start_part_idx_optimal == end_part_idx_optimal)
+    {
+        SingleShape part = parts_view_inside_optimal_.assemblePart(start_part_idx_optimal);
+        comb_paths.emplace_back();
+
+        comb_result = LinePolygonsCrossings::comb(
+            part,
+            *inside_loc_to_line_optimal_,
+            start_point,
+            end_point,
+            result_path,
+            -offset_dist_to_get_from_on_the_polygon_to_outside_,
+            max_comb_distance_ignored,
+            fail_on_unavoidable_obstacles);
+        Comb::moveCombPathInside(boundary_inside_minimum_, boundary_inside_optimal_, result_path, comb_paths.back()); // add altered result_path to combPaths.back()
+        // If the endpoint of the travel path changes with combing, then it means that we are moving to an outer wall
+        // and we should unretract before the last travel move when travelling to that outer wall
+        unretract_before_last_travel_move = comb_result && end_point != travel_end_point_before_combing;
+        return comb_result;
+    }
+
     // Move start and end point inside the minimum comb boundary
     size_t start_inside_poly_min = NO_INDEX;
     const bool start_inside_min = moveInside(boundary_inside_minimum_, _start_inside, inside_loc_to_line_minimum_.get(), start_point, start_inside_poly_min);
@@ -148,9 +190,6 @@ bool Comb::calc(
     size_t start_part_idx_min
         = (start_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
     size_t end_part_idx_min = (end_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
-
-    CombPath result_path;
-    bool comb_result;
 
     // normal combing within part using minimum comb boundary
     if (start_inside_min && end_inside_min && start_part_idx_min == end_part_idx_min)
@@ -424,12 +463,23 @@ Comb::Crossing::Crossing(
     }
 }
 
-bool Comb::moveInside(Shape& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& inside_poly)
+bool Comb::moveInside(
+    Shape& boundary_inside,
+    bool is_inside,
+    LocToLineGrid* inside_loc_to_line,
+    Point2LL& dest_point,
+    size_t& inside_poly,
+    const std::optional<coord_t>& max_move_inside_distance_squared)
 {
     if (is_inside)
     {
-        ClosestPointPolygon cpp
-            = PolygonUtils::ensureInsideOrOutside(boundary_inside, dest_point, offset_extra_start_end_, max_moveInside_distance2_, &boundary_inside, inside_loc_to_line);
+        ClosestPointPolygon cpp = PolygonUtils::ensureInsideOrOutside(
+            boundary_inside,
+            dest_point,
+            offset_extra_start_end_,
+            max_move_inside_distance_squared.value_or(max_moveInside_distance2_),
+            &boundary_inside,
+            inside_loc_to_line);
         if (! cpp.isValid())
         {
             return false;
