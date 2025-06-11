@@ -494,6 +494,7 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
     Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
@@ -504,6 +505,7 @@ TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
     Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
@@ -522,6 +524,7 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
     Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     gcode.writeZhopEnd();
@@ -532,6 +535,7 @@ TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
     Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1");
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
