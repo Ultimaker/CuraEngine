@@ -364,7 +364,12 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
 
 Point2LL GCodeExport::getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const
 {
-    return Point2LL(x, y) - extruder_attr_[extruder_train].nozzle_offset_;
+    return Point2LL(x, y) - getNozzleOffset(extruder_train);
+}
+
+Point2LL GCodeExport::getNozzleOffset(const int extruder_train) const
+{
+    return extruder_attr_[extruder_train].nozzle_offset_;
 }
 
 void GCodeExport::setFlavor(EGCodeFlavor flavor)
@@ -1441,6 +1446,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     }
 
     estimate_calculator_.addTime(start_code_duration);
+    current_position_ += getNozzleOffset(new_extruder) - getNozzleOffset(current_extruder_); // Change current position to new extruder coordinates
     current_extruder_ = new_extruder;
 
     assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");

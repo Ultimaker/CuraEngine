@@ -263,6 +263,8 @@ public:
 
     Point2LL getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
 
+    Point2LL getNozzleOffset(const int extruder_train) const;
+
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor() const;
 
