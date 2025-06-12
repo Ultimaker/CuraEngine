@@ -2252,6 +2252,7 @@ void LayerPlan::computeAntiOozeAmounts(
     // Compute the expected retraction/priming distance and duration during travel/z-hop
     AntiOozeIntermediateAmounts intermediate_amounts_retract;
     AntiOozeIntermediateAmounts intermediate_amounts_prime;
+    Velocity retract_speed = retract_settings.speed;
 
     compute_base_anti_ooze_amounts(retract_settings, intermediate_amounts_retract, retraction_amounts);
     compute_base_anti_ooze_amounts(prime_settings, intermediate_amounts_prime, priming_amounts);
@@ -2261,7 +2262,7 @@ void LayerPlan::computeAntiOozeAmounts(
         = intermediate_amounts_retract.expected_duration_during_travel + intermediate_amounts_prime.expected_duration_during_travel;
 
     const double free_time_during_travel = travel_durations.travel.value_ - total_anti_ooze_expected_duration_during_travel.value_;
-    if (free_time_during_travel < 0.0_s)
+    if (free_time_during_travel < 0.0)
     {
         // We won't have enough time to perform retraction and priming during travel, so we will have to retract less
         const Ratio allocated_amount_ratio = (free_time_during_travel / total_anti_ooze_expected_duration_during_travel) + 1.0;
@@ -2272,12 +2273,19 @@ void LayerPlan::computeAntiOozeAmounts(
     {
         intermediate_amounts_retract.actual_amount_during_travel = intermediate_amounts_retract.expected_amount_during_travel;
         intermediate_amounts_prime.actual_amount_during_travel = intermediate_amounts_prime.expected_amount_during_travel;
+
+        if (retraction_config->retraction_config.keep_retracting_during_travel && free_time_during_travel > 0.0)
+        {
+            // We have more than enough time to do the full retract/unretract, so reduce retraction speed so that is lasts during the whole travel
+            const double longer_retraction_duration = intermediate_amounts_retract.expected_duration_during_travel.value_ + free_time_during_travel;
+            retract_speed = intermediate_amounts_retract.actual_amount_during_travel / longer_retraction_duration;
+        }
     }
 
     retraction_amounts->amount_while_travel = retraction_amounts->z_hop.amount + intermediate_amounts_retract.actual_amount_during_travel;
     priming_amounts->amount_while_travel = priming_amounts->z_hop.amount + intermediate_amounts_prime.actual_amount_during_travel;
 
-    computeAntiOozeTravelSplit(gcode, path, retract_settings.speed, intermediate_amounts_retract.actual_amount_during_travel, false, *retraction_amounts);
+    computeAntiOozeTravelSplit(gcode, path, retract_speed, intermediate_amounts_retract.actual_amount_during_travel, false, *retraction_amounts);
     computeAntiOozeTravelSplit(gcode, path, prime_settings.speed, intermediate_amounts_prime.actual_amount_during_travel, true, *priming_amounts);
 
     // Now adjust the amounts of the prime to match the reached amounts of the retract
@@ -3211,6 +3219,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     // Compute how much of the retract/prime we will have to process during stationary/Zhop/travel
                     computeAntiOozeAmounts(gcode, extruder, path, z_hop_height, retraction_config, retraction_amounts, priming_amounts);
+                }
+
+                if (retraction_amounts.has_value() && retraction_amounts.value().segment_split_position.X == 352000)
+                {
+                    spdlog::debug("coucou");
+                    retraction_amounts.value().segment_split_position.X = 352000;
                 }
 
                 if (! gcode.writeRetraction(

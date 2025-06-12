@@ -19,6 +19,7 @@ class RetractionConfig
 public:
     double distance; //!< The distance retracted (in mm)
     Ratio retract_during_travel; //!< The ratio of retraction to be performed while traveling
+    bool keep_retracting_during_travel; //! Whether we should spread the retraction over the whole travel move
     Ratio prime_during_travel; //!< The ratio of priming to be performed while traveling
     Velocity speed; //!< The speed with which to retract (in mm/s)
     Velocity primeSpeed; //!< the speed with which to unretract (in mm/s)
