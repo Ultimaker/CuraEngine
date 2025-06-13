@@ -14,13 +14,14 @@ enum class PrintFeatureType : unsigned char
     SkirtBrim = 5,
     Infill = 6,
     SupportInfill = 7,
-    MoveUnretracted = 8,
-    MoveRetracted = 9,
+    MoveUnretracted = 8, // Travel move while filament not retracted
+    MoveRetracted = 9, // Travel move while filament retracted
     SupportInterface = 10,
     PrimeTower = 11,
-    MoveWhileRetracting = 12,
-    MoveWhileUnretracting = 13,
-    NumPrintFeatureTypes = 14 // this number MUST be the last one because other modules will
+    MoveWhileRetracting = 12, // Travel move while retracting filament at the same time
+    MoveWhileUnretracting = 13, // Travel move while unretracting filament at the same time
+    StationaryRetractUnretract = 14, // Filament being (un)retracted with stationary nozzle
+    NumPrintFeatureTypes = 15 // this number MUST be the last one because other modules will
                               // use this symbol to get the total number of types, which can
                               // be used to create an array or so
 };
