@@ -632,6 +632,7 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
     case PrintFeatureType::MoveRetracted:
     case PrintFeatureType::MoveWhileRetracting:
     case PrintFeatureType::MoveWhileUnretracting:
+    case PrintFeatureType::StationaryRetractUnretract:
     case PrintFeatureType::NoneType:
     case PrintFeatureType::NumPrintFeatureTypes:
         // do nothing
@@ -1183,7 +1184,7 @@ void GCodeExport::writeUnretractionAndPrime()
             estimate_calculator_.plan(
                 TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
                 25.0,
-                PrintFeatureType::MoveRetracted);
+                PrintFeatureType::StationaryRetractUnretract);
         }
         else
         {
@@ -1195,7 +1196,7 @@ void GCodeExport::writeUnretractionAndPrime()
             estimate_calculator_.plan(
                 TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
                 current_speed_,
-                PrintFeatureType::MoveRetracted);
+                PrintFeatureType::StationaryRetractUnretract);
         }
     }
     else if (prime_volume != 0.0)
@@ -1208,7 +1209,7 @@ void GCodeExport::writeUnretractionAndPrime()
         estimate_calculator_.plan(
             TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
             current_speed_,
-            PrintFeatureType::NoneType);
+            PrintFeatureType::StationaryRetractUnretract);
     }
     extruder_attr_[current_extruder_].prime_volume_ = 0.0;
 
@@ -1292,7 +1293,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
                 INT2MM(current_position_.z_),
                 eToMm(current_e_value_ + retraction_amounts.diff_e)),
             25.0,
-            PrintFeatureType::MoveRetracted); // TODO: hardcoded values!
+            PrintFeatureType::StationaryRetractUnretract); // TODO: hardcoded values!
 
         extr_attr.retraction_e_amount_current_ = retraction_amounts.new_e; // suppose that for UM2 the retraction amount in the firmware is equal to the provided amount
     }
@@ -1306,7 +1307,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
         estimate_calculator_.plan(
             TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
             current_speed_,
-            PrintFeatureType::MoveRetracted);
+            PrintFeatureType::StationaryRetractUnretract);
         extr_attr.last_retraction_prime_speed_ = config.primeSpeed;
     }
 
