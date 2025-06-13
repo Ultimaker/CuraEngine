@@ -173,6 +173,7 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .amount_while_travel = 5.0,
                                                                                                    .segment_split_position = Point2LL(100000, 0),
                                                                                                    .amount_by_segment = { 5.0 } } } });
+
     // Single segment, all retraction/prime during travel, no z-hop
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
@@ -191,6 +192,45 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                                                                    .amount_while_travel = 2.0,
                                                                                                    .segment_split_position = Point2LL(80000, 0),
                                                                                                    .amount_by_segment = { 0.0 } } } });
+
+    // Single segment, all retraction during stationary and all prime during travel, but not enough time to prime everything
+    data_sets.push_back(
+        AntiOozeAmountsTestCase{ .data
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                                               .z_hop = { .speed = 50, .height = 0 },
+                                                               .travel = { .path = path_simple, .speed = 100.0 },
+                                                               .retraction = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 10.0 }, .distance = 2.0 },
+                                                               .prime = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 1.0 }, .extra_prime_volume = 0.0 } },
+                                 .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 1.0,
+                                                                                                      .z_hop = ZHopAntiOozing{ .amount = 1.0, .ratio = 0.0_r },
+                                                                                                      .amount_while_travel = 1.0,
+                                                                                                      .segment_split_position = Point2LL(0, 0),
+                                                                                                      .amount_by_segment = { 1.0 } },
+                                                                      .priming = TravelAntiOozing{ .amount_while_still = 0.0,
+                                                                                                   .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
+                                                                                                   .amount_while_travel = 1.0,
+                                                                                                   .segment_split_position = Point2LL(0, 0),
+                                                                                                   .amount_by_segment = { 0.0 } } } });
+
+    // Single segment, all retraction during travel and all prime during stationary, but not enough time to retract everything
+    data_sets.push_back(
+        AntiOozeAmountsTestCase{ .data
+                                 = AntiOozeAmountsTestDataSet{ .printer_capacities = { .firmware_retract = false, .flavor = EGCodeFlavor::MARLIN },
+                                                               .z_hop = { .speed = 50, .height = 0 },
+                                                               .travel = { .path = path_simple, .speed = 100.0 },
+                                                               .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 1.0 }, .distance = 2.0 },
+                                                               .prime = { .config = RetractionBaseConfig{ .during_travel = 0.0_r, .speed = 10.0 }, .extra_prime_volume = 0.0 } },
+                                 .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
+                                                                                                      .z_hop = ZHopAntiOozing{ .amount = 0.0, .ratio = 0.0_r },
+                                                                                                      .amount_while_travel = 1.0,
+                                                                                                      .segment_split_position = Point2LL(100000, 0),
+                                                                                                      .amount_by_segment = { 1.0 } },
+                                                                      .priming = TravelAntiOozing{ .amount_while_still = 1.0,
+                                                                                                   .z_hop = ZHopAntiOozing{ .amount = 1.0, .ratio = 0.0_r },
+                                                                                                   .amount_while_travel = 1.0,
+                                                                                                   .segment_split_position = Point2LL(100000, 0),
+                                                                                                   .amount_by_segment = { 1.0 } } } });
+
     // Single segment, all retraction/prime during travel, no z-hop, extra prime volume
     data_sets.push_back(
         AntiOozeAmountsTestCase{ .data
@@ -368,16 +408,16 @@ std::vector<AntiOozeAmountsTestCase> GetTestCases()
                                                 .travel = { .path = path_corner, .speed = 100.0 },
                                                 .retraction = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .distance = 10.0 },
                                                 .prime = { .config = RetractionBaseConfig{ .during_travel = 1.0_r, .speed = 10.0 }, .extra_prime_volume = 5.0 } },
-            .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = 0.0,
-                                                                                 .z_hop = ZHopAntiOozing{ .amount = 0.2, .ratio = 1.0_r },
-                                                                                 .amount_while_travel = 4.184,
+            .result = AntiOozeAmountsTestResult{ .retraction = TravelAntiOozing{ .amount_while_still = -0.0396,
+                                                                                 .z_hop = ZHopAntiOozing{ .amount = 0.16, .ratio = 1.0_r },
+                                                                                 .amount_while_travel = 4.144,
                                                                                  .segment_split_position = Point2LL(39837, 0),
-                                                                                 .amount_by_segment = { 1.2, 2.2, 3.2, 4.184 } },
-                                                 .priming = TravelAntiOozing{ .amount_while_still = -2.033,
-                                                                              .z_hop = ZHopAntiOozing{ .amount = -1.833, .ratio = 1.0_r },
-                                                                              .amount_while_travel = 4.184,
+                                                                                 .amount_by_segment = { 1.16, 2.16, 3.16, 4.144 } },
+                                                 .priming = TravelAntiOozing{ .amount_while_still = -2.072,
+                                                                              .z_hop = ZHopAntiOozing{ .amount = -1.872, .ratio = 1.0_r },
+                                                                              .amount_while_travel = 4.144,
                                                                               .segment_split_position = Point2LL(39837, 0),
-                                                                              .amount_by_segment = { -1.833, -0.833, 0.167, 1.167, 2.167, 3.167, 4.167 } } } });
+                                                                              .amount_by_segment = { -1.872, -0.872, 0.128, 1.128, 2.128, 3.128, 4.128 } } } });
 
     return data_sets;
 }

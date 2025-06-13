@@ -2265,9 +2265,33 @@ void LayerPlan::computeAntiOozeAmounts(
     if (free_time_during_travel < 0.0)
     {
         // We won't have enough time to perform retraction and priming during travel, so we will have to retract less
-        const Ratio allocated_amount_ratio = (free_time_during_travel / total_anti_ooze_expected_duration_during_travel) + 1.0;
-        intermediate_amounts_retract.actual_amount_during_travel = intermediate_amounts_retract.expected_amount_during_travel * allocated_amount_ratio;
-        intermediate_amounts_prime.actual_amount_during_travel = intermediate_amounts_prime.expected_amount_during_travel * allocated_amount_ratio;
+        const Ratio reduction_ratio = -(free_time_during_travel / total_anti_ooze_expected_duration_during_travel);
+        const double retraction_reduction_amount = intermediate_amounts_retract.expected_amount_during_travel * reduction_ratio;
+        intermediate_amounts_retract.actual_amount_during_travel = intermediate_amounts_retract.expected_amount_during_travel - retraction_reduction_amount;
+        const double prime_reduction_amount = intermediate_amounts_prime.expected_amount_during_travel * reduction_ratio;
+        intermediate_amounts_prime.actual_amount_during_travel = intermediate_amounts_prime.expected_amount_during_travel - prime_reduction_amount;
+
+        // Whatever the settings, what matters is that this ratio always remains while we reduce the amounts globally, so reduce the stationary steps if required
+        const double expected_prime_retract_ratio = prime_settings.distance / retract_settings.distance;
+        const double reduced_retract_distance = retract_settings.distance - retraction_reduction_amount;
+        const double reduced_prime_distance = prime_settings.distance - prime_reduction_amount;
+        const double reduced_prime_ratio = reduced_prime_distance / reduced_retract_distance;
+        if (reduced_prime_ratio < expected_prime_retract_ratio)
+        {
+            // We can't prime enough to respect the ratio, so we will have to retract less
+            const double expected_reduced_retract_distance = reduced_prime_distance / expected_prime_retract_ratio;
+            const double stationary_retract_reduction = reduced_retract_distance - expected_reduced_retract_distance;
+            retraction_amounts->amount_while_still -= stationary_retract_reduction;
+            retraction_amounts->z_hop.amount -= stationary_retract_reduction;
+        }
+        else if (reduced_prime_ratio > expected_prime_retract_ratio)
+        {
+            // We can't retract enough to respect the ratio, so we will have to prime less
+            const double expected_reduced_prime_distance = reduced_retract_distance * expected_prime_retract_ratio;
+            const double stationary_prime_reduction = reduced_prime_distance - expected_reduced_prime_distance;
+            priming_amounts->amount_while_still -= stationary_prime_reduction;
+            priming_amounts->z_hop.amount -= stationary_prime_reduction;
+        }
     }
     else
     {
