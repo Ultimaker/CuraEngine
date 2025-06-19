@@ -130,6 +130,9 @@ private:
     const coord_t offset_from_outlines_; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     const coord_t
         max_moveInside_distance2_; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    const coord_t max_move_inside_distance_enlarged2_; //!< Enlarged distance for moving points inside, useful when checking for points that are likely to be close to the limit and
+                                                       //!< should be accepted
+    static constexpr coord_t max_move_inside_enlarge_distance_ = 250; //!< Distance to enlarge the move_inside distance with for specific cases with on-border issues
     const coord_t offset_from_inside_to_outside_; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
     const coord_t max_crossing_dist2_; //!< The maximal distance by which to cross the in_between area between inside and outside
     static const coord_t max_moveOutside_distance2_ = std::numeric_limits<coord_t>::max(); //!< Any point which is not inside should be considered outside.
@@ -177,9 +180,16 @@ private:
      * \param inside_loc_to_line[in] A SparseGrid mapping locations to line segments of \p polygons
      * \param dest_point[in,out] The point to move
      * \param start_inside_poly[out] The polygon in which the point has been moved
+     * \param max_move_inside_distance_squared[in] A specific maximum tolerated (squared) distance to move inside the boundaries, or nullopt to use the global one
      * \return Whether we have moved the point inside
      */
-    bool moveInside(Shape& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& start_inside_poly);
+    bool moveInside(
+        Shape& boundary_inside,
+        bool is_inside,
+        LocToLineGrid* inside_loc_to_line,
+        Point2LL& dest_point,
+        size_t& start_inside_poly,
+        const std::optional<coord_t>& max_move_inside_distance_squared = std::nullopt);
 
     void moveCombPathInside(Shape& boundary_inside, Shape& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
 
