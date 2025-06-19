@@ -97,8 +97,8 @@ public:
                     return p1 < p2;
                 });
         };
-        std::sort(shape1.begin(), shape1.end(), poly_cmp);
-        std::sort(shape2.begin(), shape2.end(), poly_cmp);
+        std::stable_sort(shape1.begin(), shape1.end(), poly_cmp);
+        std::stable_sort(shape2.begin(), shape2.end(), poly_cmp);
 
         LinesSet<Polygon> difference;
         std::set_difference(shape1.begin(), shape1.end(), shape2.begin(), shape2.end(), std::back_inserter(difference), poly_cmp);

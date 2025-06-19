@@ -86,7 +86,7 @@ public:
         }
 
         // Sort the polylines by their projection on the monotonic vector. This helps find adjacent lines quickly.
-        std::sort(
+        std::stable_sort(
             polylines.begin(),
             polylines.end(),
             [this](Path* a, Path* b)
