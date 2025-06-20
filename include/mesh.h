@@ -102,12 +102,19 @@ private:
     size_t bytes_per_row_{ 0 };
 };
 
+/*!
+ * Describes a bit field in a pixel of a texture, as many different features may be included inside a single pixel
+ * For more details, see https://github.com/Ultimaker/Cura/wiki/Painting-data-storage
+ */
 struct TextureBitField
 {
     size_t bit_range_start_index{ 0 }; // The index of the first bit of the field
     size_t bit_range_end_index{ 0 }; // The index of the last bit of the field
 };
 
+/*!
+ * Gives the bit fields description of every feature stored in the texture
+ */
 using TextureDataMapping = std::map<std::string, TextureBitField>;
 
 /*!
@@ -132,6 +139,15 @@ public:
     Mesh(Settings& parent);
     Mesh();
 
+    /*!
+     *
+     * @param v0 The 3D coordinates of vertex 0
+     * @param v1 The 3D coordinates of vertex 1
+     * @param v2 The 3D coordinates of vertex 2
+     * @param uv0 The optional UV coordinates of vertex 0
+     * @param uv1 The optional UV coordinates of vertex 1
+     * @param uv2 The optional UV coordinates of vertex 2
+     */
     void addFace(
         const Point3LL& v0,
         const Point3LL& v1,
