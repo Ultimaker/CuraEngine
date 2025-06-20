@@ -55,7 +55,7 @@ bool LinePolygonsCrossings::calcScanlineCrossings(bool fail_on_unavoidable_obsta
         }
     }
     // order crossings by increasing x
-    std::sort(
+    std::stable_sort(
         crossings_.begin(),
         crossings_.end(),
         [](const Crossing& a, const Crossing& b) -> bool

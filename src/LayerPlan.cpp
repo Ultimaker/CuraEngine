@@ -620,7 +620,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     for (const OverhangMask& overhang_region : overhang_masks_ | ranges::views::drop_last(1))
     {
         std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start, end);
-        ranges::sort(intersections);
+        ranges::stable_sort(intersections);
         speed_regions_intersections.push_back(intersections);
     }
 
@@ -1079,7 +1079,7 @@ void LayerPlan::addWallLine(
                     std::reverse(line_poly.begin(), line_poly.end());
                 }
             }
-            std::sort(
+            std::stable_sort(
                 skin_line_segments.begin(),
                 skin_line_segments.end(),
                 [&](auto& a, auto& b)
@@ -1187,16 +1187,8 @@ void LayerPlan::addWallLine(
 
                 if (bridge_line_len > min_line_len)
                 {
-                    addExtrusionMoveWithGradualOverhang(
-                        b1,
-                        bridge_config,
-                        SpaceFillType::Polygons,
-                        flow,
-                        width_factor,
-                        spiralize,
-                        1.0_r,
-                        GCodePathConfig::FAN_SPEED_DEFAULT,
-                        travel_to_z);
+                    addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
+
                     non_bridge_line_volume = 0;
                     cur_point = b1;
                     // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag

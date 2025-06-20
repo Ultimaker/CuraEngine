@@ -431,7 +431,7 @@ void SierpinskiFill::balanceErrors(std::list<SierpinskiFill::SierpinskiTriangle*
     {
         order.emplace_back(node_idx);
     }
-    std::sort(
+    std::stable_sort(
         order.begin(),
         order.end(),
         [&nodes](int a, int b)
