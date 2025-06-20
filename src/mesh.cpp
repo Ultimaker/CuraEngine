@@ -37,7 +37,13 @@ Mesh::Mesh()
 {
 }
 
-void Mesh::addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2)
+void Mesh::addFace(
+    const Point3LL& v0,
+    const Point3LL& v1,
+    const Point3LL& v2,
+    const std::optional<Point2F>& uv0,
+    const std::optional<Point2F>& uv1,
+    const std::optional<Point2F>& uv2)
 {
     int vi0 = findIndexOfVertex(v0);
     int vi1 = findIndexOfVertex(v1);
@@ -51,6 +57,9 @@ void Mesh::addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2)
     face.vertex_index_[0] = vi0;
     face.vertex_index_[1] = vi1;
     face.vertex_index_[2] = vi2;
+    face.uv_coordinates_[0] = uv0;
+    face.uv_coordinates_[1] = uv1;
+    face.uv_coordinates_[2] = uv2;
     vertices_[face.vertex_index_[0]].connected_faces_.push_back(idx);
     vertices_[face.vertex_index_[1]].connected_faces_.push_back(idx);
     vertices_[face.vertex_index_[2]].connected_faces_.push_back(idx);

@@ -5,6 +5,11 @@
 
 #include "communication/ArcusCommunicationPrivate.h"
 
+#include <png.h>
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/memorystream.h>
+
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
@@ -102,7 +107,8 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
     Matrix4x3D matrix;
     for (const cura::proto::Object& object : mesh_group_message.objects())
     {
-        const size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
+        constexpr size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
+        constexpr size_t bytes_per_uv = sizeof(Point2F) * 3; // 3 vectors per face.
         const size_t face_count = object.vertices().size() / bytes_per_face;
 
         if (face_count <= 0)
@@ -126,12 +132,149 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         {
             const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
             const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
+            const std::string uv_coordinates_str = object.uv_coordinates().empty() ? "" : object.uv_coordinates().substr(face * bytes_per_uv, bytes_per_uv);
+            const Point2F* uv_coordinates_data = uv_coordinates_str.empty() ? nullptr : reinterpret_cast<const Point2F*>(uv_coordinates_str.data());
 
             Point3LL verts[3];
             verts[0] = matrix.apply(float_vertices[0].toPoint3d());
             verts[1] = matrix.apply(float_vertices[1].toPoint3d());
             verts[2] = matrix.apply(float_vertices[2].toPoint3d());
-            mesh.addFace(verts[0], verts[1], verts[2]);
+
+            std::optional<Point2F> uv_coordinates[3];
+            if (uv_coordinates_data)
+            {
+                uv_coordinates[0] = uv_coordinates_data[0];
+                uv_coordinates[1] = uv_coordinates_data[1];
+                uv_coordinates[2] = uv_coordinates_data[2];
+            }
+
+            mesh.addFace(verts[0], verts[1], verts[2], uv_coordinates[0], uv_coordinates[1], uv_coordinates[2]);
+        }
+
+        const std::string& texture_str = object.texture();
+        if (! texture_str.empty())
+        {
+            auto texture_data = reinterpret_cast<const unsigned char*>(texture_str.data());
+            const size_t texture_size = texture_str.size();
+
+            png_image raw_texture = {};
+            raw_texture.version = PNG_IMAGE_VERSION;
+            if (png_image_begin_read_from_memory(&raw_texture, texture_data, texture_size))
+            {
+                std::vector<uint8_t> buffer(PNG_IMAGE_SIZE(raw_texture));
+                if (png_image_finish_read(&raw_texture, nullptr, buffer.data(), 0, nullptr))
+                {
+                    png_structp png_ptr = png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr);
+                    png_infop info_ptr = png_create_info_struct(png_ptr);
+                    if (! buffer.empty() && png_ptr && info_ptr)
+                    {
+                        for (size_t i = 0; i < buffer.size(); ++i)
+                        {
+                            uint8_t value = buffer[i];
+                            if (value)
+                            {
+                                spdlog::info("{} {}", i, value);
+                            }
+                        }
+
+                        TextureDataMapping texture_data_mapping;
+                        if (setjmp(png_jmpbuf(png_ptr)) == 0)
+                        {
+                            struct PngReadContext
+                            {
+                                const unsigned char* data;
+                                size_t size;
+                                size_t offset;
+                            } read_context{ texture_data, texture_size, 0 };
+
+                            png_set_read_fn(
+                                png_ptr,
+                                &read_context,
+                                [](const png_structp read_png_ptr, const png_bytep out_bytes, const png_size_t byte_count_to_read)
+                                {
+                                    auto* context = static_cast<PngReadContext*>(png_get_io_ptr(read_png_ptr));
+                                    if (context->offset + byte_count_to_read > context->size)
+                                    {
+                                        png_error(read_png_ptr, "Read beyond end of buffer");
+                                    }
+                                    memcpy(out_bytes, context->data + context->offset, byte_count_to_read);
+                                    context->offset += byte_count_to_read;
+                                });
+                            png_read_info(png_ptr, info_ptr);
+
+                            png_textp text_ptr;
+                            int num_text;
+                            if (png_get_text(png_ptr, info_ptr, &text_ptr, &num_text) > 0)
+                            {
+                                for (int i = 0; i < num_text; ++i)
+                                {
+                                    if (std::string(text_ptr[i].key) == "Description")
+                                    {
+                                        rapidjson::MemoryStream json_memory_stream(text_ptr[i].text, text_ptr[i].text_length);
+
+                                        rapidjson::Document json_document;
+                                        json_document.ParseStream(json_memory_stream);
+                                        if (json_document.HasParseError())
+                                        {
+                                            spdlog::error(
+                                                "Error parsing texture data mapping (offset {}): {}",
+                                                json_document.GetErrorOffset(),
+                                                GetParseError_En(json_document.GetParseError()));
+                                        }
+
+                                        for (auto it = json_document.MemberBegin(); it != json_document.MemberEnd(); ++it)
+                                        {
+                                            std::string feature_name = it->name.GetString();
+
+                                            TextureBitField bit_field;
+                                            const rapidjson::Value& array = it->value;
+                                            if (array.IsArray() && array.Size() == 2)
+                                            {
+                                                bit_field.bit_range_start_index = array[0].GetInt();
+                                                bit_field.bit_range_end_index = array[1].GetInt();
+
+                                                texture_data_mapping[feature_name] = bit_field;
+                                            }
+                                        }
+
+                                        break;
+                                    }
+                                }
+                            }
+                        }
+                        png_destroy_read_struct(&png_ptr, &info_ptr, nullptr);
+
+                        if (! texture_data_mapping.empty())
+                        {
+                            mesh.texture_ = Image(
+                                raw_texture.width,
+                                raw_texture.height,
+                                PNG_IMAGE_SAMPLE_COMPONENT_SIZE(raw_texture.format) * PNG_IMAGE_SAMPLE_CHANNELS(raw_texture.format),
+                                std::move(buffer));
+                            mesh.texture_data_mapping_ = texture_data_mapping;
+                            for (size_t x = 0; x < mesh.texture_.getHeight(); ++x)
+                            {
+                                for (size_t y = 0; y < mesh.texture_.getWidth(); ++y)
+                                {
+                                    const auto pixel = mesh.texture_.getPixel(x, y);
+                                    if (pixel)
+                                    {
+                                        spdlog::info("{} {} {}", x, y, pixel);
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+                else
+                {
+                    spdlog::error("Error when finishing reading mesh texture: {}", raw_texture.message);
+                }
+            }
+            else
+            {
+                spdlog::error("Error when beginning reading mesh texture: {}", raw_texture.message);
+            }
         }
 
         mesh.mesh_name_ = object.name();
