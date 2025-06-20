@@ -57,6 +57,8 @@ class LayerPlan : public NoCopy
 #ifdef BUILD_TESTS
     friend class AddTravelTest;
     friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    friend class AntiOozeAmountsTest;
+    FRIEND_TEST(AntiOozeAmountsTest, ComputeAntiOozeAmounts);
 #endif
 
 public:
@@ -84,6 +86,36 @@ private:
         ApplyCoasting apply_coasting{ ApplyCoasting::NoCoasting };
         size_t coasting_start_index{ 0 };
         Point3LL coasting_start_pos;
+    };
+
+    struct TravelDurations
+    {
+        Duration z_hop; //!< The duration of the Z hop start and end
+        Duration travel; //!< The duration of the full travel
+    };
+
+    struct AntiOozeSettings
+    {
+        double distance;
+        Velocity speed;
+        Ratio during_travel_ratio;
+    };
+
+    struct AntiOozeIntermediateAmounts
+    {
+        Ratio actual_during_travel_ratio;
+        Duration total_expected_duration;
+        Duration expected_duration_during_travel;
+        double expected_amount_during_travel;
+        double actual_amount_during_travel;
+    };
+
+    enum class TravelRetractionState
+    {
+        None, // There is no retraction/prime
+        Retracting, // We are retracting while traveling
+        Travelling, // We are traveling, but neither retracting nor priming, just moving
+        Priming, // We are priming while traveling
     };
 
     const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
@@ -858,9 +890,15 @@ private:
      *  @param position The position to move to. The Z coordinate is an offset to the current layer position
      *  @param speed The actual used speed
      *  @param path_z_offset The global path Z offset to be applied
+     *  @param retract_distance The absolute retraction distance to be reached during this travel move, or nullopt to leave it unchanged
      *  @note This function is to be used when dealing with 3D coordinates. If you have 2D coordinates, just call gcode.writeTravel()
      */
-    void writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset);
+    void writeTravelRelativeZ(
+        GCodeExport& gcode,
+        const Point3LL& position,
+        const Velocity& speed,
+        const coord_t path_z_offset,
+        const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * \brief Write an extrusion move and properly apply the various Z offsets
@@ -1042,6 +1080,72 @@ private:
      * \return The distance from the start of the current wall line to the first bridge segment
      */
     coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const;
+
+    /*!
+     * Compute the Z-hop and travel duration for the given travel path
+     * @param gcode The gcode exporter, which we need to get the current nozzle position
+     * @param extruder The current extruder, for which we need the settings
+     * @param path The travel path we want the durations of
+     * @param z_hop_height The Z-hop height
+     * @return The computed path durations
+     */
+    static TravelDurations computeTravelDurations(const GCodeExport& gcode, const ExtruderTrain& extruder, const GCodePath& path, const coord_t z_hop_height);
+
+    /*!
+     * Compute the anti-ooze (retraction and priming) amounts to be processed during stationary/Z-hop/travel steps
+     * @param gcode The gcode exporter
+     * @param extruder The current extruder
+     * @param path The raw travel path to be exported
+     * @param z_hop_height The Z-hop height
+     * @param retraction_config The retraction/priming configuration to be used
+     * @param retraction_amounts The retraction amounts to be set
+     * @param priming_amounts The priming amounts to be set
+     */
+    static void computeAntiOozeAmounts(
+        const GCodeExport& gcode,
+        const ExtruderTrain& extruder,
+        const GCodePath& path,
+        const coord_t z_hop_height,
+        const RetractionAndWipeConfig* retraction_config,
+        std::optional<TravelAntiOozing>& retraction_amounts,
+        std::optional<TravelAntiOozing>& priming_amounts);
+
+    /*!
+     * Compute the anti-ooze amounts to be processed during stationary/Z-hop/travel steps for either a retraction or a priming
+     * @param travel_durations The pre-calculated travel durations
+     * @param gcode The gcode exporter
+     * @param path The raw travel path to be exported
+     * @param settings The anti-ooze settings to be applied
+     * @param reversed Indicates if we should process the path forwards (retraction at the beginning) or backwards (prime at the end)
+     */
+    static void computeAntiOozeTravelSplit(
+        const GCodeExport& gcode,
+        const GCodePath& path,
+        const Velocity& speed,
+        const double amount_during_travel,
+        const bool reversed,
+        TravelAntiOozing& anti_oozing);
+
+    /*!
+     * Write a single travel segment, taking care of the retraction and priming during travel
+     * @param travel_retraction_state The current travel retraction state, which may be updated
+     * @param gcode The gcode exporter
+     * @param path The full travel path being written
+     * @param retraction_amounts The pre-calculated retraction amounts to be processed during this travel move
+     * @param priming_amounts The pre-calculated priming amounts to be processed during this travel move
+     * @param speed The travel speed
+     * @param point_index The index of the current point in the path to be written
+     * @warning When travel_retraction_state is None, retraction_amounts and priming_amounts may be std::nullopt, however if it is anything different,
+     *          it is assumed that they both have a value.
+     */
+    void writeTravelSegment(
+        TravelRetractionState& travel_retraction_state,
+        GCodeExport& gcode,
+        const GCodePath& path,
+        const std::optional<TravelAntiOozing>& retraction_amounts,
+        const std::optional<TravelAntiOozing>& priming_amounts,
+        const Velocity& speed,
+        const size_t point_index);
 };
 
 } // namespace cura

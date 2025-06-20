@@ -12,6 +12,7 @@
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
+#include "TravelAntiOozing.h"
 #include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
@@ -21,6 +22,7 @@
 #include "timeEstimate.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
+#include "utils/string.h"
 
 namespace cura
 {
@@ -36,6 +38,7 @@ class GCodeExport : public NoCopy
 #ifdef BUILD_TESTS
     friend class GCodeExportTest;
     friend class GriffinHeaderTest;
+    friend class AntiOozeAmountsTest;
     FRIEND_TEST(GCodeExportTest, CommentEmpty);
     FRIEND_TEST(GCodeExportTest, CommentSimple);
     FRIEND_TEST(GCodeExportTest, CommentMultiLine);
@@ -113,6 +116,23 @@ private:
         {
         }
     };
+
+    struct RetractionAmounts
+    {
+        double old_e{ 0.0 }; // The previous absolute retraction amount
+        double new_e{ 0.0 }; // The new absolute retraction amount
+        double diff_e{ 0.0 }; // The difference between the new and previous amount, which is to be processed. Positive means retraction.
+
+        /*!
+         * Indicates whether this retraction actually has something to process
+         */
+        [[nodiscard]] bool has_retraction() const noexcept
+        {
+            constexpr double threshold{ 1e-6 };
+            return std::abs(diff_e) >= threshold;
+        }
+    };
+
     ExtruderTrainAttributes extruder_attr_[MAX_EXTRUDERS];
     bool use_extruder_offset_to_offset_coords_;
     std::string machine_name_;
@@ -149,6 +169,7 @@ private:
     coord_t current_layer_z_;
     coord_t is_z_hopped_; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with
                           //!< other layer parts)
+    std::optional<ZHopAntiOozing> z_hop_prime_leftover_; //!< The leftover priming from a previous travel move that should be processed while z-hopping down
 
     size_t current_extruder_;
     std::map<size_t, double> current_fans_speeds_; //!< Current fan speed, by fan index. No value means the speed has never been set yet.
@@ -183,17 +204,6 @@ protected:
     double eToMm(double e);
 
     /*!
-     * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
-     *
-     * E values are either in mm or in mm^3
-     * The current extruder is used to determine the filament area to make the conversion.
-     *
-     * \param mm3 the value to convert
-     * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
-     */
-    double mm3ToE(double mm3);
-
-    /*!
      * Convert a distance value to an E value (which might be linear/distance based as well) for the current extruder.
      *
      * E values are either in mm or in mm^3
@@ -202,7 +212,7 @@ protected:
      * \param mm the value to convert
      * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
      */
-    double mmToE(double mm);
+    double mmToE(double mm) const;
 
     /*!
      * Convert an E value to a value in mm3 (if it wasn't already in mm3) for the provided extruder.
@@ -252,6 +262,8 @@ public:
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
     Point2LL getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
+
+    Point2LL getNozzleOffset(const int extruder_train) const;
 
     void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor() const;
@@ -368,8 +380,9 @@ public:
      *
      * \param p location to go to
      * \param speed movement speed
+     *  \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const Point3LL& p, const Velocity& speed);
+    void writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Go to a X/Y location with the extrusion Z
@@ -414,6 +427,17 @@ public:
      */
     void flushOutputStream();
 
+    /*!
+     * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
+     *
+     * E values are either in mm or in mm^3
+     * The current extruder is used to determine the filament area to make the conversion.
+     *
+     * \param mm3 the value to convert
+     * \return the value converted to mm or mm3 depending on whether the E axis is volumetric
+     */
+    double mm3ToE(double mm3) const;
+
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -422,8 +446,9 @@ private:
      * \param y build plate y
      * \param z build plate z
      * \param speed movement speed
+     * \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed);
+    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Perform un-z-hop
@@ -458,7 +483,14 @@ private:
      * It estimates the time in \ref GCodeExport::estimateCalculator for the correct feature
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
-    void writeFXYZE(const Velocity& speed, const coord_t x, const coord_t y, const coord_t z, const double e, const PrintFeatureType& feature);
+    void writeFXYZE(
+        const Velocity& speed,
+        const coord_t x,
+        const coord_t y,
+        const coord_t z,
+        const double e,
+        const PrintFeatureType& feature,
+        const std::optional<RetractionAmounts>& retraction_amounts = std::nullopt);
 
     /*!
      * The writeTravel and/or writeExtrusion when flavor == BFB
@@ -485,6 +517,31 @@ private:
      */
     void processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr);
 
+    /*!
+     * Write a stationary or travelling retraction/unretraction and set the proper associated internal variables
+     * @param retraction_amounts The retraction amounts to be applied
+     */
+    void writeRawRetract(const RetractionAmounts& retraction_amounts);
+
+    /*!
+     * Compute the appropriate retraction amounts according to the given extruder and retraction distance to reach
+     * @param extruder_attributes The extruder to be used
+     * @param distance The absolute retraction distance to be reached
+     * @return The calculated retraction amounts
+     */
+    RetractionAmounts computeRetractionAmounts(const ExtruderTrainAttributes& extruder_attributes, const double distance) const;
+
+    /*!
+     * Start or end a z hop
+     * \param speed The speed used for moving, or 0 to take the default speed
+     * \param height The actual height to be reached, relative to the current layer height
+     * \param retract_distance The absolute retraction distance to be reached while doing the z-hop move, or nullopt to leave it unchanged
+     */
+    void writeZhop(Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
+
+    static PrintFeatureType
+        sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
+
 public:
     /*!
      * Get ready for extrusion moves:
@@ -495,22 +552,37 @@ public:
      * It updates \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
     void writeUnretractionAndPrime();
-    void writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false);
+
+    /*!
+     * Write a stationary retraction
+     * @param config The retraction configuration to be used
+     * @param force Indicates whether we should force the retraction to happen regardless of the maximum allowed retraction count
+     * @param extruder_switch Indicates whether we retract for an extruder switch
+     * @param retract_distance A specific absolute retraction distance to be used, or nullopt to use the one in the config
+     * @return True if the retraction has been processed normally, false if it was skipped because of limitations
+     */
+    bool writeRetraction(const RetractionConfig& config, bool force = false, bool extruder_switch = false, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Start a z hop with the given \p hop_height.
      *
      * \param hop_height The height to move above the current layer.
      * \param speed The speed used for moving.
+     * \param retract_distance The absolute retract distance to be reached during the z-hop move, or nullopt to leave it unchanged
+     * \param retract_ratio This is the ratio of the complete z-hop move that should be used to process the retraction. If >0 and <1 then the z-hop move
+     *                      will actually be split in two part, one with retraction and one without.
      */
-    void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0);
+    void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0, std::optional<double> retract_distance = std::nullopt, const Ratio& retract_ratio = 0.0_r);
 
     /*!
      * End a z hop: go back to the layer height
      *
      * \param speed The speed used for moving.
+     * \param prime_distance The absolute prime distance to be reached during the z-hop move, or nullopt to leave it unchanged
+     * \param prime_ratio This is the ratio of the complete z-hop move that should be used to process the priming. If >0 and <1 then the z-hop move
+     *                    will actually be split in two part, one without priming and one with.
      */
-    void writeZhopEnd(Velocity speed = 0.0);
+    void writeZhopEnd(Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> prime_distance = std::nullopt, const Ratio& prime_ratio = 0.0_r);
 
     /*!
      * Start the new_extruder:
@@ -650,6 +722,16 @@ public:
      * \param wipe_config Config with wipe script settings.
      */
     void insertWipeScript(const WipeScriptConfig& wipe_config);
+
+    /*!
+     * Set the priming leftover to be processed during the next z-hop end
+     */
+    void setZHopPrimeLeftover(const ZHopAntiOozing& z_hop_prime_leftover);
+
+    /*!
+     * Indicates whether the printer handles the retraction/priming, totally or with specific commands
+     */
+    bool machineHandlesRetraction() const;
 };
 
 } // namespace cura

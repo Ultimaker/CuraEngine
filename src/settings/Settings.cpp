@@ -41,7 +41,7 @@ Settings::Settings()
     parent = nullptr; // Needs to be properly initialised because we check against this if the parent is not set.
 }
 
-void Settings::add(const std::string& key, const std::string value)
+void Settings::add(const std::string& key, const std::string& value)
 {
     if (settings.find(key) != settings.end()) // Already exists.
     {

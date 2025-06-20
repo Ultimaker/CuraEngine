@@ -94,17 +94,19 @@ TEST_F(GCodeExportTest, CommentSimple)
 
 TEST_F(GCodeExportTest, CommentMultiLine)
 {
-    gcode.writeComment("If you catch a chinchilla in Chile\n"
-                       "And cut off its beard, willy-nilly\n"
-                       "You can honestly say\n"
-                       "You made on that day\n"
-                       "A Chilean chinchilla's chin chilly");
+    gcode.writeComment(
+        "If you catch a chinchilla in Chile\n"
+        "And cut off its beard, willy-nilly\n"
+        "You can honestly say\n"
+        "You made on that day\n"
+        "A Chilean chinchilla's chin chilly");
     EXPECT_EQ(
-        std::string(";If you catch a chinchilla in Chile\n"
-                    ";And cut off its beard, willy-nilly\n"
-                    ";You can honestly say\n"
-                    ";You made on that day\n"
-                    ";A Chilean chinchilla's chin chilly\n"),
+        std::string(
+            ";If you catch a chinchilla in Chile\n"
+            ";And cut off its beard, willy-nilly\n"
+            ";You can honestly say\n"
+            ";You made on that day\n"
+            ";A Chilean chinchilla's chin chilly\n"),
         output.str())
         << "Each line must be preceded by a semicolon.";
 }
@@ -115,9 +117,10 @@ TEST_F(GCodeExportTest, CommentMultiple)
     gcode.writeComment("Very very frightening me");
     gcode.writeComment(" - Galileo (1638)");
     EXPECT_EQ(
-        std::string(";Thunderbolt and lightning\n"
-                    ";Very very frightening me\n"
-                    "; - Galileo (1638)\n"),
+        std::string(
+            ";Thunderbolt and lightning\n"
+            ";Very very frightening me\n"
+            "; - Galileo (1638)\n"),
         output.str())
         << "Semicolon before each line, and newline in between.";
 }
@@ -145,7 +148,8 @@ TEST_F(GCodeExportTest, CommentTypeAllTypesCovered)
     for (auto type = static_cast<PrintFeatureType>(0); type < PrintFeatureType::NumPrintFeatureTypes; type = static_cast<PrintFeatureType>(static_cast<size_t>(type) + 1))
     {
         gcode.writeTypeComment(type);
-        if (type == PrintFeatureType::MoveCombing || type == PrintFeatureType::MoveRetraction)
+        if (type == PrintFeatureType::MoveUnretracted || type == PrintFeatureType::MoveRetracted || type == PrintFeatureType::MoveWhileRetracting
+            || type == PrintFeatureType::MoveWhileUnretracting)
         {
             EXPECT_EQ(std::string(""), output.str()) << "Travel moves shouldn't output a type.";
         }
@@ -490,6 +494,7 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
     Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
@@ -500,6 +505,7 @@ TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
     Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
@@ -518,6 +524,7 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
     Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     gcode.writeZhopEnd();
@@ -528,6 +535,7 @@ TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
     Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1");
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.

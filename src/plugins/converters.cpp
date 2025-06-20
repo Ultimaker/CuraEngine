@@ -328,14 +328,20 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         return v0::PrintFeature::INFILL;
     case PrintFeatureType::SupportInfill:
         return v0::PrintFeature::SUPPORTINFILL;
-    case PrintFeatureType::MoveCombing:
-        return v0::PrintFeature::MOVECOMBING;
-    case PrintFeatureType::MoveRetraction:
-        return v0::PrintFeature::MOVERETRACTION;
+    case PrintFeatureType::MoveUnretracted:
+        return v0::PrintFeature::MOVEUNRETRACTED;
+    case PrintFeatureType::MoveRetracted:
+        return v0::PrintFeature::MOVERETRACTED;
     case PrintFeatureType::SupportInterface:
         return v0::PrintFeature::SUPPORTINTERFACE;
     case PrintFeatureType::PrimeTower:
         return v0::PrintFeature::PRIMETOWER;
+    case PrintFeatureType::MoveWhileRetracting:
+        return v0::PrintFeature::MOVEWHILERETRACTING;
+    case PrintFeatureType::MoveWhileUnretracting:
+        return v0::PrintFeature::MOVEWHILEUNRETRACTING;
+    case PrintFeatureType::StationaryRetractUnretract:
+        return v0::PrintFeature::STATIONARYRETRACTUNRETRACT;
     case PrintFeatureType::NumPrintFeatureTypes:
         return v0::PrintFeature::NUMPRINTFEATURETYPES;
     default:
@@ -412,14 +418,20 @@ gcode_paths_modify_request::value_type
         return PrintFeatureType::Infill;
     case v0::PrintFeature::SUPPORTINFILL:
         return PrintFeatureType::SupportInfill;
-    case v0::PrintFeature::MOVECOMBING:
-        return PrintFeatureType::MoveCombing;
-    case v0::PrintFeature::MOVERETRACTION:
-        return PrintFeatureType::MoveRetraction;
+    case v0::PrintFeature::MOVEUNRETRACTED:
+        return PrintFeatureType::MoveUnretracted;
+    case v0::PrintFeature::MOVERETRACTED:
+        return PrintFeatureType::MoveRetracted;
     case v0::PrintFeature::SUPPORTINTERFACE:
         return PrintFeatureType::SupportInterface;
     case v0::PrintFeature::PRIMETOWER:
         return PrintFeatureType::PrimeTower;
+    case v0::PrintFeature::MOVEWHILERETRACTING:
+        return PrintFeatureType::MoveWhileRetracting;
+    case v0::PrintFeature::MOVEWHILEUNRETRACTING:
+        return PrintFeatureType::MoveWhileUnretracting;
+    case v0::PrintFeature::STATIONARYRETRACTUNRETRACT:
+        return PrintFeatureType::StationaryRetractUnretract;
     case v0::PrintFeature::NUMPRINTFEATURETYPES:
         return PrintFeatureType::NumPrintFeatureTypes;
     default:
