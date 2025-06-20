@@ -89,6 +89,8 @@ message Polygon {
         PrimeTowerType = 11;
         MoveWhileRetracting = 12;
         MoveWhileUnretracting = 13;
+        StationaryRetractUnretract = 14;
+        NumPrintFeatureTypes = 15;
     }
     Type type = 1; // Type of move
     bytes points = 2; // The points of the polygon, or two points if only a line segment (Currently only line segments are used)
