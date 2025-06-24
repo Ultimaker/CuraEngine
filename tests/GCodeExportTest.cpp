@@ -149,7 +149,7 @@ TEST_F(GCodeExportTest, CommentTypeAllTypesCovered)
     {
         gcode.writeTypeComment(type);
         if (type == PrintFeatureType::MoveUnretracted || type == PrintFeatureType::MoveRetracted || type == PrintFeatureType::MoveWhileRetracting
-            || type == PrintFeatureType::MoveWhileUnretracting)
+            || type == PrintFeatureType::MoveWhileUnretracting || type == PrintFeatureType::StationaryRetractUnretract)
         {
             EXPECT_EQ(std::string(""), output.str()) << "Travel moves shouldn't output a type.";
         }
