@@ -542,6 +542,8 @@ private:
     static PrintFeatureType
         sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
 
+    void writeSetExtruder(const size_t extruder_nr);
+
 public:
     /*!
      * Get ready for extrusion moves:

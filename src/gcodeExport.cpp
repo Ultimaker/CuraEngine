@@ -711,9 +711,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 
     if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     {
-        std::ostringstream tmp;
-        tmp << "T" << start_extruder_nr;
-        writeLine(tmp.str().c_str());
+        writeSetExtruder(start_extruder_nr);
     }
     else
     {
@@ -885,9 +883,7 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
     default:
         if (used_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP || ! extruders_used[0])
         {
-            std::ostringstream tmp;
-            tmp << "T" << start_extruder_nr;
-            writeLine(tmp.str().c_str());
+            writeSetExtruder(start_extruder_nr);
         }
         break;
     }
@@ -1406,6 +1402,22 @@ PrintFeatureType
     return travel_move_type;
 }
 
+void GCodeExport::writeSetExtruder(const size_t extruder_nr)
+{
+    const Settings& settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
+    if (settings.get<bool>("machine_use_material_station"))
+    {
+        // Instead of changing the extruder, select the proper material in the station
+        const auto material_guid = settings.get<std::string>("material_guid");
+        *output_stream_ << "T0" << new_line_;
+        *output_stream_ << "M10001 U" << material_guid << " T0" << new_line_;
+    }
+    else
+    {
+        *output_stream_ << "T" << extruder_nr << new_line_;
+    }
+}
+
 void GCodeExport::startExtruder(const size_t new_extruder)
 {
     const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder].settings_;
@@ -1440,7 +1452,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
         }
         else
         {
-            *output_stream_ << "T" << new_extruder << new_line_;
+            writeSetExtruder(new_extruder);
         }
         // Only add time is we are actually changing extruders
         estimate_calculator_.addTime(extruder_change_duration);
@@ -1733,7 +1745,7 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperatu
     if (extruder != current_extruder_ && always_write_active_tool_)
     {
         // Some firmwares (ie Smoothieware) change tools every time a "T" command is read - even on a M104 line, so we need to switch back to the active tool.
-        *output_stream_ << "T" << current_extruder_ << new_line_;
+        writeSetExtruder(current_extruder_);
     }
     if (wait && flavor_ == EGCodeFlavor::MAKERBOT)
     {
