@@ -4,8 +4,7 @@
 #ifndef DISTANCESCORINGCRITERION_H
 #define DISTANCESCORINGCRITERION_H
 
-#include "geometry/Point2LL.h"
-#include "utils/scoring/ScoringCriterion.h"
+#include "utils/scoring/PositionBasedScoringCriterion.h"
 
 namespace cura
 {
@@ -15,7 +14,7 @@ class PointsSet;
  * Criterion that will give a score according to the distance from the point to a target point. Closer points will get
  * a higher score.
  */
-class DistanceScoringCriterion : public ScoringCriterion
+class DistanceScoringCriterion : public PositionBasedScoringCriterion
 {
 public:
     enum class DistanceType
@@ -26,7 +25,6 @@ public:
     };
 
 private:
-    const PointsSet& points_;
     const Point2LL& target_pos_;
     const DistanceType distance_type_;
 
@@ -43,7 +41,7 @@ public:
         DistanceType distance_type = DistanceType::Euclidian,
         const double distance_divider = 20.0);
 
-    virtual double computeScore(const size_t candidate_index) const override;
+    virtual double computeScore(const Point2LL& candidate_position) const override;
 };
 
 } // namespace cura

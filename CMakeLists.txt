@@ -80,6 +80,8 @@ set(engine_SRCS # Except main.cpp.
         src/slicer.cpp
         src/support.cpp
         src/timeEstimate.cpp
+        src/SlicedUVCoordinates.cpp
+        src/TextureDataProvider.cpp
         src/TopSurface.cpp
         src/TreeSupportTipGenerator.cpp
         src/TreeModelVolumes.cpp
@@ -143,6 +145,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
         src/utils/MinimumSpanningTree.cpp
+        src/utils/OBJ.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -161,7 +164,9 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/CornerScoringCriterion.cpp
         src/utils/scoring/DistanceScoringCriterion.cpp
         src/utils/scoring/ExclusionAreaScoringCriterion.cpp
+        src/utils/scoring/PositionBasedScoringCriterion.cpp
         src/utils/scoring/RandomScoringCriterion.cpp
+        src/utils/scoring/TextureScoringCriterion.cpp
 
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp

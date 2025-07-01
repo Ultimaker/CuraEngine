@@ -12,6 +12,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "SlicedUVCoordinates.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/SingleShape.h" // Needed in order to call splitIntoParts()
 #include "plugins/slots.h"
@@ -43,8 +44,6 @@ void SlicerLayer::makeBasicPolygonLoops(OpenLinesSet& open_polylines)
             makeBasicPolygonLoop(open_polylines, start_segment_idx);
         }
     }
-    // Clear the segmentList to save memory, it is no longer needed after this point.
-    segments_.clear();
 }
 
 void SlicerLayer::makeBasicPolygonLoop(OpenLinesSet& open_polylines, const size_t start_segment_idx)
@@ -798,6 +797,11 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     open_polylines_.erase(itPolylines, open_polylines_.end());
 
     open_polylines_.removeDegenerateVerts();
+
+    sliced_uv_coordinates_ = std::make_shared<SlicedUVCoordinates>(segments_);
+
+    // Clear the segment list to save memory, it is no longer needed after this point.
+    segments_.clear();
 }
 
 Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
@@ -845,15 +849,15 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
             layer.segments_.reserve(100);
 
             // loop over all mesh faces
-            for (unsigned int mesh_idx = 0; mesh_idx < mesh.faces_.size(); mesh_idx++)
+            for (unsigned int face_idx = 0; face_idx < mesh.faces_.size(); face_idx++)
             {
-                if ((z < zbbox[mesh_idx].first) || (z > zbbox[mesh_idx].second))
+                if ((z < zbbox[face_idx].first) || (z > zbbox[face_idx].second))
                 {
                     continue;
                 }
 
                 // get all vertices per face
-                const MeshFace& face = mesh.faces_[mesh_idx];
+                const MeshFace& face = mesh.faces_[face_idx];
                 const MeshVertex& v0 = mesh.vertices_[face.vertex_index_[0]];
                 const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
                 const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
@@ -960,8 +964,8 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
                 }
 
                 // store the segments per layer
-                layer.face_idx_to_segment_idx_.insert(std::make_pair(mesh_idx, layer.segments_.size()));
-                s.faceIndex = mesh_idx;
+                layer.face_idx_to_segment_idx_.insert(std::make_pair(face_idx, layer.segments_.size()));
+                s.faceIndex = face_idx;
                 s.endOtherFaceIdx = face.connected_face_index_[end_edge_idx];
                 s.addedToPolygon = false;
                 layer.segments_.push_back(s);
@@ -1177,7 +1181,7 @@ SlicerSegment Slicer::project2D(
         if (start_barycentric.has_value() && end_barycentric.has_value())
         {
             seg.uv_start = interpolateUV(start_barycentric.value(), uv0.value(), uv1.value(), uv2.value());
-            seg.uv_end = interpolateUV(start_barycentric.value(), uv0.value(), uv1.value(), uv2.value());
+            seg.uv_end = interpolateUV(end_barycentric.value(), uv0.value(), uv1.value(), uv2.value());
         }
     }
 

@@ -25,6 +25,7 @@ class AdaptiveLayer;
 class Mesh;
 class MeshVertex;
 class Point3D;
+class SlicedUVCoordinates;
 
 class SlicerSegment
 {
@@ -67,6 +68,7 @@ public:
     int z_ = -1;
     Shape polygons_;
     OpenLinesSet open_polylines_;
+    std::shared_ptr<SlicedUVCoordinates> sliced_uv_coordinates_;
 
     /*!
      * \brief Connect the segments into polygons for this layer of this \p mesh.

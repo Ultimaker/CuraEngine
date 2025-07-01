@@ -32,6 +32,7 @@ class Mesh;
 class SierpinskiFillProvider;
 class LightningGenerator;
 class PrimeTower;
+class TextureDataProvider;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin.
@@ -168,6 +169,7 @@ public:
     coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts; //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     OpenLinesSet open_polylines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    std::shared_ptr<TextureDataProvider> texture_data_provider_; //!< Accessor to pre-sliced texture data
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the

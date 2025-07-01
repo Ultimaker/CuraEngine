@@ -103,11 +103,6 @@ INLINE Point2LL& operator-=(Point2LL& p0, const Point2LL& p1)
     return p0;
 }
 
-INLINE bool operator<(const Point2LL& p0, const Point2LL& p1)
-{
-    return p0.X < p1.X || (p0.X == p1.X && p0.Y < p1.Y);
-}
-
 /* ***** NOTE *****
    TL;DR: DO NOT implement operators *= and /= because of the default values in ClipperLib::IntPoint's constructor.
 
@@ -239,5 +234,13 @@ struct hash<cura::Point2LL>
     }
 };
 } // namespace std
+
+namespace ClipperLib
+{
+inline bool operator<(const IntPoint& lhs, const IntPoint& rhs)
+{
+    return lhs.X < rhs.X || (lhs.X == rhs.X && lhs.Y < rhs.Y);
+}
+} // namespace ClipperLib
 
 #endif // GEOMETRY_POINT2LL_H

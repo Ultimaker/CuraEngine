@@ -6,6 +6,7 @@
 
 #include <optional>
 
+#include "TextureDataMapping.h"
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
 #include "utils/Matrix4x3D.h"
@@ -94,6 +95,11 @@ public:
         return result;
     }
 
+    uint32_t getPixel(const Point2F& uv_coordinates) const
+    {
+        return getPixel(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(uv_coordinates.y_ * height_));
+    }
+
 private:
     std::vector<uint8_t> data_; // The raw pixels, data
     size_t width_{ 0 }; // The image width
@@ -101,21 +107,6 @@ private:
     size_t bytes_per_pixel_{ 0 }; // The number of bytes for each pixel
     size_t bytes_per_row_{ 0 };
 };
-
-/*!
- * Describes a bit field in a pixel of a texture, as many different features may be included inside a single pixel
- * For more details, see https://github.com/Ultimaker/Cura/wiki/Painting-data-storage
- */
-struct TextureBitField
-{
-    size_t bit_range_start_index{ 0 }; // The index of the first bit of the field
-    size_t bit_range_end_index{ 0 }; // The index of the last bit of the field
-};
-
-/*!
- * Gives the bit fields description of every feature stored in the texture
- */
-using TextureDataMapping = std::map<std::string, TextureBitField>;
 
 /*!
 A Mesh is the most basic representation of a 3D model. It contains all the faces as MeshFaces.
@@ -133,8 +124,8 @@ public:
     std::vector<MeshFace> faces_; //!< list of all faces in the mesh
     Settings settings_;
     std::string mesh_name_;
-    Image texture_;
-    TextureDataMapping texture_data_mapping_;
+    std::shared_ptr<Image> texture_;
+    std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 
     Mesh(Settings& parent);
     Mesh();

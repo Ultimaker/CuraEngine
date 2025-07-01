@@ -5,6 +5,7 @@
 
 #include "communication/ArcusCommunicationPrivate.h"
 
+#include <fstream>
 #include <png.h>
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
@@ -169,7 +170,6 @@ void ArcusCommunication::Private::loadTextureData(const std::string& texture_str
 
     auto texture_data = reinterpret_cast<const unsigned char*>(texture_str.data());
     const size_t texture_size = texture_str.size();
-
     png_image raw_texture = {};
     raw_texture.version = PNG_IMAGE_VERSION;
     if (! png_image_begin_read_from_memory(&raw_texture, texture_data, texture_size))
@@ -243,7 +243,7 @@ void ArcusCommunication::Private::loadTextureData(const std::string& texture_str
         return;
     }
 
-    TextureDataMapping texture_data_mapping;
+    auto texture_data_mapping = std::make_shared<TextureDataMapping>();
     for (int i = 0; i < num_text; ++i)
     {
         if (std::string(text_ptr[i].key) == "Description")
@@ -265,7 +265,7 @@ void ArcusCommunication::Private::loadTextureData(const std::string& texture_str
                 const rapidjson::Value& array = it->value;
                 if (array.IsArray() && array.Size() == 2)
                 {
-                    texture_data_mapping[feature_name] = TextureBitField{ array[0].GetUint(), array[1].GetUint() };
+                    (*texture_data_mapping)[feature_name] = TextureBitField{ array[0].GetUint(), array[1].GetUint() };
                 }
             }
 
@@ -273,10 +273,13 @@ void ArcusCommunication::Private::loadTextureData(const std::string& texture_str
         }
     }
 
-    if (! texture_data_mapping.empty())
+    if (! texture_data_mapping->empty())
     {
-        mesh.texture_
-            = Image(raw_texture.width, raw_texture.height, PNG_IMAGE_SAMPLE_COMPONENT_SIZE(raw_texture.format) * PNG_IMAGE_SAMPLE_CHANNELS(raw_texture.format), std::move(buffer));
+        mesh.texture_ = std::make_shared<Image>(
+            raw_texture.width,
+            raw_texture.height,
+            PNG_IMAGE_SAMPLE_COMPONENT_SIZE(raw_texture.format) * PNG_IMAGE_SAMPLE_CHANNELS(raw_texture.format),
+            std::move(buffer));
         mesh.texture_data_mapping_ = texture_data_mapping;
     }
 }

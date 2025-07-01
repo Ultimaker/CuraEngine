@@ -79,7 +79,7 @@ public:
         return *this;
     }
 
-    bool operator==(Point3D& p) const
+    bool operator==(const Point3D& p) const
     {
         return x_ == p.x_ && y_ == p.y_ && z_ == p.z_;
     }
@@ -87,6 +87,8 @@ public:
     {
         return x_ != p.x_ || y_ != p.y_ || z_ != p.z_;
     }
+
+    auto operator<=>(const Point3D&) const = default;
 
     double max() const
     {
