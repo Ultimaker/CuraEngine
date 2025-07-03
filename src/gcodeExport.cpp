@@ -215,6 +215,7 @@ std::string GCodeExport::getFileHeader(
     {
     case EGCodeFlavor::GRIFFIN:
     case EGCodeFlavor::CHEETAH:
+    {
         prefix << ";START_OF_HEADER" << new_line_;
         prefix << ";HEADER_VERSION:0.1" << new_line_;
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
@@ -223,7 +224,10 @@ std::string GCodeExport::getFileHeader(
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
 
-        for (size_t extr_nr = 0; extr_nr < extruder_count; extr_nr++)
+        const auto machine_use_material_station = Application::getInstance().current_slice_->scene.settings.get<bool>("machine_use_material_station");
+        const size_t export_extruder_count = machine_use_material_station ? 1 : extruder_count;
+
+        for (size_t extr_nr = 0; extr_nr < export_extruder_count; extr_nr++)
         {
             if (! extruder_is_used[extr_nr])
             {
@@ -293,6 +297,7 @@ std::string GCodeExport::getFileHeader(
         }
         prefix << ";END_OF_HEADER" << new_line_;
         break;
+    }
     default:
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
         prefix << ";TIME:" << ((print_time) ? static_cast<int>(*print_time) : 6666) << new_line_;
@@ -1409,7 +1414,6 @@ void GCodeExport::writeSetExtruder(const size_t extruder_nr)
     {
         // Instead of changing the extruder, select the proper material in the station
         const auto material_guid = settings.get<std::string>("material_guid");
-        *output_stream_ << "T0" << new_line_;
         *output_stream_ << "M10001 U" << material_guid << " T0" << new_line_;
     }
     else
