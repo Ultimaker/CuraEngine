@@ -34,7 +34,7 @@ double TextureScoringCriterion::computeScore(const Point2LL& candidate_position)
         }
     }
 
-    return 0.0;
+    return 0.5;
 }
 
 } // namespace cura
