@@ -747,7 +747,7 @@ protected:
         if (texture_data_provider_)
         {
             BestElementFinder::WeighedCriterion texture_criterion;
-            texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, texture_data_provider_, "A");
+            texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, texture_data_provider_, "seam");
             texture_criterion.weight = 5.0;
             main_criteria_pass.criteria.push_back(texture_criterion);
         }
