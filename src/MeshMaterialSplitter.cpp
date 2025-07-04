@@ -70,11 +70,8 @@ void exportPointsCloud(const PointContainer& points_cloud, const std::string& fi
 
 Point_2 getPixelCoordinates(const Point_2& uv_coordinates, const std::shared_ptr<Image>& image)
 {
-    const uint32_t width = image->getWidth();
-    const uint32_t height = image->getHeight();
-    return Point_2(
-        std::clamp(static_cast<uint32_t>(uv_coordinates.x() * width), static_cast<uint32_t>(0), width - 1),
-        std::clamp(static_cast<uint32_t>(height - uv_coordinates.y() * height), static_cast<uint32_t>(0), height - 1));
+    std::pair<size_t, size_t> pixel_coordinates = image->getPixelCoordinates(Point2F(uv_coordinates.x(), uv_coordinates.y()));
+    return Point_2(pixel_coordinates.first, pixel_coordinates.second);
 }
 
 Point_3 getSpaceCoordinates(const Point_2& pixel_coordinates, const Triangle_2& triangle_coordinates, const Triangle_3& triangle)
