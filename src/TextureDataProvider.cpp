@@ -28,7 +28,7 @@ std::optional<uint32_t> TextureDataProvider::getValue(const Point2LL& position, 
     }
 
     const TextureBitField& bit_field = data_mapping_iterator->second;
-    const std::optional<Point2F> point_uv_coordinates = uv_coordinates_->getUVCoordinatesOfClosedPoint(position);
+    const std::optional<Point2F> point_uv_coordinates = uv_coordinates_->getClosestUVCoordinates(position);
     if (! point_uv_coordinates.has_value())
     {
         return std::nullopt;

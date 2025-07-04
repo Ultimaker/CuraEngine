@@ -45,5 +45,10 @@ public:
     auto operator<=>(const Point2F&) const = default;
 };
 
+static Point2F lerp(const Point2F& a, const Point2F& b, const double t)
+{
+    return Point2F(std::lerp(a.x_, b.x_, t), std::lerp(a.y_, b.y_, t));
+}
+
 } // namespace cura
 #endif // POINT2F_H

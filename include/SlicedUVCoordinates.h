@@ -21,12 +21,19 @@ class SlicedUVCoordinates
 public:
     explicit SlicedUVCoordinates(const std::vector<SlicerSegment>& segments);
 
-    std::optional<Point2F> getUVCoordinatesOfClosedPoint(const Point2LL& position) const;
+    std::optional<Point2F> getClosestUVCoordinates(const Point2LL& position) const;
 
 private:
+    struct Segment
+    {
+        Point2LL start, end;
+        Point2F uv_start, uv_end;
+    };
+
     static constexpr coord_t cell_size{ 1000 };
     static constexpr coord_t search_radius{ 1000 };
     SparsePointGridInclusive<Point2F> located_uv_coordinates_;
+    std::vector<Segment> segments_;
 };
 
 } // namespace cura
