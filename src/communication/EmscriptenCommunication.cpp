@@ -69,17 +69,21 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
     // Set the time estimates
     rapidjson::Value time_estimates_json(rapidjson::kObjectType);
     auto time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
-    for (const auto& [feature, duration_idx] : std::vector<std::tuple<std::string, PrintFeatureType>>{ { "infill", PrintFeatureType::Infill },
-                                                                                                       { "skin", PrintFeatureType::Skin },
-                                                                                                       { "support", PrintFeatureType::Support },
-                                                                                                       { "inner_wall", PrintFeatureType::InnerWall },
-                                                                                                       { "move_combing", PrintFeatureType::MoveCombing },
-                                                                                                       { "move_retraction", PrintFeatureType::MoveRetraction },
-                                                                                                       { "outer_wall", PrintFeatureType::OuterWall },
-                                                                                                       { "prime_tower", PrintFeatureType::PrimeTower },
-                                                                                                       { "skirt_brim", PrintFeatureType::SkirtBrim },
-                                                                                                       { "support_infill", PrintFeatureType::SupportInfill },
-                                                                                                       { "support_interface", PrintFeatureType::SupportInterface } })
+    for (const auto& [feature, duration_idx] :
+         std::vector<std::tuple<std::string, PrintFeatureType>>{ { "infill", PrintFeatureType::Infill },
+                                                                 { "skin", PrintFeatureType::Skin },
+                                                                 { "support", PrintFeatureType::Support },
+                                                                 { "inner_wall", PrintFeatureType::InnerWall },
+                                                                 { "move_combing", PrintFeatureType::MoveUnretracted },
+                                                                 { "move_retraction", PrintFeatureType::MoveRetracted },
+                                                                 { "outer_wall", PrintFeatureType::OuterWall },
+                                                                 { "prime_tower", PrintFeatureType::PrimeTower },
+                                                                 { "skirt_brim", PrintFeatureType::SkirtBrim },
+                                                                 { "support_infill", PrintFeatureType::SupportInfill },
+                                                                 { "support_interface", PrintFeatureType::SupportInterface },
+                                                                 { "move_while_retracting", PrintFeatureType::MoveWhileRetracting },
+                                                                 { "move_while_unretracting", PrintFeatureType::MoveWhileUnretracting },
+                                                                 { "stationary_retract_unretract", PrintFeatureType::StationaryRetractUnretract } })
     {
         rapidjson::Value feature_time(feature.c_str(), allocator);
         rapidjson::Value feature_duration(time_estimates[static_cast<unsigned char>(duration_idx)]);

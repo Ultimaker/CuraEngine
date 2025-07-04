@@ -567,7 +567,7 @@ void Infill::addLineInfill(
             break;
         }
         std::vector<coord_t>& crossings = cut_list[scanline_idx];
-        std::sort(crossings.begin(), crossings.end()); // sort by increasing Y coordinates
+        std::stable_sort(crossings.begin(), crossings.end()); // sort by increasing Y coordinates
         for (unsigned int crossing_idx = 0; crossing_idx + 1 < crossings.size(); crossing_idx += 2)
         {
             if (crossings[crossing_idx + 1] - crossings[crossing_idx] < infill_line_width_ / 5)
@@ -759,7 +759,7 @@ void Infill::generateLinearBasedInfill(
         {
             auto& crossings = crossings_per_scanline[scanline_index - min_scanline_index];
             // Sorts them by Y coordinate.
-            std::sort(crossings.begin(), crossings.end());
+            std::stable_sort(crossings.begin(), crossings.end());
             // Combine each 2 subsequent crossings together.
             for (long crossing_index = 0; crossing_index < static_cast<long>(crossings.size()) - 1; crossing_index += 2)
             {
@@ -883,7 +883,7 @@ void Infill::connectLines(OpenLinesSet& result_lines)
             Point2LL vertex_after = inner_contour_polygon[vertex_index];
 
             // Sort crossings on every line by how far they are from their initial point.
-            std::sort(
+            std::stable_sort(
                 crossings_on_polygon_segment.begin(),
                 crossings_on_polygon_segment.end(),
                 [&vertex_before, polygon_index, vertex_index](InfillLineSegment* left_hand_side, InfillLineSegment* right_hand_side)

@@ -418,14 +418,16 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
     message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);
     message->set_time_none(time_estimates[static_cast<unsigned char>(PrintFeatureType::NoneType)]);
-    message->set_time_retract(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveRetraction)]);
+    message->set_time_retract(time_estimates[static_cast<unsigned char>(PrintFeatureType::StationaryRetractUnretract)]);
     message->set_time_skin(time_estimates[static_cast<unsigned char>(PrintFeatureType::Skin)]);
     message->set_time_skirt(time_estimates[static_cast<unsigned char>(PrintFeatureType::SkirtBrim)]);
     message->set_time_support(time_estimates[static_cast<unsigned char>(PrintFeatureType::Support)]);
     message->set_time_support_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInfill)]);
     message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
-    message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
     message->set_time_prime_tower(time_estimates[static_cast<unsigned char>(PrintFeatureType::PrimeTower)]);
+    message->set_time_travel(
+        time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveUnretracted)] + time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveRetracted)]
+        + time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveWhileRetracting)] + time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveWhileUnretracting)]);
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {

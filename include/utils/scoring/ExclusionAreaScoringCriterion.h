@@ -6,7 +6,7 @@
 
 #include <stddef.h>
 
-#include "utils/scoring/ScoringCriterion.h"
+#include "utils/scoring/PositionBasedScoringCriterion.h"
 
 namespace cura
 {
@@ -17,16 +17,15 @@ class Shape;
  * Criterion that will give a score according to whether the point is located inside or outside of an exclusion area.
  * This is currently a binary test and the score will be either 0 or 1.
  */
-class ExclusionAreaScoringCriterion : public ScoringCriterion
+class ExclusionAreaScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
-    const PointsSet& points_;
     const Shape& exclusion_area_;
 
 public:
     explicit ExclusionAreaScoringCriterion(const PointsSet& points, const Shape& exclusion_area);
 
-    virtual double computeScore(const size_t candidate_index) const override;
+    virtual double computeScore(const Point2LL& candidate_position) const override;
 };
 
 } // namespace cura

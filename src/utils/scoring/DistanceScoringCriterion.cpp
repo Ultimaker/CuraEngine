@@ -10,17 +10,15 @@ namespace cura
 {
 
 DistanceScoringCriterion::DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type, const double distance_divider)
-    : points_(points)
+    : PositionBasedScoringCriterion(points)
     , target_pos_(target_pos)
     , distance_type_(distance_type)
     , distance_divider_(distance_divider)
 {
 }
 
-double DistanceScoringCriterion::computeScore(const size_t candidate_index) const
+double DistanceScoringCriterion::computeScore(const Point2LL& candidate_position) const
 {
-    const Point2LL& candidate_position = points_.at(candidate_index);
-
     double distance = 0.0;
     switch (distance_type_)
     {

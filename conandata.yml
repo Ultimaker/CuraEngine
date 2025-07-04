@@ -3,10 +3,10 @@ commit: "unknown"
 requirements:
   - "scripta/[>=1.1.0]@ultimaker/testing"
   - "cgal/6.0.1"
-  - "pngpp/0.2.10"
+  - "libpng/1.6.48"
 requirements_arcus:
   - "arcus/5.10.0"
 requirements_plugins:
-  - "curaengine_grpc_definitions/0.3.1"
+  - "curaengine_grpc_definitions/0.3.2"
 requirements_cura_resources:
   - "cura_resources/5.11.0-alpha.0@ultimaker/testing"

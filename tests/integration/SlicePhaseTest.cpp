@@ -8,6 +8,7 @@
 
 #include "Application.h" // To set up a slice with settings.
 #include "Slice.h" // To set up a scene to slice.
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" // Creating polygons to compare to sliced layers.
 #include "slicer.h" // Starts the slicing phase that we want to test.
 #include "utils/Coord_t.h"

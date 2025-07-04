@@ -21,9 +21,9 @@
 
 #include "MeshGroup.h"
 #include "Slice.h"
+#include "TextureDataProvider.h"
 #include "geometry/Shape.h"
 #include "mesh.h"
-#include "png++/image.hpp"
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 
@@ -68,10 +68,10 @@ void exportPointsCloud(const PointContainer& points_cloud, const std::string& fi
     exportMesh(exported_mesh, filename);
 }
 
-Point_2 getPixelCoordinates(const Point_2& uv_coordinates, const png::image<png::rgb_pixel>& image)
+Point_2 getPixelCoordinates(const Point_2& uv_coordinates, const std::shared_ptr<Image>& image)
 {
-    const uint32_t width = image.get_width();
-    const uint32_t height = image.get_height();
+    const uint32_t width = image->getWidth();
+    const uint32_t height = image->getHeight();
     return Point_2(
         std::clamp(static_cast<uint32_t>(uv_coordinates.x() * width), static_cast<uint32_t>(0), width - 1),
         std::clamp(static_cast<uint32_t>(height - uv_coordinates.y() * height), static_cast<uint32_t>(0), height - 1));
@@ -380,7 +380,7 @@ std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
     return boost::hash<uint64_t>()(position.key);
 }
 
-void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const png::image<png::rgb_pixel>& image, VoxelGrid& voxel_space, PixelsCloud& pixels_cloud)
+void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_space, PixelsCloud& pixels_cloud)
 {
     const auto faces = mesh.faces();
     const auto uv_coords = mesh.property_map<CGAL::SM_Face_index, std::array<Point_2, 3>>("f:uv_coords").value();
@@ -393,7 +393,10 @@ void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const png::image<
         {
             const CGAL::SM_Face_index face = *std::next(faces.begin(), face_index);
             const std::array<Point_2, 3> face_uvs = uv_coords[face];
-            const Triangle_2 face_pixel_coordinates(getPixelCoordinates(face_uvs[2], image), getPixelCoordinates(face_uvs[0], image), getPixelCoordinates(face_uvs[1], image));
+            const Triangle_2 face_pixel_coordinates(
+                getPixelCoordinates(face_uvs[2], texture_data_provider->getTexture()),
+                getPixelCoordinates(face_uvs[0], texture_data_provider->getTexture()),
+                getPixelCoordinates(face_uvs[1], texture_data_provider->getTexture()));
             const Triangle_3 triangle = getFaceTriangle(mesh, face);
 
             // Now get the bounding box of the triangle on the image
@@ -420,13 +423,15 @@ void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const png::image<
                     }
 
                     const Point_3 pixel_3d = getSpaceCoordinates(pixel_center, face_pixel_coordinates, triangle);
-                    const png::rgb_pixel color = image.get_pixel(x, y);
-                    const size_t extruder_nr = color.red / 128;
+                    const std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(x, y, "extruder");
 
-                    mutex.lock();
-                    voxel_space.setExtruderNr(pixel_3d, extruder_nr);
-                    pixels_cloud.emplace_back(pixel_3d, VoxelGrid::makeOccupation(extruder_nr));
-                    mutex.unlock();
+                    if (extruder_nr.has_value())
+                    {
+                        mutex.lock();
+                        voxel_space.setExtruderNr(pixel_3d, extruder_nr.value());
+                        pixels_cloud.emplace_back(pixel_3d, VoxelGrid::makeOccupation(extruder_nr.value()));
+                        mutex.unlock();
+                    }
                 }
             }
             return true;
@@ -499,14 +504,14 @@ public:
     }
 };
 
-void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::rgb_pixel>& image, PolygonMesh& output_mesh)
+void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, PolygonMesh& output_mesh)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
 
     spdlog::info("Fill original voxels based on texture data");
     VoxelGrid voxel_space(mesh, settings.get<double>("multi_material_paint_resolution") * 1000.0);
     PixelsCloud pixels_cloud;
-    makeInitialVoxelSpaceFromTexture(mesh, image, voxel_space, pixels_cloud);
+    makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space, pixels_cloud);
 
     const double deepness = settings.get<double>("multi_material_paint_deepness") * 1000.0;
     const Point_3& resolution = voxel_space.getResolution();
@@ -607,7 +612,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
         spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
 
         voxels_to_evaluate.visit_all(
-            [&voxel_space, &tree, &mesh, &image, &pixels_cloud](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+            [&voxel_space, &tree](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
                 // Let's call A,B,C the vertices of the closest triangle, D is the grid point being evaluated, and E its projection on the triangle
                 // // Find the closest face and project the point to it
@@ -647,11 +652,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const png::image<png::r
 
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 {
-    // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture.png");
-    // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/texture-high.png");
-    // png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/dino-texture.png");
-    png::image<png::rgb_pixel> image("/home/erwan/test/CURA-12449_handling-painted-models/ultibot-texture.png");
-
     PolygonMesh converted_mesh;
     for (const MeshVertex& vertex : mesh.vertices_)
     {
@@ -687,8 +687,10 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
         uv_coords[face_index] = face_uvs;
     }
 
+    const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
+
     PolygonMesh output_mesh;
-    makeModifierMeshVoxelSpace(converted_mesh, image, output_mesh);
+    makeModifierMeshVoxelSpace(converted_mesh, texture_data_provider, output_mesh);
     registerModifiedMesh(meshgroup, output_mesh);
 
     exportMesh(converted_mesh, "converted_mesh");

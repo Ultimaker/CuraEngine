@@ -12,6 +12,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "SlicedUVCoordinates.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/SingleShape.h" // Needed in order to call splitIntoParts()
 #include "plugins/slots.h"
@@ -19,10 +20,12 @@
 #include "settings/AdaptiveLayerHeights.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
+#include "utils/Point3D.h"
 #include "utils/Simplify.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
+#include "utils/polygonUtils.h"
 #include "utils/section_type.h"
 
 namespace cura
@@ -41,8 +44,6 @@ void SlicerLayer::makeBasicPolygonLoops(OpenLinesSet& open_polylines)
             makeBasicPolygonLoop(open_polylines, start_segment_idx);
         }
     }
-    // Clear the segmentList to save memory, it is no longer needed after this point.
-    segments_.clear();
 }
 
 void SlicerLayer::makeBasicPolygonLoop(OpenLinesSet& open_polylines, const size_t start_segment_idx)
@@ -796,6 +797,11 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     open_polylines_.erase(itPolylines, open_polylines_.end());
 
     open_polylines_.removeDegenerateVerts();
+
+    sliced_uv_coordinates_ = std::make_shared<SlicedUVCoordinates>(segments_);
+
+    // Clear the segment list to save memory, it is no longer needed after this point.
+    segments_.clear();
 }
 
 Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
@@ -843,18 +849,21 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
             layer.segments_.reserve(100);
 
             // loop over all mesh faces
-            for (unsigned int mesh_idx = 0; mesh_idx < mesh.faces_.size(); mesh_idx++)
+            for (unsigned int face_idx = 0; face_idx < mesh.faces_.size(); face_idx++)
             {
-                if ((z < zbbox[mesh_idx].first) || (z > zbbox[mesh_idx].second))
+                if ((z < zbbox[face_idx].first) || (z > zbbox[face_idx].second))
                 {
                     continue;
                 }
 
                 // get all vertices per face
-                const MeshFace& face = mesh.faces_[mesh_idx];
+                const MeshFace& face = mesh.faces_[face_idx];
                 const MeshVertex& v0 = mesh.vertices_[face.vertex_index_[0]];
                 const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
                 const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
+                const std::optional<Point2F> uv0 = face.uv_coordinates_[0];
+                const std::optional<Point2F> uv1 = face.uv_coordinates_[1];
+                const std::optional<Point2F> uv2 = face.uv_coordinates_[2];
 
                 // get all vertices represented as 3D point
                 Point3LL p0 = v0.p_;
@@ -902,13 +911,13 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
 
                 if (p0.z_ < z && p1.z_ > z && p2.z_ > z) //  1_______2
                 { //   \     /
-                    s = project2D(p0, p2, p1, z); //------------- z
+                    s = project2D(p0, p2, p1, uv0, uv2, uv1, z); //------------- z
                     end_edge_idx = 0; //     \ /
                 } //      0
 
                 else if (p0.z_ > z && p1.z_ <= z && p2.z_ <= z) //      0
                 { //     / \      .
-                    s = project2D(p0, p1, p2, z); //------------- z
+                    s = project2D(p0, p1, p2, uv0, uv1, uv2, z); //------------- z
                     end_edge_idx = 2; //   /     \    .
                     if (p2.z_ == z) //  1_______2
                     {
@@ -918,13 +927,13 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
 
                 else if (p1.z_ < z && p0.z_ > z && p2.z_ > z) //  0_______2
                 { //   \     /
-                    s = project2D(p1, p0, p2, z); //------------- z
+                    s = project2D(p1, p0, p2, uv1, uv0, uv2, z); //------------- z
                     end_edge_idx = 1; //     \ /
                 } //      1
 
                 else if (p1.z_ > z && p0.z_ <= z && p2.z_ <= z) //      1
                 { //     / \      .
-                    s = project2D(p1, p2, p0, z); //------------- z
+                    s = project2D(p1, p2, p0, uv1, uv2, uv0, z); //------------- z
                     end_edge_idx = 0; //   /     \    .
                     if (p0.z_ == z) //  0_______2
                     {
@@ -934,13 +943,13 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
 
                 else if (p2.z_ < z && p1.z_ > z && p0.z_ > z) //  0_______1
                 { //   \     /
-                    s = project2D(p2, p1, p0, z); //------------- z
+                    s = project2D(p2, p1, p0, uv2, uv1, uv0, z); //------------- z
                     end_edge_idx = 2; //     \ /
                 } //      2
 
                 else if (p2.z_ > z && p1.z_ <= z && p0.z_ <= z) //      2
                 { //     / \      .
-                    s = project2D(p2, p0, p1, z); //------------- z
+                    s = project2D(p2, p0, p1, uv2, uv0, uv1, z); //------------- z
                     end_edge_idx = 1; //   /     \    .
                     if (p1.z_ == z) //  0_______1
                     {
@@ -955,8 +964,8 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
                 }
 
                 // store the segments per layer
-                layer.face_idx_to_segment_idx_.insert(std::make_pair(mesh_idx, layer.segments_.size()));
-                s.faceIndex = mesh_idx;
+                layer.face_idx_to_segment_idx_.insert(std::make_pair(face_idx, layer.segments_.size()));
+                s.faceIndex = face_idx;
                 s.endOtherFaceIdx = face.connected_face_index_[end_edge_idx];
                 s.addedToPolygon = false;
                 layer.segments_.push_back(s);
@@ -1148,7 +1157,14 @@ std::vector<std::pair<int32_t, int32_t>> Slicer::buildZHeightsForFaces(const Mes
     return zHeights;
 }
 
-SlicerSegment Slicer::project2D(const Point3LL& p0, const Point3LL& p1, const Point3LL& p2, const coord_t z)
+SlicerSegment Slicer::project2D(
+    const Point3LL& p0,
+    const Point3LL& p1,
+    const Point3LL& p2,
+    const std::optional<Point2F>& uv0,
+    const std::optional<Point2F>& uv1,
+    const std::optional<Point2F>& uv2,
+    const coord_t z)
 {
     SlicerSegment seg;
 
@@ -1157,7 +1173,58 @@ SlicerSegment Slicer::project2D(const Point3LL& p0, const Point3LL& p1, const Po
     seg.end.X = interpolate(z, p0.z_, p2.z_, p0.x_, p2.x_);
     seg.end.Y = interpolate(z, p0.z_, p2.z_, p0.y_, p2.y_);
 
+    if (uv0.has_value() && uv1.has_value() && uv2.has_value())
+    {
+        const std::optional<Point3D> start_barycentric = getBarycentricCoordinates(Point3LL(seg.start, z), p0, p1, p2);
+        const std::optional<Point3D> end_barycentric = getBarycentricCoordinates(Point3LL(seg.end, z), p0, p1, p2);
+
+        if (start_barycentric.has_value() && end_barycentric.has_value())
+        {
+            seg.uv_start = interpolateUV(start_barycentric.value(), uv0.value(), uv1.value(), uv2.value());
+            seg.uv_end = interpolateUV(end_barycentric.value(), uv0.value(), uv1.value(), uv2.value());
+        }
+    }
+
     return seg;
+}
+
+std::optional<Point3D> Slicer::getBarycentricCoordinates(const Point3LL& point, const Point3LL& p0, const Point3LL& p1, const Point3LL& p2)
+{
+    // Calculate vectors from p0 to p1 and p0 to p2
+    const Point3LL v0(p1 - p0);
+    const Point3LL v1(p2 - p0);
+    const Point3LL v2(point - p0);
+
+    // Compute dot products
+    const double d00 = v0.dot(v0);
+    const double d01 = v0.dot(v1);
+    const double d11 = v1.dot(v1);
+    const double d20 = v2.dot(v0);
+    const double d21 = v2.dot(v1);
+
+    // Calculate denominator for barycentric coordinates
+    const double denom = d00 * d11 - d01 * d01;
+
+    // Check if triangle is degenerate
+    if (std::abs(denom) < 0.000001)
+    {
+        return std::nullopt;
+    }
+
+    // Calculate barycentric coordinates
+    const double v = (d11 * d20 - d01 * d21) / denom;
+    const double w = (d00 * d21 - d01 * d20) / denom;
+    const double u = 1.0 - v - w;
+
+    // Return as a Point_3 where x/y/z represent the barycentric coordinates u/v/w
+    return Point3D(u, v, w);
+}
+
+Point2F Slicer::interpolateUV(const Point3D& barycentric_coordinates, const Point2F& uv0, const Point2F& uv1, const Point2F& uv2)
+{
+    return Point2F(
+        barycentric_coordinates.x_ * uv0.x_ + barycentric_coordinates.y_ * uv1.x_ + barycentric_coordinates.z_ * uv2.x_,
+        barycentric_coordinates.x_ * uv0.y_ + barycentric_coordinates.y_ * uv1.y_ + barycentric_coordinates.z_ * uv2.y_);
 }
 
 coord_t Slicer::interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1)
