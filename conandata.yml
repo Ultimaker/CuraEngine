@@ -1,4 +1,4 @@
-version: "5.10.1"
+version: "5.10.2"
 commit: "unknown"
 requirements:
   - "scripta/[>=1.1.0]@ultimaker/testing"
@@ -7,4 +7,4 @@ requirements_arcus:
 requirements_plugins:
   - "curaengine_grpc_definitions/0.3.1"
 requirements_cura_resources:
-  - "cura_resources/5.10.1"
+  - "cura_resources/5.10.2"
