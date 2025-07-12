@@ -166,9 +166,7 @@ CGAL::Bbox_3 expand(const CGAL::Bbox_3& bounding_box, const double offset)
 enum class ExtruderOccupation : uint8_t
 {
     Unknown = 0,
-    InsideMesh = 1, // Voxel is tagged as being inside the mesh, but not assigned yet
-    OutsideMesh = 2, // Voxel is tagged as being outside the mesh
-    Occupied = 3, // When occupied, the actual extruder value is the value - Occupied
+    Occupied = 1, // When occupied, the actual extruder value is the value - Occupied
 };
 
 static ExtruderOccupation extruderNrToOccupation(const size_t extruder_nr)
@@ -524,7 +522,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
     const double deepness = settings.get<double>("multi_material_paint_deepness") * 1000.0;
     const Point_3& resolution = voxel_space.getResolution();
-    const uint16_t max_shells = deepness / ((resolution.x() + resolution.y() + resolution.z()) / 3.0);
+    const float deepness_squared = deepness * deepness;
 
     spdlog::info("Get initially filled voxels");
     const std::vector<VoxelGrid::LocalCoordinates> filled_voxels = voxel_space.getFilledVoxels(
@@ -536,20 +534,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     spdlog::info("Export initial meshes");
     voxel_space.exportToFile("initial_points_cloud");
 
-    spdlog::info("prepare cleaned mesh");
-    // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper inside-mesh checking
-    PolygonMesh cleaned_mesh;
-    constexpr double alpha = 1000.0;
-    constexpr double offset = 100.0;
-    CGAL::alpha_wrap_3(mesh, alpha, offset, cleaned_mesh);
-
-    exportMesh(cleaned_mesh, "cleaned_mesh");
-
-    CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(cleaned_mesh);
-    bool check_inside = true;
-    uint16_t shells = 0;
-    uint16_t iteration = 0;
-
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
     previously_evaluated_voxels.insert(filled_voxels.begin(), filled_voxels.end());
 
@@ -558,7 +542,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     Tree tree(pixels_cloud.begin(), pixels_cloud.end());
     tree.accelerate_distance_queries();
 
-    while (! previously_evaluated_voxels.empty() && shells < max_shells)
+    while (! previously_evaluated_voxels.empty())
     {
         boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
         boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::vector<VoxelGrid::LocalCoordinates>> origin_voxels; // target_voxel: [origin_voxels]
@@ -582,8 +566,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
         spdlog::info("Finding voxels around {} voxels", previously_evaluated_voxels.size());
 
-        std::atomic_bool keep_checking_inside(false);
-
         previously_evaluated_voxels.visit_all(
             [&](const VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
             {
@@ -595,28 +577,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                         continue;
                     }
 
-                    bool evaluate_voxel;
-                    if (check_inside)
-                    {
-                        voxel_space.setOccupationIfUnknown(
-                            voxel_around,
-                            inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) != CGAL::ON_UNBOUNDED_SIDE ? ExtruderOccupation::InsideMesh
-                                                                                                                  : ExtruderOccupation::OutsideMesh);
-                        const ExtruderOccupation occupation = voxel_space.getOccupation(voxel_around);
-                        evaluate_voxel = (occupation == ExtruderOccupation::InsideMesh);
-                        if (occupation == ExtruderOccupation::OutsideMesh)
-                        {
-                            // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
-                            // is complete and we are only growing inside, thus we can skip checking for insideness
-                            keep_checking_inside.store(true);
-                        }
-                    }
-                    else
-                    {
-                        evaluate_voxel = ! voxel_space.isFilled(voxel_around);
-                    }
-
-                    if (evaluate_voxel)
+                    if (! voxel_space.isFilled(voxel_around))
                     {
                         // Voxel is not occupied yet, so evaluate it
                         voxels_to_evaluate.emplace(voxel_around);
@@ -625,27 +586,24 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 }
             });
 
-        if (check_inside && ! keep_checking_inside.load())
-        {
-            spdlog::info("Stop checking for voxels insideness");
-            check_inside = false;
-        }
-        if (! check_inside)
-        {
-            shells++;
-        }
-
         spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
 
         voxels_to_evaluate.visit_all(
-            [&voxel_space, &tree](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+            [&voxel_space, &tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
                 // Find closest outside point and its occupation
                 const Point_3 position = voxel_space.toGlobalCoordinates(voxel_to_evaluate);
                 const std::pair<Point_3, PixelsCloudPrimitive::Id> closest_point_and_primitive = tree.closest_point_and_primitive(position);
-                const ExtruderOccupation& occupation = closest_point_and_primitive.second->occupation;
-
-                voxel_space.setOccupation(voxel_to_evaluate, occupation);
+                const Vector_3 diff = position - closest_point_and_primitive.first;
+                if (diff.squared_length() <= deepness_squared)
+                {
+                    const ExtruderOccupation& occupation = closest_point_and_primitive.second->occupation;
+                    voxel_space.setOccupation(voxel_to_evaluate, occupation);
+                }
+                else
+                {
+                    voxel_space.setOccupation(voxel_to_evaluate, extruderNrToOccupation(0));
+                }
             });
 
         // Now we have updated the occupations, check which evaluated voxels are to be processed next
@@ -675,9 +633,15 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                                         else if (first_target_occupation.value() != target_occupation)
                                         {
                                             add_to_evaluate = true;
+                                            break;
                                         }
                                     }
                                 });
+
+                            if (add_to_evaluate)
+                            {
+                                break;
+                            }
                         }
                     });
 
