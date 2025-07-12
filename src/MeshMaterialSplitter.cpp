@@ -44,6 +44,10 @@ using PolygonMesh = CGAL::Surface_mesh<Kernel::Point_3>;
 using Kernel_U32 = CGAL::Simple_cartesian<uint32_t>;
 using Point_2U32 = Kernel_U32::Point_2;
 
+struct PixelsCloudPrimitive;
+using AABB_traits = CGAL::AABB_traits_3<Kernel, PixelsCloudPrimitive>;
+using Tree = CGAL::AABB_tree<AABB_traits>;
+
 void exportMesh(const PolygonMesh& mesh, const std::string& filename)
 {
     PolygonMesh exported_mesh = mesh;
@@ -167,6 +171,16 @@ enum class ExtruderOccupation : uint8_t
     Occupied = 3, // When occupied, the actual extruder value is the value - Occupied
 };
 
+static ExtruderOccupation extruderNrToOccupation(const size_t extruder_nr)
+{
+    return static_cast<ExtruderOccupation>(static_cast<uint8_t>(ExtruderOccupation::Occupied) + extruder_nr);
+}
+
+static uint8_t occupationToExtruderNr(const ExtruderOccupation occupation)
+{
+    return static_cast<uint8_t>(occupation) - static_cast<uint8_t>(ExtruderOccupation::Occupied);
+}
+
 struct Pixel3D
 {
     Point_3 position;
@@ -240,14 +254,9 @@ public:
         return Point_3(position.position.x * resolution_.x(), position.position.y * resolution_.y(), position.position.z * resolution_.z()) + origin_;
     }
 
-    static ExtruderOccupation makeOccupation(const size_t extruder_nr)
-    {
-        return static_cast<ExtruderOccupation>(static_cast<uint8_t>(ExtruderOccupation::Occupied) + extruder_nr);
-    }
-
     void setExtruderNr(const Point_3& position, const size_t extruder_nr)
     {
-        setOccupation(toLocalCoordinates(position), makeOccupation(extruder_nr));
+        setOccupation(toLocalCoordinates(position), extruderNrToOccupation(extruder_nr));
     }
 
     void setOccupation(const LocalCoordinates& position, const ExtruderOccupation& occupation)
@@ -257,7 +266,7 @@ public:
 
     uint8_t getExtruderNr(const LocalCoordinates& local_position) const
     {
-        return static_cast<uint8_t>(getOccupation(local_position)) - static_cast<uint8_t>(ExtruderOccupation::Occupied);
+        return occupationToExtruderNr(getOccupation(local_position));
     }
 
     bool isFilled(const LocalCoordinates& local_position) const
@@ -289,14 +298,17 @@ public:
         nodes_.visit_all(args...);
     }
 
-    std::vector<LocalCoordinates> getFilledVoxels() const
+    std::vector<LocalCoordinates> getFilledVoxels(const std::function<bool(const std::pair<LocalCoordinates, ExtruderOccupation>&)>& condition = nullptr) const
     {
         std::vector<LocalCoordinates> filled_voxels;
 
         nodes_.visit_all(
-            [&filled_voxels](const auto& voxel)
+            [&filled_voxels, &condition](const auto& voxel)
             {
-                filled_voxels.push_back(voxel.first);
+                if (! condition || condition(voxel))
+                {
+                    filled_voxels.push_back(voxel.first);
+                }
             });
 
         return filled_voxels;
@@ -426,7 +438,7 @@ void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
                     {
                         mutex.lock();
                         voxel_space.setExtruderNr(pixel_3d, extruder_nr.value());
-                        pixels_cloud.emplace_back(pixel_3d, VoxelGrid::makeOccupation(extruder_nr.value()));
+                        pixels_cloud.emplace_back(pixel_3d, extruderNrToOccupation(extruder_nr.value()));
                         mutex.unlock();
                     }
                 }
@@ -515,7 +527,11 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     const uint16_t max_shells = deepness / ((resolution.x() + resolution.y() + resolution.z()) / 3.0);
 
     spdlog::info("Get initially filled voxels");
-    const std::vector<VoxelGrid::LocalCoordinates> filled_voxels = voxel_space.getFilledVoxels();
+    const std::vector<VoxelGrid::LocalCoordinates> filled_voxels = voxel_space.getFilledVoxels(
+        [](const std::pair<VoxelGrid::LocalCoordinates, ExtruderOccupation>& voxel)
+        {
+            return occupationToExtruderNr(voxel.second) > 0;
+        });
 
     spdlog::info("Export initial meshes");
     voxel_space.exportToFile("initial_points_cloud");
@@ -538,20 +554,31 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     previously_evaluated_voxels.insert(filled_voxels.begin(), filled_voxels.end());
 
     // Create an AABB tree for efficient spatial queries
-    // typedef CGAL::AABB_face_graph_triangle_primitive<PolygonMesh> Primitive;
-    // typedef CGAL::AABB_face_graph_triangle_primitive<Point_3> Primitive;
-    typedef CGAL::AABB_traits_3<Kernel, PixelsCloudPrimitive> AABB_traits;
-    typedef CGAL::AABB_tree<AABB_traits> Tree;
-
-
     spdlog::info("Prepare AABB tree for fast look-up");
-
     Tree tree(pixels_cloud.begin(), pixels_cloud.end());
     tree.accelerate_distance_queries();
 
     while (! previously_evaluated_voxels.empty() && shells < max_shells)
     {
         boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
+        boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::vector<VoxelGrid::LocalCoordinates>> origin_voxels; // target_voxel: [origin_voxels]
+        boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::vector<VoxelGrid::LocalCoordinates>> target_voxels; // origin_voxel: [target_voxels]
+
+        const auto register_voxel_relations = [&origin_voxels, &target_voxels](const VoxelGrid::LocalCoordinates& origin_voxel, const VoxelGrid::LocalCoordinates& target_voxel)
+        {
+            origin_voxels.insert_or_visit(
+                std::make_pair(target_voxel, std::vector{ origin_voxel }),
+                [&origin_voxel](auto& voxel)
+                {
+                    voxel.second.push_back(origin_voxel);
+                });
+            target_voxels.insert_or_visit(
+                std::make_pair(origin_voxel, std::vector{ target_voxel }),
+                [&target_voxel](auto& voxel)
+                {
+                    voxel.second.push_back(target_voxel);
+                });
+        };
 
         spdlog::info("Finding voxels around {} voxels", previously_evaluated_voxels.size());
 
@@ -564,6 +591,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 {
                     if (voxels_to_evaluate.contains(voxel_around))
                     {
+                        register_voxel_relations(previously_evaluated_voxel, voxel_around);
                         continue;
                     }
 
@@ -592,6 +620,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                     {
                         // Voxel is not occupied yet, so evaluate it
                         voxels_to_evaluate.emplace(voxel_around);
+                        register_voxel_relations(previously_evaluated_voxel, voxel_around);
                     }
                 }
             });
@@ -611,28 +640,59 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         voxels_to_evaluate.visit_all(
             [&voxel_space, &tree](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
-                // Let's call A,B,C the vertices of the closest triangle, D is the grid point being evaluated, and E its projection on the triangle
-                // // Find the closest face and project the point to it
-                Point_3 point_D = voxel_space.toGlobalCoordinates(voxel_to_evaluate);
-
-                // Find closest point and face
-                std::pair<Point_3, PixelsCloudPrimitive::Id> closest_point_and_primitive = tree.closest_point_and_primitive(point_D);
-                // const Pixel size_t closest_point_index = closest_point_and_primitive.second;
-                // CGAL::SM_Face_index closest_face = CGAL::SM_Face_index(0);
-
-                const ExtruderOccupation occupation = closest_point_and_primitive.second->occupation;
+                // Find closest outside point and its occupation
+                const Point_3 position = voxel_space.toGlobalCoordinates(voxel_to_evaluate);
+                const std::pair<Point_3, PixelsCloudPrimitive::Id> closest_point_and_primitive = tree.closest_point_and_primitive(position);
+                const ExtruderOccupation& occupation = closest_point_and_primitive.second->occupation;
 
                 voxel_space.setOccupation(voxel_to_evaluate, occupation);
             });
 
-        previously_evaluated_voxels = std::move(voxels_to_evaluate);
+        // Now we have updated the occupations, check which evaluated voxels are to be processed next
+        previously_evaluated_voxels.clear();
+        voxels_to_evaluate.visit_all(
+            [&origin_voxels, &target_voxels, &voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
+            {
+                std::optional<ExtruderOccupation> first_target_occupation;
+                bool add_to_evaluate = false;
+                origin_voxels.visit(
+                    evaluated_voxel,
+                    [&target_voxels, &add_to_evaluate, &voxel_space, &first_target_occupation](const auto& origin_voxel_value)
+                    {
+                        for (const VoxelGrid::LocalCoordinates& origin_voxel : origin_voxel_value.second)
+                        {
+                            target_voxels.visit(
+                                origin_voxel,
+                                [&voxel_space, &first_target_occupation, &add_to_evaluate](const auto& target_voxel_value)
+                                {
+                                    for (const VoxelGrid::LocalCoordinates& target_voxel : target_voxel_value.second)
+                                    {
+                                        const ExtruderOccupation& target_occupation = voxel_space.getOccupation(target_voxel);
+                                        if (! first_target_occupation.has_value())
+                                        {
+                                            first_target_occupation = target_occupation;
+                                        }
+                                        else if (first_target_occupation.value() != target_occupation)
+                                        {
+                                            add_to_evaluate = true;
+                                        }
+                                    }
+                                });
+                        }
+                    });
+
+                if (add_to_evaluate)
+                {
+                    previously_evaluated_voxels.emplace(evaluated_voxel);
+                }
+            });
 
         // voxel_space.exportToFile(fmt::format("points_cloud_iteration_{}", iteration++));
     }
 
     spdlog::info("Making final points cloud");
     std::list<Point_3> points_cloud;
-    ExtruderOccupation occupation_extruder_1 = VoxelGrid::makeOccupation(1);
+    ExtruderOccupation occupation_extruder_1 = extruderNrToOccupation(1);
     voxel_space.visitFilledVoxels(
         [&occupation_extruder_1, &points_cloud, &voxel_space](const auto& filled_voxel)
         {
