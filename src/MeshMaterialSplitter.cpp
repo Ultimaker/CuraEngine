@@ -9,6 +9,7 @@
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
 #include <boost/unordered/unordered_flat_map.hpp>
+#include <boost/unordered/unordered_flat_set.hpp>
 #include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/max_element.hpp>
 #include <range/v3/algorithm/remove.hpp>
@@ -638,20 +639,22 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         // voxel_space.exportToFile(fmt::format("points_cloud_iteration_{}", iteration++));
     }
 
-    spdlog::info("Making final points cloud");
-    std::list<Point_3> points_cloud;
+    spdlog::info("Make final points cloud");
+    boost::concurrent_flat_set<Point_3> points_cloud;
     voxel_space.visitFilledVoxels(
         [&points_cloud, &voxel_space](const auto& filled_voxel)
         {
             if (filled_voxel.second == 1)
             {
-                points_cloud.push_back(voxel_space.toGlobalCoordinates(filled_voxel.first));
+                points_cloud.insert(voxel_space.toGlobalCoordinates(filled_voxel.first));
             }
         });
-    exportPointsCloud(points_cloud, "final_contour");
+    boost::unordered_flat_set<Point_3> points_cloud_non_concurrent = std::move(points_cloud);
+    spdlog::info("Export final points cloud");
+    exportPointsCloud(points_cloud_non_concurrent, "final_contour");
 
-    spdlog::info("Making mesh from points cloud");
-    makeMeshFromPointsCloud(points_cloud, output_mesh, std::max({ resolution.x(), resolution.y(), resolution.z() }));
+    spdlog::info("Make mesh from points cloud");
+    makeMeshFromPointsCloud(points_cloud_non_concurrent, output_mesh, std::max({ resolution.x(), resolution.y(), resolution.z() }));
 }
 
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
