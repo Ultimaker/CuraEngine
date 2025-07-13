@@ -272,7 +272,7 @@ public:
     template<class... Args>
     void visitFilledVoxels(Args&&... args)
     {
-        nodes_.visit_all(args...);
+        nodes_.visit_all(std::execution::par, args...);
     }
 
     std::vector<LocalCoordinates> getFilledVoxels(const std::function<bool(const std::pair<LocalCoordinates, uint8_t>&)>& condition = nullptr) const
@@ -547,6 +547,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         spdlog::info("Finding voxels around {} voxels", previously_evaluated_voxels.size());
 
         previously_evaluated_voxels.visit_all(
+            std::execution::par,
             [&](const VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
             {
                 for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_space.getVoxelsAround(previously_evaluated_voxel))
@@ -569,6 +570,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
 
         voxels_to_evaluate.visit_all(
+            std::execution::par,
             [&voxel_space, &tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
                 // Find closest outside point and its occupation
@@ -589,6 +591,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         // Now we have updated the occupations, check which evaluated voxels are to be processed next
         previously_evaluated_voxels.clear();
         voxels_to_evaluate.visit_all(
+            std::execution::par,
             [&origin_voxels, &target_voxels, &voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
             {
                 // First optional is for indicating that it has been set once, second is for whether the occupation actually contains an extruder nr
