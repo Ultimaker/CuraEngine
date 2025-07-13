@@ -163,26 +163,10 @@ CGAL::Bbox_3 expand(const CGAL::Bbox_3& bounding_box, const double offset)
         bounding_box.zmax() + offset);
 }
 
-enum class ExtruderOccupation : uint8_t
-{
-    Unknown = 0,
-    Occupied = 1, // When occupied, the actual extruder value is the value - Occupied
-};
-
-static ExtruderOccupation extruderNrToOccupation(const size_t extruder_nr)
-{
-    return static_cast<ExtruderOccupation>(static_cast<uint8_t>(ExtruderOccupation::Occupied) + extruder_nr);
-}
-
-static uint8_t occupationToExtruderNr(const ExtruderOccupation occupation)
-{
-    return static_cast<uint8_t>(occupation) - static_cast<uint8_t>(ExtruderOccupation::Occupied);
-}
-
 struct Pixel3D
 {
     Point_3 position;
-    ExtruderOccupation occupation;
+    uint8_t occupation;
 };
 
 using PixelsCloud = std::vector<Pixel3D>;
@@ -252,19 +236,14 @@ public:
         return Point_3(position.position.x * resolution_.x(), position.position.y * resolution_.y(), position.position.z * resolution_.z()) + origin_;
     }
 
-    void setExtruderNr(const Point_3& position, const size_t extruder_nr)
+    void setOccupation(const Point_3& position, const uint8_t extruder_nr)
     {
-        setOccupation(toLocalCoordinates(position), extruderNrToOccupation(extruder_nr));
+        setOccupation(toLocalCoordinates(position), extruder_nr);
     }
 
-    void setOccupation(const LocalCoordinates& position, const ExtruderOccupation& occupation)
+    void setOccupation(const LocalCoordinates& position, const uint8_t extruder_nr)
     {
-        nodes_.insert_or_assign(position, occupation);
-    }
-
-    uint8_t getExtruderNr(const LocalCoordinates& local_position) const
-    {
-        return occupationToExtruderNr(getOccupation(local_position));
+        nodes_.insert_or_assign(position, extruder_nr);
     }
 
     bool isFilled(const LocalCoordinates& local_position) const
@@ -272,9 +251,9 @@ public:
         return nodes_.contains(local_position);
     }
 
-    ExtruderOccupation getOccupation(const LocalCoordinates& local_position) const
+    std::optional<uint8_t> getOccupation(const LocalCoordinates& local_position) const
     {
-        ExtruderOccupation result = ExtruderOccupation::Unknown;
+        std::optional<uint8_t> result = std::nullopt;
         nodes_.visit(
             local_position,
             [&result](const auto& occupation)
@@ -296,7 +275,7 @@ public:
         nodes_.visit_all(args...);
     }
 
-    std::vector<LocalCoordinates> getFilledVoxels(const std::function<bool(const std::pair<LocalCoordinates, ExtruderOccupation>&)>& condition = nullptr) const
+    std::vector<LocalCoordinates> getFilledVoxels(const std::function<bool(const std::pair<LocalCoordinates, uint8_t>&)>& condition = nullptr) const
     {
         std::vector<LocalCoordinates> filled_voxels;
 
@@ -361,13 +340,14 @@ public:
 
     void exportToFile(const std::string& basename) const
     {
-        std::vector<LocalCoordinates> filled_voxels = getFilledVoxels();
+        std::map<uint8_t, PolygonMesh> meshes;
 
-        std::map<size_t, PolygonMesh> meshes;
-        for (const LocalCoordinates& local_coord : filled_voxels)
-        {
-            meshes[getExtruderNr(local_coord)].add_vertex(toGlobalCoordinates(local_coord));
-        }
+        nodes_.visit_all(
+            [&meshes, this](const auto& voxel)
+            {
+                meshes[voxel.second].add_vertex(toGlobalCoordinates(voxel.first));
+            });
+
         for (auto iterator = meshes.begin(); iterator != meshes.end(); ++iterator)
         {
             exportMesh(iterator->second, fmt::format("{}_{}", basename, iterator->first));
@@ -379,7 +359,7 @@ private:
     Point_3 resolution_;
     Vector_3 origin_;
     uint32_t max_coordinate_;
-    boost::concurrent_flat_map<LocalCoordinates, ExtruderOccupation> nodes_;
+    boost::concurrent_flat_map<LocalCoordinates, uint8_t> nodes_;
 };
 
 std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
@@ -435,8 +415,8 @@ void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
                     if (extruder_nr.has_value())
                     {
                         mutex.lock();
-                        voxel_space.setExtruderNr(pixel_3d, extruder_nr.value());
-                        pixels_cloud.emplace_back(pixel_3d, extruderNrToOccupation(extruder_nr.value()));
+                        voxel_space.setOccupation(pixel_3d, extruder_nr.value());
+                        pixels_cloud.emplace_back(pixel_3d, extruder_nr.value());
                         mutex.unlock();
                     }
                 }
@@ -526,9 +506,9 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
     spdlog::info("Get initially filled voxels");
     const std::vector<VoxelGrid::LocalCoordinates> filled_voxels = voxel_space.getFilledVoxels(
-        [](const std::pair<VoxelGrid::LocalCoordinates, ExtruderOccupation>& voxel)
+        [](const std::pair<VoxelGrid::LocalCoordinates, uint8_t>& voxel)
         {
-            return occupationToExtruderNr(voxel.second) > 0;
+            return voxel.second > 0;
         });
 
     spdlog::info("Export initial meshes");
@@ -597,12 +577,12 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 const Vector_3 diff = position - closest_point_and_primitive.first;
                 if (diff.squared_length() <= deepness_squared)
                 {
-                    const ExtruderOccupation& occupation = closest_point_and_primitive.second->occupation;
+                    const uint8_t occupation = closest_point_and_primitive.second->occupation;
                     voxel_space.setOccupation(voxel_to_evaluate, occupation);
                 }
                 else
                 {
-                    voxel_space.setOccupation(voxel_to_evaluate, extruderNrToOccupation(0));
+                    voxel_space.setOccupation(voxel_to_evaluate, 0);
                 }
             });
 
@@ -611,7 +591,8 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         voxels_to_evaluate.visit_all(
             [&origin_voxels, &target_voxels, &voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
             {
-                std::optional<ExtruderOccupation> first_target_occupation;
+                // First optional is for indicating that it has been set once, second is for whether the occupation actually contains an extruder nr
+                std::optional<std::optional<uint8_t>> first_target_occupation;
                 bool add_to_evaluate = false;
                 origin_voxels.visit(
                     evaluated_voxel,
@@ -625,7 +606,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                                 {
                                     for (const VoxelGrid::LocalCoordinates& target_voxel : target_voxel_value.second)
                                     {
-                                        const ExtruderOccupation& target_occupation = voxel_space.getOccupation(target_voxel);
+                                        const std::optional<uint8_t> target_occupation = voxel_space.getOccupation(target_voxel);
                                         if (! first_target_occupation.has_value())
                                         {
                                             first_target_occupation = target_occupation;
@@ -656,11 +637,10 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
     spdlog::info("Making final points cloud");
     std::list<Point_3> points_cloud;
-    ExtruderOccupation occupation_extruder_1 = extruderNrToOccupation(1);
     voxel_space.visitFilledVoxels(
-        [&occupation_extruder_1, &points_cloud, &voxel_space](const auto& filled_voxel)
+        [&points_cloud, &voxel_space](const auto& filled_voxel)
         {
-            if (filled_voxel.second == occupation_extruder_1)
+            if (filled_voxel.second == 1)
             {
                 points_cloud.push_back(voxel_space.toGlobalCoordinates(filled_voxel.first));
             }
