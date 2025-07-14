@@ -512,6 +512,16 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
             return voxel.second > 0;
         });
 
+    // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper inside-mesh checking
+    spdlog::info("prepare cleaned mesh");
+    PolygonMesh cleaned_mesh;
+    constexpr double alpha = 1000.0;
+    constexpr double offset = 100.0;
+    CGAL::alpha_wrap_3(mesh, alpha, offset, cleaned_mesh);
+    exportMesh(cleaned_mesh, "cleaned_mesh");
+    CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(cleaned_mesh);
+    bool check_inside = true;
+
     spdlog::info("Export initial meshes");
     voxel_space.exportToFile("initial_points_cloud");
 
@@ -528,6 +538,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
         boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::vector<VoxelGrid::LocalCoordinates>> origin_voxels; // target_voxel: [origin_voxels]
         boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::vector<VoxelGrid::LocalCoordinates>> target_voxels; // origin_voxel: [target_voxels]
+        std::atomic_bool keep_checking_inside(false);
 
         const auto register_voxel_relations = [&origin_voxels, &target_voxels](const VoxelGrid::LocalCoordinates& origin_voxel, const VoxelGrid::LocalCoordinates& target_voxel)
         {
@@ -559,14 +570,44 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                         continue;
                     }
 
-                    if (! voxel_space.isFilled(voxel_around))
+                    std::optional<uint8_t> occupation = voxel_space.getOccupation(voxel_around);
+                    if (occupation.has_value())
                     {
-                        // Voxel is not occupied yet, so evaluate it
+                        // Voxel is already filled, don't evalute it anyhow
+                        continue;
+                    }
+
+                    bool evaluate_voxel;
+                    if (check_inside)
+                    {
+                        evaluate_voxel = inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) != CGAL::ON_UNBOUNDED_SIDE;
+                        if (! evaluate_voxel)
+                        {
+                            voxel_space.setOccupation(voxel_around, 0);
+
+                            // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
+                            // is complete and we are only growing inside, thus we can skip checking for insideness
+                            keep_checking_inside.store(true);
+                        }
+                    }
+                    else
+                    {
+                        evaluate_voxel = true;
+                    }
+
+                    if (evaluate_voxel)
+                    {
                         voxels_to_evaluate.emplace(voxel_around);
                         register_voxel_relations(previously_evaluated_voxel, voxel_around);
                     }
                 }
             });
+
+        if (check_inside && ! keep_checking_inside.load())
+        {
+            spdlog::info("Stop checking for voxels insideness");
+            check_inside = false;
+        }
 
         spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
 
