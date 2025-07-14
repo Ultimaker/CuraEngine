@@ -211,6 +211,8 @@ std::string GCodeExport::getFileHeader(
     std::ostringstream prefix;
 
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
+    const Settings& global_settings = Application::getInstance().current_slice_->scene.settings;
+
     switch (flavor_)
     {
     case EGCodeFlavor::GRIFFIN:
@@ -224,7 +226,7 @@ std::string GCodeExport::getFileHeader(
         prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
 
-        const auto machine_use_material_station = Application::getInstance().current_slice_->scene.settings.get<bool>("machine_use_material_station");
+        const auto machine_use_material_station = global_settings.get<bool>("machine_use_material_station");
         const size_t export_extruder_count = machine_use_material_station ? 1 : extruder_count;
 
         for (size_t extr_nr = 0; extr_nr < export_extruder_count; extr_nr++)
@@ -295,6 +297,12 @@ std::string GCodeExport::getFileHeader(
             prefix << ";PPR_BUILD_VOLUME_TEMPERATURE_LIMIT:" << Application::getInstance().current_slice_->scene.extruders[0].settings_.get<double>("bv_temp_anomaly_limit")
                    << new_line_;
         }
+
+        if (global_settings.get<bool>("machine_use_material_station"))
+        {
+            prefix << ";SKIP_PROCEDURES:DEPRIME,PURGE_MATERIAL_MISP,DEPRIME_FOR_MATERIAL_CHANGE_MISP" << new_line_;
+        }
+
         prefix << ";END_OF_HEADER" << new_line_;
         break;
     }
