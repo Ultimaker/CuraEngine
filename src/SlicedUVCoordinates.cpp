@@ -70,7 +70,7 @@ std::optional<Point2F> SlicedUVCoordinates::getClosestUVCoordinates(const Point2
         if (distance_to_segment < closest_distance)
         {
             closest_distance = distance_to_segment;
-            closest_uv_coordinates = cura::lerp(segment.uv_start, segment.uv_end, interpolate_factor);
+            closest_uv_coordinates = cura::lerp(segment.uv_start, segment.uv_end, static_cast<float>(interpolate_factor));
         }
     }
 
