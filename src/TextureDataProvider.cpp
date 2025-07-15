@@ -37,7 +37,7 @@ std::optional<uint32_t> TextureDataProvider::getValue(const Point2LL& position, 
     const uint32_t pixel_data = texture_->getPixel(point_uv_coordinates.value());
 
     // Extract relevant bits by rotating the pixel data left then right, which will insert 0s where appropriate
-    return (pixel_data << (32 - 1 - bit_field.bit_range_end_index)) >> 32 - 1 - (bit_field.bit_range_end_index - bit_field.bit_range_start_index);
+    return (pixel_data << (32 - 1 - bit_field.bit_range_end_index)) >> (32 - 1 - (bit_field.bit_range_end_index - bit_field.bit_range_start_index));
 }
 
 std::optional<TextureArea> TextureDataProvider::getAreaPreference(const Point2LL& position, const std::string& feature) const

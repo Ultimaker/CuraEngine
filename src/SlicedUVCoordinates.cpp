@@ -20,7 +20,7 @@ SlicedUVCoordinates::SlicedUVCoordinates(const std::vector<SlicerSegment>& segme
             located_uv_coordinates_.insert(segment.start, segment.uv_start.value());
             located_uv_coordinates_.insert(segment.end, segment.uv_end.value());
 
-            segments_.emplace_back(segment.start, segment.end, segment.uv_start.value(), segment.uv_end.value());
+            segments_.push_back(Segment{ segment.start, segment.end, segment.uv_start.value(), segment.uv_end.value() });
         }
     }
 }
