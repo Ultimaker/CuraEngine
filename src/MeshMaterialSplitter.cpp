@@ -276,22 +276,6 @@ public:
         nodes_.visit_all(std::execution::par, args...);
     }
 
-    std::vector<LocalCoordinates> getFilledVoxels(const std::function<bool(const std::pair<LocalCoordinates, uint8_t>&)>& condition = nullptr) const
-    {
-        std::vector<LocalCoordinates> filled_voxels;
-
-        nodes_.visit_all(
-            [&filled_voxels, &condition](const auto& voxel)
-            {
-                if (! condition || condition(voxel))
-                {
-                    filled_voxels.push_back(voxel.first);
-                }
-            });
-
-        return filled_voxels;
-    }
-
     std::vector<LocalCoordinates> getVoxelsAround(const LocalCoordinates& point) const
     {
         const SimplePoint_3U16& position = point.position;
@@ -505,18 +489,11 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     const Point_3& resolution = voxel_space.getResolution();
     const float deepness_squared = deepness * deepness;
 
-    spdlog::info("Get initially filled voxels");
-    const std::vector<VoxelGrid::LocalCoordinates> filled_voxels = voxel_space.getFilledVoxels(
-        [](const std::pair<VoxelGrid::LocalCoordinates, uint8_t>& voxel)
-        {
-            return voxel.second > 0;
-        });
-
     // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper inside-mesh checking
     spdlog::info("prepare cleaned mesh");
     PolygonMesh cleaned_mesh;
-    constexpr double alpha = 1000.0;
-    constexpr double offset = 100.0;
+    constexpr double alpha = 2000.0;
+    constexpr double offset = 10.0;
     CGAL::alpha_wrap_3(mesh, alpha, offset, cleaned_mesh);
     exportMesh(cleaned_mesh, "cleaned_mesh");
     CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(cleaned_mesh);
@@ -525,14 +502,23 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     spdlog::info("Export initial meshes");
     voxel_space.exportToFile("initial_points_cloud");
 
+    spdlog::info("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
-    previously_evaluated_voxels.insert(filled_voxels.begin(), filled_voxels.end());
+    voxel_space.visitFilledVoxels(
+        [&previously_evaluated_voxels](const auto& voxel)
+        {
+            if (voxel.second > 0)
+            {
+                previously_evaluated_voxels.insert(voxel.first);
+            };
+        });
 
     // Create an AABB tree for efficient spatial queries
     spdlog::info("Prepare AABB tree for fast look-up");
     Tree tree(pixels_cloud.begin(), pixels_cloud.end());
     tree.accelerate_distance_queries();
 
+    uint32_t iteration = 0;
     while (! previously_evaluated_voxels.empty())
     {
         boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
@@ -583,6 +569,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                         evaluate_voxel = inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) != CGAL::ON_UNBOUNDED_SIDE;
                         if (! evaluate_voxel)
                         {
+                            spdlog::info("found voxel outside");
                             voxel_space.setOccupation(voxel_around, 0);
 
                             // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
@@ -610,29 +597,26 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         }
 
         spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
-
+        boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> new_voxels_non_zero;
         voxels_to_evaluate.visit_all(
             std::execution::par,
-            [&voxel_space, &tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+            [&voxel_space, &tree, &deepness_squared, &new_voxels_non_zero](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
                 // Find closest outside point and its occupation
                 const Point_3 position = voxel_space.toGlobalCoordinates(voxel_to_evaluate);
                 const std::pair<Point_3, PixelsCloudPrimitive::Id> closest_point_and_primitive = tree.closest_point_and_primitive(position);
                 const Vector_3 diff = position - closest_point_and_primitive.first;
-                if (diff.squared_length() <= deepness_squared)
+                const uint8_t new_occupation = diff.squared_length() <= deepness_squared ? closest_point_and_primitive.second->occupation : 0;
+                voxel_space.setOccupation(voxel_to_evaluate, new_occupation);
+                if (new_occupation != 0)
                 {
-                    const uint8_t occupation = closest_point_and_primitive.second->occupation;
-                    voxel_space.setOccupation(voxel_to_evaluate, occupation);
-                }
-                else
-                {
-                    voxel_space.setOccupation(voxel_to_evaluate, 0);
+                    new_voxels_non_zero.emplace(voxel_to_evaluate);
                 }
             });
 
         // Now we have updated the occupations, check which evaluated voxels are to be processed next
         previously_evaluated_voxels.clear();
-        voxels_to_evaluate.visit_all(
+        new_voxels_non_zero.visit_all(
             std::execution::par,
             [&origin_voxels, &target_voxels, &voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
             {
