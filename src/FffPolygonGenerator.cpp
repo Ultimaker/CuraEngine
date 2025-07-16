@@ -355,8 +355,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     const auto match_pixel = static_cast<uint32_t>(TextureArea::Preferred) << mesh.texture_data_mapping_->at("label").bit_range_start_index;
                     const auto& height = layer.printZ;
                     for (const auto& segment : slicer_layer.segments_)
-                        // TODO: Deal with the fact that we _actually_ don't have the segments in that place anymore (I temporarily disabled the clear).
-                        // (We've still got all we need in the slicer_layer.sliced_uv_coordinates_.segments, but that's all private at the moment!
+                    // TODO: Deal with the fact that we _actually_ don't have the segments in that place anymore (I temporarily disabled the clear).
+                    // (We've still got all we need in the slicer_layer.sliced_uv_coordinates_.segments, but that's all private at the moment!
                     {
                         if (segment.uv_start.has_value() && segment.uv_end.has_value())
                         {
@@ -367,24 +367,30 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                             mesh.texture_->visitLinePerPixel(
                                 uv_a,
                                 uv_b,
-                                [&label_aabb, &match_pixel, &uv_a, &uv_b, &a, &b, &height](const int32_t& pixel, const Point2F& uv) {
+                                [&label_aabb, &match_pixel, &uv_a, &uv_b, &a, &b, &height](const int32_t& pixel, const Point2F& uv)
+                                {
                                     if ((pixel & match_pixel) != 0b0)
                                     {
-                                        const auto param =
-                                            std::llabs(b.X - a.X) >= std::llabs(b.Y - a.Y) ?
-                                            (uv.x_ - uv_a.x_) / (uv_b.x_ - uv_a.x_) :
-                                            (uv.y_ - uv_a.y_) / (uv_b.y_ - uv_a.y_);
+                                        const auto param
+                                            = std::llabs(b.X - a.X) >= std::llabs(b.Y - a.Y) ? (uv.x_ - uv_a.x_) / (uv_b.x_ - uv_a.x_) : (uv.y_ - uv_a.y_) / (uv_b.y_ - uv_a.y_);
                                         label_aabb.include(Point3LL(a + param * (b - a), height));
                                     }
-                                }
-                            );
+                                });
                         }
                     }
                 }
             }
         }
 
-        std::fprintf(stderr, "<%ld, %ld, %ld> -- <%ld, %ld, %ld>\n", label_aabb.min_.x_, label_aabb.min_.y_, label_aabb.min_.z_, label_aabb.max_.x_, label_aabb.max_.y_, label_aabb.max_.z_);
+        std::fprintf(
+            stderr,
+            "<%ld, %ld, %ld> -- <%ld, %ld, %ld>\n",
+            label_aabb.min_.x_,
+            label_aabb.min_.y_,
+            label_aabb.min_.z_,
+            label_aabb.max_.x_,
+            label_aabb.max_.y_,
+            label_aabb.max_.z_);
         // FIXME/TODO: REMOVE print
 
         mesh.setIdFieldInfo(label_aabb);

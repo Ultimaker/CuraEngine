@@ -114,20 +114,19 @@ public:
         size_t error = dx + dy;
         while (true)
         {
-            func(
-                getPixel(x0, y0),
-                Point2F(static_cast<float>(x0) / width_, static_cast<float>(y0) / height_)
-            );
+            func(getPixel(x0, y0), Point2F(static_cast<float>(x0) / width_, static_cast<float>(y0) / height_));
             const size_t e2 = error * 2;
             if (e2 >= dy)
             {
-                if (x0 == x1) break;
+                if (x0 == x1)
+                    break;
                 error += dy;
                 x0 += sx;
             }
             if (e2 <= dx)
             {
-                if (y0 == y1) break;
+                if (y0 == y1)
+                    break;
                 error += dx;
                 y0 += sy;
             }
@@ -144,7 +143,12 @@ private:
 
 struct IdFieldInfo
 {
-    enum class Axis { X, Y, Z };
+    enum class Axis
+    {
+        X,
+        Y,
+        Z
+    };
     Axis primary_axis_ = Axis::X;
     Axis secondary_axis_ = Axis::Z;
     AABB projection_field_;
