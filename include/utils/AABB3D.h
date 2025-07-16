@@ -43,6 +43,14 @@ struct AABB3D
     AABB flatten() const;
 
     /*!
+     * Wether or not this repressents an actual box in 'real' space, not a _negative_ volume.
+     * Note that the volume might still be empty (== 0.0), which can happen if it repressents a(n axis aligned) plane, a line, or a point.
+     *
+     * \return Wether or not the space the box envelops is at least 0.
+     */
+    bool exists() const;
+
+    /*!
      * Check whether this aabb overlaps with another.
      *
      * In the boundary case false is returned.

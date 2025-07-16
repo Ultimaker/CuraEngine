@@ -801,7 +801,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     sliced_uv_coordinates_ = std::make_shared<SlicedUVCoordinates>(segments_);
 
     // Clear the segment list to save memory, it is no longer needed after this point.
-    segments_.clear();
+    //segments_.clear();    // FIXME!!! -> put back once this code needs to be production quality (no longer hackathon proof-of-concept)
 }
 
 Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)

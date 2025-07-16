@@ -42,6 +42,11 @@ bool AABB3D::hit(const AABB3D& other) const
     return true;
 }
 
+bool AABB3D::exists() const
+{
+    return min_.x_ <= max_.x_ && min_.y_ <= max_.y_ && min_.z_ <= max_.z_;
+}
+
 AABB3D AABB3D::include(Point3LL p)
 {
     min_.x_ = std::min(min_.x_, p.x_);

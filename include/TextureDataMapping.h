@@ -4,6 +4,7 @@
 #ifndef TEXTUREDATAMAPPING_H
 #define TEXTUREDATAMAPPING_H
 
+#include <fmt/format.h>
 #include <map>
 #include <string>
 
@@ -33,4 +34,23 @@ enum class TextureArea
 };
 
 } // namespace cura
+
+namespace fmt
+{
+    template<>
+    struct formatter<cura::TextureBitField>
+    {
+        constexpr auto parse(format_parse_context& ctx)
+        {
+            return ctx.end();
+        }
+
+        template<typename FormatContext>
+        auto format(const cura::TextureBitField& tbf, FormatContext& ctx) const
+        {
+            return format_to(ctx.out(), "[{} -- {}]", tbf.bit_range_start_index, tbf.bit_range_end_index);
+        }
+    };
+}
+
 #endif // MESH_H
