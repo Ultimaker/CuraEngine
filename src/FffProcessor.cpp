@@ -18,6 +18,11 @@ void FffProcessor::setTargetStream(std::ostream* stream)
     return gcode_writer.setTargetStream(stream);
 }
 
+bool FffProcessor::getExtruderActualUse(int extruder_nr)
+{
+    return gcode_writer.getExtruderActualUse(extruder_nr);
+}
+
 double FffProcessor::getTotalFilamentUsed(int extruder_nr)
 {
     return gcode_writer.getTotalFilamentUsed(extruder_nr);
