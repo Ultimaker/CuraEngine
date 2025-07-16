@@ -28,12 +28,15 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 
+#define EXPORT_DEBUG_MESHES 1
+
 namespace cura::MeshMaterialSplitter
 {
 using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
 
 using Point_3 = Kernel::Point_3;
 using Vector_3 = Kernel::Vector_3;
+using Direction_3 = Kernel::Direction_3;
 using Triangle_3 = Kernel::Triangle_3;
 
 using Point_2 = Kernel::Point_2;
@@ -51,6 +54,7 @@ using Tree = CGAL::AABB_tree<AABB_traits>;
 
 void exportMesh(const PolygonMesh& mesh, const std::string& filename)
 {
+#if EXPORT_DEBUG_MESHES
     PolygonMesh exported_mesh = mesh;
 
     std::ofstream out(fmt::format("/home/erwan/test/CURA-12449_handling-painted-models/{}.obj", filename));
@@ -60,23 +64,26 @@ void exportMesh(const PolygonMesh& mesh, const std::string& filename)
         p = Point_3(p.x() * 0.001, p.y() * 0.001, p.z() * 0.001);
     }
     CGAL::IO::write_OBJ(out, exported_mesh);
+#endif
 }
 
 template<typename PointContainer>
 void exportPointsCloud(const PointContainer& points_cloud, const std::string& filename)
 {
+#if EXPORT_DEBUG_MESHES
     PolygonMesh exported_mesh;
     for (const Point_3& point : points_cloud)
     {
         exported_mesh.add_vertex(point);
     }
     exportMesh(exported_mesh, filename);
+#endif
 }
 
-Point_2 getPixelCoordinates(const Point_2& uv_coordinates, const std::shared_ptr<Image>& image)
+Point_2U32 getPixelCoordinates(const Point_2& uv_coordinates, const std::shared_ptr<Image>& image)
 {
     std::pair<size_t, size_t> pixel_coordinates = image->getPixelCoordinates(Point2F(uv_coordinates.x(), uv_coordinates.y()));
-    return Point_2(pixel_coordinates.first, pixel_coordinates.second);
+    return Point_2U32(pixel_coordinates.first, pixel_coordinates.second);
 }
 
 Point_3 getSpaceCoordinates(const Point_2& pixel_coordinates, const Triangle_2& triangle_coordinates, const Triangle_3& triangle)
@@ -133,6 +140,15 @@ std::optional<Point_3> getBarycentricCoordinates(const PointType& point, const P
     return Point_3(u, v, w);
 }
 
+Point_2 getUVCoordinates(const Point_3& barycentric_coordinates, const Triangle_2& face_uv_coordinates)
+{
+    return Point_2(
+        (face_uv_coordinates[2].x() * barycentric_coordinates.x()) + (face_uv_coordinates[0].x() * barycentric_coordinates.y())
+            + (face_uv_coordinates[1].x() * barycentric_coordinates.z()),
+        (face_uv_coordinates[2].y() * barycentric_coordinates.x()) + (face_uv_coordinates[0].y() * barycentric_coordinates.y())
+            + (face_uv_coordinates[1].y() * barycentric_coordinates.z()));
+}
+
 template<typename PointsContainer>
 void makeMeshFromPointsCloud(const PointsContainer& points_cloud, PolygonMesh& output_mesh, const coord_t points_grid_resolution)
 {
@@ -171,6 +187,113 @@ struct Pixel3D
 };
 
 using PixelsCloud = std::vector<Pixel3D>;
+
+class ParameterizedSegment
+{
+public:
+    ParameterizedSegment(const Point_3& start, const Point_3& end)
+        : direction_(end - start)
+        , start_(start)
+        , end_(end)
+    {
+        length_ = std::sqrt(direction_.squared_length());
+        if (length_ > std::numeric_limits<double>::epsilon())
+        {
+            direction_ /= length_;
+        }
+    }
+
+    const Point_3& start() const
+    {
+        return start_;
+    }
+
+    const Point_3& end() const
+    {
+        return end_;
+    }
+
+    Point_3 pointAtX(const double x) const
+    {
+        const double factor = (x - start_.x()) / (end_.x() - start_.x());
+        return Point_3(x, start_.y() + factor * direction_.y(), start_.z() + factor * direction_.z());
+    }
+
+    Point_3 pointAtY(const double y) const
+    {
+        const double factor = (y - start_.y()) / (end_.y() - start_.y());
+        return Point_3(start_.x() + factor * direction_.x(), y, start_.z() + factor * direction_.z());
+    }
+
+    std::optional<ParameterizedSegment> intersectionWithXLayer(const double layer_start, const double layer_end) const
+    {
+        if (direction_.x() > 0)
+        {
+            if (start_.x() <= layer_end && end_.x() >= layer_start)
+            {
+                return ParameterizedSegment(start_.x() < layer_start ? pointAtX(layer_start) : start_, end_.x() > layer_end ? pointAtX(layer_end) : end_);
+            }
+
+            return std::nullopt;
+        }
+        else if (direction_.x() < 0)
+        {
+            if (end_.x() <= layer_end && start_.x() >= layer_start)
+            {
+                return ParameterizedSegment(end_.x() < layer_start ? pointAtX(layer_start) : end_, start_.x() > layer_end ? pointAtX(layer_end) : start_);
+            }
+
+            return std::nullopt;
+        }
+        else
+        {
+            if (start_.x() >= layer_start && start_.x() <= layer_end)
+            {
+                return *this;
+            }
+
+            return std::nullopt;
+        }
+    }
+
+    std::optional<ParameterizedSegment> intersectionWithYLayer(const double layer_start, const double layer_end) const
+    {
+        if (direction_.y() > 0)
+        {
+            if (start_.y() <= layer_end && end_.y() >= layer_start)
+            {
+                return ParameterizedSegment(start_.y() < layer_start ? pointAtY(layer_start) : start_, end_.y() > layer_end ? pointAtY(layer_end) : end_);
+            }
+
+            return std::nullopt;
+        }
+        else if (direction_.y() < 0)
+        {
+            if (end_.y() <= layer_end && start_.y() >= layer_start)
+            {
+                return ParameterizedSegment(end_.y() < layer_start ? pointAtY(layer_start) : end_, start_.y() > layer_end ? pointAtY(layer_end) : start_);
+            }
+
+            return std::nullopt;
+        }
+        else
+        {
+            if (start_.y() >= layer_start && start_.y() <= layer_end)
+            {
+                return *this;
+            }
+
+            return std::nullopt;
+        }
+    }
+
+private:
+    Vector_3 direction_;
+    Point_3 start_;
+    Point_3 end_;
+    double length_;
+    bool valid_;
+};
 
 class VoxelGrid
 {
@@ -234,7 +357,7 @@ public:
 
     Point_3 toGlobalCoordinates(const LocalCoordinates& position) const
     {
-        return Point_3(position.position.x * resolution_.x(), position.position.y * resolution_.y(), position.position.z * resolution_.z()) + origin_;
+        return Point_3(toGlobalX(position.position.x), toGlobalY(position.position.y), toGlobalZ(position.position.z));
     }
 
     void setOccupation(const Point_3& position, const uint8_t extruder_nr)
@@ -319,8 +442,37 @@ public:
 
     LocalCoordinates toLocalCoordinates(const Point_3& position) const
     {
-        const Point_3 position_in_space = position - origin_;
-        return LocalCoordinates(position_in_space.x() / resolution_.x(), position_in_space.y() / resolution_.y(), position_in_space.z() / resolution_.z());
+        return LocalCoordinates(toLocalX(position.x()), toLocalY(position.y()), toLocalZ(position.z()));
+    }
+
+    uint16_t toLocalX(const double x) const
+    {
+        return (x - origin_.x()) / resolution_.x();
+    }
+
+    double toGlobalX(const uint16_t x) const
+    {
+        return (x * resolution_.x()) + origin_.x();
+    }
+
+    uint16_t toLocalY(const double y) const
+    {
+        return (y - origin_.y()) / resolution_.y();
+    }
+
+    double toGlobalY(const uint16_t y) const
+    {
+        return (y * resolution_.y()) + origin_.y();
+    }
+
+    uint16_t toLocalZ(const double z) const
+    {
+        return (z - origin_.z()) / resolution_.z();
+    }
+
+    double toGlobalZ(const uint16_t z) const
+    {
+        return (z * resolution_.z()) + origin_.z();
     }
 
     void exportToFile(const std::string& basename) const
@@ -339,6 +491,81 @@ public:
         }
     }
 
+    std::vector<LocalCoordinates> getTraversedVoxels(const Triangle_3& triangle)
+    {
+        const SimplePoint_3U16 p0 = toLocalCoordinates(triangle[0]).position;
+        const SimplePoint_3U16 p1 = toLocalCoordinates(triangle[1]).position;
+        const SimplePoint_3U16 p2 = toLocalCoordinates(triangle[2]).position;
+
+        const ParameterizedSegment s1(triangle[0], triangle[1]);
+        const ParameterizedSegment s2(triangle[1], triangle[2]);
+        const ParameterizedSegment s3(triangle[2], triangle[0]);
+
+        std::vector<LocalCoordinates> traversed_voxels;
+
+        const uint16_t xmin = std::min({ p0.x, p1.x, p2.x });
+        const uint16_t xmax = std::max({ p0.x, p1.x, p2.x });
+        for (uint16_t x = xmin; x <= xmax; ++x)
+        {
+            const double layer_start_x = toGlobalX(x);
+            const double layer_end_x = toGlobalX(x + 1);
+            const std::optional<ParameterizedSegment> s1_inter_x = s1.intersectionWithXLayer(layer_start_x, layer_end_x);
+            const std::optional<ParameterizedSegment> s2_inter_x = s2.intersectionWithXLayer(layer_start_x, layer_end_x);
+            const std::optional<ParameterizedSegment> s3_inter_x = s3.intersectionWithXLayer(layer_start_x, layer_end_x);
+
+            std::vector<double> y_values;
+            for (const std::optional<ParameterizedSegment>& inter_x : { s1_inter_x, s2_inter_x, s3_inter_x })
+            {
+                if (inter_x.has_value())
+                {
+                    y_values.push_back(inter_x.value().start().y());
+                    y_values.push_back(inter_x.value().end().y());
+                }
+            }
+
+            if (y_values.empty())
+            {
+                continue;
+            }
+
+            const uint16_t ymin = toLocalY(std::ranges::min(y_values));
+            const uint16_t ymax = toLocalY(std::ranges::max(y_values));
+
+            for (uint16_t y = ymin; y <= ymax; ++y)
+            {
+                const double layer_start_y = toGlobalY(y);
+                const double layer_end_y = toGlobalY(y + 1);
+                const std::optional<ParameterizedSegment> s1_inter_y = s1.intersectionWithYLayer(layer_start_y, layer_end_y);
+                const std::optional<ParameterizedSegment> s2_inter_y = s2.intersectionWithYLayer(layer_start_y, layer_end_y);
+                const std::optional<ParameterizedSegment> s3_inter_y = s3.intersectionWithYLayer(layer_start_y, layer_end_y);
+
+                std::vector<double> z_values;
+                for (const std::optional<ParameterizedSegment>& inter_y : { s1_inter_y, s2_inter_y, s3_inter_y })
+                {
+                    if (inter_y.has_value())
+                    {
+                        z_values.push_back(inter_y.value().start().z());
+                        z_values.push_back(inter_y.value().end().z());
+                    }
+                }
+
+                if (z_values.empty())
+                {
+                    continue;
+                }
+
+                const uint16_t zmin = toLocalZ(std::ranges::min(z_values));
+                const uint16_t zmax = toLocalZ(std::ranges::max(z_values));
+
+                for (uint16_t z = zmin; z <= zmax; ++z)
+                {
+                    traversed_voxels.push_back(LocalCoordinates(x, y, z));
+                }
+            }
+        }
+
+        return traversed_voxels;
+    }
 
 private:
     Point_3 resolution_;
@@ -364,48 +591,34 @@ void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
         [&](const size_t face_index)
         {
             const CGAL::SM_Face_index face = *std::next(faces.begin(), face_index);
-            const std::array<Point_2, 3> face_uvs = uv_coords[face];
-            const Triangle_2 face_pixel_coordinates(
-                getPixelCoordinates(face_uvs[2], texture_data_provider->getTexture()),
-                getPixelCoordinates(face_uvs[0], texture_data_provider->getTexture()),
-                getPixelCoordinates(face_uvs[1], texture_data_provider->getTexture()));
+            const Triangle_2 face_uvs(uv_coords[face][0], uv_coords[face][1], uv_coords[face][2]);
             const Triangle_3 triangle = getFaceTriangle(mesh, face);
 
-            // Now get the bounding box of the triangle on the image
-            const Point_2U32 min(
-                std::min({ face_pixel_coordinates[0].x(), face_pixel_coordinates[1].x(), face_pixel_coordinates[2].x() }),
-                std::min({ face_pixel_coordinates[0].y(), face_pixel_coordinates[1].y(), face_pixel_coordinates[2].y() }));
-            const Point_2U32 max(
-                std::max({ face_pixel_coordinates[0].x(), face_pixel_coordinates[1].x(), face_pixel_coordinates[2].x() }),
-                std::max({ face_pixel_coordinates[0].y(), face_pixel_coordinates[1].y(), face_pixel_coordinates[2].y() }));
-
-            for (uint32_t x = min.x(); x < max.x(); ++x)
+            for (const VoxelGrid::LocalCoordinates& traversed_voxel : voxel_space.getTraversedVoxels(triangle))
             {
-                for (uint32_t y = min.y(); y < max.y(); ++y)
+                const Point_3 global_position = voxel_space.toGlobalCoordinates(traversed_voxel);
+                const std::optional<Point_3> barycentric_coordinates = getBarycentricCoordinates<Point_3, Vector_3>(global_position, triangle[0], triangle[1], triangle[2]);
+
+                if (! barycentric_coordinates.has_value() || barycentric_coordinates.value().x() < 0 || barycentric_coordinates.value().y() < 0
+                    || barycentric_coordinates.value().z() < 0)
                 {
-                    const Point_2 pixel_center(x + 0.5, y + 0.5);
-                    const std::optional<Point_3> barycentric_coordinates
-                        = getBarycentricCoordinates<Point_2, Vector_2>(pixel_center, face_pixel_coordinates[0], face_pixel_coordinates[1], face_pixel_coordinates[2]);
+                    // Triangle is invalid, or point is outside the triangle
+                    continue;
+                }
 
-                    if (! barycentric_coordinates.has_value() || barycentric_coordinates.value().x() < 0 || barycentric_coordinates.value().y() < 0
-                        || barycentric_coordinates.value().z() < 0)
-                    {
-                        // Triangle is invalid, or point is outside the triangle
-                        continue;
-                    }
+                const Point_2 uv_coords = getUVCoordinates(barycentric_coordinates.value(), face_uvs);
+                const Point_2U32 pixel = getPixelCoordinates(uv_coords, texture_data_provider->getTexture());
+                const std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(pixel.x(), pixel.y(), "extruder");
 
-                    const Point_3 pixel_3d = getSpaceCoordinates(pixel_center, face_pixel_coordinates, triangle);
-                    const std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(x, y, "extruder");
-
-                    if (extruder_nr.has_value())
-                    {
-                        mutex.lock();
-                        voxel_space.setOccupation(pixel_3d, extruder_nr.value());
-                        pixels_cloud.emplace_back(pixel_3d, extruder_nr.value());
-                        mutex.unlock();
-                    }
+                if (extruder_nr.has_value())
+                {
+                    voxel_space.setOccupation(traversed_voxel, extruder_nr.value());
+                    mutex.lock();
+                    pixels_cloud.emplace_back(global_position, extruder_nr.value());
+                    mutex.unlock();
                 }
             }
+
             return true;
         },
         [](bool result) {});
@@ -484,6 +697,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     VoxelGrid voxel_space(mesh, settings.get<double>("multi_material_paint_resolution") * 1000.0);
     PixelsCloud pixels_cloud;
     makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space, pixels_cloud);
+    voxel_space.exportToFile("initial_points_cloud");
 
     const double deepness = settings.get<double>("multi_material_paint_deepness") * 1000.0;
     const Point_3& resolution = voxel_space.getResolution();
@@ -495,12 +709,9 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     constexpr double alpha = 2000.0;
     constexpr double offset = 10.0;
     CGAL::alpha_wrap_3(mesh, alpha, offset, cleaned_mesh);
-    exportMesh(cleaned_mesh, "cleaned_mesh");
     CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(cleaned_mesh);
     bool check_inside = true;
 
-    spdlog::info("Export initial meshes");
-    voxel_space.exportToFile("initial_points_cloud");
 
     spdlog::info("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
@@ -512,6 +723,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 previously_evaluated_voxels.insert(voxel.first);
             };
         });
+    exportMesh(cleaned_mesh, "cleaned_mesh");
 
     // Create an AABB tree for efficient spatial queries
     spdlog::info("Prepare AABB tree for fast look-up");
@@ -569,7 +781,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                         evaluate_voxel = inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) != CGAL::ON_UNBOUNDED_SIDE;
                         if (! evaluate_voxel)
                         {
-                            spdlog::info("found voxel outside");
                             voxel_space.setOccupation(voxel_around, 0);
 
                             // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
