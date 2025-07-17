@@ -3320,7 +3320,8 @@ bool FffGcodeWriter::processInsets(
             disallowed_areas_for_seams,
             scarf_seam,
             smooth_speed,
-            gcode_layer.getSeamOverhangMask());
+            gcode_layer.getSeamOverhangMask(),
+            mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_);
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;

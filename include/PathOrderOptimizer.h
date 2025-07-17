@@ -29,6 +29,7 @@
 #include "utils/scoring/DistanceScoringCriterion.h"
 #include "utils/scoring/ExclusionAreaScoringCriterion.h"
 #include "utils/scoring/RandomScoringCriterion.h"
+#include "utils/scoring/TextureScoringCriterion.h"
 #include "utils/views/dfs.h"
 
 namespace cura
@@ -121,7 +122,8 @@ public:
         const bool group_outer_walls = false,
         const Shape& disallowed_areas_for_seams = {},
         const bool use_shortest_for_inner_walls = false,
-        const Shape& overhang_areas = Shape())
+        const Shape& overhang_areas = Shape(),
+        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr)
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -132,6 +134,7 @@ public:
         , disallowed_area_for_seams{ disallowed_areas_for_seams }
         , use_shortest_for_inner_walls_(use_shortest_for_inner_walls)
         , overhang_areas_(overhang_areas)
+        , texture_data_provider_(texture_data_provider)
     {
     }
 
@@ -335,6 +338,11 @@ protected:
      * Contains the overhang areas, where we would prefer not to place the start locations of walls
      */
     const Shape overhang_areas_;
+
+    /*!
+     * The texture may contain user-provided data for semi-manual seam placement
+     */
+    const std::shared_ptr<TextureDataProvider> texture_data_provider_;
 
     std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
@@ -736,6 +744,14 @@ protected:
         BestElementFinder::CriteriaPass main_criteria_pass;
         main_criteria_pass.outsider_delta_threshold = 0.05;
 
+        if (texture_data_provider_)
+        {
+            BestElementFinder::WeighedCriterion texture_criterion;
+            texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, texture_data_provider_, "seam");
+            texture_criterion.weight = 5.0;
+            main_criteria_pass.criteria.push_back(texture_criterion);
+        }
+
         BestElementFinder::WeighedCriterion main_criterion;
 
         if (path.force_start_index_.has_value()) // Handles EZSeamType::USER_SPECIFIED with "seam_on_vertex" disabled
@@ -769,7 +785,7 @@ protected:
             spdlog::warn("Missing main criterion calculator");
         }
 
-        // Second criterion with heigher weight to avoid overhanging areas
+        // Second criterion with higher weight to avoid overhanging areas
         if (! overhang_areas_.empty())
         {
             BestElementFinder::WeighedCriterion overhang_criterion;

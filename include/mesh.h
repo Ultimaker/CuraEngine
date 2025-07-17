@@ -4,9 +4,13 @@
 #ifndef MESH_H
 #define MESH_H
 
+#include <optional>
+
+#include "TextureDataMapping.h"
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
 #include "utils/Matrix4x3D.h"
+#include "utils/Point2F.h"
 
 namespace cura
 {
@@ -54,8 +58,55 @@ class MeshFace
 public:
     int vertex_index_[3] = { -1 }; //!< counter-clockwise ordering
     int connected_face_index_[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
+    std::optional<Point2F> uv_coordinates_[3]; //!< UV coordinates for each vertex of the face
 };
 
+class Image
+{
+public:
+    explicit Image() = default;
+    explicit Image(const size_t width, const size_t height, const size_t bytes_per_pixel, std::vector<uint8_t>&& data)
+        : width_(width)
+        , height_(height)
+        , bytes_per_pixel_(bytes_per_pixel)
+        , bytes_per_row_(bytes_per_pixel * width)
+        , data_(std::move(data))
+    {
+    }
+
+    size_t getWidth() const
+    {
+        return width_;
+    }
+
+    size_t getHeight() const
+    {
+        return height_;
+    }
+
+    uint32_t getPixel(const size_t x, const size_t y) const
+    {
+        uint32_t result = 0;
+        const size_t index = y * bytes_per_row_ + x * bytes_per_pixel_;
+        for (size_t i = 0; i < bytes_per_pixel_; ++i)
+        {
+            result |= (data_[index + i] << ((bytes_per_pixel_ - i - 1) * 8));
+        }
+        return result;
+    }
+
+    uint32_t getPixel(const Point2F& uv_coordinates) const
+    {
+        return getPixel(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(uv_coordinates.y_ * height_));
+    }
+
+private:
+    std::vector<uint8_t> data_; // The raw pixels, data
+    size_t width_{ 0 }; // The image width
+    size_t height_{ 0 }; // The image height
+    size_t bytes_per_pixel_{ 0 }; // The number of bytes for each pixel
+    size_t bytes_per_row_{ 0 };
+};
 
 /*!
 A Mesh is the most basic representation of a 3D model. It contains all the faces as MeshFaces.
@@ -73,11 +124,28 @@ public:
     std::vector<MeshFace> faces_; //!< list of all faces in the mesh
     Settings settings_;
     std::string mesh_name_;
+    std::shared_ptr<Image> texture_;
+    std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 
     Mesh(Settings& parent);
     Mesh();
 
-    void addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2); //!< add a face to the mesh without settings it's connected_faces.
+    /*!
+     *
+     * @param v0 The 3D coordinates of vertex 0
+     * @param v1 The 3D coordinates of vertex 1
+     * @param v2 The 3D coordinates of vertex 2
+     * @param uv0 The optional UV coordinates of vertex 0
+     * @param uv1 The optional UV coordinates of vertex 1
+     * @param uv2 The optional UV coordinates of vertex 2
+     */
+    void addFace(
+        const Point3LL& v0,
+        const Point3LL& v1,
+        const Point3LL& v2,
+        const std::optional<Point2F>& uv0 = std::nullopt,
+        const std::optional<Point2F>& uv1 = std::nullopt,
+        const std::optional<Point2F>& uv2 = std::nullopt); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 

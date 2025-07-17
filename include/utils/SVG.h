@@ -57,10 +57,11 @@ public:
             , b_(b)
         {
         }
+
+        static ColorObject toRgb(const Color color);
     };
 
 private:
-    std::string toString(const Color color) const;
     std::string toString(const ColorObject& color) const;
     void handleFlush(const bool flush) const;
 
@@ -80,6 +81,8 @@ public:
     SVG(std::string filename, const AABB aabb, const double scale, const Point2LL canvas_size, const ColorObject background = Color::NONE);
 
     ~SVG();
+
+    static std::string toString(const Color color);
 
     /*!
      * get the scaling factor applied to convert real space to canvas space

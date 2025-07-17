@@ -3,7 +3,9 @@
 
 #include "MeshGroup.h"
 
+#include <fstream>
 #include <limits>
+#include <regex>
 #include <stdio.h>
 #include <string.h>
 
@@ -279,6 +281,114 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
+bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matrix)
+{
+    std::ifstream file(filename);
+    if (! file.is_open())
+    {
+        spdlog::error("Could not open OBJ file: {}", filename);
+        return false;
+    }
+
+    std::vector<Point3LL> vertices;
+    std::vector<Point2F> uv_coordinates;
+    std::string line;
+    std::regex main_regex(R"((v|vt|f)\s+(.*))");
+    std::regex vertex_regex(R"(([-+]?[0-9]*\.?[0-9]+)\s+([-+]?[0-9]*\.?[0-9]+)\s+([-+]?[0-9]*\.?[0-9]+))");
+    std::regex uv_regex(R"(([-+]?[0-9]*\.?[0-9]+)\s+([-+]?[0-9]*\.?[0-9]+))");
+    std::regex face_indices_regex(R"((\d+)(?:\/(\d*))?(?:\/(?:\d*))?)");
+
+    auto get_uv_coordinates = [&uv_coordinates](std::optional<size_t> uv_index) -> std::optional<Point2F>
+    {
+        if (uv_index.has_value() && uv_index.value() < uv_coordinates.size())
+        {
+            return std::make_optional(uv_coordinates[uv_index.value()]);
+        }
+        return std::nullopt;
+    };
+
+    while (std::getline(file, line))
+    {
+        std::smatch matches;
+
+        if (! std::regex_match(line, matches, main_regex))
+        {
+            // Unrecognized line, just skip
+            continue;
+        }
+
+        const std::string line_identifier = matches[1].str();
+        const std::string payload = matches[2].str();
+
+        if (line_identifier == "v" && std::regex_match(payload, matches, vertex_regex))
+        {
+            const float x = std::stof(matches[1].str());
+            const float y = std::stof(matches[2].str());
+            const float z = std::stof(matches[3].str());
+            vertices.push_back(matrix.apply(Point3D(x, y, z)));
+        }
+        else if (line_identifier == "vt" && std::regex_match(line, matches, uv_regex))
+        {
+            const float u = std::stof(matches[1].str());
+            const float v = std::stof(matches[2].str());
+            uv_coordinates.push_back(Point2F(u, v));
+        }
+        else if (line_identifier == "f")
+        {
+            struct Vertex
+            {
+                size_t index;
+                std::optional<size_t> uv_index;
+            };
+
+            std::vector<Vertex> vertex_indices;
+            std::sregex_iterator it(payload.begin(), payload.end(), face_indices_regex);
+            std::sregex_iterator end;
+
+            while (it != end)
+            {
+                std::smatch vertex_match = *it;
+                if (vertex_match.size() >= 2)
+                {
+                    Vertex vertex;
+                    vertex.index = std::stoul(vertex_match[1].str()) - 1;
+                    if (vertex_match[2].matched && vertex_match[2].length() > 0)
+                    {
+                        vertex.uv_index = std::stoul(vertex_match[2].str()) - 1;
+                    }
+                    vertex_indices.push_back(vertex);
+                }
+                ++it;
+            }
+
+            // Triangulate the face
+            if (vertex_indices.size() >= 3)
+            {
+                for (size_t i = 1; i < vertex_indices.size() - 1; ++i)
+                {
+                    const Vertex& v0 = vertex_indices[0];
+                    const Vertex& v1 = vertex_indices[i];
+                    const Vertex& v2 = vertex_indices[i + 1];
+
+                    if (v0.index < vertices.size() && v1.index < vertices.size() && v2.index < vertices.size())
+                    {
+                        mesh->addFace(
+                            vertices[v0.index],
+                            vertices[v1.index],
+                            vertices[v2.index],
+                            get_uv_coordinates(v0.uv_index),
+                            get_uv_coordinates(v1.uv_index),
+                            get_uv_coordinates(v2.uv_index));
+                    }
+                }
+            }
+        }
+    }
+
+    mesh->finish();
+    return ! mesh->faces_.empty();
+}
+
 bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
@@ -296,6 +406,20 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
         spdlog::warn("loading '{}' failed", filename);
         return false;
     }
+
+    if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
+    {
+        Mesh mesh(object_parent_settings);
+        if (loadMeshOBJ(&mesh, filename, transformation)) // Load it! If successful...
+        {
+            meshgroup->meshes.push_back(mesh);
+            spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
+            return true;
+        }
+        spdlog::warn("loading OBJ '{}' failed", filename);
+        return false;
+    }
+
     spdlog::warn("Unable to recognize the extension of the file. Currently only .stl and .STL are supported.");
     return false;
 }

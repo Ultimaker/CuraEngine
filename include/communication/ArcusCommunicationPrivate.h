@@ -5,15 +5,16 @@
 #define ARCUSCOMMUNICATIONPRIVATE_H
 #ifdef ARCUS
 
+#include <sstream> //For ostringstream.
+
 #include "ArcusCommunication.h" //We're adding a subclass to this.
 #include "SliceDataStruct.h"
 #include "settings/types/LayerIndex.h"
 
-#include <sstream> //For ostringstream.
-
 namespace cura
 {
 
+class Mesh;
 
 class ArcusCommunication::Private
 {
@@ -72,6 +73,9 @@ public:
     size_t slice_count; //!< How often we've sliced so far during this run of CuraEngine.
 
     const size_t millisecUntilNextTry; // How long we wait until we try to connect again.
+
+private:
+    static void loadTextureData(const std::string& texture_str, Mesh& mesh);
 };
 
 } // namespace cura
