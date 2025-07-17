@@ -11,6 +11,7 @@
 #include "utils/AABB3D.h"
 #include "utils/Matrix4x3D.h"
 #include "utils/Point2F.h"
+#include "utils/types/idfieldinfo.h"
 
 namespace cura
 {
@@ -100,36 +101,32 @@ public:
         return getPixel(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(uv_coordinates.y_ * height_));
     }
 
-    void visitLinePerPixel(const Point2F& a, const Point2F& b, const std::function<void(const int32_t, const Point2F&)>& func) const
+    void visitSpanPerPixel(const Point2F& a, const Point2F& b, const std::function<void(const int32_t, const Point2F&)>& func) const
     {
-        // Bresenham variant. Altered from Wikipedia.
-        auto x0 = static_cast<size_t>(a.x_ * width_);
-        auto y0 = static_cast<size_t>(a.y_ * height_);
-        const auto x1 = static_cast<size_t>(b.x_ * width_);
-        const auto y1 = static_cast<size_t>(b.y_ * height_);
-        const size_t dx = std::llabs(x1 - x0);
-        const size_t sx = x0 < x1 ? 1 : -1;
-        const size_t dy = -std::llabs(y1 - y0);
-        const size_t sy = y0 < y1 ? 1 : -1;
-        size_t error = dx + dy;
-        while (true)
+        constexpr auto func_major_stepper = [](const int64_t& da, const int64_t& abs_db, const int64_t& i) { return da < 0 ? -i : i; };
+        constexpr auto func_minor_stepper = [](const int64_t& da, const int64_t& abs_db, const int64_t& i) { return (i * da) / abs_db; };
+
+        const auto x0 = static_cast<int64_t>(a.x_ * width_);
+        const auto y0 = static_cast<int64_t>(a.y_ * height_);
+        const auto x1 = static_cast<int64_t>(b.x_ * width_);
+        const auto y1 = static_cast<int64_t>(b.y_ * height_);
+
+        const auto dx = x1 - x0;
+        const auto dy = y1 - y0;
+        const auto abs_dx = std::llabs(dx);
+        const auto abs_dy = std::llabs(dy);
+        const auto max_span = std::max(abs_dx, abs_dy);
+
+        const auto func_x = abs_dy <= abs_dx ? func_major_stepper : func_minor_stepper;
+        const auto func_y = abs_dx <= abs_dy ? func_major_stepper : func_minor_stepper;
+        for (size_t i_pix = 0; i_pix <= max_span; i_pix++)
         {
-            func(getPixel(x0, y0), Point2F(static_cast<float>(x0) / width_, static_cast<float>(y0) / height_));
-            const size_t e2 = error * 2;
-            if (e2 >= dy)
-            {
-                if (x0 == x1)
-                    break;
-                error += dy;
-                x0 += sx;
-            }
-            if (e2 <= dx)
-            {
-                if (y0 == y1)
-                    break;
-                error += dx;
-                y0 += sy;
-            }
+            const auto xi = x0 + func_x(dx, abs_dy, i_pix);
+            const auto yi = y0 + func_y(dy, abs_dx, i_pix);
+            func(
+                getPixel(xi, yi),
+                Point2F(static_cast<float>(xi) / width_, static_cast<float>(yi) / height_)
+            );
         }
     }
 
@@ -139,22 +136,6 @@ private:
     size_t height_{ 0 }; // The image height
     size_t bytes_per_pixel_{ 0 }; // The number of bytes for each pixel
     size_t bytes_per_row_{ 0 };
-};
-
-struct IdFieldInfo
-{
-    enum class Axis
-    {
-        X,
-        Y,
-        Z
-    };
-    Axis primary_axis_ = Axis::X;
-    Axis secondary_axis_ = Axis::Z;
-    AABB projection_field_;
-
-public:
-    static std::optional<IdFieldInfo> from_aabb3d(const AABB3D& aabb);
 };
 
 /*!
@@ -169,7 +150,7 @@ private:
     std::unordered_map<uint32_t, std::vector<uint32_t>> vertex_hash_map_;
     AABB3D aabb_;
 
-    std::optional<IdFieldInfo> id_field_info_;
+    //std::optional<IdFieldInfo> id_field_info_;
 
 public:
     std::vector<MeshVertex> vertices_; //!< list of all vertices in the mesh
@@ -201,7 +182,8 @@ public:
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 
-    void setIdFieldInfo(const AABB3D& aabb);
+    //void setIdFieldInfo(const AABB3D& aabb);
+    //std::optional<IdFieldInfo> getIdFieldInfo() const;
 
     Point3LL min() const; //!< min (in x,y and z) vertex of the bounding box
     Point3LL max() const; //!< max (in x,y and z) vertex of the bounding box

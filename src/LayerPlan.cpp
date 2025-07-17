@@ -28,6 +28,7 @@
 #include "pathPlanning/CombPaths.h"
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
+#include "range/v3/view/enumerate.hpp"
 #include "range/v3/view/chunk_by.hpp"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
@@ -2472,9 +2473,10 @@ void LayerPlan::writeExtrusionRelativeZ(
     const coord_t path_z_offset,
     double extrusion_mm3_per_mm,
     PrintFeatureType feature,
+    const std::optional<std::string_view>& inline_comment,
     bool update_extrusion_offset)
 {
-    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm, feature, inline_comment, update_extrusion_offset);
 }
 
 void LayerPlan::addLinesMonotonic(
@@ -3376,13 +3378,19 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
                     Point3LL prev_point = gcode.getPosition();
-                    for (const auto& pt : path.points)
+                    for (auto [idx, pt] : path.points | ranges::views::enumerate)
                     {
                         const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
+
+                        // FIXME: Find a less ugly way to do this (and then don't copy the snipped all over the place).
+                        constexpr std::string_view buzz_off = "BUZZ:0";  // FIXME: should be UV pixel coordinates!
+                        constexpr std::string_view buzz_on = "BUZZ:1";  // FIXME: should be UV pixel coordinates!
+                        const std::optional<std::string_view> inline_comment = path.message_bit_per_point.has_value() ? std::make_optional(path.message_bit_per_point.value()[idx] ? buzz_on : buzz_off) : std::nullopt;
+
+                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, inline_comment, update_extrusion_offset);
                         sendLineTo(path, pt, extrude_speed);
 
                         prev_point = pt;
@@ -3424,6 +3432,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             path.z_offset + z_offset,
                             spiral_path.getExtrusionMM3perMM(),
                             spiral_path.config.type,
+                            std::nullopt,  // FIXME?: ID should probably work for spiralize as well.
                             update_extrusion_offset);
                         sendLineTo(spiral_path, Point3LL(p1.x_, p1.y_, z_offset), extrude_speed, layer_thickness_);
                     }
@@ -3556,7 +3565,12 @@ bool LayerPlan::writePathWithCoasting(
             auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
-            writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
+            // FIXME: Find a less ugly way to do this (and then don't copy the snipped all over the place).
+            constexpr std::string_view buzz_off = "BUZZ:0";  // FIXME: should be UV pixel coordinates!
+            constexpr std::string_view buzz_on = "BUZZ:1";  // FIXME: should be UV pixel coordinates!
+            const std::optional<std::string_view> inline_comment = path.message_bit_per_point.has_value() ? std::make_optional(path.message_bit_per_point.value()[point_idx] ? buzz_on : buzz_off) : std::nullopt;
+
+            writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, inline_comment);
             sendLineTo(path, path.points[point_idx], extrude_speed);
 
             previous_position = path.points[point_idx];
@@ -3679,6 +3693,15 @@ void LayerPlan::applyGradualFlow()
     for (ExtruderPlan& extruder_plan : extruder_plans_)
     {
         gradual_flow::Processor::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
+    }
+}
+
+void LayerPlan::applyIdLabel()
+{
+    for (ExtruderPlan& extruder_plan : extruder_plans_)
+    {
+        // TODO: opt-out sure-to-be unaffected layers
+        extruder_plan.applyIdLabel();
     }
 }
 

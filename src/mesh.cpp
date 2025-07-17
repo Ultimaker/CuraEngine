@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 
 #include "utils/Point3D.h"
+#include "utils/types/idfieldinfo.h"
 
 namespace cura
 {
@@ -22,31 +23,6 @@ static inline uint32_t pointHash(const Point3LL& p)
 {
     return ((p.x_ + vertex_meld_distance / 2) / vertex_meld_distance) ^ (((p.y_ + vertex_meld_distance / 2) / vertex_meld_distance) << 10)
          ^ (((p.z_ + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
-}
-
-std::optional<IdFieldInfo> IdFieldInfo::from_aabb3d(const AABB3D& aabb)
-{
-    if (! aabb.exists())
-    {
-        return std::make_optional<IdFieldInfo>();
-    }
-
-    typedef std::tuple<IdFieldInfo::Axis, coord_t, coord_t> axis_span_t;
-    std::array<axis_span_t, 3> dif_per_axis = { std::make_tuple(IdFieldInfo::Axis::X, aabb.min_.x_, aabb.max_.x_),
-                                                std::make_tuple(IdFieldInfo::Axis::Y, aabb.min_.y_, aabb.max_.y_),
-                                                std::make_tuple(IdFieldInfo::Axis::Z, aabb.min_.z_, aabb.max_.z_) };
-    std::stable_sort(
-        dif_per_axis.begin(),
-        dif_per_axis.end(),
-        [](const axis_span_t& a, const axis_span_t& b)
-        {
-            return std::llabs(std::get<2>(a) - std::get<1>(a)) > std::llabs(std::get<2>(b) - std::get<1>(b));
-        });
-
-    return std::make_optional(IdFieldInfo{
-        .primary_axis_ = std::get<0>(dif_per_axis[0]),
-        .secondary_axis_ = std::get<0>(dif_per_axis[1]),
-        .projection_field_ = AABB(Point2LL(std::get<1>(dif_per_axis[0]), std::get<1>(dif_per_axis[1])), Point2LL(std::get<2>(dif_per_axis[0]), std::get<2>(dif_per_axis[1]))) });
 }
 
 Mesh::Mesh(Settings& parent)
@@ -112,23 +88,6 @@ void Mesh::finish()
         face.connected_face_index_[1] = getFaceIdxWithPoints(face.vertex_index_[1], face.vertex_index_[2], i, face.vertex_index_[0]);
         face.connected_face_index_[2] = getFaceIdxWithPoints(face.vertex_index_[2], face.vertex_index_[0], i, face.vertex_index_[1]);
     }
-}
-
-void Mesh::setIdFieldInfo(const AABB3D& aabb)
-{
-    id_field_info_ = IdFieldInfo::from_aabb3d(aabb);
-
-    const auto& dbgval = id_field_info_.value();
-    std::fprintf(
-        stderr,
-        "label %d: %ld - %ld // %d: %ld - %ld\n",
-        dbgval.primary_axis_,
-        dbgval.projection_field_.min_.X,
-        dbgval.projection_field_.max_.X,
-        dbgval.secondary_axis_,
-        dbgval.projection_field_.min_.Y,
-        dbgval.projection_field_.max_.Y);
-    // FIXME/TODO: REMOVE print
 }
 
 Point3LL Mesh::min() const

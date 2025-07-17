@@ -925,9 +925,9 @@ void GCodeExport::writeTravel(const Point2LL& p, const Velocity& speed)
 {
     writeTravel(Point3LL(p.X, p.Y, current_layer_z_), speed);
 }
-void GCodeExport::writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, const std::optional<std::string_view>& inline_comment, bool update_extrusion_offset)
 {
-    writeExtrusion(Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    writeExtrusion(Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, inline_comment, update_extrusion_offset);
 }
 
 void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance)
@@ -940,14 +940,14 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const st
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed, retract_distance);
 }
 
-void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, const std::optional<std::string_view>& inline_comment, bool update_extrusion_offset)
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature);
         return;
     }
-    writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, inline_comment, update_extrusion_offset);
 }
 
 void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
@@ -1039,7 +1039,7 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     const PrintFeatureType travel_move_type = sendTravel(Point3LL(x, y, z), speed, extruder_attr, retraction_amounts);
 
     *output_stream_ << "G0";
-    writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type, retraction_amounts);
+    writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type, std::nullopt, retraction_amounts);
 }
 
 void GCodeExport::writeExtrusion(
@@ -1049,6 +1049,7 @@ void GCodeExport::writeExtrusion(
     const Velocity& speed,
     const double extrusion_mm3_per_mm,
     const PrintFeatureType& feature,
+    const std::optional<std::string_view>& inline_comment,
     const bool update_extrusion_offset)
 {
     if (current_position_.x_ == x && current_position_.y_ == y && current_position_.z_ == z)
@@ -1117,7 +1118,7 @@ void GCodeExport::writeExtrusion(
     const double new_e_value = current_e_value_ + extrusion_per_mm * diff_length;
 
     *output_stream_ << "G1";
-    writeFXYZE(speed, x, y, z, new_e_value, feature);
+    writeFXYZE(speed, x, y, z, new_e_value, feature, inline_comment);
 }
 
 void GCodeExport::writeFXYZE(
@@ -1127,6 +1128,7 @@ void GCodeExport::writeFXYZE(
     const coord_t z,
     const double e,
     const PrintFeatureType& feature,
+    const std::optional<std::string_view>& inline_comment,
     const std::optional<RetractionAmounts>& retraction_amounts)
 {
     if (current_speed_ != speed)
@@ -1155,6 +1157,10 @@ void GCodeExport::writeFXYZE(
     {
         const double output_e = (relative_extrusion_) ? e + current_e_offset_ - current_e_value_ : e + current_e_offset_;
         *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
+        if (inline_comment.has_value())
+        {
+            *output_stream_ << "; " << inline_comment.value();
+        }
         current_e_value_ = e;
     }
     *output_stream_ << new_line_;

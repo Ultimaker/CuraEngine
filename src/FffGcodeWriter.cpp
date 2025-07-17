@@ -1310,6 +1310,8 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     gcode_layer.applyBackPressureCompensation();
     time_keeper.registerTime("Back pressure comp.");
 
+    gcode_layer.applyIdLabel();
+
     return { &gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
 }
 

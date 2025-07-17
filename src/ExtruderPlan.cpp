@@ -3,6 +3,8 @@
 
 #include "ExtruderPlan.h"
 
+#include "TextureDataProvider.h"
+
 namespace cura
 {
 ExtruderPlan::ExtruderPlan(
@@ -68,6 +70,72 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
         }
         const double line_width_for_path = path.width_factor * nominal_width_for_path;
         path.speed_back_pressure_factor = std::max(epsilon_speed_factor, 1.0 + (nominal_width_for_path / line_width_for_path - 1.0) * back_pressure_compensation);
+    }
+}
+
+void ExtruderPlan::applyIdLabel()
+{
+    // TODO?: message (format) should be a (string) setting, like 'ID: \H:\M:\S' or something
+
+    constexpr coord_t inset_dist = 40; // TODO?: make this configurable as well?
+    for (auto& path : paths_)
+    {
+        if (
+            path.mesh == nullptr ||
+            path.mesh->layers[layer_nr_].texture_data_provider_ == nullptr ||
+            (! path.mesh->id_field_info) ||
+            (path.mesh->id_field_info.value().normal_ != IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::OuterWall) ||
+            (path.mesh->id_field_info.value().normal_ == IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::Skin)
+        )
+        {
+            continue;
+        }
+
+        const auto zero_pt = Point3LL(0, 0, 0);
+        const auto offset_pt = path.mesh->id_field_info.value().normal_offset(-inset_dist);
+
+        std::vector<Point3LL> new_points;
+        std::vector<bool> message_bits;
+        new_points.push_back(path.points[0]);
+        message_bits.push_back(false);
+        for (const auto& window : path.points | ranges::views::sliding(2))
+        {
+            const auto& a = window[0];
+            const auto& b = window[1];
+
+            std::vector<TextureArea> span_pixels;
+            if (path.mesh->layers[layer_nr_].texture_data_provider_->getAreaPreferencesForSpan(a.toPoint2LL(), b.toPoint2LL(), "label", span_pixels))
+            {
+                const auto pixel_span_3d = (b - a) / static_cast<coord_t>(span_pixels.size());
+                auto last_pixel = TextureArea::Normal;
+                for (auto [idx, pixel] : span_pixels | ranges::views::enumerate)
+                {
+                    // TODO: Just make it 'random' for now -- later, use:
+                    //  - A message/id of some sort.
+                    //  - Some sort of simple 'text to pixels' method (lookup table?)
+                    //  - IdFieldInfo (already made) to get the plane-normal(s) right (well, at least approximately -- it now does so only coursely, by axis)
+                    const bool raw_val = (std::rand() % 2 == 0);
+
+                    const bool preferred = (pixel == TextureArea::Preferred);
+                    if (preferred || last_pixel != pixel)
+                    {
+                        const bool val = preferred && raw_val;
+                        new_points.push_back(a + (idx * pixel_span_3d) + (pixel_span_3d / 2) + (val ? offset_pt : zero_pt));
+                        message_bits.push_back(val);
+                    }
+                    last_pixel = pixel;
+                }
+            }
+
+            new_points.push_back(b);
+            message_bits.push_back(false);
+        }
+
+        if (new_points.size() != path.points.size())
+        {
+            path.points = new_points;
+            path.message_bit_per_point = message_bits;
+        }
     }
 }
 

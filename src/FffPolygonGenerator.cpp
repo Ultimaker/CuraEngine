@@ -305,6 +305,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             spdlog::info("No painting-operation data specified for mesh `{}`.", static_cast<void*>(&mesh));
         }
         AABB3D label_aabb;
+        // FIXME: We probably actually need an _inscribed_ AABB (which is way less trivial), since otherwise the message will overlap the edges of the label-space.
+        // FIXME: Find the _proper_ plane-normal(s) (primaty and secondary vectors), by doing principle component analysis
+        //        (which fortunately _also_ means we can reduce the first above problem to 2D instead, which is at least somewhat easier).
 
         // calculate the height at which each layer is actually printed (printZ)
         for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
@@ -364,7 +367,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                             const auto& uv_b = segment.uv_end.value();
                             const auto& a = segment.start;
                             const auto& b = segment.end;
-                            mesh.texture_->visitLinePerPixel(
+                            mesh.texture_->visitSpanPerPixel(
                                 uv_a,
                                 uv_b,
                                 [&label_aabb, &match_pixel, &uv_a, &uv_b, &a, &b, &height](const int32_t& pixel, const Point2F& uv)
@@ -382,19 +385,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
         }
 
-        std::fprintf(
-            stderr,
-            "<%ld, %ld, %ld> -- <%ld, %ld, %ld>\n",
-            label_aabb.min_.x_,
-            label_aabb.min_.y_,
-            label_aabb.min_.z_,
-            label_aabb.max_.x_,
-            label_aabb.max_.y_,
-            label_aabb.max_.z_);
-        // FIXME/TODO: REMOVE print
-
-        mesh.setIdFieldInfo(label_aabb);
-        // BOOKMARK!
+        meshStorage.setIdFieldInfo(label_aabb);
 
         delete slicerList[meshIdx];
 

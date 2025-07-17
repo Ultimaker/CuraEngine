@@ -1,0 +1,40 @@
+// Copyright (c) 2025 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#ifndef ID_FIELD_INFO_H
+#define ID_FIELD_INFO_H
+
+#include "utils/AABB3D.h"
+
+#include <optional>
+
+namespace cura
+{
+    // FIXME?: This now goes per-axis, because that's what we get by creating it from the AABB, but it should be a 'free' plane-normal(s).
+    //         We'd probably need to do a little principal component analysis to _properly_ get the primary and secondary axii.
+
+    struct IdFieldInfo
+    {
+        enum class Axis { X, Y, Z };
+        Axis primary_axis_ = Axis::X;
+        Axis secondary_axis_ = Axis::Z;
+        Axis normal_ = Axis::Y;
+        AABB projection_field_;
+
+    public:
+        static std::optional<IdFieldInfo> from_aabb3d(const AABB3D& aabb);
+
+        Point3LL normal_offset(coord_t offset) const
+        {
+            switch (normal_)
+            {
+            case cura::IdFieldInfo::Axis::X: return Point3LL(offset, 0, 0);
+            case cura::IdFieldInfo::Axis::Y: return Point3LL(0, offset, 0);
+            case cura::IdFieldInfo::Axis::Z: return Point3LL(0, 0, offset);
+            default: return Point3LL(0, 0, 0);
+            }
+        }
+    };
+}// namespace cura
+
+#endif // ID_FIELD_INFO_H

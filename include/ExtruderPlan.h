@@ -125,6 +125,10 @@ public:
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
 
     /*!
+     */
+    void applyIdLabel();
+
+    /*!
      * Gets the mesh being printed first on this plan
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
