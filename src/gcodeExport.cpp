@@ -1470,11 +1470,6 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     current_extruder_ = new_extruder;
 
     assert(getCurrentExtrudedVolume() == 0.0 && "Just after an extruder switch we haven't extruded anything yet!");
-    if (extruder_settings.get<bool>("machine_use_material_station"))
-    {
-        // Material station leaves the filament as if just retracted
-        extruder_attr_[current_extruder_].retraction_e_amount_current_ = extruder_settings.get<double>("retraction_amount");
-    }
     resetExtrusionValue(); // zero the E value on the new extruder, just to be sure
 
     if (! start_code.empty())
