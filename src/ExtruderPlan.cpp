@@ -80,13 +80,9 @@ void ExtruderPlan::applyIdLabel()
     constexpr coord_t inset_dist = 40; // TODO?: make this configurable as well?
     for (auto& path : paths_)
     {
-        if (
-            path.mesh == nullptr ||
-            path.mesh->layers[layer_nr_].texture_data_provider_ == nullptr ||
-            (! path.mesh->id_field_info) ||
-            (path.mesh->id_field_info.value().normal_ != IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::OuterWall) ||
-            (path.mesh->id_field_info.value().normal_ == IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::Skin)
-        )
+        if (path.mesh == nullptr || path.mesh->layers[layer_nr_].texture_data_provider_ == nullptr || (! path.mesh->id_field_info)
+            || (path.mesh->id_field_info.value().normal_ != IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::OuterWall)
+            || (path.mesh->id_field_info.value().normal_ == IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::Skin))
         {
             continue;
         }

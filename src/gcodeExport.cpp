@@ -925,7 +925,13 @@ void GCodeExport::writeTravel(const Point2LL& p, const Velocity& speed)
 {
     writeTravel(Point3LL(p.X, p.Y, current_layer_z_), speed);
 }
-void GCodeExport::writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, const std::optional<std::string_view>& inline_comment, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(
+    const Point2LL& p,
+    const Velocity& speed,
+    double extrusion_mm3_per_mm,
+    PrintFeatureType feature,
+    const std::optional<std::string_view>& inline_comment,
+    bool update_extrusion_offset)
 {
     writeExtrusion(Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, inline_comment, update_extrusion_offset);
 }
@@ -940,7 +946,13 @@ void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const st
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed, retract_distance);
 }
 
-void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, const std::optional<std::string_view>& inline_comment, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(
+    const Point3LL& p,
+    const Velocity& speed,
+    double extrusion_mm3_per_mm,
+    PrintFeatureType feature,
+    const std::optional<std::string_view>& inline_comment,
+    bool update_extrusion_offset)
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {

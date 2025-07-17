@@ -372,7 +372,13 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, const std::optional<std::string_view>& inline_comment = std::nullopt, bool update_extrusion_offset = false);
+    void writeExtrusion(
+        const Point2LL& p,
+        const Velocity& speed,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        const std::optional<std::string_view>& inline_comment = std::nullopt,
+        bool update_extrusion_offset = false);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -396,7 +402,13 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, const std::optional<std::string_view>& inline_comment = std::nullopt, bool update_extrusion_offset = false);
+    void writeExtrusion(
+        const Point3LL& p,
+        const Velocity& speed,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        const std::optional<std::string_view>& inline_comment = std::nullopt,
+        bool update_extrusion_offset = false);
 
     /*!
      * Initialize the extruder trains.

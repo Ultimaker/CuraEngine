@@ -53,7 +53,8 @@ std::optional<TextureArea> TextureDataProvider::getAreaPreference(const Point2LL
 
 bool TextureDataProvider::getAreaPreferencesForSpan(const Point2LL& a, const Point2LL& b, const std::string& feature, std::vector<TextureArea>& res) const
 {
-    //FIXME: This doesn't take into account the whole 'a and b aren't necesarily in the same texture patch' thing, as the plain 'Image' class and its 'visitSpanPerPixels' method are of course unaware of it.
+    // FIXME: This doesn't take into account the whole 'a and b aren't necesarily in the same texture patch' thing, as the plain 'Image' class and its 'visitSpanPerPixels' method
+    // are of course unaware of it.
 
     auto data_mapping_iterator = texture_data_mapping_->find(feature);
     if (data_mapping_iterator == texture_data_mapping_->end())
@@ -73,12 +74,11 @@ bool TextureDataProvider::getAreaPreferencesForSpan(const Point2LL& a, const Poi
     texture_->visitSpanPerPixel(
         point_uv_a.value(),
         point_uv_b.value(),
-        [&bit_field, &res, &has_any](const int32_t pixel_data, const Point2F& pt) {
-            res.push_back(
-                static_cast<TextureArea>(
-                    // FIXME: The method to shift left & right here is the same as above, should be an inline method?
-                    (pixel_data << (32 - 1 - bit_field.bit_range_end_index)) >> (32 - 1 - (bit_field.bit_range_end_index - bit_field.bit_range_start_index))
-            ));
+        [&bit_field, &res, &has_any](const int32_t pixel_data, const Point2F& pt)
+        {
+            res.push_back(static_cast<TextureArea>(
+                // FIXME: The method to shift left & right here is the same as above, should be an inline method?
+                (pixel_data << (32 - 1 - bit_field.bit_range_end_index)) >> (32 - 1 - (bit_field.bit_range_end_index - bit_field.bit_range_start_index))));
             has_any |= (res.back() == TextureArea::Preferred);
         });
     return has_any;

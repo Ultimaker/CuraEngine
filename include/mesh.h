@@ -103,8 +103,14 @@ public:
 
     void visitSpanPerPixel(const Point2F& a, const Point2F& b, const std::function<void(const int32_t, const Point2F&)>& func) const
     {
-        constexpr auto func_major_stepper = [](const int64_t& da, const int64_t& abs_db, const int64_t& i) { return da < 0 ? -i : i; };
-        constexpr auto func_minor_stepper = [](const int64_t& da, const int64_t& abs_db, const int64_t& i) { return (i * da) / abs_db; };
+        constexpr auto func_major_stepper = [](const int64_t& da, const int64_t& abs_db, const int64_t& i)
+        {
+            return da < 0 ? -i : i;
+        };
+        constexpr auto func_minor_stepper = [](const int64_t& da, const int64_t& abs_db, const int64_t& i)
+        {
+            return (i * da) / abs_db;
+        };
 
         const auto x0 = static_cast<int64_t>(a.x_ * width_);
         const auto y0 = static_cast<int64_t>(a.y_ * height_);
@@ -123,10 +129,7 @@ public:
         {
             const auto xi = x0 + func_x(dx, abs_dy, i_pix);
             const auto yi = y0 + func_y(dy, abs_dx, i_pix);
-            func(
-                getPixel(xi, yi),
-                Point2F(static_cast<float>(xi) / width_, static_cast<float>(yi) / height_)
-            );
+            func(getPixel(xi, yi), Point2F(static_cast<float>(xi) / width_, static_cast<float>(yi) / height_));
         }
     }
 
@@ -150,7 +153,7 @@ private:
     std::unordered_map<uint32_t, std::vector<uint32_t>> vertex_hash_map_;
     AABB3D aabb_;
 
-    //std::optional<IdFieldInfo> id_field_info_;
+    // std::optional<IdFieldInfo> id_field_info_;
 
 public:
     std::vector<MeshVertex> vertices_; //!< list of all vertices in the mesh
@@ -182,8 +185,8 @@ public:
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 
-    //void setIdFieldInfo(const AABB3D& aabb);
-    //std::optional<IdFieldInfo> getIdFieldInfo() const;
+    // void setIdFieldInfo(const AABB3D& aabb);
+    // std::optional<IdFieldInfo> getIdFieldInfo() const;
 
     Point3LL min() const; //!< min (in x,y and z) vertex of the bounding box
     Point3LL max() const; //!< max (in x,y and z) vertex of the bounding box
