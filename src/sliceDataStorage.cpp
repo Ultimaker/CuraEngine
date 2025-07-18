@@ -109,7 +109,7 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
 
 void SliceMeshStorage::setIdFieldInfo(const AABB3D& aabb)
 {
-    id_field_info = IdFieldInfo::from_aabb3d(aabb);
+    id_field_info = IdFieldInfo::fromAabb3d(aabb);
 }
 
 bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const

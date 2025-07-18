@@ -3,6 +3,7 @@
 
 #include "ExtruderPlan.h"
 
+#include "mesh.h"  // For 'Image' class.
 #include "TextureDataProvider.h"
 
 namespace cura
@@ -73,7 +74,7 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
     }
 }
 
-void ExtruderPlan::applyIdLabel()
+void ExtruderPlan::applyIdLabel(const Image& slice_id_texture)
 {
     // TODO?: message (format) should be a (string) setting, like 'ID: \H:\M:\S' or something
 
@@ -93,6 +94,8 @@ void ExtruderPlan::applyIdLabel()
         const auto zero_pt = Point3LL(0, 0, 0);
         const auto offset_pt = ((path.points.front() + path.points.back()) / 2 - path.mesh->bounding_box.getMiddle()).resized(inset_dist);
         const auto signal_no_uv = Point2F(std::numeric_limits<float>::signaling_NaN(), std::numeric_limits<float>::signaling_NaN());
+
+        const auto& id_field_info = path.mesh->id_field_info.value();
 
         std::vector<Point3LL> new_points;
         std::vector<Point2F> idlabel_uvs;
@@ -115,7 +118,7 @@ void ExtruderPlan::applyIdLabel()
                     //  - A message/id of some sort.
                     //  - Some sort of simple 'text to pixels' method (lookup table?)
                     //  - IdFieldInfo (already made) to get the plane-normal(s) right (well, at least approximately -- it now does so only coursely, by axis)
-                    const bool raw_val = (std::rand() % 2 == 0);
+
                     const auto raw_pt = a + (idx * pixel_span_3d) + (pixel_span_3d / 2);
                     const bool preferred = (texel.first == TextureArea::Preferred);
                     if (preferred || last_pixel != texel.first)
@@ -126,9 +129,12 @@ void ExtruderPlan::applyIdLabel()
                             idlabel_uvs.push_back(signal_no_uv);
                         }
 
+                        const auto label_uv = id_field_info.worldPointToLabelUv(raw_pt);
+                        const bool raw_val = slice_id_texture.getPixel(label_uv) > 0x0;
                         const bool val = preferred && raw_val;
+
                         new_points.push_back(raw_pt + (val ? offset_pt : zero_pt));
-                        idlabel_uvs.push_back(texel.second);
+                        idlabel_uvs.push_back(label_uv);
                     }
                     last_pixel = texel.first;
                     last_pt = raw_pt;

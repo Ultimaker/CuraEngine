@@ -6,7 +6,7 @@
 
 using namespace cura;
 
-std::optional<IdFieldInfo> IdFieldInfo::from_aabb3d(const AABB3D& aabb)
+std::optional<IdFieldInfo> IdFieldInfo::fromAabb3d(const AABB3D& aabb)
 {
     if (! aabb.exists())
     {
@@ -29,5 +29,8 @@ std::optional<IdFieldInfo> IdFieldInfo::from_aabb3d(const AABB3D& aabb)
         .primary_axis_ = std::get<0>(dif_per_axis[0]),
         .secondary_axis_ = std::get<0>(dif_per_axis[1]),
         .normal_ = std::get<0>(dif_per_axis[2]),
-        .projection_field_ = AABB(Point2LL(std::get<1>(dif_per_axis[0]), std::get<1>(dif_per_axis[1])), Point2LL(std::get<2>(dif_per_axis[0]), std::get<2>(dif_per_axis[1]))) });
+        .projection_field_ = AABB(
+            Point2LL(std::get<1>(dif_per_axis[0]), std::get<1>(dif_per_axis[1])),
+            Point2LL(std::get<2>(dif_per_axis[0]), std::get<2>(dif_per_axis[1])))
+        });
 }

@@ -25,6 +25,7 @@
 
 namespace cura
 {
+class Image;
 class LayerPlanBuffer;
 class LayerPlan;
 /*!
@@ -126,7 +127,7 @@ public:
 
     /*!
      */
-    void applyIdLabel();
+    void applyIdLabel(const Image& slice_id_texture);
 
     /*!
      * Gets the mesh being printed first on this plan

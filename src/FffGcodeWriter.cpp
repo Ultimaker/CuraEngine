@@ -1310,7 +1310,21 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     gcode_layer.applyBackPressureCompensation();
     time_keeper.registerTime("Back pressure comp.");
 
-    gcode_layer.applyIdLabel();
+    constexpr size_t label_w = 256;
+    constexpr size_t label_h = 256;
+    std::vector<uint8_t> buffer(label_w * label_h, 0);
+    { // TODO: generate actual label-image
+      // let's just fill it alternatingly for now, to test if things work 
+        for (int y = 0; y < label_h; ++y)
+        {
+            for (int x = 0; x < label_w; ++x)
+            {
+                buffer[y * label_w + x] = std::rand() % 2;
+            }
+        }
+    }
+    Image slice_id_texture(256, 256, 1, std::move(buffer));
+    gcode_layer.applyIdLabel(slice_id_texture);
 
     return { &gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
 }

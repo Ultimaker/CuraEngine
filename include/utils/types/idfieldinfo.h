@@ -7,6 +7,7 @@
 #include <optional>
 
 #include "utils/AABB3D.h"
+#include "utils/Point2F.h"
 
 namespace cura
 {
@@ -21,27 +22,36 @@ struct IdFieldInfo
         Y,
         Z
     };
+    static coord_t getAxisValue(const Axis ax, const Point3LL& pt)
+    {
+        switch (ax)
+        {
+        case Axis::X: return pt.x_;
+        case Axis::Y: return pt.y_;
+        case Axis::Z: return pt.z_;
+        default: return 0;
+        }
+    }
+
+    static float mirrorNegative(const float in)
+    {
+        return in < 0.0f ? 1.0 + in : in;
+    }
+
     Axis primary_axis_ = Axis::X;
     Axis secondary_axis_ = Axis::Z;
     Axis normal_ = Axis::Y;
     AABB projection_field_;
 
 public:
-    static std::optional<IdFieldInfo> from_aabb3d(const AABB3D& aabb);
+    static std::optional<IdFieldInfo> fromAabb3d(const AABB3D& aabb);
 
-    Point3LL normal_offset(coord_t offset) const
+    Point2F worldPointToLabelUv(const Point3LL& pt) const
     {
-        switch (normal_)
-        {
-        case cura::IdFieldInfo::Axis::X:
-            return Point3LL(offset, 0, 0);
-        case cura::IdFieldInfo::Axis::Y:
-            return Point3LL(0, offset, 0);
-        case cura::IdFieldInfo::Axis::Z:
-            return Point3LL(0, 0, offset);
-        default:
-            return Point3LL(0, 0, 0);
-        }
+        return Point2F(
+            mirrorNegative(static_cast<float>(getAxisValue(primary_axis_, pt) - projection_field_.min_.X) / (projection_field_.max_.X - projection_field_.min_.X)),
+            mirrorNegative(static_cast<float>(getAxisValue(secondary_axis_, pt) - projection_field_.min_.Y) / (projection_field_.max_.Y - projection_field_.min_.Y))
+        );
     }
 };
 } // namespace cura
