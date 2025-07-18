@@ -127,7 +127,7 @@ public:
 
     /*!
      */
-    void applyIdLabel(const Image& slice_id_texture);
+    void applyIdLabel(const Image& slice_id_texture, const coord_t current_z);
 
     /*!
      * Gets the mesh being printed first on this plan

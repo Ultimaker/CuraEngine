@@ -74,7 +74,7 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
     }
 }
 
-void ExtruderPlan::applyIdLabel(const Image& slice_id_texture)
+void ExtruderPlan::applyIdLabel(const Image& slice_id_texture, const coord_t current_z)
 {
     // TODO?: message (format) should be a (string) setting, like 'ID: \H:\M:\S' or something
 
@@ -93,6 +93,7 @@ void ExtruderPlan::applyIdLabel(const Image& slice_id_texture)
 
         const auto zero_pt = Point3LL(0, 0, 0);
         const auto offset_pt = ((path.points.front() + path.points.back()) / 2 - path.mesh->bounding_box.getMiddle()).resized(inset_dist);
+        const auto offset_z = Point3LL(0, 0, current_z + path.z_offset);
         const auto signal_no_uv = Point2F(std::numeric_limits<float>::signaling_NaN(), std::numeric_limits<float>::signaling_NaN());
 
         const auto& id_field_info = path.mesh->id_field_info.value();
@@ -129,7 +130,7 @@ void ExtruderPlan::applyIdLabel(const Image& slice_id_texture)
                             idlabel_uvs.push_back(signal_no_uv);
                         }
 
-                        const auto label_uv = id_field_info.worldPointToLabelUv(raw_pt);
+                        const auto label_uv = id_field_info.worldPointToLabelUv(raw_pt + offset_z);
                         const bool raw_val = slice_id_texture.getPixel(label_uv) > 0x0;
                         const bool val = preferred && raw_val;
 

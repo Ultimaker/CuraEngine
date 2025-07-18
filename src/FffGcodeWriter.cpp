@@ -86,6 +86,24 @@ bool FffGcodeWriter::setTargetFile(const char* filename)
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
+    std::optional<Image> slice_id_texture = std::nullopt;
+    if (std::any_of(storage.meshes.begin(), storage.meshes.end(), [](std::shared_ptr<SliceMeshStorage> mesh) { return mesh->id_field_info.has_value(); }))
+    {
+        constexpr size_t label_width = 256;
+        constexpr size_t label_height = 256;
+        std::vector<uint8_t> buffer(label_width * label_height, 0);
+        {
+            for (int y = 0; y < label_height; ++y)
+            {
+                for (int x = 0; x < label_width; ++x)
+                {
+                    buffer[y * label_width + x] = (x + y) % 2;
+                }
+            }
+        }
+        slice_id_texture = std::make_optional(Image(256, 256, 1, std::move(buffer)));
+    }
+
     const size_t start_extruder_nr = getStartExtruder(storage);
     gcode.preSetup(start_extruder_nr);
     gcode.setSliceUUID(slice_uuid);
@@ -186,9 +204,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
         total_layers,
-        [&storage, total_layers, this](int layer_nr)
+        [&storage, total_layers, &slice_id_texture, this](int layer_nr)
         {
-            return std::make_optional(processLayer(storage, layer_nr, total_layers));
+            return std::make_optional(processLayer(storage, layer_nr, total_layers, slice_id_texture));
         },
         [this, total_layers](std::optional<ProcessLayerResult> result_opt)
         {
@@ -1151,7 +1169,7 @@ void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gc
     }
 }
 
-FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
+FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers, const std::optional<Image>& slice_id_texture) const
 {
     spdlog::debug("GcodeWriter processing layer {} of {}", layer_nr, total_layers);
     TimeKeeper time_keeper;
@@ -1310,21 +1328,10 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     gcode_layer.applyBackPressureCompensation();
     time_keeper.registerTime("Back pressure comp.");
 
-    constexpr size_t label_w = 256;
-    constexpr size_t label_h = 256;
-    std::vector<uint8_t> buffer(label_w * label_h, 0);
-    { // TODO: generate actual label-image
-      // let's just fill it alternatingly for now, to test if things work 
-        for (int y = 0; y < label_h; ++y)
-        {
-            for (int x = 0; x < label_w; ++x)
-            {
-                buffer[y * label_w + x] = std::rand() % 2;
-            }
-        }
+    if (slice_id_texture.has_value())
+    {
+        gcode_layer.applyIdLabel(slice_id_texture.value());
     }
-    Image slice_id_texture(256, 256, 1, std::move(buffer));
-    gcode_layer.applyIdLabel(slice_id_texture);
 
     return { &gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
 }

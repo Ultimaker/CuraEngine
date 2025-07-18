@@ -3701,7 +3701,7 @@ void LayerPlan::applyIdLabel(const Image& slice_id_texture)
     for (ExtruderPlan& extruder_plan : extruder_plans_)
     {
         // TODO: opt-out sure-to-be unaffected layers
-        extruder_plan.applyIdLabel(slice_id_texture);
+        extruder_plan.applyIdLabel(slice_id_texture, z_);
     }
 }
 
