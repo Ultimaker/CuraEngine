@@ -141,6 +141,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/ExtrusionLine.cpp
         src/utils/ExtrusionSegment.cpp
         src/utils/gettime.cpp
+        src/utils/LabelMaker.cpp
         src/utils/linearAlg2D.cpp
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp

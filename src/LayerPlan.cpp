@@ -3388,7 +3388,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
                     Point3LL prev_point = gcode.getPosition();
-                    for (auto [idx, pt] : path.points | ranges::views::enumerate)
+                    for (const auto& [idx, pt] : path.points | ranges::views::enumerate)
                     {
                         const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
                         insertTempOnTime(time, path_idx);

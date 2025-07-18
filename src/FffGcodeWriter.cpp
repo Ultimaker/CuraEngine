@@ -33,6 +33,7 @@
 #include "infill.h"
 #include "progress/Progress.h"
 #include "raft.h"
+#include "utils/LabelMaker.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
@@ -84,24 +85,24 @@ bool FffGcodeWriter::setTargetFile(const char* filename)
     return false;
 }
 
+std::string getTimeStamp()
+{
+    std::time_t time = std::time({});
+    char str[std::size("  yyyy-mm-dd    hh:mm:ss")];
+    std::strftime(std::data(str), std::size(str), "  %F    %T", std::gmtime(&time));
+    return std::string(str);
+}
+
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     std::optional<Image> slice_id_texture = std::nullopt;
     if (std::any_of(storage.meshes.begin(), storage.meshes.end(), [](std::shared_ptr<SliceMeshStorage> mesh) { return mesh->id_field_info.has_value(); }))
     {
-        constexpr size_t label_width = 256;
-        constexpr size_t label_height = 256;
+        constexpr size_t label_width = 128;
+        constexpr size_t label_height = 128;
         std::vector<uint8_t> buffer(label_width * label_height, 0);
-        {
-            for (int y = 0; y < label_height; ++y)
-            {
-                for (int x = 0; x < label_width; ++x)
-                {
-                    buffer[y * label_width + x] = (x + y) % 2;
-                }
-            }
-        }
-        slice_id_texture = std::make_optional(Image(256, 256, 1, std::move(buffer)));
+        paintStringToBuffer(getTimeStamp(), label_width, label_height, buffer);
+        slice_id_texture = std::make_optional(Image(label_width, label_height, 1, std::move(buffer)));
     }
 
     const size_t start_extruder_nr = getStartExtruder(storage);

@@ -76,6 +76,8 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
 
 void ExtruderPlan::applyIdLabel(const Image& slice_id_texture, const coord_t current_z)
 {
+    // FIXME: properly deal with (mostly or wholly) top or bottom (normal = Z-axis) labels
+
     // TODO?: message (format) should be a (string) setting, like 'ID: \H:\M:\S' or something
 
     constexpr coord_t inset_dist = 40; // TODO?: make this configurable as well?
@@ -113,13 +115,8 @@ void ExtruderPlan::applyIdLabel(const Image& slice_id_texture, const coord_t cur
                 const auto pixel_span_3d = (b - a) / static_cast<coord_t>(span_pixels.size());
                 auto last_pixel = TextureArea::Normal;
                 auto last_pt = a;
-                for (auto [idx, texel] : span_pixels | ranges::views::enumerate)
+                for (const auto& [idx, texel] : span_pixels | ranges::views::enumerate)
                 {
-                    // TODO: Just make it 'random' for now -- later, use:
-                    //  - A message/id of some sort.
-                    //  - Some sort of simple 'text to pixels' method (lookup table?)
-                    //  - IdFieldInfo (already made) to get the plane-normal(s) right (well, at least approximately -- it now does so only coursely, by axis)
-
                     const auto raw_pt = a + (idx * pixel_span_3d) + (pixel_span_3d / 2);
                     const bool preferred = (texel.first == TextureArea::Preferred);
                     if (preferred || last_pixel != texel.first)
