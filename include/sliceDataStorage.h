@@ -23,8 +23,8 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
+#include "utils/IdFieldInfo.h"
 #include "utils/NoCopy.h"
-#include "utils/types/IdFieldInfo.h"
 
 namespace cura
 {

@@ -1,13 +1,28 @@
 // Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "utils/types/idfieldinfo.h"
+#include "utils/IdFieldInfo.h"
 
 #include <algorithm>
 #include <array>
 #include <tuple>
 
 using namespace cura;
+
+coord_t IdFieldInfo::getAxisValue(const Axis ax, const Point3LL& pt)
+{
+    switch (ax)
+    {
+    case Axis::X:
+        return pt.x_;
+    case Axis::Y:
+        return pt.y_;
+    case Axis::Z:
+        return pt.z_;
+    default:
+        return 0;
+    }
+}
 
 std::optional<IdFieldInfo> IdFieldInfo::fromAabb3d(const AABB3D& aabb)
 {
@@ -33,4 +48,16 @@ std::optional<IdFieldInfo> IdFieldInfo::fromAabb3d(const AABB3D& aabb)
         .secondary_axis_ = std::get<0>(dif_per_axis[1]),
         .normal_ = std::get<0>(dif_per_axis[2]),
         .projection_field_ = AABB(Point2LL(std::get<1>(dif_per_axis[0]), std::get<1>(dif_per_axis[1])), Point2LL(std::get<2>(dif_per_axis[0]), std::get<2>(dif_per_axis[1]))) });
+}
+
+float mirrorNegative(const float in)
+{
+    return in < 0.0f ? 1.0 + in : in;
+}
+
+Point2F IdFieldInfo::worldPointToLabelUv(const Point3LL& pt) const
+{
+    return Point2F(
+        1.0f - mirrorNegative(static_cast<float>(getAxisValue(primary_axis_, pt) - projection_field_.min_.X) / (projection_field_.max_.X - projection_field_.min_.X)),
+        1.0f - mirrorNegative(static_cast<float>(getAxisValue(secondary_axis_, pt) - projection_field_.min_.Y) / (projection_field_.max_.Y - projection_field_.min_.Y)));
 }
