@@ -9,7 +9,7 @@
 
 namespace cura
 {
-    void paintStringToBuffer(const std::string_view& str, const size_t buffer_width, const size_t buffer_height, std::vector<uint8_t>& buffer);
+void paintStringToBuffer(const std::string_view& str, const size_t buffer_width, const size_t buffer_height, std::vector<uint8_t>& buffer);
 }
 
 #endif // LABEL_MAKER_H

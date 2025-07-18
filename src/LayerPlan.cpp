@@ -3395,7 +3395,15 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
 
-                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, getIdLabelUvComment(path.idlabel_uv_per_point, idx), update_extrusion_offset);
+                        writeExtrusionRelativeZ(
+                            gcode,
+                            pt,
+                            extrude_speed,
+                            path.z_offset,
+                            path.getExtrusionMM3perMM(),
+                            path.config.type,
+                            getIdLabelUvComment(path.idlabel_uv_per_point, idx),
+                            update_extrusion_offset);
                         sendLineTo(path, pt, extrude_speed);
 
                         prev_point = pt;
@@ -3570,7 +3578,14 @@ bool LayerPlan::writePathWithCoasting(
             auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
-            writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, getIdLabelUvComment(path.idlabel_uv_per_point, path_idx));
+            writeExtrusionRelativeZ(
+                gcode,
+                path.points[point_idx],
+                extrude_speed,
+                path.z_offset,
+                path.getExtrusionMM3perMM(),
+                path.config.type,
+                getIdLabelUvComment(path.idlabel_uv_per_point, path_idx));
             sendLineTo(path, path.points[point_idx], extrude_speed);
 
             previous_position = path.points[point_idx];

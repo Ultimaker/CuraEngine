@@ -4,12 +4,12 @@
 #ifndef TEXTUREDATAMAPPING_H
 #define TEXTUREDATAMAPPING_H
 
-#include "utils/Point2F.h"
-
 #include <map>
 #include <string>
 
 #include <fmt/format.h>
+
+#include "utils/Point2F.h"
 
 namespace cura
 {

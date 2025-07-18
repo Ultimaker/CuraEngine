@@ -76,12 +76,10 @@ bool TextureDataProvider::getTexelsForSpan(const Point2LL& a, const Point2LL& b,
         point_uv_b.value(),
         [&bit_field, &res, &has_any](const int32_t pixel_data, const Point2F& uv_pt)
         {
-            res.push_back({
-                    static_cast<TextureArea>(
-                        // FIXME: The method to shift left & right here is the same as above, should be an inline method?
-                        (pixel_data << (32 - 1 - bit_field.bit_range_end_index)) >> (32 - 1 - (bit_field.bit_range_end_index - bit_field.bit_range_start_index))),
-                    uv_pt
-                });
+            res.push_back({ static_cast<TextureArea>(
+                                // FIXME: The method to shift left & right here is the same as above, should be an inline method?
+                                (pixel_data << (32 - 1 - bit_field.bit_range_end_index)) >> (32 - 1 - (bit_field.bit_range_end_index - bit_field.bit_range_start_index))),
+                            uv_pt });
             has_any |= (res.back().first == TextureArea::Preferred);
         });
     return has_any;

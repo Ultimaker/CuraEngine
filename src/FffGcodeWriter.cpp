@@ -96,7 +96,13 @@ std::string getTimeStamp()
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     std::optional<Image> slice_id_texture = std::nullopt;
-    if (std::any_of(storage.meshes.begin(), storage.meshes.end(), [](std::shared_ptr<SliceMeshStorage> mesh) { return mesh->id_field_info.has_value(); }))
+    if (std::any_of(
+            storage.meshes.begin(),
+            storage.meshes.end(),
+            [](std::shared_ptr<SliceMeshStorage> mesh)
+            {
+                return mesh->id_field_info.has_value();
+            }))
     {
         constexpr size_t label_width = 128;
         constexpr size_t label_height = 128;
@@ -1170,7 +1176,8 @@ void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gc
     }
 }
 
-FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers, const std::optional<Image>& slice_id_texture) const
+FffGcodeWriter::ProcessLayerResult
+    FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers, const std::optional<Image>& slice_id_texture) const
 {
     spdlog::debug("GcodeWriter processing layer {} of {}", layer_nr, total_layers);
     TimeKeeper time_keeper;

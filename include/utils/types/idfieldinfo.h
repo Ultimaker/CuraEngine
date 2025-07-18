@@ -26,10 +26,14 @@ struct IdFieldInfo
     {
         switch (ax)
         {
-        case Axis::X: return pt.x_;
-        case Axis::Y: return pt.y_;
-        case Axis::Z: return pt.z_;
-        default: return 0;
+        case Axis::X:
+            return pt.x_;
+        case Axis::Y:
+            return pt.y_;
+        case Axis::Z:
+            return pt.z_;
+        default:
+            return 0;
         }
     }
 
@@ -50,8 +54,7 @@ public:
     {
         return Point2F(
             1.0f - mirrorNegative(static_cast<float>(getAxisValue(primary_axis_, pt) - projection_field_.min_.X) / (projection_field_.max_.X - projection_field_.min_.X)),
-            1.0f - mirrorNegative(static_cast<float>(getAxisValue(secondary_axis_, pt) - projection_field_.min_.Y) / (projection_field_.max_.Y - projection_field_.min_.Y))
-        );
+            1.0f - mirrorNegative(static_cast<float>(getAxisValue(secondary_axis_, pt) - projection_field_.min_.Y) / (projection_field_.max_.Y - projection_field_.min_.Y)));
     }
 };
 } // namespace cura
