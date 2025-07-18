@@ -1171,7 +1171,7 @@ void GCodeExport::writeFXYZE(
         *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
         if (inline_comment.has_value())
         {
-            *output_stream_ << "; " << inline_comment.value();
+            *output_stream_ << " ;" << inline_comment.value();
         }
         current_e_value_ = e;
     }

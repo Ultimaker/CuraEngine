@@ -2976,6 +2976,16 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
+std::optional<std::string> getIdLabelUvComment(const std::optional<std::vector<Point2F>>& idlabel_uvs, const size_t idx)
+{
+    if (! idlabel_uvs.has_value())
+    {
+        return std::nullopt;
+    }
+    const auto uv_pt = idlabel_uvs.value()[idx];
+    return (std::isnan(uv_pt.x_) || std::isnan(uv_pt.y_)) ? std::nullopt : std::make_optional(fmt::format("UV: {0:.4f} {1:.4f}", uv_pt.x_, uv_pt.y_));
+}
+
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {
     auto communication = Application::getInstance().communication_;
@@ -3385,13 +3395,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
 
-                        // FIXME: Find a less ugly way to do this (and then don't copy the snipped all over the place).
-                        constexpr std::string_view buzz_off = "BUZZ:0"; // FIXME: should be UV pixel coordinates!
-                        constexpr std::string_view buzz_on = "BUZZ:1"; // FIXME: should be UV pixel coordinates!
-                        const std::optional<std::string_view> inline_comment
-                            = path.message_bit_per_point.has_value() ? std::make_optional(path.message_bit_per_point.value()[idx] ? buzz_on : buzz_off) : std::nullopt;
-
-                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, inline_comment, update_extrusion_offset);
+                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, getIdLabelUvComment(path.idlabel_uv_per_point, idx), update_extrusion_offset);
                         sendLineTo(path, pt, extrude_speed);
 
                         prev_point = pt;
@@ -3566,13 +3570,7 @@ bool LayerPlan::writePathWithCoasting(
             auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
-            // FIXME: Find a less ugly way to do this (and then don't copy the snipped all over the place).
-            constexpr std::string_view buzz_off = "BUZZ:0"; // FIXME: should be UV pixel coordinates!
-            constexpr std::string_view buzz_on = "BUZZ:1"; // FIXME: should be UV pixel coordinates!
-            const std::optional<std::string_view> inline_comment
-                = path.message_bit_per_point.has_value() ? std::make_optional(path.message_bit_per_point.value()[point_idx] ? buzz_on : buzz_off) : std::nullopt;
-
-            writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, inline_comment);
+            writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, getIdLabelUvComment(path.idlabel_uv_per_point, path_idx));
             sendLineTo(path, path.points[point_idx], extrude_speed);
 
             previous_position = path.points[point_idx];

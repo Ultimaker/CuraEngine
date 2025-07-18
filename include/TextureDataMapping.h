@@ -4,6 +4,8 @@
 #ifndef TEXTUREDATAMAPPING_H
 #define TEXTUREDATAMAPPING_H
 
+#include "utils/Point2F.h"
+
 #include <map>
 #include <string>
 
@@ -33,6 +35,8 @@ enum class TextureArea
     Preferred = 1, // Area is to be preferred
     Avoid = 2, // Area is to be avoided
 };
+
+using Texel = std::pair<TextureArea, Point2F>;
 
 } // namespace cura
 

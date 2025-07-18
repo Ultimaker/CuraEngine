@@ -91,24 +91,25 @@ void ExtruderPlan::applyIdLabel()
         }
 
         const auto zero_pt = Point3LL(0, 0, 0);
-        const auto offset_pt = path.mesh->id_field_info.value().normal_offset(-inset_dist);
+        const auto offset_pt = ((path.points.front() + path.points.back()) / 2 - path.mesh->bounding_box.getMiddle()).resized(inset_dist);
+        const auto signal_no_uv = Point2F(std::numeric_limits<float>::signaling_NaN(), std::numeric_limits<float>::signaling_NaN());
 
         std::vector<Point3LL> new_points;
-        std::vector<bool> message_bits;
-        new_points.push_back(path.points[0]);
-        message_bits.push_back(false);
+        std::vector<Point2F> idlabel_uvs;
+        new_points.push_back(path.points.front());
+        idlabel_uvs.push_back(signal_no_uv);
         for (const auto& window : path.points | ranges::views::sliding(2))
         {
             const auto& a = window[0];
             const auto& b = window[1];
 
-            std::vector<TextureArea> span_pixels;
-            if (path.mesh->layers[layer_nr_].texture_data_provider_->getAreaPreferencesForSpan(a.toPoint2LL(), b.toPoint2LL(), "label", span_pixels))
+            std::vector<Texel> span_pixels;
+            if (path.mesh->layers[layer_nr_].texture_data_provider_->getTexelsForSpan(a.toPoint2LL(), b.toPoint2LL(), "label", span_pixels))
             {
                 const auto pixel_span_3d = (b - a) / static_cast<coord_t>(span_pixels.size());
                 auto last_pixel = TextureArea::Normal;
                 auto last_pt = a;
-                for (auto [idx, pixel] : span_pixels | ranges::views::enumerate)
+                for (auto [idx, texel] : span_pixels | ranges::views::enumerate)
                 {
                     // TODO: Just make it 'random' for now -- later, use:
                     //  - A message/id of some sort.
@@ -116,33 +117,32 @@ void ExtruderPlan::applyIdLabel()
                     //  - IdFieldInfo (already made) to get the plane-normal(s) right (well, at least approximately -- it now does so only coursely, by axis)
                     const bool raw_val = (std::rand() % 2 == 0);
                     const auto raw_pt = a + (idx * pixel_span_3d) + (pixel_span_3d / 2);
-
-                    const bool preferred = (pixel == TextureArea::Preferred);
-                    if (preferred || last_pixel != pixel)
+                    const bool preferred = (texel.first == TextureArea::Preferred);
+                    if (preferred || last_pixel != texel.first)
                     {
                         if (last_pixel != TextureArea::Preferred)
                         {
                             new_points.push_back(last_pt);
-                            message_bits.push_back(false);
+                            idlabel_uvs.push_back(signal_no_uv);
                         }
 
                         const bool val = preferred && raw_val;
                         new_points.push_back(raw_pt + (val ? offset_pt : zero_pt));
-                        message_bits.push_back(val);
+                        idlabel_uvs.push_back(texel.second);
                     }
-                    last_pixel = pixel;
+                    last_pixel = texel.first;
                     last_pt = raw_pt;
                 }
             }
 
             new_points.push_back(b);
-            message_bits.push_back(false);
+            idlabel_uvs.push_back(Point2F(NAN, NAN));
         }
 
         if (new_points.size() != path.points.size())
         {
             path.points = new_points;
-            path.message_bit_per_point = message_bits;
+            path.idlabel_uv_per_point = idlabel_uvs;
         }
     }
 }
