@@ -80,9 +80,12 @@ void ExtruderPlan::applyIdLabel()
     constexpr coord_t inset_dist = 40; // TODO?: make this configurable as well?
     for (auto& path : paths_)
     {
-        if (path.mesh == nullptr || path.mesh->layers[layer_nr_].texture_data_provider_ == nullptr || (! path.mesh->id_field_info)
-            || (path.mesh->id_field_info.value().normal_ != IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::OuterWall)
-            || (path.mesh->id_field_info.value().normal_ == IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::Skin))
+        if (path.points.empty() ||
+            path.mesh == nullptr ||
+            path.mesh->layers[layer_nr_].texture_data_provider_ == nullptr ||
+            (! path.mesh->id_field_info) ||
+            (path.mesh->id_field_info.value().normal_ != IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::OuterWall) ||
+            (path.mesh->id_field_info.value().normal_ == IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::Skin))
         {
             continue;
         }
@@ -104,6 +107,7 @@ void ExtruderPlan::applyIdLabel()
             {
                 const auto pixel_span_3d = (b - a) / static_cast<coord_t>(span_pixels.size());
                 auto last_pixel = TextureArea::Normal;
+                auto last_pt = a;
                 for (auto [idx, pixel] : span_pixels | ranges::views::enumerate)
                 {
                     // TODO: Just make it 'random' for now -- later, use:
@@ -111,15 +115,23 @@ void ExtruderPlan::applyIdLabel()
                     //  - Some sort of simple 'text to pixels' method (lookup table?)
                     //  - IdFieldInfo (already made) to get the plane-normal(s) right (well, at least approximately -- it now does so only coursely, by axis)
                     const bool raw_val = (std::rand() % 2 == 0);
+                    const auto raw_pt = a + (idx * pixel_span_3d) + (pixel_span_3d / 2);
 
                     const bool preferred = (pixel == TextureArea::Preferred);
                     if (preferred || last_pixel != pixel)
                     {
+                        if (last_pixel != TextureArea::Preferred)
+                        {
+                            new_points.push_back(last_pt);
+                            message_bits.push_back(false);
+                        }
+
                         const bool val = preferred && raw_val;
-                        new_points.push_back(a + (idx * pixel_span_3d) + (pixel_span_3d / 2) + (val ? offset_pt : zero_pt));
+                        new_points.push_back(raw_pt + (val ? offset_pt : zero_pt));
                         message_bits.push_back(val);
                     }
                     last_pixel = pixel;
+                    last_pt = raw_pt;
                 }
             }
 
