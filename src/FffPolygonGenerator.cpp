@@ -358,8 +358,6 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     // TODO: Deal with the fact that we _actually_ don't have the segments in that place anymore (I temporarily disabled the clear).
                     // (We've still got all we need in the slicer_layer.sliced_uv_coordinates_.segments, but that's all private at the moment!
                     {
-
-
                         if (segment.uv_start.has_value() && segment.uv_end.has_value())
                         {
                             const auto& uv_a = segment.uv_start.value();
@@ -373,10 +371,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                                 {
                                     if ((pixel & match_pixel) != 0b0)
                                     {
-                                        const auto param =
-                                            std::llabs(uv_b.x_ - uv_a.x_) >= std::llabs(uv_b.x_ - uv_a.y_) ?
-                                            (uv.x_ - uv_a.x_) / (uv_b.x_ - uv_a.x_) :
-                                            (uv.y_ - uv_a.y_) / (uv_b.y_ - uv_a.y_);
+                                        const auto param = std::llabs(uv_b.x_ - uv_a.x_) >= std::llabs(uv_b.x_ - uv_a.y_) ? (uv.x_ - uv_a.x_) / (uv_b.x_ - uv_a.x_)
+                                                                                                                          : (uv.y_ - uv_a.y_) / (uv_b.y_ - uv_a.y_);
                                         label_pt_cloud.emplace_back(a + param * (b - a), height);
                                     }
                                 });

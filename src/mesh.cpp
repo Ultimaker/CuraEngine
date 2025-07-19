@@ -14,16 +14,14 @@ namespace cura
 
 void Image::visitSpanPerPixel(const Point2F& a, const Point2F& b, const std::function<void(const int32_t, const Point2F&)>& func) const
 {
-    constexpr auto func_major_stepper =
-        [](const int64_t& da, const int64_t& abs_db, const int64_t& i)
-        {
-            return da < 0 ? -i : i;
-        };
-    constexpr auto func_minor_stepper =
-        [](const int64_t& da, const int64_t& abs_db, const int64_t& i)
-        {
-            return (i * da) / abs_db;
-        };
+    constexpr auto func_major_stepper = [](const int64_t& da, const int64_t& abs_db, const int64_t& i)
+    {
+        return da < 0 ? -i : i;
+    };
+    constexpr auto func_minor_stepper = [](const int64_t& da, const int64_t& abs_db, const int64_t& i)
+    {
+        return (i * da) / abs_db;
+    };
 
     const auto x0 = static_cast<int64_t>(a.x_ * width_);
     const auto y0 = static_cast<int64_t>(a.y_ * height_);
