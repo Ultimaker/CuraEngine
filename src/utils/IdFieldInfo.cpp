@@ -1,7 +1,7 @@
 // Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "utils/IdFieldInfo.h"
+#include "utils/IDFieldInfo.h"
 
 #include <algorithm>
 #include <array>

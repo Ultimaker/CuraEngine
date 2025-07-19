@@ -9,7 +9,7 @@
 #include "TextureDataMapping.h"
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
-#include "utils/IdFieldInfo.h"
+#include "utils/IDFieldInfo.h"
 #include "utils/Matrix4x3D.h"
 #include "utils/Point2F.h"
 
