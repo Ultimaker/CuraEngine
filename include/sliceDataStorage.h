@@ -341,7 +341,7 @@ public:
 
     /*!
      */
-    void setIdFieldInfo(const AABB3D& aabb);
+    void setIdFieldInfo(const std::vector<Point3LL>& label_pt_cloud);
 
     /*!
      * \param extruder_nr The extruder for which to check

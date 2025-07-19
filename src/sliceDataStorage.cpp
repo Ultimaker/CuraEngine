@@ -107,9 +107,9 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     layers.resize(slice_layer_count);
 }
 
-void SliceMeshStorage::setIdFieldInfo(const AABB3D& aabb)
+void SliceMeshStorage::setIdFieldInfo(const std::vector<Point3LL>& label_pt_cloud)
 {
-    id_field_info = IdFieldInfo::fromAabb3d(aabb);
+    id_field_info = IdFieldInfo::fromPointCloud(label_pt_cloud);
 }
 
 bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const

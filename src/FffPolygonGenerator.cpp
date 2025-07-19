@@ -304,10 +304,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         {
             spdlog::info("No painting-operation data specified for mesh `{}`.", static_cast<void*>(&mesh));
         }
-        AABB3D label_aabb;
-        // FIXME: We probably actually need an _inscribed_ AABB (which is way less trivial), since otherwise the message will overlap the edges of the label-space.
-        // FIXME: Find the _proper_ plane-normal(s) (primaty and secondary vectors), by doing principle component analysis
-        //        (which fortunately _also_ means we can reduce the first above problem to 2D instead, which is at least somewhat easier).
+        std::vector<Point3LL> label_pt_cloud;
 
         // calculate the height at which each layer is actually printed (printZ)
         for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
@@ -361,6 +358,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     // TODO: Deal with the fact that we _actually_ don't have the segments in that place anymore (I temporarily disabled the clear).
                     // (We've still got all we need in the slicer_layer.sliced_uv_coordinates_.segments, but that's all private at the moment!
                     {
+
+
                         if (segment.uv_start.has_value() && segment.uv_end.has_value())
                         {
                             const auto& uv_a = segment.uv_start.value();
@@ -370,13 +369,15 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                             mesh.texture_->visitSpanPerPixel(
                                 uv_a,
                                 uv_b,
-                                [&label_aabb, &match_pixel, &uv_a, &uv_b, &a, &b, &height](const int32_t& pixel, const Point2F& uv)
+                                [&label_pt_cloud, &match_pixel, &uv_a, &uv_b, &a, &b, &height](const int32_t& pixel, const Point2F& uv)
                                 {
                                     if ((pixel & match_pixel) != 0b0)
                                     {
-                                        const auto param
-                                            = std::llabs(b.X - a.X) >= std::llabs(b.Y - a.Y) ? (uv.x_ - uv_a.x_) / (uv_b.x_ - uv_a.x_) : (uv.y_ - uv_a.y_) / (uv_b.y_ - uv_a.y_);
-                                        label_aabb.include(Point3LL(a + param * (b - a), height));
+                                        const auto param =
+                                            std::llabs(uv_b.x_ - uv_a.x_) >= std::llabs(uv_b.x_ - uv_a.y_) ?
+                                            (uv.x_ - uv_a.x_) / (uv_b.x_ - uv_a.x_) :
+                                            (uv.y_ - uv_a.y_) / (uv_b.y_ - uv_a.y_);
+                                        label_pt_cloud.emplace_back(a + param * (b - a), height);
                                     }
                                 });
                         }
@@ -385,7 +386,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
         }
 
-        meshStorage.setIdFieldInfo(label_aabb);
+        meshStorage.setIdFieldInfo(label_pt_cloud);
 
         delete slicerList[meshIdx];
 

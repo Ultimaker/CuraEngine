@@ -84,8 +84,9 @@ void ExtruderPlan::applyIdLabel(const Image& slice_id_texture, const coord_t cur
     for (auto& path : paths_)
     {
         if (path.points.empty() || path.mesh == nullptr || path.mesh->layers[layer_nr_].texture_data_provider_ == nullptr || (! path.mesh->id_field_info)
-            || (path.mesh->id_field_info.value().normal_ != IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::OuterWall)
-            || (path.mesh->id_field_info.value().normal_ == IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::Skin))
+            //|| (path.mesh->id_field_info.value().normal_ != IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::OuterWall)
+            //|| (path.mesh->id_field_info.value().normal_ == IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::Skin))
+            || (path.config.type != PrintFeatureType::OuterWall && path.config.type != PrintFeatureType::Skin))
         {
             continue;
         }
@@ -125,11 +126,14 @@ void ExtruderPlan::applyIdLabel(const Image& slice_id_texture, const coord_t cur
                         }
 
                         const auto label_uv = id_field_info.worldPointToLabelUv(raw_pt + offset_z);
-                        const bool raw_val = slice_id_texture.getPixel(label_uv) > 0x0;
-                        const bool val = preferred && raw_val;
+                        if (std::clamp(label_uv.x_, 0.0f, CLOSE_1F) == label_uv.x_ && std::clamp(label_uv.y_, 0.0f, CLOSE_1F) == label_uv.y_)
+                        {
+                            const bool raw_val = slice_id_texture.getPixel(label_uv) > 0b0;
+                            const bool val = preferred && raw_val;
 
-                        new_points.push_back(raw_pt + (val ? offset_pt : zero_pt));
-                        idlabel_uvs.push_back(label_uv);
+                            new_points.push_back(raw_pt + (val ? offset_pt : zero_pt));
+                            idlabel_uvs.push_back(label_uv);
+                        }
                     }
                     last_pixel = texel.first;
                     last_pt = raw_pt;

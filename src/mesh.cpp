@@ -38,7 +38,7 @@ void Image::visitSpanPerPixel(const Point2F& a, const Point2F& b, const std::fun
 
     const auto func_x = abs_dy <= abs_dx ? func_major_stepper : func_minor_stepper;
     const auto func_y = abs_dx <= abs_dy ? func_major_stepper : func_minor_stepper;
-    for (size_t i_pix = 0; i_pix <= max_span; i_pix++)
+    for (size_t i_pix = 0; i_pix < max_span; ++i_pix)
     {
         const auto xi = x0 + func_x(dx, abs_dy, i_pix);
         const auto yi = y0 + func_y(dy, abs_dx, i_pix);

@@ -6,31 +6,31 @@
 
 #include <optional>
 
-#include "utils/AABB3D.h"
+#include "geometry/Point3LL.h"
+#include "utils/AABB.h"
 #include "utils/Point2F.h"
+#include "utils/Point3D.h"
 
 namespace cura
 {
-// FIXME?: This now goes per-axis, because that's what we get by creating it from the AABB, but it should be a 'free' plane-normal(s).
-//         We'd probably need to do a little principal component analysis to _properly_ get the primary and secondary axii.
+const double CLOSE_1D = std::nextafter(1.0, 0.0);
+const float CLOSE_1F = std::nextafter(1.0f, 0.0f);
+// NOTE: nextafter isn't constexpr yet in c++20, replace with constexpr when we do C++23
 
 struct IdFieldInfo
 {
-    enum class Axis
-    {
-        X,
-        Y,
-        Z
-    };
-    static coord_t getAxisValue(const Axis ax, const Point3LL& pt);
+    typedef std::pair<double, double> span_t;
 
-    Axis primary_axis_ = Axis::X;
-    Axis secondary_axis_ = Axis::Z;
-    Axis normal_ = Axis::Y;
-    AABB projection_field_;
+    Point3D primary_axis_;
+    span_t primary_span_;
+
+    Point3D secondary_axis_;
+    span_t secondary_span_;
+
+    Point3D normal_;
 
 public:
-    static std::optional<IdFieldInfo> fromAabb3d(const AABB3D& aabb);
+    static std::optional<IdFieldInfo> fromPointCloud(const std::vector<Point3LL>& points);
 
     Point2F worldPointToLabelUv(const Point3LL& pt) const;
 };
