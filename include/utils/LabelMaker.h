@@ -4,6 +4,7 @@
 #ifndef LABEL_MAKER_H
 #define LABEL_MAKER_H
 
+#include <cstdint>
 #include <string_view>
 #include <vector>
 

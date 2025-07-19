@@ -123,8 +123,6 @@ private:
     std::unordered_map<uint32_t, std::vector<uint32_t>> vertex_hash_map_;
     AABB3D aabb_;
 
-    // std::optional<IdFieldInfo> id_field_info_;
-
 public:
     std::vector<MeshVertex> vertices_; //!< list of all vertices in the mesh
     std::vector<MeshFace> faces_; //!< list of all faces in the mesh

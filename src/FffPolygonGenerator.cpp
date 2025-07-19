@@ -310,7 +310,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
-            const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
+            SlicerLayer& slicer_layer = slicer->layers[layer_nr];
 
             if (use_variable_layer_heights)
             {
@@ -380,6 +380,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     }
                 }
             }
+
+            slicer_layer.clearSegments();
         }
 
         meshStorage.setIdFieldInfo(label_pt_cloud);

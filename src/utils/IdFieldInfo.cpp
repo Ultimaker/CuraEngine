@@ -20,7 +20,7 @@ double proj(const Point3D& b, const Point3LL& p)
     return (Point3D(p) * b) / (b * b);
 }
 
-// FIMXE: something doesn't quite work right yet -- the normal is OK (I think?) but the primary and secondary axii don't do what I want yet...
+// FIXME: something doesn't quite work right yet -- the normal is OK (I think?) but the primary and secondary axii don't do what I want yet...
 
 std::optional<IdFieldInfo> IdFieldInfo::fromPointCloud(const std::vector<Point3LL>& points)
 {
@@ -108,14 +108,9 @@ std::optional<IdFieldInfo> IdFieldInfo::fromPointCloud(const std::vector<Point3L
                                            .normal_ = normal });
 }
 
-float mirrorNegative(const float in)
-{
-    return in < 0.0f ? 1.0 + in : in;
-}
-
 Point2F IdFieldInfo::worldPointToLabelUv(const Point3LL& pt) const
 {
-    // FOXME: (but should make smaller? -> get the '''furthest''' points in the '''diagonal''' directions of the chosen primary and secondary axii, should approximate well enough)
+    // TODO: Get the '''furthest''' points in the '''diagonal''' directions of the chosen primary and secondary axii, should approximate well enough to 'inscribed' bounding rect.
 
     return Point2F(
         1.0f - (proj(primary_axis_, pt) - primary_span_.first) / (primary_span_.second - primary_span_.first),

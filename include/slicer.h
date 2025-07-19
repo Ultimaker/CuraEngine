@@ -77,6 +77,10 @@ public:
      */
     void makePolygons(const Mesh* mesh);
 
+    /*!
+     */
+    void clearSegments();
+
 protected:
     /*!
      * Connect the segments into loops which correctly form polygons (don't perform stitching here)
