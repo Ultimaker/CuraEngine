@@ -10,9 +10,9 @@
 
 #include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
-#include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
+#include "utils/Point2F.h"
 
 /*
     The Slicer creates layers of polygons from an optimized 3D model.
@@ -24,11 +24,14 @@ namespace cura
 class AdaptiveLayer;
 class Mesh;
 class MeshVertex;
+class Point3D;
+class SlicedUVCoordinates;
 
 class SlicerSegment
 {
 public:
     Point2LL start, end;
+    std::optional<Point2F> uv_start, uv_end;
     int faceIndex = -1;
     // The index of the other face connected via the edge that created end
     int endOtherFaceIdx = -1;
@@ -65,6 +68,7 @@ public:
     int z_ = -1;
     Shape polygons_;
     OpenLinesSet open_polylines_;
+    std::shared_ptr<SlicedUVCoordinates> sliced_uv_coordinates_;
 
     /*!
      * \brief Connect the segments into polygons for this layer of this \p mesh.
@@ -505,6 +509,26 @@ private:
     static coord_t interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1);
 
     /*!
+     * Interpolate the UV coordinates at the 3 points of the given triangle to the given position in barycentric coordinates
+     * @param barycentric_coordinates The target position in barycentric coordinates
+     * @param uv0 The UV coordinates at point 0 of the triangle
+     * @param uv1 The UV coordinates at point 1 of the triangle
+     * @param uv2 The UV coordinates at point 2 of the triangle
+     * @return The interpolated UV coordinates at the given position
+     */
+    static Point2F interpolateUV(const Point3D& barycentric_coordinates, const Point2F& uv0, const Point2F& uv1, const Point2F& uv2);
+
+    /*!
+     * Get the barycentric coordinates of the given point in the given triangle
+     * @param point The 3D point that is inside the given triangle
+     * @param p0 The coordinates of point 0 of the triangle
+     * @param p1 The coordinates of point 1 of the triangle
+     * @param p2 The coordinates of point 2 of the triangle
+     * @return The barycentric coordinates of the given point
+     */
+    static std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Point3LL& p0, const Point3LL& p1, const Point3LL& p2);
+
+    /*!
      * \brief Project a triangle onto a 2D layer.
      *
      * The result is a SlicerSegment object, which is a line segment if the
@@ -516,7 +540,14 @@ private:
      * \param z The Z coordinate of the layer to intersect with.
      * \return A slicer segment.
      */
-    static SlicerSegment project2D(const Point3LL& p0, const Point3LL& p1, const Point3LL& p2, const coord_t z);
+    static SlicerSegment project2D(
+        const Point3LL& p0,
+        const Point3LL& p1,
+        const Point3LL& p2,
+        const std::optional<Point2F>& uv0,
+        const std::optional<Point2F>& uv1,
+        const std::optional<Point2F>& uv2,
+        const coord_t z);
 
     /*! Creates an array of "z bounding boxes" for each face.
      * \param[in] mesh The mesh which is analyzed.

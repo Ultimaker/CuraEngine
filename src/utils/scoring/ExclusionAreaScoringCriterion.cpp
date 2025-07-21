@@ -10,14 +10,13 @@ namespace cura
 {
 
 ExclusionAreaScoringCriterion::ExclusionAreaScoringCriterion(const PointsSet& points, const Shape& exclusion_area)
-    : points_(points)
+    : PositionBasedScoringCriterion(points)
     , exclusion_area_(exclusion_area)
 {
 }
 
-double ExclusionAreaScoringCriterion::computeScore(const size_t candidate_index) const
+double ExclusionAreaScoringCriterion::computeScore(const Point2LL& candidate_position) const
 {
-    const Point2LL& candidate_position = points_.at(candidate_index);
     return exclusion_area_.inside(candidate_position, true) ? 0.0 : 1.0;
 }
 

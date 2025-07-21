@@ -26,6 +26,7 @@
 #include "skin.h"
 #include "SkirtBrim.h"
 #include "Slice.h"
+#include "TextureDataProvider.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
 #include "support.h"
@@ -294,6 +295,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
+            const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
+            if (slicer_layer.sliced_uv_coordinates_ && mesh.texture_ && mesh.texture_data_mapping_)
+            {
+                layer.texture_data_provider_ = std::make_shared<TextureDataProvider>(slicer_layer.sliced_uv_coordinates_, mesh.texture_, mesh.texture_data_mapping_);
+            }
 
             if (use_variable_layer_heights)
             {
@@ -338,7 +344,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     // compute layer count and remove first empty layers
-    // there is no separate progress stage for removeEmptyFisrtLayer (TODO)
+    // there is no separate progress stage for removeEmptyFirstLayer (TODO)
     unsigned int slice_layer_count = 0;
     for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {

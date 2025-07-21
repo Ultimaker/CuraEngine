@@ -16,7 +16,7 @@ namespace cura
 {
 
 
-std::string SVG::toString(Color color) const
+std::string SVG::toString(Color color)
 {
     switch (color)
     {
@@ -45,6 +45,36 @@ std::string SVG::toString(Color color) const
     default:
         return "black";
     }
+}
+
+SVG::ColorObject SVG::ColorObject::toRgb(const Color color)
+{
+    switch (color)
+    {
+    case SVG::Color::WHITE:
+        return ColorObject(255, 255, 255);
+    case SVG::Color::GRAY:
+        return ColorObject(128, 128, 128);
+    case SVG::Color::RED:
+        return ColorObject(255, 0, 0);
+    case SVG::Color::BLUE:
+        return ColorObject(0, 0, 255);
+    case SVG::Color::GREEN:
+        return ColorObject(0, 255, 0);
+    case SVG::Color::LIME:
+        return ColorObject(191, 255, 0);
+    case SVG::Color::ORANGE:
+        return ColorObject(255, 165, 0);
+    case SVG::Color::MAGENTA:
+        return ColorObject(255, 0, 255);
+    case SVG::Color::YELLOW:
+        return ColorObject(255, 255, 0);
+    case SVG::Color::BLACK:
+    case SVG::Color::NONE:
+        return ColorObject(0, 0, 0);
+    }
+
+    return ColorObject(0, 0, 0);
 }
 
 std::string SVG::toString(const ColorObject& color) const

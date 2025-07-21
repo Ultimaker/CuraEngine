@@ -2352,7 +2352,7 @@ void LayerPlan::computeAntiOozeTravelSplit(
             if (segment_duration > 0.001_s)
             {
                 const double segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
-                anti_oozing.segment_split_position = cura::lerp(segment_start, segment_end, segment_ratio).toPoint2LL();
+                anti_oozing.segment_split_position = cura::lerp(segment_start, segment_end, segment_ratio);
             }
             else
             {

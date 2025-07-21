@@ -12,15 +12,15 @@ namespace cura
 {
 
 CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference)
-    : points_(points)
+    : PositionBasedScoringCriterion(points)
     , corner_preference_(corner_preference)
     , segments_sizes_(points.size())
 {
     // Pre-calculate the segments lengths because we are going to need them multiple times
     for (size_t i = 0; i < points.size(); ++i)
     {
-        const Point2LL& here = points_.at(i);
-        const Point2LL& next = points_.at((i + 1) % points_.size());
+        const Point2LL& here = getPoints().at(i);
+        const Point2LL& next = getPoints().at((i + 1) % getPoints().size());
         const coord_t segment_size = vSize(next - here);
         segments_sizes_[i] = segment_size;
         total_length_ += segment_size;
@@ -71,7 +71,7 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
 double CornerScoringCriterion::cornerAngle(size_t vertex_index, const coord_t angle_query_distance) const
 {
     const coord_t bounded_distance = std::min(angle_query_distance, total_length_ / 2);
-    const Point2LL& here = points_.at(vertex_index);
+    const Point2LL& here = getPoints().at(vertex_index);
     const Point2LL next = findNeighbourPoint(vertex_index, bounded_distance);
     const Point2LL previous = findNeighbourPoint(vertex_index, -bounded_distance);
 
@@ -93,17 +93,17 @@ Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t
     while (travelled_distance < distance)
     {
         actual_delta += direction;
-        segment_size = segments_sizes_[(vertex_index + actual_delta + size_delta + points_.size()) % points_.size()];
+        segment_size = segments_sizes_[(vertex_index + actual_delta + size_delta + getPoints().size()) % getPoints().size()];
         travelled_distance += segment_size;
     }
 
-    const Point2LL& next_pos = points_.at((vertex_index + actual_delta + points_.size()) % points_.size());
+    const Point2LL& next_pos = getPoints().at((vertex_index + actual_delta + getPoints().size()) % getPoints().size());
 
     if (travelled_distance > distance) [[likely]]
     {
         // We have overtaken the required distance, go backward on the last segment
-        int prev = (vertex_index + actual_delta - direction + points_.size()) % points_.size();
-        const Point2LL& prev_pos = points_.at(prev);
+        int prev = (vertex_index + actual_delta - direction + getPoints().size()) % getPoints().size();
+        const Point2LL& prev_pos = getPoints().at(prev);
 
         const Point2LL vector = next_pos - prev_pos;
         const Point2LL unit_vector = (vector * 1000) / segment_size;
