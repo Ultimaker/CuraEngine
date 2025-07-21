@@ -41,9 +41,9 @@ private:
     struct SegmentLocator
     {
     public:
-        std::pair<Point2LL, Point2LL> operator() (Segment* const& seg)
+        std::pair<Point2LL, Point2LL> operator()(Segment* const& seg)
         {
-            return {seg->start, seg->end};
+            return { seg->start, seg->end };
         }
     };
 
