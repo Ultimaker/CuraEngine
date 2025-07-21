@@ -25,6 +25,11 @@ public:
 
     std::optional<Point2F> getClosestUVCoordinates(const Point2LL& position) const;
 
+    /*! /!\ WARNINGS /!\
+     *  - Currently assumes straight spans in UV-space will be over at most 2 faces, but this isn't _universally_ true.
+     *  - Currently returns the UV-coords of the _entire_ segment from and to are part of,
+     *    even if from and to repressent some points other than begin and end (though it should handle reversed).
+     */
     std::optional<std::pair<Point2F, Point2F>> getUVCoordsLineSegment(const Point2LL& from, const Point2LL& to) const;
 
 private:

@@ -99,6 +99,9 @@ void ExtruderPlan::applyIdLabel(const Image& slice_id_texture, const coord_t cur
 
         const auto& id_field_info = path.mesh->id_field_info.value();
 
+        // FIMXE!: The sliding here is only going over 3 sides of the polygon, which means it's not 'closed' at this moment in time.
+        //         Attempts to fix this have so far not been successful (but tired r.n. will look at it when less so later).
+
         std::vector<Point3LL> new_points;
         std::vector<Point2F> idlabel_uvs;
         new_points.push_back(path.points.front());
@@ -142,7 +145,7 @@ void ExtruderPlan::applyIdLabel(const Image& slice_id_texture, const coord_t cur
             }
 
             new_points.push_back(b);
-            idlabel_uvs.push_back(Point2F(NAN, NAN));
+            idlabel_uvs.push_back(signal_no_uv);
         }
 
         if (new_points.size() != path.points.size())

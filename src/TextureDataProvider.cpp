@@ -53,9 +53,6 @@ std::optional<TextureArea> TextureDataProvider::getAreaPreference(const Point2LL
 
 bool TextureDataProvider::getTexelsForSpan(const Point2LL& a, const Point2LL& b, const std::string& feature, std::vector<Texel>& res) const
 {
-    // FIXME: This doesn't take into account the whole 'a and b aren't necesarily in the same texture patch' thing, as the plain 'Image' class and its 'visitSpanPerPixels' method
-    // are of course unaware of it.
-
     auto data_mapping_iterator = texture_data_mapping_->find(feature);
     if (data_mapping_iterator == texture_data_mapping_->end())
     {
@@ -63,17 +60,16 @@ bool TextureDataProvider::getTexelsForSpan(const Point2LL& a, const Point2LL& b,
     }
 
     const TextureBitField& bit_field = data_mapping_iterator->second;
-    const std::optional<Point2F> point_uv_a = uv_coordinates_->getClosestUVCoordinates(a);
-    const std::optional<Point2F> point_uv_b = uv_coordinates_->getClosestUVCoordinates(b);
-    if (! (point_uv_a.has_value() && point_uv_b.has_value()))
+    const std::optional<std::pair<Point2F, Point2F>> points_uv = uv_coordinates_->getUVCoordsLineSegment(a, b);
+    if (! points_uv.has_value())
     {
         return false;
     }
 
     bool has_any = false;
     texture_->visitSpanPerPixel(
-        point_uv_a.value(),
-        point_uv_b.value(),
+        points_uv.value().first,
+        points_uv.value().second,
         [&bit_field, &res, &has_any](const int32_t pixel_data, const Point2F& uv_pt)
         {
             res.push_back({ static_cast<TextureArea>(
