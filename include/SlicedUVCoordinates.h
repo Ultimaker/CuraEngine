@@ -5,6 +5,7 @@
 #define SLICEDUVCOORDINATES_H
 
 #include <optional>
+#include <unordered_map>
 #include <utility>
 
 #include "geometry/Point2LL.h"
@@ -24,6 +25,8 @@ public:
 
     std::optional<Point2F> getClosestUVCoordinates(const Point2LL& position) const;
 
+    std::optional<std::pair<Point2F, Point2F>> getUVCoordsLineSegment(const Point2LL& from, const Point2LL& to) const;
+
 private:
     struct Segment
     {
@@ -33,16 +36,18 @@ private:
     struct SegmentLocator
     {
     public:
-        std::pair<Point2LL, Point2LL> operator() (const Segment& seg)
+        std::pair<Point2LL, Point2LL> operator() (Segment* const& seg)
         {
-            return {seg.start, seg.end};
+            return {seg->start, seg->end};
         }
     };
 
     static constexpr coord_t cell_size{ 1000 };
     static constexpr coord_t search_radius{ 1000 };
 
-    SparseLineGrid<Segment, SegmentLocator> located_uv_coords_segs_;
+    std::vector<Segment> segments_;
+    SparseLineGrid<Segment*, SegmentLocator> located_uv_coords_segs_;
+    std::unordered_multimap<Point2LL, Segment*> segs_by_point_;
 };
 
 } // namespace cura
