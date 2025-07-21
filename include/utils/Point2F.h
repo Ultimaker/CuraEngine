@@ -39,6 +39,11 @@ public:
         return *this / vSize();
     }
 
+    Point2F operator*(const float scale) const
+    {
+        return Point2F(x_ * scale, y_ * scale);
+    }
+
     Point2F operator/(const double scale) const
     {
         return Point2F(x_ / scale, y_ / scale);
@@ -46,6 +51,16 @@ public:
 
     auto operator<=>(const Point2F&) const = default;
 };
+
+static Point2F operator+(const Point2F& a, const Point2F& b)
+{
+    return Point2F(a.x_ + b.x_, a.y_ + b.y_);
+}
+
+static Point2F operator-(const Point2F& a, const Point2F& b)
+{
+    return Point2F(a.x_ - b.x_, a.y_ - b.y_);
+}
 
 static Point2F lerp(const Point2F& a, const Point2F& b, const float t)
 {

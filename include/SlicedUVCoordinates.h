@@ -5,10 +5,11 @@
 #define SLICEDUVCOORDINATES_H
 
 #include <optional>
+#include <utility>
 
 #include "geometry/Point2LL.h"
 #include "utils/Point2F.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "utils/SparseLineGrid.h"
 
 namespace cura
 {
@@ -29,11 +30,19 @@ private:
         Point2LL start, end;
         Point2F uv_start, uv_end;
     };
+    struct SegmentLocator
+    {
+    public:
+        std::pair<Point2LL, Point2LL> operator() (const Segment& seg)
+        {
+            return {seg.start, seg.end};
+        }
+    };
 
     static constexpr coord_t cell_size{ 1000 };
     static constexpr coord_t search_radius{ 1000 };
-    SparsePointGridInclusive<Point2F> located_uv_coordinates_;
-    std::vector<Segment> segments_;
+
+    SparseLineGrid<Segment, SegmentLocator> located_uv_coords_segs_;
 };
 
 } // namespace cura
