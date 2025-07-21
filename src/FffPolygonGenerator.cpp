@@ -350,7 +350,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 layer.texture_data_provider_ = std::make_shared<TextureDataProvider>(slicer_layer.sliced_uv_coordinates_, mesh.texture_, mesh.texture_data_mapping_);
 
                 // slice/print-ID label specific: (update/)calculate bounding-box
-                if (mesh.texture_data_mapping_->count("label") > 0)
+                if (mesh.texture_data_mapping_->contains("label"))
                 {
                     const auto match_pixel = static_cast<uint32_t>(TextureArea::Preferred) << mesh.texture_data_mapping_->at("label").bit_range_start_index;
                     const auto& height = layer.printZ;
@@ -371,8 +371,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                                 {
                                     if ((pixel & match_pixel) != 0b0)
                                     {
-                                        const auto param = std::llabs(uv_b.x_ - uv_a.x_) >= std::llabs(uv_b.x_ - uv_a.y_) ? (uv.x_ - uv_a.x_) / (uv_b.x_ - uv_a.x_)
-                                                                                                                          : (uv.y_ - uv_a.y_) / (uv_b.y_ - uv_a.y_);
+                                        const auto param = (uv - uv_a).vSize() / (uv_b - uv_a).vSize();
                                         label_pt_cloud.emplace_back(a + param * (b - a), height);
                                     }
                                 });
