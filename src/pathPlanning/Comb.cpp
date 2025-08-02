@@ -12,6 +12,7 @@
 #include "Slice.h"
 #include "pathPlanning/CombPaths.h"
 #include "pathPlanning/LinePolygonsCrossings.h"
+#include "settings/EnumSettings.h" // Added for CombingPolygonType
 #include "sliceDataStorage.h"
 #include "utils/PolygonsPointIndex.h"
 #include "utils/SVG.h"
@@ -102,29 +103,123 @@ bool Comb::calc(
     {
         return true;
     }
+
+    const CombingPolygonType combing_polygon_type = train.settings_.get<CombingPolygonType>("combing_polygon_type");
+
+    // Pointers to the boundaries and related structures to be used.
+    // Default to the ones initialized in the constructor.
+    Shape* current_boundary_optimal = &boundary_inside_optimal_;
+    Shape* current_boundary_minimum = &boundary_inside_minimum_;
+    PartsView local_parts_view_inside_optimal = parts_view_inside_optimal_;
+    PartsView local_parts_view_inside_minimum = parts_view_inside_minimum_;
+    PartsView* current_parts_view_optimal = &local_parts_view_inside_optimal;
+    PartsView* current_parts_view_minimum = &local_parts_view_inside_minimum;
+    LocToLineGrid* current_loc_to_line_optimal = inside_loc_to_line_optimal_.get();
+    LocToLineGrid* current_loc_to_line_minimum = inside_loc_to_line_minimum_.get();
+
+    // Local instances for when we use alternative polygons
+    Shape local_boundary_optimal;
+    Shape local_boundary_minimum;
+    std::unique_ptr<PartsView> local_parts_view_optimal;
+    std::unique_ptr<PartsView> local_parts_view_minimum;
+    std::unique_ptr<LocToLineGrid> local_loc_to_line_optimal;
+    std::unique_ptr<LocToLineGrid> local_loc_to_line_minimum;
+
+    bool use_original_boundaries = true;
+
+    // Determine if alternative boundaries are needed based on the setting
+    switch (combing_polygon_type)
+    {
+    case CombingPolygonType::OUTER_WALL:
+        // Default behavior, use original boundaries
+        use_original_boundaries = true;
+        break;
+    case CombingPolygonType::OUTLINE:
+    {
+        // Use the general layer outlines for combing.
+        // travel_avoid_supports is set to false as we are defining the combing boundary itself, not an avoidance area.
+        Polygons outline_polys = storage_.getLayerOutlines(layer_nr_, false, false);
+        if (! outline_polys.empty())
+        {
+            local_boundary_optimal = outline_polys; // Shape can be constructed from Polygons
+            local_boundary_minimum = outline_polys; // Use the same for minimum
+            use_original_boundaries = false;
+        }
+        else
+        {
+            // No outline polygons, fall back to original boundaries (OuterWall)
+            use_original_boundaries = true;
+        }
+        break;
+    }
+    case CombingPolygonType::SECOND_WALL:
+    {
+        const Walls& walls = storage_.getWalls(layer_nr_, train.extruder_nr_);
+        if (! walls.second_wall_polys.empty())
+        {
+            local_boundary_optimal = walls.second_wall_polys; // Shape can be constructed from PolygonsPart
+            local_boundary_minimum = walls.second_wall_polys; // Use second wall for both
+            use_original_boundaries = false;
+        }
+        else
+        {
+            // No second wall, fall back to original boundaries (OuterWall)
+            use_original_boundaries = true;
+        }
+        break;
+    }
+    case CombingPolygonType::PLUGIN:
+        // Plugin handling, assume default for now or specific logic if defined
+        use_original_boundaries = true;
+        break;
+    default:
+        // Unknown value, fall back to default behavior
+        use_original_boundaries = true;
+        break;
+    }
+
+    // If alternative boundaries are chosen and valid, set them up
+    if (! use_original_boundaries)
+    {
+        // Initialize local PartsView and LocToLineGrid for the selected polygons
+        // Note: Splitting into PartsView might reorder polygons in local_boundary_optimal/minimum
+        local_parts_view_optimal = std::make_unique<PartsView>(local_boundary_optimal.splitIntoPartsView());
+        local_parts_view_minimum = std::make_unique<PartsView>(local_boundary_minimum.splitIntoPartsView());
+        local_loc_to_line_optimal = PolygonUtils::createLocToLineGrid(local_boundary_optimal, offset_from_outlines_);
+        local_loc_to_line_minimum = PolygonUtils::createLocToLineGrid(local_boundary_minimum, offset_from_outlines_);
+
+        current_boundary_optimal = &local_boundary_optimal;
+        current_boundary_minimum = &local_boundary_minimum;
+        current_parts_view_optimal = local_parts_view_optimal.get();
+        current_parts_view_minimum = local_parts_view_minimum.get();
+        current_loc_to_line_optimal = local_loc_to_line_optimal.get();
+        current_loc_to_line_minimum = local_loc_to_line_minimum.get();
+    }
+
+
     const Point2LL travel_end_point_before_combing = end_point;
     // Move start and end point inside the optimal comb boundary
     size_t start_inside_poly = NO_INDEX;
-    const bool start_inside = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly);
+    const bool start_inside = moveInside(*current_boundary_optimal, _start_inside, current_loc_to_line_optimal, start_point, start_inside_poly);
 
     size_t end_inside_poly = NO_INDEX;
-    const bool end_inside = moveInside(boundary_inside_optimal_, _end_inside, inside_loc_to_line_optimal_.get(), end_point, end_inside_poly);
+    const bool end_inside = moveInside(*current_boundary_optimal, _end_inside, current_loc_to_line_optimal, end_point, end_inside_poly);
 
-    size_t start_part_boundary_poly_idx = NO_INDEX; // Added initial value to stop MSVC throwing an exception in debug mode
+    size_t start_part_boundary_poly_idx = NO_INDEX;
     size_t end_part_boundary_poly_idx = NO_INDEX;
-    size_t start_part_idx = (start_inside_poly == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
-    size_t end_part_idx = (end_inside_poly == NO_INDEX) ? NO_INDEX : parts_view_inside_optimal_.getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
+    size_t start_part_idx = (start_inside_poly == NO_INDEX) ? NO_INDEX : current_parts_view_optimal->getPartContaining(start_inside_poly, &start_part_boundary_poly_idx);
+    size_t end_part_idx = (end_inside_poly == NO_INDEX) ? NO_INDEX : current_parts_view_optimal->getPartContaining(end_inside_poly, &end_part_boundary_poly_idx);
 
     const bool fail_on_unavoidable_obstacles = perform_z_hops && perform_z_hops_only_when_collides;
 
     // normal combing within part using optimal comb boundary
     if (start_inside && end_inside && start_part_idx == end_part_idx)
     {
-        SingleShape part = parts_view_inside_optimal_.assemblePart(start_part_idx);
+        SingleShape part = current_parts_view_optimal->assemblePart(start_part_idx);
         comb_paths.emplace_back();
         const bool combing_succeeded = LinePolygonsCrossings::comb(
             part,
-            *inside_loc_to_line_optimal_,
+            *current_loc_to_line_optimal,
             start_point,
             end_point,
             comb_paths.back(),
@@ -180,33 +275,33 @@ bool Comb::calc(
 
     // Move start and end point inside the minimum comb boundary
     size_t start_inside_poly_min = NO_INDEX;
-    const bool start_inside_min = moveInside(boundary_inside_minimum_, _start_inside, inside_loc_to_line_minimum_.get(), start_point, start_inside_poly_min);
+    const bool start_inside_min = moveInside(*current_boundary_minimum, _start_inside, current_loc_to_line_minimum, start_point, start_inside_poly_min);
 
     size_t end_inside_poly_min = NO_INDEX;
-    const bool end_inside_min = moveInside(boundary_inside_minimum_, _end_inside, inside_loc_to_line_minimum_.get(), end_point, end_inside_poly_min);
+    const bool end_inside_min = moveInside(*current_boundary_minimum, _end_inside, current_loc_to_line_minimum, end_point, end_inside_poly_min);
 
     size_t start_part_boundary_poly_idx_min{};
     size_t end_part_boundary_poly_idx_min{};
     size_t start_part_idx_min
-        = (start_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
-    size_t end_part_idx_min = (end_inside_poly_min == NO_INDEX) ? NO_INDEX : parts_view_inside_minimum_.getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
+        = (start_inside_poly_min == NO_INDEX) ? NO_INDEX : current_parts_view_minimum->getPartContaining(start_inside_poly_min, &start_part_boundary_poly_idx_min);
+    size_t end_part_idx_min = (end_inside_poly_min == NO_INDEX) ? NO_INDEX : current_parts_view_minimum->getPartContaining(end_inside_poly_min, &end_part_boundary_poly_idx_min);
 
     // normal combing within part using minimum comb boundary
     if (start_inside_min && end_inside_min && start_part_idx_min == end_part_idx_min)
     {
-        SingleShape part = parts_view_inside_minimum_.assemblePart(start_part_idx_min);
+        SingleShape part = current_parts_view_minimum->assemblePart(start_part_idx_min);
         comb_paths.emplace_back();
 
         comb_result = LinePolygonsCrossings::comb(
             part,
-            *inside_loc_to_line_minimum_,
+            *current_loc_to_line_minimum,
             start_point,
             end_point,
             result_path,
             -offset_dist_to_get_from_on_the_polygon_to_outside_,
             max_comb_distance_ignored,
             fail_on_unavoidable_obstacles);
-        Comb::moveCombPathInside(boundary_inside_minimum_, boundary_inside_optimal_, result_path, comb_paths.back()); // add altered result_path to combPaths.back()
+        Comb::moveCombPathInside(*current_boundary_minimum, *current_boundary_optimal, result_path, comb_paths.back()); // add altered result_path to combPaths.back()
         // If the endpoint of the travel path changes with combing, then it means that we are moving to an outer wall
         // and we should unretract before the last travel move when travelling to that outer wall
         unretract_before_last_travel_move = comb_result && end_point != travel_end_point_before_combing;
@@ -227,12 +322,12 @@ bool Comb::calc(
 
     // Find the crossings using the minimum comb boundary, since it's guaranteed to be as close as we can get to the destination.
     // Getting as close as possible prevents exiting the polygon in the wrong direction (e.g. into a hole instead of to the outside).
-    Crossing start_crossing(start_point, start_inside_min, start_part_idx_min, start_part_boundary_poly_idx_min, boundary_inside_minimum_, *inside_loc_to_line_minimum_);
-    Crossing end_crossing(end_point, end_inside_min, end_part_idx_min, end_part_boundary_poly_idx_min, boundary_inside_minimum_, *inside_loc_to_line_minimum_);
+    Crossing start_crossing(start_point, start_inside_min, start_part_idx_min, start_part_boundary_poly_idx_min, *current_boundary_minimum, *current_loc_to_line_minimum);
+    Crossing end_crossing(end_point, end_inside_min, end_part_idx_min, end_part_boundary_poly_idx_min, *current_boundary_minimum, *current_loc_to_line_minimum);
 
     { // find crossing over the in-between area between inside and outside
-        start_crossing.findCrossingInOrMid(parts_view_inside_minimum_, end_point);
-        end_crossing.findCrossingInOrMid(parts_view_inside_minimum_, start_crossing.in_or_mid_);
+        start_crossing.findCrossingInOrMid(*current_parts_view_minimum, end_point);
+        end_crossing.findCrossingInOrMid(*current_parts_view_minimum, start_crossing.in_or_mid_);
     }
 
     bool skip_avoid_other_parts_path = false;
@@ -267,10 +362,10 @@ bool Comb::calc(
         comb_paths.emplace_back();
         // If we're inside the optimal bound, first try the optimal combing path. If it fails, use the minimum path instead.
         constexpr bool fail_for_optimum_bound = true;
-        bool combing_succeeded = start_inside
+        bool combing_succeeded = start_inside // Check if originally inside the optimal constructor-defined boundary
                               && LinePolygonsCrossings::comb(
-                                     boundary_inside_optimal_,
-                                     *inside_loc_to_line_optimal_,
+                                     *current_boundary_optimal,
+                                     *current_loc_to_line_optimal,
                                      start_point,
                                      start_crossing.in_or_mid_,
                                      comb_paths.back(),
@@ -279,9 +374,10 @@ bool Comb::calc(
                                      fail_for_optimum_bound);
         if (! combing_succeeded)
         {
+            // If combing with optimal failed or was skipped, try/fallback to minimum
             combing_succeeded = LinePolygonsCrossings::comb(
-                start_crossing.dest_part_,
-                *inside_loc_to_line_minimum_,
+                start_crossing.dest_part_, // dest_part_ is from the Crossing, based on current_boundary_minimum
+                *current_loc_to_line_minimum,
                 start_point,
                 start_crossing.in_or_mid_,
                 comb_paths.back(),
@@ -355,13 +451,14 @@ bool Comb::calc(
     {
         if (start_inside == end_inside && start_part_idx == end_part_idx)
         {
-            if (start_inside)
+            if (start_inside) // Check if originally inside the optimal constructor-defined boundary
             { // both start and end are inside
-                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, *inside_loc_to_line_optimal_);
+                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, *current_loc_to_line_optimal);
             }
             else
             { // both start and end are outside
-                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train));
+                comb_paths.back().cross_boundary
+                    = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train)); // Uses original model boundary logic
             }
         }
         else
@@ -370,17 +467,17 @@ bool Comb::calc(
         }
     }
 
-    if (end_inside)
+    if (end_inside_min) // check end_inside_min as this refers to the current boundary (original or local)
     {
         // boundary to end
         assert(end_crossing.dest_part_.size() > 0 && "The part we end up inside when combing should have been computed already!");
         comb_paths.emplace_back();
         // If we're inside the optimal bound, first try the optimal combing path. If it fails, use the minimum path instead.
         constexpr bool fail_for_optimum_bound = true;
-        bool combing_succeeded = end_inside
+        bool combing_succeeded = end_inside // Check if originally inside the optimal constructor-defined boundary
                               && LinePolygonsCrossings::comb(
-                                     boundary_inside_optimal_,
-                                     *inside_loc_to_line_optimal_,
+                                     *current_boundary_optimal,
+                                     *current_loc_to_line_optimal,
                                      end_crossing.in_or_mid_,
                                      end_point,
                                      comb_paths.back(),
@@ -389,9 +486,10 @@ bool Comb::calc(
                                      fail_for_optimum_bound);
         if (! combing_succeeded)
         {
+            // If combing with optimal failed or was skipped, try/fallback to minimum
             combing_succeeded = LinePolygonsCrossings::comb(
-                end_crossing.dest_part_,
-                *inside_loc_to_line_minimum_,
+                end_crossing.dest_part_, // dest_part_ is from the Crossing, based on current_boundary_minimum
+                *current_loc_to_line_minimum,
                 end_crossing.in_or_mid_,
                 end_point,
                 comb_paths.back(),

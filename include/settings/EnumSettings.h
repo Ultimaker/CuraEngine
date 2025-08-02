@@ -302,6 +302,17 @@ enum class CoolDuringExtruderSwitch
 };
 
 /*!
+ * Type of polygon to use for combing.
+ */
+enum class CombingPolygonType
+{
+    OUTER_WALL, // Maps to "outer_wall"
+    OUTLINE, // Maps to "outline"
+    SECOND_WALL, // Maps to "second_wall"
+    PLUGIN, // Maps to "plugin"
+};
+
+/*!
  * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::OUTSIDE)
  */
 [[maybe_unused]] static int operator&(BrimLocation location1, BrimLocation location2)

@@ -53,6 +53,35 @@ void Settings::add(const std::string& key, const std::string& value)
     }
 }
 
+// Specialization of the `get` method for `CombingPolygonType`.
+// This function maps string values to `CombingPolygonType` enum values.
+// The supported string values and their corresponding enum values are:
+// - "outer_wall" -> CombingPolygonType::OUTER_WALL
+// - "outline" -> CombingPolygonType::OUTLINE
+// - "second_wall" -> CombingPolygonType::SECOND_WALL
+// - "plugin" -> CombingPolygonType::PLUGIN
+// If the string value does not match any of the above, the default value
+// `CombingPolygonType::OUTER_WALL` is returned.
+template<>
+CombingPolygonType Settings::get<CombingPolygonType>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    using namespace cura::utils;
+    switch (hash_enum(value))
+    {
+    case "outer_wall"_sw:
+        return CombingPolygonType::OUTER_WALL;
+    case "outline"_sw:
+        return CombingPolygonType::OUTLINE;
+    case "second_wall"_sw:
+        return CombingPolygonType::SECOND_WALL;
+    case "plugin"_sw:
+        return CombingPolygonType::PLUGIN;
+    default:
+        return CombingPolygonType::OUTER_WALL; // Default value
+    }
+}
+
 template<>
 std::string Settings::get<std::string>(const std::string& key) const
 {
