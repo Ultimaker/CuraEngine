@@ -152,7 +152,7 @@ Point_2 getUVCoordinates(const Point_3& barycentric_coordinates, const Triangle_
 template<typename PointsContainer>
 void makeMeshFromPointsCloud(const PointsContainer& points_cloud, PolygonMesh& output_mesh, const coord_t points_grid_resolution)
 {
-    const double alpha = points_grid_resolution * 5.0;
+    const double alpha = points_grid_resolution * 2.0;
     const double offset = alpha / 50.0;
 
     CGAL::alpha_wrap_3(points_cloud, alpha, offset, output_mesh);
@@ -329,9 +329,9 @@ public:
     static constexpr uint8_t nb_voxels_around = 3 * 3 * 3 - 1;
 
 public:
-    explicit VoxelGrid(const PolygonMesh& mesh, const double max_resolution)
+    explicit VoxelGrid(const CGAL::Bbox_3& bounding_box, const double max_resolution)
     {
-        const CGAL::Bbox_3 expanded_bounding_box = expand(CGAL::Polygon_mesh_processing::bbox(mesh), max_resolution);
+        const CGAL::Bbox_3 expanded_bounding_box = expand(bounding_box, max_resolution * 2);
         origin_ = Vector_3(expanded_bounding_box.xmin(), expanded_bounding_box.ymin(), expanded_bounding_box.zmin());
         resolution_ = Point_3(expanded_bounding_box.x_span(), expanded_bounding_box.y_span(), expanded_bounding_box.z_span());
 
@@ -589,7 +589,6 @@ void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
     const auto faces = mesh.faces();
     const auto uv_coords = mesh.property_map<CGAL::SM_Face_index, std::array<Point_2, 3>>("f:uv_coords").value();
 
-    std::mutex mutex;
     run_multiple_producers_ordered_consumer(
         0,
         faces.size(),
@@ -689,18 +688,57 @@ public:
     }
 };
 
+struct LookupTree
+{
+    PixelsCloud pixels_cloud;
+    Tree tree;
+};
+
+LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
+{
+    LookupTree lookup_tree;
+
+    std::mutex mutex;
+    voxel_grid.visitFilledVoxels(
+        [&lookup_tree, &voxel_grid, &mutex](const auto& voxel)
+        {
+            const Point_3 global_coordinates = voxel_grid.toGlobalCoordinates(voxel.first);
+            mutex.lock();
+            lookup_tree.pixels_cloud.emplace_back(global_coordinates, voxel.second);
+            mutex.unlock();
+        });
+
+    lookup_tree.tree = Tree(lookup_tree.pixels_cloud.begin(), lookup_tree.pixels_cloud.end());
+    lookup_tree.tree.accelerate_distance_queries();
+    return lookup_tree;
+}
+
 void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, PolygonMesh& output_mesh)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
 
+    CGAL::Bbox_3 bounding_box = CGAL::Polygon_mesh_processing::bbox(mesh);
+
     spdlog::info("Fill original voxels based on texture data");
-    VoxelGrid voxel_space(mesh, settings.get<double>("multi_material_paint_resolution") * 1000.0);
+    double resolution = settings.get<double>("multi_material_paint_resolution") * 1000.0;
+    VoxelGrid voxel_space(bounding_box, resolution);
     makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space);
+
+    VoxelGrid low_res_texture_data(bounding_box, std::max(1000.0, resolution));
+    makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, low_res_texture_data);
+
+    // Create 2 AABB trees for efficient spatial queries. Points lookup is very fast as long as there is a close point, so the deeper we go inside the mesh, the longer the lookup
+    // time will be. However, we don't require a high precision inside the mesh because it won't be visible, so use 2 lookup tree, one with high resolution for the outside, and
+    // a second one with very low resolution for when we are far enough from the outside.
+    spdlog::info("Prepare AABB trees for fast look-up");
+    LookupTree tree = makeLookupTreeFromVoxelGrid(voxel_space);
+    LookupTree tree_lowres = makeLookupTreeFromVoxelGrid(low_res_texture_data);
+
     spdlog::info("Export initial points clouds");
     voxel_space.exportToFile("initial_points_cloud");
 
     const double deepness = settings.get<double>("multi_material_paint_deepness") * 1000.0;
-    const Point_3& resolution = voxel_space.getResolution();
+    const Point_3& spatial_resolution = voxel_space.getResolution();
     const float deepness_squared = deepness * deepness;
 
     // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper inside-mesh checking
@@ -709,32 +747,20 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     constexpr double alpha = 2000.0;
     constexpr double offset = 10.0;
     CGAL::alpha_wrap_3(mesh, alpha, offset, cleaned_mesh);
+    exportMesh(cleaned_mesh, "cleaned_mesh");
     CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(cleaned_mesh);
     bool check_inside = true;
 
     spdlog::info("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
-    PixelsCloud pixels_cloud;
-    std::mutex mutex;
     voxel_space.visitFilledVoxels(
-        [&previously_evaluated_voxels, &pixels_cloud, &voxel_space, &mutex](const auto& voxel)
+        [&previously_evaluated_voxels](const auto& voxel)
         {
             if (voxel.second > 0)
             {
                 previously_evaluated_voxels.insert(voxel.first);
             };
-
-            const Point_3 global_coordinates = voxel_space.toGlobalCoordinates(voxel.first);
-            mutex.lock();
-            pixels_cloud.emplace_back(global_coordinates, voxel.second);
-            mutex.unlock();
         });
-    exportMesh(cleaned_mesh, "cleaned_mesh");
-
-    // Create an AABB tree for efficient spatial queries
-    spdlog::info("Prepare AABB tree for fast look-up");
-    Tree tree(pixels_cloud.begin(), pixels_cloud.end());
-    tree.accelerate_distance_queries();
 
     uint32_t iteration = 0;
     while (! previously_evaluated_voxels.empty())
@@ -807,6 +833,8 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 }
             });
 
+        const Tree& actual_lookup_tree = iteration < 12 ? tree.tree : tree_lowres.tree;
+
         if (check_inside && ! keep_checking_inside.load())
         {
             spdlog::info("Stop checking for voxels insideness");
@@ -814,27 +842,22 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         }
 
         spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
-        boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> new_voxels_non_zero;
         voxels_to_evaluate.visit_all(
             std::execution::par,
-            [&voxel_space, &tree, &deepness_squared, &new_voxels_non_zero](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+            [&voxel_space, &actual_lookup_tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
                 // Find closest outside point and its occupation
                 const Point_3 position = voxel_space.toGlobalCoordinates(voxel_to_evaluate);
-                const std::pair<Point_3, PixelsCloudPrimitive::Id> closest_point_and_primitive = tree.closest_point_and_primitive(position);
+                const std::pair<Point_3, PixelsCloudPrimitive::Id> closest_point_and_primitive = actual_lookup_tree.closest_point_and_primitive(position);
                 const Vector_3 diff = position - closest_point_and_primitive.first;
                 const uint8_t new_occupation = diff.squared_length() <= deepness_squared ? closest_point_and_primitive.second->occupation : 0;
                 voxel_space.setOccupation(voxel_to_evaluate, new_occupation);
-                if (new_occupation != 0)
-                {
-                    new_voxels_non_zero.emplace(voxel_to_evaluate);
-                }
             });
 
         // Now we have updated the occupations, check which evaluated voxels are to be processed next
         spdlog::info("Find voxels for next round");
         previously_evaluated_voxels.clear();
-        new_voxels_non_zero.visit_all(
+        voxels_to_evaluate.visit_all(
             std::execution::par,
             [&origin_voxels, &target_voxels, &voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
             {
@@ -879,6 +902,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 }
             });
 
+        iteration++;
         // voxel_space.exportToFile(fmt::format("points_cloud_iteration_{}", iteration++));
     }
 
@@ -897,11 +921,13 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     exportPointsCloud(points_cloud_non_concurrent, "final_contour");
 
     spdlog::info("Make mesh from points cloud");
-    makeMeshFromPointsCloud(points_cloud_non_concurrent, output_mesh, std::max({ resolution.x(), resolution.y(), resolution.z() }));
+    makeMeshFromPointsCloud(points_cloud_non_concurrent, output_mesh, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
 }
 
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 {
+    spdlog::stopwatch timer;
+
     PolygonMesh converted_mesh;
     for (const MeshVertex& vertex : mesh.vertices_)
     {
@@ -942,6 +968,8 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
     PolygonMesh output_mesh;
     makeModifierMeshVoxelSpace(converted_mesh, texture_data_provider, output_mesh);
     registerModifiedMesh(meshgroup, output_mesh);
+
+    spdlog::info("Multi-material mesh splitting took {} seconds", timer.elapsed().count());
 
     exportMesh(converted_mesh, "converted_mesh");
     exportMesh(output_mesh, "output_mesh");
