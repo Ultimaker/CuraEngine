@@ -200,9 +200,6 @@ class CuraEngineConan(ConanFile):
 
     def build(self):
         cmake = CMake(self)
-
-        cmake.compiler_definitions["_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR"] = 1
-
         cmake.configure()
         cmake.build()
 
