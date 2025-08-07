@@ -286,8 +286,6 @@ private:
     Vector_3 direction_;
     Point_3 start_;
     Point_3 end_;
-    // double length_;
-    // bool valid_;
 };
 
 class VoxelGrid
@@ -483,6 +481,7 @@ public:
 
     void exportToFile(const std::string& basename) const
     {
+#if EXPORT_DEBUG_MESHES
         std::map<uint8_t, PolygonMesh> meshes;
 
         nodes_.visit_all(
@@ -495,6 +494,7 @@ public:
         {
             exportMesh(iterator->second, fmt::format("{}_{}", basename, iterator->first));
         }
+#endif
     }
 
     std::vector<LocalCoordinates> getTraversedVoxels(const Triangle_3& triangle)
@@ -719,7 +719,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
 
     CGAL::Bbox_3 bounding_box = CGAL::Polygon_mesh_processing::bbox(mesh);
-
     spdlog::info("Fill original voxels based on texture data");
     double resolution = settings.get<double>("multi_material_paint_resolution") * 1000.0;
     VoxelGrid voxel_space(bounding_box, resolution);
@@ -904,7 +903,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
             });
 
         iteration++;
-        // voxel_space.exportToFile(fmt::format("points_cloud_iteration_{}", iteration++));
+        voxel_space.exportToFile(fmt::format("points_cloud_iteration_{}", iteration++));
     }
 
     spdlog::info("Make final points cloud");
@@ -918,8 +917,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
             }
         });
     boost::unordered_flat_set<Point_3> points_cloud_non_concurrent = std::move(points_cloud);
-    spdlog::info("Export final points cloud");
-    exportPointsCloud(points_cloud_non_concurrent, "final_contour");
+    voxel_space.exportToFile("final_grid");
 
     spdlog::info("Make mesh from points cloud");
     makeMeshFromPointsCloud(points_cloud_non_concurrent, output_mesh, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
