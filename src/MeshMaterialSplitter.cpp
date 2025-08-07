@@ -298,6 +298,7 @@ public:
         uint16_t x;
         uint16_t y;
         uint16_t z;
+        uint16_t black_hole{ 0 }; // Don't place anything in there, or it would be lost forever (it exists only to properly set the 4th byte of the key)
     };
 
     union LocalCoordinates
