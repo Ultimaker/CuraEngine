@@ -154,6 +154,11 @@ Point_2 getUVCoordinates(const Point_3& barycentric_coordinates, const Triangle_
 template<typename PointsContainer>
 void makeMeshFromPointsCloud(const PointsContainer& points_cloud, PolygonMesh& output_mesh, const coord_t points_grid_resolution)
 {
+    if (points_cloud.empty())
+    {
+        return;
+    }
+
     const double alpha = points_grid_resolution * 2.0;
     const double offset = alpha / 50.0;
 
@@ -587,10 +592,11 @@ std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
     return boost::hash<uint64_t>()(position.key);
 }
 
-void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_space)
+bool makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_space)
 {
     const auto faces = mesh.faces();
     const auto uv_coords = mesh.property_map<CGAL::SM_Face_index, std::array<Point_2, 3>>("f:uv_coords").value();
+    boost::concurrent_flat_set<uint8_t> found_extruders;
 
     run_multiple_producers_ordered_consumer(
         0,
@@ -618,12 +624,27 @@ void makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
                 if (extruder_nr.has_value())
                 {
                     voxel_space.setOrUpdateOccupation(traversed_voxel, extruder_nr.value());
+                    found_extruders.insert(extruder_nr.value());
                 }
             }
 
             return true;
         },
         [](bool result) {});
+
+    if (found_extruders.size() == 1)
+    {
+        // We have found only one extruder in the texture, so return true only if this extruder is not 0, otherwise the whole splitting is useless
+        bool is_non_zero = true;
+        found_extruders.visit_all(
+            [&is_non_zero](const uint8_t extruder_nr)
+            {
+                is_non_zero = extruder_nr != 0;
+            });
+        return is_non_zero;
+    }
+
+    return true;
 }
 
 void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh)
@@ -724,7 +745,11 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     spdlog::info("Fill original voxels based on texture data");
     double resolution = settings.get<double>("multi_material_paint_resolution") * 1000.0;
     VoxelGrid voxel_space(bounding_box, resolution);
-    makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space);
+    if (! makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space))
+    {
+        // Texture is filled with 0s, don't bother doing anything
+        return;
+    }
 
     VoxelGrid low_res_texture_data(bounding_box, std::max(1000.0, resolution));
     makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, low_res_texture_data);
@@ -886,6 +911,11 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 {
+    if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("extruder"))
+    {
+        return;
+    }
+
     spdlog::stopwatch timer;
 
     PolygonMesh converted_mesh;
@@ -894,6 +924,7 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
         converted_mesh.add_vertex(Point_3(vertex.p_.x_, vertex.p_.y_, vertex.p_.z_));
     }
 
+    bool has_uvs = false;
     auto uv_coords = converted_mesh.add_property_map<CGAL::SM_Face_index, std::array<Point_2, 3>>("f:uv_coords").first;
     for (const MeshFace& face : mesh.faces_)
     {
@@ -913,6 +944,7 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
             {
                 const auto& uv = face.uv_coordinates_[j].value();
                 face_uvs[j] = Point_2(uv.x_, uv.y_);
+                has_uvs = true;
             }
             else
             {
@@ -923,10 +955,20 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
         uv_coords[face_index] = face_uvs;
     }
 
+    if (! has_uvs)
+    {
+        return;
+    }
+
     const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
 
     PolygonMesh output_mesh;
     makeModifierMeshVoxelSpace(converted_mesh, texture_data_provider, output_mesh);
+    if (output_mesh.faces().empty())
+    {
+        return;
+    }
+
     registerModifiedMesh(meshgroup, output_mesh);
 
     spdlog::info("Multi-material mesh splitting took {} seconds", timer.elapsed().count());
