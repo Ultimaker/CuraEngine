@@ -8,16 +8,8 @@
 
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
-#include <boost/unordered/unordered_flat_map.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
-#include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/max_element.hpp>
-#include <range/v3/algorithm/remove.hpp>
-#include <range/v3/algorithm/remove_if.hpp>
-#include <range/v3/view/concat.hpp>
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/join.hpp>
-#include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
 
 #include "MeshGroup.h"
@@ -88,34 +80,12 @@ Point_2U32 getPixelCoordinates(const Point_2& uv_coordinates, const std::shared_
     return Point_2U32(pixel_coordinates.first, pixel_coordinates.second);
 }
 
-Point_3 getSpaceCoordinates(const Point_2& pixel_coordinates, const Triangle_2& triangle_coordinates, const Triangle_3& triangle)
-{
-    // Calculate 3D space coordinates from pixel coordinates using barycentric coordinates
-    const Point_2& p0 = triangle_coordinates[0];
-    const Point_2& p1 = triangle_coordinates[1];
-    const Point_2& p2 = triangle_coordinates[2];
-
-    // Calculate barycentric coordinates
-    const float area = 0.5f * ((p1.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (p1.y() - p0.y()));
-    const float u = 0.5f * ((p1.x() - pixel_coordinates.x()) * (p2.y() - pixel_coordinates.y()) - (p2.x() - pixel_coordinates.x()) * (p1.y() - pixel_coordinates.y())) / area;
-    const float v = 0.5f * ((pixel_coordinates.x() - p0.x()) * (p2.y() - p0.y()) - (p2.x() - p0.x()) * (pixel_coordinates.y() - p0.y())) / area;
-    const float w = 1.0f - u - v;
-
-    // Apply barycentric coordinates to get 3D position
-    const Point_3& v0 = triangle[0];
-    const Point_3& v1 = triangle[1];
-    const Point_3& v2 = triangle[2];
-
-    return Point_3(u * v0.x() + v * v1.x() + w * v2.x(), u * v0.y() + v * v1.y() + w * v2.y(), u * v0.z() + v * v1.z() + w * v2.z());
-}
-
-template<typename PointType, typename VectorType>
-std::optional<Point_3> getBarycentricCoordinates(const PointType& point, const PointType& p0, const PointType& p1, const PointType& p2)
+std::optional<Point_3> getBarycentricCoordinates(const Point_3& point, const Point_3& p0, const Point_3& p1, const Point_3& p2)
 {
     // Calculate vectors from p0 to p1 and p0 to p2
-    const VectorType v0(p1 - p0);
-    const VectorType v1(p2 - p0);
-    const VectorType v2(point - p0);
+    const Vector_3 v0(p1 - p0);
+    const Vector_3 v1(p2 - p0);
+    const Vector_3 v2(point - p0);
 
     // Compute dot products
     const double d00 = v0 * v0;
@@ -331,7 +301,6 @@ public:
     };
 
     using KeyType = uint64_t;
-    using DepthType = uint8_t;
     static constexpr uint8_t nb_voxels_around = 3 * 3 * 3 - 1;
 
 public:
@@ -361,19 +330,14 @@ public:
         return Point_3(toGlobalX(position.position.x), toGlobalY(position.position.y), toGlobalZ(position.position.z));
     }
 
-    void setOccupation(const Point_3& position, const uint8_t extruder_nr)
-    {
-        setOccupation(toLocalCoordinates(position), extruder_nr);
-    }
-
     void setOccupation(const LocalCoordinates& position, const uint8_t extruder_nr)
     {
-        nodes_.insert_or_assign(position, extruder_nr);
+        occupied_voxels_.insert_or_assign(position, extruder_nr);
     }
 
     void setOrUpdateOccupation(const LocalCoordinates& position, const uint8_t extruder_nr)
     {
-        nodes_.insert_or_visit(
+        occupied_voxels_.insert_or_visit(
             std::make_pair(position, extruder_nr),
             [extruder_nr](auto& voxel)
             {
@@ -381,15 +345,10 @@ public:
             });
     }
 
-    bool isFilled(const LocalCoordinates& local_position) const
-    {
-        return nodes_.contains(local_position);
-    }
-
     std::optional<uint8_t> getOccupation(const LocalCoordinates& local_position) const
     {
         std::optional<uint8_t> result = std::nullopt;
-        nodes_.visit(
+        occupied_voxels_.visit(
             local_position,
             [&result](const auto& occupation)
             {
@@ -399,15 +358,9 @@ public:
     }
 
     template<class... Args>
-    void setOccupationIfUnknown(const LocalCoordinates& position, Args&&... args)
+    void visitOccupiedVoxels(Args&&... args)
     {
-        nodes_.try_emplace(position, std::forward<Args>(args)...);
-    }
-
-    template<class... Args>
-    void visitFilledVoxels(Args&&... args)
-    {
-        nodes_.visit_all(std::execution::par, args...);
+        occupied_voxels_.visit_all(std::execution::par, args...);
     }
 
     std::vector<LocalCoordinates> getVoxelsAround(const LocalCoordinates& point) const
@@ -491,7 +444,7 @@ public:
 #if EXPORT_DEBUG_MESHES
         std::map<uint8_t, PolygonMesh> meshes;
 
-        nodes_.visit_all(
+        occupied_voxels_.visit_all(
             [&meshes, this](const auto& voxel)
             {
                 meshes[voxel.second].add_vertex(toGlobalCoordinates(voxel.first));
@@ -504,7 +457,7 @@ public:
 #endif
     }
 
-    std::vector<LocalCoordinates> getTraversedVoxels(const Triangle_3& triangle)
+    std::vector<LocalCoordinates> getTraversedVoxels(const Triangle_3& triangle) const
     {
         const SimplePoint_3U16 p0 = toLocalCoordinates(triangle[0]).position;
         const SimplePoint_3U16 p1 = toLocalCoordinates(triangle[1]).position;
@@ -584,7 +537,7 @@ private:
     Point_3 resolution_;
     Vector_3 origin_;
     uint32_t max_coordinate_;
-    boost::concurrent_flat_map<LocalCoordinates, uint8_t> nodes_;
+    boost::concurrent_flat_map<LocalCoordinates, uint8_t> occupied_voxels_;
 };
 
 std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
@@ -594,8 +547,8 @@ std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
 
 bool makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_space)
 {
-    const auto faces = mesh.faces();
-    const auto uv_coords = mesh.property_map<CGAL::SM_Face_index, std::array<Point_2, 3>>("f:uv_coords").value();
+    const auto& faces = mesh.faces();
+    const auto& uv_coords = mesh.property_map<CGAL::SM_Face_index, std::array<Point_2, 3>>("f:uv_coords").value();
     boost::concurrent_flat_set<uint8_t> found_extruders;
 
     run_multiple_producers_ordered_consumer(
@@ -610,7 +563,7 @@ bool makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
             for (const VoxelGrid::LocalCoordinates& traversed_voxel : voxel_space.getTraversedVoxels(triangle))
             {
                 const Point_3 global_position = voxel_space.toGlobalCoordinates(traversed_voxel);
-                const std::optional<Point_3> barycentric_coordinates = getBarycentricCoordinates<Point_3, Vector_3>(global_position, triangle[0], triangle[1], triangle[2]);
+                const std::optional<Point_3> barycentric_coordinates = getBarycentricCoordinates(global_position, triangle[0], triangle[1], triangle[2]);
                 if (! barycentric_coordinates.has_value() || barycentric_coordinates.value().x() < 0 || barycentric_coordinates.value().y() < 0
                     || barycentric_coordinates.value().z() < 0)
                 {
@@ -618,8 +571,8 @@ bool makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
                     continue;
                 }
 
-                const Point_2 uv_coords = getUVCoordinates(barycentric_coordinates.value(), face_uvs);
-                const Point_2U32 pixel = getPixelCoordinates(uv_coords, texture_data_provider->getTexture());
+                const Point_2 point_uv_coords = getUVCoordinates(barycentric_coordinates.value(), face_uvs);
+                const Point_2U32 pixel = getPixelCoordinates(point_uv_coords, texture_data_provider->getTexture());
                 const std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(pixel.x(), pixel.y(), "extruder");
                 if (extruder_nr.has_value())
                 {
@@ -647,7 +600,7 @@ bool makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
     return true;
 }
 
-void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh)
+void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh, const uint8_t extruder_nr)
 {
     ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders.at(1);
     Mesh modifier_mesh(extruder.settings_);
@@ -661,7 +614,7 @@ void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh)
     }
 
     modifier_mesh.settings_.add("cutting_mesh", "true");
-    modifier_mesh.settings_.add("extruder_nr", "1");
+    modifier_mesh.settings_.add("extruder_nr", std::to_string(extruder_nr));
 
     meshgroup->meshes.push_back(modifier_mesh);
 }
@@ -678,34 +631,26 @@ private:
     Id m_pt;
 
 public:
-    PixelsCloudPrimitive()
-    {
-    } // default constructor needed
-    // the following constructor is the one that receives the iterators from the
-    // iterator range given as input to the AABB_tree
-    PixelsCloudPrimitive(PixelsCloud::const_iterator it)
+    explicit PixelsCloudPrimitive(PixelsCloud::const_iterator it)
         : m_pt(&(*it))
     {
     }
+
     const Id& id() const
     {
         return m_pt;
     }
 
-    // utility function to convert a custom
-    // point type to CGAL point type.
     Point convert(const Pixel3D* p) const
     {
         return p->position;
     }
 
-    // on the fly conversion from the internal data to the CGAL types
     Datum datum() const
     {
         return m_pt->position;
     }
 
-    // returns a reference point which must be on the primitive
     Point reference_point() const
     {
         return m_pt->position;
@@ -723,7 +668,7 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
     LookupTree lookup_tree;
 
     std::mutex mutex;
-    voxel_grid.visitFilledVoxels(
+    voxel_grid.visitOccupiedVoxels(
         [&lookup_tree, &voxel_grid, &mutex](const auto& voxel)
         {
             const Point_3 global_coordinates = voxel_grid.toGlobalCoordinates(voxel.first);
@@ -737,12 +682,14 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
     return lookup_tree;
 }
 
-void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, PolygonMesh& output_mesh)
+void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, std::map<uint8_t, PolygonMesh>& output_meshes)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
 
-    CGAL::Bbox_3 bounding_box = CGAL::Polygon_mesh_processing::bbox(mesh);
+    // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder to
+    // assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
     spdlog::info("Fill original voxels based on texture data");
+    CGAL::Bbox_3 bounding_box = CGAL::Polygon_mesh_processing::bbox(mesh);
     double resolution = settings.get<double>("multi_material_paint_resolution") * 1000.0;
     VoxelGrid voxel_space(bounding_box, resolution);
     if (! makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space))
@@ -750,13 +697,12 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         // Texture is filled with 0s, don't bother doing anything
         return;
     }
-
+    // Create 2 AABB trees for efficient spatial queries. Points lookup is very fast as long as there is a close point, so the deeper we go inside the mesh, the longer the lookup
+    // time will be. However, we don't require a high precision inside the mesh because it won't be visible, so use 2 lookup trees, one with high resolution for the outside, and
+    // a second one with very low resolution for when we are far enough from the outside.
     VoxelGrid low_res_texture_data(bounding_box, std::max(1000.0, resolution));
     makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, low_res_texture_data);
 
-    // Create 2 AABB trees for efficient spatial queries. Points lookup is very fast as long as there is a close point, so the deeper we go inside the mesh, the longer the lookup
-    // time will be. However, we don't require a high precision inside the mesh because it won't be visible, so use 2 lookup tree, one with high resolution for the outside, and
-    // a second one with very low resolution for when we are far enough from the outside.
     spdlog::info("Prepare AABB trees for fast look-up");
     LookupTree tree = makeLookupTreeFromVoxelGrid(voxel_space);
     LookupTree tree_lowres = makeLookupTreeFromVoxelGrid(low_res_texture_data);
@@ -768,19 +714,19 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     const Point_3& spatial_resolution = voxel_space.getResolution();
     const float deepness_squared = deepness * deepness;
 
-    // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper inside-mesh checking
-    spdlog::info("prepare cleaned mesh");
-    PolygonMesh cleaned_mesh;
+    // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper and fast inside-mesh checking
+    spdlog::info("prepare alpha mesh");
+    PolygonMesh alpha_mesh;
     constexpr double alpha = 2000.0;
     constexpr double offset = 10.0;
-    CGAL::alpha_wrap_3(mesh, alpha, offset, cleaned_mesh);
-    exportMesh(cleaned_mesh, "cleaned_mesh");
-    CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(cleaned_mesh);
+    CGAL::alpha_wrap_3(mesh, alpha, offset, alpha_mesh);
+    exportMesh(alpha_mesh, "alpha_mesh");
+    CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(alpha_mesh);
     bool check_inside = true;
 
     spdlog::info("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
-    voxel_space.visitFilledVoxels(
+    voxel_space.visitOccupiedVoxels(
         [&previously_evaluated_voxels](const auto& voxel)
         {
             if (voxel.second > 0)
@@ -797,6 +743,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
         spdlog::info("Finding voxels around {} voxels", previously_evaluated_voxels.size());
 
+        // For each already-filled voxel, gather the voxels around it and evaluate them
         previously_evaluated_voxels.visit_all(
             std::execution::par,
             [&](const VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
@@ -805,13 +752,14 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 {
                     if (voxels_to_evaluate.contains(voxel_around))
                     {
+                        // This voxel has already been registered for evaluation
                         continue;
                     }
 
-                    std::optional<uint8_t> occupation = voxel_space.getOccupation(voxel_around);
+                    const std::optional<uint8_t> occupation = voxel_space.getOccupation(voxel_around);
                     if (occupation.has_value())
                     {
-                        // Voxel is already filled, don't evalute it anyhow
+                        // Voxel is already filled, don't evaluate it anyhow
                         continue;
                     }
 
@@ -840,6 +788,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 }
             });
 
+        // As soon as we are deep enough in the mesh, use the low-resolution lookup tree which makes finding the closest outside point much faster
         const Tree& actual_lookup_tree = iteration < 12 ? tree.tree : tree_lowres.tree;
 
         if (check_inside && ! keep_checking_inside.load())
@@ -848,12 +797,12 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
             check_inside = false;
         }
 
+        // Now actually evaluate the candidate voxels, i.e. find their closest outside point and set the according occupation
         spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
         voxels_to_evaluate.visit_all(
             std::execution::par,
             [&voxel_space, &actual_lookup_tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
-                // Find closest outside point and its occupation
                 const Point_3 position = voxel_space.toGlobalCoordinates(voxel_to_evaluate);
                 const std::pair<Point_3, PixelsCloudPrimitive::Id> closest_point_and_primitive = actual_lookup_tree.closest_point_and_primitive(position);
                 const Vector_3 diff = position - closest_point_and_primitive.first;
@@ -861,8 +810,9 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 voxel_space.setOccupation(voxel_to_evaluate, new_occupation);
             });
 
-        // Now we have updated the occupations, check which evaluated voxels are to be processed next
-        spdlog::info("Find voxels for next round");
+        // Now we have evaluated the candidates, check which of them are to be processed next. We skip all the voxels that have only voxels with similar occupations around
+        // them, because they are obviously not part of the boundaries we are looking for. This avoids filling the inside of the points cloud and speeds up calculation a lot.
+        spdlog::info("Find boundary voxels for next round");
         previously_evaluated_voxels.clear();
         voxels_to_evaluate.visit_all(
             std::execution::par,
@@ -892,21 +842,39 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 #endif
     }
 
-    spdlog::info("Make final points cloud");
-    boost::concurrent_flat_set<Point_3> points_cloud;
-    voxel_space.visitFilledVoxels(
-        [&points_cloud, &voxel_space](const auto& filled_voxel)
+    spdlog::info("Make final points clouds");
+    voxel_space.exportToFile("final_grid");
+    boost::concurrent_flat_map<uint8_t, boost::concurrent_flat_set<Point_3>> points_clouds;
+    voxel_space.visitOccupiedVoxels(
+        [&points_clouds, &voxel_space](const auto& filled_voxel)
         {
-            if (filled_voxel.second == 1)
+            if (filled_voxel.second > 0)
             {
-                points_cloud.insert(voxel_space.toGlobalCoordinates(filled_voxel.first));
+                Point_3 position = voxel_space.toGlobalCoordinates(filled_voxel.first);
+                points_clouds.insert_or_visit(
+                    std::make_pair(filled_voxel.second, boost::concurrent_flat_set({ position })),
+                    [&position](auto& points_cloud)
+                    {
+                        points_cloud.second.insert(position);
+                    });
             }
         });
-    boost::unordered_flat_set<Point_3> points_cloud_non_concurrent = std::move(points_cloud);
-    voxel_space.exportToFile("final_grid");
 
     spdlog::info("Make mesh from points cloud");
-    makeMeshFromPointsCloud(points_cloud_non_concurrent, output_mesh, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
+    std::mutex mutex;
+    points_clouds.visit_all(
+        [&spatial_resolution, &mutex, &output_meshes](auto& points_cloud_it)
+        {
+            boost::concurrent_flat_set<Point_3>& points_cloud = points_cloud_it.second;
+            boost::unordered_flat_set<Point_3> points_cloud_non_concurrent = std::move(points_cloud);
+
+            PolygonMesh output_mesh;
+            makeMeshFromPointsCloud(points_cloud_non_concurrent, output_mesh, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
+
+            mutex.lock();
+            output_meshes[points_cloud_it.first] = std::move(output_mesh);
+            mutex.unlock();
+        });
 }
 
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
@@ -955,6 +923,8 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
         uv_coords[face_index] = face_uvs;
     }
 
+    exportMesh(converted_mesh, "converted_mesh");
+
     if (! has_uvs)
     {
         return;
@@ -962,19 +932,20 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 
     const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
 
-    PolygonMesh output_mesh;
-    makeModifierMeshVoxelSpace(converted_mesh, texture_data_provider, output_mesh);
-    if (output_mesh.faces().empty())
+    std::map<uint8_t, PolygonMesh> output_meshes;
+    makeModifierMeshVoxelSpace(converted_mesh, texture_data_provider, output_meshes);
+    for (auto& [extruder_nr, output_mesh] : output_meshes)
     {
-        return;
+        if (output_mesh.faces().empty())
+        {
+            continue;
+        }
+
+        registerModifiedMesh(meshgroup, output_mesh, extruder_nr);
+        exportMesh(output_mesh, fmt::format("output_mesh_{}", extruder_nr));
     }
 
-    registerModifiedMesh(meshgroup, output_mesh);
-
     spdlog::info("Multi-material mesh splitting took {} seconds", timer.elapsed().count());
-
-    exportMesh(converted_mesh, "converted_mesh");
-    exportMesh(output_mesh, "output_mesh");
 }
 
 } // namespace cura::MeshMaterialSplitter
