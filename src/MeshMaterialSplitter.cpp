@@ -28,7 +28,9 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 
-#define EXPORT_DEBUG_MESHES 1
+#define EXPORT_DEBUG_MESHES 0
+#define EXPORT_ITERATION_MESHES 0
+
 
 namespace cura::MeshMaterialSplitter
 {
@@ -766,25 +768,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     while (! previously_evaluated_voxels.empty())
     {
         boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
-        boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::vector<VoxelGrid::LocalCoordinates>> origin_voxels; // target_voxel: [origin_voxels]
-        boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, std::vector<VoxelGrid::LocalCoordinates>> target_voxels; // origin_voxel: [target_voxels]
         std::atomic_bool keep_checking_inside(false);
-
-        const auto register_voxel_relations = [&origin_voxels, &target_voxels](const VoxelGrid::LocalCoordinates& origin_voxel, const VoxelGrid::LocalCoordinates& target_voxel)
-        {
-            origin_voxels.insert_or_visit(
-                std::make_pair(target_voxel, std::vector{ origin_voxel }),
-                [&origin_voxel](auto& voxel)
-                {
-                    voxel.second.push_back(origin_voxel);
-                });
-            target_voxels.insert_or_visit(
-                std::make_pair(origin_voxel, std::vector{ target_voxel }),
-                [&target_voxel](auto& voxel)
-                {
-                    voxel.second.push_back(target_voxel);
-                });
-        };
 
         spdlog::info("Finding voxels around {} voxels", previously_evaluated_voxels.size());
 
@@ -796,7 +780,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 {
                     if (voxels_to_evaluate.contains(voxel_around))
                     {
-                        register_voxel_relations(previously_evaluated_voxel, voxel_around);
                         continue;
                     }
 
@@ -828,7 +811,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                     if (evaluate_voxel)
                     {
                         voxels_to_evaluate.emplace(voxel_around);
-                        register_voxel_relations(previously_evaluated_voxel, voxel_around);
                     }
                 }
             });
@@ -859,51 +841,30 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         previously_evaluated_voxels.clear();
         voxels_to_evaluate.visit_all(
             std::execution::par,
-            [&origin_voxels, &target_voxels, &voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
+            [&voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
             {
-                // First optional is for indicating that it has been set once, second is for whether the occupation actually contains an extruder nr
-                std::optional<std::optional<uint8_t>> first_target_occupation;
-                bool add_to_evaluate = false;
-                origin_voxels.visit(
-                    evaluated_voxel,
-                    [&target_voxels, &add_to_evaluate, &voxel_space, &first_target_occupation](const auto& origin_voxel_value)
+                bool has_various_voxels_around = false;
+                uint8_t actual_occupation = voxel_space.getOccupation(evaluated_voxel).value();
+                for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_space.getVoxelsAround(evaluated_voxel))
+                {
+                    std::optional<uint8_t> around_occupation = voxel_space.getOccupation(voxel_around);
+                    if (around_occupation.has_value() && around_occupation.value() != actual_occupation)
                     {
-                        for (const VoxelGrid::LocalCoordinates& origin_voxel : origin_voxel_value.second)
-                        {
-                            target_voxels.visit(
-                                origin_voxel,
-                                [&voxel_space, &first_target_occupation, &add_to_evaluate](const auto& target_voxel_value)
-                                {
-                                    for (const VoxelGrid::LocalCoordinates& target_voxel : target_voxel_value.second)
-                                    {
-                                        const std::optional<uint8_t> target_occupation = voxel_space.getOccupation(target_voxel);
-                                        if (! first_target_occupation.has_value())
-                                        {
-                                            first_target_occupation = target_occupation;
-                                        }
-                                        else if (first_target_occupation.value() != target_occupation)
-                                        {
-                                            add_to_evaluate = true;
-                                            break;
-                                        }
-                                    }
-                                });
+                        has_various_voxels_around = true;
+                        break;
+                    }
+                }
 
-                            if (add_to_evaluate)
-                            {
-                                break;
-                            }
-                        }
-                    });
-
-                if (add_to_evaluate)
+                if (has_various_voxels_around)
                 {
                     previously_evaluated_voxels.emplace(evaluated_voxel);
                 }
             });
 
         iteration++;
+#if EXPORT_ITERATION_MESHES
         voxel_space.exportToFile(fmt::format("points_cloud_iteration_{}", iteration++));
+#endif
     }
 
     spdlog::info("Make final points cloud");
