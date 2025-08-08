@@ -698,7 +698,7 @@ std::map<uint8_t, PolygonMesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel
     // Process the alpha-wrapping for each extruder
     std::map<uint8_t, PolygonMesh> output_meshes;
     const double alpha = points_grid_resolution * 2.0;
-    const double offset = alpha / 50.0;
+    const double offset = points_grid_resolution;
     std::mutex mutex;
     points_clouds.visit_all(
         std::execution::par,
@@ -758,7 +758,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     spdlog::info("prepare alpha mesh");
     PolygonMesh alpha_mesh;
     constexpr double alpha = 2000.0;
-    constexpr double offset = 10.0;
+    const double offset = resolution * 2.0;
     CGAL::alpha_wrap_3(mesh, alpha, offset, alpha_mesh);
     exportMesh(alpha_mesh, "alpha_mesh");
     CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(alpha_mesh);
