@@ -5,11 +5,13 @@
 #include <CGAL/Polygon_mesh_processing/bbox.h>
 #include <CGAL/Surface_mesh.h>
 #include <CGAL/alpha_wrap_3.h>
+#include <execution>
 
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
-#include <range/v3/algorithm/max_element.hpp>
+#include <range/v3/algorithm/max.hpp>
+#include <range/v3/algorithm/min.hpp>
 #include <spdlog/spdlog.h>
 
 #include "MeshGroup.h"
@@ -486,8 +488,8 @@ public:
                 continue;
             }
 
-            const uint16_t ymin = toLocalY(std::ranges::min(y_values));
-            const uint16_t ymax = toLocalY(std::ranges::max(y_values));
+            const uint16_t ymin = toLocalY(ranges::min(y_values));
+            const uint16_t ymax = toLocalY(ranges::max(y_values));
 
             for (uint16_t y = ymin; y <= ymax; ++y)
             {
@@ -512,8 +514,8 @@ public:
                     continue;
                 }
 
-                const uint16_t zmin = toLocalZ(std::ranges::min(z_values));
-                const uint16_t zmax = toLocalZ(std::ranges::max(z_values));
+                const uint16_t zmin = toLocalZ(ranges::min(z_values));
+                const uint16_t zmax = toLocalZ(ranges::max(z_values));
 
                 for (uint16_t z = zmin; z <= zmax; ++z)
                 {
