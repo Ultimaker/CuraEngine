@@ -121,20 +121,6 @@ Point_2 getUVCoordinates(const Point_3& barycentric_coordinates, const Triangle_
             + (face_uv_coordinates[1].y() * barycentric_coordinates.z()));
 }
 
-template<typename PointsContainer>
-void makeMeshFromPointsCloud(const PointsContainer& points_cloud, PolygonMesh& output_mesh, const coord_t points_grid_resolution)
-{
-    if (points_cloud.empty())
-    {
-        return;
-    }
-
-    const double alpha = points_grid_resolution * 2.0;
-    const double offset = alpha / 50.0;
-
-    CGAL::alpha_wrap_3(points_cloud, alpha, offset, output_mesh);
-}
-
 Triangle_3 getFaceTriangle(const PolygonMesh& mesh, CGAL::SM_Face_index face)
 {
     CGAL::SM_Halfedge_index h = mesh.halfedge(face);
@@ -359,6 +345,12 @@ public:
 
     template<class... Args>
     void visitOccupiedVoxels(Args&&... args)
+    {
+        occupied_voxels_.visit_all(std::execution::par, args...);
+    }
+
+    template<class... Args>
+    void visitOccupiedVoxels(Args&&... args) const
     {
         occupied_voxels_.visit_all(std::execution::par, args...);
     }
@@ -682,6 +674,52 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
     return lookup_tree;
 }
 
+std::map<uint8_t, PolygonMesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel_grid, const coord_t points_grid_resolution)
+{
+    // Extract the voxels occupation to points lists that can be understood by the alpha-wrapping
+    boost::concurrent_flat_map<uint8_t, boost::concurrent_flat_set<Point_3>> points_clouds;
+    voxel_grid.visitOccupiedVoxels(
+        [&points_clouds, &voxel_grid](const auto& filled_voxel)
+        {
+            if (filled_voxel.second > 0)
+            {
+                Point_3 position = voxel_grid.toGlobalCoordinates(filled_voxel.first);
+                points_clouds.insert_or_visit(
+                    std::make_pair(filled_voxel.second, boost::concurrent_flat_set({ position })),
+                    [&position](auto& points_cloud)
+                    {
+                        points_cloud.second.insert(position);
+                    });
+            }
+        });
+
+    // Process the alpha-wrapping for each extruder
+    std::map<uint8_t, PolygonMesh> output_meshes;
+    const double alpha = points_grid_resolution * 2.0;
+    const double offset = alpha / 50.0;
+    std::mutex mutex;
+    points_clouds.visit_all(
+        std::execution::par,
+        [&mutex, &alpha, &offset, &output_meshes](auto& points_cloud_it)
+        {
+            boost::concurrent_flat_set<Point_3>& points_cloud = points_cloud_it.second;
+            if (points_cloud.empty())
+            {
+                return;
+            }
+            boost::unordered_flat_set<Point_3> points_cloud_non_concurrent = std::move(points_cloud);
+
+            PolygonMesh output_mesh;
+            CGAL::alpha_wrap_3(points_cloud_non_concurrent, alpha, offset, output_mesh);
+
+            mutex.lock();
+            output_meshes[points_cloud_it.first] = std::move(output_mesh);
+            mutex.unlock();
+        });
+
+    return output_meshes;
+}
+
 void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, std::map<uint8_t, PolygonMesh>& output_meshes)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
@@ -842,39 +880,10 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 #endif
     }
 
-    spdlog::info("Make final points clouds");
     voxel_space.exportToFile("final_grid");
-    boost::concurrent_flat_map<uint8_t, boost::concurrent_flat_set<Point_3>> points_clouds;
-    voxel_space.visitOccupiedVoxels(
-        [&points_clouds, &voxel_space](const auto& filled_voxel)
-        {
-            if (filled_voxel.second > 0)
-            {
-                Point_3 position = voxel_space.toGlobalCoordinates(filled_voxel.first);
-                points_clouds.insert_or_visit(
-                    std::make_pair(filled_voxel.second, boost::concurrent_flat_set({ position })),
-                    [&position](auto& points_cloud)
-                    {
-                        points_cloud.second.insert(position);
-                    });
-            }
-        });
 
-    spdlog::info("Make mesh from points cloud");
-    std::mutex mutex;
-    points_clouds.visit_all(
-        [&spatial_resolution, &mutex, &output_meshes](auto& points_cloud_it)
-        {
-            boost::concurrent_flat_set<Point_3>& points_cloud = points_cloud_it.second;
-            boost::unordered_flat_set<Point_3> points_cloud_non_concurrent = std::move(points_cloud);
-
-            PolygonMesh output_mesh;
-            makeMeshFromPointsCloud(points_cloud_non_concurrent, output_mesh, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
-
-            mutex.lock();
-            output_meshes[points_cloud_it.first] = std::move(output_mesh);
-            mutex.unlock();
-        });
+    spdlog::info("Make meshes from points clouds");
+    output_meshes = makeMeshesFromPointsClouds(voxel_space, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
 }
 
 void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
