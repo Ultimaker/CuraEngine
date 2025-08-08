@@ -1,6 +1,9 @@
 // Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <CGAL/config.h>
+#define CGAL_CAN_USE_CXX20_FORMAT 0
+
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_mesh_processing/bbox.h>
 #include <CGAL/Surface_mesh.h>
