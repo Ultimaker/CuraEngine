@@ -678,7 +678,7 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
         {
             const Point_3 global_coordinates = voxel_grid.toGlobalCoordinates(voxel.first);
             mutex.lock();
-            lookup_tree.pixels_cloud.push_back(Pixel3D(global_coordinates, voxel.second));
+            lookup_tree.pixels_cloud.push_back(Pixel3D{ global_coordinates, voxel.second });
             mutex.unlock();
         });
 
