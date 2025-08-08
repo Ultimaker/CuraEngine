@@ -741,7 +741,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
     // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder to
     // assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
-    spdlog::info("Fill original voxels based on texture data");
+    spdlog::debug("Fill original voxels based on texture data");
     CGAL::Bbox_3 bounding_box = CGAL::Polygon_mesh_processing::bbox(mesh);
     double resolution = settings.get<double>("multi_material_paint_resolution") * 1000.0;
     VoxelGrid voxel_space(bounding_box, resolution);
@@ -756,11 +756,11 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     VoxelGrid low_res_texture_data(bounding_box, std::max(1000.0, resolution));
     makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, low_res_texture_data);
 
-    spdlog::info("Prepare AABB trees for fast look-up");
+    spdlog::debug("Prepare AABB trees for fast look-up");
     LookupTree tree = makeLookupTreeFromVoxelGrid(voxel_space);
     LookupTree tree_lowres = makeLookupTreeFromVoxelGrid(low_res_texture_data);
 
-    spdlog::info("Export initial points clouds");
+    spdlog::debug("Export initial points clouds");
     voxel_space.exportToFile("initial_points_cloud");
 
     const double deepness = settings.get<double>("multi_material_paint_deepness") * 1000.0;
@@ -768,7 +768,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     const float deepness_squared = deepness * deepness;
 
     // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper and fast inside-mesh checking
-    spdlog::info("prepare alpha mesh");
+    spdlog::debug("prepare alpha mesh");
     PolygonMesh alpha_mesh;
     constexpr double alpha = 2000.0;
     const double offset = resolution * 2.0;
@@ -777,7 +777,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(alpha_mesh);
     bool check_inside = true;
 
-    spdlog::info("Get initially filled voxels");
+    spdlog::debug("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
     voxel_space.visitOccupiedVoxels(
         [&previously_evaluated_voxels](const auto& voxel)
@@ -794,7 +794,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
         std::atomic_bool keep_checking_inside(false);
 
-        spdlog::info("Finding voxels around {} voxels", previously_evaluated_voxels.size());
+        spdlog::debug("Finding voxels around {} voxels", previously_evaluated_voxels.size());
 
         // For each already-filled voxel, gather the voxels around it and evaluate them
         previously_evaluated_voxels.visit_all(
@@ -848,12 +848,12 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
         if (check_inside && ! keep_checking_inside.load())
         {
-            spdlog::info("Stop checking for voxels insideness");
+            spdlog::debug("Stop checking for voxels insideness");
             check_inside = false;
         }
 
         // Now actually evaluate the candidate voxels, i.e. find their closest outside point and set the according occupation
-        spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
+        spdlog::debug("Evaluating {} voxels", voxels_to_evaluate.size());
         voxels_to_evaluate.visit_all(
 #ifdef __cpp_lib_execution
             std::execution::par,
@@ -869,7 +869,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
         // Now we have evaluated the candidates, check which of them are to be processed next. We skip all the voxels that have only voxels with similar occupations around
         // them, because they are obviously not part of the boundaries we are looking for. This avoids filling the inside of the points cloud and speeds up calculation a lot.
-        spdlog::info("Find boundary voxels for next round");
+        spdlog::debug("Find boundary voxels for next round");
         previously_evaluated_voxels.clear();
         voxels_to_evaluate.visit_all(
 #ifdef __cpp_lib_execution
@@ -903,7 +903,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
     voxel_space.exportToFile("final_grid");
 
-    spdlog::info("Make meshes from points clouds");
+    spdlog::debug("Make meshes from points clouds");
     output_meshes = makeMeshesFromPointsClouds(voxel_space, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
 }
 
@@ -960,6 +960,8 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
         return;
     }
 
+    spdlog::info("Start multi-material mesh generation");
+
     const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
 
     std::map<uint8_t, PolygonMesh> output_meshes;
@@ -975,7 +977,7 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
         exportMesh(output_mesh, fmt::format("output_mesh_{}", extruder_nr));
     }
 
-    spdlog::info("Multi-material mesh splitting took {} seconds", timer.elapsed().count());
+    spdlog::info("Multi-material mesh generation took {} seconds", timer.elapsed().count());
 }
 
 } // namespace cura::MeshMaterialSplitter
