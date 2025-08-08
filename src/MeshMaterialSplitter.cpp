@@ -349,7 +349,7 @@ public:
     void visitOccupiedVoxels(Args&&... args)
     {
         occupied_voxels_.visit_all(
-#ifndef OLDER_APPLE_CLANG
+#ifdef __cpp_lib_execution
             std::execution::par,
 #endif
             args...);
@@ -359,7 +359,7 @@ public:
     void visitOccupiedVoxels(Args&&... args) const
     {
         occupied_voxels_.visit_all(
-#ifndef OLDER_APPLE_CLANG
+#ifdef __cpp_lib_execution
             std::execution::par,
 #endif
             args...);
@@ -709,7 +709,7 @@ std::map<uint8_t, PolygonMesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel
     const double offset = points_grid_resolution;
     std::mutex mutex;
     points_clouds.visit_all(
-#ifndef OLDER_APPLE_CLANG
+#ifdef __cpp_lib_execution
         std::execution::par,
 #endif
         [&mutex, &alpha, &offset, &output_meshes](auto& points_cloud_it)
@@ -795,7 +795,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 
         // For each already-filled voxel, gather the voxels around it and evaluate them
         previously_evaluated_voxels.visit_all(
-#ifndef OLDER_APPLE_CLANG
+#ifdef __cpp_lib_execution
             std::execution::par,
 #endif
             [&](const VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
@@ -852,7 +852,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         // Now actually evaluate the candidate voxels, i.e. find their closest outside point and set the according occupation
         spdlog::info("Evaluating {} voxels", voxels_to_evaluate.size());
         voxels_to_evaluate.visit_all(
-#ifndef OLDER_APPLE_CLANG
+#ifdef __cpp_lib_execution
             std::execution::par,
 #endif
             [&voxel_space, &actual_lookup_tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
@@ -869,7 +869,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         spdlog::info("Find boundary voxels for next round");
         previously_evaluated_voxels.clear();
         voxels_to_evaluate.visit_all(
-#ifndef OLDER_APPLE_CLANG
+#ifdef __cpp_lib_execution
             std::execution::par,
 #endif
             [&voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
