@@ -1,18 +1,19 @@
-//Copyright (c) 2021 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2021 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef FFF_PROCESSOR_H
 #define FFF_PROCESSOR_H
 
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
-#include "utils/gettime.h"
 #include "utils/NoCopy.h"
+#include "utils/gettime.h"
 
 
-namespace cura {
+namespace cura
+{
 
-//FusedFilamentFabrication processor. Singleton class
+// FusedFilamentFabrication processor. Singleton class
 class FffProcessor : public NoCopy
 {
 private:
@@ -48,27 +49,35 @@ public:
 
     /*!
      * Set the target to write gcode to: to a file.
-     * 
+     *
      * Used when CuraEngine is used as command line tool.
-     * 
+     *
      * \param filename The filename of the file to which to write the gcode.
      */
     bool setTargetFile(const char* filename);
 
     /*!
      * Set the target to write gcode to: an output stream.
-     * 
+     *
      * Used when CuraEngine is NOT used as command line tool.
-     * 
+     *
      * \param stream The stream to write gcode to.
      */
     void setTargetStream(std::ostream* stream);
 
     /*!
+     * Wether or not the extruder is actually used in the print, regardless of enablement.
+     *
+     * \param extruder_nr The extruder number for which to get the useage
+     * \return actual use y/n boolean
+     */
+    bool getExtruderActualUse(int extruder_nr);
+
+    /*!
      * Get the total extruded volume for a specific extruder in mm^3
-     * 
+     *
      * Retractions and unretractions don't contribute to this.
-     * 
+     *
      * \param extruder_nr The extruder number for which to get the total netto extruded volume
      * \return total filament printed in mm^3
      */
@@ -76,7 +85,7 @@ public:
 
     /*!
      * Get the total estimated print time in seconds for each feature
-     * 
+     *
      * \return total print time in seconds for each feature
      */
     std::vector<Duration> getTotalPrintTimePerFeature();
@@ -87,6 +96,6 @@ public:
     void finalize();
 };
 
-}//namespace cura
+} // namespace cura
 
-#endif//FFF_PROCESSOR_H
+#endif // FFF_PROCESSOR_H

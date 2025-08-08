@@ -45,7 +45,7 @@ public:
     auto operator<=>(const Point2F&) const = default;
 };
 
-static Point2F lerp(const Point2F& a, const Point2F& b, const double t)
+static Point2F lerp(const Point2F& a, const Point2F& b, const float t)
 {
     return Point2F(std::lerp(a.x_, b.x_, t), std::lerp(a.y_, b.y_, t));
 }

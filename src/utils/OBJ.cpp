@@ -102,11 +102,11 @@ void OBJ::writeSphere(const Point3D& position, const double radius, const SVG::C
 
             if (i != 0)
             {
-                triangles_.emplace_back(v00, v11, v01, color);
+                triangles_.push_back(Triangle{ v00, v11, v01, color });
             }
             if (i != latitude_segments - 1)
             {
-                triangles_.emplace_back(v00, v10, v11, color);
+                triangles_.push_back(Triangle{ v00, v10, v11, color });
             }
         }
     }
@@ -121,7 +121,7 @@ void OBJ::writeTriangle(
     const std::optional<Point2F>& uv1,
     const std::optional<Point2F>& uv2)
 {
-    triangles_.emplace_back(insertVertex(p0), insertVertex(p1), insertVertex(p2), color, insertUVCoordinate(uv0), insertUVCoordinate(uv1), insertUVCoordinate(uv2));
+    triangles_.push_back(Triangle{ insertVertex(p0), insertVertex(p1), insertVertex(p2), color, insertUVCoordinate(uv0), insertUVCoordinate(uv1), insertUVCoordinate(uv2) });
 }
 
 void OBJ::writeMesh(const Mesh& mesh, const SVG::Color color)

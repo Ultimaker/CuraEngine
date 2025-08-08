@@ -20,7 +20,7 @@ SlicedUVCoordinates::SlicedUVCoordinates(const std::vector<SlicerSegment>& segme
             located_uv_coordinates_.insert(segment.start, segment.uv_start.value());
             located_uv_coordinates_.insert(segment.end, segment.uv_end.value());
 
-            segments_.emplace_back(segment.start, segment.end, segment.uv_start.value(), segment.uv_end.value());
+            segments_.push_back(Segment{ segment.start, segment.end, segment.uv_start.value(), segment.uv_end.value() });
         }
     }
 }
@@ -70,7 +70,7 @@ std::optional<Point2F> SlicedUVCoordinates::getClosestUVCoordinates(const Point2
         if (distance_to_segment < closest_distance)
         {
             closest_distance = distance_to_segment;
-            closest_uv_coordinates = cura::lerp(segment.uv_start, segment.uv_end, interpolate_factor);
+            closest_uv_coordinates = cura::lerp(segment.uv_start, segment.uv_end, static_cast<float>(interpolate_factor));
         }
     }
 
