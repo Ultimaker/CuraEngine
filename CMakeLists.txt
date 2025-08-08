@@ -211,6 +211,13 @@ target_compile_definitions(_CuraEngine
         $<$<CONFIG:Debug>:DEBUG>
 )
 
+if (CMAKE_CXX_COMPILER_ID STREQUAL "AppleClang")
+    message(STATUS "Enabling -fexperimental-library for AppleClang")
+    target_compile_options(_CuraEngine PRIVATE -fexperimental-library)
+else ()
+    message(STATUS "NOT enabling -fexperimental-library: not AppleClang")
+endif ()
+
 enable_sanitizers(_CuraEngine)
 
 if (${EXTENSIVE_WARNINGS})
