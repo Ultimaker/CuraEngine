@@ -552,8 +552,8 @@ std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
 
 bool makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_space)
 {
-    const auto& faces = mesh.faces();
-    const auto& uv_coords = mesh.property_map<CGAL::SM_Face_index, std::array<Point_2, 3>>("f:uv_coords").value();
+    const auto faces = mesh.faces();
+    const auto uv_coords = mesh.property_map<CGAL::SM_Face_index, std::array<Point_2, 3>>("f:uv_coords").value();
     boost::concurrent_flat_set<uint8_t> found_extruders;
 
     run_multiple_producers_ordered_consumer(
