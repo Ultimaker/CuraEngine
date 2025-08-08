@@ -108,9 +108,4 @@ AABB3D AABB3D::expandXY(coord_t outset)
     return *this;
 }
 
-bool AABB3D::is_inside(const Point3LL& p) const
-{
-    return p.x_ >= min_.x_ && p.y_ >= min_.y_ && p.z_ >= min_.z_ && p.x_ <= max_.x_ && p.y_ <= max_.y_ && p.z_ <= max_.z_;
-}
-
 } // namespace cura
