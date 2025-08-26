@@ -16,6 +16,7 @@
 
 #include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
 #include "utils/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "utils/Point2F.h"
 #include "utils/Point3F.h" //To accept incoming meshes with floating point vertices.
 #include "utils/gettime.h"
 #include "utils/section_type.h"
@@ -327,7 +328,7 @@ bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matr
             const float z = std::stof(matches[3].str());
             vertices.push_back(matrix.apply(Point3D(x, y, z)));
         }
-        else if (line_identifier == "vt" && std::regex_match(line, matches, uv_regex))
+        else if (line_identifier == "vt" && std::regex_match(payload, matches, uv_regex))
         {
             const float u = std::stof(matches[1].str());
             const float v = std::stof(matches[2].str());
@@ -403,7 +404,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
             spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
             return true;
         }
-        spdlog::warn("loading '{}' failed", filename);
+        spdlog::warn("loading STL '{}' failed", filename);
         return false;
     }
 

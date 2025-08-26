@@ -2,7 +2,9 @@ version: "5.11.0-alpha.0"
 commit: "unknown"
 requirements:
   - "scripta/[>=1.1.0]@ultimaker/testing"
+  - "cgal/6.0.1"
   - "libpng/1.6.48"
+  - "onetbb/2022.2.0"
 requirements_arcus:
   - "arcus/5.10.0"
 requirements_plugins:

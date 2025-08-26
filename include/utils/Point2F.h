@@ -10,7 +10,7 @@ namespace cura
 class Point2F
 {
 public:
-    float x_, y_;
+    float x_{}, y_{};
 
     Point2F()
     {

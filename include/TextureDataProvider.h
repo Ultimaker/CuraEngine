@@ -15,6 +15,7 @@ namespace cura
 
 class Image;
 class SlicedUVCoordinates;
+class Point2F;
 
 class TextureDataProvider
 {
@@ -23,6 +24,15 @@ public:
         const std::shared_ptr<SlicedUVCoordinates>& uv_coordinates,
         const std::shared_ptr<Image>& texture,
         const std::shared_ptr<TextureDataMapping>& texture_data_mapping);
+
+    const std::shared_ptr<Image>& getTexture() const
+    {
+        return texture_;
+    }
+
+    std::optional<uint32_t> getValue(const size_t pixel_x, const size_t pixel_y, const std::string& feature) const;
+
+    std::optional<uint32_t> getValue(const Point2F& uv_coordinates, const std::string& feature) const;
 
     std::optional<uint32_t> getValue(const Point2LL& position, const std::string& feature) const;
 
