@@ -144,6 +144,9 @@ class CuraEngineConan(ConanFile):
         deps.generate()
 
         tc = CMakeToolchain(self)
+
+        tc.preprocessor_definitions["_DISABLE_CONSTEXPR_MUTEX_CONSTRUCTOR"] = 1
+
         tc.variables["CURA_ENGINE_VERSION"] = self.version
         tc.variables["CURA_ENGINE_HASH"] = self.conan_data["commit"]
         tc.variables["ENABLE_ARCUS"] = self.options.enable_arcus
