@@ -103,9 +103,8 @@ public:
 
     std::pair<size_t, size_t> getPixelCoordinates(const Point2F& uv_coordinates) const
     {
-        return std::make_pair(
-            std::clamp(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(0), width_ - 1),
-            std::clamp(static_cast<size_t>(uv_coordinates.y_ * height_), static_cast<size_t>(0), height_ - 1));
+        return { std::clamp(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(0), width_ - 1),
+                 std::clamp(static_cast<size_t>(uv_coordinates.y_ * height_), static_cast<size_t>(0), height_ - 1) };
     }
 
     uint32_t getPixel(const Point2F& uv_coordinates) const

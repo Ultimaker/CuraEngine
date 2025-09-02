@@ -103,7 +103,8 @@ std::optional<Point_3> getBarycentricCoordinates(const Point_3& point, const Poi
     const double denom = d00 * d11 - d01 * d01;
 
     // Check if triangle is degenerate
-    if (std::abs(denom) < 0.000001)
+    constexpr double epsilon_triangle_cross_products = 0.000001;
+    if (std::abs(denom) < epsilon_triangle_cross_products)
     {
         return std::nullopt;
     }
@@ -156,6 +157,9 @@ struct Pixel3D
 
 using PixelsCloud = std::vector<Pixel3D>;
 
+/*!
+ * The ParameterizedSegment is a helper to quickly calculate the voxels traversed by a triangle. Is allows intersecting the segment with two planes in the X or Y direction.
+ */
 class ParameterizedSegment
 {
 public:
@@ -188,66 +192,64 @@ public:
         return Point_3(start_.x() + factor * direction_.x(), y, start_.z() + factor * direction_.z());
     }
 
+    std::optional<ParameterizedSegment> croppedSegmentX(const double layer_start, const double layer_end, const Point_3& p1, const Point_3& p2) const
+    {
+        if (p1.x() <= layer_end && p2.x() >= layer_start)
+        {
+            return ParameterizedSegment(p1.x() < layer_start ? pointAtX(layer_start) : p1, p2.x() > layer_end ? pointAtX(layer_end) : p2);
+        }
+
+        return std::nullopt;
+    }
+
     std::optional<ParameterizedSegment> intersectionWithXLayer(const double layer_start, const double layer_end) const
     {
         if (direction_.x() > 0)
         {
-            if (start_.x() <= layer_end && end_.x() >= layer_start)
-            {
-                return ParameterizedSegment(start_.x() < layer_start ? pointAtX(layer_start) : start_, end_.x() > layer_end ? pointAtX(layer_end) : end_);
-            }
-
-            return std::nullopt;
+            return croppedSegmentX(layer_start, layer_end, start_, end_);
         }
-        else if (direction_.x() < 0)
+
+        if (direction_.x() < 0)
         {
-            if (end_.x() <= layer_end && start_.x() >= layer_start)
-            {
-                return ParameterizedSegment(end_.x() < layer_start ? pointAtX(layer_start) : end_, start_.x() > layer_end ? pointAtX(layer_end) : start_);
-            }
-
-            return std::nullopt;
+            return croppedSegmentX(layer_start, layer_end, end_, start_);
         }
-        else
+
+        if (start_.x() >= layer_start && start_.x() <= layer_end)
         {
-            if (start_.x() >= layer_start && start_.x() <= layer_end)
-            {
-                return *this;
-            }
-
-            return std::nullopt;
+            return *this;
         }
+
+        return std::nullopt;
+    }
+
+    std::optional<ParameterizedSegment> croppedSegmentY(const double layer_start, const double layer_end, const Point_3& p1, const Point_3& p2) const
+    {
+        if (p1.y() <= layer_end && p2.y() >= layer_start)
+        {
+            return ParameterizedSegment(p1.y() < layer_start ? pointAtY(layer_start) : p1, p2.y() > layer_end ? pointAtY(layer_end) : p2);
+        }
+
+        return std::nullopt;
     }
 
     std::optional<ParameterizedSegment> intersectionWithYLayer(const double layer_start, const double layer_end) const
     {
         if (direction_.y() > 0)
         {
-            if (start_.y() <= layer_end && end_.y() >= layer_start)
-            {
-                return ParameterizedSegment(start_.y() < layer_start ? pointAtY(layer_start) : start_, end_.y() > layer_end ? pointAtY(layer_end) : end_);
-            }
-
-            return std::nullopt;
+            return croppedSegmentY(layer_start, layer_end, start_, end_);
         }
-        else if (direction_.y() < 0)
+
+        if (direction_.y() < 0)
         {
-            if (end_.y() <= layer_end && start_.y() >= layer_start)
-            {
-                return ParameterizedSegment(end_.y() < layer_start ? pointAtY(layer_start) : end_, start_.y() > layer_end ? pointAtY(layer_end) : start_);
-            }
-
-            return std::nullopt;
+            return croppedSegmentY(layer_start, layer_end, end_, start_);
         }
-        else
+
+        if (start_.y() >= layer_start && start_.y() <= layer_end)
         {
-            if (start_.y() >= layer_start && start_.y() <= layer_end)
-            {
-                return *this;
-            }
-
-            return std::nullopt;
+            return *this;
         }
+
+        return std::nullopt;
     }
 
 private:
@@ -269,10 +271,12 @@ public:
 
     union LocalCoordinates
     {
+        // This union allows to store a position in the voxels grid by XYZ position stored on UINT16 values, and also to use this position as a key that can
+        // be stored in a map, without having to separately hash the X, Y and Z components, which saves some time when heavily dealing with large maps.
         uint64_t key{ 0 };
         SimplePoint_3U16 position;
 
-        LocalCoordinates(uint16_t x, uint16_t y, uint16_t z)
+        LocalCoordinates(const uint16_t x, const uint16_t y, const uint16_t z)
             : position{ x, y, z }
         {
         }
@@ -295,7 +299,7 @@ public:
     static constexpr uint8_t nb_voxels_around = 3 * 3 * 3 - 1;
 
 public:
-    explicit VoxelGrid(const CGAL::Bbox_3& bounding_box, const double max_resolution)
+    explicit VoxelGrid(const CGAL::Bbox_3& bounding_box, const coord_t max_resolution)
     {
         const CGAL::Bbox_3 expanded_bounding_box = expand(bounding_box, max_resolution * 2);
         origin_ = Vector_3(expanded_bounding_box.xmin(), expanded_bounding_box.ymin(), expanded_bounding_box.zmin());
@@ -329,7 +333,7 @@ public:
     void setOrUpdateOccupation(const LocalCoordinates& position, const uint8_t extruder_nr)
     {
         occupied_voxels_.insert_or_visit(
-            std::make_pair(position, extruder_nr),
+            { position, extruder_nr },
             [extruder_nr](auto& voxel)
             {
                 voxel.second = std::min(voxel.second, extruder_nr);
@@ -462,6 +466,16 @@ public:
 #endif
     }
 
+    /*!
+     * @brief Gets all the voxels traversed by the given triangle, which is similar to rasterizing the triangle, but in 3D
+     * @param triangle The 3D triangle we want to rasterize
+     * @return The list of voxels traversed by the triangle
+     *
+     * To do a fast (enough) rasterization of the triangle, we calculate its bounding box in the voxels grid on the X axis, then we iterate on all the YZ columns
+     * in the X direction. For each column we crop the edges of the triangle to fit inside the width of the column, which gives a sub-triangle or a quad shape. Then for this
+     * sub-shape, we calculate its bounding box in the Y axis, and iterate on all the Z "square tubes". For each cube we crop the edges again, and iterate over the Z bounding boxes
+     * of the sub-sub-shape. Each iterated position is then considered as being traversed by the triangle.
+     */
     std::vector<LocalCoordinates> getTraversedVoxels(const Triangle_3& triangle) const
     {
         const SimplePoint_3U16 p0 = toLocalCoordinates(triangle[0]).position;
@@ -698,7 +712,7 @@ std::map<uint8_t, PolygonMesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel
             {
                 Point_3 position = voxel_grid.toGlobalCoordinates(filled_voxel.first);
                 points_clouds.insert_or_visit(
-                    std::make_pair(filled_voxel.second, boost::concurrent_flat_set({ position })),
+                    { filled_voxel.second, boost::concurrent_flat_set({ position }) },
                     [&position](auto& points_cloud)
                     {
                         points_cloud.second.insert(position);
@@ -743,17 +757,18 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     // assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
     spdlog::debug("Fill original voxels based on texture data");
     CGAL::Bbox_3 bounding_box = CGAL::Polygon_mesh_processing::bbox(mesh);
-    double resolution = settings.get<double>("multi_material_paint_resolution") * 1000.0;
+    auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
     VoxelGrid voxel_space(bounding_box, resolution);
     if (! makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space))
     {
         // Texture is filled with 0s, don't bother doing anything
         return;
     }
+
     // Create 2 AABB trees for efficient spatial queries. Points lookup is very fast as long as there is a close point, so the deeper we go inside the mesh, the longer the lookup
     // time will be. However, we don't require a high precision inside the mesh because it won't be visible, so use 2 lookup trees, one with high resolution for the outside, and
     // a second one with very low resolution for when we are far enough from the outside.
-    VoxelGrid low_res_texture_data(bounding_box, std::max(1000.0, resolution));
+    VoxelGrid low_res_texture_data(bounding_box, std::max(1000LL, resolution));
     makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, low_res_texture_data);
 
     spdlog::debug("Prepare AABB trees for fast look-up");
@@ -763,9 +778,9 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     spdlog::debug("Export initial points clouds");
     voxel_space.exportToFile("initial_points_cloud");
 
-    const double deepness = settings.get<double>("multi_material_paint_deepness") * 1000.0;
+    const auto deepness = settings.get<coord_t>("multi_material_paint_deepness");
     const Point_3& spatial_resolution = voxel_space.getResolution();
-    const float deepness_squared = deepness * deepness;
+    const coord_t deepness_squared = deepness * deepness;
 
     // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper and fast inside-mesh checking
     spdlog::debug("prepare alpha mesh");
