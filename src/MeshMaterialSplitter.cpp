@@ -10,6 +10,10 @@
 #include <CGAL/alpha_wrap_3.h>
 #include <execution>
 
+#include <boost/geometry.hpp>
+#include <boost/geometry/core/cs.hpp>
+#include <boost/geometry/geometries/register/point.hpp>
+#include <boost/geometry/index/rtree.hpp>
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
 #include <boost/unordered/unordered_flat_set.hpp>
@@ -26,8 +30,6 @@
 #include "utils/gettime.h"
 
 
-namespace cura::MeshMaterialSplitter
-{
 using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
 
 using Point_3 = Kernel::Point_3;
@@ -44,9 +46,36 @@ using PolygonMesh = CGAL::Surface_mesh<Kernel::Point_3>;
 using Kernel_U32 = CGAL::Simple_cartesian<uint32_t>;
 using Point_2U32 = Kernel_U32::Point_2;
 
-struct PixelsCloudPrimitive;
-using AABB_traits = CGAL::AABB_traits_3<Kernel, PixelsCloudPrimitive>;
-using Tree = CGAL::AABB_tree<AABB_traits>;
+struct Pixel3D
+{
+    Point_3 position;
+    uint8_t occupation;
+
+    double x() const
+    {
+        return position.x();
+    }
+    double y() const
+    {
+        return position.y();
+    }
+    double z() const
+    {
+        return position.z();
+    }
+
+    void dummySetPos(double)
+    {
+    }
+};
+
+BOOST_GEOMETRY_REGISTER_POINT_3D_GET_SET(Pixel3D, double, boost::geometry::cs::cartesian, x, y, z, dummySetPos, dummySetPos, dummySetPos);
+
+using Boost_Point3D = boost::geometry::model::point<double, 3, boost::geometry::cs::cartesian>;
+using Boost_RTree = boost::geometry::index::rtree<Pixel3D, boost::geometry::index::quadratic<8>>;
+
+namespace cura::MeshMaterialSplitter
+{
 
 Point_2U32 getPixelCoordinates(const Point_2& uv_coordinates, const std::shared_ptr<Image>& image)
 {
@@ -117,14 +146,6 @@ CGAL::Bbox_3 expand(const CGAL::Bbox_3& bounding_box, const double offset)
         bounding_box.ymax() + offset,
         bounding_box.zmax() + offset);
 }
-
-struct Pixel3D
-{
-    Point_3 position;
-    uint8_t occupation;
-};
-
-using PixelsCloud = std::vector<Pixel3D>;
 
 /*!
  * The ParameterizedSegment is a helper to quickly calculate the voxels traversed by a triangle. Is allows intersecting the segment with two planes in the X or Y direction.
@@ -590,47 +611,10 @@ void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh, 
 }
 
 
-struct PixelsCloudPrimitive
-{
-public:
-    typedef const Pixel3D* Id;
-    typedef Point_3 Point;
-    typedef Point_3 Datum;
-
-private:
-    Id m_pt;
-
-public:
-    explicit PixelsCloudPrimitive(PixelsCloud::const_iterator it)
-        : m_pt(&(*it))
-    {
-    }
-
-    const Id& id() const
-    {
-        return m_pt;
-    }
-
-    Point convert(const Pixel3D* p) const
-    {
-        return p->position;
-    }
-
-    Datum datum() const
-    {
-        return m_pt->position;
-    }
-
-    Point reference_point() const
-    {
-        return m_pt->position;
-    }
-};
-
 struct LookupTree
 {
-    PixelsCloud pixels_cloud;
-    Tree tree;
+    std::vector<Pixel3D> pixels_cloud;
+    Boost_RTree boost_tree;
 };
 
 LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
@@ -647,8 +631,8 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
             mutex.unlock();
         });
 
-    lookup_tree.tree = Tree(lookup_tree.pixels_cloud.begin(), lookup_tree.pixels_cloud.end());
-    lookup_tree.tree.accelerate_distance_queries();
+    lookup_tree.boost_tree = Boost_RTree(lookup_tree.pixels_cloud.begin(), lookup_tree.pixels_cloud.end());
+
     return lookup_tree;
 }
 
@@ -716,15 +700,8 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
         return;
     }
 
-    // Create 2 AABB trees for efficient spatial queries. Points lookup is very fast as long as there is a close point, so the deeper we go inside the mesh, the longer the lookup
-    // time will be. However, we don't require a high precision inside the mesh because it won't be visible, so use 2 lookup trees, one with high resolution for the outside, and
-    // a second one with very low resolution for when we are far enough from the outside.
-    VoxelGrid low_res_texture_data(bounding_box, std::max(1000LL, resolution));
-    makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, low_res_texture_data);
-
     spdlog::debug("Prepare AABB trees for fast look-up");
     LookupTree tree = makeLookupTreeFromVoxelGrid(voxel_space);
-    LookupTree tree_lowres = makeLookupTreeFromVoxelGrid(low_res_texture_data);
 
     const auto deepness = settings.get<coord_t>("multi_material_paint_deepness");
     const Point_3& spatial_resolution = voxel_space.getResolution();
@@ -750,7 +727,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
             };
         });
 
-    uint32_t iteration = 0;
     while (! previously_evaluated_voxels.empty())
     {
         boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
@@ -805,9 +781,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                 }
             });
 
-        // As soon as we are deep enough in the mesh, use the low-resolution lookup tree which makes finding the closest outside point much faster
-        const Tree& actual_lookup_tree = iteration < 12 ? tree.tree : tree_lowres.tree;
-
         if (check_inside && ! keep_checking_inside.load())
         {
             spdlog::debug("Stop checking for voxels insideness");
@@ -820,13 +793,28 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
 #ifdef __cpp_lib_execution
             std::execution::par,
 #endif
-            [&voxel_space, &actual_lookup_tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+            [&voxel_space, &tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
                 const Point_3 position = voxel_space.toGlobalCoordinates(voxel_to_evaluate);
-                const std::pair<Point_3, PixelsCloudPrimitive::Id> closest_point_and_primitive = actual_lookup_tree.closest_point_and_primitive(position);
-                const Vector_3 diff = position - closest_point_and_primitive.first;
-                const uint8_t new_occupation = diff.squared_length() <= deepness_squared ? closest_point_and_primitive.second->occupation : 0;
-                voxel_space.setOccupation(voxel_to_evaluate, new_occupation);
+
+                // Define a query point
+                Boost_Point3D query_point = { position.x(), position.y(), position.z() };
+
+                // Find the nearest neighbor
+                std::vector<Pixel3D> nearest_neighbors;
+                tree.boost_tree.query(boost::geometry::index::nearest(query_point, 1), std::back_inserter(nearest_neighbors));
+
+                if (! nearest_neighbors.empty())
+                {
+                    const Pixel3D& closest_neighbor = nearest_neighbors.front();
+                    const Vector_3 diff = position - closest_neighbor.position;
+                    const uint8_t new_occupation = diff.squared_length() <= deepness_squared ? closest_neighbor.occupation : 0;
+                    voxel_space.setOccupation(voxel_to_evaluate, new_occupation);
+                }
+                else
+                {
+                    voxel_space.setOccupation(voxel_to_evaluate, 0);
+                }
             });
 
         // Now we have evaluated the candidates, check which of them are to be processed next. We skip all the voxels that have only voxels with similar occupations around
@@ -856,8 +844,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
                     previously_evaluated_voxels.emplace(evaluated_voxel);
                 }
             });
-
-        iteration++;
     }
 
     spdlog::debug("Make meshes from points clouds");
