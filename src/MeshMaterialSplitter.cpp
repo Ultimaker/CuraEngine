@@ -25,9 +25,6 @@
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 
-#define EXPORT_DEBUG_MESHES 0
-#define EXPORT_ITERATION_MESHES 0
-
 
 namespace cura::MeshMaterialSplitter
 {
@@ -50,34 +47,6 @@ using Point_2U32 = Kernel_U32::Point_2;
 struct PixelsCloudPrimitive;
 using AABB_traits = CGAL::AABB_traits_3<Kernel, PixelsCloudPrimitive>;
 using Tree = CGAL::AABB_tree<AABB_traits>;
-
-void exportMesh(const PolygonMesh& mesh, const std::string& filename)
-{
-#if EXPORT_DEBUG_MESHES
-    PolygonMesh exported_mesh = mesh;
-
-    std::ofstream out(fmt::format("/home/erwan/test/CURA-12449_handling-painted-models/{}.obj", filename));
-    for (CGAL::SM_Vertex_index vertex : vertices(exported_mesh))
-    {
-        Point_3& p = exported_mesh.point(vertex);
-        p = Point_3(p.x() * 0.001, p.y() * 0.001, p.z() * 0.001);
-    }
-    CGAL::IO::write_OBJ(out, exported_mesh);
-#endif
-}
-
-template<typename PointContainer>
-void exportPointsCloud(const PointContainer& points_cloud, const std::string& filename)
-{
-#if EXPORT_DEBUG_MESHES
-    PolygonMesh exported_mesh;
-    for (const Point_3& point : points_cloud)
-    {
-        exported_mesh.add_vertex(point);
-    }
-    exportMesh(exported_mesh, filename);
-#endif
-}
 
 Point_2U32 getPixelCoordinates(const Point_2& uv_coordinates, const std::shared_ptr<Image>& image)
 {
@@ -448,24 +417,6 @@ public:
         return (z * resolution_.z()) + origin_.z();
     }
 
-    void exportToFile(const std::string& basename) const
-    {
-#if EXPORT_DEBUG_MESHES
-        std::map<uint8_t, PolygonMesh> meshes;
-
-        occupied_voxels_.visit_all(
-            [&meshes, this](const auto& voxel)
-            {
-                meshes[voxel.second].add_vertex(toGlobalCoordinates(voxel.first));
-            });
-
-        for (auto iterator = meshes.begin(); iterator != meshes.end(); ++iterator)
-        {
-            exportMesh(iterator->second, fmt::format("{}_{}", basename, iterator->first));
-        }
-#endif
-    }
-
     /*!
      * @brief Gets all the voxels traversed by the given triangle, which is similar to rasterizing the triangle, but in 3D
      * @param triangle The 3D triangle we want to rasterize
@@ -775,9 +726,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     LookupTree tree = makeLookupTreeFromVoxelGrid(voxel_space);
     LookupTree tree_lowres = makeLookupTreeFromVoxelGrid(low_res_texture_data);
 
-    spdlog::debug("Export initial points clouds");
-    voxel_space.exportToFile("initial_points_cloud");
-
     const auto deepness = settings.get<coord_t>("multi_material_paint_deepness");
     const Point_3& spatial_resolution = voxel_space.getResolution();
     const coord_t deepness_squared = deepness * deepness;
@@ -788,7 +736,6 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     constexpr double alpha = 2000.0;
     const double offset = resolution * 2.0;
     CGAL::alpha_wrap_3(mesh, alpha, offset, alpha_mesh);
-    exportMesh(alpha_mesh, "alpha_mesh");
     CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(alpha_mesh);
     bool check_inside = true;
 
@@ -911,12 +858,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
             });
 
         iteration++;
-#if EXPORT_ITERATION_MESHES
-        voxel_space.exportToFile(fmt::format("points_cloud_iteration_{}", iteration++));
-#endif
     }
-
-    voxel_space.exportToFile("final_grid");
 
     spdlog::debug("Make meshes from points clouds");
     output_meshes = makeMeshesFromPointsClouds(voxel_space, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
@@ -968,8 +910,6 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
         uv_coords[face_index] = face_uvs;
     }
 
-    exportMesh(converted_mesh, "converted_mesh");
-
     if (! has_uvs)
     {
         return;
@@ -989,7 +929,6 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
         }
 
         registerModifiedMesh(meshgroup, output_mesh, extruder_nr);
-        exportMesh(output_mesh, fmt::format("output_mesh_{}", extruder_nr));
     }
 
     spdlog::info("Multi-material mesh generation took {} seconds", timer.elapsed().count());
