@@ -19,6 +19,8 @@
 #include <boost/unordered/unordered_flat_set.hpp>
 #include <range/v3/algorithm/max.hpp>
 #include <range/v3/algorithm/min.hpp>
+#include <range/v3/view/filter.hpp>
+#include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
 
 #include "MeshGroup.h"
@@ -34,12 +36,10 @@ using Kernel = CGAL::Exact_predicates_inexact_constructions_kernel;
 
 using Point_3 = Kernel::Point_3;
 using Vector_3 = Kernel::Vector_3;
-using Direction_3 = Kernel::Direction_3;
 using Triangle_3 = Kernel::Triangle_3;
 
 using Point_2 = Kernel::Point_2;
 using Triangle_2 = Kernel::Triangle_2;
-using Vector_2 = Kernel::Vector_2;
 
 using PolygonMesh = CGAL::Surface_mesh<Kernel::Point_3>;
 
@@ -259,6 +259,13 @@ public:
         uint16_t black_hole{ 0 }; // Don't place anything in there, or it would be lost forever (it exists only to properly set the 4th byte of the key)
     };
 
+    struct SimplePoint_3S16
+    {
+        int16_t x;
+        int16_t y;
+        int16_t z;
+    };
+
     union LocalCoordinates
     {
         // This union allows to store a position in the voxels grid by XYZ position stored on UINT16 values, and also to use this position as a key that can
@@ -310,9 +317,9 @@ public:
         return resolution_;
     }
 
-    Point_3 toGlobalCoordinates(const LocalCoordinates& position) const
+    Point_3 toGlobalCoordinates(const LocalCoordinates& position, const bool at_center = false) const
     {
-        return Point_3(toGlobalX(position.position.x), toGlobalY(position.position.y), toGlobalZ(position.position.z));
+        return Point_3(toGlobalX(position.position.x, at_center), toGlobalY(position.position.y, at_center), toGlobalZ(position.position.z, at_center));
     }
 
     void setOccupation(const LocalCoordinates& position, const uint8_t extruder_nr)
@@ -333,7 +340,7 @@ public:
     std::optional<uint8_t> getOccupation(const LocalCoordinates& local_position) const
     {
         std::optional<uint8_t> result = std::nullopt;
-        occupied_voxels_.visit(
+        occupied_voxels_.cvisit(
             local_position,
             [&result](const auto& occupation)
             {
@@ -355,7 +362,7 @@ public:
     template<class... Args>
     void visitOccupiedVoxels(Args&&... args) const
     {
-        occupied_voxels_.visit_all(
+        occupied_voxels_.cvisit_all(
 #ifdef __cpp_lib_execution
             std::execution::par,
 #endif
@@ -413,9 +420,9 @@ public:
         return (x - origin_.x()) / resolution_.x();
     }
 
-    double toGlobalX(const uint16_t x) const
+    double toGlobalX(const uint16_t x, const bool at_center = false) const
     {
-        return (x * resolution_.x()) + origin_.x();
+        return (x * resolution_.x()) + origin_.x() + (at_center ? resolution_.x() / 2.0 : 0.0);
     }
 
     uint16_t toLocalY(const double y) const
@@ -423,9 +430,9 @@ public:
         return (y - origin_.y()) / resolution_.y();
     }
 
-    double toGlobalY(const uint16_t y) const
+    double toGlobalY(const uint16_t y, const bool at_center = false) const
     {
-        return (y * resolution_.y()) + origin_.y();
+        return (y * resolution_.y()) + origin_.y() + (at_center ? resolution_.y() / 2.0 : 0.0);
     }
 
     uint16_t toLocalZ(const double z) const
@@ -433,9 +440,9 @@ public:
         return (z - origin_.z()) / resolution_.z();
     }
 
-    double toGlobalZ(const uint16_t z) const
+    double toGlobalZ(const uint16_t z, const bool at_center = false) const
     {
-        return (z * resolution_.z()) + origin_.z();
+        return (z * resolution_.z()) + origin_.z() + (at_center ? resolution_.z() / 2.0 : 0.0);
     }
 
     /*!
@@ -591,26 +598,6 @@ bool makeInitialVoxelSpaceFromTexture(const PolygonMesh& mesh, const std::shared
     return true;
 }
 
-void registerModifiedMesh(MeshGroup* meshgroup, const PolygonMesh& output_mesh, const uint8_t extruder_nr)
-{
-    ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders.at(1);
-    Mesh modifier_mesh(extruder.settings_);
-    for (const CGAL::SM_Face_index face : output_mesh.faces())
-    {
-        const Triangle_3 triangle = getFaceTriangle(output_mesh, face);
-        modifier_mesh.addFace(
-            Point3LL(triangle[0].x(), triangle[0].y(), triangle[0].z()),
-            Point3LL(triangle[1].x(), triangle[1].y(), triangle[1].z()),
-            Point3LL(triangle[2].x(), triangle[2].y(), triangle[2].z()));
-    }
-
-    modifier_mesh.settings_.add("cutting_mesh", "true");
-    modifier_mesh.settings_.add("extruder_nr", std::to_string(extruder_nr));
-
-    meshgroup->meshes.push_back(modifier_mesh);
-}
-
-
 struct LookupTree
 {
     std::vector<Pixel3D> pixels_cloud;
@@ -636,55 +623,104 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
     return lookup_tree;
 }
 
-std::map<uint8_t, PolygonMesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel_grid, const coord_t points_grid_resolution)
+std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
 {
-    // Extract the voxels occupation to points lists that can be understood by the alpha-wrapping
-    boost::concurrent_flat_map<uint8_t, boost::concurrent_flat_set<Point_3>> points_clouds;
+    std::map<uint8_t, Mesh> meshes;
+
+    using FaceIndices = std::array<size_t, 3>;
+    using AddedFace = std::array<FaceIndices, 2>;
+    std::vector<std::pair<VoxelGrid::SimplePoint_3S16, AddedFace>> faces_to_add;
+
+    const double half_res_x = voxel_grid.getResolution().x() / 2;
+    const double half_res_y = voxel_grid.getResolution().y() / 2;
+    const double half_res_z = voxel_grid.getResolution().z() / 2;
+
+    std::array<Point3LL, 8> cube_points;
+    cube_points[0] = Point3LL(half_res_x, -half_res_y, -half_res_z);
+    cube_points[1] = Point3LL(half_res_x, half_res_y, -half_res_z);
+    cube_points[2] = Point3LL(half_res_x, half_res_y, half_res_z);
+    cube_points[3] = Point3LL(half_res_x, -half_res_y, half_res_z);
+    cube_points[4] = Point3LL(-half_res_x, -half_res_y, -half_res_z);
+    cube_points[5] = Point3LL(-half_res_x, half_res_y, -half_res_z);
+    cube_points[6] = Point3LL(-half_res_x, half_res_y, half_res_z);
+    cube_points[7] = Point3LL(-half_res_x, -half_res_y, half_res_z);
+
+    faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(1, 0, 0), { FaceIndices{ 0, 1, 2 }, FaceIndices{ 2, 3, 0 } } });
+    faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(-1, 0, 0), { FaceIndices{ 5, 4, 7 }, FaceIndices{ 7, 6, 5 } } });
+    faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(0, 1, 0), { FaceIndices{ 1, 5, 6 }, FaceIndices{ 6, 2, 1 } } });
+    faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(0, -1, 0), { FaceIndices{ 4, 0, 3 }, FaceIndices{ 3, 7, 4 } } });
+
+    boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, uint8_t> occupied_voxels;
     voxel_grid.visitOccupiedVoxels(
-        [&points_clouds, &voxel_grid](const auto& filled_voxel)
+        [&occupied_voxels](const auto& occupied_voxel)
         {
-            if (filled_voxel.second > 0)
+            if (occupied_voxel.second > 0)
             {
-                Point_3 position = voxel_grid.toGlobalCoordinates(filled_voxel.first);
-                points_clouds.insert_or_visit(
-                    { filled_voxel.second, boost::concurrent_flat_set({ position }) },
-                    [&position](auto& points_cloud)
-                    {
-                        points_cloud.second.insert(position);
-                    });
+                occupied_voxels.emplace(occupied_voxel.first, occupied_voxel.second);
             }
         });
 
-    // Process the alpha-wrapping for each extruder
-    std::map<uint8_t, PolygonMesh> output_meshes;
-    const double alpha = points_grid_resolution * 2.0;
-    const double offset = points_grid_resolution;
     std::mutex mutex;
-    points_clouds.visit_all(
+    occupied_voxels.cvisit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&mutex, &alpha, &offset, &output_meshes](auto& points_cloud_it)
+        [&faces_to_add, &voxel_grid, &meshes, &mutex, &cube_points](const auto& occupied_voxel)
         {
-            boost::concurrent_flat_set<Point_3>& points_cloud = points_cloud_it.second;
-            if (points_cloud.empty())
+            const Point_3 current_position = voxel_grid.toGlobalCoordinates(occupied_voxel.first, true);
+            const Point3LL current_position_ll(current_position.x(), current_position.y(), current_position.z());
+
+            for (const auto& face_to_add : faces_to_add)
             {
-                return;
+                int32_t x = static_cast<int32_t>(occupied_voxel.first.position.x) + face_to_add.first.x;
+                int32_t y = static_cast<int32_t>(occupied_voxel.first.position.y) + face_to_add.first.y;
+                int32_t z = static_cast<int32_t>(occupied_voxel.first.position.z) + face_to_add.first.z;
+
+                uint8_t outer_occupation;
+                if (x < 0 || x > std::numeric_limits<uint16_t>::max() || y < 0 || y > std::numeric_limits<uint16_t>::max() || z < 0 || z > std::numeric_limits<uint16_t>::max())
+                {
+                    outer_occupation = 0;
+                }
+                else
+                {
+                    outer_occupation = voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x, y, z)).value_or(occupied_voxel.second);
+                }
+
+                if (outer_occupation != occupied_voxel.second)
+                {
+                    mutex.lock();
+                    auto mesh_iterator = meshes.find(occupied_voxel.second);
+                    if (mesh_iterator == meshes.end())
+                    {
+                        Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(occupied_voxel.second).settings_);
+                        mesh.settings_.add("cutting_mesh", "true");
+                        mesh.settings_.add("extruder_nr", std::to_string(occupied_voxel.second));
+                        meshes.insert({ occupied_voxel.second, mesh });
+                    }
+
+                    Mesh& mesh = meshes[occupied_voxel.second];
+                    for (const FaceIndices& face_indices : face_to_add.second)
+                    {
+                        mesh.addFace(
+                            current_position_ll + cube_points[face_indices[0]],
+                            current_position_ll + cube_points[face_indices[1]],
+                            current_position_ll + cube_points[face_indices[2]]);
+                    }
+
+                    mutex.unlock();
+                }
             }
-            boost::unordered_flat_set<Point_3> points_cloud_non_concurrent = std::move(points_cloud);
-
-            PolygonMesh output_mesh;
-            CGAL::alpha_wrap_3(points_cloud_non_concurrent, alpha, offset, output_mesh);
-
-            mutex.lock();
-            output_meshes[points_cloud_it.first] = std::move(output_mesh);
-            mutex.unlock();
         });
 
-    return output_meshes;
+    std::vector<Mesh> meshes_vec;
+    for (Mesh& mesh : meshes | ranges::views::values)
+    {
+        meshes_vec.push_back(std::move(mesh));
+    }
+    return meshes_vec;
 }
 
-void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, std::map<uint8_t, PolygonMesh>& output_meshes)
+std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
 
@@ -697,7 +733,7 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     if (! makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space))
     {
         // Texture is filled with 0s, don't bother doing anything
-        return;
+        return {};
     }
 
     spdlog::debug("Prepare AABB trees for fast look-up");
@@ -847,10 +883,10 @@ void makeModifierMeshVoxelSpace(const PolygonMesh& mesh, const std::shared_ptr<T
     }
 
     spdlog::debug("Make meshes from points clouds");
-    output_meshes = makeMeshesFromPointsClouds(voxel_space, std::max({ spatial_resolution.x(), spatial_resolution.y(), spatial_resolution.z() }));
+    return makeMeshesFromPointsClouds2(voxel_space);
 }
 
-void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
+void makeMaterialModifierMeshes(Mesh& mesh, MeshGroup* meshgroup)
 {
     if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("extruder"))
     {
@@ -905,16 +941,9 @@ void splitMesh(Mesh& mesh, MeshGroup* meshgroup)
 
     const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
 
-    std::map<uint8_t, PolygonMesh> output_meshes;
-    makeModifierMeshVoxelSpace(converted_mesh, texture_data_provider, output_meshes);
-    for (auto& [extruder_nr, output_mesh] : output_meshes)
+    for (const Mesh& mesh : makeModifierMeshes(converted_mesh, texture_data_provider))
     {
-        if (output_mesh.faces().empty())
-        {
-            continue;
-        }
-
-        registerModifiedMesh(meshgroup, output_mesh, extruder_nr);
+        meshgroup->meshes.push_back(mesh);
     }
 
     spdlog::info("Multi-material mesh generation took {} seconds", timer.elapsed().count());

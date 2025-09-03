@@ -12,7 +12,7 @@ class MeshGroup;
 
 namespace MeshMaterialSplitter
 {
-void splitMesh(Mesh& mesh, MeshGroup* meshgroup);
+void makeMaterialModifierMeshes(Mesh& mesh, MeshGroup* meshgroup);
 } // namespace MeshMaterialSplitter
 
 } // namespace cura

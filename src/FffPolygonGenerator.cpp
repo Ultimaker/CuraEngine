@@ -65,7 +65,7 @@ bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* me
     std::vector<Mesh> initial_meshes = meshgroup->meshes; // Make a copy, because splitting is going to insert new meshes
     for (Mesh& mesh : initial_meshes)
     {
-        MeshMaterialSplitter::splitMesh(mesh, meshgroup);
+        MeshMaterialSplitter::makeMaterialModifierMeshes(mesh, meshgroup);
     }
 
     if (! sliceModel(meshgroup, timeKeeper, storage))
