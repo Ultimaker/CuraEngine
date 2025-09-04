@@ -804,12 +804,16 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     segments_.clear();
 }
 
-Slicer::Slicer(Mesh* i_mesh, const coord_t thickness, const size_t slice_layer_count, bool use_variable_layer_heights, std::vector<AdaptiveLayer>* adaptive_layers)
+Slicer::Slicer(
+    Mesh* i_mesh,
+    const coord_t thickness,
+    const size_t slice_layer_count,
+    bool use_variable_layer_heights,
+    std::vector<AdaptiveLayer>* adaptive_layers,
+    const SlicingTolerance slicing_tolerance,
+    const coord_t initial_layer_thickness)
     : mesh(i_mesh)
 {
-    const SlicingTolerance slicing_tolerance = mesh->settings_.get<SlicingTolerance>("slicing_tolerance");
-    const coord_t initial_layer_thickness = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height_0");
-
     assert(slice_layer_count > 0);
 
     TimeKeeper slice_timer;

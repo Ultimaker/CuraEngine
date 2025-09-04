@@ -7,7 +7,6 @@
 #include <CGAL/Exact_predicates_inexact_constructions_kernel.h>
 #include <CGAL/Polygon_mesh_processing/bbox.h>
 #include <CGAL/Surface_mesh.h>
-#include <CGAL/alpha_wrap_3.h>
 #include <execution>
 
 #include <boost/geometry.hpp>
@@ -26,8 +25,10 @@
 #include "MeshGroup.h"
 #include "Slice.h"
 #include "TextureDataProvider.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
 #include "mesh.h"
+#include "slicer.h"
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 
@@ -248,6 +249,19 @@ private:
     Point_3 end_;
 };
 
+void exportMesh(const PolygonMesh& mesh, const std::string& filename)
+{
+    PolygonMesh exported_mesh = mesh;
+
+    std::ofstream out(fmt::format("/home/erwan/test/CURA-12449_handling-painted-models/{}.obj", filename));
+    for (CGAL::SM_Vertex_index vertex : vertices(exported_mesh))
+    {
+        Point_3& p = exported_mesh.point(vertex);
+        p = Point_3(p.x() * 0.001, p.y() * 0.001, p.z() * 0.001);
+    }
+    CGAL::IO::write_OBJ(out, exported_mesh);
+}
+
 class VoxelGrid
 {
 public:
@@ -298,9 +312,8 @@ public:
 public:
     explicit VoxelGrid(const CGAL::Bbox_3& bounding_box, const coord_t max_resolution)
     {
-        const CGAL::Bbox_3 expanded_bounding_box = expand(bounding_box, max_resolution * 2);
-        origin_ = Vector_3(expanded_bounding_box.xmin(), expanded_bounding_box.ymin(), expanded_bounding_box.zmin());
-        resolution_ = Point_3(expanded_bounding_box.x_span(), expanded_bounding_box.y_span(), expanded_bounding_box.z_span());
+        origin_ = Vector_3(bounding_box.xmin(), bounding_box.ymin(), bounding_box.zmin());
+        resolution_ = Point_3(bounding_box.x_span(), bounding_box.y_span(), bounding_box.z_span());
 
         double actual_max_resolution;
         max_coordinate_ = 1;
@@ -315,6 +328,11 @@ public:
     const Point_3& getResolution() const
     {
         return resolution_;
+    }
+
+    uint32_t getMaxCoordinates() const
+    {
+        return max_coordinate_;
     }
 
     Point_3 toGlobalCoordinates(const LocalCoordinates& position, const bool at_center = false) const
@@ -347,6 +365,22 @@ public:
                 result = occupation.second;
             });
         return result;
+    }
+
+    void exportToFile(const std::string& basename) const
+    {
+        std::map<uint8_t, PolygonMesh> meshes;
+
+        occupied_voxels_.visit_all(
+            [&meshes, this](const auto& voxel)
+            {
+                meshes[voxel.second].add_vertex(toGlobalCoordinates(voxel.first));
+            });
+
+        for (auto iterator = meshes.begin(); iterator != meshes.end(); ++iterator)
+        {
+            exportMesh(iterator->second, fmt::format("{}_{}", basename, iterator->first));
+        }
     }
 
     template<class... Args>
@@ -720,41 +754,83 @@ std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
     return meshes_vec;
 }
 
-std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+std::vector<Shape> sliceMesh(const Mesh& base_mesh, const VoxelGrid& rasterized_mesh)
+{
+    const coord_t thickness = rasterized_mesh.getResolution().z();
+    const coord_t initial_layer_thickness = thickness;
+    constexpr bool use_variable_layer_heights = false;
+    constexpr std::vector<AdaptiveLayer>* adaptive_layers = nullptr;
+    constexpr SlicingTolerance slicing_tolerance = SlicingTolerance::INCLUSIVE;
+
+    // There is some margin in the voxel grid around the mesh, so get the actual mesh bounding box and see how many layers are actually covered
+    AABB3D mesh_bounding_box = base_mesh.getAABB();
+    const size_t margin_below_mesh = rasterized_mesh.toLocalZ(mesh_bounding_box.min_.z_);
+    const size_t slice_layer_count = rasterized_mesh.toLocalZ(mesh_bounding_box.max_.z_) - margin_below_mesh + 1;
+
+    const double xy_offset = INT2MM(std::max(rasterized_mesh.getResolution().x(), rasterized_mesh.getResolution().y()) * 3);
+    Mesh sliced_mesh = base_mesh;
+    sliced_mesh.settings_.add("xy_offset", std::to_string(xy_offset));
+    sliced_mesh.settings_.add("xy_offset_layer_0", "0");
+    sliced_mesh.settings_.add("hole_xy_offset", "0");
+    sliced_mesh.settings_.add("hole_xy_offset_max_diameter", "0");
+
+    Slicer slicer(&sliced_mesh, thickness, slice_layer_count, use_variable_layer_heights, adaptive_layers, slicing_tolerance, initial_layer_thickness);
+
+    // In order to re-create an offset on the Z direction, union the sliced shapes over a few layers so that we get an approximate outer shell of it
+    std::vector<Shape> slices;
+    for (std::ptrdiff_t layer_index = 0; layer_index < rasterized_mesh.getMaxCoordinates(); ++layer_index)
+    {
+        Shape expanded_shape;
+        for (std::ptrdiff_t delta = -3; delta <= 3; ++delta)
+        {
+            std::ptrdiff_t union_layer_index = layer_index + delta - margin_below_mesh;
+            if (union_layer_index >= 0 && static_cast<size_t>(union_layer_index) < slicer.layers.size())
+            {
+                expanded_shape = expanded_shape.unionPolygons(slicer.layers[union_layer_index].polygons_);
+            }
+        }
+        slices.push_back(expanded_shape);
+    }
+    return slices;
+}
+
+bool is_inside(const VoxelGrid& voxel_grid, const VoxelGrid::LocalCoordinates& position, const std::vector<Shape>& sliced_mesh)
+{
+    const Point_3 global_position = voxel_grid.toGlobalCoordinates(position);
+    constexpr bool border_result = true;
+    return sliced_mesh.at(position.position.z).inside(Point2LL(global_position.x(), global_position.y()), border_result);
+}
+
+std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const Mesh& base_mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
 
-    // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder to
-    // assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
+    // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder
+    // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
     spdlog::debug("Fill original voxels based on texture data");
-    CGAL::Bbox_3 bounding_box = CGAL::Polygon_mesh_processing::bbox(mesh);
     auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
-    VoxelGrid voxel_space(bounding_box, resolution);
-    if (! makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_space))
+    CGAL::Bbox_3 bounding_box = expand(CGAL::Polygon_mesh_processing::bbox(mesh), resolution * 2);
+    VoxelGrid voxel_grid(bounding_box, resolution);
+    if (! makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_grid))
     {
         // Texture is filled with 0s, don't bother doing anything
         return {};
     }
 
     spdlog::debug("Prepare AABB trees for fast look-up");
-    LookupTree tree = makeLookupTreeFromVoxelGrid(voxel_space);
+    LookupTree tree = makeLookupTreeFromVoxelGrid(voxel_grid);
 
     const auto deepness = settings.get<coord_t>("multi_material_paint_deepness");
-    const Point_3& spatial_resolution = voxel_space.getResolution();
+    const Point_3& spatial_resolution = voxel_grid.getResolution();
     const coord_t deepness_squared = deepness * deepness;
 
-    // Generate a clean and approximate version of the mesh by alpha-wrapping it, so that we can do proper and fast inside-mesh checking
-    spdlog::debug("prepare alpha mesh");
-    PolygonMesh alpha_mesh;
-    constexpr double alpha = 2000.0;
-    const double offset = resolution * 2.0;
-    CGAL::alpha_wrap_3(mesh, alpha, offset, alpha_mesh);
-    CGAL::Side_of_triangle_mesh<PolygonMesh, Kernel> inside_mesh(alpha_mesh);
+    // Create a slice of the mesh so that we can quickly check for points insideness
+    std::vector<Shape> sliced_mesh = sliceMesh(base_mesh, voxel_grid);
     bool check_inside = true;
 
     spdlog::debug("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
-    voxel_space.visitOccupiedVoxels(
+    voxel_grid.visitOccupiedVoxels(
         [&previously_evaluated_voxels](const auto& voxel)
         {
             if (voxel.second > 0)
@@ -762,6 +838,8 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
                 previously_evaluated_voxels.insert(voxel.first);
             };
         });
+
+    uint32_t iteration = 0;
 
     while (! previously_evaluated_voxels.empty())
     {
@@ -777,7 +855,7 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
 #endif
             [&](const VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
             {
-                for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_space.getVoxelsAround(previously_evaluated_voxel))
+                for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(previously_evaluated_voxel))
                 {
                     if (voxels_to_evaluate.contains(voxel_around))
                     {
@@ -785,7 +863,7 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
                         continue;
                     }
 
-                    const std::optional<uint8_t> occupation = voxel_space.getOccupation(voxel_around);
+                    const std::optional<uint8_t> occupation = voxel_grid.getOccupation(voxel_around);
                     if (occupation.has_value())
                     {
                         // Voxel is already filled, don't evaluate it anyhow
@@ -795,10 +873,10 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
                     bool evaluate_voxel;
                     if (check_inside)
                     {
-                        evaluate_voxel = inside_mesh(voxel_space.toGlobalCoordinates(voxel_around)) != CGAL::ON_UNBOUNDED_SIDE;
+                        evaluate_voxel = is_inside(voxel_grid, voxel_around, sliced_mesh);
                         if (! evaluate_voxel)
                         {
-                            voxel_space.setOccupation(voxel_around, 0);
+                            voxel_grid.setOccupation(voxel_around, 0);
 
                             // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
                             // is complete and we are only growing inside, thus we can skip checking for insideness
@@ -819,7 +897,7 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
 
         if (check_inside && ! keep_checking_inside.load())
         {
-            spdlog::debug("Stop checking for voxels insideness");
+            spdlog::debug("Stop checking for voxels insideness at iteration {}", iteration);
             check_inside = false;
         }
 
@@ -829,9 +907,9 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
 #ifdef __cpp_lib_execution
             std::execution::par,
 #endif
-            [&voxel_space, &tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+            [&voxel_grid, &tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
             {
-                const Point_3 position = voxel_space.toGlobalCoordinates(voxel_to_evaluate);
+                const Point_3 position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
 
                 // Define a query point
                 Boost_Point3D query_point = { position.x(), position.y(), position.z() };
@@ -845,11 +923,11 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
                     const Pixel3D& closest_neighbor = nearest_neighbors.front();
                     const Vector_3 diff = position - closest_neighbor.position;
                     const uint8_t new_occupation = diff.squared_length() <= deepness_squared ? closest_neighbor.occupation : 0;
-                    voxel_space.setOccupation(voxel_to_evaluate, new_occupation);
+                    voxel_grid.setOccupation(voxel_to_evaluate, new_occupation);
                 }
                 else
                 {
-                    voxel_space.setOccupation(voxel_to_evaluate, 0);
+                    voxel_grid.setOccupation(voxel_to_evaluate, 0);
                 }
             });
 
@@ -861,13 +939,13 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
 #ifdef __cpp_lib_execution
             std::execution::par,
 #endif
-            [&voxel_space, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
+            [&voxel_grid, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
             {
                 bool has_various_voxels_around = false;
-                uint8_t actual_occupation = voxel_space.getOccupation(evaluated_voxel).value();
-                for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_space.getVoxelsAround(evaluated_voxel))
+                uint8_t actual_occupation = voxel_grid.getOccupation(evaluated_voxel).value();
+                for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(evaluated_voxel))
                 {
-                    std::optional<uint8_t> around_occupation = voxel_space.getOccupation(voxel_around);
+                    std::optional<uint8_t> around_occupation = voxel_grid.getOccupation(voxel_around);
                     if (around_occupation.has_value() && around_occupation.value() != actual_occupation)
                     {
                         has_various_voxels_around = true;
@@ -880,10 +958,14 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const std::shared_
                     previously_evaluated_voxels.emplace(evaluated_voxel);
                 }
             });
+
+        ++iteration;
     }
 
+    // voxel_grid.exportToFile("final_grid");
+
     spdlog::debug("Make meshes from points clouds");
-    return makeMeshesFromPointsClouds2(voxel_space);
+    return makeMeshesFromPointsClouds2(voxel_grid);
 }
 
 void makeMaterialModifierMeshes(Mesh& mesh, MeshGroup* meshgroup)
@@ -941,9 +1023,9 @@ void makeMaterialModifierMeshes(Mesh& mesh, MeshGroup* meshgroup)
 
     const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
 
-    for (const Mesh& mesh : makeModifierMeshes(converted_mesh, texture_data_provider))
+    for (const Mesh& modifier_mesh : makeModifierMeshes(converted_mesh, mesh, texture_data_provider))
     {
-        meshgroup->meshes.push_back(mesh);
+        meshgroup->meshes.push_back(modifier_mesh);
     }
 
     spdlog::info("Multi-material mesh generation took {} seconds", timer.elapsed().count());
