@@ -631,6 +631,27 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
     return lookup_tree;
 }
 
+union ContourKey
+{
+    uint32_t key;
+    struct
+    {
+        uint16_t z;
+        uint8_t extruder;
+        uint8_t black_hole{ 0 }; // Don't place anything in there, or it would be lost forever (it exists only to properly set the 4th byte of the key)
+    } definition;
+};
+
+std::size_t hash_value(ContourKey const& contour_key)
+{
+    return boost::hash<uint64_t>()(contour_key.key);
+}
+
+bool operator==(const ContourKey& key1, const ContourKey& key2)
+{
+    return key1.key == key2.key;
+}
+
 std::vector<Mesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel_grid)
 {
     spdlog::debug("Make meshes from points clouds");
@@ -685,46 +706,57 @@ std::vector<Mesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel_grid)
         OpenLinesSet segments; // Single segments before stitching
         Shape polygons; // Assembled polygons
     };
-    boost::concurrent_flat_map<uint16_t, Contour> raw_contours;
+
+    boost::concurrent_flat_map<ContourKey, Contour> raw_contours;
     marching_squares.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
         [&voxel_grid, &raw_contours, &half_res_x, &half_res_y, &marching_segments](const VoxelGrid::LocalCoordinates square_start)
         {
-            int32_t x_plus1 = static_cast<int32_t>(square_start.position.x) + 1;
-            bool x_plus1_valid = x_plus1 <= std::numeric_limits<uint16_t>::max();
-            int32_t y_plus1 = static_cast<int32_t>(square_start.position.y) + 1;
-            bool y_plus1_valid = y_plus1 <= std::numeric_limits<uint16_t>::max();
+            const int32_t x_plus1 = static_cast<int32_t>(square_start.position.x) + 1;
+            const bool x_plus1_valid = x_plus1 <= std::numeric_limits<uint16_t>::max();
+            const int32_t y_plus1 = static_cast<int32_t>(square_start.position.y) + 1;
+            const bool y_plus1_valid = y_plus1 <= std::numeric_limits<uint16_t>::max();
 
-            uint8_t occupation_bit0
+            const uint8_t occupation_bit0
                 = x_plus1_valid && y_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x_plus1, y_plus1, square_start.position.z)).value_or(0) : 0;
-            uint8_t occupation_bit1
+            const uint8_t occupation_bit1
                 = y_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(square_start.position.x, y_plus1, square_start.position.z)).value_or(0) : 0;
-            uint8_t occupation_bit2
+            const uint8_t occupation_bit2
                 = x_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x_plus1, square_start.position.y, square_start.position.z)).value_or(0) : 0;
-            uint8_t occupation_bit3 = voxel_grid.getOccupation(square_start).value_or(0);
+            const uint8_t occupation_bit3 = voxel_grid.getOccupation(square_start).value_or(0);
 
-            size_t segments_index = (occupation_bit0 ? 1 : 0) + ((occupation_bit1 ? 1 : 0) << 1) + ((occupation_bit2 ? 1 : 0) << 2) + ((occupation_bit3 ? 1 : 0) << 3);
-            OpenLinesSet translated_segments = marching_segments[segments_index];
-
-            Point_3 center_position = voxel_grid.toGlobalCoordinates(square_start);
-            center_position += Vector_3(half_res_x, half_res_y, 0);
-            Point2LL center_position_ll(center_position.x(), center_position.y());
-            for (OpenPolyline& lines_set : translated_segments)
+            std::unordered_set<uint8_t> extruders = { occupation_bit0, occupation_bit1, occupation_bit2, occupation_bit3 };
+            for (const uint8_t extruder : extruders)
             {
-                for (Point2LL& point : lines_set)
+                if (extruder == 0)
                 {
-                    point += center_position_ll;
+                    continue;
                 }
-            }
 
-            raw_contours.emplace_or_visit(
-                std::make_pair(square_start.position.z, Contour{ .segments = translated_segments }),
-                [&translated_segments](auto& plane_contour)
+                size_t segments_index = (occupation_bit0 == extruder ? 1 : 0) + ((occupation_bit1 == extruder ? 1 : 0) << 1) + ((occupation_bit2 == extruder ? 1 : 0) << 2)
+                                      + ((occupation_bit3 == extruder ? 1 : 0) << 3);
+                OpenLinesSet translated_segments = marching_segments[segments_index];
+
+                Point_3 center_position = voxel_grid.toGlobalCoordinates(square_start);
+                center_position += Vector_3(half_res_x, half_res_y, 0);
+                Point2LL center_position_ll(center_position.x(), center_position.y());
+                for (OpenPolyline& lines_set : translated_segments)
                 {
-                    plane_contour.second.segments.push_back(translated_segments);
-                });
+                    for (Point2LL& point : lines_set)
+                    {
+                        point += center_position_ll;
+                    }
+                }
+
+                raw_contours.emplace_or_visit(
+                    std::make_pair(ContourKey{ .definition = { square_start.position.z, extruder } }, Contour{ .segments = translated_segments }),
+                    [&translated_segments](auto& plane_contour)
+                    {
+                        plane_contour.second.segments.push_back(translated_segments);
+                    });
+            }
         });
 
     raw_contours.visit_all(
@@ -748,9 +780,10 @@ std::vector<Mesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel_grid)
 #endif
         [&simplifier, &voxel_grid, &meshes, &mutex](const auto& contour)
         {
-            uint16_t z = contour.first;
-            double z_low = voxel_grid.toGlobalZ(z, false);
-            double z_high = voxel_grid.toGlobalZ(z + 1, false);
+            const uint16_t z = contour.first.definition.z;
+            const uint8_t extruder = contour.first.definition.extruder;
+            const coord_t z_low = voxel_grid.toGlobalZ(z, false);
+            const coord_t z_high = voxel_grid.toGlobalZ(z + 1, false);
 
             for (const Polygon& polygon : contour.second.polygons)
             {
@@ -758,17 +791,18 @@ std::vector<Mesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel_grid)
                 if (polygon.area() > 0)
                 {
                     const Polygon simplified_polygon = simplifier.polygon(polygon);
+
                     mutex.lock();
-                    auto mesh_iterator = meshes.find(1);
+                    const auto mesh_iterator = meshes.find(extruder);
                     if (mesh_iterator == meshes.end())
                     {
-                        Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(1).settings_);
+                        Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(extruder).settings_);
                         mesh.settings_.add("cutting_mesh", "true");
-                        mesh.settings_.add("extruder_nr", std::to_string(1));
-                        meshes.insert({ 1, mesh });
+                        mesh.settings_.add("extruder_nr", std::to_string(extruder));
+                        meshes.insert({ extruder, mesh });
                     }
 
-                    Mesh& mesh = meshes[1];
+                    Mesh& mesh = meshes[extruder];
                     for (auto iterator = simplified_polygon.beginSegments(); iterator != simplified_polygon.endSegments(); ++iterator)
                     {
                         const Point2LL& start = (*iterator).start;
