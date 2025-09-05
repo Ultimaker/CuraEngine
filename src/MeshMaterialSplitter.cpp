@@ -29,6 +29,7 @@
 #include "geometry/Shape.h"
 #include "mesh.h"
 #include "slicer.h"
+#include "utils/OBJ.h"
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 
@@ -335,7 +336,7 @@ public:
         return max_coordinate_;
     }
 
-    Point_3 toGlobalCoordinates(const LocalCoordinates& position, const bool at_center = false) const
+    Point_3 toGlobalCoordinates(const LocalCoordinates& position, const bool at_center = true) const
     {
         return Point_3(toGlobalX(position.position.x, at_center), toGlobalY(position.position.y, at_center), toGlobalZ(position.position.z, at_center));
     }
@@ -454,7 +455,7 @@ public:
         return (x - origin_.x()) / resolution_.x();
     }
 
-    double toGlobalX(const uint16_t x, const bool at_center = false) const
+    double toGlobalX(const uint16_t x, const bool at_center = true) const
     {
         return (x * resolution_.x()) + origin_.x() + (at_center ? resolution_.x() / 2.0 : 0.0);
     }
@@ -464,7 +465,7 @@ public:
         return (y - origin_.y()) / resolution_.y();
     }
 
-    double toGlobalY(const uint16_t y, const bool at_center = false) const
+    double toGlobalY(const uint16_t y, const bool at_center = true) const
     {
         return (y * resolution_.y()) + origin_.y() + (at_center ? resolution_.y() / 2.0 : 0.0);
     }
@@ -474,7 +475,7 @@ public:
         return (z - origin_.z()) / resolution_.z();
     }
 
-    double toGlobalZ(const uint16_t z, const bool at_center = false) const
+    double toGlobalZ(const uint16_t z, const bool at_center = true) const
     {
         return (z * resolution_.z()) + origin_.z() + (at_center ? resolution_.z() / 2.0 : 0.0);
     }
@@ -505,8 +506,8 @@ public:
         const uint16_t xmax = std::max({ p0.x, p1.x, p2.x });
         for (uint16_t x = xmin; x <= xmax; ++x)
         {
-            const double layer_start_x = toGlobalX(x);
-            const double layer_end_x = toGlobalX(x + 1);
+            const double layer_start_x = toGlobalX(x, false);
+            const double layer_end_x = toGlobalX(x + 1, false);
             const std::optional<ParameterizedSegment> s1_inter_x = s1.intersectionWithXLayer(layer_start_x, layer_end_x);
             const std::optional<ParameterizedSegment> s2_inter_x = s2.intersectionWithXLayer(layer_start_x, layer_end_x);
             const std::optional<ParameterizedSegment> s3_inter_x = s3.intersectionWithXLayer(layer_start_x, layer_end_x);
@@ -531,8 +532,8 @@ public:
 
             for (uint16_t y = ymin; y <= ymax; ++y)
             {
-                const double layer_start_y = toGlobalY(y);
-                const double layer_end_y = toGlobalY(y + 1);
+                const double layer_start_y = toGlobalY(y, false);
+                const double layer_end_y = toGlobalY(y + 1, false);
                 const std::optional<ParameterizedSegment> s1_inter_y = s1.intersectionWithYLayer(layer_start_y, layer_end_y);
                 const std::optional<ParameterizedSegment> s2_inter_y = s2.intersectionWithYLayer(layer_start_y, layer_end_y);
                 const std::optional<ParameterizedSegment> s3_inter_y = s3.intersectionWithYLayer(layer_start_y, layer_end_y);
@@ -659,6 +660,7 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
 
 std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
 {
+    spdlog::debug("Make meshes from points clouds");
     std::map<uint8_t, Mesh> meshes;
 
     using FaceIndices = std::array<size_t, 3>;
@@ -669,15 +671,15 @@ std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
     const double half_res_y = voxel_grid.getResolution().y() / 2;
     const double half_res_z = voxel_grid.getResolution().z() / 2;
 
-    std::array<Point3LL, 8> cube_points;
-    cube_points[0] = Point3LL(half_res_x, -half_res_y, -half_res_z);
-    cube_points[1] = Point3LL(half_res_x, half_res_y, -half_res_z);
-    cube_points[2] = Point3LL(half_res_x, half_res_y, half_res_z);
-    cube_points[3] = Point3LL(half_res_x, -half_res_y, half_res_z);
-    cube_points[4] = Point3LL(-half_res_x, -half_res_y, -half_res_z);
-    cube_points[5] = Point3LL(-half_res_x, half_res_y, -half_res_z);
-    cube_points[6] = Point3LL(-half_res_x, half_res_y, half_res_z);
-    cube_points[7] = Point3LL(-half_res_x, -half_res_y, half_res_z);
+    std::array<Vector_3, 8> cube_points;
+    cube_points[0] = Vector_3(half_res_x, -half_res_y, -half_res_z);
+    cube_points[1] = Vector_3(half_res_x, half_res_y, -half_res_z);
+    cube_points[2] = Vector_3(half_res_x, half_res_y, half_res_z);
+    cube_points[3] = Vector_3(half_res_x, -half_res_y, half_res_z);
+    cube_points[4] = Vector_3(-half_res_x, -half_res_y, -half_res_z);
+    cube_points[5] = Vector_3(-half_res_x, half_res_y, -half_res_z);
+    cube_points[6] = Vector_3(-half_res_x, half_res_y, half_res_z);
+    cube_points[7] = Vector_3(-half_res_x, -half_res_y, half_res_z);
 
     faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(1, 0, 0), { FaceIndices{ 0, 1, 2 }, FaceIndices{ 2, 3, 0 } } });
     faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(-1, 0, 0), { FaceIndices{ 5, 4, 7 }, FaceIndices{ 7, 6, 5 } } });
@@ -701,7 +703,7 @@ std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
 #endif
         [&faces_to_add, &voxel_grid, &meshes, &mutex, &cube_points](const auto& occupied_voxel)
         {
-            const Point_3 current_position = voxel_grid.toGlobalCoordinates(occupied_voxel.first, true);
+            const Point_3 current_position = voxel_grid.toGlobalCoordinates(occupied_voxel.first);
             const Point3LL current_position_ll(current_position.x(), current_position.y(), current_position.z());
 
             for (const auto& face_to_add : faces_to_add)
@@ -735,10 +737,10 @@ std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
                     Mesh& mesh = meshes[occupied_voxel.second];
                     for (const FaceIndices& face_indices : face_to_add.second)
                     {
-                        mesh.addFace(
-                            current_position_ll + cube_points[face_indices[0]],
-                            current_position_ll + cube_points[face_indices[1]],
-                            current_position_ll + cube_points[face_indices[2]]);
+                        Point_3 p0 = current_position + cube_points[face_indices[0]];
+                        Point_3 p1 = current_position + cube_points[face_indices[1]];
+                        Point_3 p2 = current_position + cube_points[face_indices[2]];
+                        mesh.addFace(Point3LL(p0.x(), p0.y(), p0.z()), Point3LL(p1.x(), p1.y(), p1.z()), Point3LL(p2.x(), p2.y(), p2.z()));
                     }
 
                     mutex.unlock();
@@ -746,9 +748,12 @@ std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
             }
         });
 
+    spdlog::debug("Export final mesh");
     std::vector<Mesh> meshes_vec;
     for (Mesh& mesh : meshes | ranges::views::values)
     {
+        OBJ obj("/home/erwan/test/CURA-12449_handling-painted-models/modifier_mesh.obj");
+        obj.writeMesh(mesh);
         meshes_vec.push_back(std::move(mesh));
     }
     return meshes_vec;
@@ -767,7 +772,7 @@ std::vector<Shape> sliceMesh(const Mesh& base_mesh, const VoxelGrid& rasterized_
     const size_t margin_below_mesh = rasterized_mesh.toLocalZ(mesh_bounding_box.min_.z_);
     const size_t slice_layer_count = rasterized_mesh.toLocalZ(mesh_bounding_box.max_.z_) - margin_below_mesh + 1;
 
-    const double xy_offset = INT2MM(std::max(rasterized_mesh.getResolution().x(), rasterized_mesh.getResolution().y()) * 3);
+    const double xy_offset = INT2MM(std::min(rasterized_mesh.getResolution().x(), rasterized_mesh.getResolution().y()));
     Mesh sliced_mesh = base_mesh;
     sliced_mesh.settings_.add("xy_offset", std::to_string(xy_offset));
     sliced_mesh.settings_.add("xy_offset_layer_0", "0");
@@ -781,7 +786,7 @@ std::vector<Shape> sliceMesh(const Mesh& base_mesh, const VoxelGrid& rasterized_
     for (std::ptrdiff_t layer_index = 0; layer_index < rasterized_mesh.getMaxCoordinates(); ++layer_index)
     {
         Shape expanded_shape;
-        for (std::ptrdiff_t delta = -3; delta <= 3; ++delta)
+        for (std::ptrdiff_t delta = -1; delta <= 1; ++delta)
         {
             std::ptrdiff_t union_layer_index = layer_index + delta - margin_below_mesh;
             if (union_layer_index >= 0 && static_cast<size_t>(union_layer_index) < slicer.layers.size())
@@ -794,7 +799,7 @@ std::vector<Shape> sliceMesh(const Mesh& base_mesh, const VoxelGrid& rasterized_
     return slices;
 }
 
-bool is_inside(const VoxelGrid& voxel_grid, const VoxelGrid::LocalCoordinates& position, const std::vector<Shape>& sliced_mesh)
+bool isInside(const VoxelGrid& voxel_grid, const VoxelGrid::LocalCoordinates& position, const std::vector<Shape>& sliced_mesh)
 {
     const Point_3 global_position = voxel_grid.toGlobalCoordinates(position);
     constexpr bool border_result = true;
@@ -809,7 +814,7 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const Mesh& base_m
     // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
     spdlog::debug("Fill original voxels based on texture data");
     auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
-    CGAL::Bbox_3 bounding_box = expand(CGAL::Polygon_mesh_processing::bbox(mesh), resolution * 2);
+    CGAL::Bbox_3 bounding_box = expand(CGAL::Polygon_mesh_processing::bbox(mesh), resolution * 4);
     VoxelGrid voxel_grid(bounding_box, resolution);
     if (! makeInitialVoxelSpaceFromTexture(mesh, texture_data_provider, voxel_grid))
     {
@@ -912,7 +917,7 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const Mesh& base_m
                 const Point_3 position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
 
                 // Define a query point
-                Boost_Point3D query_point = { position.x(), position.y(), position.z() };
+                const Boost_Point3D query_point = { position.x(), position.y(), position.z() };
 
                 // Find the nearest neighbor
                 std::vector<Pixel3D> nearest_neighbors;
@@ -964,7 +969,6 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const Mesh& base_m
 
     // voxel_grid.exportToFile("final_grid");
 
-    spdlog::debug("Make meshes from points clouds");
     return makeMeshesFromPointsClouds2(voxel_grid);
 }
 
