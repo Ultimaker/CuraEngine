@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <limits>
 
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 #include "utils/linearAlg2D.h"
@@ -33,6 +34,13 @@ AABB::AABB(const Shape& shape)
     calculate(shape);
 }
 
+AABB::AABB(const OpenLinesSet& lines)
+    : min_(POINT_MAX, POINT_MAX)
+    , max_(POINT_MIN, POINT_MIN)
+{
+    calculate(lines);
+}
+
 AABB::AABB(const PointsSet& poly)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
@@ -50,24 +58,26 @@ coord_t AABB::distanceSquared(const Point2LL& p) const
     const Point2LL a = Point2LL(max_.X, min_.Y);
     const Point2LL b = Point2LL(min_.X, max_.Y);
     return (contains(p) ? -1 : 1)
-         * std::min({ LinearAlg2D::getDist2FromLineSegment(min_, a, p),
-                      LinearAlg2D::getDist2FromLineSegment(a, max_, p),
-                      LinearAlg2D::getDist2FromLineSegment(max_, b, p),
-                      LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
+         * std::min(
+               { LinearAlg2D::getDist2FromLineSegment(min_, a, p),
+                 LinearAlg2D::getDist2FromLineSegment(a, max_, p),
+                 LinearAlg2D::getDist2FromLineSegment(max_, b, p),
+                 LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
 }
 
 coord_t AABB::distanceSquared(const AABB& other) const
 {
-    return std::min({
-        distanceSquared(other.min_),
-        other.distanceSquared(min_),
-        distanceSquared(other.max_),
-        other.distanceSquared(max_),
-        distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
-        other.distanceSquared(Point2LL(max_.X, min_.Y)),
-        distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
-        other.distanceSquared(Point2LL(min_.X, max_.Y)),
-    });
+    return std::min(
+        {
+            distanceSquared(other.min_),
+            other.distanceSquared(min_),
+            distanceSquared(other.max_),
+            other.distanceSquared(max_),
+            distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
+            other.distanceSquared(Point2LL(max_.X, min_.Y)),
+            distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
+            other.distanceSquared(Point2LL(min_.X, max_.Y)),
+        });
 }
 
 void AABB::calculate(const Shape& shape)
@@ -77,6 +87,19 @@ void AABB::calculate(const Shape& shape)
     for (const Polygon& poly : shape)
     {
         for (const Point2LL& point : poly)
+        {
+            include(point);
+        }
+    }
+}
+
+void AABB::calculate(const OpenLinesSet& lines)
+{
+    min_ = Point2LL(POINT_MAX, POINT_MAX);
+    max_ = Point2LL(POINT_MIN, POINT_MIN);
+    for (const OpenPolyline& line : lines)
+    {
+        for (const Point2LL& point : line)
         {
             include(point);
         }

@@ -25,11 +25,13 @@
 #include "MeshGroup.h"
 #include "Slice.h"
 #include "TextureDataProvider.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
 #include "mesh.h"
 #include "slicer.h"
-#include "utils/OBJ.h"
+#include "utils/OpenPolylineStitcher.h"
+#include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/gettime.h"
 
@@ -250,19 +252,6 @@ private:
     Point_3 end_;
 };
 
-void exportMesh(const PolygonMesh& mesh, const std::string& filename)
-{
-    PolygonMesh exported_mesh = mesh;
-
-    std::ofstream out(fmt::format("/home/erwan/test/CURA-12449_handling-painted-models/{}.obj", filename));
-    for (CGAL::SM_Vertex_index vertex : vertices(exported_mesh))
-    {
-        Point_3& p = exported_mesh.point(vertex);
-        p = Point_3(p.x() * 0.001, p.y() * 0.001, p.z() * 0.001);
-    }
-    CGAL::IO::write_OBJ(out, exported_mesh);
-}
-
 class VoxelGrid
 {
 public:
@@ -366,22 +355,6 @@ public:
                 result = occupation.second;
             });
         return result;
-    }
-
-    void exportToFile(const std::string& basename) const
-    {
-        std::map<uint8_t, PolygonMesh> meshes;
-
-        occupied_voxels_.visit_all(
-            [&meshes, this](const auto& voxel)
-            {
-                meshes[voxel.second].add_vertex(toGlobalCoordinates(voxel.first));
-            });
-
-        for (auto iterator = meshes.begin(); iterator != meshes.end(); ++iterator)
-        {
-            exportMesh(iterator->second, fmt::format("{}_{}", basename, iterator->first));
-        }
     }
 
     template<class... Args>
@@ -658,89 +631,150 @@ LookupTree makeLookupTreeFromVoxelGrid(VoxelGrid& voxel_grid)
     return lookup_tree;
 }
 
-std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
+std::vector<Mesh> makeMeshesFromPointsClouds(const VoxelGrid& voxel_grid)
 {
     spdlog::debug("Make meshes from points clouds");
-    std::map<uint8_t, Mesh> meshes;
 
-    using FaceIndices = std::array<size_t, 3>;
-    using AddedFace = std::array<FaceIndices, 2>;
-    std::vector<std::pair<VoxelGrid::SimplePoint_3S16, AddedFace>> faces_to_add;
-
-    const double half_res_x = voxel_grid.getResolution().x() / 2;
-    const double half_res_y = voxel_grid.getResolution().y() / 2;
-    const double half_res_z = voxel_grid.getResolution().z() / 2;
-
-    std::array<Vector_3, 8> cube_points;
-    cube_points[0] = Vector_3(half_res_x, -half_res_y, -half_res_z);
-    cube_points[1] = Vector_3(half_res_x, half_res_y, -half_res_z);
-    cube_points[2] = Vector_3(half_res_x, half_res_y, half_res_z);
-    cube_points[3] = Vector_3(half_res_x, -half_res_y, half_res_z);
-    cube_points[4] = Vector_3(-half_res_x, -half_res_y, -half_res_z);
-    cube_points[5] = Vector_3(-half_res_x, half_res_y, -half_res_z);
-    cube_points[6] = Vector_3(-half_res_x, half_res_y, half_res_z);
-    cube_points[7] = Vector_3(-half_res_x, -half_res_y, half_res_z);
-
-    faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(1, 0, 0), { FaceIndices{ 0, 1, 2 }, FaceIndices{ 2, 3, 0 } } });
-    faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(-1, 0, 0), { FaceIndices{ 5, 4, 7 }, FaceIndices{ 7, 6, 5 } } });
-    faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(0, 1, 0), { FaceIndices{ 1, 5, 6 }, FaceIndices{ 6, 2, 1 } } });
-    faces_to_add.push_back({ VoxelGrid::SimplePoint_3S16(0, -1, 0), { FaceIndices{ 4, 0, 3 }, FaceIndices{ 3, 7, 4 } } });
-
-    boost::concurrent_flat_map<VoxelGrid::LocalCoordinates, uint8_t> occupied_voxels;
+    // Gather all positions that should be considered for a marching square, e.g. all that have a non-null extruder and around them
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> marching_squares;
     voxel_grid.visitOccupiedVoxels(
-        [&occupied_voxels](const auto& occupied_voxel)
+        [&marching_squares](const auto& occupied_voxel)
         {
             if (occupied_voxel.second > 0)
             {
-                occupied_voxels.emplace(occupied_voxel.first, occupied_voxel.second);
+                marching_squares.insert(occupied_voxel.first);
+                if (occupied_voxel.first.position.x > 0)
+                {
+                    marching_squares.insert(VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x - 1, occupied_voxel.first.position.y, occupied_voxel.first.position.z));
+                }
+                if (occupied_voxel.first.position.y > 0)
+                {
+                    marching_squares.insert(VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x, occupied_voxel.first.position.y - 1, occupied_voxel.first.position.z));
+                }
+                if (occupied_voxel.first.position.x > 0 && occupied_voxel.first.position.y > 0)
+                {
+                    marching_squares.insert(VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x - 1, occupied_voxel.first.position.y - 1, occupied_voxel.first.position.z));
+                }
             }
         });
 
-    std::mutex mutex;
-    occupied_voxels.cvisit_all(
+    // Build the cached list of segments to be added
+    const double half_res_x = voxel_grid.getResolution().x() / 2;
+    const double half_res_y = voxel_grid.getResolution().y() / 2;
+    std::array<OpenLinesSet, 16> marching_segments;
+    // marching_segments[0] = OpenLinesSet(); // This case is empty
+    marching_segments[1] = OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(half_res_x, 0) }) };
+    marching_segments[2] = OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, half_res_y) }) };
+    marching_segments[3] = OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(half_res_x, 0) }) };
+    marching_segments[4] = OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, -half_res_y) }) };
+    marching_segments[5] = OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(0, -half_res_y) }) };
+    marching_segments[6] = OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, half_res_y) }), OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, -half_res_y) }) };
+    marching_segments[7] = OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, -half_res_y) }) };
+    marching_segments[8] = OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(-half_res_x, 0) }) };
+    marching_segments[9] = OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(-half_res_x, 0) }), OpenPolyline({ Point2LL(0, half_res_y), Point2LL(half_res_x, 0) }) };
+    marching_segments[10] = OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(0, half_res_y) }) };
+    marching_segments[11] = OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(half_res_x, 0) }) };
+    marching_segments[12] = OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(-half_res_x, 0) }) };
+    marching_segments[13] = OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(-half_res_x, 0) }) };
+    marching_segments[14] = OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, half_res_y) }) };
+    // marching_segments[15] = OpenLinesSet(); // This case is empty
+
+    // Now visit all the squares and generate the appropriate outer segments
+    struct Contour
+    {
+        OpenLinesSet segments; // Single segments before stitching
+        Shape polygons; // Assembled polygons
+    };
+    boost::concurrent_flat_map<uint16_t, Contour> raw_contours;
+    marching_squares.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&faces_to_add, &voxel_grid, &meshes, &mutex, &cube_points](const auto& occupied_voxel)
+        [&voxel_grid, &raw_contours, &half_res_x, &half_res_y, &marching_segments](const VoxelGrid::LocalCoordinates square_start)
         {
-            const Point_3 current_position = voxel_grid.toGlobalCoordinates(occupied_voxel.first);
-            const Point3LL current_position_ll(current_position.x(), current_position.y(), current_position.z());
+            int32_t x_plus1 = static_cast<int32_t>(square_start.position.x) + 1;
+            bool x_plus1_valid = x_plus1 <= std::numeric_limits<uint16_t>::max();
+            int32_t y_plus1 = static_cast<int32_t>(square_start.position.y) + 1;
+            bool y_plus1_valid = y_plus1 <= std::numeric_limits<uint16_t>::max();
 
-            for (const auto& face_to_add : faces_to_add)
+            uint8_t occupation_bit0
+                = x_plus1_valid && y_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x_plus1, y_plus1, square_start.position.z)).value_or(0) : 0;
+            uint8_t occupation_bit1
+                = y_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(square_start.position.x, y_plus1, square_start.position.z)).value_or(0) : 0;
+            uint8_t occupation_bit2
+                = x_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x_plus1, square_start.position.y, square_start.position.z)).value_or(0) : 0;
+            uint8_t occupation_bit3 = voxel_grid.getOccupation(square_start).value_or(0);
+
+            size_t segments_index = (occupation_bit0 ? 1 : 0) + ((occupation_bit1 ? 1 : 0) << 1) + ((occupation_bit2 ? 1 : 0) << 2) + ((occupation_bit3 ? 1 : 0) << 3);
+            OpenLinesSet translated_segments = marching_segments[segments_index];
+
+            Point_3 center_position = voxel_grid.toGlobalCoordinates(square_start);
+            center_position += Vector_3(half_res_x, half_res_y, 0);
+            Point2LL center_position_ll(center_position.x(), center_position.y());
+            for (OpenPolyline& lines_set : translated_segments)
             {
-                int32_t x = static_cast<int32_t>(occupied_voxel.first.position.x) + face_to_add.first.x;
-                int32_t y = static_cast<int32_t>(occupied_voxel.first.position.y) + face_to_add.first.y;
-                int32_t z = static_cast<int32_t>(occupied_voxel.first.position.z) + face_to_add.first.z;
-
-                uint8_t outer_occupation;
-                if (x < 0 || x > std::numeric_limits<uint16_t>::max() || y < 0 || y > std::numeric_limits<uint16_t>::max() || z < 0 || z > std::numeric_limits<uint16_t>::max())
+                for (Point2LL& point : lines_set)
                 {
-                    outer_occupation = 0;
+                    point += center_position_ll;
                 }
-                else
-                {
-                    outer_occupation = voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x, y, z)).value_or(occupied_voxel.second);
-                }
+            }
 
-                if (outer_occupation != occupied_voxel.second)
+            raw_contours.emplace_or_visit(
+                std::make_pair(square_start.position.z, Contour{ .segments = translated_segments }),
+                [&translated_segments](auto& plane_contour)
                 {
+                    plane_contour.second.segments.push_back(translated_segments);
+                });
+        });
+
+    raw_contours.visit_all(
+#ifdef __cpp_lib_execution
+        std::execution::par,
+#endif
+        [](auto& raw_contour)
+        {
+            OpenLinesSet result_lines;
+            OpenPolylineStitcher::stitch(raw_contour.second.segments, result_lines, raw_contour.second.polygons);
+        });
+
+    const double min_distance = std::min({ voxel_grid.getResolution().x(), voxel_grid.getResolution().y(), voxel_grid.getResolution().z() }) / 2.0;
+    Simplify simplifier(min_distance, min_distance / 2, std::numeric_limits<coord_t>::max());
+
+    std::map<uint8_t, Mesh> meshes;
+    std::mutex mutex;
+    raw_contours.visit_all(
+#ifdef __cpp_lib_execution
+        std::execution::par,
+#endif
+        [&simplifier, &voxel_grid, &meshes, &mutex](const auto& contour)
+        {
+            uint16_t z = contour.first;
+            double z_low = voxel_grid.toGlobalZ(z, false);
+            double z_high = voxel_grid.toGlobalZ(z + 1, false);
+
+            for (const Polygon& polygon : contour.second.polygons)
+            {
+                // Do not export holes, only outer contours
+                if (polygon.area() > 0)
+                {
+                    const Polygon simplified_polygon = simplifier.polygon(polygon);
                     mutex.lock();
-                    auto mesh_iterator = meshes.find(occupied_voxel.second);
+                    auto mesh_iterator = meshes.find(1);
                     if (mesh_iterator == meshes.end())
                     {
-                        Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(occupied_voxel.second).settings_);
+                        Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(1).settings_);
                         mesh.settings_.add("cutting_mesh", "true");
-                        mesh.settings_.add("extruder_nr", std::to_string(occupied_voxel.second));
-                        meshes.insert({ occupied_voxel.second, mesh });
+                        mesh.settings_.add("extruder_nr", std::to_string(1));
+                        meshes.insert({ 1, mesh });
                     }
 
-                    Mesh& mesh = meshes[occupied_voxel.second];
-                    for (const FaceIndices& face_indices : face_to_add.second)
+                    Mesh& mesh = meshes[1];
+                    for (auto iterator = simplified_polygon.beginSegments(); iterator != simplified_polygon.endSegments(); ++iterator)
                     {
-                        Point_3 p0 = current_position + cube_points[face_indices[0]];
-                        Point_3 p1 = current_position + cube_points[face_indices[1]];
-                        Point_3 p2 = current_position + cube_points[face_indices[2]];
-                        mesh.addFace(Point3LL(p0.x(), p0.y(), p0.z()), Point3LL(p1.x(), p1.y(), p1.z()), Point3LL(p2.x(), p2.y(), p2.z()));
+                        const Point2LL& start = (*iterator).start;
+                        const Point2LL& end = (*iterator).end;
+                        mesh.addFace(Point3LL(start, z_low), Point3LL(end, z_low), Point3LL(end, z_high));
+                        mesh.addFace(Point3LL(end, z_high), Point3LL(start, z_high), Point3LL(start, z_low));
                     }
 
                     mutex.unlock();
@@ -748,12 +782,9 @@ std::vector<Mesh> makeMeshesFromPointsClouds2(const VoxelGrid& voxel_grid)
             }
         });
 
-    spdlog::debug("Export final mesh");
     std::vector<Mesh> meshes_vec;
     for (Mesh& mesh : meshes | ranges::views::values)
     {
-        OBJ obj("/home/erwan/test/CURA-12449_handling-painted-models/modifier_mesh.obj");
-        obj.writeMesh(mesh);
         meshes_vec.push_back(std::move(mesh));
     }
     return meshes_vec;
@@ -772,7 +803,7 @@ std::vector<Shape> sliceMesh(const Mesh& base_mesh, const VoxelGrid& rasterized_
     const size_t margin_below_mesh = rasterized_mesh.toLocalZ(mesh_bounding_box.min_.z_);
     const size_t slice_layer_count = rasterized_mesh.toLocalZ(mesh_bounding_box.max_.z_) - margin_below_mesh + 1;
 
-    const double xy_offset = INT2MM(std::min(rasterized_mesh.getResolution().x(), rasterized_mesh.getResolution().y()));
+    const double xy_offset = INT2MM(std::min(rasterized_mesh.getResolution().x(), rasterized_mesh.getResolution().y()) * 2);
     Mesh sliced_mesh = base_mesh;
     sliced_mesh.settings_.add("xy_offset", std::to_string(xy_offset));
     sliced_mesh.settings_.add("xy_offset_layer_0", "0");
@@ -786,7 +817,7 @@ std::vector<Shape> sliceMesh(const Mesh& base_mesh, const VoxelGrid& rasterized_
     for (std::ptrdiff_t layer_index = 0; layer_index < rasterized_mesh.getMaxCoordinates(); ++layer_index)
     {
         Shape expanded_shape;
-        for (std::ptrdiff_t delta = -1; delta <= 1; ++delta)
+        for (std::ptrdiff_t delta = -2; delta <= 2; ++delta)
         {
             std::ptrdiff_t union_layer_index = layer_index + delta - margin_below_mesh;
             if (union_layer_index >= 0 && static_cast<size_t>(union_layer_index) < slicer.layers.size())
@@ -878,7 +909,7 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const Mesh& base_m
                     bool evaluate_voxel;
                     if (check_inside)
                     {
-                        evaluate_voxel = is_inside(voxel_grid, voxel_around, sliced_mesh);
+                        evaluate_voxel = isInside(voxel_grid, voxel_around, sliced_mesh);
                         if (! evaluate_voxel)
                         {
                             voxel_grid.setOccupation(voxel_around, 0);
@@ -967,9 +998,7 @@ std::vector<Mesh> makeModifierMeshes(const PolygonMesh& mesh, const Mesh& base_m
         ++iteration;
     }
 
-    // voxel_grid.exportToFile("final_grid");
-
-    return makeMeshesFromPointsClouds2(voxel_grid);
+    return makeMeshesFromPointsClouds(voxel_grid);
 }
 
 void makeMaterialModifierMeshes(Mesh& mesh, MeshGroup* meshgroup)
