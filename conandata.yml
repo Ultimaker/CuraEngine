@@ -5,6 +5,6 @@ requirements:
 requirements_arcus:
   - "arcus/5.10.0"
 requirements_plugins:
-  - "curaengine_grpc_definitions/0.3.3"
+  - "curaengine_grpc_definitions/0.3.1"
 requirements_cura_resources:
   - "cura_resources/5.10.3"
