@@ -4,6 +4,8 @@
 #ifndef POINT2F_H
 #define POINT2F_H
 
+#include <cmath>
+
 namespace cura
 {
 

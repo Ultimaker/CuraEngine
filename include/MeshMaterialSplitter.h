@@ -12,7 +12,14 @@ class MeshGroup;
 
 namespace MeshMaterialSplitter
 {
-void makeMaterialModifierMeshes(Mesh& mesh, MeshGroup* meshgroup);
+
+/*!
+ * Generate a modifier mesh for every extruder other than 0, that has some user-painted texture data
+ * @param mesh The mesh being sliced
+ * @param meshgroup The group to add the modifier meshes to
+ */
+void makeMaterialModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup);
+
 } // namespace MeshMaterialSplitter
 
 } // namespace cura
