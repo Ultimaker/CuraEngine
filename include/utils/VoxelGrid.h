@@ -76,9 +76,9 @@ public:
         return resolution_;
     }
 
-    uint32_t getMaxCoordinates() const
+    Point3LL getSlicesCount() const
     {
-        return max_coordinate_;
+        return slices_count_;
     }
 
     Point3D toGlobalCoordinates(const LocalCoordinates& position, const bool at_center = true) const;
@@ -154,7 +154,7 @@ public:
 private:
     Point3D resolution_;
     Point3D origin_;
-    uint32_t max_coordinate_;
+    Point3LL slices_count_;
     boost::concurrent_flat_map<LocalCoordinates, uint8_t> occupied_voxels_;
 };
 

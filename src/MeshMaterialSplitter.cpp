@@ -348,7 +348,7 @@ std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
 
     // In order to re-create an offset on the Z direction, union the sliced shapes over a few layers so that we get an approximate outer shell of it
     std::vector<Shape> slices;
-    for (std::ptrdiff_t layer_index = 0; layer_index < rasterized_mesh.getMaxCoordinates(); ++layer_index)
+    for (std::ptrdiff_t layer_index = 0; layer_index < rasterized_mesh.getSlicesCount().z_; ++layer_index)
     {
         Shape expanded_shape;
         for (std::ptrdiff_t delta = -2; delta <= 2; ++delta)

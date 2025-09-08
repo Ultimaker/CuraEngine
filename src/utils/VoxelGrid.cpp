@@ -16,16 +16,16 @@ namespace cura
 VoxelGrid::VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution)
 {
     origin_ = Point3D(bounding_box.min_.x_, bounding_box.min_.y_, bounding_box.min_.z_);
-    resolution_ = Point3D(bounding_box.spanX(), bounding_box.spanY(), bounding_box.spanZ());
 
-    double actual_max_resolution;
-    max_coordinate_ = 1;
-    do
+    auto set_resolution = [&max_resolution](coord_t& slices_count, double& resolution, const double span)
     {
-        max_coordinate_ <<= 1;
-        resolution_ = Point3D(resolution_.x_ / 2.0, resolution_.y_ / 2.0, resolution_.z_ / 2.0);
-        actual_max_resolution = std::max({ resolution_.x_, resolution_.y_, resolution_.z_ });
-    } while (actual_max_resolution > max_resolution);
+        slices_count = static_cast<coord_t>(span / max_resolution) + 1;
+        resolution = span / slices_count;
+    };
+
+    set_resolution(slices_count_.x_, resolution_.x_, bounding_box.spanX());
+    set_resolution(slices_count_.y_, resolution_.y_, bounding_box.spanY());
+    set_resolution(slices_count_.z_, resolution_.z_, bounding_box.spanZ());
 }
 
 Point3D VoxelGrid::toGlobalCoordinates(const LocalCoordinates& position, const bool at_center) const
@@ -75,7 +75,7 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getVoxelsAround(const LocalC
     for (int8_t delta_x = -1; delta_x < 2; ++delta_x)
     {
         const int64_t pos_x = position.x + delta_x;
-        if (pos_x < 0 || pos_x >= max_coordinate_)
+        if (pos_x < 0 || pos_x >= slices_count_.x_)
         {
             continue;
         }
@@ -83,7 +83,7 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getVoxelsAround(const LocalC
         for (int8_t delta_y = -1; delta_y < 2; ++delta_y)
         {
             const int64_t pos_y = position.y + delta_y;
-            if (pos_y < 0 || pos_y >= max_coordinate_)
+            if (pos_y < 0 || pos_y >= slices_count_.y_)
             {
                 continue;
             }
@@ -91,7 +91,7 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getVoxelsAround(const LocalC
             for (int8_t delta_z = -1; delta_z < 2; ++delta_z)
             {
                 const int64_t pos_z = position.z + delta_z;
-                if (pos_z < 0 || pos_z >= max_coordinate_)
+                if (pos_z < 0 || pos_z >= slices_count_.z_)
                 {
                     continue;
                 }
