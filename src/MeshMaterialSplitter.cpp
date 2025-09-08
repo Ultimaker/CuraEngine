@@ -19,6 +19,7 @@
 #include "geometry/Triangle2F.h"
 #include "geometry/Triangle3D.h"
 #include "mesh.h"
+#include "progress/Progress.h"
 #include "slicer.h"
 #include "utils/MeshUtils.h"
 #include "utils/OpenPolylineStitcher.h"
@@ -429,12 +430,20 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
 
     uint32_t iteration = 0;
 
+    // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
+    const double bounding_box_max_deepness = std::max({ bounding_box.spanX() / 2.0, bounding_box.spanY() / 2.0, bounding_box.spanZ() / 2.0 });
+    const double estimated_min_deepness = std::min(static_cast<double>(deepness), bounding_box_max_deepness);
+    const coord_t estimated_iterations = estimated_min_deepness / resolution;
+    spdlog::debug("Estimated {} iterations", estimated_iterations);
+
     while (! previously_evaluated_voxels.empty())
     {
+        Progress::messageProgress(Progress::Stage::SPLIT_MULTIMATERIAL, iteration, estimated_iterations);
+
         boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
         std::atomic_bool keep_checking_inside(false);
 
-        spdlog::debug("Finding voxels around {} voxels", previously_evaluated_voxels.size());
+        spdlog::debug("Finding voxels around {} voxels for iteration {}", previously_evaluated_voxels.size(), iteration);
 
         // For each already-filled voxel, gather the voxels around it and evaluate them
         previously_evaluated_voxels.visit_all(
