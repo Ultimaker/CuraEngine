@@ -57,7 +57,7 @@ struct AABB3D
      * \param p The point to include with the bounding box.
      * \return this object (which has changed)
      */
-    AABB3D include(Point3LL p);
+    AABB3D include(const Point3LL& p);
 
     /*!
      * Expand the AABB3D to include the bounding box \p aabb.
@@ -80,14 +80,14 @@ struct AABB3D
      * \param offset The offset with which to offset the AABB3D.
      * \return this object (which has changed)
      */
-    AABB3D translate(Point3LL offset);
+    AABB3D translate(const Point3LL& offset);
 
     /*!
      * Offset the coordinates of the bounding box.
      * \param offset The offset with which to offset the AABB3D.
      * \return this object (which has changed)
      */
-    AABB3D translate(Point2LL offset);
+    AABB3D translate(const Point2LL& offset);
 
     /*!
      * Offset the bounding box in the horizontal direction; outward or inward.
@@ -104,6 +104,15 @@ struct AABB3D
      * \return this object (which has changed)
      */
     AABB3D expandXY(coord_t outset);
+
+    /*! Return the bounding box span in the X direction */
+    coord_t spanX() const;
+
+    /*! Return the bounding box span in the Y direction */
+    coord_t spanY() const;
+
+    /*! Return the bounding box span in the Z direction */
+    coord_t spanZ() const;
 };
 
 } // namespace cura

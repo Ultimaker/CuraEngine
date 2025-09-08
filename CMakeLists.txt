@@ -230,7 +230,6 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
-find_package(cgal REQUIRED)
 find_package(PNG REQUIRED)
 find_package(TBB REQUIRED)
 
@@ -253,7 +252,6 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
-        CGAL::CGAL
         PNG::PNG
         onetbb::onetbb
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
