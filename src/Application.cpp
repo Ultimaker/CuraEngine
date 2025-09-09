@@ -141,11 +141,13 @@ void Application::printHelp() const
     fmt::print("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     fmt::print("\n");
     fmt::print("The settings are appended to the last supplied object:\n");
-    fmt::print("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
-               "settings] \n\t--next [next group settings]\n\t... etc.\n");
+    fmt::print(
+        "CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
+        "settings] \n\t--next [next group settings]\n\t... etc.\n");
     fmt::print("\n");
-    fmt::print("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
-               "paths delimited by a (semi-)colon.\n");
+    fmt::print(
+        "In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
+        "paths delimited by a (semi-)colon.\n");
     fmt::print("\n");
 }
 
@@ -290,10 +292,16 @@ void Application::startThreadPool(int nworkers)
     {
         nthreads = nworkers - 1; // Minus one for the main thread
     }
+
+    // Set the new OneTBB settings controller
+    delete tbb_controller_;
+    tbb_controller_ = new tbb::global_control(tbb::global_control::max_allowed_parallelism, nthreads + 1);
+
     if (thread_pool_ && thread_pool_->thread_count() == nthreads)
     {
         return; // Keep the previous ThreadPool
     }
+
     delete thread_pool_;
     thread_pool_ = new ThreadPool(nthreads);
 }
