@@ -212,7 +212,7 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid)
                 = x_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x_plus1, square_start.position.y, square_start.position.z)).value_or(0) : 0;
             const uint8_t occupation_bit3 = voxel_grid.getOccupation(square_start).value_or(0);
 
-            std::unordered_set<uint8_t> extruders = { occupation_bit0, occupation_bit1, occupation_bit2, occupation_bit3 };
+            const std::unordered_set<uint8_t> extruders = { occupation_bit0, occupation_bit1, occupation_bit2, occupation_bit3 };
             for (const uint8_t extruder : extruders)
             {
                 if (extruder == 0)
@@ -263,7 +263,7 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid)
             OpenPolylineStitcher::stitch(raw_contour.second.segments, result_lines, raw_contour.second.polygons);
         });
 
-    // Finally, simplify the polygons and extruder them vertically
+    // Finally, simplify the polygons and extrude them vertically
     const double min_distance = std::min({ voxel_grid.getResolution().x_, voxel_grid.getResolution().y_, voxel_grid.getResolution().z_ }) / 2.0;
     Simplify simplifier(min_distance, min_distance / 2, std::numeric_limits<coord_t>::max());
 
