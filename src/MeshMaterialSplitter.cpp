@@ -380,6 +380,182 @@ bool isInside(const VoxelGrid& voxel_grid, const VoxelGrid::LocalCoordinates& po
 }
 
 /*!
+ * Find the voxels to be evaluated next, given the ones that have been previously evaluated
+ * @param keep_checking_inside Bool filled during execution, to indicates whether we should keep looking for points insideness in the mesh
+ * @param voxel_grid The current voxel grid to be checked. Some voxels may also be directly filled.
+ * @param previously_evaluated_voxels The list of voxels that were just evaluated
+ * @param check_inside Indicates whether we should check for mesh insideness
+ * @param sliced_mesh The pre-sliced mesh, used to check for points insideness
+ * @return The list of new voxels to be evaluated
+ */
+boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> findVoxelsToEvaluate(
+    std::atomic_bool& keep_checking_inside,
+    VoxelGrid& voxel_grid,
+    const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& previously_evaluated_voxels,
+    const bool check_inside,
+    const std::vector<Shape>& sliced_mesh)
+{
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
+
+    previously_evaluated_voxels.visit_all(
+#ifdef __cpp_lib_execution
+        std::execution::par,
+#endif
+        [&](const VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
+        {
+            for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(previously_evaluated_voxel))
+            {
+                if (voxels_to_evaluate.contains(voxel_around))
+                {
+                    // This voxel has already been registered for evaluation
+                    continue;
+                }
+
+                const std::optional<uint8_t> occupation = voxel_grid.getOccupation(voxel_around);
+                if (occupation.has_value())
+                {
+                    // Voxel is already filled, don't evaluate it anyhow
+                    continue;
+                }
+
+                bool evaluate_voxel;
+                if (check_inside)
+                {
+                    evaluate_voxel = isInside(voxel_grid, voxel_around, sliced_mesh);
+                    if (! evaluate_voxel)
+                    {
+                        voxel_grid.setOccupation(voxel_around, 0);
+
+                        // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
+                        // is complete and we are only growing inside, thus we can skip checking for insideness
+                        keep_checking_inside.store(true);
+                    }
+                }
+                else
+                {
+                    evaluate_voxel = true;
+                }
+
+                if (evaluate_voxel)
+                {
+                    voxels_to_evaluate.emplace(voxel_around);
+                }
+            }
+        });
+
+    return voxels_to_evaluate;
+}
+
+/*!
+ * Evaluate the given voxels list, i.e. set their proper occupation
+ * @param voxel_grid The voxel grid to be filled
+ * @param voxels_to_evaluate The voxels to be evaluated
+ * @param texture_data The lookup containing the rasterized texture data
+ * @param deepness_squared The maximum deepness, squared
+ */
+void evaluateVoxels(
+    VoxelGrid& voxel_grid,
+    const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& voxels_to_evaluate,
+    const SpatialLookup& texture_data,
+    const coord_t deepness_squared)
+{
+    voxels_to_evaluate.visit_all(
+#ifdef __cpp_lib_execution
+        std::execution::par,
+#endif
+        [&voxel_grid, &texture_data, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+        {
+            const Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
+
+            // Find the nearest neighbor
+            std::optional<OccupiedPosition> nearest_occupation = texture_data.findClosestOccupation(position);
+
+            if (nearest_occupation.has_value())
+            {
+                const Point3D diff = position - nearest_occupation.value().position;
+                const uint8_t new_occupation = diff.vSize2() <= deepness_squared ? nearest_occupation.value().occupation : 0;
+                voxel_grid.setOccupation(voxel_to_evaluate, new_occupation);
+            }
+            else
+            {
+                voxel_grid.setOccupation(voxel_to_evaluate, 0);
+            }
+        });
+}
+
+void findBoundaryVoxels(boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& evaluated_voxels, const VoxelGrid& voxel_grid)
+{
+    evaluated_voxels.erase_if(
+#ifdef __cpp_lib_execution
+        std::execution::par,
+#endif
+        [&voxel_grid](const VoxelGrid::LocalCoordinates& evaluated_voxel)
+        {
+            bool has_various_voxels_around = false;
+            const uint8_t actual_occupation = voxel_grid.getOccupation(evaluated_voxel).value();
+            for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(evaluated_voxel))
+            {
+                const std::optional<uint8_t> around_occupation = voxel_grid.getOccupation(voxel_around);
+                if (around_occupation.has_value() && around_occupation.value() != actual_occupation)
+                {
+                    has_various_voxels_around = true;
+                    break;
+                }
+            }
+
+            return ! has_various_voxels_around;
+        });
+}
+
+/*!
+ * Propagates the voxels occupations around the boundaries, according to the initially built grid
+ * @param voxel_grid The voxel grid to be filled, initially containing the rasterized mesh data based on texture
+ * @param evaluated_voxels The initial voxels list to be propagated
+ * @param estimated_iterations The roughly estimated number of iterations that will be processed
+ * @param sliced_mesh The pre-sliced mesh matching the voxel grid
+ * @param texture_data The lookup containing the rasterized texture data
+ * @param deepness_squared The maximum propagation deepness, squared
+ */
+void propagateVoxels(
+    VoxelGrid& voxel_grid,
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& evaluated_voxels,
+    const coord_t estimated_iterations,
+    const std::vector<Shape>& sliced_mesh,
+    const SpatialLookup& texture_data,
+    const coord_t deepness_squared)
+{
+    uint32_t iteration = 0;
+    bool check_inside = true;
+
+    while (! evaluated_voxels.empty())
+    {
+        Progress::messageProgress(Progress::Stage::SPLIT_MULTIMATERIAL, iteration, estimated_iterations);
+
+        // Make the list of new voxels to be evaluated, based on which were evaluated before
+        spdlog::debug("Finding voxels around {} voxels for iteration {}", evaluated_voxels.size(), iteration);
+        std::atomic_bool keep_checking_inside(false);
+        evaluated_voxels = findVoxelsToEvaluate(keep_checking_inside, voxel_grid, evaluated_voxels, check_inside, sliced_mesh);
+
+        if (check_inside && ! keep_checking_inside.load())
+        {
+            spdlog::debug("Stop checking for voxels insideness at iteration {}", iteration);
+            check_inside = false;
+        }
+
+        // Now actually evaluate the candidate voxels, i.e. find their closest outside point and set the according occupation
+        spdlog::debug("Evaluating {} voxels", evaluated_voxels.size());
+        evaluateVoxels(voxel_grid, evaluated_voxels, texture_data, deepness_squared);
+
+        // Now we have evaluated the candidates, check which of them are to be processed next. We skip all the voxels that have only voxels with similar occupations around
+        // them, because they are obviously not part of the boundaries we are looking for. This avoids filling the inside of the points clouds and speeds up calculation a lot.
+        spdlog::debug("Find boundary voxels for next round");
+        findBoundaryVoxels(evaluated_voxels, voxel_grid);
+
+        ++iteration;
+    }
+}
+
+/*!
  * Generate a modifier mesh for every extruder other than 0, that has some user-painted texture data
  * @param mesh The mesh being sliced
  * @param texture_data_provider The provider containing the texture painted data
@@ -400,6 +576,7 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
     }
     bounding_box.expand(resolution * 4);
 
+    // Create the voxel grid and initially fill it with the rasterized mesh triangles, which will be used as spatial reference for the texture data
     VoxelGrid voxel_grid(bounding_box, resolution);
     if (! makeVoxelGridFromTexture(mesh, texture_data_provider, voxel_grid))
     {
@@ -407,15 +584,14 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
         return {};
     }
 
-    spdlog::debug("Prepare spatial lookup");
-    SpatialLookup tree = SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
+    spdlog::debug("Prepare spatial lookup for texture data");
+    const SpatialLookup texture_data = SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
 
     const auto deepness = settings.get<coord_t>("multi_material_paint_deepness");
     const coord_t deepness_squared = deepness * deepness;
 
     // Create a slice of the mesh so that we can quickly check for points insideness
-    std::vector<Shape> sliced_mesh = sliceMesh(mesh, voxel_grid);
-    bool check_inside = true;
+    const std::vector<Shape> sliced_mesh = sliceMesh(mesh, voxel_grid);
 
     spdlog::debug("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
@@ -428,131 +604,13 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
             };
         });
 
-    uint32_t iteration = 0;
-
     // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
     const double bounding_box_max_deepness = std::max({ bounding_box.spanX() / 2.0, bounding_box.spanY() / 2.0, bounding_box.spanZ() / 2.0 });
     const double estimated_min_deepness = std::min(static_cast<double>(deepness), bounding_box_max_deepness);
     const coord_t estimated_iterations = estimated_min_deepness / resolution;
     spdlog::debug("Estimated {} iterations", estimated_iterations);
 
-    while (! previously_evaluated_voxels.empty())
-    {
-        Progress::messageProgress(Progress::Stage::SPLIT_MULTIMATERIAL, iteration, estimated_iterations);
-
-        boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
-        std::atomic_bool keep_checking_inside(false);
-
-        spdlog::debug("Finding voxels around {} voxels for iteration {}", previously_evaluated_voxels.size(), iteration);
-
-        // For each already-filled voxel, gather the voxels around it and evaluate them
-        previously_evaluated_voxels.visit_all(
-#ifdef __cpp_lib_execution
-            std::execution::par,
-#endif
-            [&](const VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
-            {
-                for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(previously_evaluated_voxel))
-                {
-                    if (voxels_to_evaluate.contains(voxel_around))
-                    {
-                        // This voxel has already been registered for evaluation
-                        continue;
-                    }
-
-                    const std::optional<uint8_t> occupation = voxel_grid.getOccupation(voxel_around);
-                    if (occupation.has_value())
-                    {
-                        // Voxel is already filled, don't evaluate it anyhow
-                        continue;
-                    }
-
-                    bool evaluate_voxel;
-                    if (check_inside)
-                    {
-                        evaluate_voxel = isInside(voxel_grid, voxel_around, sliced_mesh);
-                        if (! evaluate_voxel)
-                        {
-                            voxel_grid.setOccupation(voxel_around, 0);
-
-                            // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
-                            // is complete and we are only growing inside, thus we can skip checking for insideness
-                            keep_checking_inside.store(true);
-                        }
-                    }
-                    else
-                    {
-                        evaluate_voxel = true;
-                    }
-
-                    if (evaluate_voxel)
-                    {
-                        voxels_to_evaluate.emplace(voxel_around);
-                    }
-                }
-            });
-
-        if (check_inside && ! keep_checking_inside.load())
-        {
-            spdlog::debug("Stop checking for voxels insideness at iteration {}", iteration);
-            check_inside = false;
-        }
-
-        // Now actually evaluate the candidate voxels, i.e. find their closest outside point and set the according occupation
-        spdlog::debug("Evaluating {} voxels", voxels_to_evaluate.size());
-        voxels_to_evaluate.visit_all(
-#ifdef __cpp_lib_execution
-            std::execution::par,
-#endif
-            [&voxel_grid, &tree, &deepness_squared](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
-            {
-                const Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
-
-                // Find the nearest neighbor
-                std::optional<OccupiedPosition> nearest_occupation = tree.findClosestOccupation(position);
-
-                if (nearest_occupation.has_value())
-                {
-                    const Point3D diff = position - nearest_occupation.value().position;
-                    const uint8_t new_occupation = diff.vSize2() <= deepness_squared ? nearest_occupation.value().occupation : 0;
-                    voxel_grid.setOccupation(voxel_to_evaluate, new_occupation);
-                }
-                else
-                {
-                    voxel_grid.setOccupation(voxel_to_evaluate, 0);
-                }
-            });
-
-        // Now we have evaluated the candidates, check which of them are to be processed next. We skip all the voxels that have only voxels with similar occupations around
-        // them, because they are obviously not part of the boundaries we are looking for. This avoids filling the inside of the points cloud and speeds up calculation a lot.
-        spdlog::debug("Find boundary voxels for next round");
-        previously_evaluated_voxels.clear();
-        voxels_to_evaluate.visit_all(
-#ifdef __cpp_lib_execution
-            std::execution::par,
-#endif
-            [&voxel_grid, &previously_evaluated_voxels](const VoxelGrid::LocalCoordinates& evaluated_voxel)
-            {
-                bool has_various_voxels_around = false;
-                uint8_t actual_occupation = voxel_grid.getOccupation(evaluated_voxel).value();
-                for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(evaluated_voxel))
-                {
-                    std::optional<uint8_t> around_occupation = voxel_grid.getOccupation(voxel_around);
-                    if (around_occupation.has_value() && around_occupation.value() != actual_occupation)
-                    {
-                        has_various_voxels_around = true;
-                        break;
-                    }
-                }
-
-                if (has_various_voxels_around)
-                {
-                    previously_evaluated_voxels.emplace(evaluated_voxel);
-                }
-            });
-
-        ++iteration;
-    }
+    propagateVoxels(voxel_grid, previously_evaluated_voxels, estimated_iterations, sliced_mesh, texture_data, deepness_squared);
 
     return makeMeshesFromVoxelsGrid(voxel_grid);
 }
