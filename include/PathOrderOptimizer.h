@@ -765,9 +765,7 @@ protected:
         {
             main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
         }
-        else if (
-            path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER
-            && (path.seam_config_.corner_pref_ != EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN))
+        else if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN)
         {
             main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, path.seam_config_.corner_pref_);
         }

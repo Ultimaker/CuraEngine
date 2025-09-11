@@ -546,8 +546,6 @@ EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key)
     using namespace cura::utils;
     switch (hash_enum(value))
     {
-    case "z_seam_corner_none"_sw:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
     case "z_seam_corner_inner"_sw:
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
     case "z_seam_corner_outer"_sw:
@@ -559,7 +557,7 @@ EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key)
     case "plugin"_sw:
         return EZSeamCornerPrefType::PLUGIN;
     default:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
     }
 }
 

@@ -60,7 +60,6 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
             score = corner_angle / 2.0;
         }
         break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE:
     case EZSeamCornerPrefType::PLUGIN:
         break;
     }
