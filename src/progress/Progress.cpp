@@ -3,6 +3,7 @@
 
 #include "progress/Progress.h"
 
+#include <algorithm>
 #include <cassert>
 #include <optional>
 
