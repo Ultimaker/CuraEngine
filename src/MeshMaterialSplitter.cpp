@@ -337,10 +337,10 @@ std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
     const size_t margin_below_mesh = rasterized_mesh.toLocalZ(mesh_bounding_box.min_.z_);
     const size_t slice_layer_count = rasterized_mesh.toLocalZ(mesh_bounding_box.max_.z_) - margin_below_mesh + 1;
 
-    const double xy_offset = INT2MM(std::min(rasterized_mesh.getResolution().x_, rasterized_mesh.getResolution().y_) * 2);
+    const double xy_offset = INT2MM(std::max(rasterized_mesh.getResolution().x_, rasterized_mesh.getResolution().y_) * 2);
     Mesh sliced_mesh = mesh;
     sliced_mesh.settings_.add("xy_offset", std::to_string(xy_offset));
-    sliced_mesh.settings_.add("xy_offset_layer_0", "0");
+    sliced_mesh.settings_.add("xy_offset_layer_0", std::to_string(xy_offset));
     sliced_mesh.settings_.add("hole_xy_offset", "0");
     sliced_mesh.settings_.add("hole_xy_offset_max_diameter", "0");
 
@@ -380,19 +380,13 @@ bool isInside(const VoxelGrid& voxel_grid, const VoxelGrid::LocalCoordinates& po
 
 /*!
  * Find the voxels to be evaluated next, given the ones that have been previously evaluated
- * @param keep_checking_inside Bool filled during execution, to indicates whether we should keep looking for points insideness in the mesh
  * @param voxel_grid The current voxel grid to be checked. Some voxels may also be directly filled.
  * @param previously_evaluated_voxels The list of voxels that were just evaluated
- * @param check_inside Indicates whether we should check for mesh insideness
  * @param sliced_mesh The pre-sliced mesh, used to check for points insideness
  * @return The list of new voxels to be evaluated
  */
-boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> findVoxelsToEvaluate(
-    std::atomic_bool& keep_checking_inside,
-    VoxelGrid& voxel_grid,
-    const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& previously_evaluated_voxels,
-    const bool check_inside,
-    const std::vector<Shape>& sliced_mesh)
+boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>
+    findVoxelsToEvaluate(VoxelGrid& voxel_grid, const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& previously_evaluated_voxels, const std::vector<Shape>& sliced_mesh)
 {
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
 
@@ -417,25 +411,11 @@ boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> findVoxelsToEvaluate(
                     continue;
                 }
 
-                bool evaluate_voxel;
-                if (check_inside)
+                if (! isInside(voxel_grid, voxel_around, sliced_mesh))
                 {
-                    evaluate_voxel = isInside(voxel_grid, voxel_around, sliced_mesh);
-                    if (! evaluate_voxel)
-                    {
-                        voxel_grid.setOccupation(voxel_around, 0);
-
-                        // As long as we find voxels outside the mesh, keep checking for it. Once we have no single candidate outside, this means the outer shell
-                        // is complete and we are only growing inside, thus we can skip checking for insideness
-                        keep_checking_inside.store(true);
-                    }
+                    voxel_grid.setOccupation(voxel_around, 0);
                 }
                 else
-                {
-                    evaluate_voxel = true;
-                }
-
-                if (evaluate_voxel)
                 {
                     voxels_to_evaluate.emplace(voxel_around);
                 }
@@ -524,7 +504,6 @@ void propagateVoxels(
     const coord_t deepness_squared)
 {
     uint32_t iteration = 0;
-    bool check_inside = true;
 
     while (! evaluated_voxels.empty())
     {
@@ -532,14 +511,7 @@ void propagateVoxels(
 
         // Make the list of new voxels to be evaluated, based on which were evaluated before
         spdlog::debug("Finding voxels around {} voxels for iteration {}", evaluated_voxels.size(), iteration);
-        std::atomic_bool keep_checking_inside(false);
-        evaluated_voxels = findVoxelsToEvaluate(keep_checking_inside, voxel_grid, evaluated_voxels, check_inside, sliced_mesh);
-
-        if (check_inside && ! keep_checking_inside.load())
-        {
-            spdlog::debug("Stop checking for voxels insideness at iteration {}", iteration);
-            check_inside = false;
-        }
+        evaluated_voxels = findVoxelsToEvaluate(voxel_grid, evaluated_voxels, sliced_mesh);
 
         // Now actually evaluate the candidate voxels, i.e. find their closest outside point and set the according occupation
         spdlog::debug("Evaluating {} voxels", evaluated_voxels.size());
@@ -573,7 +545,7 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
     {
         bounding_box.include(vertex.p_);
     }
-    bounding_box.expand(resolution * 4);
+    bounding_box.expand(resolution * 8);
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles, which will be used as spatial reference for the texture data
     VoxelGrid voxel_grid(bounding_box, resolution);
