@@ -166,23 +166,24 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid)
     // Build the list of segments to be added when running the marching squares
     const double half_res_x = voxel_grid.getResolution().x_ / 2;
     const double half_res_y = voxel_grid.getResolution().y_ / 2;
-    std::array<OpenLinesSet, 16> marching_segments;
-    // marching_segments[0] = OpenLinesSet(); // This case is empty
-    marching_segments[1] = OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(half_res_x, 0) }) };
-    marching_segments[2] = OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, half_res_y) }) };
-    marching_segments[3] = OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(half_res_x, 0) }) };
-    marching_segments[4] = OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, -half_res_y) }) };
-    marching_segments[5] = OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(0, -half_res_y) }) };
-    marching_segments[6] = OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, half_res_y) }), OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, -half_res_y) }) };
-    marching_segments[7] = OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, -half_res_y) }) };
-    marching_segments[8] = OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(-half_res_x, 0) }) };
-    marching_segments[9] = OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(-half_res_x, 0) }), OpenPolyline({ Point2LL(0, half_res_y), Point2LL(half_res_x, 0) }) };
-    marching_segments[10] = OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(0, half_res_y) }) };
-    marching_segments[11] = OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(half_res_x, 0) }) };
-    marching_segments[12] = OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(-half_res_x, 0) }) };
-    marching_segments[13] = OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(-half_res_x, 0) }) };
-    marching_segments[14] = OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, half_res_y) }) };
-    // marching_segments[15] = OpenLinesSet(); // This case is empty
+    std::array<OpenLinesSet, 16> marching_segments = {
+        OpenLinesSet(), // This case is empty
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, -half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(0, -half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, half_res_y) }), OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, -half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, -half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(-half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(-half_res_x, 0) }), OpenPolyline({ Point2LL(0, half_res_y), Point2LL(half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(0, half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(-half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(-half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, half_res_y) }) },
+        OpenLinesSet(), // This case is empty
+    };
 
     // Now visit all the squares and generate the appropriate outer segments
     struct Contour
@@ -287,7 +288,7 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid)
                 {
                     const Polygon simplified_polygon = simplifier.polygon(polygon);
 
-                    mutex.lock();
+                    const std::lock_guard lock(mutex);
                     const auto mesh_iterator = meshes.find(extruder);
                     if (mesh_iterator == meshes.end())
                     {
@@ -305,8 +306,6 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid)
                         mesh.addFace(Point3LL(start, z_low), Point3LL(end, z_low), Point3LL(end, z_high));
                         mesh.addFace(Point3LL(end, z_high), Point3LL(start, z_high), Point3LL(start, z_low));
                     }
-
-                    mutex.unlock();
                 }
             }
         });

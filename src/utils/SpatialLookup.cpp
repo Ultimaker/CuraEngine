@@ -28,9 +28,8 @@ SpatialLookup SpatialLookup::makeSpatialLookupFromVoxelGrid(const VoxelGrid& vox
         [&spatial_lookup, &voxel_grid, &mutex](const auto& voxel)
         {
             const OccupiedPosition occupied_position{ voxel_grid.toGlobalCoordinates(voxel.first), voxel.second };
-            mutex.lock();
+            const std::lock_guard lock(mutex);
             spatial_lookup.occupied_positions_.push_back(occupied_position);
-            mutex.unlock();
         });
 
     spatial_lookup.lookup_tree_ = LookupTree(spatial_lookup.occupied_positions_.begin(), spatial_lookup.occupied_positions_.end());
