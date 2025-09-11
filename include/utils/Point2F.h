@@ -5,6 +5,7 @@
 #define POINT2F_H
 
 #include <cmath>
+#include <compare>
 
 namespace cura
 {
