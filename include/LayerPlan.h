@@ -836,6 +836,10 @@ public:
     void applyGradualFlow();
 
     /*!
+     */
+    void applyIdLabel(const Image& slice_id_texture);
+
+    /*!
      * Gets the mesh being printed first on this layer
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
@@ -917,6 +921,7 @@ private:
         const coord_t path_z_offset,
         double extrusion_mm3_per_mm,
         PrintFeatureType feature,
+        const std::optional<std::string_view>& inline_comment = std::nullopt,
         bool update_extrusion_offset = false);
 
     /*!

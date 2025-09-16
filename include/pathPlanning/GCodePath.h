@@ -13,6 +13,7 @@
 #include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
+#include "utils/Point2F.h"
 
 namespace cura
 {
@@ -46,6 +47,8 @@ struct GCodePath
     bool perform_z_hop{ false }; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime{ false }; //!< Whether this path is preceded by a prime (blob)
     std::vector<Point3LL> points{}; //!< The points constituting this path. The Z coordinate is an offset relative to the actual layer height, added to the global z_offset.
+    std::optional<std::vector<Point2F>> idlabel_uv_per_point
+        = std::nullopt; //!< If this path is part of an ID-label, contains for each path-point an UV-point into the label-texture.
     bool done{ false }; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates

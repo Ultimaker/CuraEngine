@@ -28,6 +28,8 @@ public:
 
     std::optional<TextureArea> getAreaPreference(const Point2LL& position, const std::string& feature) const;
 
+    bool getTexelsForSpan(const Point2LL& a, const Point2LL& b, const std::string& feature, std::vector<Texel>& res) const;
+
 private:
     std::shared_ptr<SlicedUVCoordinates> uv_coordinates_;
     std::shared_ptr<Image> texture_;

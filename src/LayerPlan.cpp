@@ -29,6 +29,7 @@
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
+#include "range/v3/view/enumerate.hpp"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
@@ -2472,9 +2473,10 @@ void LayerPlan::writeExtrusionRelativeZ(
     const coord_t path_z_offset,
     double extrusion_mm3_per_mm,
     PrintFeatureType feature,
+    const std::optional<std::string_view>& inline_comment,
     bool update_extrusion_offset)
 {
-    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm, feature, inline_comment, update_extrusion_offset);
 }
 
 void LayerPlan::addLinesMonotonic(
@@ -2974,6 +2976,16 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
+std::optional<std::string> getIdLabelUvComment(const std::optional<std::vector<Point2F>>& idlabel_uvs, const size_t idx)
+{
+    if (! idlabel_uvs.has_value())
+    {
+        return std::nullopt;
+    }
+    const auto uv_pt = idlabel_uvs.value()[idx];
+    return (std::isnan(uv_pt.x_) || std::isnan(uv_pt.y_)) ? std::nullopt : std::make_optional(fmt::format("UV: {0:.4f} {1:.4f}", uv_pt.x_, uv_pt.y_));
+}
+
 void LayerPlan::writeGCode(GCodeExport& gcode)
 {
     auto communication = Application::getInstance().communication_;
@@ -3376,13 +3388,22 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
                     Point3LL prev_point = gcode.getPosition();
-                    for (const auto& pt : path.points)
+                    for (const auto& [idx, pt] : path.points | ranges::views::enumerate)
                     {
                         const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
                         insertTempOnTime(time, path_idx);
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
+
+                        writeExtrusionRelativeZ(
+                            gcode,
+                            pt,
+                            extrude_speed,
+                            path.z_offset,
+                            path.getExtrusionMM3perMM(),
+                            path.config.type,
+                            getIdLabelUvComment(path.idlabel_uv_per_point, idx),
+                            update_extrusion_offset);
                         sendLineTo(path, pt, extrude_speed);
 
                         prev_point = pt;
@@ -3424,6 +3445,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             path.z_offset + z_offset,
                             spiral_path.getExtrusionMM3perMM(),
                             spiral_path.config.type,
+                            std::nullopt, // FIXME?: ID should probably work for spiralize as well.
                             update_extrusion_offset);
                         sendLineTo(spiral_path, Point3LL(p1.x_, p1.y_, z_offset), extrude_speed, layer_thickness_);
                     }
@@ -3556,7 +3578,14 @@ bool LayerPlan::writePathWithCoasting(
             auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
             insertTempOnTime(time, path_idx);
 
-            writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
+            writeExtrusionRelativeZ(
+                gcode,
+                path.points[point_idx],
+                extrude_speed,
+                path.z_offset,
+                path.getExtrusionMM3perMM(),
+                path.config.type,
+                getIdLabelUvComment(path.idlabel_uv_per_point, path_idx));
             sendLineTo(path, path.points[point_idx], extrude_speed);
 
             previous_position = path.points[point_idx];
@@ -3679,6 +3708,15 @@ void LayerPlan::applyGradualFlow()
     for (ExtruderPlan& extruder_plan : extruder_plans_)
     {
         gradual_flow::Processor::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
+    }
+}
+
+void LayerPlan::applyIdLabel(const Image& slice_id_texture)
+{
+    for (ExtruderPlan& extruder_plan : extruder_plans_)
+    {
+        // TODO: opt-out sure-to-be unaffected layers
+        extruder_plan.applyIdLabel(slice_id_texture, z_);
     }
 }
 

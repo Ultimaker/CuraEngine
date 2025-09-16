@@ -23,6 +23,7 @@
 #include "settings/types/LayerIndex.h"
 #include "utils/AABB.h"
 #include "utils/AABB3D.h"
+#include "utils/IDFieldInfo.h"
 #include "utils/NoCopy.h"
 
 namespace cura
@@ -307,6 +308,7 @@ public:
     Settings& settings;
     std::vector<SliceLayer> layers;
     std::string mesh_name;
+    std::optional<IdFieldInfo> id_field_info;
 
     LayerIndex layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content (modified while infill meshes are processed)
 
@@ -336,6 +338,10 @@ public:
      * layer that contains a part of the mesh.
      */
     SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count);
+
+    /*!
+     */
+    void setIdFieldInfo(const std::vector<Point3LL>& label_pt_cloud);
 
     /*!
      * \param extruder_nr The extruder for which to check

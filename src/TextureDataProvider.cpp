@@ -51,4 +51,34 @@ std::optional<TextureArea> TextureDataProvider::getAreaPreference(const Point2LL
     return std::nullopt;
 }
 
+bool TextureDataProvider::getTexelsForSpan(const Point2LL& a, const Point2LL& b, const std::string& feature, std::vector<Texel>& res) const
+{
+    auto data_mapping_iterator = texture_data_mapping_->find(feature);
+    if (data_mapping_iterator == texture_data_mapping_->end())
+    {
+        return false;
+    }
+
+    const TextureBitField& bit_field = data_mapping_iterator->second;
+    const std::optional<std::pair<Point2F, Point2F>> points_uv = uv_coordinates_->getUVCoordsLineSegment(a, b);
+    if (! points_uv.has_value())
+    {
+        return false;
+    }
+
+    bool has_any = false;
+    texture_->visitSpanPerPixel(
+        points_uv.value().first,
+        points_uv.value().second,
+        [&bit_field, &res, &has_any](const int32_t pixel_data, const Point2F& uv_pt)
+        {
+            res.push_back({ static_cast<TextureArea>(
+                                // FIXME: The method to shift left & right here is the same as above, should be an inline method?
+                                (pixel_data << (32 - 1 - bit_field.bit_range_end_index)) >> (32 - 1 - (bit_field.bit_range_end_index - bit_field.bit_range_start_index))),
+                            uv_pt });
+            has_any |= (res.back().first == TextureArea::Preferred);
+        });
+    return has_any;
+}
+
 } // namespace cura

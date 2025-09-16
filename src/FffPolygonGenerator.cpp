@@ -291,15 +291,26 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         // check one if raft offset is needed
         const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
 
+        // init variable(s) & logging for the support 'painting' type operations
+        if (mesh.texture_ && mesh.texture_data_mapping_)
+        {
+            spdlog::info("Mesh `{}` painting-operation info:", static_cast<void*>(&mesh));
+            for (auto [paint_type, tex_data] : *mesh.texture_data_mapping_)
+            {
+                spdlog::info("Texture-data for type '{}', mapped to pixel-bits: {}", paint_type, tex_data);
+            }
+        }
+        else
+        {
+            spdlog::info("No painting-operation data specified for mesh `{}`.", static_cast<void*>(&mesh));
+        }
+        std::vector<Point3LL> label_pt_cloud;
+
         // calculate the height at which each layer is actually printed (printZ)
         for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
-            const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
-            if (slicer_layer.sliced_uv_coordinates_ && mesh.texture_ && mesh.texture_data_mapping_)
-            {
-                layer.texture_data_provider_ = std::make_shared<TextureDataProvider>(slicer_layer.sliced_uv_coordinates_, mesh.texture_, mesh.texture_data_mapping_);
-            }
+            SlicerLayer& slicer_layer = slicer->layers[layer_nr];
 
             if (use_variable_layer_heights)
             {
@@ -332,7 +343,47 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                     layer.printZ += train.settings_.get<coord_t>("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
+
+            // support for 'painting' type operations
+            if (slicer_layer.sliced_uv_coordinates_ && mesh.texture_ && mesh.texture_data_mapping_)
+            {
+                layer.texture_data_provider_ = std::make_shared<TextureDataProvider>(slicer_layer.sliced_uv_coordinates_, mesh.texture_, mesh.texture_data_mapping_);
+
+                // slice/print-ID label specific: (update/)calculate bounding-box
+                if (mesh.texture_data_mapping_->contains("label"))
+                {
+                    const auto match_pixel = static_cast<uint32_t>(TextureArea::Preferred) << mesh.texture_data_mapping_->at("label").bit_range_start_index;
+                    const auto& height = layer.printZ;
+                    for (const auto& segment : slicer_layer.segments_)
+                    // TODO: Deal with the fact that we _actually_ don't have the segments in that place anymore (I temporarily disabled the clear).
+                    // (We've still got all we need in the slicer_layer.sliced_uv_coordinates_.segments, but that's all private at the moment!
+                    {
+                        if (segment.uv_start.has_value() && segment.uv_end.has_value())
+                        {
+                            const auto& uv_a = segment.uv_start.value();
+                            const auto& uv_b = segment.uv_end.value();
+                            const auto& a = segment.start;
+                            const auto& b = segment.end;
+                            mesh.texture_->visitSpanPerPixel(
+                                uv_a,
+                                uv_b,
+                                [&label_pt_cloud, &match_pixel, &uv_a, &uv_b, &a, &b, &height](const int32_t& pixel, const Point2F& uv)
+                                {
+                                    if ((pixel & match_pixel) != 0b0)
+                                    {
+                                        const auto param = (uv - uv_a).vSize() / (uv_b - uv_a).vSize();
+                                        label_pt_cloud.emplace_back(a + param * (b - a), height);
+                                    }
+                                });
+                        }
+                    }
+                }
+            }
+
+            slicer_layer.clearSegments();
         }
+
+        meshStorage.setIdFieldInfo(label_pt_cloud);
 
         delete slicerList[meshIdx];
 

@@ -97,6 +97,7 @@ void SliceLayer::getOutlines(Shape& result, bool external_polys_only) const
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     : settings(mesh->settings_)
     , mesh_name(mesh->mesh_name_)
+    , id_field_info(std::nullopt)
     , layer_nr_max_filled_layer(0)
     , bounding_box(mesh->getAABB())
     , base_subdiv_cube(nullptr)
@@ -106,6 +107,10 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     layers.resize(slice_layer_count);
 }
 
+void SliceMeshStorage::setIdFieldInfo(const std::vector<Point3LL>& label_pt_cloud)
+{
+    id_field_info = IdFieldInfo::fromPointCloud(label_pt_cloud);
+}
 
 bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
 {

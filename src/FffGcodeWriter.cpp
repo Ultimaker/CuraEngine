@@ -33,6 +33,7 @@
 #include "infill.h"
 #include "progress/Progress.h"
 #include "raft.h"
+#include "utils/LabelMaker.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
@@ -89,8 +90,32 @@ bool FffGcodeWriter::setTargetFile(const char* filename)
     return false;
 }
 
+std::string getTimeStamp()
+{
+    std::time_t time = std::time({});
+    char str[std::size("  yyyy-mm-dd    hh:mm:ss")];
+    std::strftime(std::data(str), std::size(str), "  %F    %T", std::gmtime(&time));
+    return std::string(str);
+}
+
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
+    std::optional<Image> slice_id_texture = std::nullopt;
+    if (std::any_of(
+            storage.meshes.begin(),
+            storage.meshes.end(),
+            [](std::shared_ptr<SliceMeshStorage> mesh)
+            {
+                return mesh->id_field_info.has_value();
+            }))
+    {
+        constexpr size_t label_width = 128;
+        constexpr size_t label_height = 128;
+        std::vector<uint8_t> buffer(label_width * label_height, 0);
+        paintStringToBuffer(getTimeStamp(), label_width, label_height, buffer);
+        slice_id_texture = std::make_optional(Image(label_width, label_height, 1, std::move(buffer)));
+    }
+
     const size_t start_extruder_nr = getStartExtruder(storage);
     gcode.preSetup(start_extruder_nr);
     gcode.setSliceUUID(slice_uuid);
@@ -191,9 +216,9 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
         total_layers,
-        [&storage, total_layers, this](int layer_nr)
+        [&storage, total_layers, &slice_id_texture, this](int layer_nr)
         {
-            return std::make_optional(processLayer(storage, layer_nr, total_layers));
+            return std::make_optional(processLayer(storage, layer_nr, total_layers, slice_id_texture));
         },
         [this, total_layers](std::optional<ProcessLayerResult> result_opt)
         {
@@ -1156,7 +1181,8 @@ void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gc
     }
 }
 
-FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
+FffGcodeWriter::ProcessLayerResult
+    FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers, const std::optional<Image>& slice_id_texture) const
 {
     spdlog::debug("GcodeWriter processing layer {} of {}", layer_nr, total_layers);
     TimeKeeper time_keeper;
@@ -1314,6 +1340,11 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 
     gcode_layer.applyBackPressureCompensation();
     time_keeper.registerTime("Back pressure comp.");
+
+    if (slice_id_texture.has_value())
+    {
+        gcode_layer.applyIdLabel(slice_id_texture.value());
+    }
 
     return { &gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
 }

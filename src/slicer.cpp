@@ -799,7 +799,10 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     open_polylines_.removeDegenerateVerts();
 
     sliced_uv_coordinates_ = std::make_shared<SlicedUVCoordinates>(segments_);
+}
 
+void SlicerLayer::clearSegments()
+{
     // Clear the segment list to save memory, it is no longer needed after this point.
     segments_.clear();
 }

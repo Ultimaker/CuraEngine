@@ -7,6 +7,10 @@
 #include <map>
 #include <string>
 
+#include <fmt/format.h>
+
+#include "utils/Point2F.h"
+
 namespace cura
 {
 
@@ -32,5 +36,26 @@ enum class TextureArea
     Avoid = 2, // Area is to be avoided
 };
 
+using Texel = std::pair<TextureArea, Point2F>;
+
 } // namespace cura
+
+namespace fmt
+{
+template<>
+struct formatter<cura::TextureBitField>
+{
+    constexpr auto parse(format_parse_context& ctx)
+    {
+        return ctx.end();
+    }
+
+    template<typename FormatContext>
+    auto format(const cura::TextureBitField& tbf, FormatContext& ctx) const
+    {
+        return format_to(ctx.out(), "[{} -- {}]", tbf.bit_range_start_index, tbf.bit_range_end_index);
+    }
+};
+} // namespace fmt
+
 #endif // MESH_H

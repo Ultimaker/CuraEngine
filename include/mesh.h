@@ -9,6 +9,7 @@
 #include "TextureDataMapping.h"
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
+#include "utils/IDFieldInfo.h"
 #include "utils/Matrix4x3D.h"
 #include "utils/Point2F.h"
 
@@ -100,6 +101,8 @@ public:
         return getPixel(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(uv_coordinates.y_ * height_));
     }
 
+    void visitSpanPerPixel(const Point2F& a, const Point2F& b, const std::function<void(const int32_t, const Point2F&)>& func) const;
+
 private:
     std::vector<uint8_t> data_; // The raw pixels, data
     size_t width_{ 0 }; // The image width
@@ -115,6 +118,7 @@ See MeshFace for the specifics of how/when faces are connected.
 */
 class Mesh
 {
+private:
     //! The vertex_hash_map stores a index reference of each vertex for the hash of that location. Allows for quick retrieval of points with the same location.
     std::unordered_map<uint32_t, std::vector<uint32_t>> vertex_hash_map_;
     AABB3D aabb_;

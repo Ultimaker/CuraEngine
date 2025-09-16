@@ -20,6 +20,7 @@ namespace cura
 {
 
 class AngleDegrees;
+class Image;
 class Shape;
 class SkinPart;
 class SliceDataStorage;
@@ -237,7 +238,7 @@ private:
      * \param total_layers The total number of layers.
      * \return The layer plans
      */
-    ProcessLayerResult processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const;
+    ProcessLayerResult processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers, const std::optional<Image>& slice_id_texture) const;
 
     /*!
      * This function checks whether prime blob should happen for any extruder on the first layer.

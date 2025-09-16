@@ -3,6 +3,9 @@
 
 #include "ExtruderPlan.h"
 
+#include "TextureDataProvider.h"
+#include "mesh.h" // For 'Image' class.
+
 namespace cura
 {
 ExtruderPlan::ExtruderPlan(
@@ -68,6 +71,88 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
         }
         const double line_width_for_path = path.width_factor * nominal_width_for_path;
         path.speed_back_pressure_factor = std::max(epsilon_speed_factor, 1.0 + (nominal_width_for_path / line_width_for_path - 1.0) * back_pressure_compensation);
+    }
+}
+
+void ExtruderPlan::applyIdLabel(const Image& slice_id_texture, const coord_t current_z)
+{
+    // FIXME: properly deal with (mostly or wholly) top or bottom (normal = Z-axis) labels
+
+    // TODO?: message (format) should be a (string) setting, like 'ID: \H:\M:\S' or something
+
+    constexpr coord_t inset_dist = 40; // TODO?: make this configurable as well?
+    for (auto& path : paths_)
+    {
+        if (path.points.empty() || path.mesh == nullptr || path.mesh->layers[layer_nr_].texture_data_provider_ == nullptr
+            || (! path.mesh->id_field_info)
+            //|| (path.mesh->id_field_info.value().normal_ != IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::OuterWall)
+            //|| (path.mesh->id_field_info.value().normal_ == IdFieldInfo::Axis::Z && path.config.type != PrintFeatureType::Skin))
+            || (path.config.type != PrintFeatureType::OuterWall && path.config.type != PrintFeatureType::Skin))
+        {
+            continue;
+        }
+
+        const auto zero_pt = Point3LL(0, 0, 0);
+        const auto offset_pt = ((path.points.front() + path.points.back()) / 2 - path.mesh->bounding_box.getMiddle()).resized(inset_dist);
+        const auto offset_z = Point3LL(0, 0, current_z + path.z_offset);
+        const auto signal_no_uv = Point2F(std::numeric_limits<float>::signaling_NaN(), std::numeric_limits<float>::signaling_NaN());
+
+        const auto& id_field_info = path.mesh->id_field_info.value();
+
+        // FIMXE!: The sliding here is only going over 3 sides of the polygon, which means it's not 'closed' at this moment in time.
+        //         Attempts to fix this have so far not been successful (but tired r.n. will look at it when less so later).
+
+        std::vector<Point3LL> new_points;
+        std::vector<Point2F> idlabel_uvs;
+        new_points.push_back(path.points.front());
+        idlabel_uvs.push_back(signal_no_uv);
+        for (const auto& window : path.points | ranges::views::sliding(2))
+        {
+            const auto& a = window[0];
+            const auto& b = window[1];
+
+            std::vector<Texel> span_pixels;
+            if (path.mesh->layers[layer_nr_].texture_data_provider_->getTexelsForSpan(a.toPoint2LL(), b.toPoint2LL(), "label", span_pixels))
+            {
+                const auto pixel_span_3d = (b - a) / static_cast<coord_t>(span_pixels.size());
+                auto last_pixel = TextureArea::Normal;
+                auto last_pt = a;
+                for (const auto& [idx, texel] : span_pixels | ranges::views::enumerate)
+                {
+                    const auto raw_pt = a + (idx * pixel_span_3d) + (pixel_span_3d / 2);
+                    const bool preferred = (texel.first == TextureArea::Preferred);
+                    if (preferred || last_pixel != texel.first)
+                    {
+                        if (last_pixel != TextureArea::Preferred)
+                        {
+                            new_points.push_back(last_pt);
+                            idlabel_uvs.push_back(signal_no_uv);
+                        }
+
+                        const auto label_uv = id_field_info.worldPointToLabelUv(raw_pt + offset_z);
+                        if (std::clamp(label_uv.x_, 0.0f, CLOSE_1F) == label_uv.x_ && std::clamp(label_uv.y_, 0.0f, CLOSE_1F) == label_uv.y_)
+                        {
+                            const bool raw_val = slice_id_texture.getPixel(label_uv) > 0b0;
+                            const bool val = preferred && raw_val;
+
+                            new_points.push_back(raw_pt + (val ? offset_pt : zero_pt));
+                            idlabel_uvs.push_back(label_uv);
+                        }
+                    }
+                    last_pixel = texel.first;
+                    last_pt = raw_pt;
+                }
+            }
+
+            new_points.push_back(b);
+            idlabel_uvs.push_back(signal_no_uv);
+        }
+
+        if (new_points.size() != path.points.size())
+        {
+            path.points = new_points;
+            path.idlabel_uv_per_point = idlabel_uvs;
+        }
     }
 }
 

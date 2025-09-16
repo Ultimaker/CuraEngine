@@ -49,10 +49,17 @@ public:
     Point3LL operator*(const Point3LL& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
     Point3LL operator/(const Point3LL& p) const;
 
-    template<utils::numeric T>
+    template<utils::floating_point T>
     Point3LL operator*(const T& i) const
     {
         return { std::llround(static_cast<T>(x_) * i), std::llround(static_cast<T>(y_) * i), std::llround(static_cast<T>(z_) * i) };
+    }
+
+    template<utils::integral T>
+    Point3LL operator*(const T& i) const
+    {
+        const coord_t ii = static_cast<coord_t>(i);
+        return { x_ * ii, y_ * ii, z_ * ii };
     }
 
     template<utils::numeric T>

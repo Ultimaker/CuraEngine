@@ -25,6 +25,7 @@
 
 namespace cura
 {
+class Image;
 class LayerPlanBuffer;
 class LayerPlan;
 /*!
@@ -123,6 +124,10 @@ public:
      * \param The amount of back-pressure compensation as a ratio. 'Applying' a value of 0 is a no-op.
      */
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
+
+    /*!
+     */
+    void applyIdLabel(const Image& slice_id_texture, const coord_t current_z);
 
     /*!
      * Gets the mesh being printed first on this plan
