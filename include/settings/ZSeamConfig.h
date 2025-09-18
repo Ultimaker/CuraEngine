@@ -52,7 +52,7 @@ struct ZSeamConfig
     ZSeamConfig(
         const EZSeamType type = EZSeamType::SHORTEST,
         const Point2LL pos = Point2LL(0, 0),
-        const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
+        const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
         const coord_t simplify_curvature = 0);
 };
 

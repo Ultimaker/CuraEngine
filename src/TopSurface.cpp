@@ -164,7 +164,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     {
         constexpr bool retract_before_outer_wall = false;
         constexpr coord_t wipe_dist = 0u;
-        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
         InsetOrderOptimizer wall_orderer(
             gcode_writer,
             storage,

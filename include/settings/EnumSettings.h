@@ -93,7 +93,6 @@ enum class EZSeamType
 
 enum class EZSeamCornerPrefType
 {
-    Z_SEAM_CORNER_PREF_NONE,
     Z_SEAM_CORNER_PREF_INNER,
     Z_SEAM_CORNER_PREF_OUTER,
     Z_SEAM_CORNER_PREF_ANY,
