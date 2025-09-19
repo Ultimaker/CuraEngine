@@ -6,6 +6,7 @@
 
 #include <cassert>
 #include <cmath> //For sqrt.
+#include <compare>
 #include <iostream> //Auto-serialization.
 #include <limits> //For numeric_limits::min and max.
 #include <type_traits> // for operations on any arithmetic number type

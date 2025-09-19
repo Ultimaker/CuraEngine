@@ -286,6 +286,16 @@ void SVG::writeLines(const std::vector<Point2LL>& polyline, const ColorObject co
     fprintf(out_, "\" />\n"); // Write the end of the tag.
 }
 
+void SVG::writeLine(const Polyline& line, const ColorObject color, const double stroke_width) const
+{
+    for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
+    {
+        writeLine((*iterator).start, (*iterator).end, color, stroke_width, false);
+    }
+
+    handleFlush(true);
+}
+
 void SVG::writeLine(const Point2LL& a, const Point2LL& b, const ColorObject color, const double stroke_width, const bool flush) const
 {
     Point3D fa = transformF(a);

@@ -60,6 +60,7 @@ set(engine_SRCS # Except main.cpp.
         src/LayerPlanBuffer.cpp
         src/mesh.cpp
         src/MeshGroup.cpp
+        src/MeshMaterialSplitter.cpp
         src/Mold.cpp
         src/multiVolumes.cpp
         src/path_ordering.cpp
@@ -144,8 +145,10 @@ set(engine_SRCS # Except main.cpp.
         src/utils/linearAlg2D.cpp
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
+        src/utils/MeshUtils.cpp
         src/utils/MinimumSpanningTree.cpp
         src/utils/OBJ.cpp
+        src/utils/ParameterizedSegment.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -153,10 +156,12 @@ set(engine_SRCS # Except main.cpp.
         src/utils/PolylineStitcher.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp
+        src/utils/SpatialLookup.cpp
         src/utils/SquareGrid.cpp
         src/utils/ThreadPool.cpp
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
+        src/utils/VoxelGrid.cpp
         src/utils/VoxelUtils.cpp
         src/utils/MixedPolylineStitcher.cpp
 
@@ -230,6 +235,7 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(PNG REQUIRED)
+find_package(TBB REQUIRED)
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)
@@ -251,6 +257,7 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         PNG::PNG
+        onetbb::onetbb
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>

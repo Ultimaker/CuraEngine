@@ -129,9 +129,9 @@ void OBJ::writeMesh(const Mesh& mesh, const SVG::Color color)
     for (const MeshFace& face : mesh.faces_)
     {
         writeTriangle(
-            mesh.vertices_[face.vertex_index_[0]].p_,
-            mesh.vertices_[face.vertex_index_[1]].p_,
-            mesh.vertices_[face.vertex_index_[2]].p_,
+            Point3D(mesh.vertices_[face.vertex_index_[0]].p_),
+            Point3D(mesh.vertices_[face.vertex_index_[1]].p_),
+            Point3D(mesh.vertices_[face.vertex_index_[2]].p_),
             color,
             face.uv_coordinates_[0],
             face.uv_coordinates_[1],

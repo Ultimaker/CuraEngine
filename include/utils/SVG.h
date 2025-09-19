@@ -126,6 +126,8 @@ public:
      */
     void writeLines(const std::vector<Point2LL>& polyline, const ColorObject color = Color::BLACK) const;
 
+    void writeLine(const Polyline& line, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
+
     void writeLine(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
     void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;

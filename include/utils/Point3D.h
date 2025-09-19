@@ -4,6 +4,7 @@
 #ifndef POINT3D_H
 #define POINT3D_H
 
+#include <compare>
 #include <math.h>
 #include <stdint.h>
 
@@ -15,7 +16,6 @@ namespace cura
 
 /*
 Double-precision 3D points are used for geometry computation.
-They represent millimeters in 3D space.
 */
 class Point3D
 {
@@ -33,28 +33,11 @@ public:
     {
     }
 
-    Point3D(const Point3LL& p)
-        : x_(static_cast<double>(p.x_) * .001)
-        , y_(static_cast<double>(p.y_) * .001)
-        , z_(static_cast<double>(p.z_) * .001)
+    explicit Point3D(const Point3LL& p, const double scale = 0.001)
+        : x_(static_cast<double>(p.x_) * scale)
+        , y_(static_cast<double>(p.y_) * scale)
+        , z_(static_cast<double>(p.z_) * scale)
     {
-    }
-
-    Point3D operator+(const Point3D& p) const
-    {
-        return Point3D(x_ + p.x_, y_ + p.y_, z_ + p.z_);
-    }
-    Point3D operator-(const Point3D& p) const
-    {
-        return Point3D(x_ - p.x_, y_ - p.y_, z_ - p.z_);
-    }
-    Point3D operator*(const double f) const
-    {
-        return Point3D(x_ * f, y_ * f, z_ * f);
-    }
-    Point3D operator/(const double f) const
-    {
-        return Point3D(x_ / f, y_ / f, z_ / f);
     }
 
     Point3D& operator+=(const Point3D& p)
@@ -89,6 +72,31 @@ public:
     }
 
     auto operator<=>(const Point3D&) const = default;
+
+    Point3D operator+(const Point3D& other) const
+    {
+        return Point3D(x_ + other.x_, y_ + other.y_, z_ + other.z_);
+    }
+
+    Point3D operator/(const double divisor) const
+    {
+        return Point3D(x_ / divisor, y_ / divisor, z_ / divisor);
+    }
+
+    Point3D operator*(const double factor) const
+    {
+        return Point3D(x_ * factor, y_ * factor, z_ * factor);
+    }
+
+    double operator*(const Point3D& other) const
+    {
+        return x_ * other.x_ + y_ * other.y_ + z_ * other.z_;
+    }
+
+    Point3D operator-(const Point3D& other) const
+    {
+        return Point3D(x_ - other.x_, y_ - other.y_, z_ - other.z_);
+    }
 
     double max() const
     {
@@ -134,11 +142,6 @@ public:
         return Point3LL(MM2INT(x_), MM2INT(y_), MM2INT(z_));
     }
 };
-
-inline double operator*(Point3D lhs, const Point3D& rhs)
-{
-    return lhs.x_ * rhs.x_ + lhs.y_ * rhs.y_ + lhs.z_ * rhs.z_;
-}
 
 } // namespace cura
 #endif // POINT3D_H

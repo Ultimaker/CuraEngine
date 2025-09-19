@@ -4,6 +4,7 @@
 #ifndef MESH_H
 #define MESH_H
 
+#include <algorithm>
 #include <optional>
 
 #include "TextureDataMapping.h"
@@ -84,6 +85,11 @@ public:
         return height_;
     }
 
+    uint32_t getPixel(const std::pair<size_t, size_t>& pixel_coordinates) const
+    {
+        return getPixel(pixel_coordinates.first, pixel_coordinates.second);
+    }
+
     uint32_t getPixel(const size_t x, const size_t y) const
     {
         uint32_t result = 0;
@@ -95,9 +101,15 @@ public:
         return result;
     }
 
+    std::pair<size_t, size_t> getPixelCoordinates(const Point2F& uv_coordinates) const
+    {
+        return { std::clamp(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(0), width_ - 1),
+                 std::clamp(static_cast<size_t>(uv_coordinates.y_ * height_), static_cast<size_t>(0), height_ - 1) };
+    }
+
     uint32_t getPixel(const Point2F& uv_coordinates) const
     {
-        return getPixel(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(uv_coordinates.y_ * height_));
+        return getPixel(getPixelCoordinates(uv_coordinates));
     }
 
 private:

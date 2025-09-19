@@ -19,6 +19,7 @@
 #include "InterlockingGenerator.h"
 #include "layerPart.h"
 #include "MeshGroup.h"
+#include "MeshMaterialSplitter.h"
 #include "Mold.h"
 #include "multiVolumes.h"
 #include "PrintFeature.h"
@@ -61,6 +62,12 @@ namespace cura
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
+    std::vector<Mesh> initial_meshes = meshgroup->meshes; // Make a copy, because splitting is going to insert new meshes
+    for (Mesh& mesh : initial_meshes)
+    {
+        MeshMaterialSplitter::makeMaterialModifierMeshes(mesh, meshgroup);
+    }
+
     if (! sliceModel(meshgroup, timeKeeper, storage))
     {
         return false;
@@ -210,7 +217,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         }
 
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values);
+
+        const SlicingTolerance slicing_tolerance = mesh.settings_.get<SlicingTolerance>("slicing_tolerance");
+
+        Slicer* slicer
+            = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness);
 
         slicerList.push_back(slicer);
 
