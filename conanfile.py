@@ -93,6 +93,9 @@ class CuraEngineConan(ConanFile):
             self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
+        # Force all libraries to be static for Emscripten builds
+        if self.settings.os == "Emscripten":
+            self.options["*"].shared = False
 
     def validate(self):
         super().validate()
@@ -118,6 +121,9 @@ class CuraEngineConan(ConanFile):
         super().requirements()
 
         for req in self.conan_data["requirements"]:
+            # Skip OneTBB for Emscripten builds (single-threaded)
+            if req.startswith("onetbb/") and self.settings.arch == "wasm" and self.settings.os == "Emscripten":
+                continue
             self.requires(req)
         if self.options.enable_arcus:
             for req in self.conan_data["requirements_arcus"]:
