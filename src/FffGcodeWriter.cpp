@@ -3112,11 +3112,13 @@ bool FffGcodeWriter::processInsets(
 
             Shape compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
 
-            // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
-            // which is required because when the walls are being generated, the vertices do not fall on the part's outline
-            // but, instead, are 1/2 a line width inset from the outline
+            // now expand the air regions by the same amount as they were shrunk (completing the morphological opening operation)
+            // also, if the bridge-flow is light enough, compensate for the fact that the wall-vertices aren't exactly on the outline
+            // (otherwise we can assume that the bridge-walls are solid/wide enough that they can partly overlap,
+            //  which negates the need for compensation, and can make it harmful w.r.t. flow-buildup)
 
-            Shape bridge_mask = compressed_air.offset(max_air_gap + half_outer_wall_width);
+            const coord_t compensate_outline_distance = (mesh_config.bridge_inset0_config.flow < 1.0) ? half_outer_wall_width : 0;
+            Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance);
             gcode_layer.setBridgeWallMask(bridge_mask);
 
             // Override flooring/skin areas to register bridging areas to be treated as normal skin
