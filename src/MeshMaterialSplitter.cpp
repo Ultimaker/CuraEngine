@@ -6,7 +6,6 @@
 
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
-#include <range/v3/algorithm/contains.hpp>
 #include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
@@ -70,10 +69,10 @@ bool operator==(const ContourKey& key1, const ContourKey& key2)
 bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_grid, const size_t main_extruder)
 {
     boost::concurrent_flat_set<uint8_t> found_extruders;
-    std::vector<size_t> active_extruders;
+    std::unordered_set<size_t> active_extruders;
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
-        active_extruders.push_back(extruder.extruder_nr_);
+        active_extruders.insert(extruder.extruder_nr_);
     }
 
     cura::parallel_for(
@@ -111,7 +110,7 @@ bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDat
                 const Point2F point_uv_coords = MeshUtils::getUVCoordinates(barycentric_coordinates.value(), face_uvs);
                 const std::pair<size_t, size_t> pixel = texture_data_provider->getTexture()->getPixelCoordinates(Point2F(point_uv_coords.x_, point_uv_coords.y_));
                 std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), "extruder");
-                if (! extruder_nr.has_value() || ! ranges::contains(active_extruders, extruder_nr))
+                if (! extruder_nr.has_value() || ! active_extruders.contains(extruder_nr.value()))
                 {
                     extruder_nr = main_extruder;
                 }
