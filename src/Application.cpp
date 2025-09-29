@@ -48,6 +48,9 @@ Application::Application()
 Application::~Application()
 {
     delete thread_pool_;
+#ifndef __EMSCRIPTEN__
+    delete tbb_controller_;
+#endif
 }
 
 Application& Application::getInstance()
@@ -292,8 +295,10 @@ void Application::startThreadPool(int nworkers)
     }
 
     // Set the new OneTBB settings controller
+#ifndef __EMSCRIPTEN__
     delete tbb_controller_;
     tbb_controller_ = new tbb::global_control(tbb::global_control::max_allowed_parallelism, nthreads + 1);
+#endif
 
     if (thread_pool_ && thread_pool_->thread_count() == nthreads)
     {
