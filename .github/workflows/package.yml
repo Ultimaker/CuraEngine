@@ -47,7 +47,7 @@ jobs:
 
   npm-package:
     needs: [ conan-package ]
-    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'NP-') || startsWith(github.ref_name, '5.'))) || (github.event_name == 'pull_request' && (github.base_ref == 'main' || startsWith(github.head_ref, '5.'))))}}  # FIXME: have a more generic way to determine release branches
+    if: ${{ ((github.event_name == 'push' && (github.ref_name == 'main' || startsWith(github.ref_name, 'NP-') || startsWith(github.ref_name, 'CURA-')|| startsWith(github.ref_name, '5.'))) || (github.event_name == 'pull_request' && (github.base_ref == 'main' || startsWith(github.head_ref, '5.'))))}}  # FIXME: have a more generic way to determine release branches
     uses: ultimaker/cura-workflows/.github/workflows/npm-package.yml@main
     with:
       package_version_full: ${{ needs.conan-package.outputs.package_version_full }}

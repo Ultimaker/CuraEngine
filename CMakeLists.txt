@@ -235,7 +235,9 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(PNG REQUIRED)
-find_package(TBB REQUIRED)
+if(NOT EMSCRIPTEN)
+    find_package(TBB REQUIRED)
+endif()
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)
@@ -257,7 +259,7 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         PNG::PNG
-        onetbb::onetbb
+        $<$<NOT:$<BOOL:${EMSCRIPTEN}>>:onetbb::onetbb>
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>

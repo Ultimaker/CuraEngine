@@ -7,7 +7,9 @@
 #include <cassert>
 #include <cstddef>
 #include <memory>
+#ifndef __EMSCRIPTEN__
 #include <oneapi/tbb/global_control.h>
+#endif
 #include <string>
 
 #include "utils/NoCopy.h"
@@ -55,7 +57,9 @@ public:
     ThreadPool* thread_pool_ = nullptr;
 
     /*! Controller used to set the maximum number of threads used by the OneTBB library */
+#ifndef __EMSCRIPTEN__
     tbb::global_control* tbb_controller_ = nullptr;
+#endif
 
     std::string instance_uuid_;
 
