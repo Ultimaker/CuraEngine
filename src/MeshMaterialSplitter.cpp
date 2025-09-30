@@ -62,12 +62,18 @@ bool operator==(const ContourKey& key1, const ContourKey& key2)
  * @param mesh The mesh to fill the voxels grid with
  * @param texture_data_provider The provider containing the painted texture data
  * @param voxel_grid The voxels grid to be filled with mesh data
+ * @param main_extruder The main extruder of the mesh, to be used when we find a texture part that uses a disabled/inexisting extruder
  * @return True if this generated relevant data for multi-extruder, otherwise this means the mesh is completely filled with only extruder 0 and there is no need to go further on
  *         trying to calculate the modified meshes.
  */
-bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_grid)
+bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_grid, const size_t main_extruder)
 {
     boost::concurrent_flat_set<uint8_t> found_extruders;
+    std::unordered_set<size_t> active_extruders;
+    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
+    {
+        active_extruders.insert(extruder.extruder_nr_);
+    }
 
     cura::parallel_for(
         mesh.faces_,
@@ -103,12 +109,14 @@ bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDat
 
                 const Point2F point_uv_coords = MeshUtils::getUVCoordinates(barycentric_coordinates.value(), face_uvs);
                 const std::pair<size_t, size_t> pixel = texture_data_provider->getTexture()->getPixelCoordinates(Point2F(point_uv_coords.x_, point_uv_coords.y_));
-                const std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), "extruder");
-                if (extruder_nr.has_value())
+                std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), "extruder");
+                if (! extruder_nr.has_value() || ! active_extruders.contains(extruder_nr.value()))
                 {
-                    voxel_grid.setOrUpdateOccupation(traversed_voxel, extruder_nr.value());
-                    found_extruders.insert(extruder_nr.value());
+                    extruder_nr = main_extruder;
                 }
+
+                voxel_grid.setOrUpdateOccupation(traversed_voxel, extruder_nr.value());
+                found_extruders.insert(extruder_nr.value());
             }
         });
 
@@ -534,7 +542,8 @@ void propagateVoxels(
  */
 std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
-    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
+    const Settings& settings = mesh.settings_;
+    const size_t main_extruder = settings.get<size_t>("extruder_nr");
 
     // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder
     // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
@@ -549,7 +558,7 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles, which will be used as spatial reference for the texture data
     VoxelGrid voxel_grid(bounding_box, resolution);
-    if (! makeVoxelGridFromTexture(mesh, texture_data_provider, voxel_grid))
+    if (! makeVoxelGridFromTexture(mesh, texture_data_provider, voxel_grid, main_extruder))
     {
         // Texture is filled with 0s, don't bother doing anything
         return {};
