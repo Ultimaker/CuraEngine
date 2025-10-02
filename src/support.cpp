@@ -1428,7 +1428,7 @@ void AreaSupport::moveUpFromModel(
             const Shape supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, no_support, no_prime_tower);
             const Shape allowed_step_width = supporting_bottom.offset(support_bottom_stair_step_width).intersection(sloped_areas);
 
-            const int64_t step_bottom_layer_nr = bottom_layer_nr - bottom_stair_step_layer_count + 1;
+            const int64_t step_bottom_layer_nr = static_cast<int64_t>(bottom_layer_nr) - static_cast<int64_t>(bottom_stair_step_layer_count) + 1;
             if (step_bottom_layer_nr >= 0)
             {
                 const Shape step_bottom_outline = storage.getLayerOutlines(step_bottom_layer_nr, no_support, no_prime_tower);
