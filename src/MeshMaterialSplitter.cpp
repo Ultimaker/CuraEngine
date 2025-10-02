@@ -66,12 +66,7 @@ bool operator==(const ContourKey& key1, const ContourKey& key2)
  * @return True if this generated relevant data for multi-extruder, otherwise this means the mesh is completely filled with only extruder 0 and there is no need to go further on
  *         trying to calculate the modified meshes.
  */
-bool makeVoxelGridFromTexture(
-    const Mesh& mesh,
-    const std::shared_ptr<TextureDataProvider>& texture_data_provider,
-    VoxelGrid& voxel_grid,
-    const uint8_t mesh_extruder_nr,
-    const size_t main_extruder)
+bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_grid, const uint8_t mesh_extruder_nr)
 {
     boost::concurrent_flat_set<uint8_t> found_extruders;
     std::unordered_set<size_t> active_extruders;
@@ -117,7 +112,7 @@ bool makeVoxelGridFromTexture(
                 std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), "extruder");
                 if (! extruder_nr.has_value() || ! active_extruders.contains(extruder_nr.value()))
                 {
-                    extruder_nr = main_extruder;
+                    extruder_nr = mesh_extruder_nr;
                 }
 
                 voxel_grid.setOrUpdateOccupation(traversed_voxel, extruder_nr.value());
