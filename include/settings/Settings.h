@@ -47,6 +47,12 @@ public:
     void add(const std::string& key, const std::string& value);
 
     /*!
+     * @brief Removes a setting, if existing
+     * @param key The name of the setting to be removed
+     */
+    void remove(const std::string& key);
+
+    /*!
      * \brief Get the value of a setting.
      *
      * This value is then evaluated using the following technique:

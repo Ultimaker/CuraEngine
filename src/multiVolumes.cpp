@@ -108,17 +108,56 @@ void generateMultipleVolumesOverlap(std::vector<Slicer*>& volumes)
     }
 }
 
-void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::vector<Mesh>& meshes)
+void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, std::vector<Mesh>& meshes)
 {
-    for (unsigned int carving_mesh_idx = 0; carving_mesh_idx < volumes.size(); carving_mesh_idx++)
+    // Modifier mesh that change the extruder are treated differently: their volume is removed from regular meshes, then they are intersected with them, and the remainder
+    // is subsequently treated as a regular mesh
+    bool has_extruder_change_mesh = false;
+    for (const Mesh& cutting_mesh : meshes)
     {
-        const Mesh& cutting_mesh = meshes[carving_mesh_idx];
+        has_extruder_change_mesh |= cutting_mesh.settings_.get<bool>("cutting_mesh") && cutting_mesh.settings_.has("extruder_nr");
+    }
+
+    std::unordered_map<LayerIndex, Shape> layer_printable_mesh_unions;
+    if (has_extruder_change_mesh)
+    {
+        // Before we make any change to the actual sliced meshes, compute the full union of all the printable meshes on each layer
+        for (size_t printable_mesh_idx = 0; printable_mesh_idx < meshes.size(); ++printable_mesh_idx)
+        {
+            if (! meshes[printable_mesh_idx].isPrinted())
+            {
+                continue;
+            }
+
+            Slicer& printable_mesh_volume = *volumes[printable_mesh_idx];
+            for (LayerIndex layer_nr = 0; layer_nr < printable_mesh_volume.layers.size(); ++layer_nr)
+            {
+                const Shape& printable_mesh_area = printable_mesh_volume.layers[layer_nr].polygons_;
+                auto iterator = layer_printable_mesh_unions.find(layer_nr);
+                if (iterator != layer_printable_mesh_unions.end())
+                {
+                    layer_printable_mesh_unions[layer_nr] = layer_printable_mesh_unions[layer_nr].unionPolygons(printable_mesh_area);
+                }
+                else
+                {
+                    layer_printable_mesh_unions[layer_nr] = printable_mesh_area;
+                }
+            }
+        }
+    }
+
+    for (size_t carving_mesh_idx = 0; carving_mesh_idx < volumes.size(); ++carving_mesh_idx)
+    {
+        Mesh& cutting_mesh = meshes[carving_mesh_idx];
         if (! cutting_mesh.settings_.get<bool>("cutting_mesh"))
         {
             continue;
         }
+
+        bool is_extruder_change_mesh = cutting_mesh.settings_.has("extruder_nr");
+
         Slicer& cutting_mesh_volume = *volumes[carving_mesh_idx];
-        for (LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); layer_nr++)
+        for (LayerIndex layer_nr = 0; layer_nr < cutting_mesh_volume.layers.size(); ++layer_nr)
         {
             Shape& cutting_mesh_polygons = cutting_mesh_volume.layers[layer_nr].polygons_;
             OpenLinesSet& cutting_mesh_polylines = cutting_mesh_volume.layers[layer_nr].open_polylines_;
@@ -148,6 +187,20 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                 else
                 {
                     cutting_mesh_area = &cutting_mesh_polygons;
+                }
+
+                if (is_extruder_change_mesh)
+                {
+                    auto iterator = layer_printable_mesh_unions.find(layer_nr);
+                    if (iterator != layer_printable_mesh_unions.end())
+                    {
+                        *cutting_mesh_area = cutting_mesh_area->intersection(iterator->second);
+                    }
+                    else
+                    {
+                        // There is no printable object at this layer, just invalidate the cutting mesh area
+                        cutting_mesh_area->clear();
+                    }
                 }
             }
 
@@ -180,8 +233,13 @@ void MultiVolumes::carveCuttingMeshes(std::vector<Slicer*>& volumes, const std::
                 OpenPolylineStitcher::stitch(new_polylines, cutting_mesh_polylines, cutting_mesh_polygons, surface_line_width);
             }
         }
+
+        if (is_extruder_change_mesh)
+        {
+            // Starting now, consider this mesh as a regular mesh
+            cutting_mesh.settings_.remove("cutting_mesh");
+        }
     }
 }
-
 
 } // namespace cura
