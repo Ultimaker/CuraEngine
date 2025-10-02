@@ -53,6 +53,15 @@ void Settings::add(const std::string& key, const std::string& value)
     }
 }
 
+void Settings::remove(const std::string& key)
+{
+    const auto iterator = settings.find(key);
+    if (iterator != settings.end())
+    {
+        settings.erase(iterator);
+    }
+}
+
 template<>
 std::string Settings::get<std::string>(const std::string& key) const
 {

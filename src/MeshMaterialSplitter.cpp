@@ -69,6 +69,11 @@ bool operator==(const ContourKey& key1, const ContourKey& key2)
 bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_grid, const uint8_t mesh_extruder_nr)
 {
     boost::concurrent_flat_set<uint8_t> found_extruders;
+    std::unordered_set<size_t> active_extruders;
+    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
+    {
+        active_extruders.insert(extruder.extruder_nr_);
+    }
 
     cura::parallel_for(
         mesh.faces_,
@@ -104,12 +109,14 @@ bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDat
 
                 const Point2F point_uv_coords = MeshUtils::getUVCoordinates(barycentric_coordinates.value(), face_uvs);
                 const std::pair<size_t, size_t> pixel = texture_data_provider->getTexture()->getPixelCoordinates(Point2F(point_uv_coords.x_, point_uv_coords.y_));
-                const std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), "extruder");
-                if (extruder_nr.has_value())
+                std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), "extruder");
+                if (! extruder_nr.has_value() || ! active_extruders.contains(extruder_nr.value()))
                 {
-                    voxel_grid.setOrUpdateOccupation(traversed_voxel, extruder_nr.value());
-                    found_extruders.insert(extruder_nr.value());
+                    extruder_nr = main_extruder;
                 }
+
+                voxel_grid.setOrUpdateOccupation(traversed_voxel, extruder_nr.value());
+                found_extruders.insert(extruder_nr.value());
             }
         });
 
