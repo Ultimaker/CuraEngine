@@ -18,7 +18,7 @@ namespace MeshMaterialSplitter
  * @param mesh The mesh being sliced
  * @param meshgroup The group to add the modifier meshes to
  */
-void makeMaterialModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup);
+void makePaintingModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup);
 
 } // namespace MeshMaterialSplitter
 

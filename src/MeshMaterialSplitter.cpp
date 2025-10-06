@@ -552,7 +552,7 @@ void propagateVoxels(
  * @param texture_data_provider The provider containing the texture painted data
  * @return A list of modifier meshes to be added to the slicing process
  */
-std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+std::vector<Mesh> makeMaterialModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
     const uint8_t mesh_extruder_nr = static_cast<uint8_t>(mesh.settings_.get<size_t>("extruder_nr"));
@@ -607,7 +607,11 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
     return makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr);
 }
 
-void makeMaterialModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup)
+std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+{
+}
+
+void makePaintingModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup)
 {
     if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("extruder"))
     {
@@ -619,7 +623,7 @@ void makeMaterialModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup)
 
     const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
 
-    for (const Mesh& modifier_mesh : makeModifierMeshes(mesh, texture_data_provider))
+    for (const Mesh& modifier_mesh : makeMaterialModifierMeshes(mesh, texture_data_provider))
     {
         meshgroup->meshes.push_back(modifier_mesh);
     }
