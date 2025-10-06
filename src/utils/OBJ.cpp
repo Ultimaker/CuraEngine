@@ -67,11 +67,8 @@ OBJ::~OBJ()
     }
 }
 
-void OBJ::writeSphere(const Point3D& position, const double radius, const SVG::Color color)
+void OBJ::writeSphere(const Point3D& position, const double radius, const SVG::Color color, const size_t latitude_segments, const size_t longitude_segments)
 {
-    constexpr size_t latitude_segments = 4; // Number of latitude segments
-    constexpr size_t longitude_segments = 8; // Number of longitude segments
-
     std::vector<std::vector<size_t>> vertex_indices(latitude_segments + 1);
     for (size_t i = 0; i <= latitude_segments; ++i)
     {

@@ -7,6 +7,7 @@
 
 #include <spdlog/spdlog.h>
 
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
 #include "utils/ExtrusionLine.h"
@@ -440,6 +441,20 @@ void SVG::writePolylines(const Shape& polys, const ColorObject color, const doub
 
     handleFlush(flush);
 }
+
+template<class LineType>
+void SVG::writePolylines(const LinesSet<LineType>& lines, const ColorObject color, const double stroke_width, const bool flush) const
+{
+    for (const LineType& line : lines)
+    {
+        writePolyline(line, color, stroke_width, false);
+    }
+
+    handleFlush(flush);
+}
+
+template void SVG::writePolylines(const LinesSet<OpenPolyline>& lines, const ColorObject color, const double stroke_width, const bool flush) const;
+template void SVG::writePolylines(const LinesSet<ClosedPolyline>& lines, const ColorObject color, const double stroke_width, const bool flush) const;
 
 void SVG::writePolyline(const Polygon& poly, const ColorObject color, const double stroke_width) const
 {

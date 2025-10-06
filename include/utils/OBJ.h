@@ -22,7 +22,12 @@ public:
 
     ~OBJ();
 
-    void writeSphere(const Point3D& position, const double radius = 1.0, const SVG::Color color = SVG::Color::BLACK);
+    void writeSphere(
+        const Point3D& position,
+        const double radius = 1.0,
+        const SVG::Color color = SVG::Color::BLACK,
+        const size_t latitude_segments = 4,
+        const size_t longitude_segments = 8);
 
     void writeTriangle(
         const Point3D& p0,
