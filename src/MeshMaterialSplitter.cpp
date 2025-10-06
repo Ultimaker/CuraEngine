@@ -417,6 +417,7 @@ boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>
     findVoxelsToEvaluate(const VoxelGrid& voxel_grid, const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& previously_evaluated_voxels)
 {
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_considered;
 
     previously_evaluated_voxels.visit_all(
 #ifdef __cpp_lib_execution
@@ -426,20 +427,11 @@ boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>
         {
             for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(previously_evaluated_voxel))
             {
-                if (voxels_to_evaluate.contains(voxel_around))
+                if (voxels_considered.insert(voxel_around) && ! voxel_grid.hasOccupation(voxel_around))
                 {
-                    // This voxel has already been registered for evaluation
-                    continue;
+                    // Voxel has not been considered yet and is not filled, evaluate it now
+                    voxels_to_evaluate.emplace(voxel_around);
                 }
-
-                const std::optional<uint8_t> occupation = voxel_grid.getOccupation(voxel_around);
-                if (occupation.has_value())
-                {
-                    // Voxel is already filled, don't evaluate it anyhow
-                    continue;
-                }
-
-                voxels_to_evaluate.emplace(voxel_around);
             }
         });
 

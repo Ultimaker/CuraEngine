@@ -89,6 +89,8 @@ public:
 
     std::optional<uint8_t> getOccupation(const LocalCoordinates& local_position) const;
 
+    bool hasOccupation(const LocalCoordinates& local_position) const;
+
     size_t occupiedCount() const;
 
     /*!

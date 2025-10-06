@@ -60,6 +60,11 @@ std::optional<uint8_t> VoxelGrid::getOccupation(const LocalCoordinates& local_po
     return result;
 }
 
+bool VoxelGrid::hasOccupation(const LocalCoordinates& local_position) const
+{
+    return occupied_voxels_.contains(local_position);
+}
+
 size_t VoxelGrid::occupiedCount() const
 {
     return occupied_voxels_.size();
