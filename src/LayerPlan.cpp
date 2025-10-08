@@ -60,14 +60,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -1135,7 +1136,8 @@ void LayerPlan::addWallLine(
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
-    else if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL()))
+    else if (
+        bridge_wall_mask_bb_.hit(AABB({ p0.toPoint2LL(), p1.toPoint2LL() })) && PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL()))
     {
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
 
@@ -1687,7 +1689,7 @@ coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const
             const ExtrusionJunction& p0 = wall[point_index(base_index)];
             const ExtrusionJunction& p1 = wall[point_index(base_index + direction)];
 
-            if (PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
+            if (bridge_wall_mask_bb_.hit(AABB({ p0.p_, p1.p_ })) && PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
             {
                 constexpr bool restitch = false; // only a single line doesn't need stitching
                 OpenLinesSet intersections_with_bridge_mask = bridge_wall_mask_.intersection(OpenLinesSet(OpenPolyline({ p0.p_, p1.p_ })), restitch);
@@ -3754,6 +3756,7 @@ size_t LayerPlan::getExtruder() const
 void LayerPlan::setBridgeWallMask(const Shape& polys)
 {
     bridge_wall_mask_ = polys;
+    bridge_wall_mask_bb_ = AABB(polys);
 }
 
 void LayerPlan::setOverhangMasks(const std::vector<OverhangMask>& masks)

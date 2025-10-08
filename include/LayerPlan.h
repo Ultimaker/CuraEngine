@@ -152,6 +152,7 @@ private:
     Comb* comb_;
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
+    AABB bridge_wall_mask_bb_; //!< Cached bounding box for the above value.
     std::vector<OverhangMask> overhang_masks_; //!< The regions of a layer part where the walls overhang, calculated for multiple overhang angles. The latter is the most
                                                //!< overhanging. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
     Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam

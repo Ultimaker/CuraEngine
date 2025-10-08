@@ -7,6 +7,8 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 
+#include <initializer_list>
+
 namespace cura
 {
 
@@ -22,6 +24,7 @@ public:
 
     AABB(); //!< initializes with invalid min and max
     AABB(const Point2LL& min, const Point2LL& max); //!< initializes with given min and max
+    AABB(const std::initializer_list<Point2LL>& points); //!< initializes with given points
     AABB(const Shape& shape); //!< Computes the boundary box for the given shape
     AABB(const OpenLinesSet& lines); //!< Computes the boundary box for the given lines
     AABB(const PointsSet& poly); //!< Computes the boundary box for the given polygons
