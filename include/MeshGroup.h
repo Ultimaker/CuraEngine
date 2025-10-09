@@ -64,6 +64,8 @@ public:
  */
 bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings);
 
+bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matrix);
+
 } // namespace cura
 
 #endif // MESH_GROUP_H

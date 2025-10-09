@@ -6,10 +6,9 @@
 
 #include <stddef.h>
 
-#include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
 #include "utils/Coord_t.h"
-#include "utils/scoring/ScoringCriterion.h"
+#include "utils/scoring/PositionBasedScoringCriterion.h"
 
 namespace cura
 {
@@ -19,10 +18,9 @@ class PointsSet;
  * Criterion that will give a score according to whether the point is creating a corner or lies on a flat line.
  * Depending on the given preference, concave or convex corners may get a higher score.
  */
-class CornerScoringCriterion : public ScoringCriterion
+class CornerScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
-    const PointsSet& points_;
     const EZSeamCornerPrefType corner_preference_;
     std::vector<coord_t> segments_sizes_;
     coord_t total_length_{ 0 };

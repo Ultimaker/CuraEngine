@@ -63,6 +63,11 @@ void FffGcodeWriter::setTargetStream(std::ostream* stream)
     gcode.setOutputStream(stream);
 }
 
+bool FffGcodeWriter::getExtruderActualUse(int extruder_nr)
+{
+    return gcode.getExtruderIsUsed(extruder_nr);
+}
+
 double FffGcodeWriter::getTotalFilamentUsed(int extruder_nr)
 {
     return gcode.getTotalFilamentUsed(extruder_nr);
@@ -343,6 +348,9 @@ static void retractionAndWipeConfigFromSettings(const Settings& settings, Retrac
 {
     RetractionConfig& retraction_config = config->retraction_config;
     retraction_config.distance = (settings.get<bool>("retraction_enable")) ? settings.get<double>("retraction_amount") : 0; // Retraction distance in mm.
+    retraction_config.retract_during_travel = settings.get<Ratio>("retraction_during_travel_ratio");
+    retraction_config.keep_retracting_during_travel = settings.get<bool>("keep_retracting_during_travel");
+    retraction_config.prime_during_travel = settings.get<Ratio>("prime_during_travel_ratio");
     retraction_config.prime_volume = settings.get<double>("retraction_extra_prime_amount"); // Extra prime volume in mm^3.
     retraction_config.speed = settings.get<Velocity>("retraction_retract_speed");
     retraction_config.primeSpeed = settings.get<Velocity>("retraction_prime_speed");
@@ -709,7 +717,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             if (! raft_paths.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage_.raft_base_config;
-                const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+                const ZSeamConfig z_seam_config(
+                    EZSeamType::SHORTEST,
+                    gcode_layer.getLastPlannedPositionOrStartingPosition(),
+                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
+                    false);
                 InsetOrderOptimizer wall_orderer(
                     *this,
                     storage,
@@ -872,7 +884,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         if (! raft_paths.empty())
         {
             const GCodePathConfig& config = gcode_layer.configs_storage_.raft_interface_config;
-            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
             InsetOrderOptimizer wall_orderer(
                 *this,
                 storage,
@@ -1043,7 +1055,11 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
             if (! raft_paths.empty())
             {
-                const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+                const ZSeamConfig z_seam_config(
+                    EZSeamType::SHORTEST,
+                    gcode_layer.getLastPlannedPositionOrStartingPosition(),
+                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
+                    false);
                 InsetOrderOptimizer wall_orderer(
                     *this,
                     storage,
@@ -3096,11 +3112,13 @@ bool FffGcodeWriter::processInsets(
 
             Shape compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
 
-            // now expand the air regions by the same amount as they were shrunk plus half the outer wall line width
-            // which is required because when the walls are being generated, the vertices do not fall on the part's outline
-            // but, instead, are 1/2 a line width inset from the outline
+            // now expand the air regions by the same amount as they were shrunk (completing the morphological opening operation)
+            // also, if the bridge-flow is light enough, compensate for the fact that the wall-vertices aren't exactly on the outline
+            // (otherwise we can assume that the bridge-walls are solid/wide enough that they can partly overlap,
+            //  which negates the need for compensation, and can make it harmful w.r.t. flow-buildup)
 
-            Shape bridge_mask = compressed_air.offset(max_air_gap + half_outer_wall_width);
+            const coord_t compensate_outline_distance = (mesh_config.bridge_inset0_config.flow < 1.0) ? half_outer_wall_width : 0;
+            Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance);
             gcode_layer.setBridgeWallMask(bridge_mask);
 
             // Override flooring/skin areas to register bridging areas to be treated as normal skin
@@ -3317,7 +3335,8 @@ bool FffGcodeWriter::processInsets(
             disallowed_areas_for_seams,
             scarf_seam,
             smooth_speed,
-            gcode_layer.getSeamOverhangMask());
+            gcode_layer.getSeamOverhangMask(),
+            mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_);
         added_something |= wall_orderer.addToLayer();
     }
     return added_something;
@@ -4002,7 +4021,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             constexpr coord_t wipe_dist = 0;
             const LayerIndex layer_nr = gcode_layer.getLayerNr();
             ZSeamConfig z_seam_config
-                = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+                = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
             Shape disallowed_area_for_seams{};
             if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model") && (layer_nr >= 0))
             {
@@ -4207,7 +4226,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 const ZSeamConfig z_seam_config(
                     EZSeamType::SHORTEST,
                     gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE,
+                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
                     simplify_curvature);
                 InsetOrderOptimizer wall_orderer(
                     *this,
@@ -4345,7 +4364,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
         const GCodePathConfig& config = current_roof_config;
         constexpr bool retract_before_outer_wall = false;
         constexpr coord_t wipe_dist = 0;
-        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
         InsetOrderOptimizer wall_orderer(
             *this,
@@ -4461,7 +4480,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         const GCodePathConfig& config = gcode_layer.configs_storage_.support_bottom_config;
         constexpr bool retract_before_outer_wall = false;
         constexpr coord_t wipe_dist = 0;
-        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE, false);
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
         InsetOrderOptimizer wall_orderer(
             *this,

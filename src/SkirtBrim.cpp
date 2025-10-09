@@ -136,7 +136,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Out
         }
     }
 
-    std::sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter);
+    std::stable_sort(all_brim_offsets.begin(), all_brim_offsets.end(), OffsetSorter);
     return all_brim_offsets;
 }
 
@@ -227,7 +227,7 @@ std::vector<coord_t> SkirtBrim::generatePrimaryBrim(std::vector<Offset>& all_bri
                 offset.inset_idx_ + 1,
                 offset.extruder_nr_,
                 is_last);
-            std::sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter); // reorder remaining offsets
+            std::stable_sort(all_brim_offsets.begin() + offset_idx + 1, all_brim_offsets.end(), OffsetSorter); // reorder remaining offsets
         }
     }
     return total_length;

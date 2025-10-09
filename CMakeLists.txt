@@ -60,6 +60,7 @@ set(engine_SRCS # Except main.cpp.
         src/LayerPlanBuffer.cpp
         src/mesh.cpp
         src/MeshGroup.cpp
+        src/MeshMaterialSplitter.cpp
         src/Mold.cpp
         src/multiVolumes.cpp
         src/path_ordering.cpp
@@ -80,6 +81,8 @@ set(engine_SRCS # Except main.cpp.
         src/slicer.cpp
         src/support.cpp
         src/timeEstimate.cpp
+        src/SlicedUVCoordinates.cpp
+        src/TextureDataProvider.cpp
         src/TopSurface.cpp
         src/TreeSupportTipGenerator.cpp
         src/TreeModelVolumes.cpp
@@ -142,7 +145,10 @@ set(engine_SRCS # Except main.cpp.
         src/utils/linearAlg2D.cpp
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
+        src/utils/MeshUtils.cpp
         src/utils/MinimumSpanningTree.cpp
+        src/utils/OBJ.cpp
+        src/utils/ParameterizedSegment.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -150,10 +156,12 @@ set(engine_SRCS # Except main.cpp.
         src/utils/PolylineStitcher.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp
+        src/utils/SpatialLookup.cpp
         src/utils/SquareGrid.cpp
         src/utils/ThreadPool.cpp
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
+        src/utils/VoxelGrid.cpp
         src/utils/VoxelUtils.cpp
         src/utils/MixedPolylineStitcher.cpp
 
@@ -161,7 +169,9 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/CornerScoringCriterion.cpp
         src/utils/scoring/DistanceScoringCriterion.cpp
         src/utils/scoring/ExclusionAreaScoringCriterion.cpp
+        src/utils/scoring/PositionBasedScoringCriterion.cpp
         src/utils/scoring/RandomScoringCriterion.cpp
+        src/utils/scoring/TextureScoringCriterion.cpp
 
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
@@ -224,6 +234,10 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
+find_package(PNG REQUIRED)
+if(NOT EMSCRIPTEN)
+    find_package(TBB REQUIRED)
+endif()
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)
@@ -244,6 +258,8 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
+        PNG::PNG
+        $<$<NOT:$<BOOL:${EMSCRIPTEN}>>:onetbb::onetbb>
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
@@ -295,7 +311,7 @@ if (EMSCRIPTEN)
             "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
             "SHELL:-sWASM_BIGINT=1"
             "SHELL:-sSTACK_SIZE=196608"
-           $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
+            $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
             $<$<CONFIG:Debug>:SHELL:-sSAFE_HEAP=1>
             $<$<CONFIG:Debug>:SHELL:-sSTACK_OVERFLOW_CHECK=2>
             $<$<CONFIG:Debug>:SHELL:-g3>

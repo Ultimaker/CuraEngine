@@ -72,12 +72,21 @@ public:
     }
 
     /*!
+     * \brief Constructor with a lines initializer list, provided for convenience
+     * \warning A copy of the lines list is made, so this constructor is somehow "slow"
+     */
+    explicit LinesSet(const std::initializer_list<LineType>& initializer)
+        : lines_{ initializer }
+    {
+    }
+
+    /*!
      * \brief Constructor that takes ownership of the data from the given set of lines
      * \warning This constructor is actually only defined for a LinesSet containing OpenPolyline
      *          objects, because closed ones require an additional argument
      */
     template<typename U = LineType>
-    requires std::is_same_v<U, OpenPolyline>
+        requires std::is_same_v<U, OpenPolyline>
     explicit LinesSet(ClipperLib::Paths&& paths)
     {
         reserve(paths.size());

@@ -418,20 +418,27 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
     message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);
     message->set_time_none(time_estimates[static_cast<unsigned char>(PrintFeatureType::NoneType)]);
-    message->set_time_retract(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveRetraction)]);
+    message->set_time_retract(time_estimates[static_cast<unsigned char>(PrintFeatureType::StationaryRetractUnretract)]);
     message->set_time_skin(time_estimates[static_cast<unsigned char>(PrintFeatureType::Skin)]);
     message->set_time_skirt(time_estimates[static_cast<unsigned char>(PrintFeatureType::SkirtBrim)]);
     message->set_time_support(time_estimates[static_cast<unsigned char>(PrintFeatureType::Support)]);
     message->set_time_support_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInfill)]);
     message->set_time_support_interface(time_estimates[static_cast<unsigned char>(PrintFeatureType::SupportInterface)]);
-    message->set_time_travel(time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveCombing)]);
     message->set_time_prime_tower(time_estimates[static_cast<unsigned char>(PrintFeatureType::PrimeTower)]);
+    message->set_time_travel(
+        time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveUnretracted)] + time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveRetracted)]
+        + time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveWhileRetracting)] + time_estimates[static_cast<unsigned char>(PrintFeatureType::MoveWhileUnretracting)]);
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
         proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);
-        material_message->set_material_amount(FffProcessor::getInstance()->getTotalFilamentUsed(extruder_nr));
+        auto fff_proc = FffProcessor::getInstance();
+        material_message->set_material_amount(
+            fff_proc->getExtruderActualUse(extruder_nr) ? fff_proc->getTotalFilamentUsed(extruder_nr) : std::numeric_limits<float>::signaling_NaN());
+        // NOTE: Set to signalling-NaN to specify that no calculations should be done on the result, and if attempted, should fail fast instead of propagate.
+        //       Instead, it's meant to repressent the state of a completely unused extruder or tool, since a value of 0.0 could be a rounding error.
+        //       (Also future-proof: '0.0' might conceivably signal a state in which a tool is used that doesn't extrude material, 'NaN' still means unused.)
     }
 
     private_data->socket->sendMessage(message);

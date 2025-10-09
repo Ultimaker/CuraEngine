@@ -41,7 +41,7 @@ Settings::Settings()
     parent = nullptr; // Needs to be properly initialised because we check against this if the parent is not set.
 }
 
-void Settings::add(const std::string& key, const std::string value)
+void Settings::add(const std::string& key, const std::string& value)
 {
     if (settings.find(key) != settings.end()) // Already exists.
     {
@@ -50,6 +50,15 @@ void Settings::add(const std::string& key, const std::string value)
     else // New setting.
     {
         settings.emplace(key, value);
+    }
+}
+
+void Settings::remove(const std::string& key)
+{
+    const auto iterator = settings.find(key);
+    if (iterator != settings.end())
+    {
+        settings.erase(iterator);
     }
 }
 
@@ -546,10 +555,6 @@ EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key)
     using namespace cura::utils;
     switch (hash_enum(value))
     {
-    case "z_seam_corner_none"_sw:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
-    case "z_seam_corner_inner"_sw:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
     case "z_seam_corner_outer"_sw:
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER;
     case "z_seam_corner_any"_sw:
@@ -558,8 +563,9 @@ EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key)
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED;
     case "plugin"_sw:
         return EZSeamCornerPrefType::PLUGIN;
+    case "z_seam_corner_inner"_sw:
     default:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
     }
 }
 

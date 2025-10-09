@@ -103,11 +103,6 @@ INLINE Point2LL& operator-=(Point2LL& p0, const Point2LL& p1)
     return p0;
 }
 
-INLINE bool operator<(const Point2LL& p0, const Point2LL& p1)
-{
-    return p0.X < p1.X || (p0.X == p1.X && p0.Y < p1.Y);
-}
-
 /* ***** NOTE *****
    TL;DR: DO NOT implement operators *= and /= because of the default values in ClipperLib::IntPoint's constructor.
 
@@ -151,6 +146,11 @@ INLINE bool shorterThan(const Point2LL& p0, const coord_t len)
 INLINE coord_t vSize(const Point2LL& p0)
 {
     return std::llrint(sqrt(static_cast<double>(vSize2(p0))));
+}
+
+INLINE coord_t vSizef(const Point2LL& p0)
+{
+    return std::sqrt(vSize2f(p0));
 }
 
 INLINE double vSizeMM(const Point2LL& p0)
@@ -222,6 +222,11 @@ Point3LL& operator-=(Point3LL& p3, const Point2LL& p2);
 
 Point2LL operator-(const Point2LL& p2, const Point3LL& p3);
 
+inline Point2LL lerp(const Point2LL& a, const Point2LL& b, const double t)
+{
+    return Point2LL(lerp(a.X, b.X, t), lerp(a.Y, b.Y, t));
+}
+
 } // namespace cura
 
 namespace std
@@ -239,5 +244,13 @@ struct hash<cura::Point2LL>
     }
 };
 } // namespace std
+
+namespace ClipperLib
+{
+inline bool operator<(const IntPoint& lhs, const IntPoint& rhs)
+{
+    return lhs.X < rhs.X || (lhs.X == rhs.X && lhs.Y < rhs.Y);
+}
+} // namespace ClipperLib
 
 #endif // GEOMETRY_POINT2LL_H

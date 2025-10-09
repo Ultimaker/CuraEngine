@@ -44,7 +44,13 @@ public:
      * \param value The value of the setting. The value is always added and
      * stored in serialised form as a string.
      */
-    void add(const std::string& key, const std::string value);
+    void add(const std::string& key, const std::string& value);
+
+    /*!
+     * @brief Removes a setting, if existing
+     * @param key The name of the setting to be removed
+     */
+    void remove(const std::string& key);
 
     /*!
      * \brief Get the value of a setting.
