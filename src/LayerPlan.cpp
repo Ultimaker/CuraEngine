@@ -1915,11 +1915,6 @@ void LayerPlan::addWall(
 
     if (wall.size() >= 2)
     {
-        if (! bridge_wall_mask_.empty())
-        {
-            computeDistanceToBridgeStart(wall, (start_idx + wall.size() - 1) % wall.size(), min_bridge_line_len, is_reversed ? -1 : 1);
-        }
-
         if (! is_linked_path)
         {
             addWipeTravel(path_adapter, wall_0_wipe_dist, is_reversed, get<0>(add_wall_result), get<1>(add_wall_result));
