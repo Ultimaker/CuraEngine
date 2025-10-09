@@ -27,7 +27,8 @@ AABB::AABB(const Point2LL& min, const Point2LL& max)
 {
 }
 
-AABB::AABB(const std::initializer_list<Point2LL>& points) : AABB()
+AABB::AABB(const std::initializer_list<Point2LL>& points)
+    : AABB()
 {
     for (const auto& pt : points)
     {

@@ -4,10 +4,10 @@
 #ifndef UTILS_AABB_H
 #define UTILS_AABB_H
 
+#include <initializer_list>
+
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
-
-#include <initializer_list>
 
 namespace cura
 {
