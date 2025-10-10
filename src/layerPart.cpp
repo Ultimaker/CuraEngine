@@ -114,7 +114,7 @@ Shape getTopOrBottom(int direction, const std::string& setting_name, size_t laye
         if (next_layer >= 0 && next_layer < slayers.size())
         {
             constexpr coord_t EPSILON = 5;
-            const auto wall_line_width = settings.get<coord_t>(layer_nr == 0 ? "wall_line_width_0" : "wall_line_width") - 5;
+            const auto wall_line_width = settings.get<coord_t>(layer_nr == 0 ? "wall_line_width_0" : "wall_line_width") - EPSILON;
             result = result.offset(-wall_line_width).difference(slayers[next_layer].polygons_).offset(wall_line_width);
         }
     }
