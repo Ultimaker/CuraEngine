@@ -352,11 +352,14 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
             skin_part.skin_fill = skin_part.outline.intersection(filled_area_above);
         }
 
-        // Allow roof areas to grow inside the skin by roofing_extension amount
-        constexpr coord_t epsilon = 5; // Roofing and skin edges overlap, so make sure they properly merge
-        Shape roof_and_skin = skin_part.roofing_fill.offset(epsilon).unionPolygons(skin_part.skin_fill);
-        Shape extended_roof = skin_part.roofing_fill.offset(roofing_extension);
-        skin_part.roofing_fill = roof_and_skin.intersection(extended_roof);
+        if (roofing_extension > 0)
+        {
+            // Allow roof areas to grow inside the skin by roofing_extension amount
+            constexpr coord_t epsilon = 5; // Roofing and skin edges overlap, so make sure they properly merge
+            Shape roof_and_skin = skin_part.roofing_fill.offset(epsilon).unionPolygons(skin_part.skin_fill);
+            Shape extended_roof = skin_part.roofing_fill.offset(roofing_extension);
+            skin_part.roofing_fill = roof_and_skin.intersection(extended_roof);
+        }
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
         // Otherwise, adjacent skin_fill and roofing/flooring would have doubled offset areas. Since they both offset into each other.
