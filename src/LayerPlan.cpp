@@ -1087,13 +1087,17 @@ void LayerPlan::addWallLine(
                     return vSize2(a.front() - p0) < vSize2(b.front() - p0);
                 });
 
+            auto pt0 = p0.toPoint2LL();
+            Point2LL& last_placed = pt0;
+
             // add intersected line segments, alternating between roofing and default_config
             for (const auto& line_poly : skin_line_segments)
             {
                 // This is only relevant for the very fist iteration of the loop
                 // if the start of the line segment is not at minimum distance from p0
-                if (vSize2(line_poly.front() - p0) > min_line_len * min_line_len)
+                if (vSize2(line_poly.front() - last_placed) > min_line_len * min_line_len)
                 {
+                    last_placed = line_poly.front();
                     addExtrusionMove(
                         line_poly.front(),
                         default_config,
@@ -1105,6 +1109,12 @@ void LayerPlan::addWallLine(
                         GCodePathConfig::FAN_SPEED_DEFAULT,
                         travel_to_z);
                 }
+
+                if (vSize2(line_poly.back() - last_placed) < min_line_len * min_line_len)
+                {
+                    continue;
+                }
+                last_placed = line_poly.back();
 
                 addExtrusionMove(line_poly.back(), config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
             }
