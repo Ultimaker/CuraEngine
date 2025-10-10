@@ -339,26 +339,17 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
         const std::optional<Shape> filled_area_below = generateFilledAreaBelow(part, flooring_layer_count);
 
         // An area that would have nothing below nor above is considered a roof
-        skin_part.roofing_fill = skin_part.outline.difference(filled_area_above);
+        skin_part.roofing_fill = skin_part.outline.difference(filled_area_above.offset(-roofing_extension));
         if (filled_area_below.has_value())
         {
             skin_part.flooring_fill = skin_part.outline.intersection(filled_area_above).difference(*filled_area_below);
-            skin_part.skin_fill = skin_part.outline.intersection(filled_area_above).intersection(*filled_area_below);
+            skin_part.skin_fill = skin_part.outline.difference(skin_part.roofing_fill).intersection(*filled_area_below);
         }
         else
         {
             // Mesh part is just above build plate, so it is completely supported
             // skin_part.flooring_fill = Shape();
-            skin_part.skin_fill = skin_part.outline.intersection(filled_area_above);
-        }
-
-        if (roofing_extension > 0)
-        {
-            // Allow roof areas to grow inside the skin by roofing_extension amount
-            constexpr coord_t epsilon = 5; // Roofing and skin edges overlap, so make sure they properly merge
-            Shape roof_and_skin = skin_part.roofing_fill.offset(epsilon).unionPolygons(skin_part.skin_fill);
-            Shape extended_roof = skin_part.roofing_fill.offset(roofing_extension);
-            skin_part.roofing_fill = roof_and_skin.intersection(extended_roof);
+            skin_part.skin_fill = skin_part.outline.intersection(skin_part.roofing_fill);
         }
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
