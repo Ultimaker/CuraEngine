@@ -1036,6 +1036,18 @@ void Infill::connectLines(OpenLinesSet& result_lines)
             delete old_line;
         }
 
+        auto inner_contour_offset = inner_contour_.offset(-infill_line_width_ * 2);
+
+        auto last_point = result_line.back();
+        const auto last_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, last_point);
+
+        result_line.push_back(last_point_polygon.location_);
+
+
+        auto first_point = result_line.front();
+        const auto first_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, first_point);
+        result_line.insert(result_line.begin(), first_point_polygon.location_);
+
         completed_groups.insert(group);
     }
 }
