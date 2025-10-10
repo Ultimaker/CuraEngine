@@ -575,6 +575,7 @@ private:
      * \param skin_overlap The amount by which to expand the \p area
      * \param skin density Sets the density of the the skin lines by adjusting the distance between them (normal skin is 1.0)
      * \param monotonic Whether to order lines monotonically (``true``) or to
+     * \param is_roofing_flooring Indicates whether we are currently processing a top/bottom layer, or a skin layer
      * minimise travel moves (``false``).
      * \param[out] added_something Whether this function added anything to the layer plan
      * \param fan_speed fan speed override for this skin area
@@ -591,6 +592,7 @@ private:
         const coord_t skin_overlap,
         const Ratio skin_density,
         const bool monotonic,
+        const bool is_roofing_flooring,
         bool& added_something,
         double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
 
