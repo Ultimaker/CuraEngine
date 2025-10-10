@@ -925,7 +925,7 @@ void LayerPlan::addWallLine(
     double distance_to_bridge_start,
     const bool travel_to_z)
 {
-    constexpr coord_t min_line_len = 5; // we ignore lines less than 5um long
+    const coord_t min_line_len = settings.get<coord_t>("meshfix_maximum_resolution"); // all points will be on the line anyway, so there is no deviation to take into account
     constexpr double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     constexpr bool spiralize = false;
