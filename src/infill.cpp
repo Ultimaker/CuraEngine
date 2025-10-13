@@ -1043,7 +1043,6 @@ void Infill::connectLines(OpenLinesSet& result_lines)
 
         result_line.push_back(last_point_polygon.location_);
 
-
         auto first_point = result_line.front();
         const auto first_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, first_point);
         result_line.insert(result_line.begin(), first_point_polygon.location_);
