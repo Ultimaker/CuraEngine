@@ -328,29 +328,28 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
  */
 void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& part)
 {
+    const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
+    const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
+    const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
+    const coord_t roofing_extension = mesh_.settings.get<coord_t>("roofing_extension");
+
+    constexpr coord_t epsilon = 5;
+    const SliceDataStorage slice_data;
+    const Shape build_plate = slice_data.getRawMachineBorder().offset(epsilon);
+    const Shape build_plate_for_roofing = build_plate.offset(roofing_extension * 2).difference(part.outline);
+
+    const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
+    const Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate);
+
     for (SkinPart& skin_part : part.skin_parts)
     {
-        const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
-        const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
-        const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
-        const coord_t roofing_extension = mesh_.settings.get<coord_t>("roofing_extension");
+        // In order to avoid edge cases, it is safer to create the extended roofing area by reducing the area above. However, we want to avoid reducing the borders, so at this
+        // point we extend the area above with the build plate area, so that when reducing, the border will still be far away
+        const Shape bordered_area_above = build_plate_for_roofing.unionPolygons(filled_area_above.offset(epsilon));
+        skin_part.roofing_fill = skin_part.outline.difference(bordered_area_above.offset(-roofing_extension));
 
-        const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
-        const std::optional<Shape> filled_area_below = generateFilledAreaBelow(part, flooring_layer_count);
-
-        // An area that would have nothing below nor above is considered a roof
-        skin_part.roofing_fill = skin_part.outline.difference(filled_area_above.offset(-roofing_extension));
-        if (filled_area_below.has_value())
-        {
-            skin_part.flooring_fill = skin_part.outline.intersection(filled_area_above).difference(*filled_area_below);
-            skin_part.skin_fill = skin_part.outline.difference(skin_part.roofing_fill).intersection(*filled_area_below);
-        }
-        else
-        {
-            // Mesh part is just above build plate, so it is completely supported
-            // skin_part.flooring_fill = Shape();
-            skin_part.skin_fill = skin_part.outline.intersection(skin_part.roofing_fill);
-        }
+        skin_part.flooring_fill = skin_part.outline.intersection(filled_area_above).difference(filled_area_below);
+        skin_part.skin_fill = skin_part.outline.difference(skin_part.roofing_fill).intersection(filled_area_below);
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
         // Otherwise, adjacent skin_fill and roofing/flooring would have doubled offset areas. Since they both offset into each other.
