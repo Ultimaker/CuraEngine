@@ -335,19 +335,18 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
 
     constexpr coord_t epsilon = 5;
     const SliceDataStorage slice_data;
-    const Shape build_plate = slice_data.getRawMachineBorder().offset(epsilon);
-    const Shape build_plate_for_roofing = build_plate.offset(roofing_extension * 2).difference(part.outline);
+    const Shape build_plate = slice_data.getRawMachineBorder();
 
     const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
-    const Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate);
+    const Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate.offset(epsilon));
+
+    // In order to avoid edge cases, it is safer to create the extended roofing area by reducing the area above. However, we want to avoid reducing the borders, so at this
+    // point we extend the area above with the build plate area, so that when reducing, the border will still be far away.
+    const Shape reduced_area_above = build_plate.offset(roofing_extension * 2).difference(part.outline).unionPolygons(filled_area_above.offset(epsilon)).offset(-roofing_extension);
 
     for (SkinPart& skin_part : part.skin_parts)
     {
-        // In order to avoid edge cases, it is safer to create the extended roofing area by reducing the area above. However, we want to avoid reducing the borders, so at this
-        // point we extend the area above with the build plate area, so that when reducing, the border will still be far away
-        const Shape bordered_area_above = build_plate_for_roofing.unionPolygons(filled_area_above.offset(epsilon));
-        skin_part.roofing_fill = skin_part.outline.difference(bordered_area_above.offset(-roofing_extension));
-
+        skin_part.roofing_fill = skin_part.outline.difference(reduced_area_above);
         skin_part.flooring_fill = skin_part.outline.intersection(filled_area_above).difference(filled_area_below);
         skin_part.skin_fill = skin_part.outline.difference(skin_part.roofing_fill).intersection(filled_area_below);
 
