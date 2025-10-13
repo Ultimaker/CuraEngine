@@ -314,10 +314,11 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
             const coord_t z_low = voxel_grid.toGlobalZ(z, false);
             const coord_t z_high = voxel_grid.toGlobalZ(z + 1, false);
 
-            for (const Polygon& polygon : contour.second.polygons)
+            // Add a small offset to make sure overlapping edges won't let any space in between
+            constexpr int offset_overlapping = 5;
+            const Shape simplified_polygons = simplifier.polygon(contour.second.polygons).offset(offset_overlapping);
+            for (const Polygon& simplified_polygon : simplified_polygons)
             {
-                const Polygon simplified_polygon = simplifier.polygon(polygon);
-
                 const std::lock_guard lock(mutex);
                 const auto mesh_iterator = meshes.find(extruder);
                 if (mesh_iterator == meshes.end())
