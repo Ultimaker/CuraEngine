@@ -1078,7 +1078,7 @@ private:
      * \param wall The currently processed wall
      * \param current_index The index of the currently processed point
      * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
-     * \param direction The direction to look for, 1 to use the actual line direction, -1 to go forwards
+     * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards
      * \return The distance from the start of the current wall line to the first bridge segment
      */
     [[nodiscard]] coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len, const int direction = 1) const;
