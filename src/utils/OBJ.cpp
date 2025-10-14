@@ -95,7 +95,8 @@ OBJ::~OBJ()
         out_material << "newmtl " << materialName(color) << "\n";
 
         SVG::ColorObject color_rgb = SVG::ColorObject::toRgb(color);
-        out_material << "Kd " << color_rgb.r_ << color_rgb.g_ << color_rgb.b_ << "\n" << "\n";
+        out_material << "Kd " << color_rgb.r_ << color_rgb.g_ << color_rgb.b_ << "\n"
+                     << "\n";
     }
 }
 
