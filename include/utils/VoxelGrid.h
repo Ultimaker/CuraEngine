@@ -153,6 +153,8 @@ public:
      */
     std::vector<LocalCoordinates> getTraversedVoxels(const Triangle3D& triangle) const;
 
+    void saveToObj(const std::string& filename, const double scale = 1.0) const;
+
 private:
     Point3D resolution_;
     Point3D origin_;
