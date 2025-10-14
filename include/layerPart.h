@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2025 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef LAYERPART_H
 #define LAYERPART_H
@@ -19,20 +19,8 @@ It's also the first step that stores the result in the "data storage" so all oth
 namespace cura
 {
 
-class Settings;
-class SliceLayer;
 class Slicer;
-class SlicerLayer;
 class SliceMeshStorage;
-
-/*!
- * \brief Split a layer into parts.
- * \param settings The settings to get the settings from (whether to union or
- * not).
- * \param storageLayer Where to store the parts.
- * \param layer The layer to split.
- */
-void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer);
 
 /*!
  * \brief Split all layers into parts.
@@ -41,6 +29,6 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
  */
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
-}//namespace cura
+} // namespace cura
 
-#endif//LAYERPART_H
+#endif // LAYERPART_H

@@ -37,7 +37,10 @@ WallsComputation::WallsComputation(const Settings& settings, const LayerIndex la
  */
 void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_type)
 {
-    size_t wall_count = settings_.get<size_t>("wall_line_count");
+    const std::map<SliceLayerPart::WallExposedType, std::string> wall_count_setting_names({ { SliceLayerPart::WallExposedType::LAYER_0, "wall_line_count_layer_0" },
+                                                                                            { SliceLayerPart::WallExposedType::ROOFING, "wall_line_count_roofing" },
+                                                                                            { SliceLayerPart::WallExposedType::SIDE_ONLY, "wall_line_count" } });
+    size_t wall_count = settings_.get<size_t>(wall_count_setting_names.at(part->wall_exposed));
     if (wall_count == 0) // Early out if no walls are to be generated
     {
         part->print_outline = part->outline;
