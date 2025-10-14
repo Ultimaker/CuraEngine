@@ -44,7 +44,7 @@ public:
     using Path = PathOrdering<PathType>;
     using PathOrder<PathType>::coincident_point_distance_;
 
-    PathOrderMonotonic(const AngleRadians monotonic_direction, const coord_t max_adjacent_distance, const Point2LL start_point)
+    PathOrderMonotonic(const AngleRadians& monotonic_direction, const coord_t max_adjacent_distance, const Point2LL& start_point)
         : PathOrder<PathType>(start_point)
         // The monotonic vector needs to rotate clockwise instead of counter-clockwise, the same as how the infill patterns are generated.
         , monotonic_vector_(-std::cos(monotonic_direction) * monotonic_vector_resolution_, std::sin(monotonic_direction) * monotonic_vector_resolution_)
@@ -310,7 +310,7 @@ protected:
      * printed. All paths in this string already have their start_vertex set
      * correctly.
      */
-    std::deque<Path*> findPolylineString(Path* polyline, const SparsePointGridInclusive<Path*>& line_bucket_grid, const Point2LL monotonic_vector)
+    std::deque<Path*> findPolylineString(Path* polyline, const SparsePointGridInclusive<Path*>& line_bucket_grid, const Point2LL& monotonic_vector)
     {
         std::deque<Path*> result;
         if (polyline->converted_->empty())
@@ -403,7 +403,7 @@ protected:
      * \param point The point to get far away from.
      * \return The vertex index of the endpoint that is farthest away.
      */
-    size_t getFarthestEndpoint(Path* polyline, const Point2LL point)
+    size_t getFarthestEndpoint(Path* polyline, const Point2LL& point)
     {
         const coord_t front_dist = vSize2(polyline->converted_->front() - point);
         const coord_t back_dist = vSize2(polyline->converted_->back() - point);
@@ -427,7 +427,7 @@ protected:
      * calculated.
      * \param polylines The sorted list of polylines.
      */
-    std::vector<Path*> getOverlappingLines(const typename std::vector<Path*>::iterator polyline_it, const Point2LL perpendicular, const std::vector<Path*>& polylines)
+    std::vector<Path*> getOverlappingLines(const std::vector<Path*>::iterator& polyline_it, const Point2LL& perpendicular, const std::vector<Path*>& polylines)
     {
         const coord_t max_adjacent_projected_distance = max_adjacent_distance_ * monotonic_vector_resolution_;
         // How far this extends in the monotonic direction, to make sure we only go up to max_adjacent_distance in that direction.
@@ -504,7 +504,7 @@ private:
      * struct of the bucket grid contains not only the actual path (via pointer)
      * but also the endpoint of it that it found to be nearby.
      */
-    static bool canConnectToPolyline(const Point2LL nearby_endpoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
+    static bool canConnectToPolyline(const Point2LL& nearby_endpoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
     {
         return found_path.val->start_vertex_ == found_path.val->converted_->size() // Don't find any line already in the string.
             && vSize2(found_path.point - nearby_endpoint) < coincident_point_distance_ * coincident_point_distance_; // And only find close lines.
