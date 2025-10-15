@@ -3472,7 +3472,21 @@ void FffGcodeWriter::processRoofingFlooring(
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     const bool monotonic = mesh.settings.get<bool>(settings_names.monotonic);
-    processSkinPrintFeature(storage, gcode_layer, mesh, extruder_nr, fill, config, pattern, roofing_angle, skin_overlap, skin_density, monotonic, added_something);
+    constexpr bool is_roofing_flooring = true;
+    processSkinPrintFeature(
+        storage,
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        fill,
+        config,
+        pattern,
+        roofing_angle,
+        skin_overlap,
+        skin_density,
+        monotonic,
+        is_roofing_flooring,
+        added_something);
 }
 
 void FffGcodeWriter::processTopBottom(
@@ -3640,6 +3654,7 @@ void FffGcodeWriter::processTopBottom(
         }
     }
     const bool monotonic = mesh.settings.get<bool>("skin_monotonic");
+    constexpr bool is_roofing_flooring = false;
     processSkinPrintFeature(
         storage,
         gcode_layer,
@@ -3652,6 +3667,7 @@ void FffGcodeWriter::processTopBottom(
         skin_overlap,
         skin_density,
         monotonic,
+        is_roofing_flooring,
         added_something,
         fan_speed);
 }
@@ -3668,6 +3684,7 @@ void FffGcodeWriter::processSkinPrintFeature(
     const coord_t skin_overlap,
     const Ratio skin_density,
     const bool monotonic,
+    const bool is_roofing_flooring,
     bool& added_something,
     double fan_speed) const
 {
@@ -3678,7 +3695,6 @@ void FffGcodeWriter::processSkinPrintFeature(
     constexpr int infill_multiplier = 1;
     constexpr int extra_infill_shift = 0;
     const size_t wall_line_count = mesh.settings.get<size_t>("skin_outline_count");
-    const coord_t small_area_width = mesh.settings.get<coord_t>("small_skin_width");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
     coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
@@ -3692,6 +3708,8 @@ void FffGcodeWriter::processSkinPrintFeature(
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
     const bool small_areas_on_surface = mesh.settings.get<bool>("small_skin_on_surface");
+    const coord_t line_width = config.getLineWidth();
+    const coord_t small_area_width = (small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<coord_t>("small_skin_width") : line_width / 4;
     const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
     const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
 
