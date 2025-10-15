@@ -342,7 +342,8 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
 
     // In order to avoid edge cases, it is safer to create the extended roofing area by reducing the area above. However, we want to avoid reducing the borders, so at this
     // point we extend the area above with the build plate area, so that when reducing, the border will still be far away.
-    const Shape reduced_area_above = build_plate.offset(roofing_extension * 2).difference(part.outline).unionPolygons(filled_area_above.offset(epsilon)).offset(-roofing_extension);
+    const Shape reduced_area_above
+        = build_plate.offset(roofing_extension * 2).difference(part.outline).unionPolygons(filled_area_above.offset(epsilon)).offset(-roofing_extension - 2 * epsilon);
 
     for (SkinPart& skin_part : part.skin_parts)
     {
