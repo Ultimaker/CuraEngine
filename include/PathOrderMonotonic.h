@@ -205,8 +205,7 @@ public:
                 constexpr double precision_factor = 10.0;
                 const coord_t start_projection = std::llround(projectToVector(path->converted_->front(), monotonic_vector) / precision_factor);
                 const coord_t end_projection = std::llround(projectToVector(path->converted_->back(), monotonic_vector) / precision_factor);
-                min = std::min(start_projection, end_projection);
-                max = std::max(start_projection, end_projection);
+                std::tie(min, max) = std::minmax(start_projection, end_projection);
             }
 
             bool operator<(const LineProjections& other) const
