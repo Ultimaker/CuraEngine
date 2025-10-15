@@ -3709,7 +3709,8 @@ void FffGcodeWriter::processSkinPrintFeature(
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
     const bool small_areas_on_surface = mesh.settings.get<bool>("small_skin_on_surface");
-    const coord_t small_area_width = (small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<coord_t>("small_skin_width") : 0;
+    const coord_t line_width = config.getLineWidth();
+    const coord_t small_area_width = (small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<coord_t>("small_skin_width") : line_width / 4;
     const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
     const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
 
