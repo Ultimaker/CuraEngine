@@ -461,6 +461,11 @@ public:
      */
     Shape getMachineBorder(int extruder_nr = -1) const;
 
+    /*!
+     * @return The raw outer build plate shape without any disallowed area
+     */
+    Shape getRawMachineBorder() const;
+
     void initializePrimeTower();
 
 private:
