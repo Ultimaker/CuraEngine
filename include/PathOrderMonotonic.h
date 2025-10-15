@@ -484,7 +484,7 @@ protected:
      * calculated.
      * \param polylines The sorted list of polylines.
      */
-    std::vector<Path*> getOverlappingLines(const std::vector<Path*>::iterator& polyline_it, const Point2D& perpendicular, const std::vector<Path*>& polylines)
+    std::vector<Path*> getOverlappingLines(const typename std::vector<Path*>::iterator& polyline_it, const Point2D& perpendicular, const std::vector<Path*>& polylines)
     {
         // How far this extends in the monotonic direction, to make sure we only go up to max_adjacent_distance in that direction.
         const double start_monotonic = projectToMonotonicVector((*polyline_it)->converted_->front());
