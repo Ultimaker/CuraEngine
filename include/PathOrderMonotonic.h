@@ -203,10 +203,10 @@ public:
             {
                 // Divide by a precision factor before doing the rounding, so that we are sure that aligned lines will end up in the same bucket
                 constexpr double precision_factor = 10.0;
-                const coord_t a_start_projection = std::llround(projectToVector(path->converted_->front(), monotonic_vector) / precision_factor);
-                const coord_t a_end_projection = std::llround(projectToVector(path->converted_->back(), monotonic_vector) / precision_factor);
-                min = std::min(a_start_projection, a_end_projection);
-                max = std::max(a_start_projection, a_end_projection);
+                const coord_t start_projection = std::llround(projectToVector(path->converted_->front(), monotonic_vector) / precision_factor);
+                const coord_t end_projection = std::llround(projectToVector(path->converted_->back(), monotonic_vector) / precision_factor);
+                min = std::min(start_projection, end_projection);
+                max = std::max(start_projection, end_projection);
             }
 
             bool operator<(const LineProjections& other) const
