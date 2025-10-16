@@ -156,6 +156,9 @@ public:
 
     void writePolylines(const Shape& polys, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
 
+    template<class LineType>
+    void writePolylines(const LinesSet<LineType>& lines, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;
+
     void writePolyline(const Polygon& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0) const;
 
     void writePolyline(const Polyline& poly, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const bool flush = true) const;

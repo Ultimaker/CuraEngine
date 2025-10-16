@@ -611,29 +611,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
-    Shape border;
-    border.emplace_back();
-    Polygon& outline = border.back();
-    switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
-    {
-    case BuildPlateShape::ELLIPTIC:
-    {
-        // Construct an ellipse to approximate the build volume.
-        const coord_t width = machine_size.max_.x_ - machine_size.min_.x_;
-        const coord_t depth = machine_size.max_.y_ - machine_size.min_.y_;
-        constexpr unsigned int circle_resolution = 50;
-        for (unsigned int i = 0; i < circle_resolution; i++)
-        {
-            const double angle = std::numbers::pi * 2 * i / circle_resolution;
-            outline.emplace_back(machine_size.getMiddle().x_ + std::cos(angle) * width / 2, machine_size.getMiddle().y_ + std::sin(angle) * depth / 2);
-        }
-        break;
-    }
-    case BuildPlateShape::RECTANGULAR:
-    default:
-        outline = machine_size.flatten().toPolygon();
-        break;
-    }
+    Shape border = getRawMachineBorder();
 
     Shape disallowed_areas = mesh_group_settings.get<Shape>("machine_disallowed_areas");
     disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
@@ -728,6 +706,37 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     }
 
     border = border_all_extruders.difference(disallowed_all_extruders);
+    return border;
+}
+
+Shape SliceDataStorage::getRawMachineBorder() const
+{
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+
+    Shape border;
+    border.emplace_back();
+    Polygon& outline = border.back();
+    switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
+    {
+    case BuildPlateShape::ELLIPTIC:
+    {
+        // Construct an ellipse to approximate the build volume.
+        const coord_t width = machine_size.max_.x_ - machine_size.min_.x_;
+        const coord_t depth = machine_size.max_.y_ - machine_size.min_.y_;
+        constexpr unsigned int circle_resolution = 50;
+        for (unsigned int i = 0; i < circle_resolution; i++)
+        {
+            const double angle = std::numbers::pi * 2 * i / circle_resolution;
+            outline.emplace_back(machine_size.getMiddle().x_ + std::cos(angle) * width / 2, machine_size.getMiddle().y_ + std::sin(angle) * depth / 2);
+        }
+        break;
+    }
+    case BuildPlateShape::RECTANGULAR:
+    default:
+        outline = machine_size.flatten().toPolygon();
+        break;
+    }
+
     return border;
 }
 

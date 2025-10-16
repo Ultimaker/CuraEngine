@@ -4,6 +4,7 @@
 #include "utils/OBJ.h"
 
 #include <fstream>
+#include <unordered_set>
 
 #include <range/v3/algorithm/find.hpp>
 #include <spdlog/spdlog.h>
@@ -28,19 +29,50 @@ OBJ::~OBJ()
     out << "mltlib " << material_filename << std::endl;
     out << std::fixed << std::setprecision(9);
 
-    for (const Point3D& vertex : vertices_)
+    std::vector<Point3D> ordered_vertices;
+    std::map<Point3D, size_t> vertices_ids;
+    std::vector<Point2F> ordered_uv_coordinates;
+    std::map<Point2F, size_t> uv_coordinates_ids;
+
+    for (const Triangle& triangle : triangles_)
     {
-        out << "v " << vertex.x_ << " " << vertex.y_ << " " << vertex.z_ << std::endl;
+        for (const Point3D& vertex : { triangle.p0, triangle.p1, triangle.p2 })
+        {
+            if (! vertices_ids.contains(vertex))
+            {
+                vertices_ids[vertex] = ordered_vertices.size();
+                ordered_vertices.push_back(vertex);
+            }
+        }
+        for (const std::optional<Point2F>& uv : { triangle.uv0, triangle.uv1, triangle.uv2 })
+        {
+            if (uv.has_value())
+            {
+                if (! uv_coordinates_ids.contains(uv.value()))
+                {
+                    uv_coordinates_ids[uv.value()] = ordered_uv_coordinates.size();
+                    ordered_uv_coordinates.push_back(uv.value());
+                }
+            }
+        }
     }
 
-    for (const Point2F& uv_coordinate : uv_coordinates_)
+    for (const Point3D& vertex : ordered_vertices)
     {
-        out << "vt " << uv_coordinate.x_ << " " << uv_coordinate.y_ << std::endl;
+        out << "v " << vertex.x_ << " " << vertex.y_ << " " << vertex.z_ << "\n";
     }
 
-    const auto export_vertex = [](const size_t vertex_id, const std::optional<size_t>& uv_coordinate)
+    for (const Point2F& uv_coordinate : ordered_uv_coordinates)
     {
-        return uv_coordinate.has_value() ? fmt::format("{}/{}", vertex_id + 1, uv_coordinate.value() + 1) : std::to_string(vertex_id + 1);
+        out << "vt " << uv_coordinate.x_ << " " << uv_coordinate.y_ << "\n";
+    }
+
+    const auto export_vertex = [&vertices_ids, &uv_coordinates_ids](const Point3D& vertex, const std::optional<Point2F>& uv_coordinate)
+    {
+        const size_t vertex_id = vertices_ids.find(vertex)->second;
+        const size_t uv_id = uv_coordinate.has_value() ? uv_coordinates_ids.find(uv_coordinate.value())->second : 0;
+
+        return uv_coordinate.has_value() ? fmt::format("{}/{}", vertex_id + 1, uv_id + 1) : std::to_string(vertex_id + 1);
     };
 
     std::optional<SVG::Color> current_color;
@@ -48,37 +80,35 @@ OBJ::~OBJ()
     {
         if (tri.color != current_color)
         {
-            out << "usemtl " << materialName(tri.color) << std::endl;
+            out << "usemtl " << materialName(tri.color) << "\n";
             current_color = tri.color;
             used_colors.insert(tri.color);
         }
 
         // OBJ indices are 1-based
-        out << "f " << export_vertex(tri.p0, tri.uv0) << " " << export_vertex(tri.p1, tri.uv1) << " " << export_vertex(tri.p2, tri.uv2) << std::endl;
+        out << "f " << export_vertex(tri.p0, tri.uv0) << " " << export_vertex(tri.p1, tri.uv1) << " " << export_vertex(tri.p2, tri.uv2) << "\n";
     }
 
     std::ofstream out_material(material_filename);
     for (SVG::Color color : used_colors)
     {
-        out_material << "newmtl " << materialName(color) << std::endl;
+        out_material << "newmtl " << materialName(color) << "\n";
 
         SVG::ColorObject color_rgb = SVG::ColorObject::toRgb(color);
-        out_material << "Kd " << color_rgb.r_ << color_rgb.g_ << color_rgb.b_ << std::endl << std::endl;
+        out_material << "Kd " << color_rgb.r_ << color_rgb.g_ << color_rgb.b_ << "\n"
+                     << "\n";
     }
 }
 
-void OBJ::writeSphere(const Point3D& position, const double radius, const SVG::Color color)
+void OBJ::writeSphere(const Point3D& position, const double radius, const SVG::Color color, const size_t latitude_segments, const size_t longitude_segments)
 {
-    constexpr size_t latitude_segments = 4; // Number of latitude segments
-    constexpr size_t longitude_segments = 8; // Number of longitude segments
-
-    std::vector<std::vector<size_t>> vertex_indices(latitude_segments + 1);
+    std::vector<std::vector<Point3D>> vertices(latitude_segments + 1);
     for (size_t i = 0; i <= latitude_segments; ++i)
     {
         const double theta = std::numbers::pi * i / latitude_segments;
         const double sin_theta = std::sin(theta);
         const double cos_theta = std::cos(theta);
-        vertex_indices[i].resize(longitude_segments + 1);
+        vertices[i].resize(longitude_segments + 1);
         for (size_t j = 0; j <= longitude_segments; ++j)
         {
             const double phi = 2.0 * std::numbers::pi * j / longitude_segments;
@@ -87,7 +117,7 @@ void OBJ::writeSphere(const Point3D& position, const double radius, const SVG::C
             const double x = radius * sin_theta * cos_phi;
             const double y = radius * sin_theta * sin_phi;
             const double z = radius * cos_theta;
-            vertex_indices[i][j] = insertVertex(Point3D(x, y, z) + position);
+            vertices[i][j] = Point3D(x, y, z) + position;
         }
     }
 
@@ -95,18 +125,18 @@ void OBJ::writeSphere(const Point3D& position, const double radius, const SVG::C
     {
         for (size_t j = 0; j < longitude_segments; ++j)
         {
-            const size_t v00 = vertex_indices[i][j];
-            const size_t v01 = vertex_indices[i][j + 1];
-            const size_t v10 = vertex_indices[i + 1][j];
-            const size_t v11 = vertex_indices[i + 1][j + 1];
+            const Point3D& v00 = vertices[i][j];
+            const Point3D& v01 = vertices[i][j + 1];
+            const Point3D& v10 = vertices[i + 1][j];
+            const Point3D& v11 = vertices[i + 1][j + 1];
 
             if (i != 0)
             {
-                triangles_.push_back(Triangle{ v00, v11, v01, color });
+                writeTriangle(v00, v11, v01, color);
             }
             if (i != latitude_segments - 1)
             {
-                triangles_.push_back(Triangle{ v00, v10, v11, color });
+                writeTriangle(v00, v10, v11, color);
             }
         }
     }
@@ -121,7 +151,7 @@ void OBJ::writeTriangle(
     const std::optional<Point2F>& uv1,
     const std::optional<Point2F>& uv2)
 {
-    triangles_.push_back(Triangle{ insertVertex(p0), insertVertex(p1), insertVertex(p2), color, insertUVCoordinate(uv0), insertUVCoordinate(uv1), insertUVCoordinate(uv2) });
+    triangles_.push_back(Triangle{ scalePosition(p0), scalePosition(p1), scalePosition(p2), color, uv0, uv1, uv2 });
 }
 
 void OBJ::writeMesh(const Mesh& mesh, const SVG::Color color)
@@ -142,37 +172,6 @@ void OBJ::writeMesh(const Mesh& mesh, const SVG::Color color)
 Point3D OBJ::scalePosition(const Point3D& p) const
 {
     return p * scale_;
-}
-
-size_t OBJ::insertVertex(const Point3D& p)
-{
-    const Point3D scaled_p = scalePosition(p);
-
-    const auto iterator = ranges::find(vertices_, scaled_p);
-    if (iterator == vertices_.end())
-    {
-        vertices_.push_back(scaled_p);
-        return vertices_.size() - 1;
-    }
-
-    return std::distance(vertices_.begin(), iterator);
-}
-
-std::optional<size_t> OBJ::insertUVCoordinate(const std::optional<Point2F>& p)
-{
-    if (! p.has_value())
-    {
-        return std::nullopt;
-    }
-
-    const auto iterator = ranges::find(uv_coordinates_, p.value());
-    if (iterator == uv_coordinates_.end())
-    {
-        uv_coordinates_.push_back(p.value());
-        return uv_coordinates_.size() - 1;
-    }
-
-    return std::distance(uv_coordinates_.begin(), iterator);
 }
 
 std::string OBJ::materialName(const SVG::Color color) const
