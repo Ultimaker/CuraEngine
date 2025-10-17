@@ -23,7 +23,7 @@ static inline uint32_t pointHash(const Point3LL& p)
          ^ (((p.z_ + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(Settings& parent)
+Mesh::Mesh(const Settings& parent)
     : settings_(parent)
     , has_disconnected_faces(false)
     , has_overlapping_faces(false)

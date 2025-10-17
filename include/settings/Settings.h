@@ -100,7 +100,7 @@ public:
      *
      * If this set of settings has no value for a setting, the parent is asked.
      */
-    void setParent(Settings* new_parent);
+    void setParent(const Settings* new_parent);
 
     std::unordered_map<std::string, std::string> getFlattendSettings() const;
 
@@ -111,7 +111,7 @@ private:
      * Optionally, a parent setting container to ask for the value of a setting
      * if this container has no value for it.
      */
-    Settings* parent;
+    const Settings* parent;
 
     /*!
      * \brief A dictionary to map the setting keys to the actual setting values.

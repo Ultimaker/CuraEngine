@@ -139,7 +139,7 @@ public:
     std::shared_ptr<Image> texture_;
     std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 
-    Mesh(Settings& parent);
+    Mesh(const Settings& parent);
     Mesh();
 
     /*!

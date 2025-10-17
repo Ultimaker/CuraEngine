@@ -34,7 +34,7 @@ namespace cura::MeshMaterialSplitter
 {
 
 /*!
- * Utility structure to store values in a map that are grouped by unique z-height and extruder number combinations
+ * Utility structure to store values in a map that are grouped by unique z-height and value combinations
  */
 union ContourKey
 {
@@ -42,7 +42,7 @@ union ContourKey
     struct
     {
         uint16_t z;
-        uint8_t extruder;
+        uint8_t value;
         uint8_t black_hole{ 0 }; // Don't place anything in there, or it would be lost forever (it exists only to properly set the 4th byte of the key)
     } definition;
 };
@@ -62,18 +62,20 @@ bool operator==(const ContourKey& key1, const ContourKey& key2)
  * @param mesh The mesh to fill the voxels grid with
  * @param texture_data_provider The provider containing the painted texture data
  * @param voxel_grid The voxels grid to be filled with mesh data
- * @param mesh_extruder_nr The main mesh extruder number
+ * @param default_value The main mesh extruder number
  * @return True if this generated relevant data for multi-extruder, otherwise this means the mesh is completely filled with only extruder 0 and there is no need to go further on
  *         trying to calculate the modified meshes.
  */
-bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_grid, const uint8_t mesh_extruder_nr)
+boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
+    const Mesh& mesh,
+    const std::shared_ptr<TextureDataProvider>& texture_data_provider,
+    const std::string& texture_feature,
+    VoxelGrid& voxel_grid,
+    const uint8_t default_value,
+    const std::unordered_set<size_t>& authorized_values,
+    const bool ignore_default_value = false)
 {
-    boost::concurrent_flat_set<uint8_t> found_extruders;
-    std::unordered_set<size_t> active_extruders;
-    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
-    {
-        active_extruders.insert(extruder.extruder_nr_);
-    }
+    boost::concurrent_flat_set<uint8_t> found_values;
 
     cura::parallel_for(
         mesh.faces_,
@@ -109,52 +111,45 @@ bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDat
 
                 const Point2F point_uv_coords = MeshUtils::getUVCoordinates(barycentric_coordinates.value(), face_uvs);
                 const std::pair<size_t, size_t> pixel = texture_data_provider->getTexture()->getPixelCoordinates(Point2F(point_uv_coords.x_, point_uv_coords.y_));
-                std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), "extruder");
-                if (! extruder_nr.has_value() || ! active_extruders.contains(extruder_nr.value()))
+                std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), texture_feature);
+                if (! extruder_nr.has_value() || ! authorized_values.contains(extruder_nr.value()))
                 {
-                    extruder_nr = mesh_extruder_nr;
+                    extruder_nr = default_value;
+                }
+
+                if (ignore_default_value && extruder_nr.value() == default_value)
+                {
+                    continue;
                 }
 
                 voxel_grid.setOrUpdateOccupation(traversed_voxel, extruder_nr.value());
-                found_extruders.insert(extruder_nr.value());
+                found_values.insert(extruder_nr.value());
             }
         });
 
-    if (found_extruders.size() == 1)
-    {
-        // We have found only one extruder in the texture, so return true only if this extruder is not the mesh extruder, otherwise the rest is useless
-        bool is_specific_extruder = true;
-        found_extruders.visit_all(
-            [&is_specific_extruder, &mesh_extruder_nr](const uint8_t extruder_nr)
-            {
-                is_specific_extruder = extruder_nr != mesh_extruder_nr;
-            });
-        return is_specific_extruder;
-    }
-
-    return true;
+    return found_values;
 }
 
 /*!
  * Create modifier meshes from the given voxels grid, filled with the contours of the areas that should be processed by the different extruders.
  * @param voxel_grid The voxels grid containing the extruder occupations
- * @param mesh_extruder_nr The main mesh extruder number
+ * @param ignore_value The main mesh extruder number
  * @return A list of modifier meshes to be registered
  *
  * This function works by treating each horizontal plane separately of the voxels grid. For each plane, we apply a marching squares algorithm in order to generate 2D polygons.
  * Then we just have to extrude those polygons vertically. The final mesh has no horizontal face, thus it is not watertight at all. However, since it will subsequently
  * be re-sliced on XY planes, this is good enough.
  */
-std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t mesh_extruder_nr)
+std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const Mesh& input_mesh, const bool use_value_as_extruder_nr)
 {
     spdlog::debug("Make modifier meshes from voxels grid");
 
     // First, gather all positions that should be considered for the marching square, e.g. all that have a specific extruder and around them
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> marching_squares;
     voxel_grid.visitOccupiedVoxels(
-        [&marching_squares, &mesh_extruder_nr](const auto& occupied_voxel)
+        [&marching_squares, &ignore_value](const auto& occupied_voxel)
         {
-            if (occupied_voxel.second != mesh_extruder_nr)
+            if (occupied_voxel.second != ignore_value)
             {
                 marching_squares.insert(occupied_voxel.first);
                 if (occupied_voxel.first.position.x > 0)
@@ -207,49 +202,50 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid, &raw_contours, &position_delta_center, &marching_segments, &mesh_extruder_nr](const VoxelGrid::LocalCoordinates square_start)
+        [&voxel_grid, &raw_contours, &position_delta_center, &marching_segments, &ignore_value](const VoxelGrid::LocalCoordinates square_start)
         {
             const int32_t x_plus1 = static_cast<int32_t>(square_start.position.x) + 1;
             const bool x_plus1_valid = x_plus1 <= std::numeric_limits<uint16_t>::max();
             const int32_t y_plus1 = static_cast<int32_t>(square_start.position.y) + 1;
             const bool y_plus1_valid = y_plus1 <= std::numeric_limits<uint16_t>::max();
 
-            std::unordered_set<uint8_t> filled_extruders;
+            std::unordered_set<uint8_t> filled_values;
             std::array<uint8_t, 4> occupation_bits;
-            auto add_occupied_extruder = [&voxel_grid,
-                                          &mesh_extruder_nr,
-                                          &filled_extruders,
-                                          &occupation_bits,
-                                          &square_start](const int32_t x, const int32_t y, const bool position_valid, const size_t occupation_bit_index) -> void
+            auto add_occupied_value = [&voxel_grid,
+                                       &ignore_value,
+                                       &filled_values,
+                                       &occupation_bits,
+                                       &square_start](const int32_t x, const int32_t y, const bool position_valid, const size_t occupation_bit_index) -> void
             {
                 if (position_valid)
                 {
                     const std::optional<uint8_t> occupation = voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x, y, square_start.position.z));
                     if (occupation.has_value())
                     {
-                        filled_extruders.insert(occupation.value());
+                        filled_values.insert(occupation.value());
                         occupation_bits[occupation_bit_index] = occupation.value();
                         return;
                     }
                 }
 
-                occupation_bits[occupation_bit_index] = mesh_extruder_nr;
+                filled_values.insert(ignore_value);
+                occupation_bits[occupation_bit_index] = ignore_value;
             };
 
-            add_occupied_extruder(x_plus1, y_plus1, x_plus1_valid && y_plus1_valid, 0);
-            add_occupied_extruder(square_start.position.x, y_plus1, y_plus1_valid, 1);
-            add_occupied_extruder(x_plus1, square_start.position.y, x_plus1_valid, 2);
-            add_occupied_extruder(square_start.position.x, square_start.position.y, true, 3);
+            add_occupied_value(x_plus1, y_plus1, x_plus1_valid && y_plus1_valid, 0);
+            add_occupied_value(square_start.position.x, y_plus1, y_plus1_valid, 1);
+            add_occupied_value(x_plus1, square_start.position.y, x_plus1_valid, 2);
+            add_occupied_value(square_start.position.x, square_start.position.y, true, 3);
 
-            if (filled_extruders.size() < 2)
+            if (filled_values.size() < 2)
             {
                 // Early-out, since this is not going to generate any segment
                 return;
             }
 
-            for (const uint8_t extruder : filled_extruders)
+            for (const uint8_t extruder : filled_values)
             {
-                if (extruder == mesh_extruder_nr)
+                if (extruder == ignore_value)
                 {
                     continue;
                 }
@@ -307,10 +303,10 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&simplifier, &voxel_grid, &meshes, &mutex](const auto& contour)
+        [&simplifier, &voxel_grid, &meshes, &mutex, &input_mesh, &use_value_as_extruder_nr](const auto& contour)
         {
             const uint16_t z = contour.first.definition.z;
-            const uint8_t extruder = contour.first.definition.extruder;
+            const uint8_t value = contour.first.definition.value;
             const coord_t z_low = voxel_grid.toGlobalZ(z, false);
             const coord_t z_high = voxel_grid.toGlobalZ(z + 1, false);
 
@@ -320,16 +316,15 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
             for (const Polygon& simplified_polygon : simplified_polygons)
             {
                 const std::lock_guard lock(mutex);
-                const auto mesh_iterator = meshes.find(extruder);
+                const auto mesh_iterator = meshes.find(value);
                 if (mesh_iterator == meshes.end())
                 {
-                    Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(extruder).settings_);
-                    mesh.settings_.add("cutting_mesh", "true");
-                    mesh.settings_.add("extruder_nr", std::to_string(extruder));
-                    meshes.insert({ extruder, mesh });
+                    const Settings& settings = use_value_as_extruder_nr ? Application::getInstance().current_slice_->scene.extruders[value].settings_
+                                                                        : Application::getInstance().current_slice_->scene.settings;
+                    meshes.insert({ value, Mesh(settings) });
                 }
 
-                Mesh& mesh = meshes[extruder];
+                Mesh& mesh = meshes[value];
                 for (auto iterator = simplified_polygon.beginSegments(); iterator != simplified_polygon.endSegments(); ++iterator)
                 {
                     const Point2LL& start = (*iterator).start;
@@ -340,12 +335,35 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
             }
         });
 
-    std::vector<Mesh> meshes_vec;
-    for (Mesh& mesh : meshes | ranges::views::values)
+    return meshes;
+}
+
+std::vector<Mesh> applyMeshExtruders(std::map<uint8_t, Mesh>& meshes)
+{
+    std::vector<Mesh> output_meshes;
+    for (auto& [extruder_nr, mesh] : meshes)
     {
-        meshes_vec.push_back(std::move(mesh));
+        mesh.settings_.add("cutting_mesh", "true");
+        mesh.settings_.add("extruder_nr", std::to_string(extruder_nr));
+        output_meshes.push_back(std::move(mesh));
     }
-    return meshes_vec;
+
+    return output_meshes;
+}
+
+std::vector<Mesh> applyMeshSupport(std::map<uint8_t, Mesh>& meshes)
+{
+    std::vector<Mesh> output_meshes;
+    for (auto& [support_value, mesh] : meshes)
+    {
+        if (support_value == 2)
+        {
+            mesh.settings_.add("anti_overhang_mesh", "true");
+            output_meshes.push_back(std::move(mesh));
+        }
+    }
+
+    return output_meshes;
 }
 
 /*!
@@ -561,28 +579,43 @@ void propagateVoxels(
 /*!
  * Generate a modifier mesh for every extruder other than 0, that has some user-painted texture data
  * @param mesh The mesh being sliced
+ * @param mesh_bounding_box The bounding box of the mesh, right ?
  * @param texture_data_provider The provider containing the texture painted data
  * @return A list of modifier meshes to be added to the slicing process
  */
-std::vector<Mesh> makeMaterialModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+std::vector<Mesh> makeMaterialModifierMeshes(const Mesh& mesh, const AABB3D& mesh_bounding_box, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
-    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
-    const uint8_t mesh_extruder_nr = static_cast<uint8_t>(mesh.settings_.get<size_t>("extruder_nr"));
+    const Settings& settings = mesh.settings_;
+    const uint8_t mesh_extruder_nr = static_cast<uint8_t>(settings.get<size_t>("extruder_nr"));
 
     // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder
     // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
     spdlog::debug("Fill original voxels based on texture data");
-    auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
-    AABB3D bounding_box;
-    for (const MeshVertex& vertex : mesh.vertices_)
-    {
-        bounding_box.include(vertex.p_);
-    }
+    const auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
+    AABB3D bounding_box = mesh_bounding_box;
     bounding_box.expand(resolution * 8);
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles, which will be used as spatial reference for the texture data
     VoxelGrid voxel_grid(bounding_box, resolution);
-    if (! makeVoxelGridFromTexture(mesh, texture_data_provider, voxel_grid, mesh_extruder_nr))
+
+    std::unordered_set<size_t> active_extruders;
+    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
+    {
+        active_extruders.insert(extruder.extruder_nr_);
+    }
+
+    const boost::concurrent_flat_set<uint8_t> found_extruders = makeVoxelGridFromTexture(mesh, texture_data_provider, "extruder", voxel_grid, mesh_extruder_nr, active_extruders);
+    bool texture_contains_multimaterial_data = true;
+    if (found_extruders.size() == 1)
+    {
+        // We have found only one extruder in the texture, so return true only if this extruder is not the mesh extruder, otherwise the rest is useless
+        found_extruders.visit_all(
+            [&texture_contains_multimaterial_data, &mesh_extruder_nr](const uint8_t extruder_nr)
+            {
+                texture_contains_multimaterial_data = extruder_nr != mesh_extruder_nr;
+            });
+    }
+    if (! texture_contains_multimaterial_data)
     {
         // Texture is filled with the main extruder, don't bother doing anything
         return {};
@@ -616,16 +649,37 @@ std::vector<Mesh> makeMaterialModifierMeshes(const Mesh& mesh, const std::shared
 
     propagateVoxels(voxel_grid, previously_evaluated_voxels, estimated_iterations, sliced_mesh, texture_data, deepness_squared, mesh_extruder_nr);
 
-    return makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr);
+    constexpr bool use_value_as_extruder_nr = true;
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, mesh, use_value_as_extruder_nr);
+    return applyMeshExtruders(meshes);
 }
 
-std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh_bounding_box, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
+    const Settings& settings = mesh.settings_;
+    const auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
+
+    // Create the voxel grid and initially fill it with the rasterized mesh triangles
+    VoxelGrid voxel_grid(mesh_bounding_box, resolution);
+    constexpr bool ignore_default_value = true;
+    const boost::concurrent_flat_set<uint8_t> found_support_values
+        = makeVoxelGridFromTexture(mesh, texture_data_provider, "support", voxel_grid, 0, { 1, 2 }, ignore_default_value);
+    if (found_support_values.empty())
+    {
+        // Texture is filled with only automatic support, don't bother doing anything
+        return {};
+    }
+
+    constexpr uint8_t ignore_value = 0;
+    constexpr bool use_value_as_extruder_nr = false;
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, mesh, use_value_as_extruder_nr);
+    return applyMeshSupport(meshes);
 }
 
 void makePaintingModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup)
 {
-    if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("extruder"))
+    if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr
+        || (! mesh.texture_data_mapping_->contains("extruder") && ! mesh.texture_data_mapping_->contains("support")))
     {
         return;
     }
@@ -635,7 +689,18 @@ void makePaintingModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup)
 
     const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
 
-    for (const Mesh& modifier_mesh : makeMaterialModifierMeshes(mesh, texture_data_provider))
+    AABB3D mesh_bounding_box;
+    for (const MeshVertex& vertex : mesh.vertices_)
+    {
+        mesh_bounding_box.include(vertex.p_);
+    }
+
+    for (const Mesh& modifier_mesh : makeMaterialModifierMeshes(mesh, mesh_bounding_box, texture_data_provider))
+    {
+        meshgroup->meshes.push_back(modifier_mesh);
+    }
+
+    for (const Mesh& modifier_mesh : makeSupportModifierMeshes(mesh, mesh_bounding_box, texture_data_provider))
     {
         meshgroup->meshes.push_back(modifier_mesh);
     }

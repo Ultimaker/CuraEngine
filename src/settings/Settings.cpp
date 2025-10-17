@@ -848,7 +848,7 @@ bool Settings::has(const std::string& key) const
     return settings.find(key) != settings.end();
 }
 
-void Settings::setParent(Settings* new_parent)
+void Settings::setParent(const Settings* new_parent)
 {
     parent = new_parent;
 }
