@@ -566,8 +566,8 @@ void propagateVoxels(
  */
 std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
-    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
-    const uint8_t mesh_extruder_nr = static_cast<uint8_t>(mesh.settings_.get<size_t>("extruder_nr"));
+    const Settings& settings = mesh.settings_;
+    const uint8_t mesh_extruder_nr = static_cast<uint8_t>(settings.get<size_t>("extruder_nr"));
 
     // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder
     // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
