@@ -331,7 +331,7 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
     const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
     const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
     const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
-    const coord_t roofing_extension = mesh_.settings.get<coord_t>("roofing_extension");
+    const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
 
     constexpr coord_t epsilon = 5;
     const SliceDataStorage slice_data;
@@ -343,7 +343,7 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
     // In order to avoid edge cases, it is safer to create the extended roofing area by reducing the area above. However, we want to avoid reducing the borders, so at this
     // point we extend the area above with the build plate area, so that when reducing, the border will still be far away.
     const Shape reduced_area_above
-        = build_plate.offset(roofing_extension * 2).difference(part.outline).unionPolygons(filled_area_above.offset(epsilon)).offset(-roofing_extension - 2 * epsilon);
+        = build_plate.offset(roofing_expansion * 2).difference(part.outline).unionPolygons(filled_area_above.offset(epsilon)).offset(-roofing_expansion - 2 * epsilon);
 
     for (SkinPart& skin_part : part.skin_parts)
     {
