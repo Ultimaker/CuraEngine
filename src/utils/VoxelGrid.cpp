@@ -29,24 +29,37 @@ VoxelGrid::VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution)
     set_resolution(slices_count_.z_, resolution_.z_, bounding_box.spanZ());
 }
 
+VoxelGrid::VoxelGrid(const VoxelGrid& other, const bool copy_occupations)
+    : resolution_(other.resolution_)
+    , origin_(other.origin_)
+    , slices_count_(other.slices_count_)
+    , occupied_voxels_(copy_occupations ? other.occupied_voxels_ : boost::concurrent_flat_map<LocalCoordinates, uint8_t>())
+{
+}
+
 Point3D VoxelGrid::toGlobalCoordinates(const LocalCoordinates& position, const bool at_center) const
 {
     return Point3D(toGlobalX(position.position.x, at_center), toGlobalY(position.position.y, at_center), toGlobalZ(position.position.z, at_center));
 }
 
-void VoxelGrid::setOccupation(const LocalCoordinates& position, const uint8_t extruder_nr)
+void VoxelGrid::setOccupation(const LocalCoordinates& position, const uint8_t occupation)
 {
-    occupied_voxels_.insert_or_assign(position, extruder_nr);
+    occupied_voxels_.insert_or_assign(position, occupation);
 }
 
-void VoxelGrid::setOrUpdateOccupation(const LocalCoordinates& position, const uint8_t extruder_nr)
+void VoxelGrid::setOrUpdateOccupation(const LocalCoordinates& position, const uint8_t occupation)
 {
     occupied_voxels_.insert_or_visit(
-        { position, extruder_nr },
-        [extruder_nr](auto& voxel)
+        { position, occupation },
+        [occupation](auto& voxel)
         {
-            voxel.second = std::min(voxel.second, extruder_nr);
+            voxel.second = std::min(voxel.second, occupation);
         });
+}
+
+void VoxelGrid::setOccupationIfNotSet(const LocalCoordinates& position, const uint8_t occupation)
+{
+    occupied_voxels_.insert({ position, occupation });
 }
 
 std::optional<uint8_t> VoxelGrid::getOccupation(const LocalCoordinates& local_position) const

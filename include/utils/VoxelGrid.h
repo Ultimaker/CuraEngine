@@ -71,6 +71,8 @@ public:
      */
     explicit VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution);
 
+    explicit VoxelGrid(const VoxelGrid& other, const bool copy_occupations = true);
+
     const Point3D& getResolution() const
     {
         return resolution_;
@@ -83,9 +85,11 @@ public:
 
     Point3D toGlobalCoordinates(const LocalCoordinates& position, const bool at_center = true) const;
 
-    void setOccupation(const LocalCoordinates& position, const uint8_t extruder_nr);
+    void setOccupation(const LocalCoordinates& position, const uint8_t occupation);
 
-    void setOrUpdateOccupation(const LocalCoordinates& position, const uint8_t extruder_nr);
+    void setOrUpdateOccupation(const LocalCoordinates& position, const uint8_t occupation);
+
+    void setOccupationIfNotSet(const LocalCoordinates& position, const uint8_t occupation);
 
     std::optional<uint8_t> getOccupation(const LocalCoordinates& local_position) const;
 
@@ -119,6 +123,16 @@ public:
     void visitOccupiedVoxels(Args&&... args) const
     {
         occupied_voxels_.cvisit_all(
+#ifdef __cpp_lib_execution
+            std::execution::par,
+#endif
+            args...);
+    }
+
+    template<class... Args>
+    void removeOccupiedVoxels(Args&&... args)
+    {
+        occupied_voxels_.erase_if(
 #ifdef __cpp_lib_execution
             std::execution::par,
 #endif

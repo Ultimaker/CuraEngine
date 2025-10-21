@@ -6,6 +6,7 @@
 
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
+#include <range/v3/view/cartesian_product.hpp>
 #include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
@@ -133,6 +134,31 @@ bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDat
     }
 
     return true;
+}
+
+void makeVoxelGridFromSlicedMesh(const std::vector<Shape>& sliced_mesh, VoxelGrid& voxel_grid, const uint8_t occupation)
+{
+    cura::parallel_for(
+        sliced_mesh,
+        [&](const auto& iterator)
+        {
+            const coord_t z = voxel_grid.toGlobalZ(std::distance(sliced_mesh.begin(), iterator));
+            const Shape& slice = *iterator;
+            for (const Polygon& polygon : slice)
+            {
+                for (auto segment_iterator = polygon.beginSegments(); segment_iterator != polygon.endSegments(); ++segment_iterator)
+                {
+                    constexpr double scale = 1.0;
+                    const Triangle3D pseudo_triangle{ Point3D(Point3LL((*segment_iterator).start, z), scale),
+                                                      Point3D(Point3LL((*segment_iterator).start, z), scale),
+                                                      Point3D(Point3LL((*segment_iterator).end, z), scale) };
+                    for (const VoxelGrid::LocalCoordinates& traversed_voxel : voxel_grid.getTraversedVoxels(pseudo_triangle))
+                    {
+                        voxel_grid.setOccupationIfNotSet(traversed_voxel, occupation);
+                    }
+                }
+            }
+        });
 }
 
 /*!
@@ -354,7 +380,7 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
  * @param rasterized_mesh The voxels grid containing the rasterized mesh
  * @return A vector of shapes, that has as many elements as Z planes in the voxels grid
  */
-std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
+std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh, const double xy_offset, const std::ptrdiff_t z_offset, const bool union_polygons = true)
 {
     const coord_t thickness = rasterized_mesh.getResolution().z_;
     const coord_t initial_layer_thickness = thickness;
@@ -363,30 +389,36 @@ std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
     constexpr SlicingTolerance slicing_tolerance = SlicingTolerance::INCLUSIVE;
 
     // There is some margin in the voxel grid around the mesh, so get the actual mesh bounding box and see how many layers are actually covered
-    AABB3D mesh_bounding_box = mesh.getAABB();
+    const AABB3D mesh_bounding_box = mesh.getAABB();
     const size_t margin_below_mesh = rasterized_mesh.toLocalZ(std::max(mesh_bounding_box.min_.z_, static_cast<coord_t>(0)));
     const size_t slice_layer_count = rasterized_mesh.toLocalZ(mesh_bounding_box.max_.z_) - margin_below_mesh + 1;
 
-    const double xy_offset = INT2MM(std::max(rasterized_mesh.getResolution().x_, rasterized_mesh.getResolution().y_) * 2);
     Mesh sliced_mesh = mesh;
     sliced_mesh.settings_.add("xy_offset", std::to_string(xy_offset));
     sliced_mesh.settings_.add("xy_offset_layer_0", std::to_string(xy_offset));
     sliced_mesh.settings_.add("hole_xy_offset", "0");
     sliced_mesh.settings_.add("hole_xy_offset_max_diameter", "0");
 
-    Slicer slicer(&sliced_mesh, thickness, slice_layer_count, use_variable_layer_heights, adaptive_layers, slicing_tolerance, initial_layer_thickness);
+    const Slicer slicer(&sliced_mesh, thickness, slice_layer_count, use_variable_layer_heights, adaptive_layers, slicing_tolerance, initial_layer_thickness);
 
     // In order to re-create an offset on the Z direction, union the sliced shapes over a few layers so that we get an approximate outer shell of it
     std::vector<Shape> slices;
     for (std::ptrdiff_t layer_index = 0; layer_index < rasterized_mesh.getSlicesCount().z_; ++layer_index)
     {
         Shape expanded_shape;
-        for (std::ptrdiff_t delta = -2; delta <= 2; ++delta)
+        for (std::ptrdiff_t delta = -z_offset; delta <= z_offset; ++delta)
         {
-            std::ptrdiff_t union_layer_index = layer_index + delta - margin_below_mesh;
+            const std::ptrdiff_t union_layer_index = layer_index + delta - margin_below_mesh;
             if (union_layer_index >= 0 && static_cast<size_t>(union_layer_index) < slicer.layers.size())
             {
-                expanded_shape = expanded_shape.unionPolygons(slicer.layers[union_layer_index].polygons_);
+                if (union_polygons)
+                {
+                    expanded_shape = expanded_shape.unionPolygons(slicer.layers[union_layer_index].polygons_);
+                }
+                else
+                {
+                    expanded_shape.push_back(slicer.layers[union_layer_index].polygons_);
+                }
             }
         }
         slices.push_back(expanded_shape);
@@ -558,6 +590,51 @@ void propagateVoxels(
     }
 }
 
+void filterOutInsideVoxels(VoxelGrid& voxel_grid, const Mesh& mesh)
+{
+    constexpr double xy_offset = 0;
+    constexpr std::ptrdiff_t z_offset = 0;
+    constexpr bool union_polygons = false;
+    std::vector<Shape> sliced_mesh = sliceMesh(mesh, voxel_grid, xy_offset, z_offset, union_polygons);
+
+    // Create the intersection of each polygons pair
+    std::vector<Shape> sliced_intersections;
+    sliced_intersections.reserve(sliced_mesh.size());
+    for (Shape& slice : sliced_mesh)
+    {
+        Shape intersected_polygons;
+        for (const auto& [polygon1, polygon2] : ranges::views::cartesian_product(slice, slice))
+        {
+            if (&polygon1 == &polygon2)
+            {
+                continue;
+            }
+
+            intersected_polygons.push_back(polygon1.intersection(polygon2));
+        }
+
+        sliced_intersections.push_back(std::move(intersected_polygons));
+    }
+
+    if (sliced_intersections.empty())
+    {
+        return;
+    }
+
+    // Create a second voxel grid that contains the rasterized intersected polygons
+    constexpr bool copy_occupations = false;
+    VoxelGrid intersected_voxel_grid(voxel_grid, copy_occupations);
+
+    constexpr uint8_t dummy_occupation = 0;
+    makeVoxelGridFromSlicedMesh(sliced_intersections, intersected_voxel_grid, dummy_occupation);
+
+    voxel_grid.removeOccupiedVoxels(
+        [&intersected_voxel_grid](const auto& voxel)
+        {
+            return intersected_voxel_grid.hasOccupation(voxel.first);
+        });
+}
+
 /*!
  * Generate a modifier mesh for every extruder other than 0, that has some user-painted texture data
  * @param mesh The mesh being sliced
@@ -588,14 +665,20 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
         return {};
     }
 
+    // Create a slice of the mesh so that we can quickly check for points insideness
+    spdlog::debug("Pre-slice mesh for insideness check");
+    const double xy_offset = INT2MM(std::max(voxel_grid.getResolution().x_, voxel_grid.getResolution().y_) * 2);
+    constexpr std::ptrdiff_t z_offset = 2;
+    const std::vector<Shape> sliced_mesh = sliceMesh(mesh, voxel_grid, xy_offset, z_offset);
+
+    // Filter out inside voxels
+    filterOutInsideVoxels(voxel_grid, mesh);
+
     spdlog::debug("Prepare spatial lookup for texture data");
     const SpatialLookup texture_data = SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
 
     const auto deepness = settings.get<coord_t>("multi_material_paint_deepness");
     const coord_t deepness_squared = deepness * deepness;
-
-    // Create a slice of the mesh so that we can quickly check for points insideness
-    const std::vector<Shape> sliced_mesh = sliceMesh(mesh, voxel_grid);
 
     spdlog::debug("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
