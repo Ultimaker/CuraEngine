@@ -865,13 +865,34 @@ void LayerPlan::addPolygonsByOptimizer(
     bool reverse_order,
     const std::optional<Point2LL> start_near_location,
     bool scarf_seam,
-    bool smooth_speed)
+    bool smooth_speed,
+    const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
     if (polygons.empty())
     {
         return;
     }
-    PathOrderOptimizer<const Polygon*> orderOptimizer(start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(), z_seam_config);
+
+    constexpr bool detect_loops = false;
+    constexpr Shape* combing_boundary = nullptr;
+    constexpr bool reverse_direction = false;
+    const std::unordered_multimap<const Polygon*, const Polygon*>& order_requirements = PathOrderOptimizer<const Polygon*>::no_order_requirements_;
+    constexpr bool group_outer_walls = false;
+    constexpr Shape disallowed_areas_for_seams = {};
+    constexpr bool use_shortest_for_inner_walls = false;
+    constexpr Shape overhang_areas = Shape();
+    PathOrderOptimizer<const Polygon*> orderOptimizer(
+        start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(),
+        z_seam_config,
+        detect_loops,
+        combing_boundary,
+        reverse_direction,
+        order_requirements,
+        group_outer_walls,
+        disallowed_areas_for_seams,
+        use_shortest_for_inner_walls,
+        overhang_areas,
+        texture_data_provider);
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(&polygons[poly_idx]);

@@ -1787,7 +1787,8 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
         reverse_order,
         start_near_location,
         scarf_seam,
-        smooth_speed);
+        smooth_speed,
+        layer->texture_data_provider_);
 
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
 }
