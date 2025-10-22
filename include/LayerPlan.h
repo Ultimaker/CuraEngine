@@ -511,6 +511,7 @@ public:
      * If unset, this causes it to start near the last planned location.
      * \param scarf_seam Indicates whether we may use a scarf seam for the path
      * \param smooth_speed Indicates whether we may use a speed gradient for the path
+     * \param texture_data_provider The texture provider to be used to place the seam
      */
     void addPolygonsByOptimizer(
         const Shape& polygons,
@@ -524,7 +525,8 @@ public:
         bool reverse_order = false,
         const std::optional<Point2LL> start_near_location = std::optional<Point2LL>(),
         bool scarf_seam = false,
-        bool smooth_acceleration = false);
+        bool smooth_acceleration = false,
+        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr);
 
     /*!
      * Add a single line that is part of a wall to the gcode.
