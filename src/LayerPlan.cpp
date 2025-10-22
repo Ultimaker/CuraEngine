@@ -878,9 +878,9 @@ void LayerPlan::addPolygonsByOptimizer(
     constexpr bool reverse_direction = false;
     const std::unordered_multimap<const Polygon*, const Polygon*>& order_requirements = PathOrderOptimizer<const Polygon*>::no_order_requirements_;
     constexpr bool group_outer_walls = false;
-    constexpr Shape disallowed_areas_for_seams = {};
+    const Shape disallowed_areas_for_seams = {};  // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
     constexpr bool use_shortest_for_inner_walls = false;
-    constexpr Shape overhang_areas = Shape();
+    const Shape overhang_areas = Shape();  // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
     PathOrderOptimizer<const Polygon*> orderOptimizer(
         start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(),
         z_seam_config,
