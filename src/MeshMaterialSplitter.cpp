@@ -445,7 +445,7 @@ boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>
  * @param voxels_to_evaluate The voxels to be evaluated
  * @param texture_data The lookup containing the rasterized texture data
  * @param sliced_mesh The pre-sliced mesh matching the voxel grid
- * @param deepness_squared The maximum deepness, squared
+ * @param depth_squared The maximum depth, squared
  * @param mesh_extruder_nr The main mesh extruder number
  */
 void evaluateVoxels(
@@ -453,14 +453,14 @@ void evaluateVoxels(
     const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& voxels_to_evaluate,
     const SpatialLookup& texture_data,
     const std::vector<Shape>& sliced_mesh,
-    const coord_t deepness_squared,
+    const coord_t depth_squared,
     const uint8_t mesh_extruder_nr)
 {
     voxels_to_evaluate.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid, &texture_data, &sliced_mesh, &deepness_squared, &mesh_extruder_nr](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+        [&voxel_grid, &texture_data, &sliced_mesh, &depth_squared, &mesh_extruder_nr](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
         {
             const Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
 
@@ -475,7 +475,7 @@ void evaluateVoxels(
                 if (nearest_occupation.has_value())
                 {
                     const Point3D diff = position - nearest_occupation.value().position;
-                    const uint8_t new_occupation = diff.vSize2() <= deepness_squared ? nearest_occupation.value().occupation : mesh_extruder_nr;
+                    const uint8_t new_occupation = diff.vSize2() <= depth_squared ? nearest_occupation.value().occupation : mesh_extruder_nr;
                     voxel_grid.setOccupation(voxel_to_evaluate, new_occupation);
                 }
                 else
@@ -523,7 +523,7 @@ void findBoundaryVoxels(boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>&
  * @param estimated_iterations The roughly estimated number of iterations that will be processed
  * @param sliced_mesh The pre-sliced mesh matching the voxel grid
  * @param texture_data The lookup containing the rasterized texture data
- * @param deepness_squared The maximum propagation deepness, squared
+ * @param depth_squared The maximum propagation depth, squared
  * @param mesh_extruder_nr The main mesh extruder number
  */
 void propagateVoxels(
@@ -532,7 +532,7 @@ void propagateVoxels(
     const coord_t estimated_iterations,
     const std::vector<Shape>& sliced_mesh,
     const SpatialLookup& texture_data,
-    const coord_t deepness_squared,
+    const coord_t depth_squared,
     const uint8_t mesh_extruder_nr)
 {
     uint32_t iteration = 0;
@@ -547,7 +547,7 @@ void propagateVoxels(
 
         // Now actually evaluate the candidate voxels, i.e. find their closest outside point and set the according occupation
         spdlog::debug("Evaluating {} voxels", evaluated_voxels.size());
-        evaluateVoxels(voxel_grid, evaluated_voxels, texture_data, sliced_mesh, deepness_squared, mesh_extruder_nr);
+        evaluateVoxels(voxel_grid, evaluated_voxels, texture_data, sliced_mesh, depth_squared, mesh_extruder_nr);
 
         // Now we have evaluated the candidates, check which of them are to be processed next. We skip all the voxels that have only voxels with similar occupations around
         // them, because they are obviously not part of the boundaries we are looking for. This avoids filling the inside of the points clouds and speeds up calculation a lot.
@@ -566,8 +566,8 @@ void propagateVoxels(
  */
 std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
-    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
-    const uint8_t mesh_extruder_nr = static_cast<uint8_t>(mesh.settings_.get<size_t>("extruder_nr"));
+    const Settings& settings = mesh.settings_;
+    const uint8_t mesh_extruder_nr = static_cast<uint8_t>(settings.get<size_t>("extruder_nr"));
 
     // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder
     // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
@@ -591,8 +591,8 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
     spdlog::debug("Prepare spatial lookup for texture data");
     const SpatialLookup texture_data = SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
 
-    const auto deepness = settings.get<coord_t>("multi_material_paint_deepness");
-    const coord_t deepness_squared = deepness * deepness;
+    const auto depth = settings.get<coord_t>("multi_material_paint_depth");
+    const coord_t depth_squared = depth * depth;
 
     // Create a slice of the mesh so that we can quickly check for points insideness
     const std::vector<Shape> sliced_mesh = sliceMesh(mesh, voxel_grid);
@@ -609,12 +609,12 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
         });
 
     // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
-    const double bounding_box_max_deepness = std::max({ bounding_box.spanX() / 2.0, bounding_box.spanY() / 2.0, bounding_box.spanZ() / 2.0 });
-    const double estimated_min_deepness = std::min(static_cast<double>(deepness), bounding_box_max_deepness);
-    const coord_t estimated_iterations = estimated_min_deepness / resolution;
+    const double bounding_box_max_depth = std::max({ bounding_box.spanX() / 2.0, bounding_box.spanY() / 2.0, bounding_box.spanZ() / 2.0 });
+    const double estimated_min_depth = std::min(static_cast<double>(depth), bounding_box_max_depth);
+    const coord_t estimated_iterations = estimated_min_depth / resolution;
     spdlog::debug("Estimated {} iterations", estimated_iterations);
 
-    propagateVoxels(voxel_grid, previously_evaluated_voxels, estimated_iterations, sliced_mesh, texture_data, deepness_squared, mesh_extruder_nr);
+    propagateVoxels(voxel_grid, previously_evaluated_voxels, estimated_iterations, sliced_mesh, texture_data, depth_squared, mesh_extruder_nr);
 
     return makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr);
 }
