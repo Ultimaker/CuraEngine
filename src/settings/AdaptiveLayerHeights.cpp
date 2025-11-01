@@ -273,10 +273,10 @@ void AdaptiveLayerHeights::calculateLayersAdvanced()
     const bool smoothing_enabled = mesh_group_settings.get<bool>("adaptive_layer_height_smoothing_enabled");
     if (smoothing_enabled && layers_.size() > 2)
     {
-        const auto smoothing_radius = mesh_group_settings.get<unsigned int>("adaptive_layer_height_smoothing_radius");
+        const auto smoothing_radius = mesh_group_settings.get<int>("adaptive_layer_height_smoothing_radius");
         const bool keep_min = mesh_group_settings.get<bool>("adaptive_layer_height_keep_min");
 
-        LayerHeightSmoothingParams smoothing_params(smoothing_radius, keep_min);
+        LayerHeightSmoothingParams smoothing_params(static_cast<unsigned int>(std::max(1, smoothing_radius)), keep_min);
 
         // Extract layer heights for smoothing
         std::vector<coord_t> layer_heights;
