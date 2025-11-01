@@ -98,8 +98,8 @@ coord_t SlicingAdaptive::next_layer_height(const double print_z, double quality_
         // Quality factor 0.0 = best quality (smallest surface deviation, thinner layers)
         // Quality factor 1.0 = fastest speed (larger surface deviation, thicker layers)
         const double min_surface_deviation = 0.01; // 0.01mm for highest quality
-        const double max_surface_deviation_val = 0.2;  // 0.2mm for fastest speed
-        
+        const double max_surface_deviation_val = 0.2; // 0.2mm for fastest speed
+
         max_surface_deviation = min_surface_deviation + quality_factor * (max_surface_deviation_val - min_surface_deviation);
     }
 
@@ -139,14 +139,13 @@ coord_t SlicingAdaptive::next_layer_height(const double print_z, double quality_
 
     // Apply printer capability limits
     height = std::max(height, m_slicing_params.min_layer_height);
-    
+
     // If no geometry influenced the layer height, use quality-based default
-    if (!found_influencing_geometry)
+    if (! found_influencing_geometry)
     {
         // Create a quality-based layer height when no geometry constraints exist
         // Quality 0.0 -> use minimum layer height, Quality 1.0 -> use maximum layer height
-        coord_t quality_based_height = coord_t(m_slicing_params.min_layer_height + 
-            quality_factor * (m_slicing_params.max_layer_height - m_slicing_params.min_layer_height));
+        coord_t quality_based_height = coord_t(m_slicing_params.min_layer_height + quality_factor * (m_slicing_params.max_layer_height - m_slicing_params.min_layer_height));
         height = std::min(height, quality_based_height);
     }
 

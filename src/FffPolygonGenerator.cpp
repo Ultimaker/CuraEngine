@@ -141,7 +141,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             const auto quality_factor = mesh_group_settings.get<double>("adaptive_layer_height_quality_factor");
             const coord_t min_layer_height = mesh_group_settings.get<coord_t>("adaptive_layer_height_min");
             const coord_t max_layer_height = mesh_group_settings.get<coord_t>("adaptive_layer_height_max");
-            
+
             adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, min_layer_height, max_layer_height, quality_factor, meshgroup);
         }
         else
