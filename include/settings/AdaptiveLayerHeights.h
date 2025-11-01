@@ -1,11 +1,15 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
+// 
+// This file contains community contributions implementing adaptive layer height algorithms
 
 #ifndef ADAPTIVELAYERHEIGHTS_H
 #define ADAPTIVELAYERHEIGHTS_H
 
 #include "MeshGroup.h"
 #include "utils/Coord_t.h"
+#include "settings/SlicingAdaptive.h"
+#include "settings/LayerHeightSmoothing.h"
 
 namespace cura
 {
@@ -60,6 +64,16 @@ public:
      * \param meshgroup The meshgroup to process.
      */
     AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup);
+    
+    /*!
+     * \brief Creates a new adaptive layer height calculator using advanced quality-based approach.
+     * \param base_layer_height The base layer height to calculate adaptive layers from.
+     * \param min_layer_height Minimum allowed layer height.
+     * \param max_layer_height Maximum allowed layer height.
+     * \param quality_factor Quality factor from 0.0 (best quality) to 1.0 (fastest speed).
+     * \param meshgroup The meshgroup to process.
+     */
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t min_layer_height, const coord_t max_layer_height, double quality_factor, const MeshGroup* meshgroup);
 
 private:
     /*!
@@ -94,6 +108,31 @@ private:
     coord_t threshold_;
 
     /*!
+     * Quality factor for advanced adaptive layers (0.0 = best quality, 1.0 = fastest speed)
+     */
+    double quality_factor_;
+
+    /*!
+     * Minimum layer height for advanced adaptive layers
+     */
+    coord_t min_layer_height_;
+
+    /*!
+     * Maximum layer height for advanced adaptive layers
+     */
+    coord_t max_layer_height_;
+
+    /*!
+     * Flag to determine which algorithm to use
+     */
+    bool use_advanced_algorithm_;
+
+    /*!
+     * SlicingAdaptive instance for advanced calculations
+     */
+    SlicingAdaptive slicing_adaptive_;
+
+    /*!
      * Stores the found slopes of each face using the same index.
      */
     std::vector<double> face_slopes_;
@@ -110,6 +149,11 @@ private:
      * Calculates the layers based on the given mesh and allowed layer heights
      */
     void calculateLayers();
+
+    /*!
+     * Calculates the layers using advanced quality-based approach
+     */
+    void calculateLayersAdvanced();
 
     /*!
      * Calculates the slopes for each triangle in the mesh.

@@ -1,5 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
+// 
+// This file contains community contributions implementing adaptive layer height algorithms
 
 #include "settings/AdaptiveLayerHeights.h"
 
@@ -27,11 +29,39 @@ AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, cons
     , max_variation_{ variation }
     , step_size_{ step_size }
     , threshold_{ threshold }
+    , quality_factor_{ 0.5 }
+    , min_layer_height_{ base_layer_height - variation }
+    , max_layer_height_{ base_layer_height + variation }
+    , use_advanced_algorithm_{ false }
     , meshgroup_{ meshgroup }
 {
     calculateAllowedLayerHeights();
     calculateMeshTriangleSlopes();
     calculateLayers();
+}
+
+AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t min_layer_height, const coord_t max_layer_height, double quality_factor, const MeshGroup* meshgroup)
+    : base_layer_height_{ base_layer_height }
+    , max_variation_{ std::max(base_layer_height - min_layer_height, max_layer_height - base_layer_height) }
+    , step_size_{ 50 } // Default step size in microns
+    , threshold_{ 200 } // Default threshold
+    , quality_factor_{ quality_factor }
+    , min_layer_height_{ min_layer_height }
+    , max_layer_height_{ max_layer_height }
+    , use_advanced_algorithm_{ true }
+    , meshgroup_{ meshgroup }
+{
+    // Setup slicing parameters for advanced algorithm
+    SlicingParameters params;
+    params.min_layer_height = min_layer_height;
+    params.max_layer_height = max_layer_height;
+    params.layer_height = base_layer_height;
+    params.object_height = meshgroup->max().z_;
+    
+    slicing_adaptive_.set_slicing_parameters(params);
+    slicing_adaptive_.prepare(meshgroup);
+    
+    calculateLayersAdvanced();
 }
 
 size_t AdaptiveLayerHeights::getLayerCount() const
@@ -181,6 +211,87 @@ void AdaptiveLayerHeights::calculateLayers()
             minimum_adaptive_layer.z_position_ = z_level;
             previous_layer_height = min_layer_height;
             layers_.push_back(minimum_adaptive_layer);
+        }
+    }
+}
+
+void AdaptiveLayerHeights::calculateLayersAdvanced()
+{
+    layers_.clear();
+    
+    Settings const& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const coord_t model_max_z = meshgroup_->max().z_;
+    coord_t z_level = 0;
+    
+    // Add first layer with its own height
+    const auto initial_layer_height = mesh_group_settings.get<coord_t>("layer_height_0");
+    z_level += initial_layer_height;
+    
+    AdaptiveLayer first_layer(initial_layer_height);
+    first_layer.z_position_ = z_level;
+    layers_.push_back(first_layer);
+    
+    // Use advanced adaptive algorithm
+    size_t current_facet = 0;
+    const double LAYER_HEIGHT_CHANGE_STEP = 40.0; // microns, gradual change limit
+    
+    while (z_level < model_max_z && layers_.size() < 10000) // Safety limit
+    {
+        // Get next layer height using advanced algorithm
+        coord_t height = slicing_adaptive_.next_layer_height(z_level / 1000.0, quality_factor_, current_facet);
+        
+        // Apply gradual height changes for smooth transitions
+        if (!layers_.empty())
+        {
+            coord_t previous_height = layers_.back().layer_height_;
+            if (previous_height < height && height - previous_height > LAYER_HEIGHT_CHANGE_STEP)
+            {
+                height = previous_height + LAYER_HEIGHT_CHANGE_STEP;
+            }
+            else if (previous_height > height && previous_height - height > LAYER_HEIGHT_CHANGE_STEP)
+            {
+                height = previous_height - LAYER_HEIGHT_CHANGE_STEP;
+            }
+        }
+        
+        // Ensure we stay within limits
+        height = std::max(min_layer_height_, std::min(max_layer_height_, height));
+        
+        // Create new layer
+        z_level += height;
+        AdaptiveLayer adaptive_layer(height);
+        adaptive_layer.z_position_ = z_level;
+        layers_.push_back(adaptive_layer);
+    }
+    
+    // Apply smoothing if enabled
+    const bool smoothing_enabled = mesh_group_settings.get<bool>("adaptive_layer_height_smoothing_enabled");
+    if (smoothing_enabled && layers_.size() > 2)
+    {
+        const auto smoothing_radius = mesh_group_settings.get<unsigned int>("adaptive_layer_height_smoothing_radius");
+        const bool keep_min = mesh_group_settings.get<bool>("adaptive_layer_height_keep_min");
+        
+        LayerHeightSmoothingParams smoothing_params(smoothing_radius, keep_min);
+        
+        // Extract layer heights for smoothing
+        std::vector<coord_t> layer_heights;
+        layer_heights.reserve(layers_.size());
+        for (const auto& layer : layers_)
+        {
+            layer_heights.push_back(layer.layer_height_);
+        }
+        
+        // Apply smoothing
+        std::vector<coord_t> smoothed_heights = LayerHeightSmoothing::smooth_layer_heights(
+            layer_heights, min_layer_height_, max_layer_height_, smoothing_params);
+        
+        // Update layer heights and recalculate positions
+        coord_t z_pos = 0;
+        for (size_t i = 0; i < layers_.size() && i < smoothed_heights.size(); ++i)
+        {
+            layers_[i].layer_height_ = smoothed_heights[i];
+            z_pos += smoothed_heights[i];
+            layers_[i].z_position_ = z_pos;
         }
     }
 }
