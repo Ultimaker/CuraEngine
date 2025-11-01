@@ -95,17 +95,18 @@ coord_t SlicingAdaptive::next_layer_height(const double print_z, double quality_
     // Calculate max surface deviation based on quality factor
     double max_surface_deviation;
     {
-        // Convert layer heights from microns to mm for calculation
-        double delta_min = m_slicing_params.min_layer_height / 1000.0;
-        double delta_mid = m_slicing_params.layer_height / 1000.0;
-        double delta_max = m_slicing_params.max_layer_height / 1000.0;
-
-        max_surface_deviation = (quality_factor < 0.5) ? lerp(delta_min, delta_mid, 2.0 * quality_factor) : lerp(delta_max, delta_mid, 2.0 * (1.0 - quality_factor));
+        // Quality factor 0.0 = best quality (smallest surface deviation, thinner layers)
+        // Quality factor 1.0 = fastest speed (larger surface deviation, thicker layers)
+        const double min_surface_deviation = 0.01; // 0.01mm for highest quality
+        const double max_surface_deviation_val = 0.2;  // 0.2mm for fastest speed
+        
+        max_surface_deviation = min_surface_deviation + quality_factor * (max_surface_deviation_val - min_surface_deviation);
     }
 
     // Find all facets intersecting the slice layer
     size_t ordered_id = current_facet;
     bool first_hit = false;
+    bool found_influencing_geometry = false;
 
     for (; ordered_id < m_faces.size(); ++ordered_id)
     {
@@ -132,11 +133,22 @@ coord_t SlicingAdaptive::next_layer_height(const double print_z, double quality_
             // Compute cusp height for this facet and store minimum
             coord_t facet_height = layer_height_from_slope(m_faces[ordered_id], max_surface_deviation);
             height = std::min(height, facet_height);
+            found_influencing_geometry = true;
         }
     }
 
     // Apply printer capability limits
     height = std::max(height, m_slicing_params.min_layer_height);
+    
+    // If no geometry influenced the layer height, use quality-based default
+    if (!found_influencing_geometry)
+    {
+        // Create a quality-based layer height when no geometry constraints exist
+        // Quality 0.0 -> use minimum layer height, Quality 1.0 -> use maximum layer height
+        coord_t quality_based_height = coord_t(m_slicing_params.min_layer_height + 
+            quality_factor * (m_slicing_params.max_layer_height - m_slicing_params.min_layer_height));
+        height = std::min(height, quality_based_height);
+    }
 
     // Check for sloped facets inside the determined layer and correct height if necessary
     if (height > m_slicing_params.min_layer_height)

@@ -238,7 +238,10 @@ void AdaptiveLayerHeights::calculateLayersAdvanced()
 
     // Use advanced adaptive algorithm
     size_t current_facet = 0;
-    const double LAYER_HEIGHT_CHANGE_STEP = 40.0; // microns, gradual change limit
+    // Allow larger height changes for quality-based control
+    // Quality factor 0.0 (best quality) allows more dramatic changes for precision
+    // Quality factor 1.0 (speed) uses more gradual changes for stability
+    const double LAYER_HEIGHT_CHANGE_STEP = 100.0 + quality_factor_ * 100.0; // 100-200 microns range
 
     while (z_level < model_max_z && layers_.size() < 10000) // Safety limit
     {
@@ -251,11 +254,11 @@ void AdaptiveLayerHeights::calculateLayersAdvanced()
             coord_t previous_height = layers_.back().layer_height_;
             if (previous_height < height && height - previous_height > LAYER_HEIGHT_CHANGE_STEP)
             {
-                height = previous_height + LAYER_HEIGHT_CHANGE_STEP;
+                height = previous_height + coord_t(LAYER_HEIGHT_CHANGE_STEP);
             }
             else if (previous_height > height && previous_height - height > LAYER_HEIGHT_CHANGE_STEP)
             {
-                height = previous_height - LAYER_HEIGHT_CHANGE_STEP;
+                height = previous_height - coord_t(LAYER_HEIGHT_CHANGE_STEP);
             }
         }
 
