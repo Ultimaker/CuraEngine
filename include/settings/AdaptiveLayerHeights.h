@@ -1,15 +1,15 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
-// 
+//
 // This file contains community contributions implementing adaptive layer height algorithms
 
 #ifndef ADAPTIVELAYERHEIGHTS_H
 #define ADAPTIVELAYERHEIGHTS_H
 
 #include "MeshGroup.h"
-#include "utils/Coord_t.h"
-#include "settings/SlicingAdaptive.h"
 #include "settings/LayerHeightSmoothing.h"
+#include "settings/SlicingAdaptive.h"
+#include "utils/Coord_t.h"
 
 namespace cura
 {
@@ -64,7 +64,7 @@ public:
      * \param meshgroup The meshgroup to process.
      */
     AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup);
-    
+
     /*!
      * \brief Creates a new adaptive layer height calculator using advanced quality-based approach.
      * \param base_layer_height The base layer height to calculate adaptive layers from.

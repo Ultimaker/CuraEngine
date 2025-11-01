@@ -1,5 +1,5 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
-// 
+//
 // This file contains community contributions implementing adaptive layer height algorithms
 
 #include "settings/LayerHeightSmoothing.h"
@@ -95,7 +95,7 @@ std::vector<coord_t> LayerHeightSmoothing::smooth_layer_heights(
         return layer_heights;
 
     std::vector<double> kernel = generateGaussianKernel(std::max(smoothing_params.radius, 1u));
-    
+
     // Apply multiple rounds of smoothing
     std::vector<coord_t> result = layer_heights;
     for (int round = 0; round < 6; ++round)
