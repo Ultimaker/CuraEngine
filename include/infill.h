@@ -59,6 +59,8 @@ class Infill
     size_t zag_skip_count_{}; //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size_{}; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     bool mirror_offset_{}; //!< Indication in which offset direction the extra infill lines are made
+    coord_t move_inwards_start_{ 0 }; //!< Length of the inwards extrusion move to be added at infill start
+    coord_t move_inwards_end_{ 0 }; //!< Length of the inwards extrusion move to be added at infill end
 
     static constexpr auto one_over_sqrt_2 = 1.0 / std::numbers::sqrt2;
 
@@ -163,7 +165,9 @@ public:
         bool use_endpieces,
         bool skip_some_zags,
         size_t zag_skip_count,
-        coord_t pocket_size) noexcept
+        coord_t pocket_size,
+        const coord_t move_inwards_start = 0,
+        const coord_t move_inwards_end = 0) noexcept
         : pattern_{ pattern }
         , zig_zaggify_{ zig_zaggify }
         , connect_polygons_{ connect_polygons }
@@ -188,6 +192,8 @@ public:
         , zag_skip_count_{ zag_skip_count }
         , pocket_size_{ pocket_size }
         , mirror_offset_{ zig_zaggify }
+        , move_inwards_start_(move_inwards_start)
+        , move_inwards_end_(move_inwards_end)
     {
     }
 

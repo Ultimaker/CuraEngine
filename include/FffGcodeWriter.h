@@ -419,8 +419,14 @@ private:
      * \param part The part for which to create gcode.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processMultiLayerInfill(LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part)
-        const;
+    bool processMultiLayerInfill(
+        LayerPlan& gcodeLayer,
+        const SliceMeshStorage& mesh,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        const SliceLayerPart& part,
+        const coord_t move_inwards_start,
+        const coord_t move_inwards_end) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -438,7 +444,9 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
+        const SliceLayerPart& part,
+        const coord_t move_inwards_start,
+        const coord_t move_inwards_end) const;
 
     /*!
      * Generate the insets for the walls of a given layer part.

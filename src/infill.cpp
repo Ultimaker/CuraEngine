@@ -343,19 +343,36 @@ void Infill::_generate(
         connectLines(result_lines);
     }
 
-    for (OpenPolyline& infill_line : result_lines)
+    if (move_inwards_start_ != 0 || move_inwards_end_ != 0)
     {
-        auto inner_contour_offset = inner_contour_.offset(-infill_line_width_ * 2);
+        // Add the start/end inwards moves
+        const Shape offsetted_contour_start = move_inwards_start_ != 0 ? inner_contour_.offset(-move_inwards_start_) : Shape();
+        Shape offsetted_contour_end;
+        if (move_inwards_end_ == move_inwards_start_)
+        {
+            offsetted_contour_end = offsetted_contour_start;
+        }
+        else if (move_inwards_end_ != 0)
+        {
+            offsetted_contour_end = inner_contour_.offset(-move_inwards_end_);
+        }
 
-        auto last_point = infill_line.back();
-        const auto last_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, last_point);
+        for (OpenPolyline& infill_line : result_lines)
+        {
+            if (! offsetted_contour_end.empty())
+            {
+                auto last_point = infill_line.back();
+                const auto last_point_polygon = PolygonUtils::moveInside2(offsetted_contour_end, last_point);
+                infill_line.push_back(last_point_polygon.location_);
+            }
 
-        infill_line.push_back(last_point_polygon.location_);
-
-
-        auto first_point = infill_line.front();
-        const auto first_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, first_point);
-        infill_line.insert(infill_line.begin(), first_point_polygon.location_);
+            if (! offsetted_contour_start.empty())
+            {
+                auto first_point = infill_line.front();
+                const auto first_point_polygon = PolygonUtils::moveInside2(offsetted_contour_start, first_point);
+                infill_line.insert(infill_line.begin(), first_point_polygon.location_);
+            }
+        }
     }
 
     Simplify simplifier(max_resolution_, max_deviation_, 0);
