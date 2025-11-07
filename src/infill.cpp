@@ -343,6 +343,21 @@ void Infill::_generate(
         connectLines(result_lines);
     }
 
+    for (OpenPolyline& infill_line : result_lines)
+    {
+        auto inner_contour_offset = inner_contour_.offset(-infill_line_width_ * 2);
+
+        auto last_point = infill_line.back();
+        const auto last_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, last_point);
+
+        infill_line.push_back(last_point_polygon.location_);
+
+
+        auto first_point = infill_line.front();
+        const auto first_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, first_point);
+        infill_line.insert(infill_line.begin(), first_point_polygon.location_);
+    }
+
     Simplify simplifier(max_resolution_, max_deviation_, 0);
     result_polygons = simplifier.polygon(result_polygons);
 
@@ -1035,18 +1050,6 @@ void Infill::connectLines(OpenLinesSet& result_lines)
             previous_vertex = next_vertex;
             delete old_line;
         }
-
-        auto inner_contour_offset = inner_contour_.offset(-infill_line_width_ * 2);
-
-        auto last_point = result_line.back();
-        const auto last_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, last_point);
-
-        result_line.push_back(last_point_polygon.location_);
-
-
-        auto first_point = result_line.front();
-        const auto first_point_polygon = PolygonUtils::moveInside2(inner_contour_offset, first_point);
-        result_line.insert(result_line.begin(), first_point_polygon.location_);
 
         completed_groups.insert(group);
     }
