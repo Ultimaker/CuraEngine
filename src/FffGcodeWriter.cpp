@@ -1918,11 +1918,10 @@ bool FffGcodeWriter::processInfill(
         return false;
     }
 
-    const coord_t infill_move_inwards_start = mesh.settings.get<coord_t>("infill_move_inwards_start");
-    const coord_t infill_move_inwards_end = mesh.settings.get<coord_t>("infill_move_inwards_end");
+    const coord_t infill_move_inwards_length = mesh.settings.get<coord_t>("infill_move_inwards_length");
 
-    bool added_something = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_move_inwards_start, infill_move_inwards_end);
-    added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_move_inwards_start, infill_move_inwards_end);
+    bool added_something = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_move_inwards_length);
+    added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_move_inwards_length);
     return added_something;
 }
 
@@ -1932,8 +1931,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const coord_t move_inwards_start,
-    const coord_t move_inwards_end) const
+    const coord_t move_inwards_length) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2017,8 +2015,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 skip_some_zags,
                 zag_skip_count,
                 mesh.settings.get<coord_t>("cross_infill_pocket_size"),
-                move_inwards_start,
-                move_inwards_end);
+                move_inwards_length);
             infill_comp.generate(
                 infill_paths,
                 infill_polygons,
@@ -2466,8 +2463,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const coord_t move_inwards_start,
-    const coord_t move_inwards_end) const
+    const coord_t move_inwards_length) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2620,8 +2616,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 skip_some_zags,
                 zag_skip_count,
                 pocket_size,
-                move_inwards_start,
-                move_inwards_end);
+                move_inwards_length);
             infill_comp.generate(
                 wall_tool_paths.back(),
                 infill_polygons,
@@ -2687,8 +2682,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             skip_some_zags,
             zag_skip_count,
             pocket_size,
-            move_inwards_start,
-            move_inwards_end);
+            move_inwards_length);
         infill_comp.generate(
             wall_tool_paths.back(),
             infill_polygons,
