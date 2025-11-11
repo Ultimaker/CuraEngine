@@ -1070,7 +1070,7 @@ void Infill::connectLines(OpenLinesSet& result_lines)
 
 OpenPolyline Infill::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point) const
 {
-    // Find the trapezoid that the start point belongs to
+    // Find the trapezoidal that the start point belongs to
     const STHalfEdge* trapezoidal_start = nullptr;
     uint8_t trapezoidal_segments = 0;
     double projection_ratio_on_outer_segment = 0.0;
@@ -1101,7 +1101,7 @@ OpenPolyline Infill::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_ed
         if (outer_segment_p1 == outer_segment_p0)
         {
             projection_distance = vSize(start_point - outer_segment_p0);
-            projection_ratio = 0.5;
+            projection_ratio = 0.5; // If using this segment for subsequent opposite projection, use edge center
         }
         else
         {
@@ -1136,15 +1136,16 @@ OpenPolyline Infill::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_ed
         return {};
     }
 
+    // Project the start point on the edge that is at the opposite in the trapezoidal, i.e. going inwards the contour
     Point2LL opposite_projection;
     if (trapezoidal_segments == 2)
     {
-        // Trapezoid is reduced to a triangle, inwards direction point towards the opposite vertex
+        // Trapezoidal is reduced to a triangle, inwards direction point towards the opposite vertex
         opposite_projection = trapezoidal_start->to_->p_;
     }
     else
     {
-        // Trapezoid is a quadrilateral, project point on opposite edge
+        // Trapezoidal is a quadrilateral, project point on opposite edge
         opposite_projection = lerp(trapezoidal_start->to_->p_, trapezoidal_start->next_->to_->p_, projection_ratio_on_outer_segment);
     }
 
@@ -1157,12 +1158,11 @@ OpenPolyline Infill::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_ed
 
     const auto add_edge = [&remaining_inwards_length, &inwards_move](const STHalfEdge* edge_move_up, const Point2LL& start_position)
     {
-        const Point2LL opposite_to_edge_end = edge_move_up->to_->p_ - start_position;
-        const coord_t distance_to_edge_end = vSize(opposite_to_edge_end);
+        const Point2LL start_to_edge_end = edge_move_up->to_->p_ - start_position;
+        const coord_t distance_to_edge_end = vSize(start_to_edge_end);
         const coord_t add_distance = std::min(distance_to_edge_end, remaining_inwards_length);
-
-        // The rest of the segment covers the remaining distance, stop now
         const Point2D edge_direction = toPoint2D(edge_move_up->to_->p_ - edge_move_up->from_->p_).vNormalized().value();
+
         inwards_move.push_back(start_position + toPoint2LL(edge_direction * add_distance));
         remaining_inwards_length -= add_distance;
     };
@@ -1184,6 +1184,7 @@ OpenPolyline Infill::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_ed
         }
         else
         {
+            // Now we have reached the opposite segment, keep going inwards by following it
             const STHalfEdge* edge_move_up = nullptr;
             if (trapezoidal_start->next_->isUpward(is_upward_strict))
             {
@@ -1200,7 +1201,7 @@ OpenPolyline Infill::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_ed
 
                 if (remaining_inwards_length > 0)
                 {
-                    // Remaining segment of the edge doesn't cover the whole distance, go on
+                    // Remaining part of the edge doesn't cover the whole distance, go on
                     next_start_node = edge_move_up->to_;
                 }
             }
@@ -1209,28 +1210,28 @@ OpenPolyline Infill::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_ed
 
     if (next_start_node == nullptr)
     {
+        // We cannot ge further inside, stop here
         return inwards_move;
     }
 
+    // Keep following skeleton segments going upwards (further away from the walls) until we have covered the desired length
     while (remaining_inwards_length > 0)
     {
-        // Find an edge starting from this node that goes upwards
-        const STHalfEdge* edge_move_up = nullptr;
-        for (const STHalfEdge& edge : trapezoidal_edges)
-        {
-            if (edge.from_ == next_start_node && edge.isUpward(is_upward_strict))
+        // Find an edge starting from the current node that goes upwards
+        auto iterator = ranges::find_if(
+            trapezoidal_edges,
+            [&next_start_node](const STHalfEdge& edge)
             {
-                edge_move_up = &edge;
-                break;
-            }
-        }
+                return edge.from_ == next_start_node && edge.isUpward(is_upward_strict);
+            });
 
-        if (edge_move_up == nullptr)
+        if (iterator == trapezoidal_edges.end())
         {
             // We cannot move any upper
             break;
         }
 
+        const STHalfEdge* edge_move_up = &(*iterator);
         add_edge(edge_move_up, edge_move_up->from_->p_);
         next_start_node = edge_move_up->to_;
     }

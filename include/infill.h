@@ -60,7 +60,7 @@ class Infill
     size_t zag_skip_count_{}; //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size_{}; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     bool mirror_offset_{}; //!< Indication in which offset direction the extra infill lines are made
-    coord_t move_inwards_length_{ 0 }; //!< Length of the inwards extrusion move to be added at infill start
+    coord_t move_inwards_length_{ 0 }; //!< Length of the inwards extrusion move to be added at infill start and end
 
     static constexpr auto one_over_sqrt_2 = 1.0 / std::numbers::sqrt2;
 
@@ -626,6 +626,12 @@ private:
      */
     void connectLines(OpenLinesSet& result_lines);
 
+    /*!
+     * Generates an extrusion move that goes as inwards as possible given the infill contour, starting from the given point
+     * @param trapezoidal_edges The edges of the skeletal trapezoidation for the infill contour
+     * @param start_point The point to start generating the move from, which must be part of the contour
+     * @return Extrusion path to be started from the given start point, which may be empty if not possible
+     */
     OpenPolyline makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point) const;
 };
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");
