@@ -25,7 +25,6 @@ namespace cura
 
 class SierpinskiFillProvider;
 class SliceMeshStorage;
-class STHalfEdge;
 
 class Infill
 {

@@ -8,8 +8,6 @@
 #include <numbers>
 #include <unordered_set>
 
-#include <range/v3/algorithm/remove_if.hpp>
-#include <range/v3/algorithm/stable_sort.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
@@ -348,7 +346,6 @@ void Infill::_generate(
 
     Simplify simplifier(max_resolution_, max_deviation_, 0);
     result_polygons = simplifier.polygon(result_polygons);
-    result_lines = simplifier.polyline(result_lines);
 
     if (! skip_line_stitching_
         && (zig_zaggify_ || pattern_ == EFillMethod::CROSS || pattern_ == EFillMethod::CROSS_3D || pattern_ == EFillMethod::CUBICSUBDIV || pattern_ == EFillMethod::GYROID
@@ -358,6 +355,7 @@ void Infill::_generate(
         OpenPolylineStitcher::stitch(result_lines, stitched_lines, result_polygons, infill_line_width_);
         result_lines = std::move(stitched_lines);
     }
+    result_lines = simplifier.polyline(result_lines);
 }
 
 void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)

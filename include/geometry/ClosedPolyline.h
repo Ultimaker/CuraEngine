@@ -137,6 +137,7 @@ public:
      */
     [[nodiscard]] OpenPolyline toPseudoOpenPolyline() const;
 
+    /*! Rotates the points of the line so that it will now start at the point with the given index */
     void rotateToStartPoint(const size_t start_index);
 };
 

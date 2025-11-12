@@ -417,6 +417,8 @@ private:
      * mesh which should be printed with this extruder.
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
+     * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
      * \return Whether this function added anything to the layer plan.
      */
     bool processMultiLayerInfill(
@@ -436,6 +438,8 @@ private:
      * mesh which should be printed with this extruder
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
+     * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
      * \return Whether this function added anything to the layer plan.
      */
     bool processSingleLayerInfill(

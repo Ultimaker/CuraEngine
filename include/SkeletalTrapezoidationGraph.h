@@ -33,6 +33,8 @@ public:
     /*!
      * Check whether the edge goes from a lower to a higher distance_to_boundary.
      * Effectively deals with equidistant edges by looking beyond this edge.
+     *
+     * \param strict Whether equidistant edges can count as going upwards
      */
     bool isUpward(const bool strict = false) const;
 
