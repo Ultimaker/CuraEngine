@@ -886,7 +886,7 @@ void LayerPlan::addPolygonsByOptimizer(
     constexpr bool use_shortest_for_inner_walls = false;
     const Shape overhang_areas = Shape(); // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
     PathOrderOptimizer<const Polygon*> orderOptimizer(
-        start_near_location ? start_near_location.value() : getLastPlannedPositionOrStartingPosition(),
+        start_near_location.value_or(getLastPlannedPositionOrStartingPosition()),
         z_seam_config,
         detect_loops,
         combing_boundary,
@@ -903,33 +903,58 @@ void LayerPlan::addPolygonsByOptimizer(
     }
     orderOptimizer.optimize();
 
-    const auto add_polygons
-        = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &always_retract, &scarf_seam, &smooth_speed](const auto& iterator_begin, const auto& iterator_end)
-    {
-        for (auto iterator = iterator_begin; iterator != iterator_end; ++iterator)
-        {
-            addPolygon(
-                *iterator->vertices_,
-                iterator->start_vertex_,
-                iterator->backwards_,
-                settings,
-                config,
-                wall_0_wipe_dist,
-                spiralize,
-                flow_ratio,
-                always_retract,
-                scarf_seam,
-                smooth_speed);
-        }
-    };
+    addPolygonsInGivenOrder(
+        orderOptimizer.paths_,
+        config,
+        settings,
+        z_seam_config,
+        wall_0_wipe_dist,
+        spiralize,
+        flow_ratio,
+        always_retract,
+        reverse_order,
+        scarf_seam,
+        smooth_speed);
+}
 
-    if (! reverse_order)
+void LayerPlan::addInfillPolygonsByOptimizer(
+    const Shape& polygons,
+    OpenLinesSet& remaining_lines,
+    const GCodePathConfig& config,
+    const Settings& settings,
+    const coord_t extra_inwards_move_length,
+    const Shape& extra_inwards_move_contour,
+    const std::optional<Point2LL>& near_start_location)
+{
+    if (polygons.empty())
     {
-        add_polygons(orderOptimizer.paths_.begin(), orderOptimizer.paths_.end());
+        return;
     }
-    else
+
+    PathOrderOptimizer<const Polygon*> orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()));
+    for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
-        add_polygons(orderOptimizer.paths_.rbegin(), orderOptimizer.paths_.rend());
+        orderOptimizer.addPolygon(&polygons[poly_idx]);
+    }
+    orderOptimizer.optimize();
+
+    if (extra_inwards_move_length == 0)
+    {
+        constexpr bool force_comb_retract = false;
+        addTravel(orderOptimizer.paths_[0].vertices_->at(orderOptimizer.paths_[0].start_vertex_), force_comb_retract);
+        addPolygonsInGivenOrder(orderOptimizer.paths_, config, settings);
+        return;
+    }
+
+    // In order to add the inwards moves, we will have to un-close the polygons to open lines
+    for (const PathOrdering<const Polygon*>& ordered_polygon : orderOptimizer.paths_)
+    {
+        const Polygon& polygon = *ordered_polygon.vertices_;
+        const size_t start_index = ordered_polygon.start_vertex_;
+
+        ClosedPolyline split_polygon(polygon);
+        split_polygon.rotateToStartPoint(start_index);
+        remaining_lines.push_back(split_polygon.toPseudoOpenPolyline());
     }
 }
 
@@ -2327,39 +2352,41 @@ void LayerPlan::addLinesInGivenOrder(
             const SkeletalTrapezoidation trapezoidation(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, SectionType::INFILL);
 
             OpenPolyline start_inwards_move = makeInwardsMove(trapezoidation.graph_.edges, start, extra_inwards_move_length);
-
-            const Point2LL& end = raw_polyline[path.is_closed_ ? start_idx : (start_idx == 0 ? raw_polyline.size() - 1 : 0)];
-            OpenPolyline end_inwards_move = makeInwardsMove(trapezoidation.graph_.edges, end, extra_inwards_move_length);
-
             expanded_polyline = std::make_shared<OpenPolyline>();
+            expanded_polyline->reserve(raw_polyline.size() + 2 * start_inwards_move.size());
 
             if (path.is_closed_)
             {
-                PointsSet points_begin_to_start(std::vector<Point2LL>(raw_polyline.getPoints().begin(), raw_polyline.getPoints().begin() + start_idx));
-                PointsSet points_start_to_end(std::vector<Point2LL>(raw_polyline.getPoints().begin() + start_idx, raw_polyline.getPoints().end()));
+                const OpenPolyline end_inwards_move = start_inwards_move;
 
                 start_inwards_move.reverse();
-                expanded_polyline->push_back(points_begin_to_start);
+                expanded_polyline->push_back(raw_polyline.begin(), raw_polyline.begin() + start_idx);
                 expanded_polyline->push_back(end_inwards_move);
                 expanded_polyline->push_back(start_inwards_move);
-                expanded_polyline->push_back(points_start_to_end);
+                expanded_polyline->push_back(raw_polyline.begin() + start_idx, raw_polyline.end());
 
-                start_idx = points_begin_to_start.size() + end_inwards_move.size();
-            }
-            else if (start_idx == 0)
-            {
-                start_inwards_move.reverse();
-                expanded_polyline->push_back(start_inwards_move);
-                expanded_polyline->push_back(raw_polyline);
-                expanded_polyline->push_back(end_inwards_move);
+                start_idx += end_inwards_move.size();
             }
             else
             {
-                end_inwards_move.reverse();
-                expanded_polyline->push_back(end_inwards_move);
-                expanded_polyline->push_back(raw_polyline);
-                expanded_polyline->push_back(start_inwards_move);
-                start_idx = expanded_polyline->size() - 1;
+                const Point2LL& end = raw_polyline[path.is_closed_ ? start_idx : (start_idx == 0 ? raw_polyline.size() - 1 : 0)];
+                OpenPolyline end_inwards_move = makeInwardsMove(trapezoidation.graph_.edges, end, extra_inwards_move_length);
+
+                if (start_idx == 0)
+                {
+                    start_inwards_move.reverse();
+                    expanded_polyline->push_back(start_inwards_move);
+                    expanded_polyline->push_back(raw_polyline);
+                    expanded_polyline->push_back(end_inwards_move);
+                }
+                else
+                {
+                    end_inwards_move.reverse();
+                    expanded_polyline->push_back(end_inwards_move);
+                    expanded_polyline->push_back(raw_polyline);
+                    expanded_polyline->push_back(start_inwards_move);
+                    start_idx = expanded_polyline->size() - 1;
+                }
             }
 
             polyline = expanded_polyline.get();
@@ -2448,6 +2475,49 @@ void LayerPlan::addLinesInGivenOrder(
                 addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed);
             }
         }
+    }
+}
+
+void LayerPlan::addPolygonsInGivenOrder(
+    const std::vector<PathOrdering<const Polygon*>>& polygons,
+    const GCodePathConfig& config,
+    const Settings& settings,
+    const ZSeamConfig& z_seam_config,
+    coord_t wall_0_wipe_dist,
+    bool spiralize,
+    const Ratio flow_ratio,
+    bool always_retract,
+    bool reverse_order,
+    bool scarf_seam,
+    bool smooth_speed)
+{
+    const auto add_polygons
+        = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &always_retract, &scarf_seam, &smooth_speed](const auto& iterator_begin, const auto& iterator_end)
+    {
+        for (auto iterator = iterator_begin; iterator != iterator_end; ++iterator)
+        {
+            addPolygon(
+                *iterator->vertices_,
+                iterator->start_vertex_,
+                iterator->backwards_,
+                settings,
+                config,
+                wall_0_wipe_dist,
+                spiralize,
+                flow_ratio,
+                always_retract,
+                scarf_seam,
+                smooth_speed);
+        }
+    };
+
+    if (! reverse_order)
+    {
+        add_polygons(polygons.begin(), polygons.end());
+    }
+    else
+    {
+        add_polygons(polygons.rbegin(), polygons.rend());
     }
 }
 

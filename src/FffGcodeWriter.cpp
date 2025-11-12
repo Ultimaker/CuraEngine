@@ -2039,9 +2039,8 @@ bool FffGcodeWriter::processMultiLayerInfill(
 
             if (! infill_polygons.empty())
             {
-                constexpr bool force_comb_retract = false;
-                gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx], mesh.settings);
+                gcode_layer
+                    .addInfillPolygonsByOptimizer(infill_polygons, infill_lines, mesh_config.infill_config[combine_idx], mesh.settings, move_inwards_length, infill_inner_contour);
             }
 
             if (! infill_lines.empty())
@@ -2817,10 +2816,14 @@ bool FffGcodeWriter::processSingleLayerInfill(
         }
         if (! infill_polygons.empty())
         {
-            constexpr bool force_comb_retract = false;
-            // start the infill polygons at the nearest vertex to the current location
-            gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], mesh.settings, ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
+            gcode_layer.addInfillPolygonsByOptimizer(
+                infill_polygons,
+                infill_lines,
+                mesh_config.infill_config[0],
+                mesh.settings,
+                move_inwards_length,
+                infill_inner_contour,
+                near_start_location);
         }
 
         SpaceFillType space_fill_type;

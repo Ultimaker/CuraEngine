@@ -526,8 +526,17 @@ public:
         bool reverse_order = false,
         const std::optional<Point2LL> start_near_location = std::optional<Point2LL>(),
         bool scarf_seam = false,
-        bool smooth_acceleration = false,
+        bool smooth_speed = false,
         const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr);
+
+    void addInfillPolygonsByOptimizer(
+        const Shape& polygons,
+        OpenLinesSet& remaining_lines,
+        const GCodePathConfig& config,
+        const Settings& settings,
+        const coord_t extra_inwards_move_length,
+        const Shape& extra_inwards_move_contour,
+        const std::optional<Point2LL>& near_start_location = std::optional<Point2LL>());
 
     /*!
      * Add a single line that is part of a wall to the gcode.
@@ -883,6 +892,19 @@ private:
         const double fan_speed,
         const coord_t extra_inwards_move_length = 0,
         const Shape& extra_inwards_move_contour = Shape());
+
+    void addPolygonsInGivenOrder(
+        const std::vector<PathOrdering<const Polygon*>>& polygons,
+        const GCodePathConfig& config,
+        const Settings& settings,
+        const ZSeamConfig& z_seam_config = ZSeamConfig(),
+        coord_t wall_0_wipe_dist = 0,
+        bool spiralize = false,
+        const Ratio flow_ratio = 1.0_r,
+        bool always_retract = false,
+        bool reverse_order = false,
+        bool scarf_seam = false,
+        bool smooth_speed = false);
 
     /*!
      *  @brief Send a GCodePath line to the communication object, applying proper Z offsets
