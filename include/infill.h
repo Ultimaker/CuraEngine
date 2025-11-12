@@ -238,6 +238,15 @@ public:
         int layer_idx,
         SectionType section_type);
 
+    /*!
+     * Get the inner infill contour
+     * @warning The contour is generated when calling generate() so the returned value won't be valid before
+     */
+    const Shape& getInnerContour() const
+    {
+        return inner_contour_;
+    }
+
 private:
     struct InfillLineSegment
     {
@@ -625,14 +634,6 @@ private:
      * \param[in/out] result_lines The lines to connect together.
      */
     void connectLines(OpenLinesSet& result_lines);
-
-    /*!
-     * Generates an extrusion move that goes as inwards as possible given the infill contour, starting from the given point
-     * @param trapezoidal_edges The edges of the skeletal trapezoidation for the infill contour
-     * @param start_point The point to start generating the move from, which must be part of the contour
-     * @return Extrusion path to be started from the given start point, which may be empty if not possible
-     */
-    OpenPolyline makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point) const;
 };
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");
 

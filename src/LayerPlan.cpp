@@ -18,11 +18,14 @@
 #include "ExtruderTrain.h"
 #include "PathAdapter.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
+#include "SkeletalTrapezoidation.h"
+#include "SkeletalTrapezoidationGraph.h"
 #include "Slice.h"
 #include "TravelAntiOozing.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h"
 #include "geometry/OpenPolyline.h"
+#include "geometry/conversions/Point2D_Point2LL.h"
 #include "gradual_flow/Processor.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
@@ -60,14 +63,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -1989,6 +1993,181 @@ void LayerPlan::addWalls(
     }
 }
 
+OpenPolyline LayerPlan::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point, const coord_t move_inwards_length)
+{
+    // Find the trapezoidal that the start point belongs to
+    const STHalfEdge* trapezoidal_start = nullptr;
+    uint8_t trapezoidal_segments = 0;
+    double projection_ratio_on_outer_segment = 0.0;
+    std::optional<coord_t> distance_to_closest_segment;
+    for (const STHalfEdge& start_edge : trapezoidal_edges)
+    {
+        if (start_edge.prev_ != nullptr)
+        {
+            // This is not a starting edge, skip
+            continue;
+        }
+
+        uint8_t current_trapezoidal_segments = 1;
+        const STHalfEdge* end_edge = &start_edge;
+        while (end_edge->next_)
+        {
+            current_trapezoidal_segments++;
+            end_edge = end_edge->next_;
+        }
+
+        assert((current_trapezoidal_segments == 2 || current_trapezoidal_segments == 3) && "Invalid trapezoidal");
+
+        const Point2LL& outer_segment_p0 = start_edge.from_->p_;
+        const Point2LL& outer_segment_p1 = end_edge->to_->p_;
+
+        coord_t projection_distance;
+        double projection_ratio;
+        if (outer_segment_p1 == outer_segment_p0)
+        {
+            projection_distance = vSize(start_point - outer_segment_p0);
+            projection_ratio = 0.5; // If using this segment for subsequent opposite projection, use edge center
+        }
+        else
+        {
+            const Point2LL p0_p1 = outer_segment_p1 - outer_segment_p0;
+            const Point2LL p0_start = start_point - outer_segment_p0;
+            projection_ratio = dot(p0_start, p0_p1) / vSize2f(p0_p1);
+
+            if (projection_ratio < 0.0 || projection_ratio > 1.0)
+            {
+                // point is outside segment
+                continue;
+            }
+
+            const Point2LL projected = lerp(outer_segment_p0, outer_segment_p1, projection_ratio);
+            projection_distance = vSize(start_point - projected);
+        }
+
+        if (! distance_to_closest_segment.has_value() || projection_distance < distance_to_closest_segment.value())
+        {
+            trapezoidal_start = &start_edge;
+            trapezoidal_segments = current_trapezoidal_segments;
+            projection_ratio_on_outer_segment = projection_ratio;
+            distance_to_closest_segment = projection_distance;
+        }
+    }
+
+    if (! trapezoidal_start)
+    {
+        // Could not find the trapezoid this point belongs to
+        return {};
+    }
+
+    coord_t remaining_inwards_length = move_inwards_length - distance_to_closest_segment.value();
+    if (remaining_inwards_length <= 0)
+    {
+        // Start point is already far enough from the outside, no need to add an extra move
+        return {};
+    }
+
+    // Project the start point on the edge that is at the opposite in the trapezoidal, i.e. going inwards the contour
+    Point2LL opposite_projection;
+    if (trapezoidal_segments == 2)
+    {
+        // Trapezoidal is reduced to a triangle, inwards direction point towards the opposite vertex
+        opposite_projection = trapezoidal_start->to_->p_;
+    }
+    else
+    {
+        // Trapezoidal is a quadrilateral, project point on opposite edge
+        opposite_projection = lerp(trapezoidal_start->to_->p_, trapezoidal_start->next_->to_->p_, projection_ratio_on_outer_segment);
+    }
+
+    OpenPolyline inwards_move;
+    constexpr bool is_upward_strict = true;
+    const STHalfEdgeNode* next_start_node = nullptr;
+    const Point2LL start_to_opposite = opposite_projection - start_point;
+    const coord_t distance_to_opposite_vertex = vSize(start_to_opposite);
+
+    const auto add_edge = [&remaining_inwards_length, &inwards_move](const STHalfEdge* edge_move_up, const Point2LL& start_position)
+    {
+        const Point2LL start_to_edge_end = edge_move_up->to_->p_ - start_position;
+        const coord_t distance_to_edge_end = vSize(start_to_edge_end);
+        const coord_t add_distance = std::min(distance_to_edge_end, remaining_inwards_length);
+        const Point2D edge_direction = toPoint2D(edge_move_up->to_->p_ - edge_move_up->from_->p_).vNormalized().value();
+
+        inwards_move.push_back(start_position + toPoint2LL(edge_direction * add_distance));
+        remaining_inwards_length -= add_distance;
+    };
+
+    if (distance_to_opposite_vertex > remaining_inwards_length)
+    {
+        // Trapezoidal is long enough to contain the full inwards move, stop now
+        const Point2D inwards_direction = toPoint2D(start_to_opposite).vNormalized().value();
+        inwards_move.push_back(start_point + toPoint2LL(inwards_direction * remaining_inwards_length));
+    }
+    else
+    {
+        remaining_inwards_length -= distance_to_opposite_vertex;
+        inwards_move.push_back(opposite_projection);
+        if (trapezoidal_segments == 2)
+        {
+            // Going to the opposite vertex doesn't cover the whole distance, go on
+            next_start_node = trapezoidal_start->to_;
+        }
+        else
+        {
+            // Now we have reached the opposite segment, keep going inwards by following it
+            const STHalfEdge* edge_move_up = nullptr;
+            if (trapezoidal_start->next_->isUpward(is_upward_strict))
+            {
+                edge_move_up = trapezoidal_start->next_;
+            }
+            else if (trapezoidal_start->next_->twin_->isUpward(is_upward_strict))
+            {
+                edge_move_up = trapezoidal_start->next_->twin_;
+            }
+
+            if (edge_move_up)
+            {
+                add_edge(edge_move_up, opposite_projection);
+
+                if (remaining_inwards_length > 0)
+                {
+                    // Remaining part of the edge doesn't cover the whole distance, go on
+                    next_start_node = edge_move_up->to_;
+                }
+            }
+        }
+    }
+
+    if (next_start_node == nullptr)
+    {
+        // We cannot ge further inside, stop here
+        return inwards_move;
+    }
+
+    // Keep following skeleton segments going upwards (further away from the walls) until we have covered the desired length
+    while (remaining_inwards_length > 0)
+    {
+        // Find an edge starting from the current node that goes upwards
+        auto iterator = ranges::find_if(
+            trapezoidal_edges,
+            [&next_start_node](const STHalfEdge& edge)
+            {
+                return edge.from_ == next_start_node && edge.isUpward(is_upward_strict);
+            });
+
+        if (iterator == trapezoidal_edges.end())
+        {
+            // We cannot move any upper
+            break;
+        }
+
+        const STHalfEdge* edge_move_up = &(*iterator);
+        add_edge(edge_move_up, edge_move_up->from_->p_);
+        next_start_node = edge_move_up->to_;
+    }
+
+    return inwards_move;
+}
+
 template<class LineType>
 void LayerPlan::addLinesByOptimizer(
     const LinesSet<LineType>& lines,
@@ -2000,7 +2179,9 @@ void LayerPlan::addLinesByOptimizer(
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements)
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
+    const coord_t extra_inwards_move_length,
+    const Shape& extra_inwards_move_contour)
 {
     Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
@@ -2048,7 +2229,7 @@ void LayerPlan::addLinesByOptimizer(
     }
     order_optimizer.optimize();
 
-    addLinesInGivenOrder(order_optimizer.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
+    addLinesInGivenOrder(order_optimizer.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed, extra_inwards_move_length, extra_inwards_move_contour);
 }
 
 void LayerPlan::addLinesByOptimizer(
@@ -2116,21 +2297,74 @@ void LayerPlan::addLinesInGivenOrder(
     const SpaceFillType space_fill_type,
     const coord_t wipe_dist,
     const Ratio flow_ratio,
-    const double fan_speed)
+    const double fan_speed,
+    const coord_t extra_inwards_move_length,
+    const Shape& extra_inwards_move_contour)
 {
-    coord_t half_line_width = config.getLineWidth() / 2;
-    coord_t line_width_2 = half_line_width * half_line_width;
+    const coord_t half_line_width = config.getLineWidth() / 2;
+    const coord_t line_width_2 = half_line_width * half_line_width;
     for (size_t order_idx = 0; order_idx < lines.size(); order_idx++)
     {
         const PathOrdering<const Polyline*>& path = lines[order_idx];
-        const Polyline& polyline = *path.vertices_;
-        if (! polyline.isValid())
+        const Polyline& raw_polyline = *path.vertices_;
+
+        if (! raw_polyline.isValid())
         {
             continue;
         }
-        const size_t start_idx = path.start_vertex_;
-        assert(start_idx == 0 || start_idx == polyline.size() - 1 || path.is_closed_);
-        const Point2LL start = polyline[start_idx];
+
+        size_t start_idx = path.start_vertex_;
+        assert(start_idx == 0 || start_idx == raw_polyline.size() - 1 || path.is_closed_);
+        Point2LL start = raw_polyline[start_idx];
+
+        std::shared_ptr<Polyline> expanded_polyline;
+        const Polyline* polyline = &raw_polyline;
+
+        if (extra_inwards_move_length > 0)
+        {
+            const BeadingStrategyPtr beading_strategy = BeadingStrategyFactory::makeStrategy();
+            constexpr coord_t discretization_step_size = MM2INT(0.8);
+            const SkeletalTrapezoidation trapezoidation(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, SectionType::INFILL);
+
+            OpenPolyline start_inwards_move = makeInwardsMove(trapezoidation.graph_.edges, start, extra_inwards_move_length);
+
+            const Point2LL& end = raw_polyline[path.is_closed_ ? start_idx : (start_idx == 0 ? raw_polyline.size() - 1 : 0)];
+            OpenPolyline end_inwards_move = makeInwardsMove(trapezoidation.graph_.edges, end, extra_inwards_move_length);
+
+            expanded_polyline = std::make_shared<OpenPolyline>();
+
+            if (path.is_closed_)
+            {
+                PointsSet points_begin_to_start(std::vector<Point2LL>(raw_polyline.getPoints().begin(), raw_polyline.getPoints().begin() + start_idx));
+                PointsSet points_start_to_end(std::vector<Point2LL>(raw_polyline.getPoints().begin() + start_idx, raw_polyline.getPoints().end()));
+
+                start_inwards_move.reverse();
+                expanded_polyline->push_back(points_begin_to_start);
+                expanded_polyline->push_back(end_inwards_move);
+                expanded_polyline->push_back(start_inwards_move);
+                expanded_polyline->push_back(points_start_to_end);
+
+                start_idx = points_begin_to_start.size() + end_inwards_move.size();
+            }
+            else if (start_idx == 0)
+            {
+                start_inwards_move.reverse();
+                expanded_polyline->push_back(start_inwards_move);
+                expanded_polyline->push_back(raw_polyline);
+                expanded_polyline->push_back(end_inwards_move);
+            }
+            else
+            {
+                end_inwards_move.reverse();
+                expanded_polyline->push_back(end_inwards_move);
+                expanded_polyline->push_back(raw_polyline);
+                expanded_polyline->push_back(start_inwards_move);
+                start_idx = expanded_polyline->size() - 1;
+            }
+
+            polyline = expanded_polyline.get();
+            start = polyline->at(start_idx);
+        }
 
         if (vSize2(getLastPlannedPositionOrStartingPosition() - start) < line_width_2)
         {
@@ -2148,12 +2382,12 @@ void LayerPlan::addLinesInGivenOrder(
         }
 
         Point2LL p0 = start;
-        for (size_t idx = 0; idx < polyline.size(); idx++)
+        for (size_t idx = 0; idx < polyline->size(); idx++)
         {
             size_t point_idx;
             if (path.is_closed_)
             {
-                point_idx = (start_idx + idx + 1) % polyline.size();
+                point_idx = (start_idx + idx + 1) % polyline->size();
             }
             else if (start_idx == 0)
             {
@@ -2161,10 +2395,10 @@ void LayerPlan::addLinesInGivenOrder(
             }
             else
             {
-                assert(start_idx == polyline.size() - 1);
+                assert(start_idx == polyline->size() - 1);
                 point_idx = start_idx - idx;
             }
-            Point2LL p1 = polyline[point_idx];
+            Point2LL p1 = polyline->at(point_idx);
 
             // ignore line segments that are less than 5uM long
             if (vSize2(p1 - p0) >= MINIMUM_SQUARED_LINE_LENGTH)
@@ -2177,8 +2411,8 @@ void LayerPlan::addLinesInGivenOrder(
             }
         }
 
-        Point2LL p1 = polyline[(start_idx == 0) ? polyline.size() - 1 : 0];
-        p0 = (polyline.size() <= 1) ? p1 : polyline[(start_idx == 0) ? polyline.size() - 2 : 1];
+        Point2LL p1 = polyline->at((start_idx == 0) ? polyline->size() - 1 : 0);
+        p0 = (polyline->size() <= 1) ? p1 : polyline->at((start_idx == 0) ? polyline->size() - 2 : 1);
 
         // Wipe
         if (wipe_dist != 0)
@@ -2187,7 +2421,7 @@ void LayerPlan::addLinesInGivenOrder(
             int line_width = config.getLineWidth();
 
             // Don't wipe if current extrusion is too small
-            if (polyline.length() <= line_width * 2)
+            if (polyline->length() <= line_width * 2)
             {
                 wipe = false;
             }
@@ -3814,7 +4048,9 @@ template void LayerPlan::addLinesByOptimizer(
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements);
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
+    const coord_t extra_inwards_move_length,
+    const Shape& extra_inwards_move_contour);
 
 template void LayerPlan::addLinesByOptimizer(
     const ClosedLinesSet& lines,
@@ -3826,6 +4062,8 @@ template void LayerPlan::addLinesByOptimizer(
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements);
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
+    const coord_t extra_inwards_move_length,
+    const Shape& extra_inwards_move_contour);
 
 } // namespace cura

@@ -37,6 +37,7 @@ namespace cura
 class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
+class STHalfEdge;
 
 template<typename PathType>
 class PathAdapter;
@@ -699,7 +700,9 @@ public:
         const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_);
+        const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
+        const coord_t extra_inwards_move_length = 0,
+        const Shape& extra_inwards_move_contour = Shape());
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -877,7 +880,9 @@ private:
         const SpaceFillType space_fill_type,
         const coord_t wipe_dist,
         const Ratio flow_ratio,
-        const double fan_speed);
+        const double fan_speed,
+        const coord_t extra_inwards_move_length = 0,
+        const Shape& extra_inwards_move_contour = Shape());
 
     /*!
      *  @brief Send a GCodePath line to the communication object, applying proper Z offsets
@@ -1150,6 +1155,15 @@ private:
         const std::optional<TravelAntiOozing>& priming_amounts,
         const Velocity& speed,
         const size_t point_index);
+
+    /*!
+     * Generates an extrusion move that goes as inwards as possible given the infill contour, starting from the given point
+     * @param trapezoidal_edges The edges of the skeletal trapezoidation for the infill contour
+     * @param start_point The point to start generating the move from
+     * @param move_inwards_length The length of the move to be generated
+     * @return Extrusion path to be started from the given start point, which may be empty if not possible
+     */
+    static OpenPolyline makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point, const coord_t move_inwards_length);
 };
 
 } // namespace cura
