@@ -1918,10 +1918,12 @@ bool FffGcodeWriter::processInfill(
         return false;
     }
 
-    const coord_t infill_move_inwards_length = mesh.settings.get<coord_t>("infill_move_inwards_length");
+    const coord_t infill_start_move_inwards_length = mesh.settings.get<coord_t>("infill_start_move_inwards_length");
+    const coord_t infill_end_move_inwards_length = mesh.settings.get<coord_t>("infill_end_move_inwards_length");
 
-    bool added_something = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_move_inwards_length);
-    added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_move_inwards_length);
+    bool added_something = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length);
+    added_something
+        = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length);
     return added_something;
 }
 
@@ -1931,7 +1933,8 @@ bool FffGcodeWriter::processMultiLayerInfill(
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const coord_t move_inwards_length) const
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2015,8 +2018,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                mesh.settings.get<coord_t>("cross_infill_pocket_size"),
-                move_inwards_length);
+                mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(
                 infill_paths,
                 infill_polygons,
@@ -2027,7 +2029,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 mesh.cross_fill_provider,
                 lightning_layer,
                 &mesh);
-            if (move_inwards_length > 0)
+            if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
             {
                 infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
             }
@@ -2039,8 +2041,12 @@ bool FffGcodeWriter::processMultiLayerInfill(
 
             if (! infill_polygons.empty())
             {
-                gcode_layer
-                    .addInfillPolygonsByOptimizer(infill_polygons, infill_lines, mesh_config.infill_config[combine_idx], mesh.settings, move_inwards_length, infill_inner_contour);
+                gcode_layer.addInfillPolygonsByOptimizer(
+                    infill_polygons,
+                    infill_lines,
+                    mesh_config.infill_config[combine_idx],
+                    mesh.settings,
+                    start_move_inwards_length > 0 || end_move_inwards_length > 0);
             }
 
             if (! infill_lines.empty())
@@ -2070,7 +2076,8 @@ bool FffGcodeWriter::processMultiLayerInfill(
                     fan_speed,
                     reverse_print_direction,
                     order_requirements,
-                    move_inwards_length,
+                    start_move_inwards_length,
+                    end_move_inwards_length,
                     infill_inner_contour);
             }
         }
@@ -2478,7 +2485,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const coord_t move_inwards_length) const
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2631,8 +2639,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                pocket_size,
-                move_inwards_length);
+                pocket_size);
             infill_comp.generate(
                 wall_tool_paths.back(),
                 infill_polygons,
@@ -2697,8 +2704,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             use_endpieces,
             skip_some_zags,
             zag_skip_count,
-            pocket_size,
-            move_inwards_length);
+            pocket_size);
         infill_comp.generate(
             wall_tool_paths.back(),
             infill_polygons,
@@ -2718,7 +2724,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         infill_lines.push_back(infill_lines_here);
         infill_polygons.push_back(infill_polygons_here);
 
-        if (move_inwards_length > 0)
+        if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
         {
             infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
         }
@@ -2821,8 +2827,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 infill_lines,
                 mesh_config.infill_config[0],
                 mesh.settings,
-                move_inwards_length,
-                infill_inner_contour,
+                start_move_inwards_length > 0 || end_move_inwards_length > 0,
                 near_start_location);
         }
 
@@ -2857,7 +2862,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
             fan_speed,
             reverse_print_direction,
             order_requirements,
-            move_inwards_length,
+            start_move_inwards_length,
+            end_move_inwards_length,
             infill_inner_contour);
     }
     return added_something;

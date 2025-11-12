@@ -44,8 +44,8 @@ public:
      * \brief Builds an empty closed polyline
      * \param explicitly_closed Indicates whether the line will be explicitly closed
      */
-    explicit ClosedPolyline(const bool explicitely_closed)
-        : explicitly_closed_{ explicitely_closed }
+    explicit ClosedPolyline(const bool explicitly_closed)
+        : explicitly_closed_{ explicitly_closed }
     {
     }
 
@@ -103,7 +103,7 @@ public:
 
     ClosedPolyline& operator=(ClosedPolyline&& other) = default;
 
-    [[nodiscard]] bool isExplicitelyClosed() const
+    [[nodiscard]] bool isExplicitlyClosed() const
     {
         return explicitly_closed_;
     }
@@ -113,7 +113,7 @@ public:
      * \warning This does not actually changes the points set, only the interpretation of it will
      *          change. So use this method only if you really know what you are doing.
      */
-    void setExplicitelyClosed(bool explicitly_closed)
+    void setExplicitlyClosed(bool explicitly_closed)
     {
         explicitly_closed_ = explicitly_closed;
     }

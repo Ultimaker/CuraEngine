@@ -922,8 +922,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
     OpenLinesSet& remaining_lines,
     const GCodePathConfig& config,
     const Settings& settings,
-    const coord_t extra_inwards_move_length,
-    const Shape& extra_inwards_move_contour,
+    const bool add_extra_inwards_move,
     const std::optional<Point2LL>& near_start_location)
 {
     if (polygons.empty())
@@ -938,7 +937,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
     }
     orderOptimizer.optimize();
 
-    if (extra_inwards_move_length == 0)
+    if (! add_extra_inwards_move)
     {
         constexpr bool force_comb_retract = false;
         addTravel(orderOptimizer.paths_[0].vertices_->at(orderOptimizer.paths_[0].start_vertex_), force_comb_retract);
@@ -2205,7 +2204,8 @@ void LayerPlan::addLinesByOptimizer(
     const double fan_speed,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
-    const coord_t extra_inwards_move_length,
+    const coord_t extra_inwards_start_move_length,
+    const coord_t extra_inwards_end_move_length,
     const Shape& extra_inwards_move_contour)
 {
     Shape boundary;
@@ -2254,7 +2254,16 @@ void LayerPlan::addLinesByOptimizer(
     }
     order_optimizer.optimize();
 
-    addLinesInGivenOrder(order_optimizer.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed, extra_inwards_move_length, extra_inwards_move_contour);
+    addLinesInGivenOrder(
+        order_optimizer.paths_,
+        config,
+        space_fill_type,
+        wipe_dist,
+        flow_ratio,
+        fan_speed,
+        extra_inwards_start_move_length,
+        extra_inwards_end_move_length,
+        extra_inwards_move_contour);
 }
 
 void LayerPlan::addLinesByOptimizer(
@@ -2323,11 +2332,21 @@ void LayerPlan::addLinesInGivenOrder(
     const coord_t wipe_dist,
     const Ratio flow_ratio,
     const double fan_speed,
-    const coord_t extra_inwards_move_length,
+    const coord_t extra_inwards_start_move_length,
+    const coord_t extra_inwards_end_move_length,
     const Shape& extra_inwards_move_contour)
 {
     const coord_t half_line_width = config.getLineWidth() / 2;
     const coord_t line_width_2 = half_line_width * half_line_width;
+    std::unique_ptr<const SkeletalTrapezoidation> trapezoidation;
+
+    if (extra_inwards_start_move_length > 0 || extra_inwards_end_move_length > 0)
+    {
+        const BeadingStrategyPtr beading_strategy = BeadingStrategyFactory::makeStrategy();
+        constexpr coord_t discretization_step_size = MM2INT(0.8);
+        trapezoidation = std::make_unique<SkeletalTrapezoidation>(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, SectionType::INFILL);
+    }
+
     for (size_t order_idx = 0; order_idx < lines.size(); order_idx++)
     {
         const PathOrdering<const Polyline*>& path = lines[order_idx];
@@ -2345,20 +2364,27 @@ void LayerPlan::addLinesInGivenOrder(
         std::shared_ptr<Polyline> expanded_polyline;
         const Polyline* polyline = &raw_polyline;
 
-        if (extra_inwards_move_length > 0)
+        if (extra_inwards_start_move_length > 0 || extra_inwards_end_move_length > 0)
         {
-            const BeadingStrategyPtr beading_strategy = BeadingStrategyFactory::makeStrategy();
-            constexpr coord_t discretization_step_size = MM2INT(0.8);
-            const SkeletalTrapezoidation trapezoidation(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, SectionType::INFILL);
+            OpenPolyline start_inwards_move
+                = extra_inwards_start_move_length > 0 ? makeInwardsMove(trapezoidation->graph_.edges, start, extra_inwards_start_move_length) : OpenPolyline();
+            const Point2LL& end = raw_polyline[path.is_closed_ ? start_idx : (start_idx == 0 ? raw_polyline.size() - 1 : 0)];
 
-            OpenPolyline start_inwards_move = makeInwardsMove(trapezoidation.graph_.edges, start, extra_inwards_move_length);
+            OpenPolyline end_inwards_move;
+            if (extra_inwards_end_move_length == extra_inwards_start_move_length && end == start)
+            {
+                end_inwards_move = start_inwards_move;
+            }
+            else if (extra_inwards_end_move_length > 0)
+            {
+                end_inwards_move = makeInwardsMove(trapezoidation->graph_.edges, end, extra_inwards_end_move_length);
+            }
+
             expanded_polyline = std::make_shared<OpenPolyline>();
             expanded_polyline->reserve(raw_polyline.size() + 2 * start_inwards_move.size());
 
             if (path.is_closed_)
             {
-                const OpenPolyline end_inwards_move = start_inwards_move;
-
                 start_inwards_move.reverse();
                 expanded_polyline->push_back(raw_polyline.begin(), raw_polyline.begin() + start_idx);
                 expanded_polyline->push_back(end_inwards_move);
@@ -2369,9 +2395,6 @@ void LayerPlan::addLinesInGivenOrder(
             }
             else
             {
-                const Point2LL& end = raw_polyline[path.is_closed_ ? start_idx : (start_idx == 0 ? raw_polyline.size() - 1 : 0)];
-                OpenPolyline end_inwards_move = makeInwardsMove(trapezoidation.graph_.edges, end, extra_inwards_move_length);
-
                 if (start_idx == 0)
                 {
                     start_inwards_move.reverse();
@@ -4119,7 +4142,8 @@ template void LayerPlan::addLinesByOptimizer(
     const double fan_speed,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
-    const coord_t extra_inwards_move_length,
+    const coord_t extra_inwards_start_move_length,
+    const coord_t extra_inwards_end_move_length,
     const Shape& extra_inwards_move_contour);
 
 template void LayerPlan::addLinesByOptimizer(
@@ -4133,7 +4157,8 @@ template void LayerPlan::addLinesByOptimizer(
     const double fan_speed,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
-    const coord_t extra_inwards_move_length,
+    const coord_t extra_inwards_start_move_length,
+    const coord_t extra_inwards_end_move_length,
     const Shape& extra_inwards_move_contour);
 
 } // namespace cura

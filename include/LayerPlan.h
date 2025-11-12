@@ -534,8 +534,7 @@ public:
         OpenLinesSet& remaining_lines,
         const GCodePathConfig& config,
         const Settings& settings,
-        const coord_t extra_inwards_move_length,
-        const Shape& extra_inwards_move_contour,
+        const bool add_extra_inwards_move = false,
         const std::optional<Point2LL>& near_start_location = std::optional<Point2LL>());
 
     /*!
@@ -710,7 +709,8 @@ public:
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
         const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
-        const coord_t extra_inwards_move_length = 0,
+        const coord_t extra_inwards_start_move_length = 0,
+        const coord_t extra_inwards_end_move_length = 0,
         const Shape& extra_inwards_move_contour = Shape());
 
     /*!
@@ -890,7 +890,8 @@ private:
         const coord_t wipe_dist,
         const Ratio flow_ratio,
         const double fan_speed,
-        const coord_t extra_inwards_move_length = 0,
+        const coord_t extra_inwards_start_move_length = 0,
+        const coord_t extra_inwards_end_move_length = 0,
         const Shape& extra_inwards_move_contour = Shape());
 
     void addPolygonsInGivenOrder(
