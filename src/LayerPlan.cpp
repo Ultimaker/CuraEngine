@@ -15,6 +15,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To communicate layer view data.
+#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "PathAdapter.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
