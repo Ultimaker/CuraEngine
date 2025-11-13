@@ -952,7 +952,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
         const size_t start_index = ordered_polygon.start_vertex_;
 
         ClosedPolyline split_polygon(polygon);
-        split_polygon.rotateToStartPoint(start_index);
+        split_polygon.shiftVerticesToStartPoint(start_index);
         remaining_lines.push_back(split_polygon.toPseudoOpenPolyline());
     }
 }

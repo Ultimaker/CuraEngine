@@ -55,7 +55,7 @@ OpenPolyline ClosedPolyline::toPseudoOpenPolyline() const
     return open_polyline;
 }
 
-void ClosedPolyline::rotateToStartPoint(const size_t start_index)
+void ClosedPolyline::shiftVerticesToStartPoint(const size_t start_index)
 {
     if (! isValid() || start_index == 0 || start_index >= size())
     {
