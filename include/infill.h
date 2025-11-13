@@ -234,6 +234,15 @@ public:
         int layer_idx,
         SectionType section_type);
 
+    /*!
+     * Get the inner infill contour
+     * @warning The contour is generated when calling generate() so the returned value won't be valid before
+     */
+    const Shape& getInnerContour() const
+    {
+        return inner_contour_;
+    }
+
 private:
     struct InfillLineSegment
     {

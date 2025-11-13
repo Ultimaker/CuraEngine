@@ -46,13 +46,13 @@ bool STHalfEdge::canGoUp(bool strict) const
     return false;
 }
 
-bool STHalfEdge::isUpward() const
+bool STHalfEdge::isUpward(const bool strict) const
 {
     if (to_->data_.distance_to_boundary_ > from_->data_.distance_to_boundary_)
     {
         return true;
     }
-    if (to_->data_.distance_to_boundary_ < from_->data_.distance_to_boundary_)
+    if (to_->data_.distance_to_boundary_ < from_->data_.distance_to_boundary_ || strict)
     {
         return false;
     }

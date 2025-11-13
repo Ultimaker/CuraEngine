@@ -81,7 +81,12 @@ public:
     /*! \brief Pushes an entire set at the end */
     void push_back(const PointsSet& other)
     {
-        points_.insert(points_.end(), other.points_.begin(), other.points_.end());
+        push_back(other.points_.begin(), other.points_.end());
+    }
+
+    void push_back(const const_iterator& begin, const const_iterator& end)
+    {
+        points_.insert(points_.end(), begin, end);
     }
 
     void emplace_back(auto&&... args)

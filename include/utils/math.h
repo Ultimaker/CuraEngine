@@ -136,5 +136,12 @@ template<utils::floating_point T>
     return static_cast<T>(std::rand()) / static_cast<T>(RAND_MAX);
 }
 
+/*! \brief Check if a value is very close to 0 */
+template<utils::floating_point T>
+[[nodiscard]] bool is_null(T value)
+{
+    return std::abs(value) < (std::numeric_limits<T>::epsilon() * 100.0);
+}
+
 } // namespace cura
 #endif // UTILS_MATH_H

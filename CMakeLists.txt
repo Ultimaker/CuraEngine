@@ -184,6 +184,8 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/Polyline.cpp
         src/geometry/ClosedPolyline.cpp
         src/geometry/MixedLinesSet.cpp
+
+        src/geometry/conversions/Point2D_Point2LL.cpp
 )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
@@ -235,9 +237,9 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(PNG REQUIRED)
-if(NOT EMSCRIPTEN)
+if (NOT EMSCRIPTEN)
     find_package(TBB REQUIRED)
-endif()
+endif ()
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)

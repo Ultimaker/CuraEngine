@@ -338,7 +338,7 @@ public:
      * \param start_idx The index of the point in the polygon from which to start looking.
      * \return The nearest point from \p start_idx going along the \p polygon (in both directions) with a locally minimal distance to \p from.
      */
-    static ClosestPointPolygon findNearestClosest(Point2LL from, const Polygon& polygon, int start_idx);
+    static ClosestPointPolygon findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx);
 
     /*!
      * Find the nearest closest point on a polygon from a given index walking in one direction along the polygon.
@@ -349,7 +349,7 @@ public:
      * \param direction The direction to walk: 1 for walking along the \p polygon, -1 for walking in opposite direction
      * \return The nearest point from \p start_idx going along the \p polygon with a locally minimal distance to \p from.
      */
-    static ClosestPointPolygon findNearestClosest(const Point2LL from, const Polygon& polygon, int start_idx, int direction);
+    static ClosestPointPolygon findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx, int direction);
 
     /*!
      * Find the point closest to \p from in all polygons in \p polygons.
@@ -358,7 +358,7 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPointPolygon findClosest(Point2LL from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPointPolygon findClosest(const Point2LL& from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the point closest to \p from in the polygon \p polygon.
@@ -367,7 +367,7 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPointPolygon findClosest(Point2LL from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPointPolygon findClosest(const Point2LL& from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the nearest vertex to \p from in \p polys
@@ -375,7 +375,7 @@ public:
      * \param polys The polygons in which to search
      * \return The nearest vertex on the polygons
      */
-    static PolygonsPointIndex findNearestVert(const Point2LL from, const Shape& polys);
+    static PolygonsPointIndex findNearestVert(const Point2LL& from, const Shape& polys);
 
     /*!
      * Find the nearest vertex to \p from in \p poly
@@ -383,7 +383,7 @@ public:
      * \param poly The polygon in which to search
      * \return The index to the nearest vertex on the polygon
      */
-    static unsigned int findNearestVert(const Point2LL from, const Polygon& poly);
+    static unsigned int findNearestVert(const Point2LL& from, const Polygon& poly);
 
     /*!
      * Create a SparsePointGridInclusive mapping from locations to line segments occurring in the \p polygons

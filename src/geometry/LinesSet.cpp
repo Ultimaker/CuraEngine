@@ -160,7 +160,7 @@ Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType jo
         Shape result;
         for (const ClosedPolyline& line : getLines())
         {
-            result.emplace_back(line.getPoints(), line.isExplicitelyClosed());
+            result.emplace_back(line.getPoints(), line.isExplicitlyClosed());
         }
         return result;
     }

@@ -23,9 +23,9 @@ void MixedPolylineStitcher::stitch(const OpenLinesSet& lines, MixedLinesSet& res
 
     for (ClosedPolyline& closed_line : closed_lines)
     {
-        // Base stitch method will create explicitely closed polylines, but won't tag them as such
+        // Base stitch method will create explicitly closed polylines, but won't tag them as such
         // because it is a generic algorithm. Tag them now.
-        closed_line.setExplicitelyClosed(true);
+        closed_line.setExplicitlyClosed(true);
     }
 
     result.push_back(std::move(closed_lines));
