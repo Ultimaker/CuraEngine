@@ -427,8 +427,8 @@ private:
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const coord_t start_move_inwards_length,
-        const coord_t end_move_inwards_length) const;
+        const coord_t start_move_inwards_length = 0,
+        const coord_t end_move_inwards_length = 0) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -449,8 +449,8 @@ private:
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const coord_t start_move_inwards_length,
-        const coord_t end_move_inwards_length) const;
+        const coord_t start_move_inwards_length = 0,
+        const coord_t end_move_inwards_length = 0) const;
 
     /*!
      * Generate the insets for the walls of a given layer part.
