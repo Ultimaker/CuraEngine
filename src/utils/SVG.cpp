@@ -181,12 +181,12 @@ void SVG::nextLayer()
 
 Point2LL SVG::transform(const Point2LL& p) const
 {
-    return Point2LL(std::llrint(static_cast<double>(p.X - aabb_.min_.X) * scale_), std::llrint(static_cast<double>(p.Y - aabb_.min_.Y) * scale_));
+    return Point2LL(std::llrint(static_cast<double>(p.X - aabb_.min_.X) * scale_), std::llrint(static_cast<double>(aabb_.max_.Y - p.Y) * scale_));
 }
 
 Point3D SVG::transformF(const Point2LL& p) const
 {
-    return Point3D(static_cast<double>(p.X - aabb_.min_.X) * scale_, static_cast<double>(p.Y - aabb_.min_.Y) * scale_, 0.0);
+    return Point3D(static_cast<double>(p.X - aabb_.min_.X) * scale_, static_cast<double>(aabb_.max_.Y - p.Y) * scale_, 0.0);
 }
 
 void SVG::writeComment(const std::string& comment) const
