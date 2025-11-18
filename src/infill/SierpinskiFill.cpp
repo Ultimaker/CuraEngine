@@ -620,15 +620,15 @@ double SierpinskiFill::getSubdivisionError(std::list<SierpinskiTriangle*>::itera
 
 void SierpinskiFill::debugOutput(SVG& svg)
 {
-    svg.writePolygon(aabb_.toPolygon(), SVG::Color::RED);
+    svg.write(aabb_.toPolygon(), { .surface = { SVG::Color::RED } });
 
     // draw triangles
     for (SierpinskiTriangle* node : sequence_)
     {
         SierpinskiTriangle& triangle = *node;
-        svg.writeLine(triangle.a_, triangle.b_, SVG::Color::GRAY);
-        svg.writeLine(triangle.a_, triangle.straight_corner_, SVG::Color::GRAY);
-        svg.writeLine(triangle.b_, triangle.straight_corner_, SVG::Color::GRAY);
+        svg.write(triangle.a_, triangle.b_, { .line = { SVG::Color::GRAY } });
+        svg.write(triangle.a_, triangle.straight_corner_, { .line = { SVG::Color::GRAY } });
+        svg.write(triangle.b_, triangle.straight_corner_, { .line = { SVG::Color::GRAY } });
     }
 }
 
