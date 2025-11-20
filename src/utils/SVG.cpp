@@ -99,7 +99,7 @@ std::string SVG::toString(const ColorObject& color)
         return ss.str();
     }
 
-    return {};
+    return "none";
 }
 
 std::string SVG::toString(const std::vector<int>& dash_array)
@@ -118,6 +118,21 @@ std::string SVG::toString(const std::vector<int>& dash_array)
     return "none";
 }
 
+std::string SVG::toString(const FillRule fill_rule)
+{
+    switch (fill_rule)
+    {
+    case FillRule::NonZero:
+        return "nonzero";
+    case FillRule::EvenOdd:
+        return "evenodd";
+    case FillRule::None:
+        break;
+    }
+
+    return "none";
+}
+
 void SVG::handleFlush(const bool flush) const
 {
     if (flush)
@@ -127,7 +142,7 @@ void SVG::handleFlush(const bool flush) const
 }
 
 
-SVG::SVG(std::string filename, AABB aabb, Point2LL canvas_size, ColorObject background)
+SVG::SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size, const ColorObject& background)
     : SVG(filename,
           aabb,
           std::min(
@@ -138,12 +153,12 @@ SVG::SVG(std::string filename, AABB aabb, Point2LL canvas_size, ColorObject back
 {
 }
 
-SVG::SVG(std::string filename, AABB aabb, double scale, ColorObject background)
+SVG::SVG(const std::string& filename, const AABB& aabb, double scale, const ColorObject& background)
     : SVG(filename, aabb, scale, (aabb.max_ - aabb.min_) * scale, background)
 {
 }
 
-SVG::SVG(std::string filename, AABB aabb, double scale, Point2LL canvas_size, const ColorObject& background)
+SVG::SVG(const std::string& filename, const AABB& aabb, double scale, const Point2LL& canvas_size, const ColorObject& background)
     : aabb_(aabb)
     , aabb_size_(aabb.max_ - aabb.min_)
     , canvas_size_(canvas_size)
@@ -222,87 +237,93 @@ void SVG::writeComment(const std::string& comment) const
     fprintf(out_, "<!-- %s -->\n", comment.c_str());
 }
 
-template<class LineType>
-void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const Shape& shape, const VisualAttributes& visual_attributes, const bool flush) const
 {
-    for (const LineType& line : lines)
-    {
-        write(line, visual_attributes, false);
-    }
-
-    handleFlush(flush);
+    write(static_cast<LinesSet<Polygon>>(shape), visual_attributes, flush, FillRule::EvenOdd);
 }
 
-template void SVG::write(const LinesSet<Polygon>& lines, const VisualAttributes& visual_attributes, const bool flush) const;
-template void SVG::write(const LinesSet<OpenPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush) const;
-template void SVG::write(const LinesSet<ClosedPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush) const;
-
-void SVG::write(const Polyline& line, const VisualAttributes& visual_attributes, const bool flush) const
+template<class LineType>
+void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const
 {
     if (visual_attributes.line.isDisplayed() || visual_attributes.surface.isDisplayed())
     {
         if (std::holds_alternative<Color>(visual_attributes.line.color) && std::get<Color>(visual_attributes.line.color) == Color::RAINBOW)
         {
             // Rainbow can't be displayed with a path, we have to draw the segments separately
-            write(line, { .surface = visual_attributes.surface, .vertices = visual_attributes.vertices }, false);
+            write(lines, { .surface = visual_attributes.surface, .vertices = visual_attributes.vertices }, false);
 
             VisualAttributes rainbow_line_attributes{ .line = visual_attributes.line };
 
-            size_t index = 0;
-            for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
+            for (const LineType& line : lines)
             {
-                RgbColor color;
-                color.r = index * 255 / line.segmentsCount();
-                color.g = (index * 255 * 11 / line.segmentsCount()) % (255 * 2);
-                if (color.g > 255)
+                size_t index = 0;
+                for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
                 {
-                    color.g = 255 * 2 - color.g;
-                }
-                color.b = (index * 255 * 5 / line.segmentsCount()) % (255 * 2);
-                if (color.b > 255)
-                {
-                    color.b = 255 * 2 - color.b;
-                }
+                    RgbColor color;
+                    color.r = index * 255 / line.segmentsCount();
+                    color.g = (index * 255 * 11 / line.segmentsCount()) % (255 * 2);
+                    if (color.g > 255)
+                    {
+                        color.g = 255 * 2 - color.g;
+                    }
+                    color.b = (index * 255 * 5 / line.segmentsCount()) % (255 * 2);
+                    if (color.b > 255)
+                    {
+                        color.b = 255 * 2 - color.b;
+                    }
 
-                rainbow_line_attributes.line.color = color;
-                write((*iterator).start, (*iterator).end, rainbow_line_attributes, false);
-                index++;
+                    rainbow_line_attributes.line.color = color;
+                    write((*iterator).start, (*iterator).end, rainbow_line_attributes, false);
+                    index++;
+                }
             }
         }
         else
         {
-            bool first_segment = true;
-            for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
+            bool first_path = true;
+            for (const LineType& line : lines)
             {
-                if (first_segment)
+                if (first_path)
                 {
-                    const Point2D transformed_start = transformF((*iterator).start);
                     fprintf(
                         out_,
-                        "<path fill=\"%s\" stroke=\"%s\" stroke-width=\"%f\" stroke-dasharray=\"%s\" d=\"M%f %f",
+                        "<path fill=\"%s\" fill-rule=\"%s\" stroke=\"%s\" stroke-width=\"%f\" stroke-dasharray=\"%s\" d=\"",
                         toString(visual_attributes.surface.color).c_str(),
+                        toString(fill_rule).c_str(),
                         toString(visual_attributes.line.color).c_str(),
                         visual_attributes.line.width,
-                        toString(visual_attributes.line.dash_array).c_str(),
-                        transformed_start.x(),
-                        transformed_start.y());
-                    first_segment = false;
+                        toString(visual_attributes.line.dash_array).c_str());
+                    first_path = false;
                 }
-
-                const Point2D transformed_end = transformF((*iterator).end);
-                fprintf(out_, "L%f,%f", static_cast<double>(transformed_end.x()), static_cast<double>(transformed_end.y())); // Write a line segment to the next point.
+                writePathPoints(line);
             }
 
-            if (! first_segment)
-            {
-                fprintf(out_, "\" />\n"); // Write the end of the tag.
-            }
+            fprintf(out_, "\" />\n"); // Write the end of the tag.
         }
+
+        handleFlush(flush);
     }
 
-    write(static_cast<PointsSet>(line), visual_attributes.vertices, false);
+    for (const LineType& line : lines)
+    {
+        write(static_cast<PointsSet>(line), visual_attributes.vertices, false);
+    }
 
     handleFlush(flush);
+}
+
+template void SVG::write(const LinesSet<Polygon>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+template void SVG::write(const LinesSet<OpenPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+template void SVG::write(const LinesSet<ClosedPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+
+void SVG::write(const OpenPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
+{
+    write(LinesSet{ line }, visual_attributes, flush);
+}
+
+void SVG::write(const ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
+{
+    write(LinesSet{ line }, visual_attributes, flush);
 }
 
 void SVG::write(const PointsSet& points, const VerticesAttributes& visual_attributes, const bool flush) const
@@ -475,6 +496,23 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& v
     }
 
     handleFlush(flush);
+}
+
+void SVG::writePathPoints(const Polyline& line) const
+{
+    bool first_segment = true;
+    for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
+    {
+        if (first_segment)
+        {
+            const Point2D transformed_start = transformF((*iterator).start);
+            fprintf(out_, "M%f %f ", transformed_start.x(), transformed_start.y());
+            first_segment = false;
+        }
+
+        const Point2D transformed_end = transformF((*iterator).end);
+        fprintf(out_, "L%f,%f ", static_cast<double>(transformed_end.x()), static_cast<double>(transformed_end.y()));
+    }
 }
 
 } // namespace cura

@@ -40,6 +40,13 @@ public:
         NONE
     };
 
+    enum class FillRule
+    {
+        None,
+        NonZero,
+        EvenOdd
+    };
+
     struct RgbColor
     {
         int r{ 0 };
@@ -161,6 +168,7 @@ public:
 private:
     static std::string toString(const ColorObject& color);
     static std::string toString(const std::vector<int>& dash_array);
+    static std::string toString(const FillRule fill_rule);
     void handleFlush(const bool flush) const;
 
     FILE* out_; // the output file
@@ -173,9 +181,9 @@ private:
     bool output_is_html_;
 
 public:
-    SVG(std::string filename, const AABB aabb, const Point2LL canvas_size = Point2LL(1024, 1024), const ColorObject background = Color::NONE);
-    SVG(std::string filename, const AABB aabb, const double scale, const ColorObject background = Color::NONE);
-    SVG(std::string filename, const AABB aabb, const double scale, const Point2LL canvas_size, const ColorObject& background = Color::NONE);
+    SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size = Point2LL(1024, 1024), const ColorObject& background = Color::NONE);
+    SVG(const std::string& filename, const AABB& aabb, const double scale, const ColorObject& background = Color::NONE);
+    SVG(const std::string& filename, const AABB& aabb, const double scale, const Point2LL& canvas_size, const ColorObject& background = Color::NONE);
 
     ~SVG();
 
@@ -202,10 +210,14 @@ public:
 
     void writeComment(const std::string& comment) const;
 
-    template<class LineType>
-    void write(const LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const Shape& shape, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const Polyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    template<class LineType>
+    void write(const LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush = true, const FillRule fill_rule = FillRule::None) const;
+
+    void write(const OpenPolyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
+
+    void write(const ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     void write(const Point2LL& start, const Point2LL& end, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
@@ -293,6 +305,9 @@ public:
             writeLine(Point(v0->x(), v0->y()), Point(v1->x(), v1->y()), color, stroke_width);
         }
     }
+
+private:
+    void writePathPoints(const Polyline& line) const;
 };
 
 template<typename... Args>

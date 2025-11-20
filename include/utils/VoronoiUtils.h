@@ -10,7 +10,6 @@
 #include <boost/polygon/voronoi.hpp>
 
 #include "PolygonsSegmentIndex.h"
-#include "SVG.h"
 
 
 namespace cura
