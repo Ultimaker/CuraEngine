@@ -4,6 +4,7 @@
 #include "geometry/ClosedPolyline.h"
 
 #include <range/v3/algorithm/all_of.hpp>
+#include <range/v3/algorithm/rotate.hpp>
 
 #include "geometry/OpenPolyline.h"
 
@@ -12,7 +13,7 @@ namespace cura
 
 size_t ClosedPolyline::segmentsCount() const
 {
-    if (explicitely_closed_)
+    if (explicitly_closed_)
     {
         return size() >= 3 ? size() - 1 : 0;
     }
@@ -21,7 +22,7 @@ size_t ClosedPolyline::segmentsCount() const
 
 bool ClosedPolyline::isValid() const
 {
-    return size() >= (explicitely_closed_ ? 4 : 3);
+    return size() >= (explicitly_closed_ ? 4 : 3);
 }
 
 bool ClosedPolyline::inside(const Point2LL& p, bool border_result) const
@@ -52,6 +53,26 @@ OpenPolyline ClosedPolyline::toPseudoOpenPolyline() const
         open_polyline.push_back(open_polyline.getPoints().front());
     }
     return open_polyline;
+}
+
+void ClosedPolyline::shiftVerticesToStartPoint(const size_t start_index)
+{
+    if (! isValid() || start_index == 0 || start_index >= size())
+    {
+        return;
+    }
+
+    if (explicitly_closed_)
+    {
+        getPoints().erase(getPoints().end() - 1);
+    }
+
+    ranges::rotate(getPoints(), getPoints().begin() + start_index);
+
+    if (explicitly_closed_)
+    {
+        insert(end(), getPoints().front());
+    }
 }
 
 } // namespace cura
