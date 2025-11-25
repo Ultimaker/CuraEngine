@@ -11,6 +11,7 @@
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
+#include "LinesOrderingMethod.h"
 #include "gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
@@ -591,7 +592,7 @@ private:
         const AngleDegrees skin_angle,
         const coord_t skin_overlap,
         const Ratio skin_density,
-        const bool monotonic,
+        const LinesOrderingMethod ordering,
         const bool is_roofing_flooring,
         bool& added_something,
         double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;

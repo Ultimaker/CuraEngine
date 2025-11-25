@@ -757,7 +757,8 @@ public:
         const coord_t exclude_distance = 0,
         const coord_t wipe_dist = 0,
         const Ratio flow_ratio = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool interlaced = false);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.

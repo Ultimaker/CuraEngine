@@ -3,49 +3,132 @@
 
 #include "bridge.h"
 
-#include <unordered_set>
-
 #include <range/v3/action/stable_sort.hpp>
-#include <range/v3/view/cartesian_product.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
 
-#include "geometry/OpenLinesSet.h"
-#include "geometry/OpenPolyline.h"
 #include "geometry/Point2D.h"
+#include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
-#include "geometry/conversions/Point2D_Point2LL.h"
+#include "settings/EnumSettings.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/AABB.h"
-#include "utils/SVG.h"
+#include "utils/linearAlg2D.h"
 #include "utils/math.h"
+
+// #define SVG_DEBUG 1
+
+#ifdef SVG_DEBUG
+#include "utils/SVG.h"
+#endif
+
 
 namespace cura
 {
 
-coord_t evaluateBridgeLine(const Point2LL& start, const Point2LL& end, const Shape& skin_outline, const Shape& supported_regions, const SVG* svg)
+struct TransformedSegment
 {
-    const Point2LL segment = end - start;
+    Point2LL transformed_start;
+    Point2LL transformed_end;
+    coord_t min_y;
+    coord_t max_y;
+};
 
-    std::vector<float> skin_outline_intersections = skin_outline.intersectionsWithSegment(start, end);
-    ranges::stable_sort(skin_outline_intersections);
-    std::vector<float> supported_regions_intersections = supported_regions.intersectionsWithSegment(start, end);
-    ranges::stable_sort(supported_regions_intersections);
+struct TransformedShape
+{
+    std::vector<TransformedSegment> segments;
+    coord_t min_y{ std::numeric_limits<coord_t>::max() };
+    coord_t max_y{ std::numeric_limits<coord_t>::lowest() };
+};
 
-    bool inside_skin = false;
-    bool inside_supported = false;
-    std::optional<Point2LL> last_anchor;
+/*!
+ * Calculates all the intersections between a horizontal line and the given transformed shape
+ * @param line_y The horizontal line Y coordinate
+ * @param transformed_shape The shape to intersect with
+ * @return The list of X coordinates of the intersections, unsorted
+ */
+std::vector<coord_t> intersectionsWithLine(const coord_t line_y, const TransformedShape& transformed_shape)
+{
+    std::vector<coord_t> intersections;
 
-    coord_t total_supported_length = 0;
-
-    if (svg)
+    for (const TransformedSegment& transformed_segment : transformed_shape.segments)
     {
-        svg->write(start, end, { .line = { SVG::Color::BLACK, 0.5 } });
+        if (transformed_segment.min_y > line_y || transformed_segment.max_y < line_y)
+        {
+            // Segment is fully over or under the line, skip
+            continue;
+        }
+
+        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.transformed_start, transformed_segment.transformed_end, line_y);
+        if (intersection.has_value())
+        {
+            intersections.push_back(intersection.value());
+        }
     }
 
-    while (! skin_outline_intersections.empty() && ! supported_regions_intersections.empty())
+    return intersections;
+}
+
+/*!
+ * Evaluates a potential bridging line to see if it can actually bridge between two supported regions
+ * @param line_y The Y coordinate of the horizontal line
+ * @param transformed_skin The skin outline, transformed so that the bridging line is horizontal
+ * @param transformed_supported The supported regions, transformed so that the bridging line is horizontal
+ * @return The score of the line regarding bridging, which can be positive if it is mostly bridging, or negative if it is mostly hanging
+ *
+ * The score is based on the following criteria:
+ *   - Properly bridging segments, i.e. between two supported areas, add their length to the score
+ *   - Hanging segments, i.e. supported on one side but not the other (or not at all), subtract their length to the score
+ *   - Segments that lie on a supported area are not accounted for  */
+coord_t evaluateBridgeLine(
+    const coord_t line_y,
+    const TransformedShape& transformed_skin,
+    const TransformedShape& transformed_supported
+#ifdef SVG_DEBUG
+    ,
+    const PointMatrix& matrix,
+    const SVG* svg
+#endif
+)
+{
+    // Calculate intersections with skin outline to see which segments should actually be printed
+    std::vector<coord_t> skin_outline_intersections = intersectionsWithLine(line_y, transformed_skin);
+    if (skin_outline_intersections.size() < 2)
     {
+        // We need to enter the skin at some point to bridge inside
+        return 0;
+    }
+    ranges::stable_sort(skin_outline_intersections);
+
+#ifdef SVG_DEBUG
+    svg->write(
+        matrix.unapply(Point2LL(skin_outline_intersections.front(), line_y)),
+        matrix.unapply(Point2LL(skin_outline_intersections.back(), line_y)),
+        { .line = { SVG::Color::BLACK, 0.3 } });
+#endif
+
+    // Calculate intersections with supported regions to see which segments are anchored
+    std::vector<coord_t> supported_regions_intersections = intersectionsWithLine(line_y, transformed_supported);
+    ranges::stable_sort(supported_regions_intersections);
+
+    enum class BridgeStatus
+    {
+        Outside, // Segment is outside the skin
+        Hanging, // Segment has started to extrude over air
+        Anchored, // Segment has been anchored to a supported area
+        Supported, // Segment is being extruded over a supported area
+    };
+
+    // Loop through intersections with skin and supported regions to see which parts of the line are hanging/bridging/supported
+    bool inside_skin = false;
+    bool inside_supported = false;
+    coord_t last_position;
+    coord_t segment_score = 0;
+    BridgeStatus bridge_status = BridgeStatus::Outside;
+    while (! skin_outline_intersections.empty() || ! supported_regions_intersections.empty())
+    {
+        // See what is the next intersection: skin, supported or both
         bool next_intersection_is_skin = false;
         bool next_intersection_is_supported = false;
         if (skin_outline_intersections.empty())
@@ -71,19 +154,25 @@ coord_t evaluateBridgeLine(const Point2LL& start, const Point2LL& end, const Sha
                 next_intersection_is_skin = true;
                 if (inside_skin && inside_supported)
                 {
-                    // When leaving skin, assume also leaving supported. This should always happen naturally, but does not due to rounding errors.
+                    // When leaving skin, assume also leaving supported. This should always happen naturally, but may not due to rounding errors.
                     next_intersection_is_supported = true;
                 }
             }
             else
             {
                 next_intersection_is_supported = true;
+                if (! inside_supported && ! inside_skin)
+                {
+                    // When reaching supported, assume also reaching skin. This should always happen naturally, but may not due to rounding errors.
+                    next_intersection_is_skin = true;
+                }
             }
         }
 
+        // Get new insideness states
         bool next_inside_skin = inside_skin;
         bool next_inside_supported = inside_supported;
-        double next_intersection;
+        coord_t next_intersection;
         if (next_intersection_is_skin)
         {
             next_intersection = skin_outline_intersections.front();
@@ -97,99 +186,208 @@ coord_t evaluateBridgeLine(const Point2LL& start, const Point2LL& end, const Sha
             next_inside_supported = ! next_inside_supported;
         }
 
-        const Point2LL next_position = start + next_intersection * segment;
-
         const bool leaving_skin = next_intersection_is_skin && ! next_inside_skin;
-        const bool reaching_skin = next_intersection_is_skin && next_inside_skin;
-        const bool leaving_supported = next_intersection_is_supported && ! next_inside_supported;
+        // const bool reaching_skin = next_intersection_is_skin && next_inside_skin;
+        // const bool leaving_supported = next_intersection_is_supported && ! next_inside_supported;
         const bool reaching_supported = next_intersection_is_supported && next_inside_supported;
-        const bool add_bridging_segment = last_anchor.has_value() && next_intersection_is_supported;
+        bool add_bridging_segment = false;
+        bool add_hanging_segment = false;
 
-        if (add_bridging_segment)
+        switch (bridge_status)
         {
-            total_supported_length += vSize(next_position - last_anchor.value());
-            if (svg)
+        case BridgeStatus::Outside:
+            bridge_status = reaching_supported ? BridgeStatus::Supported : BridgeStatus::Hanging;
+            break;
+
+        case BridgeStatus::Supported:
+            bridge_status = leaving_skin ? BridgeStatus::Outside : BridgeStatus::Anchored;
+            break;
+
+        case BridgeStatus::Hanging:
+            add_hanging_segment = true;
+            bridge_status = reaching_supported ? BridgeStatus::Supported : BridgeStatus::Outside;
+            break;
+
+        case BridgeStatus::Anchored:
+            if (reaching_supported)
             {
-                svg->write(last_anchor.value(), next_position, { .line = { SVG::Color::RED, 0.4 } });
+                add_bridging_segment = true;
+                bridge_status = BridgeStatus::Supported;
             }
+            else if (leaving_skin)
+            {
+                add_hanging_segment = true;
+                bridge_status = BridgeStatus::Outside;
+            }
+            break;
         }
 
-        if (add_bridging_segment || leaving_skin)
+        if (add_bridging_segment || add_hanging_segment)
         {
-            last_anchor.reset();
+            const coord_t segment_length = next_intersection - last_position;
+            segment_score += add_bridging_segment ? segment_length : -segment_length;
+
+#ifdef SVG_DEBUG
+            svg->write(
+                matrix.unapply(Point2LL(last_position, line_y)),
+                matrix.unapply(Point2LL(next_intersection, line_y)),
+                { .line = { add_bridging_segment ? SVG::Color::GREEN : SVG::Color::RED, 0.2 } });
+#endif
         }
 
-        if (next_intersection_is_supported && ! leaving_skin)
-        {
-            last_anchor = next_position;
-        }
-
+        last_position = next_intersection;
         inside_skin = next_inside_skin;
         inside_supported = next_inside_supported;
     }
 
-    return total_supported_length;
+    return segment_score;
 }
 
-coord_t findFitAnchoredLines(const Shape& skin_outline, const Shape& supported_regions, const coord_t line_width, const AngleRadians& angle, const SVG* svg)
+/*!
+ * Pre-transforms a shape according to the given matrix, so that the bridging angle ends up being horizontal
+ * @param shape The shape to be transformed
+ * @param matrix The transform matrix
+ * @return The shape transformed to the bridging orientation
+ */
+TransformedShape transformShape(const Shape& shape, const PointMatrix& matrix)
 {
-    // Project the anchor regions along the angle direction to get the bounding line
-    const Point2D direction(std::cos(angle), std::sin(angle));
-    const Point2D left_direction = direction.rotated90CCW();
-    double min_axial = std::numeric_limits<double>::max();
-    double max_axial = std::numeric_limits<double>::lowest();
-    coord_t min_radial = std::numeric_limits<coord_t>::max();
-    coord_t max_radial = std::numeric_limits<coord_t>::lowest();
-    for (const Polygon& polygon : supported_regions)
+    TransformedShape transformed_shape;
+    transformed_shape.segments.reserve(shape.pointCount());
+
+    for (const Polygon& polygon : shape)
     {
-        for (const Point2LL& point : polygon)
+        for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
         {
-            const double axial_projection = Point2D::dot(direction, toPoint2D(point));
-            min_axial = std::min(min_axial, axial_projection);
-            max_axial = std::max(max_axial, axial_projection);
-
-            const Point2LL projected_point = toPoint2LL(direction * axial_projection);
-            const Point2LL projected_to_point = point - projected_point;
-            const coord_t distance_to_projected_point = vSize(projected_to_point);
-            const coord_t sign = Point2D::dot(left_direction, toPoint2D(projected_to_point)) > 0 ? 1 : -1;
-            const coord_t radial_projection = sign * distance_to_projected_point;
-
-            max_radial = std::max(max_radial, radial_projection);
-            min_radial = std::min(min_radial, radial_projection);
+            TransformedSegment transformed_segment;
+            transformed_segment.transformed_start = matrix.apply((*iterator).start);
+            transformed_segment.transformed_end = matrix.apply((*iterator).end);
+            transformed_segment.min_y = std::min(transformed_segment.transformed_start.Y, transformed_segment.transformed_end.Y);
+            transformed_segment.max_y = std::max(transformed_segment.transformed_start.Y, transformed_segment.transformed_end.Y);
+            transformed_shape.segments.push_back(transformed_segment);
+            transformed_shape.min_y = std::min(transformed_shape.min_y, transformed_segment.min_y);
+            transformed_shape.max_y = std::max(transformed_shape.max_y, transformed_segment.max_y);
         }
     }
 
-    if (min_axial >= max_axial || min_radial >= max_radial)
+    return transformed_shape;
+}
+
+/*!
+ * Evaluate the bridging lines scoring for the given angle
+ * @param skin_outline The skin outline to be filled
+ * @param supported_regions The supported regions areas
+ * @param line_width The bridging line width
+ * @param angle The current angle to be tested
+ * @return The global bridging score for this angle */
+coord_t evaluateBridgeLines(
+    const Shape& skin_outline,
+    const Shape& supported_regions,
+    const coord_t line_width,
+    const AngleDegrees& angle
+#ifdef SVG_DEBUG
+    ,
+    const SVG* svg
+#endif
+)
+{
+    // Transform the skin outline and supported regions according to the angle to speedup intersections calculations
+    const PointMatrix matrix(angle);
+    const TransformedShape transformed_skin = transformShape(skin_outline, matrix);
+    const TransformedShape transformed_supported = transformShape(supported_regions, matrix);
+
+    if (transformed_skin.min_y >= transformed_skin.max_y || transformed_supported.min_y >= transformed_supported.max_y)
     {
-        return 0;
+        return std::numeric_limits<coord_t>::lowest();
     }
 
-    const size_t bridge_lines_count = std::floor((max_axial - min_axial) / line_width);
+    const size_t bridge_lines_count = (transformed_skin.max_y - transformed_skin.min_y) / line_width;
     if (bridge_lines_count == 0)
     {
         // We cannot fit a single line in this direction, give up
+        return std::numeric_limits<coord_t>::lowest();
+    }
+
+    const coord_t line_min = transformed_skin.min_y + line_width * 0.5;
+
+    // Evaluated lines that could be properly bridging
+    coord_t line_score = 0;
+    const TransformedShape empty_transformed_shape;
+    for (size_t i = 0; i < bridge_lines_count; ++i)
+    {
+        const coord_t line_y = line_min + i * line_width;
+        const bool has_supports = line_y >= transformed_supported.min_y && line_y <= transformed_supported.max_y;
+        line_score += evaluateBridgeLine(
+            line_y,
+            transformed_skin,
+            has_supports ? transformed_supported : empty_transformed_shape
+#ifdef SVG_DEBUG
+            ,
+            matrix,
+            svg
+#endif
+        );
+    }
+
+    return line_score;
+}
+
+/*!
+ * Gets the proper angle when bridging over infill
+ * @param mesh The mesh being processed, which contains the actual infill angles
+ * @param layer_nr The number of the layer being processed
+ * @return The angle to be applied to bridging over infill on this layer
+ */
+AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned layer_nr)
+{
+    if (layer_nr == 0)
+    {
+        // Obviously there is no infill below
         return 0;
     }
 
-    // Create a set of lines that could be properly bridging
-    const Point2LL delta_axial_min = toPoint2LL(left_direction * (min_radial - line_width / 2));
-    const Point2LL delta_axial_max = toPoint2LL(left_direction * (max_radial + line_width / 2));
+    const std::vector<AngleDegrees>& infill_angles = mesh.infill_angles;
+    assert(! infill_angles.empty());
 
-    coord_t total_supported_length = 0;
-    for (size_t i = 0; i < bridge_lines_count; ++i)
+    const AngleDegrees infill_angle_below = infill_angles[(layer_nr - 1) % infill_angles.size()];
+    const auto infill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+
+    AngleDegrees bridge_angle;
+
+    switch (infill_pattern)
     {
-        const double axial = min_axial + line_width * (i + 0.5);
-        const Point2LL point_on_axis = toPoint2LL(direction * axial);
-        const Point2LL start = point_on_axis + delta_axial_min;
-        const Point2LL end = point_on_axis + delta_axial_max;
-        total_supported_length += evaluateBridgeLine(start, end, skin_outline, supported_regions, svg);
+    case EFillMethod::CROSS:
+    case EFillMethod::CROSS_3D:
+        bridge_angle = 22.5;
+        break;
+    case EFillMethod::GYROID:
+    case EFillMethod::CONCENTRIC:
+    case EFillMethod::LIGHTNING:
+    case EFillMethod::PLUGIN:
+    case EFillMethod::NONE:
+        bridge_angle = 45;
+        break;
+    case EFillMethod::CUBICSUBDIV:
+        bridge_angle = infill_angle_below + 45;
+        break;
+    case EFillMethod::TRIANGLES:
+    case EFillMethod::LINES:
+    case EFillMethod::TRIHEXAGON:
+    case EFillMethod::CUBIC:
+    case EFillMethod::ZIG_ZAG:
+        bridge_angle = infill_angle_below + 90;
+        break;
+    case EFillMethod::QUARTER_CUBIC:
+    case EFillMethod::TETRAHEDRAL:
+    case EFillMethod::GRID:
+        bridge_angle = infill_angle_below;
+        break;
     }
 
-    return total_supported_length;
+    return bridge_angle;
 }
 
-double bridgeAngle(
-    const Settings& settings,
+std::optional<AngleDegrees> bridgeAngle(
+    const SliceMeshStorage& mesh,
     const Shape& skin_outline,
     const SliceDataStorage& storage,
     const unsigned layer_nr,
@@ -197,20 +395,25 @@ double bridgeAngle(
     const SupportLayer* support_layer,
     Shape& supported_regions)
 {
-    assert(! skin_outline.empty());
+    const Settings& settings = mesh.settings;
+    const bool bridge_settings_enabled = settings.get<bool>("bridge_settings_enabled");
+    if (! bridge_settings_enabled)
+    {
+        return std::nullopt;
+    }
+
     AABB boundary_box(skin_outline);
 
     spdlog::stopwatch timer;
 
     const coord_t line_width = settings.get<coord_t>("skin_line_width");
-    SVG svg(fmt::format("/tmp/bridge_regions_{}.svg", layer_nr), boundary_box);
-    svg.write(skin_outline, { .surface = { SVG::Color::GRAY } });
 
     // To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     //  This gives us the islands that the layer rests on.
     Shape islands;
 
     Shape prev_layer_outline; // we also want the complete outline of the previous layer
+    Shape prev_layer_infill;
 
     const Ratio sparse_infill_max_density = settings.get<Ratio>("bridge_sparse_infill_max_density");
 
@@ -227,10 +430,13 @@ double bridgeAngle(
 
             for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {
+                Shape prev_layer_part_infill = prev_layer_part.getOwnInfillArea();
+                prev_layer_infill = prev_layer_infill.unionPolygons(prev_layer_part_infill);
+
                 Shape solid_below(prev_layer_part.outline);
                 if (bridge_layer == 1 && part_has_sparse_infill)
                 {
-                    solid_below = solid_below.difference(prev_layer_part.getOwnInfillArea());
+                    solid_below = solid_below.difference(prev_layer_part_infill);
                 }
                 prev_layer_outline.push_back(solid_below); // not intersected with skin
 
@@ -243,12 +449,8 @@ double bridgeAngle(
     }
     supported_regions = islands;
 
-    // svg.write(islands, { .surface = { SVG::Color::RED } });
-    // svg.write(prev_layer_outline, { .line = { SVG::Color::GREEN, 0.3 } });
-
     if (support_layer)
     {
-        // svg.write(support_layer->support_roof, { .line = { SVG::Color::BLUE, 0.25 } });
         // add the regions of the skin that have support below them to supportedRegions
         // but don't add these regions to islands because that can actually cause the code
         // below to consider the skin a bridge when it isn't (e.g. a skin that is supported by
@@ -288,133 +490,62 @@ double bridgeAngle(
         }
     }
 
-    svg.write(supported_regions, { .surface = { SVG::Color::BLUE } });
-
-    struct FitAngle
-    {
-        coord_t total_supported_length{ 0 };
-        AngleDegrees angle{ -1.0 };
-    };
-
-    FitAngle best_angle{};
-    for (AngleDegrees angle = 0; angle < 180; angle += 1)
-    {
-        coord_t total_supported_length = findFitAnchoredLines(skin_outline, supported_regions, line_width, angle, nullptr);
-        if (total_supported_length > best_angle.total_supported_length)
-        {
-            best_angle = { total_supported_length, angle };
-        }
-    }
-
-    findFitAnchoredLines(skin_outline, supported_regions, line_width, best_angle.angle, &svg);
-
-    spdlog::info("Bridging calculation time {}", timer.elapsed_ms().count());
-
-    return best_angle.angle > -0.5 ? 180 - best_angle.angle.value_ : -1.0;
-
-    const bool bridge_settings_enabled = settings.get<bool>("bridge_settings_enabled");
-    const Ratio support_threshold = bridge_settings_enabled ? settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
-
-    // if the proportion of the skin region that is supported is less than supportThreshold, it's considered a bridge and we
-    // determine the best angle for the skin lines - the current heuristic is that the skin lines should be parallel to the
-    // direction of the skin area's longest unsupported edge - if the skin has no unsupported edges, we fall through to the
-    // original code
-
-    if (support_threshold > 0 && (supported_regions.area() / (skin_outline.area() + 1)) < support_threshold)
-    {
-        Shape bb_poly;
-        bb_poly.push_back(boundary_box.toPolygon());
-
-        // airBelow is the region below the skin that is not supported, it extends well past the boundary of the skin.
-        // It needs to be shrunk slightly so that the vertices of the skin polygon that would otherwise fall exactly on
-        // the air boundary do appear to be supported
-
-        const coord_t bb_max_dim = std::max(boundary_box.max_.X - boundary_box.min_.X, boundary_box.max_.Y - boundary_box.min_.Y);
-        const Shape air_below(bb_poly.offset(bb_max_dim).difference(prev_layer_outline).offset(-10));
-
-        // svg.write(air_below, { .surface = { SVG::Color::MAGENTA } });
-
-        OpenLinesSet skin_perimeter_lines;
-        for (const Polygon& poly : skin_outline)
-        {
-            if (! poly.empty())
-            {
-                skin_perimeter_lines.emplace_back(poly.toPseudoOpenPolyline());
-            }
-        }
-
-        OpenLinesSet skin_perimeter_lines_over_air(air_below.intersection(skin_perimeter_lines));
-
-        // svg.write(skin_perimeter_lines_over_air, { .line = { SVG::Color::ORANGE, 0.25 } });
-
-        if (skin_perimeter_lines_over_air.size())
-        {
-            // one or more edges of the skin region are unsupported, determine the longest
-            coord_t max_dist2 = 0;
-            double line_angle = -1;
-            for (const OpenPolyline& air_line : skin_perimeter_lines_over_air)
-            {
-                for (auto iterator = air_line.beginSegments(); iterator != air_line.endSegments(); ++iterator)
-                {
-                    const Point2LL vector = (*iterator).start - (*iterator).end;
-                    coord_t dist2 = vSize2(vector);
-                    if (dist2 > max_dist2)
-                    {
-                        max_dist2 = dist2;
-                        line_angle = angle(vector);
-                    }
-                }
-            }
-            return line_angle;
-        }
-    }
-    else
+    const Ratio support_threshold = settings.get<Ratio>("bridge_skin_support_threshold");
+    if (support_threshold == 0 || (supported_regions.area() / (skin_outline.area() + 1)) >= support_threshold)
     {
         // as the proportion of the skin region that is supported is >= supportThreshold, it's not
         // considered to be a bridge and the original bridge detection code below is skipped
-        return -1.0;
+        return std::nullopt;
     }
 
-    if (islands.size() > 5 || islands.size() < 1)
+    prev_layer_infill = skin_outline.intersection(prev_layer_infill);
+    const Ratio infill_ratio = prev_layer_infill.area() / (skin_outline.area() + 1);
+    if (infill_ratio > 0.5) // In practice, the ratio should always be close to 0 or 1, so 0.5 should be good enough
     {
-        return -1.0;
+        // We are doing bridging over infill, so use the infill angle instead of trying to calculate a proper angle
+        return bridgeOverInfillAngle(mesh, layer_nr);
     }
 
-    // Next find the 2 largest islands that we rest on.
-    double area1 = 0;
-    double area2 = 0;
-    std::optional<size_t> idx1;
-    std::optional<size_t> idx2;
-    for (size_t n = 0; n < islands.size(); n++)
+    struct FitAngle
     {
-        // Skip internal holes
-        if (! islands[n].orientation())
-            continue;
-        double area = std::abs(islands[n].area());
-        if (area > area1)
+        coord_t score;
+        std::optional<AngleDegrees> angle;
+    };
+
+    FitAngle best_angle{ std::numeric_limits<coord_t>::lowest(), std::nullopt };
+    for (AngleDegrees angle = 0; angle < 180; angle += 1)
+    {
+#ifdef SVG_DEBUG
+        SVG svg(fmt::format("/tmp/bridge_regions_{}_{}.svg", layer_nr, angle.value_), boundary_box);
+        svg.write(skin_outline, { .surface = { SVG::Color::GRAY } });
+        svg.write(supported_regions, { .surface = { SVG::Color::BLUE } });
+#endif
+
+        const coord_t score = evaluateBridgeLines(
+            skin_outline,
+            supported_regions,
+            line_width,
+            angle
+#ifdef SVG_DEBUG
+            ,
+            &svg
+#endif
+        );
+        if (score > best_angle.score)
         {
-            if (area1 > area2)
-            {
-                area2 = area1;
-                idx2 = idx1;
-            }
-            area1 = area;
-            idx1 = n;
-        }
-        else if (area > area2)
-        {
-            area2 = area;
-            idx2 = n;
+            best_angle = { score, angle + 90 };
         }
     }
 
-    if (! idx1.has_value() || ! idx2.has_value())
-        return -1.0;
+#ifdef SVG_DEBUG
+    spdlog::info(
+        "Bridging calculation time for layer {}: {}ms, best angle {}",
+        layer_nr,
+        timer.elapsed_ms().count(),
+        best_angle.angle.has_value() ? best_angle.angle.value().value_ : -1);
+#endif
 
-    Point2LL center1 = islands[idx1.value()].centerOfMass();
-    Point2LL center2 = islands[idx2.value()].centerOfMass();
-
-    return angle(center2 - center1);
+    return best_angle.angle;
 }
 
 } // namespace cura

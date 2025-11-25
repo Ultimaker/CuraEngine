@@ -2535,7 +2535,8 @@ void LayerPlan::addLinesMonotonic(
     const coord_t exclude_distance,
     const coord_t wipe_dist,
     const Ratio flow_ratio,
-    const double fan_speed)
+    const double fan_speed,
+    const bool interlaced)
 {
     const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
     const coord_t exclude_dist2 = exclude_distance * exclude_distance;
@@ -2555,7 +2556,7 @@ void LayerPlan::addLinesMonotonic(
     };
 
     // Order monotonically, except for line-segments which stay in the excluded areas (read: close to the walls) consecutively.
-    PathOrderMonotonic<const Polyline*> order(monotonic_direction, max_adjacent_distance, last_position);
+    PathOrderMonotonic<const Polyline*> order(monotonic_direction, max_adjacent_distance, last_position, interlaced);
     OpenLinesSet left_over;
     bool last_would_have_been_excluded = false;
     for (size_t line_idx = 0; line_idx < line_order.paths_.size(); ++line_idx)

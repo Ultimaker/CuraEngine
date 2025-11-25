@@ -3472,7 +3472,7 @@ void FffGcodeWriter::processRoofingFlooring(
 
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
-    const bool monotonic = mesh.settings.get<bool>(settings_names.monotonic);
+    const LinesOrderingMethod ordering = mesh.settings.get<bool>(settings_names.monotonic) ? LinesOrderingMethod::Monotonic : LinesOrderingMethod::Basic;
     constexpr bool is_roofing_flooring = true;
     processSkinPrintFeature(
         storage,
@@ -3485,7 +3485,7 @@ void FffGcodeWriter::processRoofingFlooring(
         roofing_angle,
         skin_overlap,
         skin_density,
-        monotonic,
+        ordering,
         is_roofing_flooring,
         added_something);
 }
@@ -3553,35 +3553,35 @@ void FffGcodeWriter::processTopBottom(
 
         Shape supported_skin_part_regions;
 
-        const double angle = bridgeAngle(mesh.settings, skin_part.skin_fill, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
+        const std::optional<AngleDegrees> bridge_angle = bridgeAngle(mesh, skin_part.skin_fill, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
 
-        if (angle > -1 || (support_threshold > 0 && (supported_skin_part_regions.area() / (skin_part.skin_fill.area() + 1) < support_threshold)))
+        if (bridge_angle.has_value() || (support_threshold > 0 && (supported_skin_part_regions.area() / (skin_part.skin_fill.area() + 1) < support_threshold)))
         {
-            if (angle > -1)
+            if (bridge_angle.has_value())
             {
                 switch (bridge_layer)
                 {
                 default:
                 case 1:
-                    skin_angle = angle;
+                    skin_angle = bridge_angle.value();
                     break;
 
                 case 2:
                     if (bottom_layers > 2)
                     {
                         // orientate second bridge skin at +45 deg to first
-                        skin_angle = angle + 45;
+                        skin_angle = bridge_angle.value() + 45;
                     }
                     else
                     {
                         // orientate second bridge skin at 90 deg to first
-                        skin_angle = angle + 90;
+                        skin_angle = bridge_angle.value() + 90;
                     }
                     break;
 
                 case 3:
                     // orientate third bridge skin at 135 (same result as -45) deg to first
-                    skin_angle = angle + 135;
+                    skin_angle = bridge_angle.value() + 135;
                     break;
                 }
             }
@@ -3654,7 +3654,21 @@ void FffGcodeWriter::processTopBottom(
             fan_speed = mesh.settings.get<Ratio>("support_supported_skin_fan_speed") * 100.0;
         }
     }
-    const bool monotonic = mesh.settings.get<bool>("skin_monotonic");
+
+    LinesOrderingMethod ordering;
+    if (is_bridge_skin)
+    {
+        ordering = mesh.settings.get<bool>("bridge_interlace_lines") ? LinesOrderingMethod::Interlaced : LinesOrderingMethod::Basic;
+    }
+    else if (mesh.settings.get<bool>("skin_monotonic"))
+    {
+        ordering = LinesOrderingMethod::Monotonic;
+    }
+    else
+    {
+        ordering = LinesOrderingMethod::Basic;
+    }
+
     constexpr bool is_roofing_flooring = false;
     processSkinPrintFeature(
         storage,
@@ -3667,7 +3681,7 @@ void FffGcodeWriter::processTopBottom(
         skin_angle,
         skin_overlap,
         skin_density,
-        monotonic,
+        ordering,
         is_roofing_flooring,
         added_something,
         fan_speed);
@@ -3684,7 +3698,7 @@ void FffGcodeWriter::processSkinPrintFeature(
     const AngleDegrees skin_angle,
     const coord_t skin_overlap,
     const Ratio skin_density,
-    const bool monotonic,
+    const LinesOrderingMethod ordering,
     const bool is_roofing_flooring,
     bool& added_something,
     double fan_speed) const
@@ -3701,7 +3715,7 @@ void FffGcodeWriter::processSkinPrintFeature(
     coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const Point2LL infill_origin;
-    const bool skip_line_stitching = monotonic;
+    const bool skip_line_stitching = ordering == LinesOrderingMethod::Monotonic || ordering == LinesOrderingMethod::Interlaced;
     constexpr bool fill_gaps = true;
     constexpr bool connected_zigzags = false;
     constexpr bool use_endpieces = true;
@@ -3796,14 +3810,15 @@ void FffGcodeWriter::processSkinPrintFeature(
             gcode_layer.addPolygonsByOptimizer(skin_polygons, config, mesh.settings);
         }
 
-        if (monotonic)
+        if (ordering == LinesOrderingMethod::Monotonic || ordering == LinesOrderingMethod::Interlaced)
         {
             const coord_t exclude_distance = config.getLineWidth() * 0.8;
 
+            const bool interlaced = ordering == LinesOrderingMethod::Interlaced;
             const AngleRadians monotonic_direction = AngleRadians(skin_angle);
             constexpr Ratio flow = 1.0_r;
             const coord_t max_adjacent_distance
-                = config.getLineWidth()
+                = infill_comp.getLineDistance()
                 * 1.1; // Lines are considered adjacent if they are 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.
             if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC
                 || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::LIGHTNING)
@@ -3818,13 +3833,25 @@ void FffGcodeWriter::processSkinPrintFeature(
                     exclude_distance,
                     mesh.settings.get<coord_t>("infill_wipe_dist"),
                     flow,
-                    fan_speed);
+                    fan_speed,
+                    interlaced);
             }
             else
             {
                 const SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
                 constexpr coord_t wipe_dist = 0;
-                gcode_layer.addLinesMonotonic(area, skin_lines, config, space_fill_type, monotonic_direction, max_adjacent_distance, exclude_distance, wipe_dist, flow, fan_speed);
+                gcode_layer.addLinesMonotonic(
+                    area,
+                    skin_lines,
+                    config,
+                    space_fill_type,
+                    monotonic_direction,
+                    max_adjacent_distance,
+                    exclude_distance,
+                    wipe_dist,
+                    flow,
+                    fan_speed,
+                    interlaced);
             }
         }
         else
