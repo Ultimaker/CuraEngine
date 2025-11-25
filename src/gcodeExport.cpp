@@ -1213,8 +1213,7 @@ void GCodeExport::writeUnretractionAndPrime()
     }
     extruder_attr_[current_extruder_].prime_volume_ = 0.0;
 
-    if (getCurrentExtrudedVolume() > 100.0 && flavor_ != EGCodeFlavor::BFB
-        && flavor_ != EGCodeFlavor::MAKERBOT) // reset extrusion every 0.1m
+    if (getCurrentExtrudedVolume() > 100.0 && flavor_ != EGCodeFlavor::BFB && flavor_ != EGCodeFlavor::MAKERBOT) // reset extrusion every 0.1m
     {
         resetExtrusionValue();
     }
