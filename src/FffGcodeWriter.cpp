@@ -1917,8 +1917,13 @@ bool FffGcodeWriter::processInfill(
     {
         return false;
     }
-    bool added_something = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part);
-    added_something = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+
+    const coord_t infill_start_move_inwards_length = mesh.settings.get<coord_t>("infill_start_move_inwards_length");
+    const coord_t infill_end_move_inwards_length = mesh.settings.get<coord_t>("infill_end_move_inwards_length");
+
+    bool added_something = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length);
+    added_something
+        = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length);
     return added_something;
 }
 
@@ -1927,7 +1932,9 @@ bool FffGcodeWriter::processMultiLayerInfill(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    const SliceLayerPart& part) const
+    const SliceLayerPart& part,
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -1962,6 +1969,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
         Shape infill_polygons;
         OpenLinesSet infill_lines;
         std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
+        Shape infill_inner_contour;
         for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
         { // combine different density infill areas (for gradual infill)
             size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
@@ -2021,6 +2029,10 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 mesh.cross_fill_provider,
                 lightning_layer,
                 &mesh);
+            if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
+            {
+                infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
+            }
         }
         if (! infill_lines.empty() || ! infill_polygons.empty())
         {
@@ -2029,9 +2041,12 @@ bool FffGcodeWriter::processMultiLayerInfill(
 
             if (! infill_polygons.empty())
             {
-                constexpr bool force_comb_retract = false;
-                gcode_layer.addTravel(infill_polygons[0][0], force_comb_retract);
-                gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[combine_idx], mesh.settings);
+                gcode_layer.addInfillPolygonsByOptimizer(
+                    infill_polygons,
+                    infill_lines,
+                    mesh_config.infill_config[combine_idx],
+                    mesh.settings,
+                    start_move_inwards_length > 0 || end_move_inwards_length > 0);
             }
 
             if (! infill_lines.empty())
@@ -2043,15 +2058,27 @@ bool FffGcodeWriter::processMultiLayerInfill(
                     near_start_location = infill_lines[rand() % infill_lines.size()][0];
                 }
 
+                constexpr coord_t wipe_dist = 0;
                 const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
+                constexpr Ratio flow_ratio = 1.0_r;
+                constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+                constexpr bool reverse_print_direction = false;
+                const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
+
                 gcode_layer.addLinesByOptimizer(
                     infill_lines,
                     mesh_config.infill_config[combine_idx],
                     zig_zaggify_infill ? SpaceFillType::PolyLines : SpaceFillType::Lines,
                     enable_travel_optimization,
-                    /*wipe_dist = */ 0,
-                    /* flow = */ 1.0,
-                    near_start_location);
+                    wipe_dist,
+                    flow_ratio,
+                    near_start_location,
+                    fan_speed,
+                    reverse_print_direction,
+                    order_requirements,
+                    start_move_inwards_length,
+                    end_move_inwards_length,
+                    infill_inner_contour);
             }
         }
     }
@@ -2457,7 +2484,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    const SliceLayerPart& part) const
+    const SliceLayerPart& part,
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2518,6 +2547,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const bool use_endpieces = part.infill_area_per_combine_per_density.size() == 1; // Only use endpieces when not using gradual infill, since they will then overlap.
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
+    Shape infill_inner_contour;
 
     for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
     {
@@ -2693,6 +2723,11 @@ bool FffGcodeWriter::processSingleLayerInfill(
         }
         infill_lines.push_back(infill_lines_here);
         infill_polygons.push_back(infill_polygons_here);
+
+        if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
+        {
+            infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
+        }
     }
 
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
@@ -2787,35 +2822,49 @@ bool FffGcodeWriter::processSingleLayerInfill(
         }
         if (! infill_polygons.empty())
         {
-            constexpr bool force_comb_retract = false;
-            // start the infill polygons at the nearest vertex to the current location
-            gcode_layer.addTravel(PolygonUtils::findNearestVert(gcode_layer.getLastPlannedPositionOrStartingPosition(), infill_polygons).p(), force_comb_retract);
-            gcode_layer.addPolygonsByOptimizer(infill_polygons, mesh_config.infill_config[0], mesh.settings, ZSeamConfig(), 0, false, 1.0_r, false, false, near_start_location);
+            gcode_layer.addInfillPolygonsByOptimizer(
+                infill_polygons,
+                infill_lines,
+                mesh_config.infill_config[0],
+                mesh.settings,
+                start_move_inwards_length > 0 || end_move_inwards_length > 0,
+                near_start_location);
         }
-        const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
+
+        SpaceFillType space_fill_type;
+        coord_t wipe_dist;
         if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC
             || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::LIGHTNING)
         {
-            gcode_layer.addLinesByOptimizer(
-                infill_lines,
-                mesh_config.infill_config[0],
-                SpaceFillType::Lines,
-                enable_travel_optimization,
-                mesh.settings.get<coord_t>("infill_wipe_dist"),
-                /*float_ratio = */ 1.0,
-                near_start_location);
+            space_fill_type = SpaceFillType::Lines;
+            wipe_dist = mesh.settings.get<coord_t>("infill_wipe_dist");
         }
         else
         {
-            gcode_layer.addLinesByOptimizer(
-                infill_lines,
-                mesh_config.infill_config[0],
-                (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines,
-                enable_travel_optimization,
-                /* wipe_dist = */ 0,
-                /*float_ratio = */ 1.0,
-                near_start_location);
+            space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+            wipe_dist = 0;
         }
+
+        const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
+        constexpr Ratio flow_ratio = 1.0_r;
+        constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+        constexpr bool reverse_print_direction = false;
+        const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
+
+        gcode_layer.addLinesByOptimizer(
+            infill_lines,
+            mesh_config.infill_config[0],
+            space_fill_type,
+            enable_travel_optimization,
+            wipe_dist,
+            flow_ratio,
+            near_start_location,
+            fan_speed,
+            reverse_print_direction,
+            order_requirements,
+            start_move_inwards_length,
+            end_move_inwards_length,
+            infill_inner_contour);
     }
     return added_something;
 }

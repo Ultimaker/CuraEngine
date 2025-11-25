@@ -885,7 +885,7 @@ void Shape::simplify(ClipperLib::PolyFillType fill_type)
     for (size_t i = 0; i < ret.size(); i++)
     {
         Polygon& polygon = getLines()[i];
-        polygon.setExplicitelyClosed(clipper_explicitely_closed_); // Required for polygon newly created by resize()
+        polygon.setExplicitlyClosed(clipper_explicitely_closed_); // Required for polygon newly created by resize()
         polygon.setPoints(std::move(ret[i]));
     }
 }

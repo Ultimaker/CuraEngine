@@ -368,8 +368,8 @@ void SVG::writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject col
     const Point2D fa = transformF(a);
     const Point2D fb = transformF(b);
     const Point2D ab = fb - fa;
-    const Point2D normal = Point2D(ab.y(), -ab.x()).vNormalized();
-    const Point2D direction = ab.vNormalized();
+    const Point2D normal = Point2D(ab.y(), -ab.x()).vNormalized().value();
+    const Point2D direction = ab.vNormalized().value();
 
     const Point2D tip = fb + normal * head_size - direction * head_size;
     const Point2D b_base = fb + normal * stroke_width - direction * stroke_width * 2.41f;

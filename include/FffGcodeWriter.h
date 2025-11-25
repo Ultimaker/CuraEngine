@@ -418,10 +418,18 @@ private:
      * mesh which should be printed with this extruder.
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
+     * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
      * \return Whether this function added anything to the layer plan.
      */
-    bool processMultiLayerInfill(LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part)
-        const;
+    bool processMultiLayerInfill(
+        LayerPlan& gcodeLayer,
+        const SliceMeshStorage& mesh,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        const SliceLayerPart& part,
+        const coord_t start_move_inwards_length = 0,
+        const coord_t end_move_inwards_length = 0) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -431,6 +439,8 @@ private:
      * mesh which should be printed with this extruder
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
+     * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
      * \return Whether this function added anything to the layer plan.
      */
     bool processSingleLayerInfill(
@@ -439,7 +449,9 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
+        const SliceLayerPart& part,
+        const coord_t start_move_inwards_length = 0,
+        const coord_t end_move_inwards_length = 0) const;
 
     /*!
      * Generate the insets for the walls of a given layer part.
