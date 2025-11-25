@@ -1213,9 +1213,8 @@ void GCodeExport::writeUnretractionAndPrime()
     }
     extruder_attr_[current_extruder_].prime_volume_ = 0.0;
 
-    if (getCurrentExtrudedVolume() > 10000.0 && flavor_ != EGCodeFlavor::BFB
-        && flavor_ != EGCodeFlavor::MAKERBOT) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it
-                                              // every 10m, just to be sure.
+    if (getCurrentExtrudedVolume() > 100.0 && flavor_ != EGCodeFlavor::BFB
+        && flavor_ != EGCodeFlavor::MAKERBOT) // reset extrusion every 0.1m
     {
         resetExtrusionValue();
     }
