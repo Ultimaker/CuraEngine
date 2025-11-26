@@ -52,6 +52,14 @@ public:
         int r{ 0 };
         int g{ 0 };
         int b{ 0 };
+
+        RgbColor() = default;
+        RgbColor(int red, int green, int blue)
+            : r(red)
+            , g(green)
+            , b(blue)
+        {
+        }
     };
 
     using ColorObject = std::variant<std::monostate, Color, RgbColor>;
