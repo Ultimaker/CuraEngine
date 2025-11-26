@@ -48,6 +48,7 @@ std::string SVG::toString(const Color color)
     case SVG::Color::YELLOW:
         return "yellow";
     case SVG::Color::NONE:
+    case SVG::Color::RAINBOW: // rainbow case should never be reached
         return "none";
     default:
         return "black";
@@ -77,6 +78,7 @@ SVG::RgbColor SVG::toRgb(const Color color)
     case SVG::Color::YELLOW:
         return RgbColor(255, 255, 0);
     case SVG::Color::BLACK:
+    case SVG::Color::RAINBOW: // rainbow case should never be reached
     case SVG::Color::NONE:
         return RgbColor(0, 0, 0);
     }
