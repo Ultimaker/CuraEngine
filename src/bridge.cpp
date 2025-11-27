@@ -42,7 +42,7 @@ struct TransformedShape
  * @param transformed_shape The shape to intersect with
  * @return The list of X coordinates of the intersections, unsorted
  */
-std::vector<coord_t> intersectionsWithLine(const coord_t line_y, const TransformedShape& transformed_shape)
+std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const TransformedShape& transformed_shape)
 {
     std::vector<coord_t> intersections;
 
@@ -78,7 +78,7 @@ std::vector<coord_t> intersectionsWithLine(const coord_t line_y, const Transform
 coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transformed_skin, const TransformedShape& transformed_supported)
 {
     // Calculate intersections with skin outline to see which segments should actually be printed
-    std::vector<coord_t> skin_outline_intersections = intersectionsWithLine(line_y, transformed_skin);
+    std::vector<coord_t> skin_outline_intersections = shapeLineIntersections(line_y, transformed_skin);
     if (skin_outline_intersections.size() < 2)
     {
         // We need to enter the skin at some point to bridge inside
@@ -87,7 +87,7 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
     ranges::stable_sort(skin_outline_intersections);
 
     // Calculate intersections with supported regions to see which segments are anchored
-    std::vector<coord_t> supported_regions_intersections = intersectionsWithLine(line_y, transformed_supported);
+    std::vector<coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported);
     ranges::stable_sort(supported_regions_intersections);
 
     enum class BridgeStatus
