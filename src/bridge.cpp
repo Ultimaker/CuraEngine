@@ -17,12 +17,6 @@
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
 
-// #define SVG_DEBUG 1
-
-#ifdef SVG_DEBUG
-#include "utils/SVG.h"
-#endif
-
 
 namespace cura
 {
@@ -81,16 +75,7 @@ std::vector<coord_t> intersectionsWithLine(const coord_t line_y, const Transform
  *   - Properly bridging segments, i.e. between two supported areas, add their length to the score
  *   - Hanging segments, i.e. supported on one side but not the other (or not at all), subtract their length to the score
  *   - Segments that lie on a supported area are not accounted for  */
-coord_t evaluateBridgeLine(
-    const coord_t line_y,
-    const TransformedShape& transformed_skin,
-    const TransformedShape& transformed_supported
-#ifdef SVG_DEBUG
-    ,
-    const PointMatrix& matrix,
-    const SVG* svg
-#endif
-)
+coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transformed_skin, const TransformedShape& transformed_supported)
 {
     // Calculate intersections with skin outline to see which segments should actually be printed
     std::vector<coord_t> skin_outline_intersections = intersectionsWithLine(line_y, transformed_skin);
@@ -100,13 +85,6 @@ coord_t evaluateBridgeLine(
         return 0;
     }
     ranges::stable_sort(skin_outline_intersections);
-
-#ifdef SVG_DEBUG
-    svg->write(
-        matrix.unapply(Point2LL(skin_outline_intersections.front(), line_y)),
-        matrix.unapply(Point2LL(skin_outline_intersections.back(), line_y)),
-        { .line = { SVG::Color::BLACK, 0.3 } });
-#endif
 
     // Calculate intersections with supported regions to see which segments are anchored
     std::vector<coord_t> supported_regions_intersections = intersectionsWithLine(line_y, transformed_supported);
@@ -226,13 +204,6 @@ coord_t evaluateBridgeLine(
         {
             const coord_t segment_length = next_intersection - last_position;
             segment_score += add_bridging_segment ? segment_length : -segment_length;
-
-#ifdef SVG_DEBUG
-            svg->write(
-                matrix.unapply(Point2LL(last_position, line_y)),
-                matrix.unapply(Point2LL(next_intersection, line_y)),
-                { .line = { add_bridging_segment ? SVG::Color::GREEN : SVG::Color::RED, 0.2 } });
-#endif
         }
 
         last_position = next_intersection;
@@ -279,16 +250,7 @@ TransformedShape transformShape(const Shape& shape, const PointMatrix& matrix)
  * @param line_width The bridging line width
  * @param angle The current angle to be tested
  * @return The global bridging score for this angle */
-coord_t evaluateBridgeLines(
-    const Shape& skin_outline,
-    const Shape& supported_regions,
-    const coord_t line_width,
-    const AngleDegrees& angle
-#ifdef SVG_DEBUG
-    ,
-    const SVG* svg
-#endif
-)
+coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_regions, const coord_t line_width, const AngleDegrees& angle)
 {
     // Transform the skin outline and supported regions according to the angle to speedup intersections calculations
     const PointMatrix matrix(angle);
@@ -316,16 +278,7 @@ coord_t evaluateBridgeLines(
     {
         const coord_t line_y = line_min + i * line_width;
         const bool has_supports = line_y >= transformed_supported.min_y && line_y <= transformed_supported.max_y;
-        line_score += evaluateBridgeLine(
-            line_y,
-            transformed_skin,
-            has_supports ? transformed_supported : empty_transformed_shape
-#ifdef SVG_DEBUG
-            ,
-            matrix,
-            svg
-#endif
-        );
+        line_score += evaluateBridgeLine(line_y, transformed_skin, has_supports ? transformed_supported : empty_transformed_shape);
     }
 
     return line_score;
@@ -515,35 +468,12 @@ std::optional<AngleDegrees> bridgeAngle(
     FitAngle best_angle{ std::numeric_limits<coord_t>::lowest(), std::nullopt };
     for (AngleDegrees angle = 0; angle < 180; angle += 1)
     {
-#ifdef SVG_DEBUG
-        SVG svg(fmt::format("/tmp/bridge_regions_{}_{}.svg", layer_nr, angle.value_), boundary_box);
-        svg.write(skin_outline, { .surface = { SVG::Color::GRAY } });
-        svg.write(supported_regions, { .surface = { SVG::Color::BLUE } });
-#endif
-
-        const coord_t score = evaluateBridgeLines(
-            skin_outline,
-            supported_regions,
-            line_width,
-            angle
-#ifdef SVG_DEBUG
-            ,
-            &svg
-#endif
-        );
+        const coord_t score = evaluateBridgeLines(skin_outline, supported_regions, line_width, angle);
         if (score > best_angle.score)
         {
             best_angle = { score, angle + 90 };
         }
     }
-
-#ifdef SVG_DEBUG
-    spdlog::info(
-        "Bridging calculation time for layer {}: {}ms, best angle {}",
-        layer_nr,
-        timer.elapsed_ms().count(),
-        best_angle.angle.has_value() ? best_angle.angle.value().value_ : -1);
-#endif
 
     return best_angle.angle;
 }
