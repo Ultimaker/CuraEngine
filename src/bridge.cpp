@@ -4,8 +4,6 @@
 #include "bridge.h"
 
 #include <range/v3/action/stable_sort.hpp>
-#include <spdlog/spdlog.h>
-#include <spdlog/stopwatch.h>
 
 #include "geometry/Point2D.h"
 #include "geometry/PointMatrix.h"
@@ -165,8 +163,6 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
         }
 
         const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
-        // const bool reaching_skin = next_intersection_is_skin && next_inside_skin;
-        // const bool leaving_supported = next_intersection_is_supported && ! next_inside_supported;
         const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
         bool add_bridging_segment = false;
         bool add_hanging_segment = false;
@@ -356,8 +352,6 @@ std::optional<AngleDegrees> bridgeAngle(
     }
 
     AABB boundary_box(skin_outline);
-
-    spdlog::stopwatch timer;
 
     const coord_t line_width = settings.get<coord_t>("skin_line_width");
 
