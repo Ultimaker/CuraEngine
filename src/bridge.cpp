@@ -67,18 +67,18 @@ std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const Transfor
 /*!
  * Evaluates a potential bridging line to see if it can actually bridge between two supported regions
  * @param line_y The Y coordinate of the horizontal line
- * @param transformed_skin The skin outline, transformed so that the bridging line is horizontal
- * @param transformed_supported The supported regions, transformed so that the bridging line is horizontal
+ * @param transformed_skin_area The skin outline, transformed so that the bridging line is horizontal
+ * @param transformed_supported_area The supported regions, transformed so that the bridging line is horizontal
  * @return The score of the line regarding bridging, which can be positive if it is mostly bridging, or negative if it is mostly hanging
  *
  * The score is based on the following criteria:
  *   - Properly bridging segments, i.e. between two supported areas, add their length to the score
  *   - Hanging segments, i.e. supported on one side but not the other (or not at all), subtract their length to the score
  *   - Segments that lie on a supported area are not accounted for  */
-coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transformed_skin, const TransformedShape& transformed_supported)
+coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area)
 {
     // Calculate intersections with skin outline to see which segments should actually be printed
-    std::vector<coord_t> skin_outline_intersections = shapeLineIntersections(line_y, transformed_skin);
+    std::vector<coord_t> skin_outline_intersections = shapeLineIntersections(line_y, transformed_skin_area);
     if (skin_outline_intersections.size() < 2)
     {
         // We need to enter the skin at some point to bridge inside
@@ -87,7 +87,7 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
     ranges::stable_sort(skin_outline_intersections);
 
     // Calculate intersections with supported regions to see which segments are anchored
-    std::vector<coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported);
+    std::vector<coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported_area);
     ranges::stable_sort(supported_regions_intersections);
 
     enum class BridgeStatus
@@ -99,75 +99,75 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
     };
 
     // Loop through intersections with skin and supported regions to see which parts of the line are hanging/bridging/supported
-    bool inside_skin = false;
-    bool inside_supported = false;
+    bool inside_skin_area = false;
+    bool inside_supported_area = false;
     coord_t last_position;
     coord_t segment_score = 0;
     BridgeStatus bridge_status = BridgeStatus::Outside;
     while (! skin_outline_intersections.empty() || ! supported_regions_intersections.empty())
     {
         // See what is the next intersection: skin, supported or both
-        bool next_intersection_is_skin = false;
-        bool next_intersection_is_supported = false;
+        bool next_intersection_is_skin_area = false;
+        bool next_intersection_is_supported_area = false;
         if (skin_outline_intersections.empty())
         {
-            next_intersection_is_supported = true;
+            next_intersection_is_supported_area = true;
         }
         else if (supported_regions_intersections.empty())
         {
-            next_intersection_is_skin = true;
+            next_intersection_is_skin_area = true;
         }
         else
         {
-            const double next_intersection_skin = skin_outline_intersections.front();
-            const double next_intersection_supported = supported_regions_intersections.front();
+            const double next_intersection_skin_area = skin_outline_intersections.front();
+            const double next_intersection_supported_area = supported_regions_intersections.front();
 
-            if (is_null(next_intersection_skin - next_intersection_supported))
+            if (is_null(next_intersection_skin_area - next_intersection_supported_area))
             {
-                next_intersection_is_skin = true;
-                next_intersection_is_supported = true;
+                next_intersection_is_skin_area = true;
+                next_intersection_is_supported_area = true;
             }
-            else if (next_intersection_skin <= next_intersection_supported)
+            else if (next_intersection_skin_area <= next_intersection_supported_area)
             {
-                next_intersection_is_skin = true;
-                if (inside_skin && inside_supported)
+                next_intersection_is_skin_area = true;
+                if (inside_skin_area && inside_supported_area)
                 {
                     // When leaving skin, assume also leaving supported. This should always happen naturally, but may not due to rounding errors.
-                    next_intersection_is_supported = true;
+                    next_intersection_is_supported_area = true;
                 }
             }
             else
             {
-                next_intersection_is_supported = true;
-                if (! inside_supported && ! inside_skin)
+                next_intersection_is_supported_area = true;
+                if (! inside_supported_area && ! inside_skin_area)
                 {
                     // When reaching supported, assume also reaching skin. This should always happen naturally, but may not due to rounding errors.
-                    next_intersection_is_skin = true;
+                    next_intersection_is_skin_area = true;
                 }
             }
         }
 
         // Get new insideness states
-        bool next_inside_skin = inside_skin;
-        bool next_inside_supported = inside_supported;
+        bool next_inside_skin_area = inside_skin_area;
+        bool next_inside_supported_area = inside_supported_area;
         coord_t next_intersection;
-        if (next_intersection_is_skin)
+        if (next_intersection_is_skin_area)
         {
             next_intersection = skin_outline_intersections.front();
             skin_outline_intersections.erase(skin_outline_intersections.begin());
-            next_inside_skin = ! next_inside_skin;
+            next_inside_skin_area = ! next_inside_skin_area;
         }
-        if (next_intersection_is_supported)
+        if (next_intersection_is_supported_area)
         {
             next_intersection = supported_regions_intersections.front();
             supported_regions_intersections.erase(supported_regions_intersections.begin());
-            next_inside_supported = ! next_inside_supported;
+            next_inside_supported_area = ! next_inside_supported_area;
         }
 
-        const bool leaving_skin = next_intersection_is_skin && ! next_inside_skin;
+        const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
         // const bool reaching_skin = next_intersection_is_skin && next_inside_skin;
         // const bool leaving_supported = next_intersection_is_supported && ! next_inside_supported;
-        const bool reaching_supported = next_intersection_is_supported && next_inside_supported;
+        const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
         bool add_bridging_segment = false;
         bool add_hanging_segment = false;
 
@@ -207,8 +207,8 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
         }
 
         last_position = next_intersection;
-        inside_skin = next_inside_skin;
-        inside_supported = next_inside_supported;
+        inside_skin_area = next_inside_skin_area;
+        inside_supported_area = next_inside_supported_area;
     }
 
     return segment_score;
@@ -254,22 +254,22 @@ coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_re
 {
     // Transform the skin outline and supported regions according to the angle to speedup intersections calculations
     const PointMatrix matrix(angle);
-    const TransformedShape transformed_skin = transformShape(skin_outline, matrix);
-    const TransformedShape transformed_supported = transformShape(supported_regions, matrix);
+    const TransformedShape transformed_skin_area = transformShape(skin_outline, matrix);
+    const TransformedShape transformed_supported_area = transformShape(supported_regions, matrix);
 
-    if (transformed_skin.min_y >= transformed_skin.max_y || transformed_supported.min_y >= transformed_supported.max_y)
+    if (transformed_skin_area.min_y >= transformed_skin_area.max_y || transformed_supported_area.min_y >= transformed_supported_area.max_y)
     {
         return std::numeric_limits<coord_t>::lowest();
     }
 
-    const size_t bridge_lines_count = (transformed_skin.max_y - transformed_skin.min_y) / line_width;
+    const size_t bridge_lines_count = (transformed_skin_area.max_y - transformed_skin_area.min_y) / line_width;
     if (bridge_lines_count == 0)
     {
         // We cannot fit a single line in this direction, give up
         return std::numeric_limits<coord_t>::lowest();
     }
 
-    const coord_t line_min = transformed_skin.min_y + line_width * 0.5;
+    const coord_t line_min = transformed_skin_area.min_y + line_width * 0.5;
 
     // Evaluated lines that could be properly bridging
     coord_t line_score = 0;
@@ -277,8 +277,8 @@ coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_re
     for (size_t i = 0; i < bridge_lines_count; ++i)
     {
         const coord_t line_y = line_min + i * line_width;
-        const bool has_supports = line_y >= transformed_supported.min_y && line_y <= transformed_supported.max_y;
-        line_score += evaluateBridgeLine(line_y, transformed_skin, has_supports ? transformed_supported : empty_transformed_shape);
+        const bool has_supports = line_y >= transformed_supported_area.min_y && line_y <= transformed_supported_area.max_y;
+        line_score += evaluateBridgeLine(line_y, transformed_skin_area, has_supports ? transformed_supported_area : empty_transformed_shape);
     }
 
     return line_score;
