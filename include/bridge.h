@@ -5,6 +5,7 @@
 #define BRIDGE_H
 
 #include <optional>
+#include <tuple>
 
 namespace cura
 {
@@ -38,6 +39,8 @@ std::optional<AngleDegrees> bridgeAngle(
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
     Shape& supported_regions);
+
+std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(const Shape& infill_below_skin_area, const SliceMeshStorage& mesh, const unsigned layer_nr);
 
 } // namespace cura
 

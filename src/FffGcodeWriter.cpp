@@ -2504,6 +2504,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
     Shape infill_polygons;
     std::vector<std::vector<VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
     OpenLinesSet infill_lines;
+    OpenLinesSet skin_support_lines;
+    Shape skin_support_polygons;
 
     const auto pattern = mesh.settings.get<EFillMethod>("infill_pattern");
     const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
@@ -2514,6 +2516,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
     const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
+    const auto skin_support_density = mesh.settings.get<Ratio>("skin_support_density");
+    const coord_t skin_support_line_distance = skin_support_density > 0.0 ? (infill_line_width / skin_support_density) : 0;
     AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
     if (! mesh.infill_angles.empty())
     {
@@ -2539,7 +2543,14 @@ bool FffGcodeWriter::processSingleLayerInfill(
     // boundary edge
     Shape infill_below_skin;
     Shape infill_not_below_skin;
-    const bool hasSkinEdgeSupport = partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+    AngleDegrees skin_support_angle;
+    const bool hasSkinInfillSupport = partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+
+    if (hasSkinInfillSupport)
+    {
+        std::tie(infill_below_skin, skin_support_angle) = makeBridgeOverInfillPrintable(infill_below_skin, mesh, gcode_layer.getLayerNr());
+        infill_not_below_skin = infill_not_below_skin.difference(infill_below_skin);
+    }
 
     const auto pocket_size = mesh.settings.get<coord_t>("cross_infill_pocket_size");
     constexpr bool skip_stitching = false;
@@ -2608,29 +2619,34 @@ bool FffGcodeWriter::processSingleLayerInfill(
         }
 
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.
-        if (hasSkinEdgeSupport)
+        if (hasSkinInfillSupport)
         {
-            // infill region with skin above has to have at least one infill wall line
-            const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
-            const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
-            const coord_t small_area_width = 0;
+            // infill region with skin above has to be printed bridge-like
+            constexpr EFillMethod skin_support_pattern = EFillMethod::LINES;
+            constexpr bool skin_support_zig_zaggify = false;
+            constexpr bool skin_support_connect_polygons = false;
+            constexpr size_t skin_support_infill_multiplier = 1;
+            constexpr size_t min_skin_support_wall_count = 0;
+            constexpr size_t skin_support_wall_count = 0;
+            constexpr coord_t small_area_width = 0;
             wall_tool_paths.emplace_back(std::vector<VariableWidthLines>());
-            const coord_t overlap = infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width);
+            constexpr coord_t skin_support_overlap = 0;
+            constexpr coord_t skin_support_infill_shift = 0;
             Infill infill_comp(
-                pattern,
-                zig_zaggify_infill,
-                connect_polygons,
+                skin_support_pattern,
+                skin_support_zig_zaggify,
+                skin_support_connect_polygons,
                 infill_below_skin,
                 infill_line_width,
-                infill_line_distance_here,
-                overlap,
-                infill_multiplier,
-                infill_angle,
+                skin_support_line_distance,
+                skin_support_overlap,
+                skin_support_infill_multiplier,
+                skin_support_angle,
                 gcode_layer.z_,
-                infill_shift,
+                skin_support_infill_shift,
                 max_resolution,
                 max_deviation,
-                skin_below_wall_count,
+                skin_support_wall_count,
                 small_area_width,
                 infill_origin,
                 skip_stitching,
@@ -2642,8 +2658,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 pocket_size);
             infill_comp.generate(
                 wall_tool_paths.back(),
-                infill_polygons,
-                infill_lines,
+                skin_support_polygons,
+                skin_support_lines,
                 mesh.settings,
                 gcode_layer.getLayerNr(),
                 SectionType::INFILL,
@@ -2652,11 +2668,12 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 &mesh);
             if (density_idx < last_idx)
             {
-                const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
+                const coord_t cut_offset = get_cut_offset(skin_support_zig_zaggify, infill_line_width, min_skin_support_wall_count);
                 Shape tool = infill_below_skin.offset(static_cast<int>(cut_offset));
                 infill_lines_here = tool.intersection(infill_lines_here);
             }
-            infill_lines.push_back(infill_lines_here);
+            skin_support_lines.push_back(infill_lines_here);
+
             // normal processing for the infill that isn't below skin
             in_outline = infill_not_below_skin;
             if (density_idx == last_idx)
@@ -2756,7 +2773,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                         return vwl.empty();
                     }));
         });
-    if (! infill_lines.empty() || ! infill_polygons.empty() || walls_generated)
+    if (! infill_lines.empty() || ! infill_polygons.empty() || ! skin_support_lines.empty() || ! skin_support_polygons.empty() || walls_generated)
     {
         added_something = true;
         gcode_layer.setIsInside(true); // going to print stuff inside print object
@@ -2865,7 +2882,50 @@ bool FffGcodeWriter::processSingleLayerInfill(
             start_move_inwards_length,
             end_move_inwards_length,
             infill_inner_contour);
+
+        if (! skin_support_polygons.empty())
+        {
+            constexpr bool extra_inwards_move = false;
+            gcode_layer
+                .addInfillPolygonsByOptimizer(skin_support_polygons, skin_support_lines, mesh_config.skin_support_config, mesh.settings, extra_inwards_move, near_start_location);
+        }
+
+        const auto skin_support_fan_speed = mesh.settings.get<double>("skin_support_fan_speed");
+        constexpr SpaceFillType skin_support_space_fill_type = SpaceFillType::Lines;
+        constexpr coord_t skin_support_wipe_dist = 0;
+        const auto skin_support_interlace_lines = mesh.settings.get<bool>("skin_support_interlace_lines");
+        if (skin_support_interlace_lines)
+        {
+            const coord_t max_adjacent_distance = skin_support_line_distance * 1.1;
+            constexpr coord_t exclude_distance = 0;
+            constexpr bool skin_support_interlaced = true;
+            gcode_layer.addLinesMonotonic(
+                infill_below_skin,
+                skin_support_lines,
+                mesh_config.skin_support_config,
+                skin_support_space_fill_type,
+                skin_support_angle,
+                max_adjacent_distance,
+                exclude_distance,
+                skin_support_wipe_dist,
+                flow_ratio,
+                skin_support_fan_speed,
+                skin_support_interlaced);
+        }
+        else
+        {
+            gcode_layer.addLinesByOptimizer(
+                skin_support_lines,
+                mesh_config.skin_support_config,
+                skin_support_space_fill_type,
+                enable_travel_optimization,
+                skin_support_wipe_dist,
+                flow_ratio,
+                near_start_location,
+                skin_support_fan_speed);
+        }
     }
+
     return added_something;
 }
 
@@ -2878,7 +2938,8 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
     coord_t infill_line_width)
 {
     constexpr coord_t tiny_infill_offset = 20;
-    const auto skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
+#warning if we keep a single support layer, the code below can be simplified
+    const auto skin_edge_support_layers = mesh.settings.get<bool>("skin_support") ? 1 : 0;
     Shape skin_above_combined; // skin regions on the layers above combined with small gaps between
 
     // working from the highest layer downwards, combine the regions of skin on all the layers

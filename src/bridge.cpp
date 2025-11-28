@@ -472,4 +472,12 @@ std::optional<AngleDegrees> bridgeAngle(
     return best_angle.angle;
 }
 
+std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(const Shape& infill_below_skin_area, const SliceMeshStorage& mesh, const unsigned layer_nr)
+{
+    AngleDegrees bridge_angle = bridgeOverInfillAngle(mesh, layer_nr);
+    Shape expanded_infill_below_area = infill_below_skin_area;
+
+    return { expanded_infill_below_area, bridge_angle };
+}
+
 } // namespace cura

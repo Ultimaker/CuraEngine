@@ -29,6 +29,7 @@ struct MeshPathConfigs
     GCodePathConfig flooring_config{};
     std::vector<GCodePathConfig> infill_config{};
     GCodePathConfig ironing_config{};
+    GCodePathConfig skin_support_config{};
 
     MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder);
     void smoothAllSpeeds(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer);
