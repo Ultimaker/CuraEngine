@@ -399,21 +399,21 @@ bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matr
  * Load PNG texture data from a file and attach it to a mesh.
  * This function reads a PNG file from the filesystem, extracts paint feature metadata
  * from the PNG's Description field, and attaches the texture to the mesh.
- * 
+ *
  * @param mesh The mesh to attach the texture to
  * @param texture_filename The path to the PNG texture file
  * @return true if the texture was loaded successfully, false otherwise
  */
 bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
 {
-    if (!std::filesystem::exists(texture_filename))
+    if (! std::filesystem::exists(texture_filename))
     {
         return false; // File doesn't exist, not an error
     }
 
     // Read PNG file into memory
     std::ifstream file(texture_filename, std::ios::binary | std::ios::ate);
-    if (!file.is_open())
+    if (! file.is_open())
     {
         spdlog::warn("Failed to open texture file: {}", texture_filename);
         return false;
@@ -421,9 +421,9 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
 
     std::streamsize file_size = file.tellg();
     file.seekg(0, std::ios::beg);
-    
+
     std::vector<unsigned char> texture_data(file_size);
-    if (!file.read(reinterpret_cast<char*>(texture_data.data()), file_size))
+    if (! file.read(reinterpret_cast<char*>(texture_data.data()), file_size))
     {
         spdlog::warn("Failed to read texture file: {}", texture_filename);
         return false;
@@ -432,36 +432,38 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
     // Use PNG library to parse the texture
     png_image raw_texture = {};
     raw_texture.version = PNG_IMAGE_VERSION;
-    if (!png_image_begin_read_from_memory(&raw_texture, texture_data.data(), texture_data.size()))
+    if (! png_image_begin_read_from_memory(&raw_texture, texture_data.data(), texture_data.size()))
     {
         spdlog::warn("Error reading PNG texture {}: {}", texture_filename, raw_texture.message);
         return false;
     }
 
     std::vector<uint8_t> buffer(PNG_IMAGE_SIZE(raw_texture));
-    if (!png_image_finish_read(&raw_texture, nullptr, buffer.data(), 0, nullptr) || buffer.empty())
+    if (! png_image_finish_read(&raw_texture, nullptr, buffer.data(), 0, nullptr) || buffer.empty())
     {
         spdlog::warn("Error finishing PNG texture read {}: {}", texture_filename, raw_texture.message);
         return false;
     }
 
     // Create PNG reading structures to extract metadata
-    std::unique_ptr<png_struct, void(*)(png_structp)> png_ptr(
+    std::unique_ptr<png_struct, void (*)(png_structp)> png_ptr(
         png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr),
-        [](png_structp png_ptr_destroy) {
+        [](png_structp png_ptr_destroy)
+        {
             png_destroy_read_struct(&png_ptr_destroy, nullptr, nullptr);
         });
-    if (!png_ptr)
+    if (! png_ptr)
     {
         return false;
     }
 
-    std::unique_ptr<png_info, void(*)(png_infop)> info_ptr(
+    std::unique_ptr<png_info, void (*)(png_infop)> info_ptr(
         png_create_info_struct(png_ptr.get()),
-        [](png_infop info_ptr_destroy) {
+        [](png_infop info_ptr_destroy)
+        {
             png_destroy_read_struct(nullptr, &info_ptr_destroy, nullptr);
         });
-    if (!info_ptr)
+    if (! info_ptr)
     {
         return false;
     }
@@ -471,14 +473,18 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
         return false;
     }
 
-    struct PngReadContext {
+    struct PngReadContext
+    {
         const unsigned char* data;
         size_t size;
         size_t offset;
     } read_context{ texture_data.data(), texture_data.size(), 0 };
 
-    png_set_read_fn(png_ptr.get(), &read_context, 
-        [](const png_structp read_png_ptr, const png_bytep out_bytes, const png_size_t byte_count_to_read) {
+    png_set_read_fn(
+        png_ptr.get(),
+        &read_context,
+        [](const png_structp read_png_ptr, const png_bytep out_bytes, const png_size_t byte_count_to_read)
+        {
             auto* context = static_cast<PngReadContext*>(png_get_io_ptr(read_png_ptr));
             if (context->offset + byte_count_to_read > context->size)
             {
@@ -509,8 +515,11 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
             json_document.ParseStream(json_memory_stream);
             if (json_document.HasParseError())
             {
-                spdlog::warn("Error parsing texture metadata in {} (offset {}): {}", 
-                    texture_filename, json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
+                spdlog::warn(
+                    "Error parsing texture metadata in {} (offset {}): {}",
+                    texture_filename,
+                    json_document.GetErrorOffset(),
+                    GetParseError_En(json_document.GetParseError()));
                 return false;
             }
 
@@ -530,7 +539,7 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
         }
     }
 
-    if (!texture_data_mapping->empty())
+    if (! texture_data_mapping->empty())
     {
         mesh.texture_ = std::make_shared<Image>(
             raw_texture.width,
@@ -538,7 +547,7 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
             PNG_IMAGE_SAMPLE_COMPONENT_SIZE(raw_texture.format) * PNG_IMAGE_SAMPLE_CHANNELS(raw_texture.format),
             std::move(buffer));
         mesh.texture_data_mapping_ = texture_data_mapping;
-        
+
         spdlog::info("Loaded texture {} with {} paint features", texture_filename, texture_data_mapping->size());
         return true;
     }
@@ -572,7 +581,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
             // Check for corresponding PNG texture file
             std::string filename_str(filename);
             std::string texture_filename = filename_str.substr(0, filename_str.find_last_of('.')) + ".png";
-            
+
             // Try to load the PNG texture if it exists
             if (std::filesystem::exists(texture_filename))
             {
@@ -586,7 +595,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
                     spdlog::warn("Failed to load texture from: {}", texture_filename);
                 }
             }
-            
+
             meshgroup->meshes.push_back(mesh);
             spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
             return true;
