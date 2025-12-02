@@ -43,7 +43,6 @@ class CuraEngineConan(ConanFile):
         "with_cura_resources": False,
     }
 
-
     @property
     def _compilers_minimum_version(self):
         return {
