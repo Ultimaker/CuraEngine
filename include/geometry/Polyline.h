@@ -98,6 +98,12 @@ public:
     [[nodiscard]] const_segments_iterator endSegments() const;
 
     /*! \brief Provides a begin iterator to iterate over all the segments of the line */
+    [[nodiscard]] const_segments_iterator cbeginSegments() const;
+
+    /*! \brief Provides an end iterator to iterate over all the segments of the line */
+    [[nodiscard]] const_segments_iterator cendSegments() const;
+
+    /*! \brief Provides a begin iterator to iterate over all the segments of the line */
     segments_iterator beginSegments();
 
     /*! \brief Provides an end iterator to iterate over all the segments of the line */

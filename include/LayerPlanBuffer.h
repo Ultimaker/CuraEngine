@@ -4,6 +4,7 @@
 #ifndef LAYER_PLAN_BUFFER_H
 #define LAYER_PLAN_BUFFER_H
 
+#include <condition_variable>
 #include <list>
 #include <vector>
 
@@ -17,6 +18,7 @@ namespace cura
 class LayerPlan;
 class ExtruderPlan;
 class GCodeExport;
+class LayerIndex;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
@@ -57,6 +59,9 @@ class LayerPlanBuffer
      */
     std::list<LayerPlan*> buffer_;
 
+    std::mutex buffer_mutex_;
+    std::condition_variable buffer_condition_variable_;
+
 public:
     LayerPlanBuffer(GCodeExport& gcode)
         : gcode_(gcode)
@@ -65,11 +70,6 @@ public:
     }
 
     void setPreheatConfig();
-
-    /*!
-     * Push a new layer plan into the buffer
-     */
-    void push(LayerPlan& layer_plan);
 
     /*!
      * Push a new layer onto the buffer and handle the buffer.
@@ -84,6 +84,8 @@ public:
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
     void flush();
+
+    const LayerPlan* getCompletedLayerPlan(const LayerIndex& layer_nr) const;
 
 private:
     /*!

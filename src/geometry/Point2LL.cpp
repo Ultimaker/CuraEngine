@@ -4,6 +4,7 @@
 #include "geometry/Point2LL.h" //The headers we're implementing.
 
 #include "geometry/Point3LL.h"
+#include "settings/types/Angle.h"
 
 namespace cura
 {
@@ -40,6 +41,11 @@ Point3LL& operator-=(Point3LL& p3, const Point2LL& p2)
 Point2LL operator-(const Point2LL& p2, const Point3LL& p3)
 {
     return { p2.X - p3.x_, p2.Y - p3.y_ };
+}
+
+AngleRadians vAngle(const Point2LL& vector)
+{
+    return std::atan2(vector.Y, vector.X);
 }
 
 } // namespace cura

@@ -21,6 +21,10 @@ class AngleDegrees;
 class Polygon : public ClosedPolyline
 {
 public:
+    /*!
+     * \brief Builds an empty polygon
+     * \warning By default, the polygon is tagged as non explicitly closed
+     */
     Polygon() = default;
 
     /*!
@@ -84,6 +88,11 @@ public:
     [[nodiscard]] double area() const
     {
         return ClipperLib::Area(getPoints());
+    }
+
+    [[nodiscard]] bool isHole() const
+    {
+        return area() < 0.0;
     }
 
     [[nodiscard]] Point2LL centerOfMass() const;

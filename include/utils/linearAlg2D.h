@@ -88,6 +88,8 @@ public:
 
     static std::optional<coord_t> lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y);
 
+    static std::optional<coord_t> segmentHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y);
+
     /*!
      * Find whether a point projected on a line segment would be projected to
      * - properly on the line : zero returned

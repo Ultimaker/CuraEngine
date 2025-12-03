@@ -13,6 +13,7 @@
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 
+#include "geometry/MixedLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Point2D.h"
 #include "geometry/Polygon.h"
@@ -289,8 +290,9 @@ void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_
                 {
                     fprintf(
                         out_,
-                        "<path fill=\"%s\" fill-rule=\"%s\" stroke=\"%s\" stroke-width=\"%f\" stroke-dasharray=\"%s\" d=\"",
+                        "<path fill=\"%s\" fill-opacity=\"%f\" fill-rule=\"%s\" stroke=\"%s\" stroke-width=\"%f\" stroke-dasharray=\"%s\" d=\"",
                         toString(visual_attributes.surface.color).c_str(),
+                        visual_attributes.surface.alpha,
                         toString(fill_rule).c_str(),
                         toString(visual_attributes.line.color).c_str(),
                         visual_attributes.line.width,
@@ -326,6 +328,23 @@ void SVG::write(const OpenPolyline& line, const VisualAttributes& visual_attribu
 void SVG::write(const ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
 {
     write(LinesSet{ line }, visual_attributes, flush);
+}
+
+void SVG::write(const MixedLinesSet& lines, const VisualAttributes& visual_attributes, const bool flush) const
+{
+    for (const PolylinePtr& line : lines)
+    {
+        if (auto open_polyline = dynamic_pointer_cast<OpenPolyline>(line))
+        {
+            write(*open_polyline, visual_attributes, false);
+        }
+        else if (auto closed_polyline = dynamic_pointer_cast<ClosedPolyline>(line))
+        {
+            write(*closed_polyline, visual_attributes, false);
+        }
+    }
+
+    handleFlush(flush);
 }
 
 void SVG::write(const PointsSet& points, const VerticesAttributes& visual_attributes, const bool flush) const

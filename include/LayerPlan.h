@@ -167,6 +167,8 @@ private:
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
+    MixedLinesSet infill_lines_; //!< Infill lines generated for this layer
+
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
     enum CombBoundary
@@ -416,6 +418,10 @@ public:
      * Plan a prime blob at the current location.
      */
     void planPrime(double prime_blob_wipe_length = 10.0);
+
+    void setGeneratedInfillLines(const MixedLinesSet& infill_lines);
+
+    const MixedLinesSet& getGeneratedInfillLines() const;
 
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.

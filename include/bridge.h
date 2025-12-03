@@ -7,6 +7,8 @@
 #include <optional>
 #include <tuple>
 
+#include "utils/Coord_t.h"
+
 namespace cura
 {
 
@@ -15,6 +17,7 @@ class SliceMeshStorage;
 class SliceDataStorage;
 class SupportLayer;
 class AngleDegrees;
+class LayerPlan;
 
 /*!
  * \brief Computes the angle that lines have to take to bridge a certain shape
@@ -40,7 +43,12 @@ std::optional<AngleDegrees> bridgeAngle(
     const SupportLayer* support_layer,
     Shape& supported_regions);
 
-std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(const Shape& infill_below_skin_area, const SliceMeshStorage& mesh, const unsigned layer_nr);
+std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
+    const Shape& infill_contour,
+    const Shape& infill_below_skin_area,
+    const SliceMeshStorage& mesh,
+    const LayerPlan* completed_layer_plan_below,
+    const unsigned layer_nr);
 
 } // namespace cura
 

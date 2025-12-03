@@ -32,6 +32,7 @@ namespace cura
 {
 
 class Point3LL;
+class AngleRadians;
 
 /* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 using Point2LL = ClipperLib::IntPoint;
@@ -194,15 +195,7 @@ INLINE coord_t cross(const Point2LL& p0, const Point2LL& p1)
     return p0.X * p1.Y - p0.Y * p1.X;
 }
 
-INLINE double angle(const Point2LL& p)
-{
-    double angle = std::atan2(p.X, p.Y) / std::numbers::pi * 180.0;
-    if (angle < 0.0)
-    {
-        angle += 360.0;
-    }
-    return angle;
-}
+AngleRadians vAngle(const Point2LL& vector);
 
 // Identity function, used to be able to make templated algorithms where the input is sometimes points, sometimes things that contain or can be converted to points.
 INLINE const Point2LL& make_point(const Point2LL& p)

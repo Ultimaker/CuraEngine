@@ -4,7 +4,9 @@
 #include "bridge.h"
 
 #include <range/v3/action/stable_sort.hpp>
+#include <range/v3/algorithm/reverse.hpp>
 
+#include "LayerPlan.h"
 #include "geometry/Point2D.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
@@ -25,6 +27,19 @@ struct TransformedSegment
     Point2LL transformed_end;
     coord_t min_y;
     coord_t max_y;
+
+    TransformedSegment(const Point2LL& transformed_start, const Point2LL& transformed_end)
+        : transformed_start(transformed_start)
+        , transformed_end(transformed_end)
+        , min_y(std::min(transformed_start.Y, transformed_end.Y))
+        , max_y(std::max(transformed_start.Y, transformed_end.Y))
+    {
+    }
+
+    TransformedSegment(const Point2LL& start, const Point2LL& end, const PointMatrix& matrix)
+        : TransformedSegment(matrix.apply(start), matrix.apply(end))
+    {
+    }
 };
 
 struct TransformedShape
@@ -210,6 +225,22 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
     return segment_score;
 }
 
+void addTransformSegment(const Point2LL& start, const Point2LL& end, const PointMatrix& matrix, TransformedShape& transformed_shape)
+{
+    TransformedSegment transformed_segment(start, end, matrix);
+    transformed_shape.segments.push_back(transformed_segment);
+    transformed_shape.min_y = std::min(transformed_shape.min_y, transformed_segment.min_y);
+    transformed_shape.max_y = std::max(transformed_shape.max_y, transformed_segment.max_y);
+}
+
+void transformPolygon(const Polygon& polygon, const PointMatrix& matrix, TransformedShape& transformed_shape)
+{
+    for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
+    {
+        addTransformSegment((*iterator).start, (*iterator).end, matrix, transformed_shape);
+    }
+}
+
 /*!
  * Pre-transforms a shape according to the given matrix, so that the bridging angle ends up being horizontal
  * @param shape The shape to be transformed
@@ -223,17 +254,7 @@ TransformedShape transformShape(const Shape& shape, const PointMatrix& matrix)
 
     for (const Polygon& polygon : shape)
     {
-        for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
-        {
-            TransformedSegment transformed_segment;
-            transformed_segment.transformed_start = matrix.apply((*iterator).start);
-            transformed_segment.transformed_end = matrix.apply((*iterator).end);
-            transformed_segment.min_y = std::min(transformed_segment.transformed_start.Y, transformed_segment.transformed_end.Y);
-            transformed_segment.max_y = std::max(transformed_segment.transformed_start.Y, transformed_segment.transformed_end.Y);
-            transformed_shape.segments.push_back(transformed_segment);
-            transformed_shape.min_y = std::min(transformed_shape.min_y, transformed_segment.min_y);
-            transformed_shape.max_y = std::max(transformed_shape.max_y, transformed_segment.max_y);
-        }
+        transformPolygon(polygon, matrix, transformed_shape);
     }
 
     return transformed_shape;
@@ -472,12 +493,301 @@ std::optional<AngleDegrees> bridgeAngle(
     return best_angle.angle;
 }
 
-std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(const Shape& infill_below_skin_area, const SliceMeshStorage& mesh, const unsigned layer_nr)
-{
-    AngleDegrees bridge_angle = bridgeOverInfillAngle(mesh, layer_nr);
-    Shape expanded_infill_below_area = infill_below_skin_area;
+void expandSegment(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_below, ClosedPolyline& expanded_infill_below_skin_area, const SVG* svg);
 
-    return { expanded_infill_below_area, bridge_angle };
+void expandHorizontalSegment(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_on_same_band, ClosedPolyline& expanded_infill_below_skin_area)
+{
+}
+
+void expandNonHorizontalSegment(
+    const TransformedSegment& segment,
+    const std::vector<TransformedSegment>& infill_lines_on_same_band,
+    ClosedPolyline& expanded_infill_below_skin_area,
+    const SVG* svg)
+{
+    std::vector<float> intersections;
+    for (const TransformedSegment& infill_line_on_same_band : infill_lines_on_same_band)
+    {
+        float intersection_t;
+        float intersection_u;
+        if (LinearAlg2D::segmentSegmentIntersection(
+                segment.transformed_start,
+                segment.transformed_end,
+                infill_line_on_same_band.transformed_start,
+                infill_line_on_same_band.transformed_end,
+                intersection_t,
+                intersection_u)
+            && intersection_t > 0.0 && intersection_t < 1.0)
+        {
+            intersections.push_back(intersection_t);
+        }
+    }
+
+    if (! intersections.empty())
+    {
+        bool sub_segments_processed = false;
+        ranges::stable_sort(intersections);
+        intersections.insert(intersections.begin(), 0.0);
+        intersections.push_back(1.0);
+
+        const Point2LL segment_vector = segment.transformed_end - segment.transformed_start;
+
+        for (const auto& sub_segment_t : intersections | ranges::views::sliding(2))
+        {
+            const TransformedSegment sub_segment(segment.transformed_start + segment_vector * sub_segment_t[0], segment.transformed_start + segment_vector * sub_segment_t[1]);
+            if (sub_segment.transformed_start == sub_segment.transformed_end
+                || (sub_segment.transformed_start == segment.transformed_start && sub_segment.transformed_end == segment.transformed_end))
+            {
+                continue;
+            }
+
+            expandSegment(sub_segment, infill_lines_on_same_band, expanded_infill_below_skin_area, svg);
+            sub_segments_processed = true;
+        }
+
+        if (sub_segments_processed)
+        {
+            return;
+        }
+    }
+
+    const int8_t expand_direction = segment.transformed_end.Y > segment.transformed_start.Y ? 1 : -1;
+
+    svg->write(segment.transformed_start, segment.transformed_end, { .line = { SVG::Color::BLACK, 0.35 } });
+
+    std::vector<TransformedSegment> infill_lines_on_expansion_side;
+    for (const TransformedSegment& infill_line_on_same_band : infill_lines_on_same_band)
+    {
+#warning optimize by doing those 2 calculations at once
+        const coord_t y_min = std::max(segment.min_y, infill_line_on_same_band.min_y);
+        const coord_t y_max = std::min(segment.max_y, infill_line_on_same_band.max_y);
+
+        if (y_min == y_max)
+        {
+        }
+        else
+        {
+            const coord_t segment_x_min = LinearAlg2D::lineHorizontalLineIntersection(segment.transformed_start, segment.transformed_end, y_min).value();
+            const coord_t segment_x_max = LinearAlg2D::lineHorizontalLineIntersection(segment.transformed_start, segment.transformed_end, y_max).value();
+            const coord_t infill_line_x_min
+                = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_same_band.transformed_start, infill_line_on_same_band.transformed_end, y_min).value();
+            const coord_t infill_line_x_max
+                = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_same_band.transformed_start, infill_line_on_same_band.transformed_end, y_max).value();
+
+            if ((infill_line_x_min != segment_x_min || infill_line_x_max != segment_x_max)
+                && ((expand_direction > 0 && infill_line_x_min >= segment_x_min && infill_line_x_max >= segment_x_max)
+                    || (expand_direction < 0 && infill_line_x_min <= segment_x_min && infill_line_x_max <= segment_x_max)))
+            {
+                infill_lines_on_expansion_side.push_back(infill_line_on_same_band);
+            }
+        }
+    }
+
+    std::set<coord_t> scan_positions_y_set;
+    scan_positions_y_set.insert(segment.transformed_start.Y);
+    scan_positions_y_set.insert(segment.transformed_end.Y);
+    for (const TransformedSegment& infill_line_on_expansion_side : infill_lines_on_expansion_side)
+    {
+        if (infill_line_on_expansion_side.transformed_start.Y > segment.min_y && infill_line_on_expansion_side.transformed_start.Y < segment.max_y)
+        {
+            scan_positions_y_set.insert(infill_line_on_expansion_side.transformed_start.Y);
+        }
+        if (infill_line_on_expansion_side.transformed_end.Y > segment.min_y && infill_line_on_expansion_side.transformed_end.Y < segment.max_y)
+        {
+            scan_positions_y_set.insert(infill_line_on_expansion_side.transformed_end.Y);
+        }
+    }
+
+    if (infill_lines_on_expansion_side.empty())
+    {
+        expanded_infill_below_skin_area.push_back(segment.transformed_start);
+        expanded_infill_below_skin_area.push_back(segment.transformed_end);
+        return;
+    }
+
+    // for (const TransformedSegment& infill_line_on_expansion_side : infill_lines_on_expansion_side)
+    // {
+    //     svg->write(infill_line_on_expansion_side.transformed_start, infill_line_on_expansion_side.transformed_end, { .line = { SVG::Color::YELLOW, 0.2 } });
+    // }
+
+    std::vector<coord_t> scan_positions_y(scan_positions_y_set.begin(), scan_positions_y_set.end());
+    if (expand_direction < 0)
+    {
+        ranges::reverse(scan_positions_y);
+    }
+
+    const TransformedSegment* current_infill_line_segment = nullptr;
+    constexpr bool only_if_forming_segment = true;
+    for (const coord_t scan_line_y : scan_positions_y)
+    {
+        const coord_t scan_line_segment_x = LinearAlg2D::lineHorizontalLineIntersection(segment.transformed_start, segment.transformed_end, scan_line_y).value();
+        std::optional<coord_t> current_infill_line_segment_intersection;
+        std::optional<coord_t> closest_intersection;
+        const TransformedSegment* closest_intersection_segment = nullptr;
+        // std::vector<const TransformedSegment*> closest_intersection_segments;
+        for (const TransformedSegment& infill_line_on_expansion_side : infill_lines_on_expansion_side)
+        {
+            const std::optional<coord_t> intersection
+                = LinearAlg2D::segmentHorizontalLineIntersection(infill_line_on_expansion_side.transformed_start, infill_line_on_expansion_side.transformed_end, scan_line_y);
+            if (intersection.has_value())
+            {
+                if (&infill_line_on_expansion_side == current_infill_line_segment)
+                {
+                    current_infill_line_segment_intersection = *intersection;
+                }
+
+                if (expand_direction > 0)
+                {
+                    if (*intersection >= scan_line_segment_x && (! closest_intersection.has_value() || *intersection < *closest_intersection))
+                    {
+                        closest_intersection = *intersection;
+                        closest_intersection_segment = &infill_line_on_expansion_side;
+                    }
+                }
+                else
+                {
+                    if (*intersection <= scan_line_segment_x && (! closest_intersection.has_value() || *intersection > *closest_intersection))
+                    {
+                        closest_intersection = *intersection;
+                        closest_intersection_segment = &infill_line_on_expansion_side;
+                    }
+                }
+            }
+        }
+
+        if (! closest_intersection.has_value())
+        {
+            spdlog::warn("No intersection found while expanding infill");
+            expanded_infill_below_skin_area.push_back(segment.transformed_start);
+            expanded_infill_below_skin_area.push_back(segment.transformed_end);
+            break;
+        }
+
+        if (current_infill_line_segment != nullptr)
+        {
+            if (current_infill_line_segment_intersection.has_value())
+            {
+                if (expanded_infill_below_skin_area.push_back(Point2LL(*current_infill_line_segment_intersection, scan_line_y), only_if_forming_segment) && svg != nullptr
+                    && expanded_infill_below_skin_area.isValid())
+                {
+                    svg->write(
+                        expanded_infill_below_skin_area[expanded_infill_below_skin_area.size() - 2],
+                        expanded_infill_below_skin_area.back(),
+                        { .line = { SVG::Color::GREEN, 0.3 } });
+                }
+            }
+            else
+            {
+                spdlog::warn("No intersection found with current segment");
+            }
+        }
+
+        if (expanded_infill_below_skin_area.push_back(Point2LL(*closest_intersection, scan_line_y), only_if_forming_segment) && svg != nullptr
+            && expanded_infill_below_skin_area.isValid())
+        {
+            svg->write(expanded_infill_below_skin_area[expanded_infill_below_skin_area.size() - 2], expanded_infill_below_skin_area.back(), { .line = { SVG::Color::BLUE, 0.3 } });
+        }
+
+        current_infill_line_segment = closest_intersection_segment;
+    }
+}
+
+void expandSegment(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_below, ClosedPolyline& expanded_infill_below_skin_area, const SVG* svg)
+{
+    std::vector<TransformedSegment> infill_lines_on_same_band;
+    for (const TransformedSegment& infill_line_below : infill_lines_below)
+    {
+        if (infill_line_below.min_y <= segment.max_y && infill_line_below.max_y >= segment.min_y)
+        {
+            infill_lines_on_same_band.push_back(infill_line_below);
+        }
+    }
+
+    if (segment.min_y == segment.max_y)
+    {
+        expandHorizontalSegment(segment, infill_lines_on_same_band, expanded_infill_below_skin_area);
+    }
+    else
+    {
+        expandNonHorizontalSegment(segment, infill_lines_on_same_band, expanded_infill_below_skin_area, svg);
+    }
+}
+
+std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
+    const Shape& infill_contour,
+    const Shape& infill_below_skin_area,
+    const SliceMeshStorage& mesh,
+    const LayerPlan* completed_layer_plan_below,
+    const unsigned layer_nr)
+{
+    if (layer_nr == 0 || infill_below_skin_area.empty())
+    {
+        return {};
+    }
+
+    SVG svg(fmt::format("/tmp/bridge_infill_lines_{}.svg", layer_nr), AABB(infill_contour));
+    // svg.write(infill_contour, { .line = { SVG::Color::RED, 0.35 } });
+    // svg.write(completed_layer_plan_below->getGeneratedInfillLines(), { .line = { 0.3 } });
+
+    const AngleDegrees bridge_angle = bridgeOverInfillAngle(mesh, layer_nr);
+    const PointMatrix matrix(bridge_angle + 90);
+    const MixedLinesSet& infill_lines_below = completed_layer_plan_below->getGeneratedInfillLines();
+    TransformedShape filtered_infill_lines_below;
+    constexpr AngleDegrees min_angle_delta(1);
+
+    for (const PolylinePtr& infill_line_below : infill_lines_below)
+    {
+        for (auto iterator = infill_line_below->cbeginSegments(); iterator != infill_line_below->cendSegments(); ++iterator)
+        {
+            const Point2LL& start = (*iterator).start;
+            const Point2LL& end = (*iterator).end;
+            const AngleDegrees segment_angle = vAngle(end - start) + AngleDegrees(90);
+            if (nonOrientedDelta(segment_angle, bridge_angle + 90) >= min_angle_delta)
+            {
+                addTransformSegment(start, end, matrix, filtered_infill_lines_below);
+            }
+        }
+    }
+
+    for (const Polygon& polygon : infill_contour)
+    {
+        for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
+        {
+            addTransformSegment((*iterator).start, (*iterator).end, matrix, filtered_infill_lines_below);
+        }
+    }
+    for (const TransformedSegment& filtered_infill_line_below : filtered_infill_lines_below.segments)
+    {
+        svg.write(filtered_infill_line_below.transformed_start, filtered_infill_line_below.transformed_end, { .line = { SVG::Color::MAGENTA, 0.4 } });
+    }
+
+    Shape transformed_expanded_infill_below_skin_area;
+    for (const Polygon& infill_below_skin_polygon : infill_below_skin_area)
+    {
+        Polygon expanded_polygon;
+        for (auto iterator = infill_below_skin_polygon.beginSegments(); iterator != infill_below_skin_polygon.endSegments(); ++iterator)
+        {
+            TransformedSegment transformed_infill_below_skin_segment((*iterator).start, (*iterator).end, matrix);
+            expandSegment(transformed_infill_below_skin_segment, filtered_infill_lines_below.segments, expanded_polygon, &svg);
+        }
+        transformed_expanded_infill_below_skin_area.push_back(std::move(expanded_polygon));
+    }
+    svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::RED, 0.3 } });
+
+    // for (Polygon& polygon : transformed_expanded_infill_below_skin_area)
+    // {
+    //     for (Point2LL& point : polygon)
+    //     {
+    //         point = matrix.unapply(point);
+    //     }
+    // }
+    transformed_expanded_infill_below_skin_area.applyMatrix(matrix.inverse());
+
+    // transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(5).offset(-5);
+
+    svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::GREEN, 0.3 } });
+
+    return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
 
 } // namespace cura

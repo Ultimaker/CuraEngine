@@ -26,7 +26,7 @@ public:
     /*
      * \brief Default constructor setting the angle to 0.
      */
-    AngleDegrees() noexcept = default;
+    constexpr AngleDegrees() noexcept = default;
 
     /*
      * \brief Converts radians to degrees.
@@ -36,7 +36,7 @@ public:
     /*
      * \brief Casts a double to an AngleDegrees instance.
      */
-    AngleDegrees(double value)
+    constexpr AngleDegrees(double value)
         : value_{ std::fmod(std::fmod(value, 360) + 360, 360) }
     {
     }
@@ -171,6 +171,11 @@ constexpr inline AngleRadians::AngleRadians(const AngleDegrees& value)
 {
 }
 
+inline double normalizeTo(const double angle, const double max)
+{
+    return std::fmod(std::fmod(angle, max) + max, max);
+}
+
 /*!
  * \brief Safe call to "std::tan" which limits the higher angle value to something slightly less that π/2 so that when
  *        the given angle is higher that this value, the returned value is not a huge number
@@ -182,6 +187,14 @@ constexpr inline AngleRadians::AngleRadians(const AngleDegrees& value)
 inline double boundedTan(const AngleRadians& angle)
 {
     return std::tan(std::min(static_cast<double>(angle), std::numbers::pi / 2.0 - 0.001));
+}
+
+inline AngleDegrees nonOrientedDelta(const AngleDegrees& angle1, const AngleDegrees& angle2)
+{
+    const double normalized_angle1 = normalizeTo(angle1.value_, 180);
+    const double normalized_angle2 = normalizeTo(angle2.value_, 180);
+    const double diff = std::fabs(normalized_angle1 - normalized_angle2);
+    return std::min(diff, 180.0 - diff);
 }
 
 } // namespace cura

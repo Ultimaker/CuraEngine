@@ -541,6 +541,16 @@ void LayerPlan::planPrime(double prime_blob_wipe_length)
     forceNewPathStart();
 }
 
+void LayerPlan::setGeneratedInfillLines(const MixedLinesSet& infill_lines)
+{
+    infill_lines_ = infill_lines;
+}
+
+const MixedLinesSet& LayerPlan::getGeneratedInfillLines() const
+{
+    return infill_lines_;
+}
+
 void LayerPlan::addExtrusionMove(
     const Point3LL& p,
     const GCodePathConfig& config,

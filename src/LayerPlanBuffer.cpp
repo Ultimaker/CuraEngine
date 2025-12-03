@@ -3,6 +3,7 @@
 
 #include "LayerPlanBuffer.h"
 
+#include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To flush g-code through the communication channel.
@@ -19,14 +20,11 @@ namespace cura
 
 constexpr Duration LayerPlanBuffer::extra_preheat_time_;
 
-void LayerPlanBuffer::push(LayerPlan& layer_plan)
-{
-    buffer_.push_back(&layer_plan);
-}
-
 void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
 {
-    push(layer_plan);
+    std::lock_guard mutex_locker(buffer_mutex_);
+
+    buffer_.push_back(&layer_plan);
 
     LayerPlan* to_be_written = processBuffer();
     if (to_be_written)
@@ -34,6 +32,8 @@ void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
         to_be_written->writeGCode(gcode);
         delete to_be_written;
     }
+
+    buffer_condition_variable_.notify_all();
 }
 
 LayerPlan* LayerPlanBuffer::processBuffer()
@@ -76,6 +76,46 @@ void LayerPlanBuffer::flush()
         delete buffer_.front();
         buffer_.pop_front();
     }
+}
+
+const LayerPlan* LayerPlanBuffer::getCompletedLayerPlan(const LayerIndex& layer_nr) const
+{
+    const LayerPlan* result = nullptr;
+
+    const auto search_layer_plan = [&layer_nr, this]() -> const LayerPlan*
+    {
+        const auto iterator = ranges::find_if(
+            buffer_,
+            [&layer_nr](const LayerPlan* layer_plan)
+            {
+                return layer_plan->getLayerNr() == layer_nr;
+            });
+
+        if (iterator != buffer_.end())
+        {
+            return *iterator;
+        }
+
+        return nullptr;
+    };
+
+    // The method has to be const in order to be called for the layer processing, however the multi-threading sync requires a non-const pointer.
+    auto noconst_this = const_cast<LayerPlanBuffer*>(this);
+    while (true)
+    {
+        std::unique_lock mutex_locker(noconst_this->buffer_mutex_);
+        result = search_layer_plan();
+
+        if (result != nullptr)
+        {
+            break;
+        }
+
+        // Wait for next finished layer plan
+        noconst_this->buffer_condition_variable_.wait(mutex_locker);
+    }
+
+    return result;
 }
 
 void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
@@ -159,20 +199,22 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, c
         if (acc_time >= time_before_extruder_plan_end)
         {
             constexpr bool wait = false;
-            extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                                 .extruder = extruder_nr,
-                                                                 .temperature = temp,
-                                                                 .wait = wait,
-                                                                 .time_after_path_start = acc_time - time_before_extruder_plan_end });
+            extruder_plan_before.insertCommand(
+                NozzleTempInsert{ .path_idx = path_idx,
+                                  .extruder = extruder_nr,
+                                  .temperature = temp,
+                                  .wait = wait,
+                                  .time_after_path_start = acc_time - time_before_extruder_plan_end });
             return;
         }
     }
     constexpr bool wait = false;
     constexpr size_t path_idx = 0;
-    extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                         .extruder = extruder_nr,
-                                                         .temperature = temp,
-                                                         .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
+    extruder_plan_before.insertCommand(
+        NozzleTempInsert{ .path_idx = path_idx,
+                          .extruder = extruder_nr,
+                          .temperature = temp,
+                          .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
 }
 
 Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
