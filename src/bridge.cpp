@@ -495,10 +495,6 @@ std::optional<AngleDegrees> bridgeAngle(
 
 void expandSegment(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_below, ClosedPolyline& expanded_infill_below_skin_area, const SVG* svg);
 
-void expandHorizontalSegment(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_on_same_band, ClosedPolyline& expanded_infill_below_skin_area)
-{
-}
-
 void expandNonHorizontalSegment(
     const TransformedSegment& segment,
     const std::vector<TransformedSegment>& infill_lines_on_same_band,
@@ -553,7 +549,10 @@ void expandNonHorizontalSegment(
 
     const int8_t expand_direction = segment.transformed_end.Y > segment.transformed_start.Y ? 1 : -1;
 
-    svg->write(segment.transformed_start, segment.transformed_end, { .line = { SVG::Color::BLACK, 0.35 } });
+    if (svg)
+    {
+        svg->write(segment.transformed_start, segment.transformed_end, { .line = { SVG::Color::BLACK, 0.35 } });
+    }
 
     std::vector<TransformedSegment> infill_lines_on_expansion_side;
     for (const TransformedSegment& infill_line_on_same_band : infill_lines_on_same_band)
@@ -604,11 +603,6 @@ void expandNonHorizontalSegment(
         expanded_infill_below_skin_area.push_back(segment.transformed_end);
         return;
     }
-
-    // for (const TransformedSegment& infill_line_on_expansion_side : infill_lines_on_expansion_side)
-    // {
-    //     svg->write(infill_line_on_expansion_side.transformed_start, infill_line_on_expansion_side.transformed_end, { .line = { SVG::Color::YELLOW, 0.2 } });
-    // }
 
     std::vector<coord_t> scan_positions_y(scan_positions_y_set.begin(), scan_positions_y_set.end());
     if (expand_direction < 0)
@@ -676,10 +670,6 @@ void expandNonHorizontalSegment(
                         { .line = { SVG::Color::GREEN, 0.3 } });
                 }
             }
-            else
-            {
-                spdlog::warn("No intersection found with current segment");
-            }
         }
 
         if (expanded_infill_below_skin_area.push_back(Point2LL(*closest_intersection, scan_line_y), only_if_forming_segment) && svg != nullptr
@@ -694,6 +684,12 @@ void expandNonHorizontalSegment(
 
 void expandSegment(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_below, ClosedPolyline& expanded_infill_below_skin_area, const SVG* svg)
 {
+    if (segment.min_y == segment.max_y)
+    {
+        // Skip horizontal segments, holes will be filled by expanding their previous and next segments
+        return;
+    }
+
     std::vector<TransformedSegment> infill_lines_on_same_band;
     for (const TransformedSegment& infill_line_below : infill_lines_below)
     {
@@ -703,14 +699,7 @@ void expandSegment(const TransformedSegment& segment, const std::vector<Transfor
         }
     }
 
-    if (segment.min_y == segment.max_y)
-    {
-        expandHorizontalSegment(segment, infill_lines_on_same_band, expanded_infill_below_skin_area);
-    }
-    else
-    {
-        expandNonHorizontalSegment(segment, infill_lines_on_same_band, expanded_infill_below_skin_area, svg);
-    }
+    expandNonHorizontalSegment(segment, infill_lines_on_same_band, expanded_infill_below_skin_area, svg);
 }
 
 std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
@@ -730,7 +719,8 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     // svg.write(completed_layer_plan_below->getGeneratedInfillLines(), { .line = { 0.3 } });
 
     const AngleDegrees bridge_angle = bridgeOverInfillAngle(mesh, layer_nr);
-    const PointMatrix matrix(bridge_angle + 90);
+    const AngleDegrees expansion_angle = bridge_angle + 90;
+    const PointMatrix matrix(expansion_angle);
     const MixedLinesSet& infill_lines_below = completed_layer_plan_below->getGeneratedInfillLines();
     TransformedShape filtered_infill_lines_below;
     constexpr AngleDegrees min_angle_delta(1);
@@ -741,8 +731,10 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
         {
             const Point2LL& start = (*iterator).start;
             const Point2LL& end = (*iterator).end;
-            const AngleDegrees segment_angle = vAngle(end - start) + AngleDegrees(90);
-            if (nonOrientedDelta(segment_angle, bridge_angle + 90) >= min_angle_delta)
+
+            TransformedSegment transformed_segment((*iterator).start, (*iterator).end, matrix);
+            const AngleDegrees segment_angle = vAngle(transformed_segment.transformed_end - transformed_segment.transformed_start);
+            if (nonOrientedDelta(segment_angle, 0) >= min_angle_delta)
             {
                 addTransformSegment(start, end, matrix, filtered_infill_lines_below);
             }
@@ -774,18 +766,14 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     }
     svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::RED, 0.3 } });
 
-    // for (Polygon& polygon : transformed_expanded_infill_below_skin_area)
-    // {
-    //     for (Point2LL& point : polygon)
-    //     {
-    //         point = matrix.unapply(point);
-    //     }
-    // }
     transformed_expanded_infill_below_skin_area.applyMatrix(matrix.inverse());
 
-    // transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(5).offset(-5);
+    constexpr coord_t EPSILON = 5;
+    // Perform a morphological closing to remove overlapping lines
+    transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
 
-    svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::GREEN, 0.3 } });
+    svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::GREEN } });
+    svg.write(infill_contour, { .surface = { SVG::Color::YELLOW, 0.3 } });
 
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
