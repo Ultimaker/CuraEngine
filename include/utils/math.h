@@ -143,5 +143,11 @@ template<utils::floating_point T>
     return std::abs(value) < (std::numeric_limits<T>::epsilon() * 100.0);
 }
 
+template<utils::numeric T>
+[[nodiscard]] int8_t sign(T value)
+{
+    return value >= static_cast<T>(0) ? 1 : -1;
+}
+
 } // namespace cura
 #endif // UTILS_MATH_H

@@ -23,14 +23,14 @@ namespace cura
 
 struct TransformedSegment
 {
-    Point2LL transformed_start;
-    Point2LL transformed_end;
+    Point2LL start;
+    Point2LL end;
     coord_t min_y;
     coord_t max_y;
 
     TransformedSegment(const Point2LL& transformed_start, const Point2LL& transformed_end)
-        : transformed_start(transformed_start)
-        , transformed_end(transformed_end)
+        : start(transformed_start)
+        , end(transformed_end)
         , min_y(std::min(transformed_start.Y, transformed_end.Y))
         , max_y(std::max(transformed_start.Y, transformed_end.Y))
     {
@@ -67,7 +67,7 @@ std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const Transfor
             continue;
         }
 
-        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.transformed_start, transformed_segment.transformed_end, line_y);
+        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.start, transformed_segment.end, line_y);
         if (intersection.has_value())
         {
             intersections.push_back(intersection.value());
@@ -506,13 +506,7 @@ void expandNonHorizontalSegment(
     {
         float intersection_t;
         float intersection_u;
-        if (LinearAlg2D::segmentSegmentIntersection(
-                segment.transformed_start,
-                segment.transformed_end,
-                infill_line_on_same_band.transformed_start,
-                infill_line_on_same_band.transformed_end,
-                intersection_t,
-                intersection_u)
+        if (LinearAlg2D::segmentSegmentIntersection(segment.start, segment.end, infill_line_on_same_band.start, infill_line_on_same_band.end, intersection_t, intersection_u)
             && intersection_t > 0.0 && intersection_t < 1.0)
         {
             intersections.push_back(intersection_t);
@@ -526,13 +520,12 @@ void expandNonHorizontalSegment(
         intersections.insert(intersections.begin(), 0.0);
         intersections.push_back(1.0);
 
-        const Point2LL segment_vector = segment.transformed_end - segment.transformed_start;
+        const Point2LL segment_vector = segment.end - segment.start;
 
         for (const auto& sub_segment_t : intersections | ranges::views::sliding(2))
         {
-            const TransformedSegment sub_segment(segment.transformed_start + segment_vector * sub_segment_t[0], segment.transformed_start + segment_vector * sub_segment_t[1]);
-            if (sub_segment.transformed_start == sub_segment.transformed_end
-                || (sub_segment.transformed_start == segment.transformed_start && sub_segment.transformed_end == segment.transformed_end))
+            const TransformedSegment sub_segment(segment.start + segment_vector * sub_segment_t[0], segment.start + segment_vector * sub_segment_t[1]);
+            if (sub_segment.start == sub_segment.end || (sub_segment.start == segment.start && sub_segment.end == segment.end))
             {
                 continue;
             }
@@ -547,11 +540,11 @@ void expandNonHorizontalSegment(
         }
     }
 
-    const int8_t expand_direction = segment.transformed_end.Y > segment.transformed_start.Y ? 1 : -1;
+    const int8_t expand_direction = sign(segment.end.Y - segment.start.Y);
 
     if (svg)
     {
-        svg->write(segment.transformed_start, segment.transformed_end, { .line = { SVG::Color::BLACK, 0.35 } });
+        svg->write(segment.start, segment.end, { .line = { SVG::Color::BLACK, 0.35 } });
     }
 
     std::vector<TransformedSegment> infill_lines_on_expansion_side;
@@ -566,12 +559,10 @@ void expandNonHorizontalSegment(
         }
         else
         {
-            const coord_t segment_x_min = LinearAlg2D::lineHorizontalLineIntersection(segment.transformed_start, segment.transformed_end, y_min).value();
-            const coord_t segment_x_max = LinearAlg2D::lineHorizontalLineIntersection(segment.transformed_start, segment.transformed_end, y_max).value();
-            const coord_t infill_line_x_min
-                = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_same_band.transformed_start, infill_line_on_same_band.transformed_end, y_min).value();
-            const coord_t infill_line_x_max
-                = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_same_band.transformed_start, infill_line_on_same_band.transformed_end, y_max).value();
+            const coord_t segment_x_min = LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, y_min).value();
+            const coord_t segment_x_max = LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, y_max).value();
+            const coord_t infill_line_x_min = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_same_band.start, infill_line_on_same_band.end, y_min).value();
+            const coord_t infill_line_x_max = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_same_band.start, infill_line_on_same_band.end, y_max).value();
 
             if ((infill_line_x_min != segment_x_min || infill_line_x_max != segment_x_max)
                 && ((expand_direction > 0 && infill_line_x_min >= segment_x_min && infill_line_x_max >= segment_x_max)
@@ -583,24 +574,23 @@ void expandNonHorizontalSegment(
     }
 
     std::set<coord_t> scan_positions_y_set;
-    scan_positions_y_set.insert(segment.transformed_start.Y);
-    scan_positions_y_set.insert(segment.transformed_end.Y);
+    scan_positions_y_set.insert(segment.start.Y);
+    scan_positions_y_set.insert(segment.end.Y);
     for (const TransformedSegment& infill_line_on_expansion_side : infill_lines_on_expansion_side)
     {
-        if (infill_line_on_expansion_side.transformed_start.Y > segment.min_y && infill_line_on_expansion_side.transformed_start.Y < segment.max_y)
+        if (infill_line_on_expansion_side.start.Y > segment.min_y && infill_line_on_expansion_side.start.Y < segment.max_y)
         {
-            scan_positions_y_set.insert(infill_line_on_expansion_side.transformed_start.Y);
+            scan_positions_y_set.insert(infill_line_on_expansion_side.start.Y);
         }
-        if (infill_line_on_expansion_side.transformed_end.Y > segment.min_y && infill_line_on_expansion_side.transformed_end.Y < segment.max_y)
+        if (infill_line_on_expansion_side.end.Y > segment.min_y && infill_line_on_expansion_side.end.Y < segment.max_y)
         {
-            scan_positions_y_set.insert(infill_line_on_expansion_side.transformed_end.Y);
+            scan_positions_y_set.insert(infill_line_on_expansion_side.end.Y);
         }
     }
 
     if (infill_lines_on_expansion_side.empty())
     {
-        expanded_infill_below_skin_area.push_back(segment.transformed_start);
-        expanded_infill_below_skin_area.push_back(segment.transformed_end);
+        expanded_infill_below_skin_area.push_back(segment.end);
         return;
     }
 
@@ -612,57 +602,100 @@ void expandNonHorizontalSegment(
 
     const TransformedSegment* current_infill_line_segment = nullptr;
     constexpr bool only_if_forming_segment = true;
-    for (const coord_t scan_line_y : scan_positions_y)
+
+    while (! scan_positions_y.empty())
     {
-        const coord_t scan_line_segment_x = LinearAlg2D::lineHorizontalLineIntersection(segment.transformed_start, segment.transformed_end, scan_line_y).value();
+        const coord_t scan_line_y = scan_positions_y.front();
+        scan_positions_y.erase(scan_positions_y.begin());
+
+        std::optional<std::tuple<coord_t, const TransformedSegment*>> closest_intersection;
         std::optional<coord_t> current_infill_line_segment_intersection;
-        std::optional<coord_t> closest_intersection;
-        const TransformedSegment* closest_intersection_segment = nullptr;
-        // std::vector<const TransformedSegment*> closest_intersection_segments;
         for (const TransformedSegment& infill_line_on_expansion_side : infill_lines_on_expansion_side)
         {
             const std::optional<coord_t> intersection
-                = LinearAlg2D::segmentHorizontalLineIntersection(infill_line_on_expansion_side.transformed_start, infill_line_on_expansion_side.transformed_end, scan_line_y);
-            if (intersection.has_value())
+                = LinearAlg2D::segmentHorizontalLineIntersection(infill_line_on_expansion_side.start, infill_line_on_expansion_side.end, scan_line_y);
+            if (! intersection.has_value())
             {
-                if (&infill_line_on_expansion_side == current_infill_line_segment)
-                {
-                    current_infill_line_segment_intersection = *intersection;
-                }
+                continue;
+            }
 
-                if (expand_direction > 0)
+            if (&infill_line_on_expansion_side == current_infill_line_segment)
+            {
+                current_infill_line_segment_intersection = *intersection;
+            }
+
+            if (scan_line_y == infill_line_on_expansion_side.start.Y || scan_line_y == infill_line_on_expansion_side.end.Y)
+            {
+                // We are at the tip of the segment, check that we can actually use it further
+                const bool same_orientation = sign(infill_line_on_expansion_side.end.Y - infill_line_on_expansion_side.start.Y) == expand_direction;
+                if ((same_orientation && scan_line_y == infill_line_on_expansion_side.end.Y) || (! same_orientation && scan_line_y == infill_line_on_expansion_side.start.Y))
                 {
-                    if (*intersection >= scan_line_segment_x && (! closest_intersection.has_value() || *intersection < *closest_intersection))
-                    {
-                        closest_intersection = *intersection;
-                        closest_intersection_segment = &infill_line_on_expansion_side;
-                    }
+                    continue;
                 }
-                else
+            }
+
+            bool set_closest_intersection = false;
+            if (! closest_intersection.has_value())
+            {
+                set_closest_intersection = true;
+            }
+            else if (*intersection == std::get<0>(*closest_intersection))
+            {
+                // We have multiple infill lines that intersect at the same position, take the one that goes towards the segment
+                if (! scan_positions_y.empty())
                 {
-                    if (*intersection <= scan_line_segment_x && (! closest_intersection.has_value() || *intersection > *closest_intersection))
-                    {
-                        closest_intersection = *intersection;
-                        closest_intersection_segment = &infill_line_on_expansion_side;
-                    }
+                    const coord_t current_closest_x_at_end
+                        = LinearAlg2D::lineHorizontalLineIntersection(std::get<1>(*closest_intersection)->start, std::get<1>(*closest_intersection)->end, segment.end.Y).value();
+                    const coord_t candidate_x_at_end
+                        = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_expansion_side.start, infill_line_on_expansion_side.end, segment.end.Y).value();
+                    set_closest_intersection = std::abs(candidate_x_at_end - segment.end.Y) < std::abs(current_closest_x_at_end - segment.end.Y);
                 }
+            }
+            else
+            {
+                set_closest_intersection = ((expand_direction > 0) == (*intersection < std::get<0>(*closest_intersection)));
+            }
+
+            if (set_closest_intersection)
+            {
+                closest_intersection = { *intersection, &infill_line_on_expansion_side };
             }
         }
 
         if (! closest_intersection.has_value())
         {
             spdlog::warn("No intersection found while expanding infill");
-            expanded_infill_below_skin_area.push_back(segment.transformed_start);
-            expanded_infill_below_skin_area.push_back(segment.transformed_end);
+            expanded_infill_below_skin_area.push_back(segment.end);
             break;
         }
 
-        if (current_infill_line_segment != nullptr)
+        if (current_infill_line_segment != nullptr && std::get<1>(*closest_intersection) != current_infill_line_segment && current_infill_line_segment_intersection.has_value()
+            && fuzzy_not_equal(*current_infill_line_segment_intersection, std::get<0>(*closest_intersection)))
+        {
+            // Since we have found a different segment, there must be an intersection between the current one and the new one. If the current position is not the position of
+            // this intersection, that means we have to go back to where they intersect
+            float current_segment_intersection;
+            float new_segment_intersection;
+            if (LinearAlg2D::segmentSegmentIntersection(
+                    current_infill_line_segment->start,
+                    current_infill_line_segment->end,
+                    std::get<1>(*closest_intersection)->start,
+                    std::get<1>(*closest_intersection)->end,
+                    current_segment_intersection,
+                    new_segment_intersection))
+            {
+                const coord_t intersection_y = std::lerp(current_infill_line_segment->start.Y, current_infill_line_segment->end.Y, current_segment_intersection);
+                scan_positions_y.insert(scan_positions_y.begin(), intersection_y);
+                continue;
+            }
+        }
+
+        if (std::get<1>(*closest_intersection) != current_infill_line_segment || scan_positions_y.empty())
         {
             if (current_infill_line_segment_intersection.has_value())
             {
                 if (expanded_infill_below_skin_area.push_back(Point2LL(*current_infill_line_segment_intersection, scan_line_y), only_if_forming_segment) && svg != nullptr
-                    && expanded_infill_below_skin_area.isValid())
+                    && expanded_infill_below_skin_area.segmentsCount() > 0)
                 {
                     svg->write(
                         expanded_infill_below_skin_area[expanded_infill_below_skin_area.size() - 2],
@@ -670,15 +703,18 @@ void expandNonHorizontalSegment(
                         { .line = { SVG::Color::GREEN, 0.3 } });
                 }
             }
+
+            if (expanded_infill_below_skin_area.push_back(Point2LL(std::get<0>(*closest_intersection), scan_line_y), only_if_forming_segment) && svg != nullptr
+                && expanded_infill_below_skin_area.segmentsCount() > 0)
+            {
+                svg->write(
+                    expanded_infill_below_skin_area[expanded_infill_below_skin_area.size() - 2],
+                    expanded_infill_below_skin_area.back(),
+                    { .line = { SVG::Color::BLUE, 0.3 } });
+            }
         }
 
-        if (expanded_infill_below_skin_area.push_back(Point2LL(*closest_intersection, scan_line_y), only_if_forming_segment) && svg != nullptr
-            && expanded_infill_below_skin_area.isValid())
-        {
-            svg->write(expanded_infill_below_skin_area[expanded_infill_below_skin_area.size() - 2], expanded_infill_below_skin_area.back(), { .line = { SVG::Color::BLUE, 0.3 } });
-        }
-
-        current_infill_line_segment = closest_intersection_segment;
+        current_infill_line_segment = std::get<1>(*closest_intersection);
     }
 }
 
@@ -733,7 +769,7 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
             const Point2LL& end = (*iterator).end;
 
             TransformedSegment transformed_segment((*iterator).start, (*iterator).end, matrix);
-            const AngleDegrees segment_angle = vAngle(transformed_segment.transformed_end - transformed_segment.transformed_start);
+            const AngleDegrees segment_angle = vAngle(transformed_segment.end - transformed_segment.start);
             if (nonOrientedDelta(segment_angle, 0) >= min_angle_delta)
             {
                 addTransformSegment(start, end, matrix, filtered_infill_lines_below);
@@ -750,7 +786,7 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     }
     for (const TransformedSegment& filtered_infill_line_below : filtered_infill_lines_below.segments)
     {
-        svg.write(filtered_infill_line_below.transformed_start, filtered_infill_line_below.transformed_end, { .line = { SVG::Color::MAGENTA, 0.4 } });
+        svg.write(filtered_infill_line_below.start, filtered_infill_line_below.end, { .line = { SVG::Color::MAGENTA, 0.4 } });
     }
 
     Shape transformed_expanded_infill_below_skin_area;
@@ -768,7 +804,6 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
 
     transformed_expanded_infill_below_skin_area.applyMatrix(matrix.inverse());
 
-    constexpr coord_t EPSILON = 5;
     // Perform a morphological closing to remove overlapping lines
     transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
 

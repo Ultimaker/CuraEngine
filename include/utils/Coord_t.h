@@ -16,6 +16,8 @@ namespace cura
 
 using coord_t = ClipperLib::cInt;
 
+constexpr coord_t EPSILON = 5;
+
 static inline coord_t operator""_mu(unsigned long long i)
 {
     return static_cast<coord_t>(i);
@@ -34,6 +36,16 @@ template<utils::floating_point FactorType>
 [[nodiscard]] inline coord_t lerp(coord_t a, coord_t b, FactorType t)
 {
     return std::llrint(std::lerp(static_cast<double>(a), static_cast<double>(b), t));
+}
+
+[[nodiscard]] inline bool fuzzy_equal(coord_t a, coord_t b)
+{
+    return std::abs(b - a) <= EPSILON;
+}
+
+[[nodiscard]] inline bool fuzzy_not_equal(coord_t a, coord_t b)
+{
+    return ! fuzzy_equal(a, b);
 }
 
 } // namespace cura
