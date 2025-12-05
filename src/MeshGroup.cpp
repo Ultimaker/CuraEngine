@@ -467,13 +467,13 @@ bool loadMeshSTL_binary_with_uv(Mesh* mesh, const char* filename, const Matrix4x
  */
 bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point2F>& uv_coordinates)
 {
-    if (!std::filesystem::exists(uv_filename))
+    if (! std::filesystem::exists(uv_filename))
     {
         return false; // File doesn't exist, not an error
     }
 
     std::ifstream file(uv_filename, std::ios::binary);
-    if (!file.is_open())
+    if (! file.is_open())
     {
         spdlog::warn("Failed to open UV file: {}", uv_filename);
         return false;
@@ -481,7 +481,7 @@ bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point
 
     // Read vertex count (uint32)
     uint32_t vertex_count;
-    if (!file.read(reinterpret_cast<char*>(&vertex_count), sizeof(uint32_t)))
+    if (! file.read(reinterpret_cast<char*>(&vertex_count), sizeof(uint32_t)))
     {
         spdlog::warn("Failed to read vertex count from UV file: {}", uv_filename);
         return false;
@@ -498,7 +498,7 @@ bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point
     uv_coordinates.resize(vertex_count);
     size_t uv_data_size = vertex_count * 2 * sizeof(float);
 
-    if (!file.read(reinterpret_cast<char*>(uv_coordinates.data()), uv_data_size))
+    if (! file.read(reinterpret_cast<char*>(uv_coordinates.data()), uv_data_size))
     {
         spdlog::warn("Failed to read UV coordinates from file: {}", uv_filename);
         return false;
@@ -569,14 +569,14 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const char* filename, const Matrix4x3D& mat
  */
 bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
 {
-    if (!std::filesystem::exists(texture_filename))
+    if (! std::filesystem::exists(texture_filename))
     {
         return false; // File doesn't exist, not an error
     }
 
     // Read PNG file into memory
     std::ifstream file(texture_filename, std::ios::binary | std::ios::ate);
-    if (!file.is_open())
+    if (! file.is_open())
     {
         spdlog::warn("Failed to open texture file: {}", texture_filename);
         return false;
@@ -586,7 +586,7 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
     file.seekg(0, std::ios::beg);
 
     std::vector<unsigned char> texture_data(file_size);
-    if (!file.read(reinterpret_cast<char*>(texture_data.data()), file_size))
+    if (! file.read(reinterpret_cast<char*>(texture_data.data()), file_size))
     {
         spdlog::warn("Failed to read texture file: {}", texture_filename);
         return false;
@@ -595,36 +595,38 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
     // Use PNG library to parse the texture
     png_image raw_texture = {};
     raw_texture.version = PNG_IMAGE_VERSION;
-    if (!png_image_begin_read_from_memory(&raw_texture, texture_data.data(), texture_data.size()))
+    if (! png_image_begin_read_from_memory(&raw_texture, texture_data.data(), texture_data.size()))
     {
         spdlog::warn("Error reading PNG texture {}: {}", texture_filename, raw_texture.message);
         return false;
     }
 
     std::vector<uint8_t> buffer(PNG_IMAGE_SIZE(raw_texture));
-    if (!png_image_finish_read(&raw_texture, nullptr, buffer.data(), 0, nullptr) || buffer.empty())
+    if (! png_image_finish_read(&raw_texture, nullptr, buffer.data(), 0, nullptr) || buffer.empty())
     {
         spdlog::warn("Error finishing PNG texture read {}: {}", texture_filename, raw_texture.message);
         return false;
     }
 
     // Create PNG reading structures to extract metadata
-    std::unique_ptr<png_struct, void(*)(png_structp)> png_ptr(
+    std::unique_ptr<png_struct, void (*)(png_structp)> png_ptr(
         png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr),
-        [](png_structp png_ptr_destroy) {
+        [](png_structp png_ptr_destroy)
+        {
             png_destroy_read_struct(&png_ptr_destroy, nullptr, nullptr);
         });
-    if (!png_ptr)
+    if (! png_ptr)
     {
         return false;
     }
 
-    std::unique_ptr<png_info, void(*)(png_infop)> info_ptr(
+    std::unique_ptr<png_info, void (*)(png_infop)> info_ptr(
         png_create_info_struct(png_ptr.get()),
-        [](png_infop info_ptr_destroy) {
+        [](png_infop info_ptr_destroy)
+        {
             png_destroy_read_struct(nullptr, &info_ptr_destroy, nullptr);
         });
-    if (!info_ptr)
+    if (! info_ptr)
     {
         return false;
     }
@@ -634,14 +636,18 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
         return false;
     }
 
-    struct PngReadContext {
+    struct PngReadContext
+    {
         const unsigned char* data;
         size_t size;
         size_t offset;
     } read_context{ texture_data.data(), texture_data.size(), 0 };
 
-    png_set_read_fn(png_ptr.get(), &read_context,
-        [](const png_structp read_png_ptr, const png_bytep out_bytes, const png_size_t byte_count_to_read) {
+    png_set_read_fn(
+        png_ptr.get(),
+        &read_context,
+        [](const png_structp read_png_ptr, const png_bytep out_bytes, const png_size_t byte_count_to_read)
+        {
             auto* context = static_cast<PngReadContext*>(png_get_io_ptr(read_png_ptr));
             if (context->offset + byte_count_to_read > context->size)
             {
@@ -672,8 +678,11 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
             json_document.ParseStream(json_memory_stream);
             if (json_document.HasParseError())
             {
-                spdlog::warn("Error parsing texture metadata in {} (offset {}): {}",
-                    texture_filename, json_document.GetErrorOffset(), GetParseError_En(json_document.GetParseError()));
+                spdlog::warn(
+                    "Error parsing texture metadata in {} (offset {}): {}",
+                    texture_filename,
+                    json_document.GetErrorOffset(),
+                    GetParseError_En(json_document.GetParseError()));
                 return false;
             }
 
@@ -693,7 +702,7 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
         }
     }
 
-    if (!texture_data_mapping->empty())
+    if (! texture_data_mapping->empty())
     {
         mesh.texture_ = std::make_shared<Image>(
             raw_texture.width,
@@ -758,7 +767,6 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
         }
         spdlog::warn("loading STL '{}' failed", filename);
         return false;
-
     }
 
     if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
