@@ -220,6 +220,11 @@ inline Point2LL lerp(const Point2LL& a, const Point2LL& b, const double t)
     return Point2LL(lerp(a.X, b.X, t), lerp(a.Y, b.Y, t));
 }
 
+inline bool fuzzy_equal(const Point2LL& a, const Point2LL& b)
+{
+    return fuzzy_equal(a.X, b.X) && fuzzy_equal(a.Y, b.Y);
+}
+
 } // namespace cura
 
 namespace std

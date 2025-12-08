@@ -75,7 +75,7 @@ public:
 
     bool push_back(const Point2LL& point, const bool only_if_forming_segment = false)
     {
-        if (only_if_forming_segment && ! points_.empty() && point == points_.back())
+        if (only_if_forming_segment && ! points_.empty() && fuzzy_equal(point, points_.back()))
         {
             return false;
         }
