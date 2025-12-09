@@ -321,19 +321,28 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, con
 
 std::optional<coord_t> LinearAlg2D::lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
 {
-    if (p1.X == p2.X)
+    if (p1.Y == p2.Y)
     {
-        // Line is purely vertical
-        return p1.X;
-    }
-
-    const double coeff_a = static_cast<double>(p2.Y - p1.Y) / (p2.X - p1.X);
-    if (is_null(coeff_a))
-    {
-        // Other line is also horizontal
+        // Line is also horizontal, can't find a proper intersection
         return std::nullopt;
     }
 
+    if (p1.X == p2.X)
+    {
+        // Line is vertical
+        return p1.X;
+    }
+
+    if (line_y == p1.Y)
+    {
+        return p1.X;
+    }
+    if (line_y == p2.Y)
+    {
+        return p2.X;
+    }
+
+    const double coeff_a = static_cast<double>(p2.Y - p1.Y) / (p2.X - p1.X);
     const double coeff_b = p1.Y - coeff_a * p1.X;
     return std::llrint((line_y - coeff_b) / coeff_a);
 }

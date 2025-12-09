@@ -48,6 +48,13 @@ struct TransformedShape
     std::vector<TransformedSegment> segments;
     coord_t min_y{ std::numeric_limits<coord_t>::max() };
     coord_t max_y{ std::numeric_limits<coord_t>::lowest() };
+
+    void addSegment(TransformedSegment&& segment)
+    {
+        segments.push_back(segment);
+        min_y = std::min(min_y, segment.min_y);
+        max_y = std::max(max_y, segment.max_y);
+    }
 };
 
 /*!
@@ -226,19 +233,11 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
     return segment_score;
 }
 
-void addTransformSegment(const Point2LL& start, const Point2LL& end, const PointMatrix& matrix, TransformedShape& transformed_shape)
-{
-    TransformedSegment transformed_segment(start, end, matrix);
-    transformed_shape.segments.push_back(transformed_segment);
-    transformed_shape.min_y = std::min(transformed_shape.min_y, transformed_segment.min_y);
-    transformed_shape.max_y = std::max(transformed_shape.max_y, transformed_segment.max_y);
-}
-
 void transformPolygon(const Polygon& polygon, const PointMatrix& matrix, TransformedShape& transformed_shape)
 {
     for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
     {
-        addTransformSegment((*iterator).start, (*iterator).end, matrix, transformed_shape);
+        transformed_shape.addSegment(TransformedSegment((*iterator).start, (*iterator).end, matrix));
     }
 }
 
@@ -494,47 +493,53 @@ std::optional<AngleDegrees> bridgeAngle(
     return best_angle.angle;
 }
 
-struct ExpandPolygonContext
+/*!
+ * Get the list of potential infill line candidates to expand the given segment, i.e. those that are on the expansion side of the segment, or crossing it
+ * @param segment The segment being expanded
+ * @param infill_lines_below The infill lines on the layer below
+ * @param expand_direction The direction in which to expand the segment, 1 means expand to the right, -1 expand to the left
+ * @return The list of potential infill line candidates to expand the given segment
+ */
+std::vector<const TransformedSegment*>
+    getInfillLinesOnExpansionSide(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_below, const int8_t expand_direction)
 {
-    Polygon expanded_polygon;
-    const TransformedSegment* current_supporting_infill_line{ nullptr };
-};
+    std::vector<const TransformedSegment*> result;
 
-// void expandSegment(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_below, ExpandPolygonContext& context, const SVG* svg);
-
-void expandNonHorizontalSegment(
-    const TransformedSegment& segment,
-    const std::vector<const TransformedSegment*>& infill_lines_on_same_band,
-    ExpandPolygonContext& context,
-    const SVG* svg)
-{
-    // 1 means expand to the right, -1 expand to the left
-    const int8_t expand_direction = sign(segment.end.Y - segment.start.Y);
-
-    if (svg)
+    for (const TransformedSegment& infill_line_below : infill_lines_below)
     {
-        svg->write(segment.start, segment.end, { .line = { SVG::Color::BLACK, 0.35 } });
-    }
+        if (infill_line_below.min_y > segment.max_y || infill_line_below.max_y < segment.min_y)
+        {
+            continue;
+        }
 
-    std::vector<const TransformedSegment*> infill_lines_on_expansion_side;
-    for (const TransformedSegment* infill_line_on_same_band : infill_lines_on_same_band)
-    {
-#warning optimize by doing those 2 calculations at once
-        const coord_t y_min = std::max(segment.min_y, infill_line_on_same_band->min_y);
-        const coord_t y_max = std::min(segment.max_y, infill_line_on_same_band->max_y);
+        const coord_t y_min = std::max(segment.min_y, infill_line_below.min_y);
+        const coord_t y_max = std::min(segment.max_y, infill_line_below.max_y);
 
         const coord_t segment_x_min = LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, y_min).value();
         const coord_t segment_x_max = LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, y_max).value();
-        const coord_t infill_line_x_min = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_same_band->start, infill_line_on_same_band->end, y_min).value();
-        const coord_t infill_line_x_max = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_same_band->start, infill_line_on_same_band->end, y_max).value();
+        const coord_t infill_line_x_min = LinearAlg2D::lineHorizontalLineIntersection(infill_line_below.start, infill_line_below.end, y_min).value();
+        const coord_t infill_line_x_max = LinearAlg2D::lineHorizontalLineIntersection(infill_line_below.start, infill_line_below.end, y_max).value();
 
         if (((expand_direction > 0 && (infill_line_x_min > segment_x_min || infill_line_x_max > segment_x_max))
              || (expand_direction < 0 && (infill_line_x_min < segment_x_min || infill_line_x_max < segment_x_max))))
         {
-            infill_lines_on_expansion_side.push_back(infill_line_on_same_band);
+            result.push_back(&infill_line_below);
         }
     }
 
+    return result;
+}
+
+/*!
+ * Make the list of Y positions to be initially scanned, i.e. the start and end of each possible infill line, and those of the segment itself
+ * @param segment The segment being expanded
+ * @param infill_lines_on_expansion_side The candidate infill lines to support the bridging
+ * @param expand_direction The direction in which to expand the segment, 1 means expand to the right, -1 expand to the left
+ * @return The Y positions to be evaluated
+ */
+std::vector<coord_t>
+    getInitialScanPositionsY(const TransformedSegment& segment, const std::vector<const TransformedSegment*> infill_lines_on_expansion_side, const int8_t expand_direction)
+{
     std::set<coord_t> scan_positions_y_set;
     scan_positions_y_set.insert(segment.start.Y);
     scan_positions_y_set.insert(segment.end.Y);
@@ -550,170 +555,201 @@ void expandNonHorizontalSegment(
         }
     }
 
-    if (infill_lines_on_expansion_side.empty())
-    {
-        context.expanded_polygon.push_back(segment.end);
-        return;
-    }
-
     std::vector<coord_t> scan_positions_y(scan_positions_y_set.begin(), scan_positions_y_set.end());
     if (expand_direction < 0)
     {
         ranges::reverse(scan_positions_y);
     }
 
-    const auto add_point = [&context, &svg](const Point2LL& point)
+    return scan_positions_y;
+}
+
+struct ClosestInfillLine
+{
+    coord_t x;
+    const TransformedSegment* line;
+};
+
+/*!
+ * Find the closest infill line on which to project the segment at the given Y position
+ * @param segment The current segment being projected
+ * @param infill_lines_on_expansion_side The list of lines that are potential candidates to be projected into
+ * @param scan_line_y The current Y scan position
+ * @param segment_x The segment X coordinate at the given Y scan position
+ * @param expand_direction The segment expand direction, 1 means expand to the right, -1 expand to the left
+ * @param current_supporting_infill_line The current infill line supporting the briding
+ * @return The closest infill line to be used to project the segment, and the X coordinate of the intersection with the current supporting line
+ */
+std::tuple<std::optional<ClosestInfillLine>, std::optional<coord_t>> findClosestInfillLine(
+    const TransformedSegment& segment,
+    const std::vector<const TransformedSegment*>& infill_lines_on_expansion_side,
+    const coord_t scan_line_y,
+    const coord_t segment_x,
+    const int8_t expand_direction,
+    const TransformedSegment* current_supporting_infill_line)
+{
+    std::optional<ClosestInfillLine> closest_intersection;
+    std::optional<coord_t> current_supporting_infill_line_intersection;
+
+    for (const TransformedSegment* infill_line_on_expansion_side : infill_lines_on_expansion_side)
     {
-        constexpr bool only_if_forming_segment = true;
-        if (context.expanded_polygon.push_back(point, only_if_forming_segment) && svg != nullptr)
+        const std::optional<coord_t> intersection
+            = LinearAlg2D::segmentHorizontalLineIntersection(infill_line_on_expansion_side->start, infill_line_on_expansion_side->end, scan_line_y);
+        if (! intersection.has_value())
         {
-            if (context.expanded_polygon.segmentsCount() > 0)
+            continue;
+        }
+
+        if (infill_line_on_expansion_side == current_supporting_infill_line)
+        {
+            current_supporting_infill_line_intersection = *intersection;
+        }
+
+        const bool at_segment_intersection = std::abs(*intersection - segment_x) < EPSILON;
+        if (! at_segment_intersection && sign(*intersection - segment_x) != expand_direction)
+        {
+            // Segment is on the wrong side for the moment
+            continue;
+        }
+
+        const bool at_line_start = scan_line_y == infill_line_on_expansion_side->start.Y;
+        const bool at_line_end = scan_line_y == infill_line_on_expansion_side->end.Y;
+        if (at_line_start || at_line_end)
+        {
+            // We are at the tip of the segment, check that we can actually use it further
+            // change this condition to make sure we only test the line is going closer to the segment
+            const bool same_orientation = sign(infill_line_on_expansion_side->end.Y - infill_line_on_expansion_side->start.Y) == expand_direction;
+            if ((same_orientation && at_line_end) || (! same_orientation && at_line_start))
             {
-                svg->write(context.expanded_polygon[context.expanded_polygon.size() - 2], context.expanded_polygon.back(), { .line = { SVG::Color::GREEN, 0.3 } });
-            }
-            else
-            {
-                svg->write(context.expanded_polygon.back(), {});
+                continue;
             }
         }
-    };
 
-    std::set<const TransformedSegment*> backwards_blacklist;
+        if (at_segment_intersection)
+        {
+            const coord_t line_at_segment_end_x
+                = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_expansion_side->start, infill_line_on_expansion_side->end, segment.end.Y).value();
+            if (sign(line_at_segment_end_x - segment.end.X) != expand_direction)
+            {
+                continue;
+            }
+        }
+
+        bool set_closest_intersection = false;
+        if (! closest_intersection.has_value())
+        {
+            set_closest_intersection = true;
+        }
+        else if (fuzzy_equal(*intersection, closest_intersection->x))
+        {
+            // We have multiple infill lines that intersect at the same position, take the one that goes towards the segment
+            const coord_t current_closest_x_at_end
+                = LinearAlg2D::lineHorizontalLineIntersection(closest_intersection->line->start, closest_intersection->line->end, segment.end.Y).value();
+            const coord_t candidate_x_at_end
+                = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_expansion_side->start, infill_line_on_expansion_side->end, segment.end.Y).value();
+            set_closest_intersection = std::abs(candidate_x_at_end - segment.end.X) < std::abs(current_closest_x_at_end - segment.end.X);
+        }
+        else
+        {
+            set_closest_intersection = ((expand_direction > 0) == (*intersection < closest_intersection->x));
+        }
+
+        if (set_closest_intersection)
+        {
+            closest_intersection = { *intersection, infill_line_on_expansion_side };
+        }
+    }
+
+    if (! closest_intersection.has_value())
+    {
+        closest_intersection = { segment_x, &segment };
+    }
+
+    if (current_supporting_infill_line == &segment)
+    {
+        current_supporting_infill_line_intersection = segment_x;
+    }
+
+    return { closest_intersection, current_supporting_infill_line_intersection };
+}
+
+/*!
+ * Expands a segment of a polygon so that bridging will always have supporting infill lines below for proper anchoring
+ * @param segment The current segment to be expanded
+ * @param infill_lines_below The infill lines on the layer below
+ * @param expanded_polygon The resulting expanded polygon
+ * @param current_supporting_infill_line The infill line below currently supporting the bridging, which will be updated over iterations when necessary
+ */
+void expandSegment(
+    const TransformedSegment& segment,
+    const std::vector<TransformedSegment>& infill_lines_below,
+    Polygon& expanded_polygon,
+    const TransformedSegment*& current_supporting_infill_line)
+{
+    if (segment.min_y == segment.max_y)
+    {
+        // Skip horizontal segments, holes will be filled by expanding their previous and next segments
+        return;
+    }
+
+    // 1 means expand to the right, -1 expand to the left
+    const int8_t expand_direction = sign(segment.end.Y - segment.start.Y);
+
+    const std::vector<const TransformedSegment*> infill_lines_on_expansion_side = getInfillLinesOnExpansionSide(segment, infill_lines_below, expand_direction);
+    if (infill_lines_on_expansion_side.empty())
+    {
+        expanded_polygon.push_back(segment.end);
+        return;
+    }
+
+    // Make the initial scan positions list, which contains the Y coordinate of the start and end of each infill line, and the segment start and end
+    std::vector<coord_t> scan_positions_y = getInitialScanPositionsY(segment, infill_lines_on_expansion_side, expand_direction);
+
+    constexpr bool only_if_forming_segment = true;
+
+    // Maximum validated Y scan position while moving forwards, to make sure we won't go too much backwards
     coord_t max_valid_scan_line_y = segment.start.Y;
+
+    // Now scan on Y direction, and find the closest segment on the expansion side
     while (! scan_positions_y.empty())
     {
         const coord_t scan_line_y = scan_positions_y.front();
         scan_positions_y.erase(scan_positions_y.begin());
 
-        coord_t segment_x;
-        if (scan_line_y == segment.start.Y)
-        {
-            segment_x = segment.start.X;
-        }
-        else if (scan_line_y == segment.end.Y)
-        {
-            segment_x = segment.end.X;
-        }
-        else
-        {
-            segment_x = lerp(segment.start.X, segment.end.X, inverse_lerp(segment.start.Y, segment.end.Y, scan_line_y));
-        }
+        const coord_t segment_x = LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, scan_line_y).value();
 
-        if (svg)
-        {
-            svg->write(Point2LL(segment_x, scan_line_y), { SVG::Color::ORANGE, 0.3 });
-        }
-
-        std::optional<std::tuple<coord_t, const TransformedSegment*>> closest_intersection;
+        std::optional<ClosestInfillLine> closest_intersection;
         std::optional<coord_t> current_supporting_infill_line_intersection;
-        for (const TransformedSegment* infill_line_on_expansion_side : infill_lines_on_expansion_side)
+        std::tie(closest_intersection, current_supporting_infill_line_intersection)
+            = findClosestInfillLine(segment, infill_lines_on_expansion_side, scan_line_y, segment_x, expand_direction, current_supporting_infill_line);
+
+        if (closest_intersection->line != current_supporting_infill_line)
         {
-            const std::optional<coord_t> intersection
-                = LinearAlg2D::segmentHorizontalLineIntersection(infill_line_on_expansion_side->start, infill_line_on_expansion_side->end, scan_line_y);
-            if (! intersection.has_value())
+            if (current_supporting_infill_line == nullptr)
             {
-                continue;
-            }
-
-            if (infill_line_on_expansion_side == context.current_supporting_infill_line)
-            {
-                current_supporting_infill_line_intersection = *intersection;
-            }
-
-            if (backwards_blacklist.contains(infill_line_on_expansion_side))
-            {
-                continue;
-            }
-
-            const bool at_segment_intersection = std::abs(*intersection - segment_x) < EPSILON;
-            if (! at_segment_intersection && sign(*intersection - segment_x) != expand_direction)
-            {
-                // Segment is on the wrong side for the moment
-                continue;
-            }
-
-            const bool at_line_start = scan_line_y == infill_line_on_expansion_side->start.Y;
-            const bool at_line_end = scan_line_y == infill_line_on_expansion_side->end.Y;
-            if (at_line_start || at_line_end)
-            {
-                // We are at the tip of the segment, check that we can actually use it further
-                // change this condition to make sure we only test the line is going closer to the segment
-                const bool same_orientation = sign(infill_line_on_expansion_side->end.Y - infill_line_on_expansion_side->start.Y) == expand_direction;
-                if ((same_orientation && at_line_end) || (! same_orientation && at_line_start))
-                {
-                    continue;
-                }
-            }
-
-            if (at_segment_intersection)
-            {
-                const coord_t line_at_segment_end_x
-                    = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_expansion_side->start, infill_line_on_expansion_side->end, segment.end.Y).value();
-                if (sign(line_at_segment_end_x - segment.end.X) != expand_direction)
-                {
-                    continue;
-                }
-            }
-
-            bool set_closest_intersection = false;
-            if (! closest_intersection.has_value())
-            {
-                set_closest_intersection = true;
-            }
-            else if (fuzzy_equal(*intersection, std::get<0>(*closest_intersection)))
-            {
-                // We have multiple infill lines that intersect at the same position, take the one that goes towards the segment
-                if (! scan_positions_y.empty())
-                {
-                    const coord_t current_closest_x_at_end
-                        = LinearAlg2D::lineHorizontalLineIntersection(std::get<1>(*closest_intersection)->start, std::get<1>(*closest_intersection)->end, segment.end.Y).value();
-                    const coord_t candidate_x_at_end
-                        = LinearAlg2D::lineHorizontalLineIntersection(infill_line_on_expansion_side->start, infill_line_on_expansion_side->end, segment.end.Y).value();
-                    set_closest_intersection = std::abs(candidate_x_at_end - segment.end.X) < std::abs(current_closest_x_at_end - segment.end.X);
-                }
+                // This is the first iteration for this polygon, just add the found point
+                expanded_polygon.push_back(Point2LL(closest_intersection->x, scan_line_y), only_if_forming_segment);
             }
             else
             {
-                set_closest_intersection = ((expand_direction > 0) == (*intersection < std::get<0>(*closest_intersection)));
-            }
-
-            if (set_closest_intersection)
-            {
-                closest_intersection = { *intersection, infill_line_on_expansion_side };
-            }
-        }
-
-        if (! closest_intersection.has_value())
-        {
-            closest_intersection = { segment_x, &segment };
-        }
-
-        if (context.current_supporting_infill_line == &segment)
-        {
-            current_supporting_infill_line_intersection = segment_x;
-        }
-
-        if (std::get<1>(*closest_intersection) != context.current_supporting_infill_line)
-        {
-            if (context.current_supporting_infill_line == nullptr)
-            {
-                add_point(Point2LL(std::get<0>(*closest_intersection), scan_line_y));
-            }
-            else
-            {
+                // We have found a different supporting infill line, check whether the intersection is the actual one that goes from the previous one to the new one
                 const bool segment_is_crossing_current_supporting_line
                     = current_supporting_infill_line_intersection.has_value() && fuzzy_equal(*current_supporting_infill_line_intersection, segment_x);
                 const bool current_support_line_is_crossing_new_candidate_line
-                    = current_supporting_infill_line_intersection.has_value() && fuzzy_equal(*current_supporting_infill_line_intersection, std::get<0>(*closest_intersection));
-                const bool i_dont_need_to_move_backwards = segment_is_crossing_current_supporting_line || current_support_line_is_crossing_new_candidate_line;
+                    = current_supporting_infill_line_intersection.has_value() && fuzzy_equal(*current_supporting_infill_line_intersection, closest_intersection->x);
+                const bool move_backwards = ! segment_is_crossing_current_supporting_line && ! current_support_line_is_crossing_new_candidate_line;
 
-                if (! i_dont_need_to_move_backwards)
+                if (move_backwards)
                 {
+                    // Since we have found a different supporting line, there must be an intersection between the current one and the new one. However in this case, the current
+                    // position is not the position of this intersection, that means we have to go backwards to where they intersect. But the initial line may intersect with other
+                    // lines in the meantime, or the current segment may also intersect with other lines. So find all those intersection positions, and evaluate them by going
+                    // backwards in the scan loop.
+
                     std::set<coord_t> backwards_position_y_set;
-                    const auto add_backwards_position = [&scan_line_y, &expand_direction, &segment, &backwards_position_y_set, &max_valid_scan_line_y, &backwards_blacklist](
+                    const auto add_backwards_position = [&scan_line_y, &expand_direction, &segment, &backwards_position_y_set, &max_valid_scan_line_y](
                                                             const TransformedSegment* segment1,
-                                                            const TransformedSegment* segment2,
-                                                            const TransformedSegment* segment_blacklist = nullptr) -> void
+                                                            const TransformedSegment* segment2) -> void
                     {
                         float segment1_intersection;
                         float segment2_intersection;
@@ -727,35 +763,23 @@ void expandNonHorizontalSegment(
                                 position_y = max_valid_scan_line_y + EPSILON * expand_direction;
                             }
 
-                            const bool position_is_before_scan_line = sign(scan_line_y - position_y) == expand_direction;
-                            const bool position_is_after_max_valid_pos = sign(position_y - max_valid_scan_line_y) == expand_direction;
-                            const bool position_is_not_scan_line = fuzzy_not_equal(position_y, scan_line_y);
-                            const bool position_is_on_segment = position_y > segment.min_y && position_y < segment.max_y;
-
                             if (sign(scan_line_y - position_y) == expand_direction && sign(position_y - max_valid_scan_line_y) == expand_direction
                                 && fuzzy_not_equal(position_y, scan_line_y) && position_y > segment.min_y && position_y < segment.max_y)
                             {
                                 backwards_position_y_set.insert(position_y);
-                                if (segment_blacklist != nullptr)
-                                {
-                                    // backwards_blacklist.insert(segment_blacklist);
-                                }
                             }
                         }
                     };
 
-                    // Since we have found a different segment, there must be an intersection between the current one and the new one. If the current position is not the position
-                    // of this intersection, that means we have to go backwards to where they intersect
                     for (const TransformedSegment* other_infill_line : infill_lines_on_expansion_side)
                     {
-                        if (other_infill_line != context.current_supporting_infill_line)
+                        if (other_infill_line != current_supporting_infill_line)
                         {
-                            add_backwards_position(context.current_supporting_infill_line, other_infill_line);
+                            add_backwards_position(current_supporting_infill_line, other_infill_line);
                         }
                         add_backwards_position(&segment, other_infill_line);
                     }
-                    // add_backwards_position(context.current_supporting_infill_line, &segment);
-                    add_backwards_position(&segment, std::get<1>(*closest_intersection), std::get<1>(*closest_intersection));
+                    add_backwards_position(&segment, closest_intersection->line);
 
                     if (! backwards_position_y_set.empty())
                     {
@@ -770,45 +794,26 @@ void expandNonHorizontalSegment(
 
                         continue;
                     }
-                }
 
-                backwards_blacklist.clear();
+                    // If we haven't found any candidate intersection, it is safe to assume that we can "jump" from the previous infill line to the new one
+                }
 
                 if (current_supporting_infill_line_intersection.has_value())
                 {
                     // Add point to close anchoring to previous infill line
-                    add_point(Point2LL(*current_supporting_infill_line_intersection, scan_line_y));
+                    expanded_polygon.push_back(Point2LL(*current_supporting_infill_line_intersection, scan_line_y), only_if_forming_segment);
                 }
 
                 // Add point to start anchoring on new infill line
-                add_point(Point2LL(std::get<0>(*closest_intersection), scan_line_y));
+                expanded_polygon.push_back(Point2LL(closest_intersection->x, scan_line_y), only_if_forming_segment);
             }
 
-            context.current_supporting_infill_line = std::get<1>(*closest_intersection);
+            current_supporting_infill_line = closest_intersection->line;
         }
 
+        // Nothing happened that forced the loop to go backwards, so lock this position as being evaluated, and never go back to it
         max_valid_scan_line_y = scan_line_y;
     }
-}
-
-void expandSegment(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_below, ExpandPolygonContext& context, const SVG* svg)
-{
-    if (segment.min_y == segment.max_y)
-    {
-        // Skip horizontal segments, holes will be filled by expanding their previous and next segments
-        return;
-    }
-
-    std::vector<const TransformedSegment*> infill_lines_on_same_band;
-    for (const TransformedSegment& infill_line_below : infill_lines_below)
-    {
-        if (infill_line_below.min_y <= segment.max_y && infill_line_below.max_y >= segment.min_y)
-        {
-            infill_lines_on_same_band.push_back(&infill_line_below);
-        }
-    }
-
-    expandNonHorizontalSegment(segment, infill_lines_on_same_band, context, svg);
 }
 
 std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
@@ -825,30 +830,30 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
 
     spdlog::stopwatch timer;
 
-    // SVG svg(fmt::format("/tmp/bridge_infill_lines_{}.svg", layer_nr), AABB(infill_contour));
-    // svg.write(infill_contour, { .line = { SVG::Color::RED, 0.35 } });
-    // svg.write(completed_layer_plan_below->getGeneratedInfillLines(), { .line = { 0.3 } });
-
+    // Calculate the proper briding angle, according to the type of infill below
     const AngleDegrees bridge_angle = bridgeOverInfillAngle(mesh, layer_nr);
+
+    // We will expand the bridging area following the lines direction
     const AngleDegrees expansion_angle = bridge_angle + 90;
-    const PointMatrix matrix(expansion_angle);
     const MixedLinesSet& infill_lines_below = completed_layer_plan_below->getGeneratedInfillLines();
     TransformedShape filtered_infill_lines_below;
-    constexpr AngleDegrees min_angle_delta(1);
+
+    // Rotate all the infill lines below so that they are in a space where the under skin area should be expanded horizontally
+    const PointMatrix matrix(expansion_angle);
+    const auto add_infill_line = [&matrix, &filtered_infill_lines_below](const Point2LL& start, const Point2LL& end) -> void
+    {
+        TransformedSegment transformed_segment(start, end, matrix);
+        if (transformed_segment.min_y != transformed_segment.max_y) // Do not include horizontal segments
+        {
+            filtered_infill_lines_below.addSegment(std::move(transformed_segment));
+        }
+    };
 
     for (const PolylinePtr& infill_line_below : infill_lines_below)
     {
         for (auto iterator = infill_line_below->cbeginSegments(); iterator != infill_line_below->cendSegments(); ++iterator)
         {
-            const Point2LL& start = (*iterator).start;
-            const Point2LL& end = (*iterator).end;
-
-            TransformedSegment transformed_segment((*iterator).start, (*iterator).end, matrix);
-            const AngleDegrees segment_angle = vAngle(transformed_segment.end - transformed_segment.start);
-            if (nonOrientedDelta(segment_angle, 0) >= min_angle_delta)
-            {
-                addTransformSegment(start, end, matrix, filtered_infill_lines_below);
-            }
+            add_infill_line((*iterator).start, (*iterator).end);
         }
     }
 
@@ -856,37 +861,33 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     {
         for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
         {
-            addTransformSegment((*iterator).start, (*iterator).end, matrix, filtered_infill_lines_below);
+            add_infill_line((*iterator).start, (*iterator).end);
         }
     }
-    // for (const TransformedSegment& filtered_infill_line_below : filtered_infill_lines_below.segments)
-    // {
-    //     svg.write(filtered_infill_line_below.start, filtered_infill_line_below.end, { .line = { SVG::Color::MAGENTA, 0.4 } });
-    // }
 
+    // Now expand each polygon by projecting its segments horizontally according to the supporting infill line
     Shape transformed_expanded_infill_below_skin_area;
     for (const Polygon& infill_below_skin_polygon : infill_below_skin_area)
     {
-        ExpandPolygonContext context;
+        Polygon expanded_polygon;
+        const TransformedSegment* current_supporting_infill_line = nullptr;
         for (auto iterator = infill_below_skin_polygon.beginSegments(); iterator != infill_below_skin_polygon.endSegments(); ++iterator)
         {
             TransformedSegment transformed_infill_below_skin_segment((*iterator).start, (*iterator).end, matrix);
-            // expandSegment(transformed_infill_below_skin_segment, filtered_infill_lines_below.segments, context, &svg);
-            expandSegment(transformed_infill_below_skin_segment, filtered_infill_lines_below.segments, context, nullptr);
+            expandSegment(transformed_infill_below_skin_segment, filtered_infill_lines_below.segments, expanded_polygon, current_supporting_infill_line);
         }
-        transformed_expanded_infill_below_skin_area.push_back(std::move(context.expanded_polygon));
+        transformed_expanded_infill_below_skin_area.push_back(std::move(expanded_polygon));
     }
-    // svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::RED, 0.3 } });
 
+    // Move output polygons back to original transform
     transformed_expanded_infill_below_skin_area.applyMatrix(matrix.inverse());
+
+    spdlog::error("Bridge over infill took {}ms", timer.elapsed_ms().count());
 
     // Perform a morphological closing to remove overlapping lines
     transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
 
-    // svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::GREEN } });
-    // svg.write(infill_contour, { .surface = { SVG::Color::YELLOW, 0.3 } });
-
-    spdlog::error("Bridge calculation took {}ms", timer.elapsed_ms().count());
+    spdlog::error("Final bridge over infill took {}ms", timer.elapsed_ms().count());
 
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
