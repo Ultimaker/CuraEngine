@@ -167,6 +167,8 @@ private:
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
+    Ratio random_speed_variance_ = 1.0; //!< For this layer. Default to 1.0 (100% = this layer is not 'variegated' w.r.t the others), see constructor.
+
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
     enum CombBoundary

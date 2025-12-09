@@ -149,6 +149,16 @@ LayerPlan::LayerPlan(
     { // Skirt and brim.
         skirt_brim_is_processed_[extruder_nr] = false;
     }
+
+    const Ratio random_min = local_settings.get<Ratio>("random_speed_ratio_min");
+    const Ratio random_max = local_settings.get<Ratio>("random_speed_ratio_max");
+    if (random_min != 1.0 || random_max != 1.0)
+    {
+        const int per_layers_batch = local_settings.get<int>("random_speed_layer_batch_count");
+        std::mt19937_64 gen(layer_nr / per_layers_batch);
+        std::uniform_real_distribution<> dist(random_min, random_max);
+        random_speed_variance_ = dist(gen);
+    }
 }
 
 LayerPlan::~LayerPlan()
@@ -552,7 +562,15 @@ void LayerPlan::addExtrusionMove(
     const double fan_speed,
     const bool travel_to_z)
 {
-    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor);
+    GCodePath* path = getLatestPathWithConfig(
+        config,
+        space_fill_type,
+        config.z_offset,
+        flow,
+        width_factor,
+        spiralize,
+        speed_factor * random_speed_variance_
+    );
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
     path->travel_to_z = travel_to_z;
