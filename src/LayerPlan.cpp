@@ -159,6 +159,7 @@ LayerPlan::LayerPlan(
         std::uniform_real_distribution<> dist(random_min, random_max);
         random_speed_variance_ = dist(gen);
     }
+    random_speed_infill_only_ = local_settings.get<bool>("random_speed_infill_only");
 }
 
 LayerPlan::~LayerPlan()
@@ -562,6 +563,10 @@ void LayerPlan::addExtrusionMove(
     const double fan_speed,
     const bool travel_to_z)
 {
+    const auto speed_factor_randomization =
+        (random_speed_infill_only_ && config.type != PrintFeatureType::Infill) ?
+        Ratio(1.0) :
+        random_speed_variance_;
     GCodePath* path = getLatestPathWithConfig(
         config,
         space_fill_type,
@@ -569,7 +574,7 @@ void LayerPlan::addExtrusionMove(
         flow,
         width_factor,
         spiralize,
-        speed_factor * random_speed_variance_
+        speed_factor * speed_factor_randomization
     );
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
