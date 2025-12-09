@@ -20,6 +20,7 @@
 
 #include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
 #include "utils/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "utils/MeshUtils.h"
 #include "utils/Point2F.h"
 #include "utils/Point3F.h" //To accept incoming meshes with floating point vertices.
 #include "utils/gettime.h"
@@ -176,7 +177,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matri
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
+bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates = nullptr)
 {
     FILE* f = fopen(filename, "rb");
 
@@ -210,6 +211,8 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matr
     //  Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
     mesh->faces_.reserve(face_count);
     mesh->vertices_.reserve(face_count);
+
+    size_t vertex_index = 0;
     for (size_t i = 0; i < face_count; i++)
     {
         if (fread(buffer, 50, 1, f) != 1)
@@ -222,7 +225,20 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matr
         Point3LL v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
         Point3LL v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
         Point3LL v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
-        mesh->addFace(v0, v1, v2);
+
+        // Handle UV coordinates if provided
+        if (uv_coordinates && vertex_index + 2 < uv_coordinates->size())
+        {
+            std::optional<Point2F> uv0 = (*uv_coordinates)[vertex_index];
+            std::optional<Point2F> uv1 = (*uv_coordinates)[vertex_index + 1];
+            std::optional<Point2F> uv2 = (*uv_coordinates)[vertex_index + 2];
+            vertex_index += 3;
+            mesh->addFace(v0, v1, v2, uv0, uv1, uv2);
+        }
+        else
+        {
+            mesh->addFace(v0, v1, v2);
+        }
     }
     fclose(f);
     mesh->finish();
@@ -393,71 +409,8 @@ bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matr
     mesh->finish();
     return ! mesh->faces_.empty();
 }
-bool loadMeshSTLBinaryWithUV(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>& uv_coordinates)
-{
-    FILE* f = fopen(filename, "rb");
 
-    fseek(f, 0L, SEEK_END);
-    long long file_size = ftell(f); // The file size is the position of the cursor after seeking to the end.
-    rewind(f); // Seek back to start.
-    size_t face_count = (file_size - 80 - sizeof(uint32_t)) / 50; // Subtract the size of the header. Every face uses exactly 50 bytes.
 
-    char buffer[80];
-    // Skip the header
-    if (fread(buffer, 80, 1, f) != 1)
-    {
-        fclose(f);
-        return false;
-    }
-
-    uint32_t reported_face_count;
-    // Read the face count. We'll use it as a sort of redundancy code to check for file corruption.
-    if (fread(&reported_face_count, sizeof(uint32_t), 1, f) != 1)
-    {
-        fclose(f);
-        return false;
-    }
-    if (reported_face_count != face_count)
-    {
-        spdlog::warn("Face count reported by file ({}) is not equal to actual face count ({}). File could be corrupt!", reported_face_count, face_count);
-    }
-
-    // For each face read:
-    // float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
-    //  Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
-    mesh->faces_.reserve(face_count);
-    mesh->vertices_.reserve(face_count);
-
-    size_t vertex_index = 0;
-    for (size_t i = 0; i < face_count; i++)
-    {
-        if (fread(buffer, 50, 1, f) != 1)
-        {
-            fclose(f);
-            return false;
-        }
-        float* v = reinterpret_cast<float*>(buffer) + 3;
-
-        Point3LL v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
-        Point3LL v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
-        Point3LL v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
-
-        // Get UV coordinates if available
-        std::optional<Point2F> uv0, uv1, uv2;
-        if (vertex_index + 2 < uv_coordinates.size())
-        {
-            uv0 = uv_coordinates[vertex_index];
-            uv1 = uv_coordinates[vertex_index + 1];
-            uv2 = uv_coordinates[vertex_index + 2];
-            vertex_index += 3;
-        }
-
-        mesh->addFace(v0, v1, v2, uv0, uv1, uv2);
-    }
-    fclose(f);
-    mesh->finish();
-    return true;
-}
 /*!
  * Load UV coordinates from a binary file and store them for later application to mesh faces.
  *
@@ -548,168 +501,7 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const char* filename, const Matrix4x3D& mat
         spdlog::warn("ASCII STL with UV coordinates not supported, use binary STL: {}", filename);
         return false;
     }
-    return loadMeshSTLBinaryWithUV(mesh, filename, matrix, uv_coordinates);
-}
-
-
-/*!
- * Load PNG texture data from a file and attach it to a mesh.
- * This function reads a PNG file from the filesystem, extracts paint feature metadata
- * from the PNG's Description field, and attaches the texture to the mesh.
- *
- * @param mesh The mesh to attach the texture to
- * @param texture_filename The path to the PNG texture file
- * @return true if the texture was loaded successfully, false otherwise
- */
-bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
-{
-    if (! std::filesystem::exists(texture_filename))
-    {
-        return false; // File doesn't exist, not an error
-    }
-
-    // Read PNG file into memory
-    std::ifstream file(texture_filename, std::ios::binary | std::ios::ate);
-    if (! file.is_open())
-    {
-        spdlog::warn("Failed to open texture file: {}", texture_filename);
-        return false;
-    }
-
-    const std::streamsize file_size = file.tellg();
-    file.seekg(0, std::ios::beg);
-
-    std::vector<unsigned char> texture_data(file_size);
-    if (! file.read(reinterpret_cast<char*>(texture_data.data()), file_size))
-    {
-        spdlog::warn("Failed to read texture file: {}", texture_filename);
-        return false;
-    }
-
-    // Use PNG library to parse the texture
-    png_image raw_texture = {};
-    raw_texture.version = PNG_IMAGE_VERSION;
-    if (! png_image_begin_read_from_memory(&raw_texture, texture_data.data(), texture_data.size()))
-    {
-        spdlog::warn("Error reading PNG texture {}: {}", texture_filename, raw_texture.message);
-        return false;
-    }
-
-    std::vector<uint8_t> buffer(PNG_IMAGE_SIZE(raw_texture));
-    if (! png_image_finish_read(&raw_texture, nullptr, buffer.data(), 0, nullptr) || buffer.empty())
-    {
-        spdlog::warn("Error finishing PNG texture read {}: {}", texture_filename, raw_texture.message);
-        return false;
-    }
-
-    // Create PNG reading structures to extract metadata
-    std::unique_ptr<png_struct, void (*)(png_structp)> png_ptr(
-        png_create_read_struct(PNG_LIBPNG_VER_STRING, nullptr, nullptr, nullptr),
-        [](png_structp png_ptr_destroy)
-        {
-            png_destroy_read_struct(&png_ptr_destroy, nullptr, nullptr);
-        });
-    if (! png_ptr)
-    {
-        return false;
-    }
-
-    std::unique_ptr<png_info, void (*)(png_infop)> info_ptr(
-        png_create_info_struct(png_ptr.get()),
-        [](png_infop info_ptr_destroy)
-        {
-            png_destroy_read_struct(nullptr, &info_ptr_destroy, nullptr);
-        });
-    if (! info_ptr)
-    {
-        return false;
-    }
-
-    if (setjmp(png_jmpbuf(png_ptr.get())) != 0)
-    {
-        return false;
-    }
-
-    struct PngReadContext
-    {
-        const unsigned char* data;
-        size_t size;
-        size_t offset;
-    } read_context{ texture_data.data(), texture_data.size(), 0 };
-
-    png_set_read_fn(
-        png_ptr.get(),
-        &read_context,
-        [](const png_structp read_png_ptr, const png_bytep out_bytes, const png_size_t byte_count_to_read)
-        {
-            auto* context = static_cast<PngReadContext*>(png_get_io_ptr(read_png_ptr));
-            if (context->offset + byte_count_to_read > context->size)
-            {
-                png_error(read_png_ptr, "Read beyond end of buffer");
-            }
-            memcpy(out_bytes, context->data + context->offset, byte_count_to_read);
-            context->offset += byte_count_to_read;
-        });
-    png_read_info(png_ptr.get(), info_ptr.get());
-
-    // Extract metadata from PNG text fields
-    png_textp text_ptr;
-    int num_text;
-    if (png_get_text(png_ptr.get(), info_ptr.get(), &text_ptr, &num_text) <= 0)
-    {
-        spdlog::info("No metadata found in texture file: {}", texture_filename);
-        return false;
-    }
-
-    auto texture_data_mapping = std::make_shared<TextureDataMapping>();
-    for (int i = 0; i < num_text; ++i)
-    {
-        if (std::string(text_ptr[i].key) == "Description")
-        {
-            rapidjson::MemoryStream json_memory_stream(text_ptr[i].text, text_ptr[i].text_length);
-
-            rapidjson::Document json_document;
-            json_document.ParseStream(json_memory_stream);
-            if (json_document.HasParseError())
-            {
-                spdlog::warn(
-                    "Error parsing texture metadata in {} (offset {}): {}",
-                    texture_filename,
-                    json_document.GetErrorOffset(),
-                    GetParseError_En(json_document.GetParseError()));
-                return false;
-            }
-
-            // Parse the paint feature manifest
-            for (auto it = json_document.MemberBegin(); it != json_document.MemberEnd(); ++it)
-            {
-                std::string feature_name = it->name.GetString();
-
-                const rapidjson::Value& array = it->value;
-                if (array.IsArray() && array.Size() == 2)
-                {
-                    (*texture_data_mapping)[feature_name] = TextureBitField{ array[0].GetUint(), array[1].GetUint() };
-                }
-            }
-
-            break;
-        }
-    }
-
-    if (! texture_data_mapping->empty())
-    {
-        mesh.texture_ = std::make_shared<Image>(
-            raw_texture.width,
-            raw_texture.height,
-            PNG_IMAGE_SAMPLE_COMPONENT_SIZE(raw_texture.format) * PNG_IMAGE_SAMPLE_CHANNELS(raw_texture.format),
-            std::move(buffer));
-        mesh.texture_data_mapping_ = texture_data_mapping;
-
-        spdlog::info("Loaded texture {} with {} paint features", texture_filename, texture_data_mapping->size());
-        return true;
-    }
-
-    return false;
+    return loadMeshSTL_binary(mesh, filename, matrix, &uv_coordinates);
 }
 
 bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
@@ -745,7 +537,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
             if (std::filesystem::exists(texture_filename))
             {
                 spdlog::info("Found texture file: {}", texture_filename);
-                if (loadTextureFromFile(mesh, texture_filename))
+                if (MeshUtils::loadTextureFromFile(mesh, texture_filename))
                 {
                     spdlog::info("Successfully loaded texture from: {}", texture_filename);
                 }
