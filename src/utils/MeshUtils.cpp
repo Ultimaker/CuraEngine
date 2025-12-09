@@ -8,10 +8,10 @@
 #include <memory>
 #include <optional>
 #include <png.h>
-
 #include <rapidjson/document.h>
 #include <rapidjson/error/en.h>
 #include <rapidjson/memorystream.h>
+
 #include <spdlog/spdlog.h>
 
 #include "TextureDataMapping.h"
