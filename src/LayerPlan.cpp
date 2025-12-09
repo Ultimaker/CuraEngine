@@ -562,15 +562,7 @@ void LayerPlan::addExtrusionMove(
     const double fan_speed,
     const bool travel_to_z)
 {
-    GCodePath* path = getLatestPathWithConfig(
-        config,
-        space_fill_type,
-        config.z_offset,
-        flow,
-        width_factor,
-        spiralize,
-        speed_factor * random_speed_variance_
-    );
+    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor * random_speed_variance_);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
     path->travel_to_z = travel_to_z;
