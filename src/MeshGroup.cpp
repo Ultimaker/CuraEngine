@@ -393,7 +393,7 @@ bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matr
     mesh->finish();
     return ! mesh->faces_.empty();
 }
-bool loadMeshSTL_binary_with_uv(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>& uv_coordinates)
+bool loadMeshSTLBinaryWithUV(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>& uv_coordinates)
 {
     FILE* f = fopen(filename, "rb");
 
@@ -487,16 +487,10 @@ bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point
         return false;
     }
 
-    // Validate vertex count
-    if (vertex_count == 0 || vertex_count > 10000000) // Reasonable upper limit
-    {
-        spdlog::warn("Invalid vertex count {} in UV file: {}", vertex_count, uv_filename);
-        return false;
-    }
 
     // Read UV coordinates (2 floats per vertex)
     uv_coordinates.resize(vertex_count);
-    size_t uv_data_size = vertex_count * 2 * sizeof(float);
+    const std::streamsize uv_data_size = vertex_count * 2 * sizeof(float);
 
     if (! file.read(reinterpret_cast<char*>(uv_coordinates.data()), uv_data_size))
     {
@@ -554,7 +548,7 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const char* filename, const Matrix4x3D& mat
         spdlog::warn("ASCII STL with UV coordinates not supported, use binary STL: {}", filename);
         return false;
     }
-    return loadMeshSTL_binary_with_uv(mesh, filename, matrix, uv_coordinates);
+    return loadMeshSTLBinaryWithUV(mesh, filename, matrix, uv_coordinates);
 }
 
 
@@ -582,7 +576,7 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
         return false;
     }
 
-    std::streamsize file_size = file.tellg();
+    const std::streamsize file_size = file.tellg();
     file.seekg(0, std::ios::beg);
 
     std::vector<unsigned char> texture_data(file_size);
