@@ -38,14 +38,24 @@ template<utils::floating_point FactorType>
     return std::llrint(std::lerp(static_cast<double>(a), static_cast<double>(b), t));
 }
 
-[[nodiscard]] inline bool fuzzy_equal(coord_t a, coord_t b)
+[[nodiscard]] inline bool fuzzy_is_null(const coord_t value)
 {
-    return std::abs(b - a) <= EPSILON;
+    return std::abs(value) <= EPSILON;
 }
 
-[[nodiscard]] inline bool fuzzy_not_equal(coord_t a, coord_t b)
+[[nodiscard]] inline bool fuzzy_equal(const coord_t a, const coord_t b)
+{
+    return fuzzy_is_null(b - a);
+}
+
+[[nodiscard]] inline bool fuzzy_not_equal(const coord_t a, const coord_t b)
 {
     return ! fuzzy_equal(a, b);
+}
+
+[[nodiscard]] inline bool fuzzy_is_greater(const coord_t a, const coord_t b)
+{
+    return a - b > EPSILON;
 }
 
 } // namespace cura
