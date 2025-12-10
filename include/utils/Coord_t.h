@@ -58,6 +58,21 @@ template<utils::floating_point FactorType>
     return a - b > EPSILON;
 }
 
+[[nodiscard]] inline bool fuzzy_is_greater_or_equal(const coord_t a, const coord_t b)
+{
+    return a > b - EPSILON;
+}
+
+[[nodiscard]] inline bool fuzzy_is_lesser(const coord_t a, const coord_t b)
+{
+    return b - a > EPSILON;
+}
+
+[[nodiscard]] inline bool fuzzy_is_lesser_or_equal(const coord_t a, const coord_t b)
+{
+    return b > a - EPSILON;
+}
+
 } // namespace cura
 
 
