@@ -701,17 +701,20 @@ struct ExpansionRange
         } range;
     } data;
 
+    const TransformedSegment* supporting_segment;
     bool is_set;
 
-    ExpansionRange(const Point2LL& start, const Point2LL& end)
+    ExpansionRange(const Point2LL& start, const Point2LL& end, const TransformedSegment* supporting_segment)
         : data{ .segment = BoundedSegment(start, end) }
+        , supporting_segment(supporting_segment)
         , is_set(true)
     {
     }
 
-    ExpansionRange(const coord_t min_y, const coord_t max_y)
+    ExpansionRange(const coord_t min_y, const coord_t max_y, const TransformedSegment* supporting_segment)
         : data{ .range = { .min_y = min_y, .max_y = max_y } }
         , is_set(false)
+        , supporting_segment(supporting_segment)
     {
     }
 
@@ -802,7 +805,7 @@ void expandSegment(
     const int8_t expand_direction = sign(segment.end.Y - segment.start.Y);
 
     std::vector<ExpansionRange> expanded_ranges;
-    expanded_ranges.push_back(ExpansionRange(segment.min_y, segment.max_y));
+    expanded_ranges.push_back(ExpansionRange(segment.min_y, segment.max_y, &segment));
 
     for (const TransformedSegment& infill_line_below : infill_lines_below)
     {
@@ -830,7 +833,7 @@ void expandSegment(
             }
         };
 
-        for (const auto& [index, expanded_range] : expanded_ranges | ranges::views::enumerate)
+        for (const ExpansionRange& expanded_range : expanded_ranges)
         {
             const std::optional<SegmentOverlapping> range_overlapping = expanded_range.calculateOverlapping(line_part, -expand_direction);
             if (! range_overlapping.has_value())
@@ -853,7 +856,7 @@ void expandSegment(
 
             if (! replacing_range.has_value())
             {
-                replacing_range = ExpansionRange(range_overlapping->other_overlapping_part.start, range_overlapping->other_overlapping_part.end);
+                replacing_range = ExpansionRange(range_overlapping->other_overlapping_part.start, range_overlapping->other_overlapping_part.end, &infill_line_below);
             }
             else
             {
@@ -881,31 +884,60 @@ void expandSegment(
         }
     }
 
-    OpenPolyline filled_expanded_ranges;
+    if (expand_direction < 0)
+    {
+        ranges::reverse(expanded_ranges);
+    }
+
+    constexpr bool only_if_forming_segment = true;
     for (ExpansionRange& expanded_range : expanded_ranges)
     {
-        if (! expanded_range.is_set)
+        if (expanded_range.supporting_segment == current_supporting_infill_line)
         {
-            // This is an unitialized range, use the raw segment
-            const coord_t& min_y = expanded_range.data.range.min_y;
-            const coord_t& max_y = expanded_range.data.range.max_y;
-            filled_expanded_ranges.push_back(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, min_y).value(), min_y));
-            filled_expanded_ranges.push_back(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, max_y).value(), max_y));
+            continue;
+        }
+
+        if (current_supporting_infill_line == nullptr)
+        {
+            // This is the first iteration for this polygon, add the initial point
+            if (! expanded_range.is_set)
+            {
+                // This is an unitialized range, use the raw segment
+                expanded_polygon.push_back(segment.start);
+            }
+            else
+            {
+                expanded_polygon.push_back(expand_direction > 0 ? expanded_range.data.segment.start : expanded_range.data.segment.end, only_if_forming_segment);
+            }
         }
         else
         {
-            constexpr bool only_if_forming_segment = true;
-            filled_expanded_ranges.push_back(expanded_range.data.segment.start, only_if_forming_segment);
-            filled_expanded_ranges.push_back(expanded_range.data.segment.end, only_if_forming_segment);
+            Point2LL next_start_position;
+
+            if (! expanded_range.is_set)
+            {
+                // This is an unitialized range, use the raw segment
+                const coord_t position_switch_y = expand_direction > 0 ? expanded_range.data.range.min_y : expanded_range.data.range.max_y;
+                next_start_position = Point2LL(LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, position_switch_y).value_or(0), position_switch_y);
+            }
+            else
+            {
+                next_start_position = expand_direction > 0 ? expanded_range.data.segment.start : expanded_range.data.segment.end;
+            }
+
+            // Add point to close anchoring to previous infill line
+            expanded_polygon.push_back(
+                Point2LL(
+                    LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->start, current_supporting_infill_line->end, next_start_position.Y).value_or(0),
+                    next_start_position.Y),
+                only_if_forming_segment);
+
+            // Add point to start anchoring on new infill line
+            expanded_polygon.push_back(next_start_position);
         }
-    }
 
-    if (expand_direction < 0)
-    {
-        filled_expanded_ranges.reverse();
+        current_supporting_infill_line = expanded_range.supporting_segment;
     }
-
-    expanded_polygon.push_back(std::move(filled_expanded_ranges));
 }
 
 std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
@@ -961,11 +993,13 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     Shape transformed_expanded_infill_below_skin_area;
     for (const Polygon& infill_below_skin_polygon : infill_below_skin_area)
     {
+        TransformedShape transformed_infill_below_skin_polygon;
+        transformPolygon(infill_below_skin_polygon, matrix, transformed_infill_below_skin_polygon);
+
         Polygon expanded_polygon;
         const TransformedSegment* current_supporting_infill_line = nullptr;
-        for (auto iterator = infill_below_skin_polygon.beginSegments(); iterator != infill_below_skin_polygon.endSegments(); ++iterator)
+        for (const TransformedSegment& transformed_infill_below_skin_segment : transformed_infill_below_skin_polygon.segments)
         {
-            TransformedSegment transformed_infill_below_skin_segment((*iterator).start, (*iterator).end, matrix);
             expandSegment(transformed_infill_below_skin_segment, filtered_infill_lines_below.segments, expanded_polygon, current_supporting_infill_line);
         }
         transformed_expanded_infill_below_skin_area.push_back(std::move(expanded_polygon));
