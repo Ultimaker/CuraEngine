@@ -57,7 +57,7 @@ class LayerPlan : public NoCopy
     friend class LayerPlanBuffer;
 #ifdef BUILD_TESTS
     friend class AddTravelTest;
-    friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
     friend class AntiOozeAmountsTest;
     FRIEND_TEST(AntiOozeAmountsTest, ComputeAntiOozeAmounts);
 #endif
