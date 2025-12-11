@@ -926,7 +926,7 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
 
     // We will expand the bridging area following the lines direction
     const AngleDegrees expansion_angle = bridge_angle + 90;
-    const MixedLinesSet& infill_lines_below = completed_layer_plan_below->getGeneratedInfillLines();
+    const MixedLinesSet infill_lines_below = completed_layer_plan_below->getGeneratedInfillLines(&mesh);
     TransformedShape filtered_infill_lines_below;
 
     // Rotate all the infill lines below so that they are in a space where the under skin area should be expanded horizontally
@@ -977,6 +977,11 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
 
     // Perform a morphological closing to remove overlapping lines
     transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
+
+    SVG svg(fmt::format("/tmp/skin_support.svg"), AABB(transformed_expanded_infill_below_skin_area));
+    svg.write(infill_below_skin_area, { .surface = { SVG::Color::BLUE } });
+    svg.write(infill_lines_below, { .line = { SVG::Color::MAGENTA, 0.4 } });
+    svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::RED, 0.3 } });
 
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }

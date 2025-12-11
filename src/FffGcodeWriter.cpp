@@ -2547,7 +2547,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         MixedLinesSet all_infill_lines;
         all_infill_lines.push_back(std::move(infill_lines));
         all_infill_lines.push_back(std::move(infill_polygons));
-        gcode_layer.setGeneratedInfillLines(all_infill_lines);
+        gcode_layer.setGeneratedInfillLines(&mesh, all_infill_lines);
     }
 
     return added_something;
