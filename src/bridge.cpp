@@ -23,6 +23,16 @@
 namespace cura
 {
 
+enum class SegmentOverlappingType
+{
+    Full,
+    Bottom,
+    Top,
+    Middle,
+};
+
+struct SegmentOverlapping;
+
 struct TransformedSegment
 {
     Point2LL start;
@@ -61,6 +71,38 @@ struct TransformedSegment
         min_y = std::min(start.Y, end.Y);
         max_y = std::max(start.Y, end.Y);
     }
+
+    std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const;
+
+    void cropTop(const coord_t new_max_y)
+    {
+        setEnd(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start, end, new_max_y).value_or(0), new_max_y));
+    }
+
+    void cropBottom(const coord_t new_min_y)
+    {
+        setStart(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start, end, new_min_y).value_or(0), new_min_y));
+    }
+
+    static SegmentOverlappingType makeNonInteresectingOverlapping(const bool overlap_top, const bool overlap_bottom)
+    {
+        if (overlap_top && overlap_bottom)
+        {
+            return SegmentOverlappingType::Full;
+        }
+        else if (overlap_bottom)
+        {
+            return SegmentOverlappingType::Bottom;
+        }
+        else if (overlap_top)
+        {
+            return SegmentOverlappingType::Top;
+        }
+        else
+        {
+            return SegmentOverlappingType::Middle;
+        }
+    }
 };
 
 struct TransformedShape
@@ -76,6 +118,117 @@ struct TransformedShape
         max_y = std::max(max_y, segment.max_y);
     }
 };
+
+struct SegmentOverlappingData
+{
+    coord_t y_min;
+    coord_t y_max;
+    coord_t this_x_min;
+    coord_t this_x_max;
+    coord_t other_x_min;
+    coord_t other_x_max;
+
+    SegmentOverlappingData(
+        const coord_t this_min_y,
+        const coord_t this_max_y,
+        const coord_t other_min_y,
+        const coord_t other_max_y,
+        const Point2LL* this_start,
+        const Point2LL* this_end,
+        const Point2LL& other_start,
+        const Point2LL& other_end)
+        : y_min(std::max(this_min_y, other_min_y))
+        , y_max(std::min(this_max_y, other_max_y))
+        , this_x_min(this_start != nullptr ? LinearAlg2D::lineHorizontalLineIntersection(*this_start, *this_end, y_min).value() : 0)
+        , this_x_max(this_start != nullptr ? LinearAlg2D::lineHorizontalLineIntersection(*this_start, *this_end, y_max).value() : 0)
+        , other_x_min(LinearAlg2D::lineHorizontalLineIntersection(other_start, other_end, y_min).value())
+        , other_x_max(LinearAlg2D::lineHorizontalLineIntersection(other_start, other_end, y_max).value())
+    {
+    }
+
+    TransformedSegment makeOtherOverlappingPart() const
+    {
+        return TransformedSegment(Point2LL(other_x_min, y_min), Point2LL(other_x_max, y_max));
+    }
+};
+
+struct SegmentOverlapping
+{
+    SegmentOverlappingType type;
+    TransformedSegment other_overlapping_part;
+};
+
+std::optional<SegmentOverlapping> TransformedSegment::calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const
+{
+    if (fuzzy_is_greater_or_equal(other.min_y, max_y) || fuzzy_is_lesser_or_equal(other.max_y, min_y))
+    {
+        // Not on the same horizontal band, or very slightly overlapping , discard
+        return std::nullopt;
+    }
+
+    SegmentOverlappingData overlapping(min_y, max_y, other.min_y, other.max_y, &start, &end, other.start, other.end);
+
+    if (fuzzy_equal(overlapping.this_x_min, overlapping.other_x_min) && fuzzy_equal(overlapping.this_x_max, overlapping.other_x_max))
+    {
+        // Segments are on top of each other, discard
+        return std::nullopt;
+    }
+
+    int8_t sign_min = sign(overlapping.other_x_min - overlapping.this_x_min);
+    int8_t sign_max = sign(overlapping.other_x_max - overlapping.this_x_max);
+    const bool overlap_top = (overlapping.y_max == max_y);
+    const bool overlap_bottom = (overlapping.y_min == min_y);
+
+    TransformedSegment line_part = overlapping.makeOtherOverlappingPart();
+
+    if (sign_min != sign_max)
+    {
+        // Segments are apparently intersecting each other
+        float intersection_segment;
+        float intersection_infill_line;
+        if (LinearAlg2D::segmentSegmentIntersection(start, end, other.start, other.end, intersection_segment, intersection_infill_line))
+        {
+            const Point2LL intersection = lerp(start, end, intersection_segment);
+            if (intersection.Y >= overlapping.y_max - EPSILON)
+            {
+                // Intersection is very close from top, consider as if not intersecting
+                sign_max = sign_min;
+            }
+            else if (intersection.Y <= overlapping.y_min + EPSILON)
+            {
+                // Intersection is very close from bottom, consider as if not intersecting
+                sign_min = sign_max;
+            }
+            else
+            {
+                SegmentOverlappingType type;
+
+                if (sign_max == expand_direction)
+                {
+                    type = overlap_top ? SegmentOverlappingType::Top : SegmentOverlappingType::Middle;
+                    line_part.setStart(intersection);
+                }
+                else
+                {
+                    type = overlap_bottom ? SegmentOverlappingType::Bottom : SegmentOverlappingType::Middle;
+                    line_part.setEnd(intersection);
+                }
+
+                return SegmentOverlapping{ type, line_part };
+            }
+        }
+    }
+
+    if (sign_min != expand_direction)
+    {
+        // Segment is on the non-expanding side, discard
+        return std::nullopt;
+    }
+    else
+    {
+        return SegmentOverlapping{ makeNonInteresectingOverlapping(overlap_top, overlap_bottom), line_part };
+    }
+}
 
 /*!
  * Calculates all the intersections between a horizontal line and the given transformed shape
@@ -513,187 +666,11 @@ std::optional<AngleDegrees> bridgeAngle(
     return best_angle.angle;
 }
 
-enum class SegmentOverlappingType
-{
-    Full,
-    Bottom,
-    Top,
-    Middle,
-};
-
-struct SegmentOverlappingData
-{
-    coord_t y_min;
-    coord_t y_max;
-    coord_t this_x_min;
-    coord_t this_x_max;
-    coord_t other_x_min;
-    coord_t other_x_max;
-
-    SegmentOverlappingData(
-        const coord_t this_min_y,
-        const coord_t this_max_y,
-        const coord_t other_min_y,
-        const coord_t other_max_y,
-        const Point2LL* this_start,
-        const Point2LL* this_end,
-        const Point2LL& other_start,
-        const Point2LL& other_end)
-        : y_min(std::max(this_min_y, other_min_y))
-        , y_max(std::min(this_max_y, other_max_y))
-        , this_x_min(this_start != nullptr ? LinearAlg2D::lineHorizontalLineIntersection(*this_start, *this_end, y_min).value() : 0)
-        , this_x_max(this_start != nullptr ? LinearAlg2D::lineHorizontalLineIntersection(*this_start, *this_end, y_max).value() : 0)
-        , other_x_min(LinearAlg2D::lineHorizontalLineIntersection(other_start, other_end, y_min).value())
-        , other_x_max(LinearAlg2D::lineHorizontalLineIntersection(other_start, other_end, y_max).value())
-    {
-    }
-
-    TransformedSegment makeOtherOverlappingPart() const
-    {
-        return TransformedSegment(Point2LL(other_x_min, y_min), Point2LL(other_x_max, y_max));
-    }
-};
-
-struct SegmentOverlapping
-{
-    SegmentOverlappingType type;
-    TransformedSegment other_overlapping_part;
-};
-
-struct BoundedSegment
-{
-    Point2LL start;
-    Point2LL end;
-    AABB bounding_box;
-
-    BoundedSegment(const Point2LL& start, const Point2LL& end)
-        : start(start)
-        , end(end)
-    {
-        updateBoundingBox();
-    }
-
-    std::optional<SegmentOverlapping> calculateOverlapping(const BoundedSegment& other, const int8_t expand_direction) const
-    {
-        if (fuzzy_is_greater_or_equal(other.bounding_box.min_.Y, bounding_box.max_.Y) || fuzzy_is_lesser_or_equal(other.bounding_box.max_.Y, bounding_box.min_.Y))
-        {
-            // Not on the same horizontal band, or very slightly overlapping , discard
-            return std::nullopt;
-        }
-
-        SegmentOverlappingData overlapping(bounding_box.min_.Y, bounding_box.max_.Y, other.bounding_box.min_.Y, other.bounding_box.max_.Y, &start, &end, other.start, other.end);
-
-        if (fuzzy_equal(overlapping.this_x_min, overlapping.other_x_min) && fuzzy_equal(overlapping.this_x_max, overlapping.other_x_max))
-        {
-            // Segments are on top of each other, discard
-            return std::nullopt;
-        }
-
-        int8_t sign_min = sign(overlapping.other_x_min - overlapping.this_x_min);
-        int8_t sign_max = sign(overlapping.other_x_max - overlapping.this_x_max);
-        const bool overlap_top = (overlapping.y_max == bounding_box.max_.Y);
-        const bool overlap_bottom = (overlapping.y_min == bounding_box.min_.Y);
-
-        TransformedSegment line_part = overlapping.makeOtherOverlappingPart();
-
-        if (sign_min != sign_max)
-        {
-            // Segments are apparently intersecting each other
-            float intersection_segment;
-            float intersection_infill_line;
-            if (LinearAlg2D::segmentSegmentIntersection(start, end, other.start, other.end, intersection_segment, intersection_infill_line))
-            {
-                const Point2LL intersection = lerp(start, end, intersection_segment);
-                if (intersection.Y >= overlapping.y_max - EPSILON)
-                {
-                    // Intersection is very close from top, consider as if not intersecting
-                    sign_max = sign_min;
-                }
-                else if (intersection.Y <= overlapping.y_min + EPSILON)
-                {
-                    // Intersection is very close from bottom, consider as if not intersecting
-                    sign_min = sign_max;
-                }
-                else
-                {
-                    SegmentOverlappingType type;
-
-                    if (sign_max == expand_direction)
-                    {
-                        type = overlap_top ? SegmentOverlappingType::Top : SegmentOverlappingType::Middle;
-                        line_part.setStart(intersection);
-                    }
-                    else
-                    {
-                        type = overlap_bottom ? SegmentOverlappingType::Bottom : SegmentOverlappingType::Middle;
-                        line_part.setEnd(intersection);
-                    }
-
-                    return SegmentOverlapping{ type, line_part };
-                }
-            }
-        }
-
-        if (sign_min != expand_direction)
-        {
-            // Segment is on the non-expanding side, discard
-            return std::nullopt;
-        }
-        else
-        {
-            return SegmentOverlapping{ makeNonInteresectingOverlapping(overlap_top, overlap_bottom), line_part };
-        }
-    }
-
-    void cropTop(const coord_t new_max_y)
-    {
-        end = Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start, end, new_max_y).value_or(0), new_max_y);
-        updateBoundingBox();
-    }
-
-    void cropBottom(const coord_t new_min_y)
-    {
-        start = Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start, end, new_min_y).value_or(0), new_min_y);
-        updateBoundingBox();
-    }
-
-    void setEnd(const Point2LL& end)
-    {
-        this->end = end;
-        updateBoundingBox();
-    }
-
-    void updateBoundingBox()
-    {
-        bounding_box = AABB({ start, end });
-    }
-
-    static SegmentOverlappingType makeNonInteresectingOverlapping(const bool overlap_top, const bool overlap_bottom)
-    {
-        if (overlap_top && overlap_bottom)
-        {
-            return SegmentOverlappingType::Full;
-        }
-        else if (overlap_bottom)
-        {
-            return SegmentOverlappingType::Bottom;
-        }
-        else if (overlap_top)
-        {
-            return SegmentOverlappingType::Top;
-        }
-        else
-        {
-            return SegmentOverlappingType::Middle;
-        }
-    }
-};
-
 struct ExpansionRange
 {
     union
     {
-        BoundedSegment segment;
+        TransformedSegment segment;
         struct
         {
             coord_t min_y;
@@ -704,8 +681,8 @@ struct ExpansionRange
     const TransformedSegment* supporting_segment;
     bool is_set;
 
-    ExpansionRange(const Point2LL& start, const Point2LL& end, const TransformedSegment* supporting_segment)
-        : data{ .segment = BoundedSegment(start, end) }
+    ExpansionRange(const TransformedSegment& segment, const TransformedSegment* supporting_segment)
+        : data{ .segment = segment }
         , supporting_segment(supporting_segment)
         , is_set(true)
     {
@@ -720,34 +697,33 @@ struct ExpansionRange
 
     coord_t y_min() const
     {
-        return is_set ? data.segment.bounding_box.min_.Y : data.range.min_y;
+        return is_set ? data.segment.min_y : data.range.min_y;
     }
 
     coord_t y_max() const
     {
-        return is_set ? data.segment.bounding_box.max_.Y : data.range.max_y;
+        return is_set ? data.segment.max_y : data.range.max_y;
     }
 
-    std::optional<SegmentOverlapping> calculateOverlapping(const BoundedSegment& other, const int8_t expand_direction) const
+    std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const
     {
         if (is_set)
         {
             return data.segment.calculateOverlapping(other, expand_direction);
         }
 
-        if (other.bounding_box.min_.Y > (y_max() - EPSILON) || other.bounding_box.max_.Y < (y_min() - EPSILON))
+        if (other.min_y > (y_max() - EPSILON) || other.max_y < (y_min() - EPSILON))
         {
             // Not on the same horizontal band, or very slightly overlapping , discard
             return std::nullopt;
         }
 
-        const SegmentOverlappingData
-            overlapping(data.range.min_y, data.range.max_y, other.bounding_box.min_.Y, other.bounding_box.max_.Y, nullptr, nullptr, other.start, other.end);
+        const SegmentOverlappingData overlapping(data.range.min_y, data.range.max_y, other.min_y, other.max_y, nullptr, nullptr, other.start, other.end);
 
-        const bool overlap_top = (other.bounding_box.max_.Y == data.range.max_y);
-        const bool overlap_bottom = (other.bounding_box.min_.Y == data.range.min_y);
+        const bool overlap_top = (other.max_y == data.range.max_y);
+        const bool overlap_bottom = (other.min_y == data.range.min_y);
 
-        return SegmentOverlapping{ BoundedSegment::makeNonInteresectingOverlapping(overlap_top, overlap_bottom), overlapping.makeOtherOverlappingPart() };
+        return SegmentOverlapping{ TransformedSegment::makeNonInteresectingOverlapping(overlap_top, overlap_bottom), overlapping.makeOtherOverlappingPart() };
     }
 
     void cropTop(const coord_t new_max_y)
@@ -799,8 +775,6 @@ void expandSegment(
         return;
     }
 
-    const BoundedSegment bounded_segment(segment.start, segment.end);
-
     // 1 means expand to the right, -1 expand to the left
     const int8_t expand_direction = sign(segment.end.Y - segment.start.Y);
 
@@ -809,14 +783,13 @@ void expandSegment(
 
     for (const TransformedSegment& infill_line_below : infill_lines_below)
     {
-        const std::optional<SegmentOverlapping> overlapping
-            = bounded_segment.calculateOverlapping(BoundedSegment(infill_line_below.start, infill_line_below.end), expand_direction);
+        const std::optional<SegmentOverlapping> overlapping = segment.calculateOverlapping(infill_line_below, expand_direction);
         if (! overlapping.has_value())
         {
             continue;
         }
 
-        const BoundedSegment line_part(overlapping->other_overlapping_part.start, overlapping->other_overlapping_part.end);
+        const TransformedSegment& line_part = overlapping->other_overlapping_part;
 
         std::vector<ExpansionRange> new_expanded_ranges;
         std::optional<ExpansionRange> replacing_range;
@@ -839,14 +812,14 @@ void expandSegment(
             if (! range_overlapping.has_value())
             {
                 commit_replacing_range();
-                new_expanded_ranges.push_back(expanded_range);
+                new_expanded_ranges.push_back(std::move(expanded_range));
                 continue;
             }
 
             if (range_overlapping->type != SegmentOverlappingType::Bottom && range_overlapping->type != SegmentOverlappingType::Full)
             {
                 commit_replacing_range();
-                ExpansionRange cropped_range_bottom = expanded_range;
+                ExpansionRange cropped_range_bottom = std::move(expanded_range);
                 cropped_range_bottom.cropTop(range_overlapping->other_overlapping_part.min_y);
                 if (cropped_range_bottom.isValid())
                 {
@@ -856,7 +829,7 @@ void expandSegment(
 
             if (! replacing_range.has_value())
             {
-                replacing_range = ExpansionRange(range_overlapping->other_overlapping_part.start, range_overlapping->other_overlapping_part.end, &infill_line_below);
+                replacing_range = ExpansionRange(range_overlapping->other_overlapping_part, &infill_line_below);
             }
             else
             {
@@ -867,7 +840,7 @@ void expandSegment(
             {
                 commit_replacing_range();
 
-                ExpansionRange cropped_range_top = expanded_range;
+                ExpansionRange cropped_range_top = std::move(expanded_range);
                 cropped_range_top.cropBottom(range_overlapping->other_overlapping_part.max_y);
                 if (cropped_range_top.isValid())
                 {
@@ -952,8 +925,6 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
         return {};
     }
 
-    spdlog::stopwatch timer;
-
     // Calculate the proper bridging angle, according to the type of infill below
     const AngleDegrees bridge_angle = bridgeOverInfillAngle(mesh, layer_nr);
 
@@ -1008,12 +979,8 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     // Move output polygons back to original transform
     transformed_expanded_infill_below_skin_area.applyMatrix(matrix.inverse());
 
-    spdlog::error("Bridge over infill took {}ms", timer.elapsed_ms().count());
-
     // Perform a morphological closing to remove overlapping lines
     transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
-
-    spdlog::error("Final bridge over infill took {}ms", timer.elapsed_ms().count());
 
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
