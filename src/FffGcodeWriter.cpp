@@ -2170,10 +2170,12 @@ bool FffGcodeWriter::processSingleLayerInfill(
     Shape infill_below_skin;
     Shape infill_not_below_skin;
     AngleDegrees skin_support_angle;
-    const bool hasSkinInfillSupport
-        = gcode_layer.getLayerNr() > 0 && partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+    if (gcode_layer.getLayerNr() > 0)
+    {
+        partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+    }
 
-    if (hasSkinInfillSupport)
+    if (! infill_below_skin.empty())
     {
         const Shape infill_contour = part.infill_area.offset(-(infill_line_width / 2) + infill_overlap);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
@@ -2248,7 +2250,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         }
 
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.
-        if (hasSkinInfillSupport)
+        if (! infill_below_skin.empty())
         {
             // infill region with skin above has to be printed bridge-like
             constexpr EFillMethod skin_support_pattern = EFillMethod::LINES;
@@ -2553,7 +2555,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     return added_something;
 }
 
-bool FffGcodeWriter::partitionInfillBySkinAbove(
+void FffGcodeWriter::partitionInfillBySkinAbove(
     Shape& infill_below_skin,
     Shape& infill_not_below_skin,
     const LayerPlan& gcode_layer,
@@ -2662,8 +2664,6 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
     // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
     const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.wall_toolpaths.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
     const Shape infill_below_skin_overlap = infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset));
-
-    return ! infill_below_skin_overlap.empty() && ! infill_not_below_skin.empty();
 }
 
 size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const
