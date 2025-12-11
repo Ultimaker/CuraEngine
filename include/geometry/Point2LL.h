@@ -32,7 +32,6 @@ namespace cura
 {
 
 class Point3LL;
-class AngleRadians;
 
 /* 64bit Points are used mostly throughout the code, these are the 2D points from ClipperLib */
 using Point2LL = ClipperLib::IntPoint;
@@ -195,8 +194,6 @@ INLINE coord_t cross(const Point2LL& p0, const Point2LL& p1)
     return p0.X * p1.Y - p0.Y * p1.X;
 }
 
-AngleRadians vAngle(const Point2LL& vector);
-
 // Identity function, used to be able to make templated algorithms where the input is sometimes points, sometimes things that contain or can be converted to points.
 INLINE const Point2LL& make_point(const Point2LL& p)
 {
@@ -220,6 +217,7 @@ inline Point2LL lerp(const Point2LL& a, const Point2LL& b, const double t)
     return Point2LL(lerp(a.X, b.X, t), lerp(a.Y, b.Y, t));
 }
 
+/*! Returns true if the points are equal or close enough to each other to be considered equal */
 inline bool fuzzy_equal(const Point2LL& a, const Point2LL& b)
 {
     return fuzzy_equal(a.X, b.X) && fuzzy_equal(a.Y, b.Y);

@@ -85,6 +85,13 @@ public:
      */
     void flush();
 
+    /*!
+     * Gets the layer plan for the given layer, once it has been completed. It will wait for completion if necessary
+     * @param layer_nr The layer number to get the plan for
+     * @return The completed layer plan
+     * @warning Make sure you always ask for a layer plan below the one that is being processed. Since the layers processing is started bottom to top and the engine can be run
+     *          mono-threaded, asking for a layer above could lead to a deadlock because the processing of this layer will never start.
+     */
     const LayerPlan* getCompletedLayerPlan(const LayerIndex& layer_nr) const;
 
 private:

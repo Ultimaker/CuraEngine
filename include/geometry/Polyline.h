@@ -130,6 +130,23 @@ public:
 
     [[nodiscard]] bool shorterThan(const coord_t check_length) const;
 
+    /*!
+     * Adds a point to this set, but only if it forms a proper new segment i.r.t the current points in the set
+     * @param point The point to be added
+     * @return True if the point has actually been added, false otherwise
+     * @note The point will also be added if the current list is empty
+     */
+    bool pushBackIfFormingSegment(const Point2LL& point)
+    {
+        if (getPoints().empty() || ! fuzzy_equal(point, getPoints().back()))
+        {
+            push_back(point);
+            return true;
+        }
+
+        return false;
+    }
+
     void reverse()
     {
         ClipperLib::ReversePath(getPoints());

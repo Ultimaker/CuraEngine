@@ -23,16 +23,18 @@
 namespace cura
 {
 
+/*! Enumeration containing the overlapping type of two segments in the bridging projection direction */
 enum class SegmentOverlappingType
 {
-    Full,
-    Bottom,
-    Top,
-    Middle,
+    Full, // The segment fully overlaps with the base segment
+    Bottom, // The segment overlaps with the base segment only on its bottom part
+    Top, // The segment overlaps with the base segment only on its top part
+    Middle, // The segment overlaps with the base segment somewhere in the middle, but not top neither bottom
 };
 
 struct SegmentOverlapping;
 
+/*! Base structure tha represents a segment that has been transformed in the space where the bridging lines are horizontal */
 struct TransformedSegment
 {
     Point2LL start;
@@ -72,18 +74,28 @@ struct TransformedSegment
         max_y = std::max(start.Y, end.Y);
     }
 
+    /*!
+     * Calculate the horizontal overlapping between this segment and an other segment, given the expand direction. Overlapping means that the new segment is on the right (or left)
+     * of the actual segment on a horizontal band formed by the segment top and bottom
+     * @param other The other segment that may be overlapping
+     * @param expand_direction The expand direction, 1 means expand to the right, -1 expand to the left
+     * @return The overlapping details if the segment actually overlap, or nullopt if it doesn't
+     */
     std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const;
 
+    /*! Move the segment maximum Y coordinate down, actually cropping it */
     void cropTop(const coord_t new_max_y)
     {
         setEnd(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start, end, new_max_y).value_or(0), new_max_y));
     }
 
+    /*! Move the segment minimum Y coordinate up, actually cropping it */
     void cropBottom(const coord_t new_min_y)
     {
         setStart(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start, end, new_min_y).value_or(0), new_min_y));
     }
 
+    /*! Calculate an overlapping type, given whether the segments overlap on the top, bottom or both. Only in case there is no segment intersection. */
     static SegmentOverlappingType makeNonInteresectingOverlapping(const bool overlap_top, const bool overlap_bottom)
     {
         if (overlap_top && overlap_bottom)
@@ -119,6 +131,7 @@ struct TransformedShape
     }
 };
 
+/*! Helper structure that calculate the basic coordinates data to be used to perform segments overlapping calculation */
 struct SegmentOverlappingData
 {
     coord_t y_min;
@@ -146,6 +159,7 @@ struct SegmentOverlappingData
     {
     }
 
+    /*! Make the cropped segment that is actually overlapping over the original segment, which may be part of all of the initial segment */
     TransformedSegment makeOtherOverlappingPart() const
     {
         return TransformedSegment(Point2LL(other_x_min, y_min), Point2LL(other_x_max, y_max));
@@ -406,6 +420,12 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
     return segment_score;
 }
 
+/*!
+ * Pre-transforms a polygon according to the given matrix, so that the bridging angle ends up being horizontal
+ * @param polygon The polygon to be transformed
+ * @param matrix The transform matrix
+ * @param transformed_shape The shape transformed to the bridging orientation
+ */
 void transformPolygon(const Polygon& polygon, const PointMatrix& matrix, TransformedShape& transformed_shape)
 {
     for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
@@ -662,11 +682,14 @@ std::optional<AngleDegrees> bridgeAngle(
     return best_angle.angle;
 }
 
+/*! Helper structure containing a vertical range that has been expanded (or not) for a segment */
 struct ExpansionRange
 {
     union
     {
+        // The segment that has been expanded
         TransformedSegment segment;
+        // The range that has not been expanded
         struct
         {
             coord_t min_y;
@@ -674,36 +697,58 @@ struct ExpansionRange
         } range;
     } data;
 
+    // The supporting segment that this range is based upon, or the segment being expanded if it has not been expanded
     const TransformedSegment* supporting_segment;
-    bool is_set;
 
+    // True if this range has been expanded to a supported infill line, in which case you can use data.segment. Otherwise the range has not been expanded and only contains
+    // its Y range in data.range.
+    bool is_expanded;
+
+    /*!
+     * Contructs a range that has been expanded to an infill line
+     * @param segment The actual expanded segment, cropped to the range
+     * @param supporting_segment The infill line which is supporting this segment
+     */
     ExpansionRange(const TransformedSegment& segment, const TransformedSegment* supporting_segment)
         : data{ .segment = segment }
         , supporting_segment(supporting_segment)
-        , is_set(true)
+        , is_expanded(true)
     {
     }
 
+    /*!
+     * Constructs a range that has not been expanded
+     * @param min_y The range bottom Y coordinate
+     * @param max_y The range maximum Y coordinate
+     * @param supporting_segment The segment being expanded
+     */
     ExpansionRange(const coord_t min_y, const coord_t max_y, const TransformedSegment* supporting_segment)
         : data{ .range = { .min_y = min_y, .max_y = max_y } }
-        , is_set(false)
+        , is_expanded(false)
         , supporting_segment(supporting_segment)
     {
     }
 
     coord_t y_min() const
     {
-        return is_set ? data.segment.min_y : data.range.min_y;
+        return is_expanded ? data.segment.min_y : data.range.min_y;
     }
 
     coord_t y_max() const
     {
-        return is_set ? data.segment.max_y : data.range.max_y;
+        return is_expanded ? data.segment.max_y : data.range.max_y;
     }
 
+    /*!
+     * Calculate the horizontal overlapping between this range and an other segment, given the expand direction. Overlapping means that the new segment is on the right (or left)
+     * of the actual segment on a horizontal band formed by the segment top and bottom
+     * @param other The other segment that may be overlapping
+     * @param expand_direction The expand direction, 1 means expand to the right, -1 expand to the left
+     * @return The overlapping details if the segment actually overlap, or nullopt if it doesn't
+     */
     std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const
     {
-        if (is_set)
+        if (is_expanded)
         {
             return data.segment.calculateOverlapping(other, expand_direction);
         }
@@ -722,9 +767,10 @@ struct ExpansionRange
         return SegmentOverlapping{ TransformedSegment::makeNonInteresectingOverlapping(overlap_top, overlap_bottom), overlapping.makeOtherOverlappingPart() };
     }
 
+    /*! Move the range maximum Y coordinate down, actually cropping it */
     void cropTop(const coord_t new_max_y)
     {
-        if (is_set)
+        if (is_expanded)
         {
             data.segment.cropTop(new_max_y);
         }
@@ -734,9 +780,10 @@ struct ExpansionRange
         }
     }
 
+    /*! Move the segment minimum Y coordinate up, actually cropping it */
     void cropBottom(const coord_t new_min_y)
     {
-        if (is_set)
+        if (is_expanded)
         {
             data.segment.cropBottom(new_min_y);
         }
@@ -746,6 +793,7 @@ struct ExpansionRange
         }
     }
 
+    /*! Indicates if the range is still valid, e.g. doesn't have a (almost) null height */
     bool isValid() const
     {
         return fuzzy_not_equal(y_max(), y_min());
@@ -753,43 +801,39 @@ struct ExpansionRange
 };
 
 /*!
- * Expands a segment of a polygon so that bridging will always have supporting infill lines below for proper anchoring
- * @param segment The current segment to be expanded
- * @param infill_lines_below The infill lines on the layer below
- * @param expanded_polygon The resulting expanded polygon
- * @param current_supporting_infill_line The infill line below currently supporting the bridging, which will be updated over iterations when necessary
+ * Make the expanded ranges for the given segment
+ * @param segment The segment to be expanded
+ * @param infill_lines_below The infill lines on the layer below that we can expand the segment to
+ * @param expand_direction The expand direction, 1 means expand to the right, -1 expand to the left
+ * @return The list of new expansion ranges, bottom to top, which covers the same vertical range as the segment
  */
-void expandSegment(
-    const TransformedSegment& segment,
-    const std::vector<TransformedSegment>& infill_lines_below,
-    Polygon& expanded_polygon,
-    const TransformedSegment*& current_supporting_infill_line)
+std::vector<ExpansionRange> makeExpandedRanges(const TransformedSegment& segment, const std::vector<TransformedSegment>& infill_lines_below, const int8_t expand_direction)
 {
-    if (fuzzy_equal(segment.min_y, segment.max_y))
-    {
-        // Skip horizontal segments, holes will be filled by expanding their previous and next segments
-        return;
-    }
-
-    // 1 means expand to the right, -1 expand to the left
-    const int8_t expand_direction = sign(segment.end.Y - segment.start.Y);
-
+    // List of expansion ranges, initiall filled with a single non-expanded range
     std::vector<ExpansionRange> expanded_ranges;
     expanded_ranges.push_back(ExpansionRange(segment.min_y, segment.max_y, &segment));
 
+    // Now loop on every infill line and update the expansion ranges accordingly
     for (const TransformedSegment& infill_line_below : infill_lines_below)
     {
+        // First calculate the overlapping of the infill line with the segment in the expand direction, so that we get only lines that (fully or partially) are on the expansion
+        // side of the segment
         const std::optional<SegmentOverlapping> overlapping = segment.calculateOverlapping(infill_line_below, expand_direction);
         if (! overlapping.has_value())
         {
             continue;
         }
 
+        // The line does overlap the expansion area of the segment, now checks whether it overlaps with the current ranges
         const TransformedSegment& line_part = overlapping->other_overlapping_part;
 
+        // The new list of expanded ranges being build
         std::vector<ExpansionRange> new_expanded_ranges;
+
+        // The current expansion range being created, which can spread over multiple actual ranges
         std::optional<ExpansionRange> replacing_range;
 
+        // Helper function to finalize and store the replacement range
         const auto commit_replacing_range = [&replacing_range, &new_expanded_ranges]()
         {
             if (replacing_range.has_value())
@@ -804,6 +848,7 @@ void expandSegment(
 
         for (const ExpansionRange& expanded_range : expanded_ranges)
         {
+            // See if the line overlaps, but this time in reverse expand direction because we want those who are as close as possible to the initial segment
             const std::optional<SegmentOverlapping> range_overlapping = expanded_range.calculateOverlapping(line_part, -expand_direction);
             if (! range_overlapping.has_value())
             {
@@ -814,7 +859,9 @@ void expandSegment(
 
             if (range_overlapping->type != SegmentOverlappingType::Bottom && range_overlapping->type != SegmentOverlappingType::Full)
             {
+                // The line overlaps, but not on the bottom part of the range, so keep the current range but crop its top part
                 commit_replacing_range();
+
                 ExpansionRange cropped_range_bottom = std::move(expanded_range);
                 cropped_range_bottom.cropTop(range_overlapping->other_overlapping_part.min_y);
                 if (cropped_range_bottom.isValid())
@@ -825,15 +872,18 @@ void expandSegment(
 
             if (! replacing_range.has_value())
             {
+                // We don't have a replacing range yet, so since we are overlapping, create a new one starting a the current overlapping line start position
                 replacing_range = ExpansionRange(range_overlapping->other_overlapping_part, &infill_line_below);
             }
             else
             {
+                // We have a replacing range, update it so that it now ends at the same position as the overlapping line end
                 replacing_range->data.segment.setEnd(range_overlapping->other_overlapping_part.end);
             }
 
             if (range_overlapping->type != SegmentOverlappingType::Top && range_overlapping->type != SegmentOverlappingType::Full)
             {
+                // The line overlaps, but not on the top part of the range, so keep the current range but crop its bottom
                 commit_replacing_range();
 
                 ExpansionRange cropped_range_top = std::move(expanded_range);
@@ -853,37 +903,50 @@ void expandSegment(
         }
     }
 
-    if (expand_direction < 0)
-    {
-        ranges::reverse(expanded_ranges);
-    }
+    return expanded_ranges;
+}
 
-    constexpr bool only_if_forming_segment = true;
-    for (ExpansionRange& expanded_range : expanded_ranges)
+/*!
+ * Update the expanded polygon area according to the given expansion ranges
+ * @param segment The segment being expanded
+ * @param expanded_ranges The expansion ranges calculated for the segment
+ * @param expand_direction The expand direction, 1 means expand to the right, -1 expand to the left
+ * @param expanded_polygon The expanded polygon to add the points to
+ * @param current_supporting_infill_line The infill line below currently supporting the bridging, which will be updated over iterations when necessary
+ */
+void updateExpandedPolygon(
+    const TransformedSegment& segment,
+    const std::vector<ExpansionRange>& expanded_ranges,
+    const int8_t expand_direction,
+    Polygon& expanded_polygon,
+    const TransformedSegment*& current_supporting_infill_line)
+{
+    for (const ExpansionRange& expanded_range : expanded_ranges)
     {
         if (expanded_range.supporting_segment == current_supporting_infill_line)
         {
+            // As long as we have the same supporting infill line, don't have points because we just move along the same line
             continue;
         }
 
         if (current_supporting_infill_line == nullptr)
         {
             // This is the first iteration for this polygon, add the initial point
-            if (! expanded_range.is_set)
+            if (! expanded_range.is_expanded)
             {
                 // This is an unitialized range, use the raw segment
                 expanded_polygon.push_back(segment.start);
             }
             else
             {
-                expanded_polygon.push_back(expand_direction > 0 ? expanded_range.data.segment.start : expanded_range.data.segment.end, only_if_forming_segment);
+                expanded_polygon.push_back(expand_direction > 0 ? expanded_range.data.segment.start : expanded_range.data.segment.end);
             }
         }
         else
         {
             Point2LL next_start_position;
 
-            if (! expanded_range.is_set)
+            if (! expanded_range.is_expanded)
             {
                 // This is an unitialized range, use the raw segment
                 const coord_t position_switch_y = expand_direction > 0 ? expanded_range.data.range.min_y : expanded_range.data.range.max_y;
@@ -895,18 +958,57 @@ void expandSegment(
             }
 
             // Add point to close anchoring to previous infill line
-            expanded_polygon.push_back(
-                Point2LL(
-                    LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->start, current_supporting_infill_line->end, next_start_position.Y).value_or(0),
-                    next_start_position.Y),
-                only_if_forming_segment);
+            expanded_polygon.pushBackIfFormingSegment(Point2LL(
+                LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->start, current_supporting_infill_line->end, next_start_position.Y).value_or(0),
+                next_start_position.Y));
 
             // Add point to start anchoring on new infill line
-            expanded_polygon.push_back(next_start_position);
+            expanded_polygon.pushBackIfFormingSegment(next_start_position);
         }
 
         current_supporting_infill_line = expanded_range.supporting_segment;
     }
+}
+
+/*!
+ * Expands a segment of a polygon so that bridging will always have supporting infill lines below for proper anchoring
+ * @param segment The current segment to be expanded
+ * @param infill_lines_below The infill lines on the layer below
+ * @param expanded_polygon The resulting expanded polygon
+ * @param current_supporting_infill_line The infill line below currently supporting the bridging, which will be updated over iterations when necessary
+ *
+ * Before reading this explanation, see image in doc/bridging_skin_support.svg
+ * The expansion works by initially assigning an infinite range on the left (or right) of a segment, you can imagine a horizontal band starting from the segment. Then for each
+ * infill line, we check whether it crosses this range. When it is the case, we update the range so that the horizontal band is now divided in multiple parts, each of them
+ * being supported (or not) by an infill line. Then we do it again for the next infill line, which will update the ranges until we have the infill lines that are the closer to
+ * the segment.
+ */
+void expandSegment(
+    const TransformedSegment& segment,
+    const std::vector<TransformedSegment>& infill_lines_below,
+    Polygon& expanded_polygon,
+    const TransformedSegment*& current_supporting_infill_line)
+{
+    if (fuzzy_equal(segment.min_y, segment.max_y))
+    {
+        // Skip horizontal segments, holes will be filled by expanding their previous and next segments
+        return;
+    }
+
+    // 1 means expand to the right, -1 expand to the left
+    const int8_t expand_direction = sign(segment.end.Y - segment.start.Y);
+
+    // Make the list of expanded ranges for this segment
+    std::vector<ExpansionRange> expanded_ranges = makeExpandedRanges(segment, infill_lines_below, expand_direction);
+
+    if (expand_direction < 0)
+    {
+        ranges::reverse(expanded_ranges);
+    }
+
+    // Now we have the final expansion ranges, update the expanded polygon according. We add points only when the current supporting line is changing, so that the polygon is
+    // as compact as possible.
+    updateExpandedPolygon(segment, expanded_ranges, expand_direction, expanded_polygon, current_supporting_infill_line);
 }
 
 std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
@@ -956,7 +1058,7 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
         }
     }
 
-    // Now expand each polygon by projecting its segments horizontally according to the supporting infill line
+    // Now expand each polygon by expanding its segments horizontally according to the supporting infill lines
     Shape transformed_expanded_infill_below_skin_area;
     for (const Polygon& infill_below_skin_polygon : infill_below_skin_area)
     {

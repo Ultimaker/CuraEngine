@@ -73,15 +73,9 @@ public:
         return points_.size();
     }
 
-    bool push_back(const Point2LL& point, const bool only_if_forming_segment = false)
+    void push_back(const Point2LL& point)
     {
-        if (only_if_forming_segment && ! points_.empty() && fuzzy_equal(point, points_.back()))
-        {
-            return false;
-        }
-
         points_.push_back(point);
-        return true;
     }
 
     /*! \brief Pushes an entire set at the end */

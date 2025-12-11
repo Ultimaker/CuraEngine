@@ -105,12 +105,12 @@ public:
     /*
      * \brief Default constructor setting the angle to 0.
      */
-    constexpr AngleRadians() noexcept = default;
+    AngleRadians() noexcept = default;
 
     /*!
      * \brief Converts an angle from degrees into radians.
      */
-    constexpr AngleRadians(const AngleDegrees& value);
+    AngleRadians(const AngleDegrees& value);
 
     /*
      * \brief Translate the double value in degrees to an AngleRadians instance.
@@ -166,14 +166,9 @@ inline AngleDegrees::AngleDegrees(const AngleRadians& value)
 {
 }
 
-constexpr inline AngleRadians::AngleRadians(const AngleDegrees& value)
+inline AngleRadians::AngleRadians(const AngleDegrees& value)
     : value_(value.value_ * TAU / 360.0)
 {
-}
-
-inline double normalizeTo(const double angle, const double max)
-{
-    return std::fmod(std::fmod(angle, max) + max, max);
 }
 
 /*!
@@ -187,14 +182,6 @@ inline double normalizeTo(const double angle, const double max)
 inline double boundedTan(const AngleRadians& angle)
 {
     return std::tan(std::min(static_cast<double>(angle), std::numbers::pi / 2.0 - 0.001));
-}
-
-inline AngleDegrees nonOrientedDelta(const AngleDegrees& angle1, const AngleDegrees& angle2)
-{
-    const double normalized_angle1 = normalizeTo(angle1.value_, 180);
-    const double normalized_angle2 = normalizeTo(angle2.value_, 180);
-    const double diff = std::fabs(normalized_angle1 - normalized_angle2);
-    return std::min(diff, 180.0 - diff);
 }
 
 } // namespace cura
