@@ -556,8 +556,6 @@ std::optional<AngleDegrees> bridgeAngle(
     Shape prev_layer_outline; // we also want the complete outline of the previous layer
     Shape prev_layer_infill;
 
-    const Ratio sparse_infill_max_density = settings.get<Ratio>("bridge_sparse_infill_max_density");
-
     // include parts from all meshes
     for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
@@ -565,9 +563,7 @@ std::optional<AngleDegrees> bridgeAngle(
         if (mesh.isPrinted())
         {
             const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
-            const coord_t infill_line_width = mesh.settings.get<coord_t>("infill_line_width");
-            double density = static_cast<double>(infill_line_width) / static_cast<double>(infill_line_distance);
-            const bool part_has_sparse_infill = (infill_line_distance == 0) || density <= sparse_infill_max_density;
+            const bool part_has_sparse_infill = infill_line_distance == 0;
 
             for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {
