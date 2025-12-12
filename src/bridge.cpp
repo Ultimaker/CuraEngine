@@ -71,8 +71,8 @@ std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const Transfor
  *
  * The score is based on the following criteria:
  *   - Properly bridging segments, i.e. between two supported areas, add their length to the score
- *   - Hanging segments, i.e. supported on one side but not the other (or not at all), subtract their length to the score
- *   - Segments that lie on a supported area are not accounted for  */
+ *   - Hanging segments, i.e. supported on one side but not the other (or not at all), subtract their length from the score
+ *   - Segments that lie on a supported area substract part of their length from the score  */
 coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area)
 {
     // Calculate intersections with skin outline to see which segments should actually be printed
@@ -164,8 +164,7 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
 
         const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
         const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
-        bool add_bridging_segment = false;
-        bool add_hanging_segment = false;
+        double add_segment_score_weight = 0.0;
 
         switch (bridge_status)
         {
@@ -175,31 +174,33 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
 
         case BridgeStatus::Supported:
             bridge_status = leaving_skin ? BridgeStatus::Outside : BridgeStatus::Anchored;
+            // Negatively account for fully supported lines to avoid lonely line parts over the supported areas
+            add_segment_score_weight = -0.1;
             break;
 
         case BridgeStatus::Hanging:
-            add_hanging_segment = true;
+            add_segment_score_weight = -1.0;
             bridge_status = reaching_supported ? BridgeStatus::Supported : BridgeStatus::Outside;
             break;
 
         case BridgeStatus::Anchored:
             if (reaching_supported)
             {
-                add_bridging_segment = true;
+                add_segment_score_weight = 1.0;
                 bridge_status = BridgeStatus::Supported;
             }
             else if (leaving_skin)
             {
-                add_hanging_segment = true;
+                add_segment_score_weight = -1.0;
                 bridge_status = BridgeStatus::Outside;
             }
             break;
         }
 
-        if (add_bridging_segment || add_hanging_segment)
+        if (add_segment_score_weight != 0.0)
         {
             const coord_t segment_length = next_intersection - last_position;
-            segment_score += add_bridging_segment ? segment_length : -segment_length;
+            segment_score += std::llrint(segment_length * add_segment_score_weight);
         }
 
         last_position = next_intersection;
