@@ -11,13 +11,13 @@ namespace cura
 {
 // NOLINTBEGIN(*-magic-numbers)
 
-TEST(CoordTTest, TestFuzzyNull)
+TEST(CoordTTest, TestFuzzyZero)
 {
-    EXPECT_EQ(fuzzy_is_null(0), true);
-    EXPECT_EQ(fuzzy_is_null(2), true);
-    EXPECT_EQ(fuzzy_is_null(-2), true);
-    EXPECT_EQ(fuzzy_is_null(10), false);
-    EXPECT_EQ(fuzzy_is_null(-10), false);
+    EXPECT_EQ(fuzzy_is_zero(0), true);
+    EXPECT_EQ(fuzzy_is_zero(2), true);
+    EXPECT_EQ(fuzzy_is_zero(-2), true);
+    EXPECT_EQ(fuzzy_is_zero(10), false);
+    EXPECT_EQ(fuzzy_is_zero(-10), false);
 }
 
 TEST(CoordTTest, TestFuzzyEqual)

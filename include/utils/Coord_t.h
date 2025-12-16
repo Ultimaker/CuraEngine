@@ -39,7 +39,7 @@ template<utils::floating_point FactorType>
 }
 
 /*! Returns true if the given value is null or small enough to be considered null */
-[[nodiscard]] inline bool fuzzy_is_null(const coord_t value)
+[[nodiscard]] inline bool fuzzy_is_zero(const coord_t value)
 {
     return std::abs(value) <= EPSILON;
 }
@@ -47,7 +47,7 @@ template<utils::floating_point FactorType>
 /*! Returns true if the given values are equal or close enough to be considered equal */
 [[nodiscard]] inline bool fuzzy_equal(const coord_t a, const coord_t b)
 {
-    return fuzzy_is_null(b - a);
+    return fuzzy_is_zero(b - a);
 }
 
 /*! Returns true if the given values are not equal and different enough to be considered not equal */

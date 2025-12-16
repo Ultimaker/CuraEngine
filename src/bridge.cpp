@@ -70,8 +70,7 @@ struct TransformedSegment
 
     void updateMinMax()
     {
-        min_y = std::min(start.Y, end.Y);
-        max_y = std::max(start.Y, end.Y);
+        std::tie(min_y, max_y) = std::minmax(start.Y, end.Y);
     }
 
     /*!
@@ -330,7 +329,7 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
             const double next_intersection_skin_area = skin_outline_intersections.front();
             const double next_intersection_supported_area = supported_regions_intersections.front();
 
-            if (is_null(next_intersection_skin_area - next_intersection_supported_area))
+            if (is_zero(next_intersection_skin_area - next_intersection_supported_area))
             {
                 next_intersection_is_skin_area = true;
                 next_intersection_is_supported_area = true;
@@ -753,7 +752,7 @@ struct ExpansionRange
             return data.segment.calculateOverlapping(other, expand_direction);
         }
 
-        if (other.min_y > (y_max() - EPSILON) || other.max_y < (y_min() - EPSILON))
+        if (fuzzy_is_greater_or_equal(other.min_y, y_max()) || fuzzy_is_lesser_or_equal(other.max_y, y_min()))
         {
             // Not on the same horizontal band, or very slightly overlapping , discard
             return std::nullopt;
@@ -1079,11 +1078,6 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
 
     // Perform a morphological closing to remove overlapping lines
     transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
-
-    SVG svg(fmt::format("/tmp/skin_support.svg"), AABB(transformed_expanded_infill_below_skin_area));
-    svg.write(infill_below_skin_area, { .surface = { SVG::Color::BLUE } });
-    svg.write(infill_lines_below, { .line = { SVG::Color::MAGENTA, 0.4 } });
-    svg.write(transformed_expanded_infill_below_skin_area, { .surface = { SVG::Color::RED, 0.3 } });
 
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }

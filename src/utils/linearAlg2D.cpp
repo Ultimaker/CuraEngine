@@ -349,8 +349,7 @@ std::optional<coord_t> LinearAlg2D::lineHorizontalLineIntersection(const Point2L
 
 std::optional<coord_t> LinearAlg2D::segmentHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
 {
-    const coord_t min_y = std::min(p1.Y, p2.Y);
-    const coord_t max_y = std::max(p1.Y, p2.Y);
+    const auto [min_y, max_y] = std::minmax(p1.Y, p2.Y);
 
     if (min_y > line_y || max_y < line_y)
     {

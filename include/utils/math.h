@@ -138,7 +138,7 @@ template<utils::floating_point T>
 
 /*! \brief Check if a value is very close to 0 */
 template<utils::floating_point T>
-[[nodiscard]] bool is_null(T value)
+[[nodiscard]] bool is_zero(T value)
 {
     return std::abs(value) < (std::numeric_limits<T>::epsilon() * 100.0);
 }
@@ -150,7 +150,7 @@ template<utils::floating_point T>
 template<utils::numeric T>
 [[nodiscard]] int8_t sign(T value)
 {
-    return value >= static_cast<T>(0) ? 1 : -1;
+    return std::signbit(value) ? -1 : 1;
 }
 
 } // namespace cura
