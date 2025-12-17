@@ -1,14 +1,15 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "bridge.h"
+#include "bridge/bridge.h"
 
 #include <range/v3/action/stable_sort.hpp>
 #include <range/v3/algorithm/reverse.hpp>
-#include <spdlog/stopwatch.h>
 
 #include "LayerPlan.h"
-#include "geometry/Point2D.h"
+#include "bridge/ExpansionRange.h"
+#include "bridge/SegmentOverlapping.h"
+#include "bridge/TransformedShape.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
@@ -23,226 +24,6 @@
 namespace cura
 {
 
-/*! Enumeration containing the overlapping type of two segments in the bridging projection direction */
-enum class SegmentOverlappingType
-{
-    Full, // The segment fully overlaps with the base segment
-    Bottom, // The segment overlaps with the base segment only on its bottom part
-    Top, // The segment overlaps with the base segment only on its top part
-    Middle, // The segment overlaps with the base segment somewhere in the middle, but not top neither bottom
-};
-
-struct SegmentOverlapping;
-
-/*! Base structure tha represents a segment that has been transformed in the space where the bridging lines are horizontal */
-struct TransformedSegment
-{
-    Point2LL start;
-    Point2LL end;
-    coord_t min_y{ 0 };
-    coord_t max_y{ 0 };
-
-    TransformedSegment() = default;
-
-    TransformedSegment(const Point2LL& transformed_start, const Point2LL& transformed_end)
-        : start(transformed_start)
-        , end(transformed_end)
-    {
-        updateMinMax();
-    }
-
-    TransformedSegment(const Point2LL& start, const Point2LL& end, const PointMatrix& matrix)
-        : TransformedSegment(matrix.apply(start), matrix.apply(end))
-    {
-    }
-
-    void setStart(const Point2LL& transformed_start)
-    {
-        start = transformed_start;
-        updateMinMax();
-    }
-
-    void setEnd(const Point2LL& transformed_end)
-    {
-        end = transformed_end;
-        updateMinMax();
-    }
-
-    void updateMinMax()
-    {
-        std::tie(min_y, max_y) = std::minmax(start.Y, end.Y);
-    }
-
-    /*!
-     * Calculate the horizontal overlapping between this segment and an other segment, given the expand direction. Overlapping means that the new segment is on the right (or left)
-     * of the actual segment on a horizontal band formed by the segment top and bottom
-     * @param other The other segment that may be overlapping
-     * @param expand_direction The expand direction, 1 means expand to the right, -1 expand to the left
-     * @return The overlapping details if the segment actually overlap, or nullopt if it doesn't
-     */
-    std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const;
-
-    /*! Move the segment maximum Y coordinate down, actually cropping it */
-    void cropTop(const coord_t new_max_y)
-    {
-        setEnd(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start, end, new_max_y).value_or(0), new_max_y));
-    }
-
-    /*! Move the segment minimum Y coordinate up, actually cropping it */
-    void cropBottom(const coord_t new_min_y)
-    {
-        setStart(Point2LL(LinearAlg2D::lineHorizontalLineIntersection(start, end, new_min_y).value_or(0), new_min_y));
-    }
-
-    /*! Calculate an overlapping type, given whether the segments overlap on the top, bottom or both. Only in case there is no segment intersection. */
-    static SegmentOverlappingType makeNonInteresectingOverlapping(const bool overlap_top, const bool overlap_bottom)
-    {
-        if (overlap_top && overlap_bottom)
-        {
-            return SegmentOverlappingType::Full;
-        }
-        else if (overlap_bottom)
-        {
-            return SegmentOverlappingType::Bottom;
-        }
-        else if (overlap_top)
-        {
-            return SegmentOverlappingType::Top;
-        }
-        else
-        {
-            return SegmentOverlappingType::Middle;
-        }
-    }
-};
-
-struct TransformedShape
-{
-    std::vector<TransformedSegment> segments;
-    coord_t min_y{ std::numeric_limits<coord_t>::max() };
-    coord_t max_y{ std::numeric_limits<coord_t>::lowest() };
-
-    void addSegment(TransformedSegment&& segment)
-    {
-        segments.push_back(segment);
-        min_y = std::min(min_y, segment.min_y);
-        max_y = std::max(max_y, segment.max_y);
-    }
-};
-
-/*! Helper structure that calculate the basic coordinates data to be used to perform segments overlapping calculation */
-struct SegmentOverlappingData
-{
-    coord_t y_min;
-    coord_t y_max;
-    coord_t this_x_min;
-    coord_t this_x_max;
-    coord_t other_x_min;
-    coord_t other_x_max;
-
-    SegmentOverlappingData(
-        const coord_t this_min_y,
-        const coord_t this_max_y,
-        const coord_t other_min_y,
-        const coord_t other_max_y,
-        const Point2LL* this_start,
-        const Point2LL* this_end,
-        const Point2LL& other_start,
-        const Point2LL& other_end)
-        : y_min(std::max(this_min_y, other_min_y))
-        , y_max(std::min(this_max_y, other_max_y))
-        , this_x_min(this_start != nullptr ? LinearAlg2D::lineHorizontalLineIntersection(*this_start, *this_end, y_min).value() : 0)
-        , this_x_max(this_start != nullptr ? LinearAlg2D::lineHorizontalLineIntersection(*this_start, *this_end, y_max).value() : 0)
-        , other_x_min(LinearAlg2D::lineHorizontalLineIntersection(other_start, other_end, y_min).value())
-        , other_x_max(LinearAlg2D::lineHorizontalLineIntersection(other_start, other_end, y_max).value())
-    {
-    }
-
-    /*! Make the cropped segment that is actually overlapping over the original segment, which may be part of all of the initial segment */
-    TransformedSegment makeOtherOverlappingPart() const
-    {
-        return TransformedSegment(Point2LL(other_x_min, y_min), Point2LL(other_x_max, y_max));
-    }
-};
-
-struct SegmentOverlapping
-{
-    SegmentOverlappingType type;
-    TransformedSegment other_overlapping_part;
-};
-
-std::optional<SegmentOverlapping> TransformedSegment::calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const
-{
-    if (fuzzy_is_greater_or_equal(other.min_y, max_y) || fuzzy_is_lesser_or_equal(other.max_y, min_y))
-    {
-        // Not on the same horizontal band, or very slightly overlapping , discard
-        return std::nullopt;
-    }
-
-    SegmentOverlappingData overlapping(min_y, max_y, other.min_y, other.max_y, &start, &end, other.start, other.end);
-
-    if (fuzzy_equal(overlapping.this_x_min, overlapping.other_x_min) && fuzzy_equal(overlapping.this_x_max, overlapping.other_x_max))
-    {
-        // Segments are on top of each other, discard
-        return std::nullopt;
-    }
-
-    int8_t sign_min = sign(overlapping.other_x_min - overlapping.this_x_min);
-    int8_t sign_max = sign(overlapping.other_x_max - overlapping.this_x_max);
-    const bool overlap_top = (overlapping.y_max == max_y);
-    const bool overlap_bottom = (overlapping.y_min == min_y);
-
-    TransformedSegment line_part = overlapping.makeOtherOverlappingPart();
-
-    if (sign_min != sign_max)
-    {
-        // Segments are apparently intersecting each other
-        float intersection_segment;
-        float intersection_infill_line;
-        if (LinearAlg2D::segmentSegmentIntersection(start, end, other.start, other.end, intersection_segment, intersection_infill_line))
-        {
-            const Point2LL intersection = lerp(start, end, intersection_segment);
-            if (intersection.Y >= overlapping.y_max - EPSILON)
-            {
-                // Intersection is very close from top, consider as if not intersecting
-                sign_max = sign_min;
-            }
-            else if (intersection.Y <= overlapping.y_min + EPSILON)
-            {
-                // Intersection is very close from bottom, consider as if not intersecting
-                sign_min = sign_max;
-            }
-            else
-            {
-                SegmentOverlappingType type;
-
-                if (sign_max == expand_direction)
-                {
-                    type = overlap_top ? SegmentOverlappingType::Top : SegmentOverlappingType::Middle;
-                    line_part.setStart(intersection);
-                }
-                else
-                {
-                    type = overlap_bottom ? SegmentOverlappingType::Bottom : SegmentOverlappingType::Middle;
-                    line_part.setEnd(intersection);
-                }
-
-                return SegmentOverlapping{ type, line_part };
-            }
-        }
-    }
-
-    if (sign_min != expand_direction)
-    {
-        // Segment is on the non-expanding side, discard
-        return std::nullopt;
-    }
-    else
-    {
-        return SegmentOverlapping{ makeNonInteresectingOverlapping(overlap_top, overlap_bottom), line_part };
-    }
-}
-
 /*!
  * Calculates all the intersections between a horizontal line and the given transformed shape
  * @param line_y The horizontal line Y coordinate
@@ -253,15 +34,15 @@ std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const Transfor
 {
     std::vector<coord_t> intersections;
 
-    for (const TransformedSegment& transformed_segment : transformed_shape.segments)
+    for (const TransformedSegment& transformed_segment : transformed_shape.getSegments())
     {
-        if (transformed_segment.min_y > line_y || transformed_segment.max_y < line_y)
+        if (transformed_segment.minY() > line_y || transformed_segment.maxY() < line_y)
         {
             // Segment is fully over or under the line, skip
             continue;
         }
 
-        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.start, transformed_segment.end, line_y);
+        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.getStart(), transformed_segment.getEnd(), line_y);
         if (intersection.has_value())
         {
             intersections.push_back(intersection.value());
@@ -420,39 +201,6 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
 }
 
 /*!
- * Pre-transforms a polygon according to the given matrix, so that the bridging angle ends up being horizontal
- * @param polygon The polygon to be transformed
- * @param matrix The transform matrix
- * @param transformed_shape The shape transformed to the bridging orientation
- */
-void transformPolygon(const Polygon& polygon, const PointMatrix& matrix, TransformedShape& transformed_shape)
-{
-    for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
-    {
-        transformed_shape.addSegment(TransformedSegment((*iterator).start, (*iterator).end, matrix));
-    }
-}
-
-/*!
- * Pre-transforms a shape according to the given matrix, so that the bridging angle ends up being horizontal
- * @param shape The shape to be transformed
- * @param matrix The transform matrix
- * @return The shape transformed to the bridging orientation
- */
-TransformedShape transformShape(const Shape& shape, const PointMatrix& matrix)
-{
-    TransformedShape transformed_shape;
-    transformed_shape.segments.reserve(shape.pointCount());
-
-    for (const Polygon& polygon : shape)
-    {
-        transformPolygon(polygon, matrix, transformed_shape);
-    }
-
-    return transformed_shape;
-}
-
-/*!
  * Evaluate the bridging lines scoring for the given angle
  * @param skin_outline The skin outline to be filled
  * @param supported_regions The supported regions areas
@@ -463,22 +211,22 @@ coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_re
 {
     // Transform the skin outline and supported regions according to the angle to speedup intersections calculations
     const PointMatrix matrix(angle);
-    const TransformedShape transformed_skin_area = transformShape(skin_outline, matrix);
-    const TransformedShape transformed_supported_area = transformShape(supported_regions, matrix);
+    const TransformedShape transformed_skin_area(skin_outline, matrix);
+    const TransformedShape transformed_supported_area(supported_regions, matrix);
 
-    if (transformed_skin_area.min_y >= transformed_skin_area.max_y || transformed_supported_area.min_y >= transformed_supported_area.max_y)
+    if (transformed_skin_area.minY() >= transformed_skin_area.maxY() || transformed_supported_area.minY() >= transformed_supported_area.maxY())
     {
         return std::numeric_limits<coord_t>::lowest();
     }
 
-    const size_t bridge_lines_count = (transformed_skin_area.max_y - transformed_skin_area.min_y) / line_width;
+    const size_t bridge_lines_count = (transformed_skin_area.maxY() - transformed_skin_area.minY()) / line_width;
     if (bridge_lines_count == 0)
     {
         // We cannot fit a single line in this direction, give up
         return std::numeric_limits<coord_t>::lowest();
     }
 
-    const coord_t line_min = transformed_skin_area.min_y + line_width * 0.5;
+    const coord_t line_min = transformed_skin_area.minY() + line_width * 0.5;
 
     // Evaluated lines that could be properly bridging
     coord_t line_score = 0;
@@ -486,7 +234,7 @@ coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_re
     for (size_t i = 0; i < bridge_lines_count; ++i)
     {
         const coord_t line_y = line_min + i * line_width;
-        const bool has_supports = line_y >= transformed_supported_area.min_y && line_y <= transformed_supported_area.max_y;
+        const bool has_supports = line_y >= transformed_supported_area.minY() && line_y <= transformed_supported_area.maxY();
         line_score += evaluateBridgeLine(line_y, transformed_skin_area, has_supports ? transformed_supported_area : empty_transformed_shape);
     }
 
@@ -681,124 +429,6 @@ std::optional<AngleDegrees> bridgeAngle(
     return best_angle.angle;
 }
 
-/*! Helper structure containing a vertical range that has been expanded (or not) for a segment */
-struct ExpansionRange
-{
-    union
-    {
-        // The segment that has been expanded
-        TransformedSegment segment;
-        // The range that has not been expanded
-        struct
-        {
-            coord_t min_y;
-            coord_t max_y;
-        } range;
-    } data;
-
-    // The supporting segment that this range is based upon, or the segment being expanded if it has not been expanded
-    const TransformedSegment* supporting_segment;
-
-    // True if this range has been expanded to a supported infill line, in which case you can use data.segment. Otherwise the range has not been expanded and only contains
-    // its Y range in data.range.
-    bool is_expanded;
-
-    /*!
-     * Contructs a range that has been expanded to an infill line
-     * @param segment The actual expanded segment, cropped to the range
-     * @param supporting_segment The infill line which is supporting this segment
-     */
-    ExpansionRange(const TransformedSegment& segment, const TransformedSegment* supporting_segment)
-        : data{ .segment = segment }
-        , supporting_segment(supporting_segment)
-        , is_expanded(true)
-    {
-    }
-
-    /*!
-     * Constructs a range that has not been expanded
-     * @param min_y The range bottom Y coordinate
-     * @param max_y The range maximum Y coordinate
-     * @param supporting_segment The segment being expanded
-     */
-    ExpansionRange(const coord_t min_y, const coord_t max_y, const TransformedSegment* supporting_segment)
-        : data{ .range = { .min_y = min_y, .max_y = max_y } }
-        , is_expanded(false)
-        , supporting_segment(supporting_segment)
-    {
-    }
-
-    coord_t y_min() const
-    {
-        return is_expanded ? data.segment.min_y : data.range.min_y;
-    }
-
-    coord_t y_max() const
-    {
-        return is_expanded ? data.segment.max_y : data.range.max_y;
-    }
-
-    /*!
-     * Calculate the horizontal overlapping between this range and an other segment, given the expand direction. Overlapping means that the new segment is on the right (or left)
-     * of the actual segment on a horizontal band formed by the segment top and bottom
-     * @param other The other segment that may be overlapping
-     * @param expand_direction The expand direction, 1 means expand to the right, -1 expand to the left
-     * @return The overlapping details if the segment actually overlap, or nullopt if it doesn't
-     */
-    std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const
-    {
-        if (is_expanded)
-        {
-            return data.segment.calculateOverlapping(other, expand_direction);
-        }
-
-        if (fuzzy_is_greater_or_equal(other.min_y, y_max()) || fuzzy_is_lesser_or_equal(other.max_y, y_min()))
-        {
-            // Not on the same horizontal band, or very slightly overlapping , discard
-            return std::nullopt;
-        }
-
-        const SegmentOverlappingData overlapping(data.range.min_y, data.range.max_y, other.min_y, other.max_y, nullptr, nullptr, other.start, other.end);
-
-        const bool overlap_top = (other.max_y == data.range.max_y);
-        const bool overlap_bottom = (other.min_y == data.range.min_y);
-
-        return SegmentOverlapping{ TransformedSegment::makeNonInteresectingOverlapping(overlap_top, overlap_bottom), overlapping.makeOtherOverlappingPart() };
-    }
-
-    /*! Move the range maximum Y coordinate down, actually cropping it */
-    void cropTop(const coord_t new_max_y)
-    {
-        if (is_expanded)
-        {
-            data.segment.cropTop(new_max_y);
-        }
-        else
-        {
-            data.range.max_y = new_max_y;
-        }
-    }
-
-    /*! Move the segment minimum Y coordinate up, actually cropping it */
-    void cropBottom(const coord_t new_min_y)
-    {
-        if (is_expanded)
-        {
-            data.segment.cropBottom(new_min_y);
-        }
-        else
-        {
-            data.range.min_y = new_min_y;
-        }
-    }
-
-    /*! Indicates if the range is still valid, e.g. doesn't have a (almost) null height */
-    bool isValid() const
-    {
-        return fuzzy_not_equal(y_max(), y_min());
-    }
-};
-
 /*!
  * Make the expanded ranges for the given segment
  * @param segment The segment to be expanded
@@ -810,7 +440,7 @@ std::vector<ExpansionRange> makeExpandedRanges(const TransformedSegment& segment
 {
     // List of expansion ranges, initiall filled with a single non-expanded range
     std::vector<ExpansionRange> expanded_ranges;
-    expanded_ranges.push_back(ExpansionRange(segment.min_y, segment.max_y, &segment));
+    expanded_ranges.push_back(ExpansionRange(segment.minY(), segment.maxY(), &segment));
 
     // Now loop on every infill line and update the expansion ranges accordingly
     for (const TransformedSegment& infill_line_below : infill_lines_below)
@@ -862,7 +492,7 @@ std::vector<ExpansionRange> makeExpandedRanges(const TransformedSegment& segment
                 commit_replacing_range();
 
                 ExpansionRange cropped_range_bottom = std::move(expanded_range);
-                cropped_range_bottom.cropTop(range_overlapping->other_overlapping_part.min_y);
+                cropped_range_bottom.cropTop(range_overlapping->other_overlapping_part.minY());
                 if (cropped_range_bottom.isValid())
                 {
                     new_expanded_ranges.push_back(std::move(cropped_range_bottom));
@@ -877,7 +507,7 @@ std::vector<ExpansionRange> makeExpandedRanges(const TransformedSegment& segment
             else
             {
                 // We have a replacing range, update it so that it now ends at the same position as the overlapping line end
-                replacing_range->data.segment.setEnd(range_overlapping->other_overlapping_part.end);
+                replacing_range->setProjectedEnd(range_overlapping->other_overlapping_part.getEnd());
             }
 
             if (range_overlapping->type != SegmentOverlappingType::Top && range_overlapping->type != SegmentOverlappingType::Full)
@@ -886,7 +516,7 @@ std::vector<ExpansionRange> makeExpandedRanges(const TransformedSegment& segment
                 commit_replacing_range();
 
                 ExpansionRange cropped_range_top = std::move(expanded_range);
-                cropped_range_top.cropBottom(range_overlapping->other_overlapping_part.max_y);
+                cropped_range_top.cropBottom(range_overlapping->other_overlapping_part.maxY());
                 if (cropped_range_top.isValid())
                 {
                     new_expanded_ranges.push_back(std::move(cropped_range_top));
@@ -922,7 +552,7 @@ void updateExpandedPolygon(
 {
     for (const ExpansionRange& expanded_range : expanded_ranges)
     {
-        if (expanded_range.supporting_segment == current_supporting_infill_line)
+        if (expanded_range.getSupportingSegment() == current_supporting_infill_line)
         {
             // As long as we have the same supporting infill line, don't have points because we just move along the same line
             continue;
@@ -931,41 +561,42 @@ void updateExpandedPolygon(
         if (current_supporting_infill_line == nullptr)
         {
             // This is the first iteration for this polygon, add the initial point
-            if (! expanded_range.is_expanded)
+            if (! expanded_range.isProjected())
             {
                 // This is an unitialized range, use the raw segment
-                expanded_polygon.push_back(segment.start);
+                expanded_polygon.push_back(segment.getStart());
             }
             else
             {
-                expanded_polygon.push_back(expand_direction > 0 ? expanded_range.data.segment.start : expanded_range.data.segment.end);
+                expanded_polygon.push_back(expand_direction > 0 ? expanded_range.getProjectedSegment().getStart() : expanded_range.getProjectedSegment().getEnd());
             }
         }
         else
         {
             Point2LL next_start_position;
 
-            if (! expanded_range.is_expanded)
+            if (! expanded_range.isProjected())
             {
                 // This is an unitialized range, use the raw segment
-                const coord_t position_switch_y = expand_direction > 0 ? expanded_range.data.range.min_y : expanded_range.data.range.max_y;
-                next_start_position = Point2LL(LinearAlg2D::lineHorizontalLineIntersection(segment.start, segment.end, position_switch_y).value_or(0), position_switch_y);
+                const coord_t position_switch_y = expand_direction > 0 ? expanded_range.minY() : expanded_range.maxY();
+                next_start_position = Point2LL(LinearAlg2D::lineHorizontalLineIntersection(segment.getStart(), segment.getEnd(), position_switch_y).value_or(0), position_switch_y);
             }
             else
             {
-                next_start_position = expand_direction > 0 ? expanded_range.data.segment.start : expanded_range.data.segment.end;
+                next_start_position = expand_direction > 0 ? expanded_range.getProjectedSegment().getStart() : expanded_range.getProjectedSegment().getEnd();
             }
 
             // Add point to close anchoring to previous infill line
             expanded_polygon.pushBackIfFormingSegment(Point2LL(
-                LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->start, current_supporting_infill_line->end, next_start_position.Y).value_or(0),
+                LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->getStart(), current_supporting_infill_line->getEnd(), next_start_position.Y)
+                    .value_or(0),
                 next_start_position.Y));
 
             // Add point to start anchoring on new infill line
             expanded_polygon.pushBackIfFormingSegment(next_start_position);
         }
 
-        current_supporting_infill_line = expanded_range.supporting_segment;
+        current_supporting_infill_line = expanded_range.getSupportingSegment();
     }
 }
 
@@ -988,14 +619,14 @@ void expandSegment(
     Polygon& expanded_polygon,
     const TransformedSegment*& current_supporting_infill_line)
 {
-    if (fuzzy_equal(segment.min_y, segment.max_y))
+    if (fuzzy_equal(segment.minY(), segment.maxY()))
     {
         // Skip horizontal segments, holes will be filled by expanding their previous and next segments
         return;
     }
 
     // 1 means expand to the right, -1 expand to the left
-    const int8_t expand_direction = sign(segment.end.Y - segment.start.Y);
+    const int8_t expand_direction = sign(segment.getEnd().Y - segment.getStart().Y);
 
     // Make the list of expanded ranges for this segment
     std::vector<ExpansionRange> expanded_ranges = makeExpandedRanges(segment, infill_lines_below, expand_direction);
@@ -1028,47 +659,33 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     // We will expand the bridging area following the lines direction
     const AngleDegrees expansion_angle = bridge_angle + 90;
     const MixedLinesSet infill_lines_below = completed_layer_plan_below->getGeneratedInfillLines(&mesh);
-    TransformedShape filtered_infill_lines_below;
 
     // Rotate all the infill lines below so that they are in a space where the under skin area should be expanded horizontally
     const PointMatrix matrix(expansion_angle);
-    const auto add_infill_line = [&matrix, &filtered_infill_lines_below](const Point2LL& start, const Point2LL& end) -> void
-    {
-        TransformedSegment transformed_segment(start, end, matrix);
-        if (fuzzy_not_equal(transformed_segment.min_y, transformed_segment.max_y)) // Do not include horizontal segments
-        {
-            filtered_infill_lines_below.addSegment(std::move(transformed_segment));
-        }
-    };
+    TransformedShape filtered_infill_lines_below(matrix);
 
+    constexpr bool filter_out_horizontal = true;
     for (const PolylinePtr& infill_line_below : infill_lines_below)
     {
         for (auto iterator = infill_line_below->cbeginSegments(); iterator != infill_line_below->cendSegments(); ++iterator)
         {
-            add_infill_line((*iterator).start, (*iterator).end);
+            filtered_infill_lines_below.addSegment((*iterator).start, (*iterator).end, filter_out_horizontal);
         }
     }
 
-    for (const Polygon& polygon : infill_contour)
-    {
-        for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
-        {
-            add_infill_line((*iterator).start, (*iterator).end);
-        }
-    }
+    filtered_infill_lines_below.addShape(infill_contour, filter_out_horizontal);
 
     // Now expand each polygon by expanding its segments horizontally according to the supporting infill lines
     Shape transformed_expanded_infill_below_skin_area;
     for (const Polygon& infill_below_skin_polygon : infill_below_skin_area)
     {
-        TransformedShape transformed_infill_below_skin_polygon;
-        transformPolygon(infill_below_skin_polygon, matrix, transformed_infill_below_skin_polygon);
+        const TransformedShape transformed_infill_below_skin_polygon(infill_below_skin_polygon, matrix);
 
         Polygon expanded_polygon;
         const TransformedSegment* current_supporting_infill_line = nullptr;
-        for (const TransformedSegment& transformed_infill_below_skin_segment : transformed_infill_below_skin_polygon.segments)
+        for (const TransformedSegment& transformed_infill_below_skin_segment : transformed_infill_below_skin_polygon.getSegments())
         {
-            expandSegment(transformed_infill_below_skin_segment, filtered_infill_lines_below.segments, expanded_polygon, current_supporting_infill_line);
+            expandSegment(transformed_infill_below_skin_segment, filtered_infill_lines_below.getSegments(), expanded_polygon, current_supporting_infill_line);
         }
         transformed_expanded_infill_below_skin_area.push_back(std::move(expanded_polygon));
     }

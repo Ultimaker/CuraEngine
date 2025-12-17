@@ -25,10 +25,10 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="0.84096521"
-     inkscape:cx="124.26198"
-     inkscape:cy="502.39891"
+     inkscape:cx="114.7491"
+     inkscape:cy="413.21567"
      inkscape:window-width="1920"
-     inkscape:window-height="1128"
+     inkscape:window-height="1008"
      inkscape:window-x="0"
      inkscape:window-y="0"
      inkscape:window-maximized="1"
@@ -123,7 +123,7 @@
          id="tspan1854"
          style="font-size:6.35px;stroke-width:0.264583"
          x="51.167877"
-         y="220.46677">Non-expanded range</tspan></text>
+         y="220.46677">Non-projected range</tspan></text>
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:6.35px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:1;stroke:none;stroke-width:0.264583"
@@ -134,6 +134,6 @@
          id="tspan1858"
          style="font-size:6.35px;stroke-width:0.264583"
          x="49.165657"
-         y="196.44011">Range expanded to partial line</tspan></text>
+         y="196.44011">Range projected to partial line</tspan></text>
   </g>
 </svg>
