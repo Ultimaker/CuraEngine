@@ -214,6 +214,11 @@ public:
         const SliceMeshStorage* mesh = nullptr,
         const Shape& prevent_small_exposed_to_air = Shape());
 
+    coord_t getLineDistance() const
+    {
+        return line_distance_;
+    }
+
     /*!
      * Generate the wall toolpaths of an infill area. It will return the inner contour and set the inner-contour.
      * This function is called within the generate() function but can also be called stand-alone

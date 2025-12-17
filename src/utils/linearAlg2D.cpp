@@ -319,4 +319,23 @@ bool LinearAlg2D::lineLineIntersection(const Point2LL& a, const Point2LL& b, con
     return true;
 }
 
+std::optional<coord_t> LinearAlg2D::lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y)
+{
+    if (p1.X == p2.X)
+    {
+        // Line is purely vertical
+        return p1.X;
+    }
+
+    const double coeff_a = static_cast<double>(p2.Y - p1.Y) / (p2.X - p1.X);
+    if (is_null(coeff_a))
+    {
+        // Other line is also horizontal
+        return std::nullopt;
+    }
+
+    const double coeff_b = p1.Y - coeff_a * p1.X;
+    return std::llrint((line_y - coeff_b) / coeff_a);
+}
+
 } // namespace cura

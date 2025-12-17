@@ -4,20 +4,23 @@
 #ifndef BRIDGE_H
 #define BRIDGE_H
 
+#include <optional>
+
 namespace cura
 {
 
 class Shape;
-class Settings;
+class SliceMeshStorage;
 class SliceDataStorage;
 class SupportLayer;
+class AngleDegrees;
 
 /*!
  * \brief Computes the angle that lines have to take to bridge a certain shape
  * best.
  *
  * If the area should not be bridged, an angle of -1 is returned.
- * \param settings The settings container to get settings from.
+ * \param mesh The mesh being processed.
  * \param skin_outline The shape to fill with lines.
  * \param storage The slice data storage where to find objects that the bridge
  * could rest on in previous layers.
@@ -27,8 +30,8 @@ class SupportLayer;
  * \param supported_regions Pre-computed regions that the support layer would
  * support.
  */
-double bridgeAngle(
-    const Settings& settings,
+std::optional<AngleDegrees> bridgeAngle(
+    const SliceMeshStorage& mesh,
     const Shape& skin_outline,
     const SliceDataStorage& storage,
     const unsigned layer_nr,

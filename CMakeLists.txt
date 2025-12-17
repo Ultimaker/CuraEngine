@@ -65,6 +65,7 @@ set(engine_SRCS # Except main.cpp.
         src/multiVolumes.cpp
         src/path_ordering.cpp
         src/PathAdapter.cpp
+        src/PathOrderMonotonic.cpp
         src/Preheat.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
@@ -177,6 +178,7 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
         src/geometry/Shape.cpp
+        src/geometry/PointMatrix.cpp
         src/geometry/PointsSet.cpp
         src/geometry/SingleShape.cpp
         src/geometry/PartsView.cpp
