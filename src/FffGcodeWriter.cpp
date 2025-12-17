@@ -3235,6 +3235,7 @@ void FffGcodeWriter::processTopBottom(
     const bool bridge_enable_more_layers = bridge_settings_enabled && mesh.settings.get<bool>("bridge_enable_more_layers");
     const Ratio support_threshold = bridge_settings_enabled ? mesh.settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
     const size_t bottom_layers = mesh.settings.get<size_t>("bottom_layers");
+    std::optional<coord_t> forced_small_area_width;
 
     // if support is enabled, consider the support outlines so we don't generate bridges over support
 
@@ -3292,6 +3293,7 @@ void FffGcodeWriter::processTopBottom(
                     break;
                 }
             }
+            forced_small_area_width = 0;
             pattern = EFillMethod::LINES; // force lines pattern when bridging
             if (bridge_settings_enabled)
             {
@@ -3391,7 +3393,8 @@ void FffGcodeWriter::processTopBottom(
         ordering,
         is_roofing_flooring,
         added_something,
-        fan_speed);
+        fan_speed,
+        forced_small_area_width);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(
@@ -3408,7 +3411,8 @@ void FffGcodeWriter::processSkinPrintFeature(
     const LinesOrderingMethod ordering,
     const bool is_roofing_flooring,
     bool& added_something,
-    double fan_speed) const
+    double fan_speed,
+    std::optional<coord_t> forced_small_area_width) const
 {
     Shape skin_polygons;
     OpenLinesSet skin_lines;
@@ -3431,7 +3435,8 @@ void FffGcodeWriter::processSkinPrintFeature(
     constexpr coord_t pocket_size = 0;
     const bool small_areas_on_surface = mesh.settings.get<bool>("small_skin_on_surface");
     const coord_t line_width = config.getLineWidth();
-    const coord_t small_area_width = (small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<coord_t>("small_skin_width") : line_width / 4;
+    const coord_t small_area_width
+        = forced_small_area_width.value_or((small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<coord_t>("small_skin_width") : line_width / 4);
     const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
     const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
 

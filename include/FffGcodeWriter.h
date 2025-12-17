@@ -592,6 +592,7 @@ private:
      * minimise travel moves (``false``).
      * \param[out] added_something Whether this function added anything to the layer plan
      * \param fan_speed fan speed override for this skin area
+     * \param forced_small_area_width A specific value to be used for small_area_width when generating the infill, or nullopt to use the normal value
      */
     void processSkinPrintFeature(
         const SliceDataStorage& storage,
@@ -607,7 +608,8 @@ private:
         const LinesOrderingMethod ordering,
         const bool is_roofing_flooring,
         bool& added_something,
-        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
+        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        std::optional<coord_t> forced_small_area_width = std::nullopt) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to
