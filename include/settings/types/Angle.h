@@ -26,7 +26,7 @@ public:
     /*
      * \brief Default constructor setting the angle to 0.
      */
-    constexpr AngleDegrees() noexcept = default;
+    AngleDegrees() noexcept = default;
 
     /*
      * \brief Converts radians to degrees.
@@ -36,7 +36,7 @@ public:
     /*
      * \brief Casts a double to an AngleDegrees instance.
      */
-    constexpr AngleDegrees(double value)
+    AngleDegrees(double value)
         : value_{ std::fmod(std::fmod(value, 360) + 360, 360) }
     {
     }
