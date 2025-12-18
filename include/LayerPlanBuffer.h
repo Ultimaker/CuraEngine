@@ -18,7 +18,7 @@ namespace cura
 class LayerPlan;
 class ExtruderPlan;
 class GCodeExport;
-class LayerIndex;
+struct LayerIndex;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
