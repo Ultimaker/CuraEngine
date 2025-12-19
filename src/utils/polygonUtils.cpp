@@ -679,7 +679,7 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPointPolygon& poly1_re
     poly2_result.poly_idx_ = poly2_idx;
 }
 
-ClosestPointPolygon PolygonUtils::findNearestClosest(Point2LL from, const Polygon& polygon, int start_idx)
+ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx)
 {
     ClosestPointPolygon forth = findNearestClosest(from, polygon, start_idx, 1);
     if (! forth.isValid())
@@ -698,7 +698,7 @@ ClosestPointPolygon PolygonUtils::findNearestClosest(Point2LL from, const Polygo
     }
 }
 
-ClosestPointPolygon PolygonUtils::findNearestClosest(Point2LL from, const Polygon& polygon, int start_idx, int direction)
+ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx, int direction)
 {
     if (polygon.size() == 0)
     {
@@ -735,7 +735,7 @@ ClosestPointPolygon PolygonUtils::findNearestClosest(Point2LL from, const Polygo
     return ClosestPointPolygon(best, bestPos, &polygon);
 }
 
-ClosestPointPolygon PolygonUtils::findClosest(Point2LL from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function)
+ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function)
 {
     ClosestPointPolygon none;
 
@@ -783,7 +783,7 @@ ClosestPointPolygon PolygonUtils::findClosest(Point2LL from, const Shape& polygo
     return best;
 }
 
-ClosestPointPolygon PolygonUtils::findClosest(Point2LL from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function)
+ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function)
 {
     if (polygon.size() == 0)
     {
@@ -817,16 +817,16 @@ ClosestPointPolygon PolygonUtils::findClosest(Point2LL from, const Polygon& poly
     return ClosestPointPolygon(best, bestPos, &polygon);
 }
 
-PolygonsPointIndex PolygonUtils::findNearestVert(const Point2LL from, const Shape& polys)
+PolygonsPointIndex PolygonUtils::findNearestVert(const Point2LL& from, const Shape& polys)
 {
-    int64_t best_dist2 = std::numeric_limits<int64_t>::max();
+    coord_t best_dist2 = std::numeric_limits<coord_t>::max();
     PolygonsPointIndex closest_vert;
     for (unsigned int poly_idx = 0; poly_idx < polys.size(); poly_idx++)
     {
         const Polygon& poly = polys[poly_idx];
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            int64_t dist2 = vSize2(poly[point_idx] - from);
+            const coord_t dist2 = vSize2(poly[point_idx] - from);
             if (dist2 < best_dist2)
             {
                 best_dist2 = dist2;
@@ -837,7 +837,7 @@ PolygonsPointIndex PolygonUtils::findNearestVert(const Point2LL from, const Shap
     return closest_vert;
 }
 
-unsigned int PolygonUtils::findNearestVert(const Point2LL from, const Polygon& poly)
+unsigned int PolygonUtils::findNearestVert(const Point2LL& from, const Polygon& poly)
 {
     int64_t best_dist2 = std::numeric_limits<int64_t>::max();
     unsigned int closest_vert_idx = -1;

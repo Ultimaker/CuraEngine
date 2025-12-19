@@ -62,11 +62,7 @@ namespace cura
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    std::vector<Mesh> initial_meshes = meshgroup->meshes; // Make a copy, because splitting is going to insert new meshes
-    for (const Mesh& mesh : initial_meshes)
-    {
-        MeshMaterialSplitter::makePaintingModifierMeshes(mesh, meshgroup);
-    }
+    MeshMaterialSplitter::makePaintingModifierMeshes(meshgroup);
 
     if (! sliceModel(meshgroup, timeKeeper, storage))
     {

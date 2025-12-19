@@ -6,7 +6,6 @@
 #include <algorithm>
 
 #include "sliceDataStorage.h"
-#include "utils/SVG.h"
 
 namespace cura
 {

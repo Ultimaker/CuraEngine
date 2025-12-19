@@ -5,6 +5,9 @@
 #define POINT2D_H
 
 #include <cmath>
+#include <optional>
+
+#include "utils/math.h"
 
 namespace cura
 {
@@ -14,7 +17,7 @@ class Point2D
 public:
     Point2D() = default;
 
-    Point2D(double x, double y)
+    Point2D(const double x, const double y)
         : x_(x)
         , y_(y)
     {
@@ -40,9 +43,14 @@ public:
         return std::sqrt(vSize2());
     }
 
-    Point2D vNormalized() const
+    std::optional<Point2D> vNormalized() const
     {
-        return *this / vSize();
+        const double size = vSize();
+        if (is_null(size))
+        {
+            return std::nullopt;
+        }
+        return *this / size;
     }
 
     Point2D rotated90CCW() const
@@ -55,6 +63,26 @@ public:
         return Point2D(x_ / scale, y_ / scale);
     }
 
+    Point2D operator*(const double scale) const
+    {
+        return Point2D(x_ * scale, y_ * scale);
+    }
+
+    Point2D operator-(const Point2D& other) const
+    {
+        return Point2D(x_ - other.x_, y_ - other.y_);
+    }
+
+    Point2D operator+(const Point2D& other) const
+    {
+        return Point2D(x_ + other.x_, y_ + other.y_);
+    }
+
+    Point2D operator-() const
+    {
+        return Point2D(-x_, -y_);
+    }
+
     static double dot(const Point2D& p0, const Point2D& p1)
     {
         return p0.x_ * p1.x_ + p0.y_ * p1.y_;
@@ -65,6 +93,11 @@ public:
 private:
     double x_{}, y_{};
 };
+
+inline Point2D lerp(const Point2D& a, const Point2D& b, const double t)
+{
+    return Point2D(std::lerp(a.x(), b.x(), t), std::lerp(a.y(), b.y(), t));
+}
 
 } // namespace cura
 #endif // POINT2D_H

@@ -11,6 +11,7 @@
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
+#include "LinesOrderingMethod.h"
 #include "gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
@@ -417,10 +418,18 @@ private:
      * mesh which should be printed with this extruder.
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
+     * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
      * \return Whether this function added anything to the layer plan.
      */
-    bool processMultiLayerInfill(LayerPlan& gcodeLayer, const SliceMeshStorage& mesh, const size_t extruder_nr, const MeshPathConfigs& mesh_config, const SliceLayerPart& part)
-        const;
+    bool processMultiLayerInfill(
+        LayerPlan& gcodeLayer,
+        const SliceMeshStorage& mesh,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        const SliceLayerPart& part,
+        const coord_t start_move_inwards_length = 0,
+        const coord_t end_move_inwards_length = 0) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -430,6 +439,8 @@ private:
      * mesh which should be printed with this extruder
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
+     * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
      * \return Whether this function added anything to the layer plan.
      */
     bool processSingleLayerInfill(
@@ -438,7 +449,9 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
+        const SliceLayerPart& part,
+        const coord_t start_move_inwards_length = 0,
+        const coord_t end_move_inwards_length = 0) const;
 
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -579,6 +592,7 @@ private:
      * minimise travel moves (``false``).
      * \param[out] added_something Whether this function added anything to the layer plan
      * \param fan_speed fan speed override for this skin area
+     * \param forced_small_area_width A specific value to be used for small_area_width when generating the infill, or nullopt to use the normal value
      */
     void processSkinPrintFeature(
         const SliceDataStorage& storage,
@@ -591,10 +605,11 @@ private:
         const AngleDegrees skin_angle,
         const coord_t skin_overlap,
         const Ratio skin_density,
-        const bool monotonic,
+        const LinesOrderingMethod ordering,
         const bool is_roofing_flooring,
         bool& added_something,
-        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
+        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        std::optional<coord_t> forced_small_area_width = std::nullopt) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to
