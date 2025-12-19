@@ -46,7 +46,7 @@ public:
     std::optional<Point2D> vNormalized() const
     {
         const double size = vSize();
-        if (is_null(size))
+        if (is_zero(size))
         {
             return std::nullopt;
         }

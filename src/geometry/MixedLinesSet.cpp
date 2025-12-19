@@ -131,6 +131,16 @@ void MixedLinesSet::push_back(ClosedLinesSet&& lines_set)
     }
 }
 
+void MixedLinesSet::push_back(const MixedLinesSet& lines_set)
+{
+    insert(end(), lines_set.begin(), lines_set.end());
+}
+
+void MixedLinesSet::push_back(MixedLinesSet&& lines_set)
+{
+    insert(end(), std::make_move_iterator(lines_set.begin()), std::make_move_iterator(lines_set.end()));
+}
+
 void MixedLinesSet::push_back(const LinesSet<Polygon>& lines_set)
 {
     reserve(size() + lines_set.size());
@@ -140,9 +150,13 @@ void MixedLinesSet::push_back(const LinesSet<Polygon>& lines_set)
     }
 }
 
-void MixedLinesSet::push_back(const Shape& shape)
+void MixedLinesSet::push_back(LinesSet<Polygon>&& lines_set)
 {
-    push_back(static_cast<const LinesSet<Polygon>&>(shape));
+    reserve(size() + lines_set.size());
+    for (Polygon& line : lines_set)
+    {
+        push_back(std::move(line));
+    }
 }
 
 coord_t MixedLinesSet::length() const

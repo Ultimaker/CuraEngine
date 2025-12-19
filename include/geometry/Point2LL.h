@@ -194,16 +194,6 @@ INLINE coord_t cross(const Point2LL& p0, const Point2LL& p1)
     return p0.X * p1.Y - p0.Y * p1.X;
 }
 
-INLINE double angle(const Point2LL& p)
-{
-    double angle = std::atan2(p.X, p.Y) / std::numbers::pi * 180.0;
-    if (angle < 0.0)
-    {
-        angle += 360.0;
-    }
-    return angle;
-}
-
 // Identity function, used to be able to make templated algorithms where the input is sometimes points, sometimes things that contain or can be converted to points.
 INLINE const Point2LL& make_point(const Point2LL& p)
 {
@@ -225,6 +215,12 @@ Point2LL operator-(const Point2LL& p2, const Point3LL& p3);
 inline Point2LL lerp(const Point2LL& a, const Point2LL& b, const double t)
 {
     return Point2LL(lerp(a.X, b.X, t), lerp(a.Y, b.Y, t));
+}
+
+/*! Returns true if the points are equal or close enough to each other to be considered equal */
+inline bool fuzzy_equal(const Point2LL& a, const Point2LL& b)
+{
+    return fuzzy_equal(a.X, b.X) && fuzzy_equal(a.Y, b.Y);
 }
 
 } // namespace cura

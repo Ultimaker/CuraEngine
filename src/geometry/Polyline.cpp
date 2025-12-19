@@ -108,6 +108,16 @@ Polyline::const_segments_iterator Polyline::endSegments() const
     return const_segments_iterator(size() > 1 ? std::prev(end()) : end(), begin(), end());
 }
 
+Polyline::const_segments_iterator Polyline::cbeginSegments() const
+{
+    return beginSegments();
+}
+
+Polyline::const_segments_iterator Polyline::cendSegments() const
+{
+    return endSegments();
+}
+
 Polyline::segments_iterator Polyline::beginSegments()
 {
     return segments_iterator(begin(), begin(), end());

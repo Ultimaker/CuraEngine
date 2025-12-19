@@ -20,6 +20,7 @@ namespace cura
 {
 
 class Point2D;
+class MixedLinesSet;
 
 class SVG : NoCopy
 {
@@ -85,10 +86,18 @@ public:
 
     struct SurfaceAttributes : ElementAttributes
     {
+        double alpha{ 1.0 };
+
         SurfaceAttributes() = default;
 
         SurfaceAttributes(const ColorObject& color)
             : ElementAttributes(color)
+        {
+        }
+
+        SurfaceAttributes(const ColorObject& color, const double alpha)
+            : ElementAttributes(color)
+            , alpha(alpha)
         {
         }
 
@@ -226,6 +235,8 @@ public:
     void write(const OpenPolyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     void write(const ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
+
+    void write(const MixedLinesSet& lines, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     void write(const Point2LL& start, const Point2LL& end, const VisualAttributes& visual_attributes, const bool flush = true) const;
 

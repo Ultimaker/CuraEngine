@@ -24,7 +24,7 @@
 #include "PrimeTower/PrimeTower.h"
 #include "Slice.h"
 #include "WallToolPaths.h"
-#include "bridge.h"
+#include "bridge/bridge.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
@@ -41,7 +41,6 @@
 
 namespace cura
 {
-constexpr coord_t EPSILON = 5;
 
 const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic" };
 const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic" };
@@ -2085,190 +2084,6 @@ bool FffGcodeWriter::processMultiLayerInfill(
     return added_something;
 }
 
-// Return a set of parallel lines at a given angle within an area
-// which cover a set of points
-void getLinesForArea(OpenLinesSet& result_lines, const Shape& area, const AngleDegrees& angle, const PointsSet& points, coord_t line_width)
-{
-    OpenLinesSet candidate_lines;
-    Shape unused_skin_polygons;
-    std::vector<VariableWidthLines> unused_skin_paths;
-
-    // We just want a set of lines which cover a Shape, and reusing this
-    // code seems like the best way.
-    Infill infill_comp(EFillMethod::LINES, false, false, area, line_width, line_width, 0, 1, angle, 0, 0, 0, 0);
-
-    infill_comp.generate(unused_skin_paths, unused_skin_polygons, candidate_lines, {}, 0, SectionType::INFILL);
-
-    // Select only lines which are needed to support points
-    for (const auto& line : candidate_lines)
-    {
-        for (const auto& point : points)
-        {
-            if (LinearAlg2D::getDist2FromLineSegment(line.front(), point, line.back()) <= (line_width / 2) * (line_width / 2))
-            {
-                result_lines.push_back(line);
-                break;
-            }
-        }
-    }
-}
-
-// Return a set of parallel lines within an area which
-// fully support (cover) a set of points.
-void getBestAngledLinesToSupportPoints(OpenLinesSet& result_lines, const Shape& area, const PointsSet& points, coord_t line_width)
-{
-    OpenLinesSet candidate_lines;
-
-    struct CompareAngles
-    {
-        bool operator()(const AngleDegrees& a, const AngleDegrees& b) const
-        {
-            constexpr double small_angle = 5;
-            if (std::fmod(a - b + 360, 180) < small_angle)
-            {
-                return false; // Consider them as equal (near duplicates)
-            }
-            return (a < b);
-        }
-    };
-    std::set<AngleDegrees, CompareAngles> candidate_angles;
-
-    // heuristic that usually chooses a goodish angle
-    for (size_t i = 1; i < points.size(); i *= 2)
-    {
-        candidate_angles.insert(angle(points[i] - points[i / 2]));
-    }
-
-    candidate_angles.insert({ 0, 90 });
-
-    for (const auto& angle : candidate_angles)
-    {
-        candidate_lines.clear();
-        getLinesForArea(candidate_lines, area, angle, points, line_width);
-        if (candidate_lines.length() < result_lines.length() || result_lines.length() == 0)
-        {
-            result_lines = std::move(candidate_lines);
-        }
-    }
-}
-
-// Add a supporting line by cutting a few existing lines.
-// We do this because supporting lines are hanging over air,
-// and therefore print best as part of a continuous print move,
-// rather than having a travel move before and after them.
-void integrateSupportingLine(OpenLinesSet& infill_lines, const OpenPolyline& line_to_add)
-{
-    // Returns the line index and the index of the point within an infill_line, null for no match found.
-    const auto findMatchingSegment = [&](const Point2LL& p) -> std::optional<std::tuple<size_t, size_t>>
-    {
-        for (size_t i = 0; i < infill_lines.size(); ++i)
-        {
-            for (size_t j = 1; j < infill_lines[i].size(); ++j)
-            {
-                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, infill_lines[i][j - 1], infill_lines[i][j]);
-                int64_t dist = vSize2(p - closest_here);
-
-                if (dist < EPSILON * EPSILON) // rounding
-                {
-                    return std::make_tuple(i, j);
-                }
-            }
-        }
-        return std::nullopt;
-    };
-
-    auto front_match = findMatchingSegment(line_to_add.front());
-    auto back_match = findMatchingSegment(line_to_add.back());
-
-    if (front_match && back_match)
-    {
-        const auto& [front_line_index, front_point_index] = *front_match;
-        const auto& [back_line_index, back_point_index] = *back_match;
-
-        if (front_line_index == back_line_index)
-        {
-            /* both ends intersect with the same line.
-             * If the inserted line has ends x, y
-             * and the original line was  ...--A--(x)--B--...--C--(y)--D--...
-             * Then the new lines will be ...--A--x--y--C--...--B--x
-             * And line                   y--D--...
-             * Note that some parts of the line are reversed,
-             * and the last one is completly split apart.
-             */
-            OpenPolyline& old_line = infill_lines[front_line_index];
-            OpenPolyline new_line_start;
-            OpenPolyline new_line_end;
-            Point2LL x, y;
-            std::ptrdiff_t x_index, y_index;
-            if (front_point_index < back_point_index)
-            {
-                x = line_to_add.front();
-                y = line_to_add.back();
-                x_index = static_cast<std::ptrdiff_t>(front_point_index);
-                y_index = static_cast<std::ptrdiff_t>(back_point_index);
-            }
-            else
-            {
-                y = line_to_add.front();
-                x = line_to_add.back();
-                y_index = static_cast<std::ptrdiff_t>(front_point_index);
-                x_index = static_cast<std::ptrdiff_t>(back_point_index);
-            }
-
-            new_line_start.insert(new_line_start.end(), old_line.begin(), old_line.begin() + x_index);
-            new_line_start.push_back(x);
-            new_line_start.push_back(y);
-            new_line_start.insert(new_line_start.end(), old_line.rend() - y_index, old_line.rend() - x_index);
-            new_line_start.push_back(x);
-
-            new_line_end.push_back(y);
-            new_line_end.insert(new_line_end.end(), old_line.begin() + y_index, old_line.end());
-
-            old_line.setPoints(std::move(new_line_start.getPoints()));
-            infill_lines.push_back(new_line_end);
-        }
-        else
-        {
-            /* Different lines
-             * If the line_to_add has ends [front, back]
-             * Existing line (intersects front):       ...--A--(x)--B--...
-             * Other existing line (intersects back):  ...--C--(y)--D--...
-             * Result is Line:   ...--A--x--y--D--...
-             * And line:         x--B--...
-             * And line:         ...--C--y
-             */
-            OpenPolyline& old_front = infill_lines[front_line_index];
-            OpenPolyline& old_back = infill_lines[back_line_index];
-            OpenPolyline full_line, new_front, new_back;
-            const Point2LL x = line_to_add.front();
-            const Point2LL y = line_to_add.back();
-            const auto x_index = static_cast<std::ptrdiff_t>(front_point_index);
-            const auto y_index = static_cast<std::ptrdiff_t>(back_point_index);
-
-            new_front.push_back(x);
-            new_front.insert(new_front.end(), old_front.begin() + x_index, old_front.end());
-
-            new_back.insert(new_back.end(), old_back.begin(), old_back.begin() + y_index);
-            new_back.push_back(y);
-
-            full_line.insert(full_line.end(), old_front.begin(), old_front.begin() + x_index);
-            full_line.push_back(x);
-            full_line.push_back(y);
-            full_line.insert(full_line.end(), old_back.begin() + y_index, old_back.end());
-
-            old_front.setPoints(std::move(new_front.getPoints()));
-            old_back.setPoints(std::move(new_back.getPoints()));
-            infill_lines.push_back(full_line);
-        }
-    }
-    else
-    {
-        // One or other end touches something other than infill
-        // we will just suffer a travel move in this case
-        infill_lines.push_back(line_to_add);
-    }
-}
-
 void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths, OpenLinesSet& result)
 {
     // We just want to grab all lines out of this datastructure
@@ -2284,196 +2099,6 @@ void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& w
                     result.push_back(poly.toPseudoOpenPolyline());
                 }
             }
-        }
-    }
-}
-
-/* Create a set of extra lines to support skins above.
- *
- * Skins above need to be held up.
- * A straight line needs support just at the ends.
- * A curve needs support at various points along the curve.
- *
- * The strategy here is to figure out is currently printed on
- * this layer within the infill area by taking all currently printed
- * lines and turning them into a giant hole-y shape.
- *
- * Then figure out what will be printed on the layer above
- * (all extruded lines, walls, polygons, all combined).
- *
- * Then intersect these two things.   For every 'hole', we 'simplify'
- * the line through the hole, reducing curves to a few points.
- *
- * Then figure out extra infill_lines to add to support all points
- * that lie within a hole.  The extra lines will always be straight
- * and will always go between existing infill lines.
- *
- * Results get added to infill_lines.
- */
-void addExtraLinesToSupportSurfacesAbove(
-    OpenLinesSet& infill_lines,
-    const Shape& infill_polygons,
-    const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths,
-    const SliceLayerPart& part,
-    coord_t infill_line_width,
-    const LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh)
-{
-    // Where needs support?
-
-    const auto enabled = mesh.settings.get<EExtraInfillLinesToSupportSkins>("extra_infill_lines_to_support_skins");
-    if (enabled == EExtraInfillLinesToSupportSkins::NONE)
-    {
-        return;
-    }
-
-    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1 + mesh.settings.get<size_t>("skin_edge_support_layers");
-    if (skin_layer_nr >= mesh.layers.size())
-    {
-        return;
-    }
-
-    OpenLinesSet printed_lines_on_layer_above;
-    for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
-    {
-        for (const SkinPart& skin_part : part_i.skin_parts)
-        {
-            OpenLinesSet skin_lines;
-            Shape skin_polygons;
-            std::vector<VariableWidthLines> skin_paths;
-
-            AngleDegrees skin_angle = 45;
-            if (mesh.skin_angles.size() > 0)
-            {
-                skin_angle = mesh.skin_angles.at(skin_layer_nr % mesh.skin_angles.size());
-            }
-
-            // Approximation of the skin.
-            Infill infill_comp(
-                mesh.settings.get<EFillMethod>("top_bottom_pattern"),
-                false,
-                false,
-                skin_part.outline,
-                infill_line_width,
-                infill_line_width,
-                0,
-                1,
-                skin_angle,
-                0,
-                0,
-                0,
-                0,
-                mesh.settings.get<size_t>("skin_outline_count"),
-                0,
-                {},
-                false);
-            infill_comp.generate(skin_paths, skin_polygons, skin_lines, mesh.settings, 0, SectionType::SKIN);
-
-            wall_tool_paths2lines({ skin_paths }, printed_lines_on_layer_above);
-            if (enabled == EExtraInfillLinesToSupportSkins::WALLS_AND_LINES)
-            {
-                for (const Polygon& poly : skin_polygons)
-                {
-                    printed_lines_on_layer_above.push_back(poly.toPseudoOpenPolyline());
-                }
-                printed_lines_on_layer_above.push_back(skin_lines);
-            }
-        }
-    }
-
-    /* move all points "inwards" by line_width to ensure a good overlap.
-     * Eg.     Old Point                New Point
-     *              |                       |
-     *              |                      X|
-     *       -------X               ---------
-     */
-    for (OpenPolyline& poly : printed_lines_on_layer_above)
-    {
-        OpenPolyline copy = poly;
-        auto orig_it = poly.begin();
-        for (auto it = copy.begin(); it != copy.end(); ++it, ++orig_it)
-        {
-            if (it > copy.begin())
-            {
-                *orig_it += normal(*(it - 1) - *(it), infill_line_width / 2);
-            }
-            if (it < copy.end() - 1)
-            {
-                *orig_it += normal(*(it + 1) - *(it), infill_line_width / 2);
-            }
-        }
-    }
-
-    if (printed_lines_on_layer_above.empty())
-    {
-        return;
-    }
-
-    // What shape is the supporting infill?
-    OpenLinesSet support_lines;
-    support_lines.push_back(infill_lines);
-    // The edge of the infill area is also considered supported
-    for (const auto& poly : part.getOwnInfillArea())
-    {
-        support_lines.push_back(poly.toPseudoOpenPolyline());
-    }
-    for (const auto& poly : infill_polygons)
-    {
-        support_lines.push_back(poly.toPseudoOpenPolyline());
-    }
-
-    // Infill walls can support the layer above
-    wall_tool_paths2lines(wall_tool_paths, support_lines);
-
-    // Turn the lines into a giant shape.
-    Shape supported_area = support_lines.offset(infill_line_width / 2);
-    if (supported_area.empty())
-    {
-        return;
-    }
-
-    // invert the supported_area by adding one huge polygon around the outside
-    supported_area.push_back(AABB{ supported_area }.toPolygon());
-
-    const Shape inv_supported_area = supported_area.intersection(part.getOwnInfillArea());
-
-    OpenLinesSet unsupported_line_segments = inv_supported_area.intersection(printed_lines_on_layer_above);
-
-    // This is to work around a rounding issue in the shape library with border points.
-    const Shape expanded_inv_supported_area = inv_supported_area.offset(-EPSILON);
-
-    Simplify s{ MM2INT(1000), // max() doesnt work here, so just pick a big number.
-                infill_line_width,
-                std::numeric_limits<coord_t>::max() };
-    // map each point into its area
-    std::map<size_t, PointsSet> map;
-
-    for (const OpenPolyline& a : unsupported_line_segments)
-    {
-        const OpenPolyline simplified = s.polyline(a);
-        for (const Point2LL& point : simplified)
-        {
-            size_t idx = expanded_inv_supported_area.findInside(point);
-            if (idx == NO_INDEX)
-            {
-                continue;
-            }
-
-            map[idx].push_back(point);
-        }
-    }
-
-    for (const auto& pair : map)
-    {
-        const Polygon& area = expanded_inv_supported_area[pair.first];
-        const PointsSet& points = pair.second;
-
-        OpenLinesSet result_lines;
-        getBestAngledLinesToSupportPoints(result_lines, Shape(area).offset(infill_line_width / 2 + EPSILON), points, infill_line_width);
-
-        for (const auto& line : part.getOwnInfillArea().intersection(result_lines))
-        {
-            integrateSupportingLine(infill_lines, line);
         }
     }
 }
@@ -2504,6 +2129,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
     Shape infill_polygons;
     std::vector<std::vector<VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
     OpenLinesSet infill_lines;
+    OpenLinesSet skin_support_lines;
+    Shape skin_support_polygons;
 
     const auto pattern = mesh.settings.get<EFillMethod>("infill_pattern");
     const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
@@ -2514,6 +2141,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
     const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
+    const auto skin_support_density = mesh.settings.get<Ratio>("skin_support_density");
+    const coord_t skin_support_line_distance = skin_support_density > 0.0 ? (infill_line_width / skin_support_density) : 0;
     AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
     if (! mesh.infill_angles.empty())
     {
@@ -2539,7 +2169,19 @@ bool FffGcodeWriter::processSingleLayerInfill(
     // boundary edge
     Shape infill_below_skin;
     Shape infill_not_below_skin;
-    const bool hasSkinEdgeSupport = partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+    AngleDegrees skin_support_angle;
+    if (gcode_layer.getLayerNr() > 0)
+    {
+        partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+    }
+
+    if (! infill_below_skin.empty())
+    {
+        const Shape infill_contour = part.infill_area.offset(-(infill_line_width / 2) + infill_overlap);
+        const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
+        std::tie(infill_below_skin, skin_support_angle) = makeBridgeOverInfillPrintable(infill_contour, infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
+        infill_not_below_skin = infill_not_below_skin.difference(infill_below_skin);
+    }
 
     const auto pocket_size = mesh.settings.get<coord_t>("cross_infill_pocket_size");
     constexpr bool skip_stitching = false;
@@ -2608,29 +2250,34 @@ bool FffGcodeWriter::processSingleLayerInfill(
         }
 
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.
-        if (hasSkinEdgeSupport)
+        if (! infill_below_skin.empty())
         {
-            // infill region with skin above has to have at least one infill wall line
-            const size_t min_skin_below_wall_count = wall_line_count > 0 ? wall_line_count : 1;
-            const size_t skin_below_wall_count = density_idx == last_idx ? min_skin_below_wall_count : 0;
-            const coord_t small_area_width = 0;
+            // infill region with skin above has to be printed bridge-like
+            constexpr EFillMethod skin_support_pattern = EFillMethod::LINES;
+            constexpr bool skin_support_zig_zaggify = false;
+            constexpr bool skin_support_connect_polygons = false;
+            constexpr size_t skin_support_infill_multiplier = 1;
+            constexpr size_t min_skin_support_wall_count = 0;
+            constexpr size_t skin_support_wall_count = 0;
+            constexpr coord_t small_area_width = 0;
             wall_tool_paths.emplace_back(std::vector<VariableWidthLines>());
-            const coord_t overlap = infill_overlap - (density_idx == last_idx ? 0 : wall_line_count * infill_line_width);
+            constexpr coord_t skin_support_overlap = 0;
+            constexpr coord_t skin_support_infill_shift = 0;
             Infill infill_comp(
-                pattern,
-                zig_zaggify_infill,
-                connect_polygons,
+                skin_support_pattern,
+                skin_support_zig_zaggify,
+                skin_support_connect_polygons,
                 infill_below_skin,
                 infill_line_width,
-                infill_line_distance_here,
-                overlap,
-                infill_multiplier,
-                infill_angle,
+                skin_support_line_distance,
+                skin_support_overlap,
+                skin_support_infill_multiplier,
+                skin_support_angle,
                 gcode_layer.z_,
-                infill_shift,
+                skin_support_infill_shift,
                 max_resolution,
                 max_deviation,
-                skin_below_wall_count,
+                skin_support_wall_count,
                 small_area_width,
                 infill_origin,
                 skip_stitching,
@@ -2642,8 +2289,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 pocket_size);
             infill_comp.generate(
                 wall_tool_paths.back(),
-                infill_polygons,
-                infill_lines,
+                skin_support_polygons,
+                skin_support_lines,
                 mesh.settings,
                 gcode_layer.getLayerNr(),
                 SectionType::INFILL,
@@ -2652,11 +2299,12 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 &mesh);
             if (density_idx < last_idx)
             {
-                const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, min_skin_below_wall_count);
+                const coord_t cut_offset = get_cut_offset(skin_support_zig_zaggify, infill_line_width, min_skin_support_wall_count);
                 Shape tool = infill_below_skin.offset(static_cast<int>(cut_offset));
                 infill_lines_here = tool.intersection(infill_lines_here);
             }
-            infill_lines.push_back(infill_lines_here);
+            skin_support_lines.push_back(infill_lines_here);
+
             // normal processing for the infill that isn't below skin
             in_outline = infill_not_below_skin;
             if (density_idx == last_idx)
@@ -2678,7 +2326,6 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
         const coord_t small_area_width = 0;
-        const coord_t overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
 
         wall_tool_paths.emplace_back();
         Infill infill_comp(
@@ -2688,7 +2335,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             in_outline,
             infill_line_width,
             infill_line_distance_here,
-            overlap,
+            infill_overlap,
             infill_multiplier,
             infill_angle,
             gcode_layer.z_,
@@ -2732,15 +2379,6 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
 
-    if (mesh.settings.get<coord_t>("wall_line_count") // Disable feature if no walls - it can leave dangling lines at edges
-        && pattern != EFillMethod::LIGHTNING // Lightning doesn't make enclosed regions
-        && pattern != EFillMethod::CONCENTRIC // Doesn't handle 'holes' in infill lines very well
-        && pattern != EFillMethod::CROSS // Ditto
-        && pattern != EFillMethod::CROSS_3D) // Ditto
-    {
-        addExtraLinesToSupportSurfacesAbove(infill_lines, infill_polygons, wall_tool_paths, part, infill_line_width, gcode_layer, mesh);
-    }
-
     const bool walls_generated = std::any_of(
         wall_tool_paths.cbegin(),
         wall_tool_paths.cend(),
@@ -2756,7 +2394,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                         return vwl.empty();
                     }));
         });
-    if (! infill_lines.empty() || ! infill_polygons.empty() || walls_generated)
+    if (! infill_lines.empty() || ! infill_polygons.empty() || ! skin_support_lines.empty() || ! skin_support_polygons.empty() || walls_generated)
     {
         added_something = true;
         gcode_layer.setIsInside(true); // going to print stuff inside print object
@@ -2865,11 +2503,59 @@ bool FffGcodeWriter::processSingleLayerInfill(
             start_move_inwards_length,
             end_move_inwards_length,
             infill_inner_contour);
+
+        if (! skin_support_polygons.empty())
+        {
+            constexpr bool extra_inwards_move = false;
+            gcode_layer
+                .addInfillPolygonsByOptimizer(skin_support_polygons, skin_support_lines, mesh_config.skin_support_config, mesh.settings, extra_inwards_move, near_start_location);
+        }
+
+        const auto skin_support_fan_speed = mesh.settings.get<double>("skin_support_fan_speed");
+        constexpr SpaceFillType skin_support_space_fill_type = SpaceFillType::Lines;
+        constexpr coord_t skin_support_wipe_dist = 0;
+        const auto skin_support_interlace_lines = mesh.settings.get<bool>("skin_support_interlace_lines");
+        if (skin_support_interlace_lines)
+        {
+            const coord_t max_adjacent_distance = skin_support_line_distance * 1.1;
+            constexpr coord_t exclude_distance = 0;
+            constexpr bool skin_support_interlaced = true;
+            gcode_layer.addLinesMonotonic(
+                infill_below_skin,
+                skin_support_lines,
+                mesh_config.skin_support_config,
+                skin_support_space_fill_type,
+                skin_support_angle,
+                max_adjacent_distance,
+                exclude_distance,
+                skin_support_wipe_dist,
+                flow_ratio,
+                skin_support_fan_speed,
+                skin_support_interlaced);
+        }
+        else
+        {
+            gcode_layer.addLinesByOptimizer(
+                skin_support_lines,
+                mesh_config.skin_support_config,
+                skin_support_space_fill_type,
+                enable_travel_optimization,
+                skin_support_wipe_dist,
+                flow_ratio,
+                near_start_location,
+                skin_support_fan_speed);
+        }
+
+        MixedLinesSet all_infill_lines;
+        all_infill_lines.push_back(std::move(infill_lines));
+        all_infill_lines.push_back(std::move(infill_polygons));
+        gcode_layer.setGeneratedInfillLines(&mesh, all_infill_lines);
     }
+
     return added_something;
 }
 
-bool FffGcodeWriter::partitionInfillBySkinAbove(
+void FffGcodeWriter::partitionInfillBySkinAbove(
     Shape& infill_below_skin,
     Shape& infill_not_below_skin,
     const LayerPlan& gcode_layer,
@@ -2878,107 +2564,79 @@ bool FffGcodeWriter::partitionInfillBySkinAbove(
     coord_t infill_line_width)
 {
     constexpr coord_t tiny_infill_offset = 20;
-    const auto skin_edge_support_layers = mesh.settings.get<size_t>("skin_edge_support_layers");
+    const bool skin_support = mesh.settings.get<bool>("skin_support");
+
+    if (! skin_support)
+    {
+        return;
+    }
+
     Shape skin_above_combined; // skin regions on the layers above combined with small gaps between
 
-    // working from the highest layer downwards, combine the regions of skin on all the layers
-    // but don't let the regions merge together
-    // otherwise "terraced" skin regions on separate layers will look like a single region of unbroken skin
-    for (size_t i = skin_edge_support_layers; i > 0; --i)
+    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1;
+    if (skin_layer_nr < mesh.layers.size())
     {
-        const size_t skin_layer_nr = gcode_layer.getLayerNr() + i;
-        if (skin_layer_nr < mesh.layers.size())
+        for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
         {
-            for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
+            for (const SkinPart& skin_part : part_i.skin_parts)
             {
-                for (const SkinPart& skin_part : part_i.skin_parts)
+                // Limit considered areas to the ones that should have infill underneath at the current layer.
+                const Shape relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
+
+                if (! skin_above_combined.empty())
                 {
-                    // Limit considered areas to the ones that should have infill underneath at the current layer.
-                    const Shape relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
-
-                    if (! skin_above_combined.empty())
+                    // does this skin part overlap with any of the skin parts on the layers above?
+                    const Shape overlap = skin_above_combined.intersection(relevant_outline);
+                    if (! overlap.empty())
                     {
-                        // does this skin part overlap with any of the skin parts on the layers above?
-                        const Shape overlap = skin_above_combined.intersection(relevant_outline);
-                        if (! overlap.empty())
-                        {
-                            // yes, it overlaps, need to leave a gap between this skin part and the others
-                            if (i > 1) // this layer is the 2nd or higher layer above the layer whose infill we're printing
-                            {
-                                // looking from the side, if the combined regions so far look like this...
-                                //
-                                //     ----------------------------------
-                                //
-                                // and the new skin part looks like this...
-                                //
-                                //             -------------------------------------
-                                //
-                                // the result should be like this...
-                                //
-                                //     ------- -------------------------- ----------
+                        // yes, it overlaps, need to leave a gap between this skin part and the others
+                        // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so
+                        // far we do this so that these skin region edges will definitely have infill walls below them
 
-                                // expand the overlap region slightly to make a small gap
-                                const Shape overlap_expanded = overlap.offset(tiny_infill_offset);
-                                // subtract the expanded overlap region from the regions accumulated from higher layers
-                                skin_above_combined = skin_above_combined.difference(overlap_expanded);
-                                // subtract the expanded overlap region from this skin part and add the remainder to the overlap region
-                                skin_above_combined.push_back(relevant_outline.difference(overlap_expanded));
-                                // and add the overlap area as well
-                                skin_above_combined.push_back(overlap);
-                            }
-                            else // this layer is the 1st layer above the layer whose infill we're printing
-                            {
-                                // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so
-                                // far we do this so that these skin region edges will definitely have infill walls below them
+                        // looking from the side, if the combined regions so far look like this...
+                        //
+                        //     ----------------------------------
+                        //
+                        // and the new skin part looks like this...
+                        //
+                        //             -------------------------------------
+                        //
+                        // the result should be like this...
+                        //
+                        //     ------- -------------------------------------
 
-                                // looking from the side, if the combined regions so far look like this...
-                                //
-                                //     ----------------------------------
-                                //
-                                // and the new skin part looks like this...
-                                //
-                                //             -------------------------------------
-                                //
-                                // the result should be like this...
-                                //
-                                //     ------- -------------------------------------
-
-                                skin_above_combined = skin_above_combined.difference(relevant_outline.offset(tiny_infill_offset));
-                                skin_above_combined.push_back(relevant_outline);
-                            }
-                        }
-                        else // no overlap
-                        {
-                            skin_above_combined.push_back(relevant_outline);
-                        }
+                        skin_above_combined = skin_above_combined.difference(relevant_outline.offset(tiny_infill_offset));
+                        skin_above_combined.push_back(relevant_outline);
                     }
-                    else // this is the first skin region we have looked at
+                    else // no overlap
                     {
                         skin_above_combined.push_back(relevant_outline);
                     }
                 }
+                else // this is the first skin region we have looked at
+                {
+                    skin_above_combined.push_back(relevant_outline);
+                }
             }
         }
-
-        // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form
-        // a bump
-        infill_below_skin = skin_above_combined.intersection(part.infill_area_per_combine_per_density.back().front()).offset(-infill_line_width).offset(infill_line_width);
-
-        constexpr bool remove_small_holes_from_infill_below_skin = true;
-        constexpr double min_area_multiplier = 25;
-        const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
-        infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
-
-        // there is infill below skin, is there also infill that isn't below skin?
-        infill_not_below_skin = part.infill_area_per_combine_per_density.back().front().difference(infill_below_skin);
-        infill_not_below_skin.removeSmallAreas(min_area);
     }
+
+    // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form
+    // a bump
+    infill_below_skin = skin_above_combined.intersection(part.infill_area_per_combine_per_density.back().front()).offset(-infill_line_width).offset(infill_line_width);
+
+    constexpr bool remove_small_holes_from_infill_below_skin = true;
+    constexpr double min_area_multiplier = 25;
+    const double min_area = INT2MM(infill_line_width) * INT2MM(infill_line_width) * min_area_multiplier;
+    infill_below_skin.removeSmallAreas(min_area, remove_small_holes_from_infill_below_skin);
+
+    // there is infill below skin, is there also infill that isn't below skin?
+    infill_not_below_skin = part.infill_area_per_combine_per_density.back().front().difference(infill_below_skin);
+    infill_not_below_skin.removeSmallAreas(min_area);
 
     // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
     const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.wall_toolpaths.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
     const Shape infill_below_skin_overlap = infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset));
-
-    return ! infill_below_skin_overlap.empty() && ! infill_not_below_skin.empty();
 }
 
 size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const

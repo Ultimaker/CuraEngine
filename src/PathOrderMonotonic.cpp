@@ -6,6 +6,7 @@
 #include <unordered_map> //To track monotonic sequences.
 #include <unordered_set> //To track starting points of monotonic sequences.
 
+#include "geometry/OpenPolyline.h"
 
 namespace cura
 {
@@ -432,5 +433,6 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
 
 // Template functions instantiations
 template void PathOrderMonotonic<const Polyline*>::optimize();
+template void PathOrderMonotonic<const OpenPolyline*>::optimize();
 
 } // namespace cura
