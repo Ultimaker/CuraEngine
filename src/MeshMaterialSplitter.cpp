@@ -241,7 +241,6 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
                     }
                 }
 
-                filled_values.insert(ignore_value);
                 occupation_bits[occupation_bit_index] = ignore_value;
             };
 
@@ -613,12 +612,11 @@ std::vector<Mesh> makeMaterialModifierMeshes(
     // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder
     // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
     spdlog::debug("Fill original voxels based on texture data");
-    const auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
     AABB3D bounding_box = mesh_data.bounding_box;
-    bounding_box.expand(resolution * 8);
+    bounding_box.expand(mesh_data.resolution * 8);
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles, which will be used as spatial reference for the texture data
-    VoxelGrid voxel_grid(bounding_box, resolution);
+    VoxelGrid voxel_grid(bounding_box, mesh_data.resolution);
 
     std::unordered_set<size_t> active_extruders;
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
