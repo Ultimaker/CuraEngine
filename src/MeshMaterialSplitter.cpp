@@ -153,7 +153,7 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
  * Then we just have to extrude those polygons vertically. The final mesh has no horizontal face, thus it is not watertight at all. However, since it will subsequently
  * be re-sliced on XY planes, this is good enough.
  */
-std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const Mesh& input_mesh, const bool use_value_as_extruder_nr)
+std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const bool use_value_as_extruder_nr)
 {
     spdlog::debug("Make modifier meshes from voxels grid");
 
@@ -316,7 +316,7 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&simplifier, &voxel_grid, &meshes, &mutex, &input_mesh, &use_value_as_extruder_nr](const auto& contour)
+        [&simplifier, &voxel_grid, &meshes, &mutex, &use_value_as_extruder_nr](const auto& contour)
         {
             const uint16_t z = contour.first.definition.z;
             const uint8_t value = contour.first.definition.value;
@@ -595,12 +595,7 @@ void propagateVoxels(
 
 /*!
  * Generate a modifier mesh for every extruder other than 0, that has some user-painted texture data
-<<<<<<< HEAD
- * @param mesh The mesh being sliced
- * @param mesh_bounding_box The bounding box of the mesh, right ?
-=======
  * @param mesh_data The generation data for the mesh to be processed
->>>>>>> origin/main
  * @param texture_data_provider The provider containing the texture painted data
  * @param delta_iterations The number of already processed iterations over the total, for progress reporting
  * @param total_estimated_iterations The total number of iterations to be processed, for progress reporting
@@ -680,7 +675,7 @@ std::vector<Mesh> makeMaterialModifierMeshes(
         total_estimated_iterations);
 
     constexpr bool use_value_as_extruder_nr = true;
-    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, mesh_data.mesh, use_value_as_extruder_nr);
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, use_value_as_extruder_nr);
     return applyMeshExtruders(meshes);
 }
 
@@ -702,7 +697,7 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh
 
     constexpr uint8_t ignore_value = 0;
     constexpr bool use_value_as_extruder_nr = false;
-    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, mesh, use_value_as_extruder_nr);
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, use_value_as_extruder_nr);
     return applyMeshSupport(meshes);
 }
 
