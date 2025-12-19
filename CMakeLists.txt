@@ -43,7 +43,6 @@ endif ()
 
 set(engine_SRCS # Except main.cpp.
         src/Application.cpp
-        src/bridge.cpp
         src/ConicalOverhang.cpp
         src/ExtruderPlan.cpp
         src/ExtruderTrain.cpp
@@ -98,6 +97,12 @@ set(engine_SRCS # Except main.cpp.
         src/BeadingStrategy/RedistributeBeadingStrategy.cpp
         src/BeadingStrategy/WideningBeadingStrategy.cpp
         src/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
+
+        src/bridge/bridge.cpp
+        src/bridge/ExpansionRange.cpp
+        src/bridge/SegmentOverlappingData.cpp
+        src/bridge/TransformedSegment.cpp
+        src/bridge/TransformedShape.cpp
 
         src/communication/ArcusCommunication.cpp
         src/communication/ArcusCommunicationPrivate.cpp

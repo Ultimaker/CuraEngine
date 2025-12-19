@@ -541,6 +541,21 @@ void LayerPlan::planPrime(double prime_blob_wipe_length)
     forceNewPathStart();
 }
 
+void LayerPlan::setGeneratedInfillLines(const SliceMeshStorage* mesh, const MixedLinesSet& infill_lines)
+{
+    infill_lines_[mesh].push_back(infill_lines);
+}
+
+const MixedLinesSet LayerPlan::getGeneratedInfillLines(const SliceMeshStorage* mesh) const
+{
+    auto iterator = infill_lines_.find(mesh);
+    if (iterator != infill_lines_.end())
+    {
+        return iterator->second;
+    }
+    return MixedLinesSet();
+}
+
 void LayerPlan::addExtrusionMove(
     const Point3LL& p,
     const GCodePathConfig& config,

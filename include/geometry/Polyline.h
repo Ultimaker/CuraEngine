@@ -98,6 +98,12 @@ public:
     [[nodiscard]] const_segments_iterator endSegments() const;
 
     /*! \brief Provides a begin iterator to iterate over all the segments of the line */
+    [[nodiscard]] const_segments_iterator cbeginSegments() const;
+
+    /*! \brief Provides an end iterator to iterate over all the segments of the line */
+    [[nodiscard]] const_segments_iterator cendSegments() const;
+
+    /*! \brief Provides a begin iterator to iterate over all the segments of the line */
     segments_iterator beginSegments();
 
     /*! \brief Provides an end iterator to iterate over all the segments of the line */
@@ -123,6 +129,23 @@ public:
     [[nodiscard]] coord_t length() const;
 
     [[nodiscard]] bool shorterThan(const coord_t check_length) const;
+
+    /*!
+     * Adds a point to this set, but only if it forms a proper new segment i.r.t the current points in the set
+     * @param point The point to be added
+     * @return True if the point has actually been added, false otherwise
+     * @note The point will also be added if the current list is empty
+     */
+    bool pushBackIfFormingSegment(const Point2LL& point)
+    {
+        if (getPoints().empty() || ! fuzzy_equal(point, getPoints().back()))
+        {
+            push_back(point);
+            return true;
+        }
+
+        return false;
+    }
 
     void reverse()
     {
