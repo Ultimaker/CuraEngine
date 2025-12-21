@@ -118,8 +118,9 @@ public:
      * \param layer_nr The layer that was completed.
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
+     * \param layer_time The time it took to print this layer in seconds.
      */
-    void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) override;
+    void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness, const Duration& layer_time) override;
 
     /*
      * \brief Send a line to the front-end to display in layer view.

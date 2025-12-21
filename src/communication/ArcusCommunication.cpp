@@ -372,11 +372,12 @@ void ArcusCommunication::sendFinishedSlicing() const
     spdlog::debug("Sent slicing finished message.");
 }
 
-void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness)
+void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness, const Duration& layer_time)
 {
     std::shared_ptr<proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
     layer->set_height(z);
     layer->set_thickness(thickness);
+    layer->set_layer_time(layer_time);
 }
 
 void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point3LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)

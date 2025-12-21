@@ -93,7 +93,7 @@ public:
      * The command line doesn't do anything with that information so this is
      * ignored.
      */
-    void sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&) override;
+    void sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&, const Duration&) override;
 
     /*
      * \brief Send a line for display.

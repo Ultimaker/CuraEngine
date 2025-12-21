@@ -3874,8 +3874,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
     } // extruder plans /\  .
 
-    communication->sendLayerComplete(layer_nr_, z_, layer_thickness_);
+    // Calculate layer time before updating total print time
+    const Duration time_before = gcode.getSumTotalPrintTimes();
     gcode.updateTotalPrintTime();
+    const Duration time_after = gcode.getSumTotalPrintTimes();
+    const Duration layer_time = time_after - time_before;
+    
+    communication->sendLayerComplete(layer_nr_, z_, layer_thickness_, layer_time);
 }
 
 void LayerPlan::overrideFanSpeeds(double speed)

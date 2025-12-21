@@ -5,6 +5,7 @@
 #define COMMUNICATION_H
 
 #include "geometry/Point2LL.h"
+#include "settings/types/Duration.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
 
@@ -61,8 +62,9 @@ public:
      * \param layer_nr The layer that was completed.
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
+     * \param layer_time The time it took to print this layer in seconds.
      */
-    virtual void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) = 0;
+    virtual void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness, const Duration& layer_time) = 0;
 
     /*
      * \brief Send a line to the user to visualise.

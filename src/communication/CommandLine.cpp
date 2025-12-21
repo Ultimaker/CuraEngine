@@ -58,7 +58,7 @@ void CommandLine::sendCurrentPosition(const Point3LL&)
 void CommandLine::sendFinishedSlicing() const
 {
 }
-void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&)
+void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&, const Duration&)
 {
 }
 void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&)
