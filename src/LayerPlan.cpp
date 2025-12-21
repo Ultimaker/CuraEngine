@@ -3879,7 +3879,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     gcode.updateTotalPrintTime();
     const Duration time_after = gcode.getSumTotalPrintTimes();
     const Duration layer_time = time_after - time_before;
-    
+
     communication->sendLayerComplete(layer_nr_, z_, layer_thickness_, layer_time);
 }
 
