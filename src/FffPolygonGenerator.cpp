@@ -1085,8 +1085,11 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         return;
     }
 
+    constexpr coord_t epsilon = 5; // the distance between two points that are considered to be the same
     const coord_t line_width = mesh.settings.get<coord_t>("line_width");
     const bool apply_outside_only = mesh.settings.get<bool>("magic_fuzzy_skin_outside_only");
+    const Ratio inside_max_part_ratio = mesh.settings.get<Ratio>("magic_fuzzy_skin_outside_convex_ratio");
+    const double inside_min_part_area = MM2_2INT(mesh.settings.get<double>("magic_fuzzy_skin_outside_min_area"));
     const coord_t fuzziness = mesh.settings.get<coord_t>("magic_fuzzy_skin_thickness");
     const coord_t avg_dist_between_points = mesh.settings.get<coord_t>("magic_fuzzy_skin_point_dist");
     const coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
@@ -1119,20 +1122,27 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 
                 if (apply_outside_only)
                 {
-                    hole_area = part.print_outline.getOutsidePolygons().offset(-line_width);
-                    accumulate_is_in_hole = [&hole_area](const bool& prev_result, const ExtrusionJunction& junction)
+                    hole_area.clear();
+                    const auto initial_hole_area = part.print_outline.approxConvexHull().difference(part.print_outline.offset(epsilon)).offset(line_width - epsilon);
+                    const auto near_shape_area = part.print_outline.offset(line_width / 2 + epsilon);
+
+                    for (const auto& hole_part : initial_hole_area.splitIntoParts())
                     {
-                        return prev_result || hole_area.inside(junction.p_);
-                    };
+                        const auto thick_outline = hole_part.createTubeShape(line_width / 2, 0);
+                        const auto total_area_size = thick_outline.area();
+                        const auto open_area_size = thick_outline.difference(near_shape_area).area();
+                        if ((open_area_size == 0 || hole_part.area() >= inside_min_part_area) && (open_area_size / total_area_size) <= inside_max_part_ratio)
+                        {
+                            hole_area.push_back(hole_part);
+                        }
+                    }
+                }
+                else
+                {
+                    hole_area = Shape();
                 }
                 for (auto& line : toolpath)
                 {
-                    if (apply_outside_only && std::accumulate(line.begin(), line.end(), false, accumulate_is_in_hole))
-                    {
-                        result_lines.push_back(line);
-                        continue;
-                    }
-
                     auto& result = result_lines.emplace_back(line.inset_idx_, line.is_odd_, line.is_closed_);
 
                     // generate points in between p0 and p1
@@ -1144,6 +1154,17 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         if (p0->p_ == p1.p_) // avoid seams
                         {
                             result.emplace_back(p1.p_, p1.w_, p1.perimeter_index_);
+                            continue;
+                        }
+                        if (apply_outside_only && hole_area.inside(p1.p_) && hole_area.inside(p0->p_)) // avoid 'inside'
+                        {
+                            if (result.size() > 0 && result.back().p_ != p0->p_)
+                            {
+                                // Ensure the wall starts on the previous vertex.
+                                result.emplace_back(p0->p_, p0->w_, p0->perimeter_index_);
+                            }
+                            result.emplace_back(p1.p_, p1.w_, p1.perimeter_index_);
+                            p0 = &p1;
                             continue;
                         }
 
