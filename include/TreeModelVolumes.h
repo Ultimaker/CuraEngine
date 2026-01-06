@@ -19,7 +19,6 @@
 
 namespace cura
 {
-constexpr coord_t EPSILON = 5;
 constexpr coord_t FUDGE_LENGTH = 50;
 
 class SliceDataStorage;

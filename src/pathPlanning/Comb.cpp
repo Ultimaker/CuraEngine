@@ -14,7 +14,6 @@
 #include "pathPlanning/LinePolygonsCrossings.h"
 #include "sliceDataStorage.h"
 #include "utils/PolygonsPointIndex.h"
-#include "utils/SVG.h"
 #include "utils/linearAlg2D.h"
 
 namespace cura

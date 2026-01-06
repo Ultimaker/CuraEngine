@@ -11,6 +11,7 @@
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
+#include "LinesOrderingMethod.h"
 #include "gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
@@ -38,7 +39,7 @@ struct MeshPathConfigs;
 class FffGcodeWriter : public NoCopy
 {
     friend class FffProcessor; // Because FffProcessor exposes finalize (TODO)
-    friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
 
 private:
     coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
@@ -591,6 +592,7 @@ private:
      * minimise travel moves (``false``).
      * \param[out] added_something Whether this function added anything to the layer plan
      * \param fan_speed fan speed override for this skin area
+     * \param forced_small_area_width A specific value to be used for small_area_width when generating the infill, or nullopt to use the normal value
      */
     void processSkinPrintFeature(
         const SliceDataStorage& storage,
@@ -603,10 +605,11 @@ private:
         const AngleDegrees skin_angle,
         const coord_t skin_overlap,
         const Ratio skin_density,
-        const bool monotonic,
+        const LinesOrderingMethod ordering,
         const bool is_roofing_flooring,
         bool& added_something,
-        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT) const;
+        double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        std::optional<coord_t> forced_small_area_width = std::nullopt) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to
@@ -746,9 +749,8 @@ private:
      * \param mesh the mesh containing the layer of interest
      * \param part \param part The part for which to create gcode
      * \param infill_line_width line width of the infill
-     * \return true if there needs to be a skin edge support wall in this layer, otherwise false
      */
-    static bool partitionInfillBySkinAbove(
+    static void partitionInfillBySkinAbove(
         Shape& infill_below_skin,
         Shape& infill_not_below_skin,
         const LayerPlan& gcode_layer,

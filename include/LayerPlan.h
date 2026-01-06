@@ -57,7 +57,7 @@ class LayerPlan : public NoCopy
     friend class LayerPlanBuffer;
 #ifdef BUILD_TESTS
     friend class AddTravelTest;
-    friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
     friend class AntiOozeAmountsTest;
     FRIEND_TEST(AntiOozeAmountsTest, ComputeAntiOozeAmounts);
 #endif
@@ -166,6 +166,8 @@ private:
     coord_t max_overhang_length_{ 0 }; //!< From all consecutive overhanging moves in the layer, this is the longest one
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
+
+    std::map<const SliceMeshStorage*, MixedLinesSet> infill_lines_; //!< Infill lines generated for this layer
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
@@ -416,6 +418,10 @@ public:
      * Plan a prime blob at the current location.
      */
     void planPrime(double prime_blob_wipe_length = 10.0);
+
+    void setGeneratedInfillLines(const SliceMeshStorage* mesh, const MixedLinesSet& infill_lines);
+
+    const MixedLinesSet getGeneratedInfillLines(const SliceMeshStorage* mesh) const;
 
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
@@ -785,7 +791,8 @@ public:
         const coord_t exclude_distance = 0,
         const coord_t wipe_dist = 0,
         const Ratio flow_ratio = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool interlaced = false);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.

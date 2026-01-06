@@ -16,6 +16,8 @@ namespace cura
 
 using coord_t = ClipperLib::cInt;
 
+constexpr coord_t EPSILON = 5;
+
 static inline coord_t operator""_mu(unsigned long long i)
 {
     return static_cast<coord_t>(i);
@@ -34,6 +36,48 @@ template<utils::floating_point FactorType>
 [[nodiscard]] inline coord_t lerp(coord_t a, coord_t b, FactorType t)
 {
     return std::llrint(std::lerp(static_cast<double>(a), static_cast<double>(b), t));
+}
+
+/*! Returns true if the given value is null or small enough to be considered null */
+[[nodiscard]] inline bool fuzzy_is_zero(const coord_t value)
+{
+    return std::abs(value) <= EPSILON;
+}
+
+/*! Returns true if the given values are equal or close enough to be considered equal */
+[[nodiscard]] inline bool fuzzy_equal(const coord_t a, const coord_t b)
+{
+    return fuzzy_is_zero(b - a);
+}
+
+/*! Returns true if the given values are not equal and different enough to be considered not equal */
+[[nodiscard]] inline bool fuzzy_not_equal(const coord_t a, const coord_t b)
+{
+    return ! fuzzy_equal(a, b);
+}
+
+/*! Returns true if the given \a value is greater enough to \b to be considered greater */
+[[nodiscard]] inline bool fuzzy_is_greater(const coord_t a, const coord_t b)
+{
+    return a - b > EPSILON;
+}
+
+/*! Returns true if the given \a value is greater or close enough to \b to be considered greater or equal */
+[[nodiscard]] inline bool fuzzy_is_greater_or_equal(const coord_t a, const coord_t b)
+{
+    return a > b - EPSILON;
+}
+
+/*! Returns true if the given \a value is lesser enough to \b to be considered lesser */
+[[nodiscard]] inline bool fuzzy_is_lesser(const coord_t a, const coord_t b)
+{
+    return b - a > EPSILON;
+}
+
+/*! Returns true if the given \a value is lesser or close enough to \b to be considered lesser or equal */
+[[nodiscard]] inline bool fuzzy_is_lesser_or_equal(const coord_t a, const coord_t b)
+{
+    return b > a - EPSILON;
 }
 
 } // namespace cura

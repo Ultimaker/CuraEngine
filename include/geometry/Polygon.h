@@ -21,6 +21,10 @@ class AngleDegrees;
 class Polygon : public ClosedPolyline
 {
 public:
+    /*!
+     * \brief Builds an empty polygon
+     * \warning By default, the polygon is tagged as non explicitly closed
+     */
     Polygon() = default;
 
     /*!

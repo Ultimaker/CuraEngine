@@ -46,7 +46,7 @@ public:
     std::optional<Point2D> vNormalized() const
     {
         const double size = vSize();
-        if (is_null(size))
+        if (is_zero(size))
         {
             return std::nullopt;
         }
@@ -66,6 +66,21 @@ public:
     Point2D operator*(const double scale) const
     {
         return Point2D(x_ * scale, y_ * scale);
+    }
+
+    Point2D operator-(const Point2D& other) const
+    {
+        return Point2D(x_ - other.x_, y_ - other.y_);
+    }
+
+    Point2D operator+(const Point2D& other) const
+    {
+        return Point2D(x_ + other.x_, y_ + other.y_);
+    }
+
+    Point2D operator-() const
+    {
+        return Point2D(-x_, -y_);
     }
 
     static double dot(const Point2D& p0, const Point2D& p1)

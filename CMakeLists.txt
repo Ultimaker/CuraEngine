@@ -43,7 +43,6 @@ endif ()
 
 set(engine_SRCS # Except main.cpp.
         src/Application.cpp
-        src/bridge.cpp
         src/ConicalOverhang.cpp
         src/ExtruderPlan.cpp
         src/ExtruderTrain.cpp
@@ -65,6 +64,7 @@ set(engine_SRCS # Except main.cpp.
         src/multiVolumes.cpp
         src/path_ordering.cpp
         src/PathAdapter.cpp
+        src/PathOrderMonotonic.cpp
         src/Preheat.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
@@ -97,6 +97,12 @@ set(engine_SRCS # Except main.cpp.
         src/BeadingStrategy/RedistributeBeadingStrategy.cpp
         src/BeadingStrategy/WideningBeadingStrategy.cpp
         src/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
+
+        src/bridge/bridge.cpp
+        src/bridge/ExpansionRange.cpp
+        src/bridge/SegmentOverlappingData.cpp
+        src/bridge/TransformedSegment.cpp
+        src/bridge/TransformedShape.cpp
 
         src/communication/ArcusCommunication.cpp
         src/communication/ArcusCommunicationPrivate.cpp
@@ -177,6 +183,7 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
         src/geometry/Shape.cpp
+        src/geometry/PointMatrix.cpp
         src/geometry/PointsSet.cpp
         src/geometry/SingleShape.cpp
         src/geometry/PartsView.cpp
