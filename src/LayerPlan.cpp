@@ -413,6 +413,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
         const coord_t max_distance_ignored = mesh_or_extruder_settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
 
         bool unretract_before_last_travel_move = false; // Decided when calculating the combing
+        bool do_retracted_combing_move = false; // Decided when calculating the combing
         const bool perform_z_hops = mesh_or_extruder_settings.get<bool>("retraction_hop_enabled");
         const bool perform_z_hops_only_when_collides = mesh_or_extruder_settings.get<bool>("retraction_hop_only_when_collides");
         combed = comb_->calc(
@@ -425,10 +426,11 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
             was_inside_,
             is_inside_,
             max_distance_ignored,
-            unretract_before_last_travel_move);
+            unretract_before_last_travel_move,
+            do_retracted_combing_move);
         if (combed)
         {
-            bool retract = path->retract || (combPaths.size() > 1 && retraction_enable);
+            bool retract = path->retract || ((combPaths.size() > 1 || do_retracted_combing_move) && retraction_enable);
             if (! retract)
             { // check whether we want to retract
                 if (combPaths.throughAir)
