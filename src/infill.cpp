@@ -426,16 +426,12 @@ void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
 
 void Infill::generateGyroidInfill(OpenLinesSet& result_polylines, Shape& result_polygons)
 {
-    OpenLinesSet line_segments;
-    GyroidInfill::generateTotalGyroidInfill(line_segments, zig_zaggify_, line_distance_, inner_contour_, z_);
-    OpenPolylineStitcher::stitch(line_segments, result_polylines, result_polygons, infill_line_width_);
+    GyroidInfill().generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, inner_contour_, z_, infill_line_width_);
 }
 
 void Infill::generateHoneycombInfill(OpenLinesSet& result_polylines, Shape& result_polygons)
 {
-    OpenLinesSet line_segments;
-    RegularNGonalInfill::generateHoneycombInfill(line_segments, zig_zaggify_, line_distance_, inner_contour_, infill_line_width_);
-    OpenPolylineStitcher::stitch(line_segments, result_polylines, result_polygons, infill_line_width_);
+    RegularNGonalInfill().generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, inner_contour_, z_, infill_line_width_);
 }
 
 void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer>& trees, OpenLinesSet& result_lines)

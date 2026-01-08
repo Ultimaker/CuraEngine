@@ -1,21 +1,22 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/LinesSet.h"
-#include "geometry/OpenLinesSet.h"
-#include "utils/Coord_t.h"
+#ifndef INFILL_GYROIDINFILL_H
+#define INFILL_GYROIDINFILL_H
+
+#include "infill/AbstractLinesInfill.h"
 
 namespace cura
 {
-class Shape;
 
-class GyroidInfill
+class GyroidInfill : public AbstractLinesInfill
 {
 public:
-    GyroidInfill();
+    GyroidInfill() = default;
 
-    ~GyroidInfill();
+    ~GyroidInfill() override = default;
 
+protected:
     /*!
      * Generate the Gyroid infill pattern within a certain outline.
      *
@@ -34,8 +35,9 @@ public:
      * \param z The Z coordinate of this layer. Different Z coordinates cause the pattern to vary, producing a 3D
      * pattern.
      */
-    static void generateTotalGyroidInfill(OpenLinesSet& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z);
-
-private:
+    OpenLinesSet generateParallelLines(const coord_t line_distance, const Shape& in_outline, const coord_t z, const coord_t line_width) const override;
 };
+
 } // namespace cura
+
+#endif
