@@ -20,6 +20,7 @@
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/LightningGenerator.h"
 #include "infill/NoZigZagConnectorProcessor.h"
+#include "infill/RegularNGonalInfill.h"
 #include "infill/SierpinskiFill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
@@ -317,6 +318,9 @@ void Infill::_generate(
         assert(lightning_trees); // "Cannot generate Lightning infill without a generator!\n"
         generateLightningInfill(lightning_trees, result_lines);
         break;
+    case EFillMethod::HONEYCOMB:
+        generateHoneycombInfill(result_lines, result_polygons);
+        break;
     case EFillMethod::PLUGIN:
     {
 #ifdef ENABLE_PLUGINS // FIXME: I don't like this conditional block outside of the plugin scope.
@@ -420,11 +424,18 @@ void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
     }
 }
 
-void Infill::generateGyroidInfill(OpenLinesSet& result_lines, Shape& result_polygons)
+void Infill::generateGyroidInfill(OpenLinesSet& result_polylines, Shape& result_polygons)
 {
     OpenLinesSet line_segments;
     GyroidInfill::generateTotalGyroidInfill(line_segments, zig_zaggify_, line_distance_, inner_contour_, z_);
-    OpenPolylineStitcher::stitch(line_segments, result_lines, result_polygons, infill_line_width_);
+    OpenPolylineStitcher::stitch(line_segments, result_polylines, result_polygons, infill_line_width_);
+}
+
+void Infill::generateHoneycombInfill(OpenLinesSet& result_polylines, Shape& result_polygons)
+{
+    OpenLinesSet line_segments;
+    RegularNGonalInfill::generateHoneycombInfill(line_segments, zig_zaggify_, line_distance_, inner_contour_, infill_line_width_);
+    OpenPolylineStitcher::stitch(line_segments, result_polylines, result_polygons, infill_line_width_);
 }
 
 void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer>& trees, OpenLinesSet& result_lines)
