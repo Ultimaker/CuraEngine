@@ -321,6 +321,9 @@ void Infill::_generate(
     case EFillMethod::HONEYCOMB:
         generateHoneycombInfill(result_lines, result_polygons);
         break;
+    case EFillMethod::OCTAGON:
+        generateOctagonInfill(result_lines, result_polygons);
+        break;
     case EFillMethod::PLUGIN:
     {
 #ifdef ENABLE_PLUGINS // FIXME: I don't like this conditional block outside of the plugin scope.
@@ -426,12 +429,19 @@ void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
 
 void Infill::generateGyroidInfill(OpenLinesSet& result_polylines, Shape& result_polygons)
 {
-    GyroidInfill().generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, inner_contour_, z_, infill_line_width_);
+    GyroidInfill().generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, inner_contour_, z_, infill_line_width_, fill_angle_);
 }
 
 void Infill::generateHoneycombInfill(OpenLinesSet& result_polylines, Shape& result_polygons)
 {
-    RegularNGonalInfill().generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, inner_contour_, z_, infill_line_width_);
+    RegularNGonalInfill(RegularNGonalInfill::RegularNGonType::Hexagon)
+        .generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, inner_contour_, z_, infill_line_width_, fill_angle_);
+}
+
+void Infill::generateOctagonInfill(OpenLinesSet& result_polylines, Shape& result_polygons)
+{
+    RegularNGonalInfill(RegularNGonalInfill::RegularNGonType::Octagon)
+        .generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, inner_contour_, z_, infill_line_width_, fill_angle_);
 }
 
 void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer>& trees, OpenLinesSet& result_lines)

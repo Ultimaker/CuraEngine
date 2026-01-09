@@ -205,4 +205,14 @@ Polygon AABB::toPolygon() const
     return Polygon({ min_, Point2LL(max_.X, min_.Y), max_, Point2LL(min_.X, max_.Y) }, false);
 }
 
+coord_t AABB::spanX() const
+{
+    return max_.X - min_.X;
+}
+
+coord_t AABB::spanY() const
+{
+    return max_.Y - min_.Y;
+}
+
 } // namespace cura

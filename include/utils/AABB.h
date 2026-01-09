@@ -112,6 +112,10 @@ public:
      * \return the polygon of this aabb
      */
     Polygon toPolygon() const;
+
+    [[nodiscard]] coord_t spanX() const;
+
+    [[nodiscard]] coord_t spanY() const;
 };
 
 } // namespace cura

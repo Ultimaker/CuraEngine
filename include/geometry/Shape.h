@@ -15,8 +15,6 @@ class Polygon;
 class Ratio;
 class SingleShape;
 class PartsView;
-class PointMatrix;
-class Point3Matrix;
 
 /*!
  *  @brief A Shape is a set of polygons that together form a complex shape. Some of the polygons may
@@ -233,10 +231,6 @@ public:
      *
      */
     void ensureManifold();
-
-    void applyMatrix(const PointMatrix& matrix);
-
-    void applyMatrix(const Point3Matrix& matrix);
 
     [[nodiscard]] Shape offsetMulti(const std::vector<coord_t>& offset_dists) const;
 

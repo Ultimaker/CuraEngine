@@ -939,22 +939,6 @@ void Shape::ensureManifold()
     }
 }
 
-void Shape::applyMatrix(const PointMatrix& matrix)
-{
-    for (Polygon& polygon : *this)
-    {
-        polygon.applyMatrix(matrix);
-    }
-}
-
-void Shape::applyMatrix(const Point3Matrix& matrix)
-{
-    for (Polygon& polygon : *this)
-    {
-        polygon.applyMatrix(matrix);
-    }
-}
-
 #ifdef BUILD_TESTS
 [[maybe_unused]] Shape Shape::fromWkt(const std::string& wkt)
 {

@@ -4,8 +4,8 @@
 #include "infill/AbstractLinesInfill.h"
 
 #include "geometry/OpenPolyline.h"
+#include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"
-#include "geometry/conversions/Point2D_Point2LL.h"
 #include "utils/AABB.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/linearAlg2D.h"
@@ -20,11 +20,26 @@ void AbstractLinesInfill::generateInfill(
     const coord_t line_distance,
     const Shape& in_outline,
     const coord_t z,
-    const coord_t line_width) const
+    const coord_t line_width,
+    const AngleDegrees& rotation) const
 {
-    const OpenLinesSet raw_lines = generateParallelLines(line_distance, in_outline, z, line_width);
-    const OpenLinesSet fit_lines = fitLines(raw_lines, zig_zaggify, in_outline);
+    Shape rotated_outline = in_outline;
+    PointMatrix rotation_matrix(rotation);
+    if (rotation != 0)
+    {
+        rotated_outline.applyMatrix(rotation_matrix);
+    }
+
+    const OpenLinesSet raw_lines = generateParallelLines(line_distance, rotated_outline, z, line_width);
+    const OpenLinesSet fit_lines = fitLines(raw_lines, zig_zaggify, rotated_outline);
     OpenPolylineStitcher::stitch(fit_lines, result_polylines, result_polygons, line_width);
+
+    if (rotation != 0)
+    {
+        rotation_matrix = rotation_matrix.inverse();
+        result_polylines.applyMatrix(rotation_matrix);
+        result_polygons.applyMatrix(rotation_matrix);
+    }
 }
 
 OpenLinesSet AbstractLinesInfill::zigZaggify(
