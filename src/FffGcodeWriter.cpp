@@ -638,8 +638,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             = *new LayerPlan(storage, layer_nr, z, layer_height, base_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, comb_offset, line_width, avoid_distance);
         gcode_layer.setIsInside(true);
 
-        Application::getInstance().communication_->sendLayerComplete(layer_nr, z, layer_height, Duration(0.0));
-
         OpenLinesSet raft_lines;
         AngleDegrees fill_angle = (num_surface_layers + num_interface_layers) % 2 ? 45 : 135; // 90 degrees rotated from the interface layer.
         constexpr bool zig_zaggify_infill = false;
@@ -824,8 +822,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         startRaftLayer(storage, gcode_layer, layer_nr, interface_extruder_nr, current_extruder_nr);
 
-        Application::getInstance().communication_->sendLayerComplete(layer_nr, z, interface_layer_height, Duration(0.0));
-
         Shape raft_outline_path;
         const coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
@@ -988,8 +984,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         // make sure that we are using the correct extruder to print raft
         startRaftLayer(storage, gcode_layer, layer_nr, surface_extruder_nr, current_extruder_nr);
-
-        Application::getInstance().communication_->sendLayerComplete(layer_nr, z, surface_layer_height, Duration(0.0));
 
         Shape raft_outline_path;
         const coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
