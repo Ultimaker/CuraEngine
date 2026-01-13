@@ -6,7 +6,6 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"
-#include "utils/AABB.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/linearAlg2D.h"
 
