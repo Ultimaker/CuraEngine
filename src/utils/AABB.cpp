@@ -67,24 +67,26 @@ coord_t AABB::distanceSquared(const Point2LL& p) const
     const Point2LL a = Point2LL(max_.X, min_.Y);
     const Point2LL b = Point2LL(min_.X, max_.Y);
     return (contains(p) ? -1 : 1)
-         * std::min({ LinearAlg2D::getDist2FromLineSegment(min_, a, p),
-                      LinearAlg2D::getDist2FromLineSegment(a, max_, p),
-                      LinearAlg2D::getDist2FromLineSegment(max_, b, p),
-                      LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
+         * std::min(
+               { LinearAlg2D::getDist2FromLineSegment(min_, a, p),
+                 LinearAlg2D::getDist2FromLineSegment(a, max_, p),
+                 LinearAlg2D::getDist2FromLineSegment(max_, b, p),
+                 LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
 }
 
 coord_t AABB::distanceSquared(const AABB& other) const
 {
-    return std::min({
-        distanceSquared(other.min_),
-        other.distanceSquared(min_),
-        distanceSquared(other.max_),
-        other.distanceSquared(max_),
-        distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
-        other.distanceSquared(Point2LL(max_.X, min_.Y)),
-        distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
-        other.distanceSquared(Point2LL(min_.X, max_.Y)),
-    });
+    return std::min(
+        {
+            distanceSquared(other.min_),
+            other.distanceSquared(min_),
+            distanceSquared(other.max_),
+            other.distanceSquared(max_),
+            distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
+            other.distanceSquared(Point2LL(max_.X, min_.Y)),
+            distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
+            other.distanceSquared(Point2LL(min_.X, max_.Y)),
+        });
 }
 
 void AABB::calculate(const Shape& shape)
@@ -205,12 +207,12 @@ Polygon AABB::toPolygon() const
     return Polygon({ min_, Point2LL(max_.X, min_.Y), max_, Point2LL(min_.X, max_.Y) }, false);
 }
 
-coord_t AABB::spanX() const
+coord_t AABB::width() const
 {
     return max_.X - min_.X;
 }
 
-coord_t AABB::spanY() const
+coord_t AABB::height() const
 {
     return max_.Y - min_.Y;
 }

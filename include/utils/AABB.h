@@ -113,9 +113,9 @@ public:
      */
     Polygon toPolygon() const;
 
-    [[nodiscard]] coord_t spanX() const;
+    [[nodiscard]] coord_t width() const;
 
-    [[nodiscard]] coord_t spanY() const;
+    [[nodiscard]] coord_t height() const;
 };
 
 } // namespace cura
