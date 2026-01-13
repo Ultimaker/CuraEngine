@@ -177,7 +177,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matri
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates)
+bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates = nullptr)
 {
     FILE* f = fopen(filename, "rb");
 
