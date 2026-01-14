@@ -20,7 +20,7 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
     std::string output;
 
     const std::regex template_string_regex(R"(\{([^\}]*)\})");
-    const std::regex expr_extruder_expr_regex(R"(^\s*(.+?)\s*,\s*(\d+?)\s*$)");
+    const std::regex expr_extruder_expr_regex(R"(^\s*(.+?)\s*,\s*([^,]+?)\s*$)");
     const SettingContainersEnvironmentAdapter global_container_env;
 
     std::string::const_iterator start = input.begin();
