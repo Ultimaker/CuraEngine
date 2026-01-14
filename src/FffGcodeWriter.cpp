@@ -4372,11 +4372,11 @@ void FffGcodeWriter::finalize()
     auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
     machine_end_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_end_gcode, initial_extruder_nr);
 
-    if (machine_end_gcode.length() > 0 && mesh_group_settings.get<bool>("relative_extrusion"))
+    if (! machine_end_gcode.empty() && mesh_group_settings.get<bool>("relative_extrusion"))
     {
         gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
     }
-    gcode.finalize(machine_end_gcode.c_str());
+    gcode.finalize(machine_end_gcode);
 
     // set extrusion mode back to "normal"
     gcode.resetExtrusionMode();

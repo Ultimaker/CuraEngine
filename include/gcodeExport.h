@@ -700,7 +700,7 @@ public:
      *
      * \param endCode The end gcode to be appended at the very end.
      */
-    void finalize(const char* endCode);
+    void finalize(const std::string& endCode);
 
     /*!
      * Get amount of material extruded since last wipe script was inserted.

@@ -717,9 +717,9 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
     machine_start_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_start_gcode, initial_extruder_nr);
 
-    if (mesh_group_settings.get<bool>("machine_start_gcode_first"))
+    if (! machine_start_gcode.empty() && mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {
-        writeLine(machine_start_gcode);
+        *output_stream_ << machine_start_gcode;
     }
 
     if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
@@ -733,9 +733,9 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         processInitialLayerTemperature(storage, start_extruder_nr);
     }
 
-    if (! mesh_group_settings.get<bool>("machine_start_gcode_first"))
+    if (! machine_start_gcode.empty() && ! mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {
-        writeLine(machine_start_gcode);
+        *output_stream_ << machine_start_gcode;
     }
     writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
 
@@ -1884,10 +1884,10 @@ void GCodeExport::writeJerk(const Velocity& jerk)
     }
 }
 
-void GCodeExport::finalize(const char* endCode)
+void GCodeExport::finalize(const std::string& endCode)
 {
     writeFanCommand(0);
-    writeLine(endCode);
+    *output_stream_ << endCode;
     int64_t print_time = getSumTotalPrintTimes();
     int mat_0 = getTotalFilamentUsed(0);
     spdlog::info("Print time (s): {}", print_time);
