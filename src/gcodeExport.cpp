@@ -5,8 +5,12 @@
 
 #include <cassert>
 #include <cmath>
+#include <cura-formulae-engine/ast/ast.h>
+#include <cura-formulae-engine/eval.h>
+#include <cura-formulae-engine/parser/parser.h>
 #include <iomanip>
 #include <numbers>
+#include <regex>
 
 #include <spdlog/spdlog.h>
 
@@ -651,6 +655,11 @@ void GCodeExport::writeLayerCountComment(const size_t layer_count)
     *output_stream_ << ";LAYER_COUNT:" << layer_count << new_line_;
 }
 
+void GCodeExport::writeLine(const std::string& line)
+{
+    writeLine(line.c_str());
+}
+
 void GCodeExport::writeLine(const char* line)
 {
     *output_stream_ << line << new_line_;
@@ -690,6 +699,211 @@ void GCodeExport::resetExtrusionValue()
     extruder_attr_[current_extruder_].retraction_e_amount_at_e_start_ = extruder_attr_[current_extruder_].retraction_e_amount_current_;
 }
 
+class SettingContainer
+{
+public:
+    virtual CuraFormulaeEngine::eval::Value getValue(int extruder_nr) const = 0;
+
+    virtual bool contains(const int extruder_nr) const = 0;
+};
+
+class SettingContainersEnvironmentAdapter : public CuraFormulaeEngine::env::Environment
+{
+public:
+    SettingContainersEnvironmentAdapter(const int target_extruder_nr)
+        : settings_(
+              target_extruder_nr >= 0 ? &cura::Application::getInstance().current_slice_->scene.extruders.at(target_extruder_nr).settings_
+                                      : &cura::Application::getInstance().current_slice_->scene.settings)
+    {
+    }
+
+    [[nodiscard]] std::optional<CuraFormulaeEngine::eval::Value> get(const std::string& setting_id) const override
+    {
+        if (! settings_->has(setting_id))
+        {
+            return std::nullopt;
+        }
+
+        const std::string setting_raw_value = settings_->get<std::string>(setting_id);
+
+        zeus::expected<CuraFormulaeEngine::ast::ExprPtr, error_t> parse_result = CuraFormulaeEngine::parser::parse(setting_raw_value);
+        if (! parse_result.has_value())
+        {
+            return CuraFormulaeEngine::eval::Value(setting_raw_value);
+        }
+
+        CuraFormulaeEngine::env::EnvironmentMap env;
+        const CuraFormulaeEngine::ast::ExprPtr& expression = parse_result.value();
+        CuraFormulaeEngine::eval::Result eval_result = expression.evaluate(&env);
+
+        if (! eval_result.has_value())
+        {
+            return std::nullopt;
+        }
+
+        return eval_result.value();
+    }
+
+    [[nodiscard]] bool has(const std::string& key) const override
+    {
+        return settings_->has(key);
+    }
+
+    [[nodiscard]] std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> getAll() const override
+    {
+        std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> result;
+        for (const std::string& key : settings_->getKeys())
+        {
+            std::optional<CuraFormulaeEngine::eval::Value> value = get(key);
+            if (value.has_value())
+            {
+                result[key] = value.value();
+            }
+        }
+        return result;
+    }
+
+private:
+    SettingContainersEnvironmentAdapter(cura::Settings* settings)
+        : settings_(settings)
+    {
+    }
+
+private:
+    cura::Settings* settings_{};
+};
+
+std::string resolveUseGCodeValues(
+    // ::settings::SettingValueContainer& setting_value_container,
+    const std::string& input,
+    const int extruder_nr)
+{
+    std::string output;
+
+    const std::regex template_string_regex(R"(\{([^\}]*)\})");
+    const std::regex expr_extruder_expr_regex(R"(^\s*(.+?)\s*,\s*(\d+?)\s*$)");
+
+    std::string::const_iterator start = input.begin();
+    const std::string::const_iterator end = input.end();
+    std::smatch match;
+
+    while (std::regex_search(start, end, match, template_string_regex))
+    {
+        output += match.prefix().str(); // portion before the match
+
+        auto value_expr_str = match[1].str();
+        // ::settings::ContainerIdExtruder extruder_id{};
+        //
+        // if (std::holds_alternative<::settings::ContainerIdExtruder>(container_id))
+        // {
+        //     extruder_id = std::get<::settings::ContainerIdExtruder>(container_id);
+        // }
+        // else
+        // {
+        //     extruder_id = ::settings::ContainerIdExtruder{ .id = default_extruder_position };
+        // }
+
+        // if the `expr_extruder_expr_regex` matches the template string is in the format
+        // ```
+        // { [expr: value_expr], [digit: extruder_expr] }
+        // ```
+        // then the first expr is the expr that result in the resulting value, the extruder_expr
+        // evaluates to the extruder from which settings are resolved.
+        const auto value_expr_str_ = value_expr_str;
+        const std::string::const_iterator start_ = value_expr_str_.begin();
+        const std::string::const_iterator end_ = value_expr_str_.end();
+        std::smatch match_;
+        if (std::regex_search(start_, end_, match_, expr_extruder_expr_regex))
+        {
+            value_expr_str = match_[1].str();
+
+            const auto extruder_expr_str = match_[2].str();
+            const auto extruder_expr_result = CuraFormulaeEngine::parser::parse(extruder_expr_str);
+
+            if (! extruder_expr_result.has_value())
+            {
+                output += match.str();
+                start = match.suffix().first;
+                continue;
+            }
+
+            const auto& extruder_expr = extruder_expr_result.value();
+
+            const SettingContainersEnvironmentAdapter global_container_env(extruder_nr);
+            const CuraFormulaeEngine::eval::Result extruder_expr_value_result = extruder_expr.evaluate(&global_container_env);
+
+            if (! extruder_expr_value_result.has_value())
+            {
+                output += match.str();
+                start = match.suffix().first;
+                continue;
+            }
+
+            const auto extruder_expr_value = extruder_expr_value_result.value();
+            std::int64_t id{ 0 };
+            if (std::holds_alternative<std::int64_t>(extruder_expr_value.value))
+            {
+                id = std::get<std::int64_t>(extruder_expr_value.value);
+            }
+            else if (std::holds_alternative<std::string>(extruder_expr_value.value))
+            {
+                id = std::stoi(std::get<std::string>(extruder_expr_value.value));
+            }
+            else if (std::holds_alternative<double>(extruder_expr_value.value))
+            {
+                id = std::floor(std::get<double>(extruder_expr_value.value));
+            }
+            else
+            {
+                output += match.str();
+                start = match.suffix().first;
+                continue;
+            }
+
+            // if (setting_value_container.hasContainer(::settings::ContainerIdExtruder{ .id = id }))
+            // {
+            //     extruder_id = ::settings::ContainerIdExtruder{ .id = id };
+            // }
+            // else
+            // {
+            //     logger::get("settings")
+            //         ->warn(R"(Requested extruder_id "{}" does not exist in this machine, defaulting to extruder "{}" to resolve expression)", id, extruder_id.id);
+            // }
+        }
+
+        const auto value_expr_result = CuraFormulaeEngine::parser::parse(value_expr_str);
+
+        if (! value_expr_result.has_value())
+        {
+            output += match.str();
+            start = match.suffix().first;
+            continue;
+        }
+
+        const auto& value_expr = value_expr_result.value();
+
+        const SettingContainersEnvironmentAdapter extruder_container_env(extruder_nr);
+        const auto value_expr_value_result = value_expr.evaluate(&extruder_container_env);
+
+        if (! value_expr_value_result.has_value())
+        {
+            output += match.str();
+            start = match.suffix().first;
+            continue;
+        }
+
+        const auto& value_expr_value = value_expr_value_result.value();
+
+        output += value_expr_value.toString();
+        start = match.suffix().first;
+    }
+
+    // remaining part of the string
+    output += std::string(start, end);
+
+    return output;
+}
+
 bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     bool should_prime_extruder = true;
@@ -699,21 +913,24 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
                                                                    // the exact time/material usages yet.
     {
         std::string prefix = getFileHeader(storage.getExtrudersUsed());
-        writeCode(prefix.c_str());
+        writeLine(prefix);
     }
 
     writeComment("Generated with Cura_SteamEngine " CURA_ENGINE_VERSION);
 
+    auto machine_start_gcode = mesh_group_settings.get<std::string>("machine_start_gcode");
+    machine_start_gcode = resolveUseGCodeValues(machine_start_gcode, -1);
+
     if (mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {
-        writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
+        writeLine(machine_start_gcode);
     }
 
     if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     {
         std::ostringstream tmp;
         tmp << "T" << start_extruder_nr;
-        writeLine(tmp.str().c_str());
+        writeLine(tmp.str());
     }
     else
     {
@@ -722,7 +939,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 
     if (! mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {
-        writeCode(mesh_group_settings.get<std::string>("machine_start_gcode").c_str());
+        writeLine(machine_start_gcode);
     }
     writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
 
@@ -748,7 +965,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         writeComment("enable auto-retraction");
         std::ostringstream tmp;
         tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
-        writeLine(tmp.str().c_str());
+        writeLine(tmp.str());
     }
     else if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     { // initialize extruder trains
@@ -887,7 +1104,7 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
-            writeLine(tmp.str().c_str());
+            writeLine(tmp.str());
         }
         break;
     }
@@ -1423,7 +1640,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
             writeExtrusionMode(false); // ensure absolute extrusion mode is set before the prestart gcode
         }
 
-        writeCode(prestart_code.c_str());
+        writeLine(prestart_code);
 
         if (relative_extrusion_)
         {
@@ -1460,7 +1677,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
             writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
         }
 
-        writeCode(start_code.c_str());
+        writeLine(start_code);
 
         if (relative_extrusion_)
         {
@@ -1506,7 +1723,7 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
             writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
         }
 
-        writeCode(end_code.c_str());
+        writeLine(end_code);
 
         if (relative_extrusion_)
         {
@@ -1518,11 +1735,6 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
     estimate_calculator_.addTime(end_code_duration);
 
     startExtruder(new_extruder);
-}
-
-void GCodeExport::writeCode(const char* str)
-{
-    *output_stream_ << str << new_line_;
 }
 
 void GCodeExport::resetExtruderToPrimed(const size_t extruder, const double initial_retraction)
@@ -1879,7 +2091,7 @@ void GCodeExport::writeJerk(const Velocity& jerk)
 void GCodeExport::finalize(const char* endCode)
 {
     writeFanCommand(0);
-    writeCode(endCode);
+    writeLine(endCode);
     int64_t print_time = getSumTotalPrintTimes();
     int mat_0 = getTotalFilamentUsed(0);
     spdlog::info("Print time (s): {}", print_time);

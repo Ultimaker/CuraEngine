@@ -345,6 +345,8 @@ public:
      */
     void writeLayerCountComment(const size_t layer_count);
 
+    void writeLine(const std::string& line);
+
     void writeLine(const char* line);
 
     /*!
@@ -607,8 +609,6 @@ public:
      * \param perform_z_hop The amount by which the print head should be z hopped during extruder switch, or zero if it should not z hop.
      */
     void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
-
-    void writeCode(const char* str);
 
     void resetExtruderToPrimed(const size_t extruder, const double initial_retraction);
 
