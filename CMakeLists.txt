@@ -51,6 +51,7 @@ set(engine_SRCS # Except main.cpp.
         src/FffProcessor.cpp
         src/gcodeExport.cpp
         src/GCodePathConfig.cpp
+        src/GcodeTemplateResolver.cpp
         src/infill.cpp
         src/InterlockingGenerator.cpp
         src/InsetOrderOptimizer.cpp
@@ -137,6 +138,7 @@ set(engine_SRCS # Except main.cpp.
         src/settings/FlowTempGraph.cpp
         src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
+        src/settings/SettingContainersEnvironmentAdapter.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
 
