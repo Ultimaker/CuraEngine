@@ -711,8 +711,11 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 
     writeComment("Generated with Cura_SteamEngine " CURA_ENGINE_VERSION);
 
+    // Replace the setting tokens in start and end g-code.
+    // Use values from the first used extruder by default so we get the expected temperatures
     auto machine_start_gcode = mesh_group_settings.get<std::string>("machine_start_gcode");
-    machine_start_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_start_gcode);
+    auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
+    machine_start_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_start_gcode, initial_extruder_nr);
 
     if (mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {
