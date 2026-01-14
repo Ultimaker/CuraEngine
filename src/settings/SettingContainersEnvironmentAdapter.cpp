@@ -23,7 +23,8 @@ SettingContainersEnvironmentAdapter::SettingContainersEnvironmentAdapter(const s
 
 std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const std::string& setting_id) const
 {
-    if (! settings_->has(setting_id))
+    constexpr bool parent_lookup = true;
+    if (! settings_->has(setting_id, parent_lookup))
     {
         return std::nullopt;
     }
@@ -50,7 +51,8 @@ std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const s
 
 bool SettingContainersEnvironmentAdapter::has(const std::string& key) const
 {
-    return settings_->has(key);
+    constexpr bool parent_lookup = true;
+    return settings_->has(key, parent_lookup);
 }
 
 std::unordered_map<std::string, cfe::eval::Value> SettingContainersEnvironmentAdapter::getAll() const

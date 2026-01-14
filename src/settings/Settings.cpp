@@ -825,9 +825,26 @@ const std::string Settings::getAllSettingsString() const
     return sstream.str();
 }
 
-bool Settings::has(const std::string& key) const
+bool Settings::has(const std::string& key, const bool parent_lookup) const
 {
-    return settings.find(key) != settings.end();
+    const bool has_key = settings.contains(key);
+    if (has_key || ! parent_lookup)
+    {
+        return has_key;
+    }
+
+    const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice_->scene.limit_to_extruder;
+    if (limit_to_extruder.find(key) != limit_to_extruder.end())
+    {
+        return limit_to_extruder.at(key)->settings_.has(key, parent_lookup);
+    }
+
+    if (parent)
+    {
+        return parent->has(key, parent_lookup);
+    }
+
+    return false;
 }
 
 void Settings::setParent(Settings* new_parent)

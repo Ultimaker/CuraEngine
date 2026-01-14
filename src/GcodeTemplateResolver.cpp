@@ -40,7 +40,7 @@ std::optional<cfe::eval::Value> resolveExpression(
     const zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(expression);
     if (! parse_result.has_value())
     {
-        spdlog::warn("Invalid syntax in expression {}, using raw value instead", expression);
+        spdlog::warn("Invalid syntax in expression [{}], using raw value instead", expression);
         processRawExpression(output, start, match);
         return std::nullopt;
     }
@@ -48,7 +48,7 @@ std::optional<cfe::eval::Value> resolveExpression(
     const cfe::eval::Result result = parse_result.value().evaluate(&environment);
     if (! result.has_value())
     {
-        spdlog::warn("Invalid variable identifier in expression {}, using raw value instead", expression);
+        spdlog::warn("Invalid variable identifier in expression [{}], using raw value instead", expression);
         processRawExpression(output, start, match);
         return std::nullopt;
     }
