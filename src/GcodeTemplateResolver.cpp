@@ -4,7 +4,8 @@
 #include "GcodeTemplateResolver.h"
 
 #include <cura-formulae-engine/parser/parser.h>
-#include <regex>
+
+#include <boost/regex.hpp>
 
 #include "Application.h"
 #include "Slice.h"
@@ -15,58 +16,72 @@ namespace cfe = CuraFormulaeEngine;
 namespace cura::GcodeTemplateResolver
 {
 
+std::optional<cfe::eval::Value> resolveExpression(
+    std::string& output,
+    std::string::const_iterator& start,
+    const std::string_view& expression,
+    const boost::smatch& match,
+    const SettingContainersEnvironmentAdapter& environment)
+{
+    const zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(expression);
+    if (! parse_result.has_value())
+    {
+        spdlog::warn("Invalid syntax in expression {}, using raw value instead", expression);
+        output += match.str();
+        start = match.suffix().first;
+        return std::nullopt;
+    }
+
+    const cfe::eval::Result result = parse_result.value().evaluate(&environment);
+    if (! result.has_value())
+    {
+        spdlog::warn("Invalid variable identifier in expression {}, using raw value instead", expression);
+        output += match.str();
+        start = match.suffix().first;
+        return std::nullopt;
+    }
+
+    return result.value();
+}
+
 std::string resolveGCodeTemplate(const std::string& input, const std::optional<int> context_extruder_nr)
 {
     std::string output;
 
-    const std::regex template_string_regex(R"(\{([^\}]*)\})");
-    const std::regex expr_extruder_expr_regex(R"(^\s*(.+?)\s*,\s*([^,]+?)\s*$)");
+    static const boost::regex expression_regex(R"({\s*(?<condition>if|else|elif|endif)?\s*(?<expression>[^{}]*?)\s*(?:,\s*(?<extruder_nr>[^{},]*))?\s*}(?<end_of_line>\n?))");
     const SettingContainersEnvironmentAdapter global_container_env;
 
-    std::string::const_iterator start = input.begin();
-    const std::string::const_iterator end = input.end();
-    std::smatch match;
+    std::string::const_iterator start = input.cbegin();
+    const std::string::const_iterator end = input.cend();
+    boost::smatch match;
 
-    while (std::regex_search(start, end, match, template_string_regex))
+    while (boost::regex_search(start, end, match, expression_regex))
     {
         std::optional<int> extruder_nr_here = context_extruder_nr;
         output += match.prefix().str(); // portion before the match
 
-        std::regex::string_type value_expr_str = match[1].str();
-
-        // if the `expr_extruder_expr_regex` matches the template string is in the format
-        // ```
-        // { [expr: value_expr], [digit: extruder_expr] }
-        // ```
-        // then the first expr is the expr that result in the resulting value, the extruder_expr
-        // evaluates to the extruder from which settings are resolved.
-        const std::regex::string_type value_expr_str_ = value_expr_str;
-        const std::string::const_iterator start_ = value_expr_str_.begin();
-        const std::string::const_iterator end_ = value_expr_str_.end();
-        std::smatch match_;
-        if (std::regex_search(start_, end_, match_, expr_extruder_expr_regex))
+        const auto& match_expression = match["expression"];
+        if (! match_expression.matched || match_expression.length() == 0)
         {
-            value_expr_str = match_[1].str();
+            spdlog::warn("Invalid expression {}", match.str());
+            output += match.str();
+            start = match.suffix().first;
+            continue;
+        }
 
-            const std::string extruder_expr_str = match_[2].str();
-            const zeus::expected<cfe::ast::ExprPtr, error_t> extruder_expr_result = cfe::parser::parse(extruder_expr_str);
-            if (! extruder_expr_result.has_value())
+        const auto& match_condition = match["condition"];
+        const auto& match_extruder_nr = match["extruder_nr"];
+        const auto& match_end_of_line = match["end_of_line"];
+
+        if (match_extruder_nr.matched && match_extruder_nr.length() > 0)
+        {
+            const std::optional<cfe::eval::Value> extruder_nr_result = resolveExpression(output, start, match_extruder_nr.str(), match, global_container_env);
+            if (! extruder_nr_result.has_value())
             {
-                output += match.str();
-                start = match.suffix().first;
                 continue;
             }
 
-            const cfe::ast::ExprPtr& extruder_expr = extruder_expr_result.value();
-            const cfe::eval::Result extruder_expr_value_result = extruder_expr.evaluate(&global_container_env);
-            if (! extruder_expr_value_result.has_value())
-            {
-                output += match.str();
-                start = match.suffix().first;
-                continue;
-            }
-
-            const cfe::eval::Value extruder_expr_value = extruder_expr_value_result.value();
+            const cfe::eval::Value extruder_expr_value = extruder_nr_result.value();
             int parsed_extruder_nr;
             if (std::holds_alternative<std::int64_t>(extruder_expr_value.value))
             {
@@ -97,29 +112,16 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
             }
         }
 
-        const zeus::expected<cfe::ast::ExprPtr, error_t> value_expr_result = cfe::parser::parse(value_expr_str);
-        if (! value_expr_result.has_value())
-        {
-            output += match.str();
-            start = match.suffix().first;
-            continue;
-        }
-
-        const cfe::ast::ExprPtr& value_expr = value_expr_result.value();
-
         const SettingContainersEnvironmentAdapter container_env_here(extruder_nr_here);
-        const cfe::eval::Result value_expr_value_result = value_expr.evaluate(&container_env_here);
-
-        if (! value_expr_value_result.has_value())
+        const std::optional<cfe::eval::Value> expression_result = resolveExpression(output, start, match_expression.str(), match, container_env_here);
+        if (! expression_result.has_value())
         {
-            output += match.str();
-            start = match.suffix().first;
             continue;
         }
 
-        const cfe::eval::Value& value_expr_value = value_expr_value_result.value();
+        const cfe::eval::Value& expression_value = expression_result.value();
 
-        output += value_expr_value.toString();
+        output += expression_value.toString();
         start = match.suffix().first;
     }
 
