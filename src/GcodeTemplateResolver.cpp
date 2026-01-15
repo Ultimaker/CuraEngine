@@ -30,26 +30,19 @@ void processRawExpression(std::string& output, std::string::const_iterator& star
     start = match.suffix().first;
 }
 
-std::optional<cfe::eval::Value> resolveExpression(
-    std::string& output,
-    std::string::const_iterator& start,
-    const std::string_view& expression,
-    const boost::smatch& match,
-    const SettingContainersEnvironmentAdapter& environment)
+std::optional<cfe::eval::Value> resolveExpression(const std::string_view& expression, const SettingContainersEnvironmentAdapter& environment)
 {
     const zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(expression);
     if (! parse_result.has_value())
     {
-        spdlog::warn("Invalid syntax in expression [{}], using raw value instead", expression);
-        processRawExpression(output, start, match);
+        spdlog::error("Invalid syntax in expression [{}]", expression);
         return std::nullopt;
     }
 
     const cfe::eval::Result result = parse_result.value().evaluate(&environment);
     if (! result.has_value())
     {
-        spdlog::warn("Invalid variable identifier in expression [{}], using raw value instead", expression);
-        processRawExpression(output, start, match);
+        spdlog::warn("Invalid variable identifier in expression [{}]", expression);
         return std::nullopt;
     }
 
@@ -64,9 +57,8 @@ void processStatement(std::string& output, const GcodeConditionState condition_s
     }
 }
 
-void processExpression(
+bool processExpression(
     std::string& output,
-    std::string::const_iterator& start,
     GcodeConditionState& condition_state,
     const boost::smatch& match,
     const std::optional<int>& context_extruder_nr,
@@ -106,16 +98,16 @@ void processExpression(
         {
             if (condition_state != GcodeConditionState::OutsideCondition)
             {
-                spdlog::warn("Nested conditions are not supported");
-                return processRawExpression(output, start, match);
+                spdlog::error("Nested conditions are not supported");
+                return false;
             }
         }
         else
         {
             if (condition_state == GcodeConditionState::OutsideCondition)
             {
-                spdlog::warn("Condition should start with an 'if' statement");
-                return processRawExpression(output, start, match);
+                spdlog::error("Condition should start with an 'if' statement");
+                return false;
             }
         }
 
@@ -164,16 +156,15 @@ void processExpression(
 
     if (instruction == GcodeInstruction::Skip)
     {
-        start = match.suffix().first;
-        return;
+        return true;
     }
 
     if (match_extruder_nr.matched && match_extruder_nr.length() > 0)
     {
-        const std::optional<cfe::eval::Value> extruder_nr_result = resolveExpression(output, start, match_extruder_nr.str(), match, global_container_env);
+        const std::optional<cfe::eval::Value> extruder_nr_result = resolveExpression(match_extruder_nr.str(), global_container_env);
         if (! extruder_nr_result.has_value())
         {
-            return;
+            return false;
         }
 
         const cfe::eval::Value extruder_expr_value = extruder_nr_result.value();
@@ -192,7 +183,7 @@ void processExpression(
         }
         else
         {
-            return processRawExpression(output, start, match);
+            return false;
         }
 
         if (parsed_extruder_nr >= 0 && parsed_extruder_nr < Application::getInstance().current_slice_->scene.extruders.size())
@@ -207,15 +198,13 @@ void processExpression(
     }
 
     const SettingContainersEnvironmentAdapter container_env_here(extruder_nr_here);
-    const std::optional<cfe::eval::Value> expression_result = resolveExpression(output, start, match_expression.str(), match, container_env_here);
+    const std::optional<cfe::eval::Value> expression_result = resolveExpression(match_expression.str(), container_env_here);
     if (! expression_result.has_value())
     {
-        return processRawExpression(output, start, match);
+        return false;
     }
 
     const cfe::eval::Value& expression_value = expression_result.value();
-    start = match.suffix().first;
-
     if (instruction == GcodeInstruction::Evaluate)
     {
         if (std::holds_alternative<bool>(expression_value.value))
@@ -228,7 +217,7 @@ void processExpression(
             spdlog::warn("Condition [{}] does not evaluate to boolean, considering true", match_expression.str());
         }
 
-        return;
+        return true;
     }
 
     output += expression_value.toString();
@@ -237,6 +226,8 @@ void processExpression(
     {
         output += match_end_of_line.str();
     }
+
+    return true;
 }
 
 std::string resolveGCodeTemplate(const std::string& input, const std::optional<int> context_extruder_nr)
@@ -260,7 +251,14 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
                 processStatement(output, condition_state, match.prefix().str());
             }
 
-            processExpression(output, start, condition_state, match, context_extruder_nr, global_container_env);
+            if (! processExpression(output, condition_state, match, context_extruder_nr, global_container_env))
+            {
+                // Something got wrong during expression evaluation, return raw input insteaad
+                output = input;
+                break;
+            }
+
+            start = match.suffix().first;
         }
         else
         {
