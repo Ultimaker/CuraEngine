@@ -6,11 +6,15 @@
 
 #include <optional>
 #include <string>
+#include <unordered_map>
 
 namespace cura::GcodeTemplateResolver
 {
 
-std::string resolveGCodeTemplate(const std::string& input, const std::optional<int> context_extruder_nr = std::nullopt);
+std::string resolveGCodeTemplate(
+    const std::string& input,
+    const std::optional<int> context_extruder_nr = std::nullopt,
+    const std::unordered_map<std::string, std::string>& extra_settings = {});
 
 }
 

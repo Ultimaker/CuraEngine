@@ -5,8 +5,9 @@
 
 #include <cura-formulae-engine/parser/parser.h>
 
-#include "Application.h"
-#include "Slice.h"
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/map.hpp>
+
 #include "settings/Settings.h"
 
 namespace cfe = CuraFormulaeEngine;
@@ -14,22 +15,27 @@ namespace cfe = CuraFormulaeEngine;
 namespace cura
 {
 
-SettingContainersEnvironmentAdapter::SettingContainersEnvironmentAdapter(const std::optional<int> target_extruder_nr)
-    : settings_(
-          target_extruder_nr.has_value() ? &Application::getInstance().current_slice_->scene.extruders.at(target_extruder_nr.value()).settings_
-                                         : &Application::getInstance().current_slice_->scene.settings)
+SettingContainersEnvironmentAdapter::SettingContainersEnvironmentAdapter(const Settings& settings, const std::unordered_map<std::string, std::string>& extra_settings)
+    : settings_(settings)
+    , extra_settings_(extra_settings)
 {
 }
 
 std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const std::string& setting_id) const
 {
+    auto iterator_extra_settings = extra_settings_.find(setting_id);
+    if (iterator_extra_settings != extra_settings_.end())
+    {
+        return iterator_extra_settings->second;
+    }
+
     constexpr bool parent_lookup = true;
-    if (! settings_->has(setting_id, parent_lookup))
+    if (! settings_.has(setting_id, parent_lookup))
     {
         return std::nullopt;
     }
 
-    const std::string setting_raw_value = settings_->get<std::string>(setting_id);
+    const std::string setting_raw_value = settings_.get<std::string>(setting_id);
 
     zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(setting_raw_value);
     if (! parse_result.has_value())
@@ -51,14 +57,19 @@ std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const s
 
 bool SettingContainersEnvironmentAdapter::has(const std::string& key) const
 {
+    if (extra_settings_.contains(key))
+    {
+        return true;
+    }
+
     constexpr bool parent_lookup = true;
-    return settings_->has(key, parent_lookup);
+    return settings_.has(key, parent_lookup);
 }
 
 std::unordered_map<std::string, cfe::eval::Value> SettingContainersEnvironmentAdapter::getAll() const
 {
     std::unordered_map<std::string, cfe::eval::Value> result;
-    for (const std::string& key : settings_->getKeys())
+    for (const auto& key : ranges::concat_view(settings_.getKeys(), extra_settings_ | ranges::views::keys))
     {
         std::optional<cfe::eval::Value> value = get(key);
         if (value.has_value())

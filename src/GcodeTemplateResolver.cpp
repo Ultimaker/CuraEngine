@@ -62,8 +62,10 @@ bool processExpression(
     GcodeConditionState& condition_state,
     const boost::smatch& match,
     const std::optional<int>& context_extruder_nr,
-    const SettingContainersEnvironmentAdapter& global_container_env)
+    const SettingContainersEnvironmentAdapter& global_container_env,
+    const std::unordered_map<std::string, std::string>& extra_settings)
 {
+    const Scene& scene = Application::getInstance().current_slice_->scene;
     std::optional<int> extruder_nr_here = context_extruder_nr;
 
     const auto& match_expression = match["expression"];
@@ -186,7 +188,7 @@ bool processExpression(
             return false;
         }
 
-        if (parsed_extruder_nr >= 0 && parsed_extruder_nr < Application::getInstance().current_slice_->scene.extruders.size())
+        if (parsed_extruder_nr >= 0 && parsed_extruder_nr < scene.extruders.size())
         {
             extruder_nr_here = parsed_extruder_nr;
         }
@@ -197,7 +199,8 @@ bool processExpression(
         }
     }
 
-    const SettingContainersEnvironmentAdapter container_env_here(extruder_nr_here);
+
+    const SettingContainersEnvironmentAdapter container_env_here(extruder_nr_here.has_value() ? scene.extruders.at(*extruder_nr_here).settings_ : scene.settings, extra_settings);
     const std::optional<cfe::eval::Value> expression_result = resolveExpression(match_expression.str(), container_env_here);
     if (! expression_result.has_value())
     {
@@ -230,13 +233,13 @@ bool processExpression(
     return true;
 }
 
-std::string resolveGCodeTemplate(const std::string& input, const std::optional<int> context_extruder_nr)
+std::string resolveGCodeTemplate(const std::string& input, const std::optional<int> context_extruder_nr, const std::unordered_map<std::string, std::string>& extra_settings)
 {
     std::string output;
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;
 
     static const boost::regex expression_regex(R"({\s*(?<condition>if|else|elif|endif)?\s*(?<expression>[^{}]*?)\s*(?:,\s*(?<extruder_nr>[^{},]*))?\s*}(?<end_of_line>\n?))");
-    const SettingContainersEnvironmentAdapter global_container_env;
+    const SettingContainersEnvironmentAdapter global_container_env(Application::getInstance().current_slice_->scene.settings, extra_settings);
 
     std::string::const_iterator start = input.cbegin();
     const std::string::const_iterator end = input.cend();
@@ -251,7 +254,7 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
                 processStatement(output, condition_state, match.prefix().str());
             }
 
-            if (! processExpression(output, condition_state, match, context_extruder_nr, global_container_env))
+            if (! processExpression(output, condition_state, match, context_extruder_nr, global_container_env, extra_settings))
             {
                 // Something got wrong during expression evaluation, return raw input insteaad
                 output = input;

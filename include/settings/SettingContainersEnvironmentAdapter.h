@@ -14,7 +14,7 @@ class Settings;
 class SettingContainersEnvironmentAdapter : public CuraFormulaeEngine::env::Environment
 {
 public:
-    explicit SettingContainersEnvironmentAdapter(const std::optional<int> target_extruder_nr = std::nullopt);
+    explicit SettingContainersEnvironmentAdapter(const Settings& settings, const std::unordered_map<std::string, std::string>& extra_settings = {});
 
     [[nodiscard]] std::optional<CuraFormulaeEngine::eval::Value> get(const std::string& setting_id) const override;
 
@@ -23,7 +23,8 @@ public:
     [[nodiscard]] std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> getAll() const override;
 
 private:
-    Settings* settings_{};
+    const Settings& settings_;
+    const std::unordered_map<std::string, std::string> extra_settings_;
 };
 
 } // namespace cura
