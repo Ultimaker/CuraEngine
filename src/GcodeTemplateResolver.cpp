@@ -16,20 +16,21 @@ namespace cfe = CuraFormulaeEngine;
 namespace cura::GcodeTemplateResolver
 {
 
+/*! State-machine enum to track the conditional blocks states */
 enum class GcodeConditionState
 {
-    OutsideCondition,
-    ConditionFalse,
-    ConditionTrue,
-    ConditionDone,
+    OutsideCondition, // Normal statement, not currently inside a conditional block
+    ConditionFalse, // Inside a conditional block where the current condition is false
+    ConditionTrue, // Inside a conditional block where the current condition is true
+    ConditionDone, // Inside a multi-conditional block where the valid condition has already been processed
 };
 
-void processRawExpression(std::string& output, std::string::const_iterator& start, const boost::smatch& match)
-{
-    output += match.str();
-    start = match.suffix().first;
-}
-
+/*!
+ * Resolve the given expression
+ * @param expression The raw expression text to be resolved
+ * @param environment The contextual environment to be used when resolving variables
+ * @return The parsed value result, or nullopt of an error occurred
+ */
 std::optional<cfe::eval::Value> resolveExpression(const std::string_view& expression, const SettingContainersEnvironmentAdapter& environment)
 {
     const zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(expression);
@@ -49,6 +50,12 @@ std::optional<cfe::eval::Value> resolveExpression(const std::string_view& expres
     return result.value();
 }
 
+/*!
+ * Processes a statement, adding it to the output or not, depending on the current conditional state
+ * @param output The output string to add the statement to
+ * @param condition_state The current conditional state
+ * @param statement The raw statement to be added
+ */
 void processStatement(std::string& output, const GcodeConditionState condition_state, const std::string_view& statement)
 {
     if (condition_state == GcodeConditionState::OutsideCondition || condition_state == GcodeConditionState::ConditionTrue)
@@ -57,6 +64,17 @@ void processStatement(std::string& output, const GcodeConditionState condition_s
     }
 }
 
+/*!
+ * Processes a matched expression block
+ * @param[out] output The output string to add the resolved expression to
+ * @param[in,out] condition_state The current conditional state, which may be updated
+ * @param match The matched regular expression containing the various parts of the expression
+ * @param context_extruder_nr The default contextual extruder number, which should be the current extruder number when dealing when an extruder start/end GCode, and nullopt when
+ *                            dealing with the global machine start/end gcode
+ * @param global_container_env The environment mapped to the global settings
+ * @param extra_settings Extra settings to be locally added to the environment
+ * @return True if the expression processing succeeded, false if an error occurred
+ */
 bool processExpression(
     std::string& output,
     GcodeConditionState& condition_state,
