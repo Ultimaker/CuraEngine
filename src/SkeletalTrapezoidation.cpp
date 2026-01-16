@@ -14,6 +14,7 @@
 
 #include "BoostInterface.hpp"
 #include "settings/types/Ratio.h"
+#include "utils/Simplify.h"
 #include "utils/VoronoiUtils.h"
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
@@ -390,7 +391,11 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
     , beading_strategy_(beading_strategy)
 {
     scripta::log("skeletal_trapezoidation_0", polys, section_type, layer_idx);
-    constructFromPolygons(polys);
+
+    constexpr coord_t max_resolution = EPSILON;
+    constexpr coord_t max_deviation = EPSILON;
+    constexpr coord_t max_area_deviation = EPSILON * EPSILON;
+    constructFromPolygons(Simplify(max_resolution, max_deviation, max_area_deviation).polygon(polys));
 }
 
 void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
