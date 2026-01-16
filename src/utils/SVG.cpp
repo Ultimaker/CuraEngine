@@ -522,6 +522,8 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& v
 void SVG::writePathPoints(const Polyline& line) const
 {
     bool first_segment = true;
+    const bool has_closing_segment = line.hasClosingSegment();
+    const auto before_last_iterator = std::next(line.endSegments(), -1);
     for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
     {
         if (first_segment)
@@ -531,8 +533,16 @@ void SVG::writePathPoints(const Polyline& line) const
             first_segment = false;
         }
 
-        const Point2D transformed_end = transformF((*iterator).end);
-        fprintf(out_, "L%f,%f ", static_cast<double>(transformed_end.x()), static_cast<double>(transformed_end.y()));
+        if (! has_closing_segment || iterator != before_last_iterator)
+        {
+            const Point2D transformed_end = transformF((*iterator).end);
+            fprintf(out_, "L%f,%f ", static_cast<double>(transformed_end.x()), static_cast<double>(transformed_end.y()));
+        }
+    }
+
+    if (has_closing_segment)
+    {
+        fprintf(out_, "Z ");
     }
 }
 
