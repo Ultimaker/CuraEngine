@@ -71,8 +71,6 @@ set(engine_SRCS # Except main.cpp.
         src/PrimeTower/PrimeTowerInterleaved.cpp
         src/raft.cpp
         src/Scene.cpp
-        src/SkeletalTrapezoidation.cpp
-        src/SkeletalTrapezoidationGraph.cpp
         src/skin.cpp
         src/SkirtBrim.cpp
         src/SupportInfillPart.cpp
@@ -89,6 +87,11 @@ set(engine_SRCS # Except main.cpp.
         src/TreeSupport.cpp
         src/WallsComputation.cpp
         src/WallToolPaths.cpp
+
+        src/arachne/SkeletalTrapezoidation.cpp
+        src/arachne/SkeletalTrapezoidationGraph.cpp
+        src/arachne/STHalfEdge.cpp
+        src/arachne/STHalfEdgeNode.cpp
 
         src/BeadingStrategy/BeadingStrategy.cpp
         src/BeadingStrategy/BeadingStrategyFactory.cpp

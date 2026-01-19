@@ -11,8 +11,8 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include "SkeletalTrapezoidation.h"
 #include "WallToolPaths.h"
+#include "arachne/SkeletalTrapezoidation.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Point2D.h"
 #include "geometry/PointMatrix.h"

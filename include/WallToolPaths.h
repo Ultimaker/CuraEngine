@@ -4,9 +4,6 @@
 #ifndef CURAENGINE_WALLTOOLPATHS_H
 #define CURAENGINE_WALLTOOLPATHS_H
 
-#include <memory>
-
-#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "geometry/Polygon.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
