@@ -394,10 +394,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
 {
     scripta::log("skeletal_trapezoidation_0", polys, section_type, layer_idx);
 
-    constexpr coord_t max_resolution = EPSILON;
-    constexpr coord_t max_deviation = EPSILON;
-    constexpr coord_t max_area_deviation = EPSILON * EPSILON;
-    constructFromPolygons(Simplify(max_resolution, max_deviation, max_area_deviation).polygon(polys));
+    constructFromPolygons(polys);
 }
 
 void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
