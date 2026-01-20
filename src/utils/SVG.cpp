@@ -626,7 +626,9 @@ void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>
 
     if (cell_polygon.isValid())
     {
-        write(cell_polygon, { .surface = visual_attributes.surface }, false);
+        VisualAttributes cell_surface_attributes;
+        cell_surface_attributes.surface = visual_attributes.surface;
+        write(cell_polygon, cell_surface_attributes, false);
     }
 
     handleFlush(flush);
