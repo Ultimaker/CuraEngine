@@ -194,9 +194,9 @@ SVG::SVG(const std::string& filename, const AABB& aabb, double scale, const Poin
     fprintf(out_, "    inkscape:label=\"layer%zu\"\n", layer_nr_);
     fprintf(out_, "    id=\"layer%zu\">\n", layer_nr_);
 
-    std::string background_str = toString(background);
-    if (! background_str.empty())
+    if (! std::holds_alternative<std::monostate>(background))
     {
+        std::string background_str = toString(background);
         fprintf(out_, "<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>\n", background_str.c_str());
     }
 }

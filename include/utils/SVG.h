@@ -181,9 +181,9 @@ public:
 
     struct VisualAttributes
     {
-        SurfaceAttributes surface{ Color() };
-        LineAttributes line{ Color(), 0.0 };
-        VerticesAttributes vertices{ Color(), 0.0 };
+        SurfaceAttributes surface{ ColorObject() };
+        LineAttributes line{ ColorObject(), 0.0 };
+        VerticesAttributes vertices{ ColorObject(), 0.0 };
     };
 
 private:
@@ -202,9 +202,9 @@ private:
     bool output_is_html_;
 
 public:
-    SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size = Point2LL(1024, 1024), const ColorObject& background = Color());
-    SVG(const std::string& filename, const AABB& aabb, const double scale, const ColorObject& background = Color());
-    SVG(const std::string& filename, const AABB& aabb, const double scale, const Point2LL& canvas_size, const ColorObject& background = Color());
+    SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size, const ColorObject& background = ColorObject());
+    SVG(const std::string& filename, const AABB& aabb, const double scale = 1.0, const ColorObject& background = ColorObject());
+    SVG(const std::string& filename, const AABB& aabb, const double scale, const Point2LL& canvas_size, const ColorObject& background = ColorObject());
 
     ~SVG();
 
