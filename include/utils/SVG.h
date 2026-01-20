@@ -256,13 +256,13 @@ public:
     void write(const STHalfEdge& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     template<typename T>
-    void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const VisualAttributes& visual_attributes) const;
+    void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     template<typename T>
-    void write(const boost::polygon::voronoi_edge<T>& edge, const VisualAttributes& visual_attributes) const;
+    void write(const boost::polygon::voronoi_edge<T>& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     template<typename T>
-    void write(const boost::polygon::voronoi_cell<T>& cell, const VisualAttributes& visual_attributes) const;
+    void write(const boost::polygon::voronoi_cell<T>& cell, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
 

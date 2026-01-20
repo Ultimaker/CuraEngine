@@ -295,8 +295,6 @@ void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_
 
             fprintf(out_, "\" />\n"); // Write the end of the tag.
         }
-
-        handleFlush(flush);
     }
 
     for (const LineType& line : lines)
@@ -471,7 +469,7 @@ void SVG::write(const STHalfEdge& edge, const VisualAttributes& visual_attribute
     const Point2LL tip_delta = toPoint2LL(-(direction.value() - radial) * (visual_attributes.line.width * 1.5 / scale_));
     edge_half_arrow.push_back(edge_half_arrow.back() + tip_delta);
 
-    write(edge_half_arrow, visual_attributes);
+    write(edge_half_arrow, visual_attributes, flush);
 }
 
 void SVG::writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color, const double width_factor) const
@@ -568,7 +566,7 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& v
 }
 
 template<>
-void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>& edge, const VisualAttributes& visual_attributes) const
+void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>& edge, const VisualAttributes& visual_attributes, const bool flush) const
 {
     if (edge.is_infinite())
     {
@@ -592,11 +590,11 @@ void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>
     half_edge.from_ = &from;
     half_edge.to_ = &to;
 
-    write(half_edge, visual_attributes);
+    write(half_edge, visual_attributes, flush);
 }
 
 template<>
-void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>& cell, const VisualAttributes& visual_attributes) const
+void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>& cell, const VisualAttributes& visual_attributes, const bool flush) const
 {
     const VoronoiUtils::vd_t::edge_type* start_edge = cell.incident_edge();
     if (! start_edge)
@@ -613,7 +611,7 @@ void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>
         {
             if (visual_attributes.line.isDisplayed() || visual_attributes.vertices.isDisplayed())
             {
-                write(*current_edge, visual_attributes);
+                write(*current_edge, visual_attributes, false);
             }
 
             if (visual_attributes.surface.isDisplayed())
@@ -630,12 +628,14 @@ void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>
 
     if (cell_polygon.isValid())
     {
-        write(cell_polygon, { .surface = visual_attributes.surface });
+        write(cell_polygon, { .surface = visual_attributes.surface }, false);
     }
+
+    handleFlush(flush);
 }
 
 template<>
-void SVG::write(const VoronoiUtils::vd_t& voronoi_diagram, const VisualAttributes& visual_attributes) const
+void SVG::write(const VoronoiUtils::vd_t& voronoi_diagram, const VisualAttributes& visual_attributes, const bool flush) const
 {
     for (const auto& [index, cell] : voronoi_diagram.cells() | ranges::views::enumerate)
     {
@@ -645,8 +645,10 @@ void SVG::write(const VoronoiUtils::vd_t& voronoi_diagram, const VisualAttribute
             cell_visual_attributes.line.color = makeRainbowColor(index, voronoi_diagram.cells().size());
         }
 
-        write(cell, cell_visual_attributes);
+        write(cell, cell_visual_attributes, false);
     }
+
+    handleFlush(flush);
 }
 
 void SVG::writePathPoints(const Polyline& line) const
