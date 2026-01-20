@@ -191,7 +191,7 @@ private:
         size_t& start_inside_poly,
         const std::optional<coord_t>& max_move_inside_distance_squared = std::nullopt);
 
-    void moveCombPathInside(Shape& boundary_inside, Shape& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
+    void moveCombPathInside(const Shape& boundary_inside, const Shape& boundary_inside_optimal, const CombPath& comb_path_input, CombPath& comb_path_output);
 
 public:
     /*!
@@ -232,11 +232,18 @@ public:
      * \param perform_z_hops Whether to Z hop when retracted.
      * \param perform_z_hops_only_when_collides Whether to Z hop only over printed parts.
      * \param train Extruder train, for settings and extruder-nr. NOTE: USe for travel settings and 'extruder-nr' only, don't use for z-hop/retraction/wipe settings, as that should
-     * also be settable per mesh! \param startPoint Where to start moving from. \param endPoint Where to move to. \param[out] combPoints The points along the combing path,
-     * excluding the \p startPoint (?) and \p endPoint. \param startInside Whether we want to start inside the comb boundary. \param endInside Whether we want to end up inside the
-     * comb boundary. \param unretract_before_last_travel_move Whether we should unretract before the last travel move when travelling because of combing. If the endpoint of a
-     * travel path changes with combing, then it means that an outer wall is involved, which means that we should then unretract before the last travel move to that wall to avoid
-     * any blips being introduced due to the unretraction. \return Whether combing has succeeded; otherwise a retraction is needed.
+     *              also be settable per mesh!
+     * \param startPoint Where to start moving from.
+     * \param endPoint Where to move to.
+     * \param[out] combPoints The points along the combing path, excluding the \p startPoint (?) and \p endPoint.
+     * \param startInside Whether we want to start inside the comb boundary.
+     * \param endInside Whether we want to end up inside the comb boundary.
+     * \param[out] unretract_before_last_travel_move Whether we should unretract before the last travel move when travelling because of combing. If the endpoint of a
+     *                                               travel path changes with combing, then it means that an outer wall is involved, which means that we should then unretract
+     *                                               before the last travel move to that wall to avoid any blips being introduced due to the unretraction.
+     * \param[out] do_retracted_move Indicates if the travel move should be done retracted. When the combing works in degraded mode, i.e. close the walls, it is better to still
+     *                               retract to avoid oozing over the external walls.
+     * \return Whether combing has succeeded; otherwise a retraction is needed.
      */
     bool calc(
         bool perform_z_hops,
@@ -248,7 +255,8 @@ public:
         bool startInside,
         bool endInside,
         coord_t max_comb_distance_ignored,
-        bool& unretract_before_last_travel_move);
+        bool& unretract_before_last_travel_move,
+        bool& do_retracted_move);
 };
 
 } // namespace cura

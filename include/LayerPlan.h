@@ -125,9 +125,9 @@ private:
     const Raft::LayerType layer_type_; //!< Which part of the raft, airgap or model this layer is.
     coord_t layer_thickness_;
 
-    std::vector<Point2LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder
+    std::vector<Point3LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder (note: z\height is offset, not absolute)
     std::vector<bool> has_prime_tower_planned_per_extruder_; //!< For each extruder, whether the prime tower is planned yet or not.
-    std::optional<Point2LL> last_planned_position_; //!< The last planned XY position of the print head (if known)
+    std::optional<Point3LL> last_planned_position_; //!< The last planned XYZ position of the print head (if known) (note: z\height is offset, not absolute)
 
     std::shared_ptr<const SliceMeshStorage> current_mesh_; //!< The mesh of the last planned move.
 
