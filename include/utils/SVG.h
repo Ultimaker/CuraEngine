@@ -38,7 +38,6 @@ public:
         MAGENTA,
         YELLOW,
         RAINBOW, // used for making the color change throughout the polygon which is drawn
-        NONE
     };
 
     enum class FillRule
@@ -80,7 +79,7 @@ public:
 
         virtual bool isDisplayed() const
         {
-            return (std::holds_alternative<Color>(color) && std::get<Color>(color) != Color::NONE) || std::holds_alternative<RgbColor>(color);
+            return std::holds_alternative<Color>(color) || std::holds_alternative<RgbColor>(color);
         }
 
         bool isRainbow() const
@@ -182,9 +181,9 @@ public:
 
     struct VisualAttributes
     {
-        SurfaceAttributes surface{ Color::NONE };
-        LineAttributes line{ Color::NONE, 0.0 };
-        VerticesAttributes vertices{ Color::NONE, 0.0 };
+        SurfaceAttributes surface{ Color() };
+        LineAttributes line{ Color(), 0.0 };
+        VerticesAttributes vertices{ Color(), 0.0 };
     };
 
 private:
@@ -203,9 +202,9 @@ private:
     bool output_is_html_;
 
 public:
-    SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size = Point2LL(1024, 1024), const ColorObject& background = Color::NONE);
-    SVG(const std::string& filename, const AABB& aabb, const double scale, const ColorObject& background = Color::NONE);
-    SVG(const std::string& filename, const AABB& aabb, const double scale, const Point2LL& canvas_size, const ColorObject& background = Color::NONE);
+    SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size = Point2LL(1024, 1024), const ColorObject& background = Color());
+    SVG(const std::string& filename, const AABB& aabb, const double scale, const ColorObject& background = Color());
+    SVG(const std::string& filename, const AABB& aabb, const double scale, const Point2LL& canvas_size, const ColorObject& background = Color());
 
     ~SVG();
 

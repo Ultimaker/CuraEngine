@@ -14,7 +14,6 @@
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "utils/AABB3D.h"
-#include "utils/SVG.h"
 
 namespace cura
 {
