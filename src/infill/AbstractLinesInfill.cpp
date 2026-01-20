@@ -3,10 +3,14 @@
 
 #include "infill/AbstractLinesInfill.h"
 
+#include <fmt/format.h>
+
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"
+#include "utils/AABB.h"
 #include "utils/OpenPolylineStitcher.h"
+#include "utils/SVG.h"
 #include "utils/linearAlg2D.h"
 
 namespace cura
@@ -29,7 +33,7 @@ void AbstractLinesInfill::generateInfill(
         rotated_outline.applyMatrix(rotation_matrix);
     }
 
-    const OpenLinesSet raw_lines = generateParallelLines(line_distance, rotated_outline, z, line_width);
+    const OpenLinesSet raw_lines = generateParallelLines(line_distance, AABB(rotated_outline), z, line_width);
     const OpenLinesSet fit_lines = fitLines(raw_lines, zig_zaggify, rotated_outline);
     OpenPolylineStitcher::stitch(fit_lines, result_polylines, result_polygons, line_width);
 
@@ -39,6 +43,10 @@ void AbstractLinesInfill::generateInfill(
         result_polylines.applyMatrix(rotation_matrix);
         result_polygons.applyMatrix(rotation_matrix);
     }
+
+    SVG svg(fmt::format("/tmp/infill_{}.svg", z), AABB(in_outline));
+    svg.write(in_outline, { .surface = { SVG::Color::RED, 0.5 } });
+    svg.write(result_polylines, { .line = { SVG::Color::BLUE, line_width } });
 }
 
 OpenLinesSet AbstractLinesInfill::zigZaggify(

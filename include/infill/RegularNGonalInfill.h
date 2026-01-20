@@ -29,12 +29,12 @@ protected:
     /*!
      * Generate the parallel vertical lines that will all together form a hexagonal or octagonal pattern
      * @param line_distance The distance between lines to generate.
-     * @param in_outline The outline in which to print the pattern. The input shape, so to say.
+     * @param bounding_box The bounding box in which to print the pattern.
      * @param z The Z coordinate of this layer. Different Z coordinates cause the pattern to vary, producing a 3D pattern.
      * @param line_width The line width at which the infill will be printed.
      * @return The raw parallel lines to be included.
      */
-    OpenLinesSet generateParallelLines(const coord_t line_distance, const Shape& in_outline, const coord_t z, const coord_t line_width) const override;
+    OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const override;
 
 private:
     struct SegmentsPattern
@@ -59,7 +59,7 @@ private:
      * @return The raw parallel lines to be included.
      */
     static OpenLinesSet generateRegularNGonalLines(
-        const Shape& in_outline,
+        const AABB& bounding_box,
         const std::array<SegmentsPattern, 2>& patterns,
         const coord_t delta_y,
         const coord_t pattern_width,

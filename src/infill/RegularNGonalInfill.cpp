@@ -16,7 +16,7 @@ RegularNGonalInfill::RegularNGonalInfill(RegularNGonType type)
 {
 }
 
-OpenLinesSet RegularNGonalInfill::generateParallelLines(const coord_t line_distance, const Shape& in_outline, const coord_t z, const coord_t line_width) const
+OpenLinesSet RegularNGonalInfill::generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const
 {
     std::array<SegmentsPattern, 2> patterns;
     coord_t delta_y = 0;
@@ -59,11 +59,11 @@ OpenLinesSet RegularNGonalInfill::generateParallelLines(const coord_t line_dista
     }
     }
 
-    return generateRegularNGonalLines(in_outline, patterns, delta_y, pattern_width, pattern_height);
+    return generateRegularNGonalLines(bounding_box, patterns, delta_y, pattern_width, pattern_height);
 }
 
 OpenLinesSet RegularNGonalInfill::generateRegularNGonalLines(
-    const Shape& in_outline,
+    const AABB& bounding_box,
     const std::array<SegmentsPattern, 2>& patterns,
     const coord_t delta_y,
     const coord_t pattern_width,
@@ -74,12 +74,10 @@ OpenLinesSet RegularNGonalInfill::generateRegularNGonalLines(
         return {};
     }
 
-    const AABB aabb(in_outline);
-
-    const int start_col = aabb.min_.X / pattern_width - 1;
-    const int end_col = (aabb.max_.X / pattern_width) + 1;
-    const int start_row = aabb.min_.Y / pattern_height - 1;
-    const int end_row = (aabb.max_.Y / pattern_height) + 1;
+    const int start_col = bounding_box.min_.X / pattern_width - 1;
+    const int end_col = (bounding_box.max_.X / pattern_width) + 1;
+    const int start_row = bounding_box.min_.Y / pattern_height - 1;
+    const int end_row = (bounding_box.max_.Y / pattern_height) + 1;
 
     OpenLinesSet raw_lines;
     for (int col = start_col; col <= end_col; ++col)

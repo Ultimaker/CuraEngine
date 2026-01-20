@@ -10,6 +10,8 @@
 
 namespace cura
 {
+
+class AABB;
 class AngleDegrees;
 class Shape;
 
@@ -50,13 +52,13 @@ protected:
      * Method to be implemented by child classes to generate the raw parallel lines to be included in the infill. The generated lines should be completely filling the bounding box
      * of the given outline, and are allowed to go outside the model.
      * @param line_distance The distance between lines to generate.
-     * @param in_outline The outline in which to print the pattern. The input shape, so to say.
+     * @param bounding_box The bounding box in which to print the pattern.
      * @param z The Z coordinate of this layer. Different Z coordinates cause the pattern to vary, producing a 3D pattern.
      * @param line_width The line width at which the infill will be printed.
      * @return A set containing the raw parallel lines to be included. Each line of the set should be a complete line on a column, even if goes out of the model
      *         one or multiple times.
      */
-    virtual OpenLinesSet generateParallelLines(const coord_t line_distance, const Shape& in_outline, const coord_t z, const coord_t line_width) const = 0;
+    virtual OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const = 0;
 
 private:
     static OpenLinesSet zigZaggify(

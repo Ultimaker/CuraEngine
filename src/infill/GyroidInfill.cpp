@@ -12,12 +12,10 @@
 namespace cura
 {
 
-OpenLinesSet GyroidInfill::generateParallelLines(const coord_t line_distance, const Shape& in_outline, const coord_t z, const coord_t line_width) const
+OpenLinesSet GyroidInfill::generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const
 {
     // generate infill based on the gyroid equation: sin_x * cos_y + sin_y * cos_z + sin_z * cos_x = 0
     // kudos to the author of the Slic3r implementation equation code, the equation code here is based on that
-
-    const AABB aabb(in_outline);
 
     int pitch = line_distance * 2.41; // this produces similar density to the "line" infill pattern
     int num_steps = 4;
@@ -53,10 +51,10 @@ OpenLinesSet GyroidInfill::generateParallelLines(const coord_t line_distance, co
         }
         const unsigned num_coords = odd_line_coords.size();
         unsigned num_columns = 0;
-        for (coord_t x = (std::floor(aabb.min_.X / pitch) - 2.25) * pitch; x <= aabb.max_.X + pitch / 2; x += pitch / 2)
+        for (coord_t x = (std::floor(bounding_box.min_.X / pitch) - 2.25) * pitch; x <= bounding_box.max_.X + pitch / 2; x += pitch / 2)
         {
             OpenPolyline line;
-            for (coord_t y = (std::floor(aabb.min_.Y / pitch) - 1) * pitch; y <= aabb.max_.Y + pitch; y += pitch)
+            for (coord_t y = (std::floor(bounding_box.min_.Y / pitch) - 1) * pitch; y <= bounding_box.max_.Y + pitch; y += pitch)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {
@@ -86,10 +84,10 @@ OpenLinesSet GyroidInfill::generateParallelLines(const coord_t line_distance, co
         }
         const unsigned num_coords = odd_line_coords.size();
         unsigned num_rows = 0;
-        for (coord_t y = (std::floor(aabb.min_.Y / pitch) - 1) * pitch; y <= aabb.max_.Y + pitch / 2; y += pitch / 2)
+        for (coord_t y = (std::floor(bounding_box.min_.Y / pitch) - 1) * pitch; y <= bounding_box.max_.Y + pitch / 2; y += pitch / 2)
         {
             OpenPolyline line;
-            for (coord_t x = (std::floor(aabb.min_.X / pitch) - 1) * pitch; x <= aabb.max_.X + pitch; x += pitch)
+            for (coord_t x = (std::floor(bounding_box.min_.X / pitch) - 1) * pitch; x <= bounding_box.max_.X + pitch; x += pitch)
             {
                 for (unsigned i = 0; i < num_coords; ++i)
                 {

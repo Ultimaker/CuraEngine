@@ -28,13 +28,13 @@ protected:
      * across different heights, producing a 3D pattern.
      * \param line_distance Distance between adjacent curves. This determines the density of the pattern (when printed
      * at a fixed line width).
-     * \param in_outline The outline in which to print the pattern. The input shape, so to say.
+     * \param bounding_box The bounding box in which to print the pattern.
      * \param z The Z coordinate of this layer. Different Z coordinates cause the pattern to vary, producing a 3D
      * pattern.
      * \param line_width Unused in this context.
      * \return The list of raw gyroid lines.
      */
-    OpenLinesSet generateParallelLines(const coord_t line_distance, const Shape& in_outline, const coord_t z, const coord_t line_width) const override;
+    OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const override;
 };
 
 } // namespace cura
