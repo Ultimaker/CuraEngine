@@ -4,8 +4,6 @@
 #ifndef SVG_H
 #define SVG_H
 
-#include <concepts>
-#include <optional>
 #include <stdio.h> // for file output
 #include <variant>
 
@@ -21,6 +19,8 @@ namespace cura
 
 class Point2D;
 class MixedLinesSet;
+class SkeletalTrapezoidationGraph;
+class STHalfEdge;
 
 class SVG : NoCopy
 {
@@ -81,6 +81,11 @@ public:
         virtual bool isDisplayed() const
         {
             return (std::holds_alternative<Color>(color) && std::get<Color>(color) != Color::NONE) || std::holds_alternative<RgbColor>(color);
+        }
+
+        bool isRainbow() const
+        {
+            return std::holds_alternative<Color>(color) && std::get<Color>(color) == Color::RAINBOW;
         }
     };
 
@@ -246,6 +251,19 @@ public:
 
     void write(const std::string& text, const Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush = true) const;
 
+    void write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes& visual_attributes, const bool flush = true) const;
+
+    void write(const STHalfEdge& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
+
+    template<typename T>
+    void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const VisualAttributes& visual_attributes) const;
+
+    template<typename T>
+    void write(const boost::polygon::voronoi_edge<T>& edge, const VisualAttributes& visual_attributes) const;
+
+    template<typename T>
+    void write(const boost::polygon::voronoi_cell<T>& cell, const VisualAttributes& visual_attributes) const;
+
     void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
 
     template<typename... Args>
@@ -295,38 +313,10 @@ public:
      */
     void writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
-    /*!
-     * Draws the provided Voronoi diagram.
-     *
-     * @tparam T numeric type
-     * @param voronoi The Voronoi diagram to draw.
-     * @param color  The colour to draw the diagram with.
-     * @param stroke_width The width of the lines.
-     */
-    template<typename T> // Currently our compiler for Mac can't handle `template<std::floating_point T>`, since aparently floating_point isn't in std yet.
-    void writeVoronoiDiagram(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const Color color = Color::BLACK, const double stroke_width = 0.1) const
-    {
-        for (const auto& edge : voronoi_diagram.edges())
-        {
-            if (! edge.is_finite())
-            {
-                continue;
-            }
-
-            const auto& v0 = edge.vertex0();
-            const auto& v1 = edge.vertex1();
-
-            if (v0 == nullptr || v1 == nullptr)
-            {
-                continue;
-            }
-
-            writeLine(Point(v0->x(), v0->y()), Point(v1->x(), v1->y()), color, stroke_width);
-        }
-    }
-
 private:
     void writePathPoints(const Polyline& line) const;
+
+    static RgbColor makeRainbowColor(const size_t index, const size_t elementsCount);
 };
 
 template<typename... Args>

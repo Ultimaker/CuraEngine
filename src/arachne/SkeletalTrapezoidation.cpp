@@ -394,7 +394,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
 {
     scripta::log("skeletal_trapezoidation_0", polys, section_type, layer_idx);
 
-    constructFromPolygons(polys);
+    constructFromPolygons(polys.removeNearSelfIntersections());
 }
 
 void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
