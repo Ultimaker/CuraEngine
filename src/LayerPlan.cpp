@@ -132,7 +132,7 @@ LayerPlan::LayerPlan(
     }
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
-        layer_start_pos_per_extruder_.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"));
+        layer_start_pos_per_extruder_.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"), 0);
     }
     extruder_plans_.reserve(Application::getInstance().current_slice_->scene.extruders.size());
     const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
@@ -301,14 +301,14 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     { // handle starting pos of the new extruder
         ExtruderTrain* extruder = getLastPlannedExtruderTrain();
         const bool start_pos_absolute = extruder->settings_.get<bool>("machine_extruder_start_pos_abs");
-        Point2LL start_pos(extruder->settings_.get<coord_t>("machine_extruder_start_pos_x"), extruder->settings_.get<coord_t>("machine_extruder_start_pos_y"));
+        Point3LL start_pos(extruder->settings_.get<coord_t>("machine_extruder_start_pos_x"), extruder->settings_.get<coord_t>("machine_extruder_start_pos_y"), 0);
         if (! start_pos_absolute)
         {
             start_pos += getLastPlannedPositionOrStartingPosition();
         }
         else
         {
-            Point2LL extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"));
+            Point3LL extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"), 0);
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
         if (start_pos_absolute || last_planned_position_)
@@ -394,7 +394,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
         }
         forceNewPathStart(); // force a new travel path after this first bogus move
     }
-    else if (force_retract && last_planned_position_ && ! shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
+    else if (force_retract && last_planned_position_ && ! shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
@@ -413,22 +413,24 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
         const coord_t max_distance_ignored = mesh_or_extruder_settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
 
         bool unretract_before_last_travel_move = false; // Decided when calculating the combing
+        bool do_retracted_combing_move = false; // Decided when calculating the combing
         const bool perform_z_hops = mesh_or_extruder_settings.get<bool>("retraction_hop_enabled");
         const bool perform_z_hops_only_when_collides = mesh_or_extruder_settings.get<bool>("retraction_hop_only_when_collides");
         combed = comb_->calc(
             perform_z_hops,
             perform_z_hops_only_when_collides,
             *extruder,
-            *last_planned_position_,
+            last_planned_position_.value().toPoint2LL(),
             p,
             combPaths,
             was_inside_,
             is_inside_,
             max_distance_ignored,
-            unretract_before_last_travel_move);
+            unretract_before_last_travel_move,
+            do_retracted_combing_move);
         if (combed)
         {
-            bool retract = path->retract || (combPaths.size() > 1 && retraction_enable);
+            bool retract = path->retract || ((combPaths.size() > 1 || do_retracted_combing_move) && retraction_enable);
             if (! retract)
             { // check whether we want to retract
                 if (combPaths.throughAir)
@@ -450,7 +452,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
 
             const coord_t maximum_travel_resolution = mesh_or_extruder_settings.get<coord_t>("meshfix_maximum_travel_resolution");
             coord_t distance = 0;
-            Point2LL last_point((last_planned_position_) ? *last_planned_position_ : Point2LL(0, 0));
+            Point2LL last_point((last_planned_position_) ? last_planned_position_.value().toPoint2LL() : Point2LL(0, 0));
             for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.empty())
@@ -482,14 +484,15 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
     // CURA-6675:
     // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
     // Retraction Minimal Travel Distance, retraction should be disabled.
-    if (! is_first_travel_of_layer && last_planned_position_ && shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
+    if (! is_first_travel_of_layer && last_planned_position_ && shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         path->retract = false;
         path->perform_z_hop = false;
     }
 
     // no combing? retract only when path is not shorter than minimum travel distance
-    if (! combed && ! is_first_travel_of_layer && last_planned_position_ && ! shorterThen(*last_planned_position_ - p, retraction_config.retraction_min_travel_distance))
+    if (! combed && ! is_first_travel_of_layer && last_planned_position_
+        && ! shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         if (was_inside_) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         { // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
@@ -575,7 +578,7 @@ void LayerPlan::addExtrusionMove(
     {
         first_extrusion_acc_jerk_ = std::make_pair(path->config.getAcceleration(), path->config.getJerk());
     }
-    last_planned_position_ = p.toPoint2LL();
+    last_planned_position_ = p;
 }
 
 void LayerPlan::addExtrusionMoveWithGradualOverhang(
@@ -595,7 +598,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z);
     };
 
-    const auto update_is_overhanging = [this](const Point2LL& target, std::optional<Point2LL> current_position, const bool is_overhanging = false)
+    const auto update_is_overhanging = [this](const Point3LL& target, std::optional<Point3LL> current_position, const bool is_overhanging = false)
     {
         if (is_overhanging != currently_overhanging_)
         {
@@ -605,7 +608,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
 
         if (is_overhanging && current_position.has_value())
         {
-            current_overhang_length_ += vSize(target - current_position.value());
+            current_overhang_length_ += (target - current_position.value()).vSize();
         }
 
         currently_overhanging_ = is_overhanging;
@@ -614,17 +617,18 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     if (overhang_masks_.empty() || ! last_planned_position_.has_value())
     {
         // Unable to apply gradual overhanging (probably just disabled), just add the basic extrusion move
-        update_is_overhanging(p.toPoint2LL(), last_planned_position_);
+        update_is_overhanging(p, last_planned_position_);
         add_extrusion_move(p);
         return;
     }
 
     // First, find the speed region where the segment starts
-    const Point2LL start = last_planned_position_.value();
+    const Point3LL start = last_planned_position_.value();
+    const Point2LL start_flat = start.toPoint2LL();
     size_t actual_speed_region_index = overhang_masks_.size() - 1; // Default to last region, which is infinity and beyond
     for (const auto& [index, overhang_region] : overhang_masks_ | ranges::views::drop_last(1) | ranges::views::enumerate)
     {
-        if (overhang_region.supported_region.inside(start, true))
+        if (overhang_region.supported_region.inside(start_flat, true))
         {
             actual_speed_region_index = index;
             break;
@@ -632,13 +636,14 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     }
 
     // Pre-calculate the intersections of the segment with all regions (except last one, you cannot intersect an infinite plane)
-    const Point2LL end = p.toPoint2LL();
-    const Point2LL vector = end - start;
+    const Point3LL end = p;
+    const Point2LL end_flat = end.toPoint2LL();
+    const Point3LL vector = end - start;
     std::vector<std::vector<float>> speed_regions_intersections;
     speed_regions_intersections.reserve(overhang_masks_.size() - 1);
     for (const OverhangMask& overhang_region : overhang_masks_ | ranges::views::drop_last(1))
     {
-        std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start, end);
+        std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start_flat, end_flat);
         ranges::stable_sort(intersections);
         speed_regions_intersections.push_back(intersections);
     }
@@ -660,7 +665,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
 
     struct SegmentExtrusionMove
     {
-        Point2LL position;
+        Point3LL position;
         size_t speed_region_index;
     };
 
@@ -702,7 +707,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
             }
 
             // Move to intersection at current region speed
-            const Point2LL split_position = start + vector * intersection_parameter;
+            const Point3LL split_position = start + vector * intersection_parameter;
             extrusion_moves.push_back(SegmentExtrusionMove{ split_position, actual_speed_region_index });
 
             // Prepare for next move in different region
@@ -712,7 +717,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         else
         {
             // We cross no border, which means we can reach the end of the segment within the current speed region, so we are done
-            extrusion_moves.push_back(SegmentExtrusionMove{ p.toPoint2LL(), actual_speed_region_index });
+            extrusion_moves.push_back(SegmentExtrusionMove{ p, actual_speed_region_index });
             break;
         }
     }
@@ -720,10 +725,10 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     // Filter out micro-segments
     std::vector<SegmentExtrusionMove> extrusion_moves_filtered;
     extrusion_moves_filtered.reserve(extrusion_moves.size());
-    Point2LL current_position = start;
+    Point3LL current_position = start;
     for (const SegmentExtrusionMove& extrusion_move : extrusion_moves | ranges::views::drop_last(1))
     {
-        if (vSize2(extrusion_move.position - current_position) >= MINIMUM_SQUARED_LINE_LENGTH)
+        if ((extrusion_move.position - current_position).vSize2() >= MINIMUM_SQUARED_LINE_LENGTH)
         {
             extrusion_moves_filtered.push_back(extrusion_move);
         }
@@ -731,7 +736,7 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
         current_position = extrusion_move.position;
     }
 
-    if (extrusion_moves_filtered.empty() || vSize2(extrusion_moves.back().position - current_position) >= MINIMUM_SQUARED_LINE_LENGTH)
+    if (extrusion_moves_filtered.empty() || (extrusion_moves.back().position - current_position).vSize2() >= MINIMUM_SQUARED_LINE_LENGTH)
     {
         extrusion_moves_filtered.push_back(extrusion_moves.back());
     }
@@ -4093,7 +4098,7 @@ LayerIndex LayerPlan::getLayerNr() const
 
 Point2LL LayerPlan::getLastPlannedPositionOrStartingPosition() const
 {
-    return last_planned_position_.value_or(layer_start_pos_per_extruder_[getExtruder()]);
+    return last_planned_position_.value_or(layer_start_pos_per_extruder_[getExtruder()]).toPoint2LL();
 }
 
 bool LayerPlan::getIsInsideMesh() const
