@@ -21,25 +21,22 @@ class GCodeTemplateResolverTest : public ::testing::TestWithParam<GCodeTemplateT
 protected:
     void SetUp() override
     {
-        slice_ = std::make_shared<cura::Slice>(0);
-        cura::Application::getInstance().current_slice_ = slice_;
+        std::shared_ptr<cura::Slice> slice = std::make_shared<cura::Slice>(0);
+        cura::Application::getInstance().current_slice_ = slice;
 
-        slice_->scene.settings.add("bed_temperature", "50.0");
-        slice_->scene.settings.add("initial_extruder", "0");
+        slice->scene.settings.add("bed_temperature", "50.0");
+        slice->scene.settings.add("initial_extruder", "0");
 
-        slice_->scene.extruders.emplace_back(0, &slice_->scene.settings);
-        slice_->scene.extruders[0].settings_.add("material_temperature", "190.5");
+        slice->scene.extruders.emplace_back(0, &slice->scene.settings);
+        slice->scene.extruders[0].settings_.add("material_temperature", "190.5");
 
-        slice_->scene.extruders.emplace_back(1, &slice_->scene.settings);
-        slice_->scene.extruders[1].settings_.add("material_temperature", "210.0");
+        slice->scene.extruders.emplace_back(1, &slice->scene.settings);
+        slice->scene.extruders[1].settings_.add("material_temperature", "210.0");
     }
 
     void TearDown() override
     {
     }
-
-private:
-    std::shared_ptr<cura::Slice> slice_;
 };
 
 TEST_P(GCodeTemplateResolverTest, ResolveTemplate)
