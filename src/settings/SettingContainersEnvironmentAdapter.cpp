@@ -15,20 +15,13 @@ namespace cfe = CuraFormulaeEngine;
 namespace cura
 {
 
-SettingContainersEnvironmentAdapter::SettingContainersEnvironmentAdapter(const Settings& settings, const std::unordered_map<std::string, std::string>& extra_settings)
+SettingContainersEnvironmentAdapter::SettingContainersEnvironmentAdapter(const Settings& settings)
     : settings_(settings)
-    , extra_settings_(extra_settings)
 {
 }
 
 std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const std::string& setting_id) const
 {
-    auto iterator_extra_settings = extra_settings_.find(setting_id);
-    if (iterator_extra_settings != extra_settings_.end())
-    {
-        return iterator_extra_settings->second;
-    }
-
     constexpr bool parent_lookup = true;
     if (! settings_.has(setting_id, parent_lookup))
     {
@@ -57,11 +50,6 @@ std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const s
 
 bool SettingContainersEnvironmentAdapter::has(const std::string& key) const
 {
-    if (extra_settings_.contains(key))
-    {
-        return true;
-    }
-
     constexpr bool parent_lookup = true;
     return settings_.has(key, parent_lookup);
 }
@@ -69,7 +57,7 @@ bool SettingContainersEnvironmentAdapter::has(const std::string& key) const
 std::unordered_map<std::string, cfe::eval::Value> SettingContainersEnvironmentAdapter::getAll() const
 {
     std::unordered_map<std::string, cfe::eval::Value> result;
-    for (const auto& key : ranges::concat_view(settings_.getKeys(), extra_settings_ | ranges::views::keys))
+    for (const std::string& key : settings_.getKeys())
     {
         std::optional<cfe::eval::Value> value = get(key);
         if (value.has_value())

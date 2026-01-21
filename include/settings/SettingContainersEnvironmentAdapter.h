@@ -20,9 +20,8 @@ public:
     /*!
      * Base constructor
      * @param settings The settings to be used as the base contextual stack
-     * @param extra_settings Extra settings to be added locally so that template resolving can access them even though they don't exist as actual settings
      */
-    explicit SettingContainersEnvironmentAdapter(const Settings& settings, const std::unordered_map<std::string, std::string>& extra_settings = {});
+    explicit SettingContainersEnvironmentAdapter(const Settings& settings);
 
     [[nodiscard]] std::optional<CuraFormulaeEngine::eval::Value> get(const std::string& setting_id) const override;
 
@@ -32,7 +31,6 @@ public:
 
 private:
     const Settings& settings_;
-    const std::unordered_map<std::string, std::string> extra_settings_;
 };
 
 } // namespace cura

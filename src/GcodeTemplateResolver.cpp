@@ -8,6 +8,8 @@
 
 #include <boost/regex.hpp>
 #include <range/v3/algorithm/contains.hpp>
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/map.hpp>
 
 #include "Application.h"
 #include "Slice.h"
@@ -40,7 +42,7 @@ enum class EvaluateResult
  * @param environment The contextual environment to be used when resolving variables
  * @return The parsed value result, or an error description
  */
-zeus::expected<cfe::eval::Value, EvaluateResult> resolveExpression(const std::string_view& expression, const SettingContainersEnvironmentAdapter& environment)
+zeus::expected<cfe::eval::Value, EvaluateResult> evaluateExpression(const std::string_view& expression, const cfe::env::Environment& environment)
 {
     const zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(expression);
     if (! parse_result.has_value())
@@ -85,7 +87,7 @@ void processStatement(std::string& output, const GcodeConditionState condition_s
  * @param match The matched regular expression containing the various parts of the expression
  * @param context_extruder_nr The default contextual extruder number, which should be the current extruder number when dealing when an extruder start/end GCode, and nullopt when
  *                            dealing with the global machine start/end gcode
- * @param global_container_env The environment mapped to the global settings
+ * @param environments The environments adapters mapped to the settings
  * @param extra_settings Extra settings to be locally added to the environment
  * @return True if the expression processing succeeded, false if an error occurred
  */
@@ -93,13 +95,9 @@ bool processExpression(
     std::string& output,
     GcodeConditionState& condition_state,
     const boost::smatch& match,
-    const std::optional<int>& context_extruder_nr,
-    const SettingContainersEnvironmentAdapter& global_container_env,
-    const std::unordered_map<std::string, std::string>& extra_settings)
+    const std::optional<size_t>& context_extruder_nr,
+    std::map<std::optional<size_t>, cfe::env::LocalEnvironment> environments)
 {
-    const Scene& scene = Application::getInstance().current_slice_->scene;
-    std::optional<int> extruder_nr_here = context_extruder_nr;
-
     const auto& match_expression = match["expression"];
     const auto& match_condition = match["condition"];
     const auto& match_extruder_nr = match["extruder_nr"];
@@ -193,16 +191,18 @@ bool processExpression(
         return true;
     }
 
+    std::optional<size_t> extruder_nr_here = context_extruder_nr;
+
     if (match_extruder_nr.matched && match_extruder_nr.length() > 0)
     {
-        const zeus::expected<cfe::eval::Value, EvaluateResult> extruder_nr_result = resolveExpression(match_extruder_nr.str(), global_container_env);
+        const zeus::expected<cfe::eval::Value, EvaluateResult> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), environments[std::nullopt]);
         if (! extruder_nr_here.has_value())
         {
             return false;
         }
 
         const cfe::eval::Value extruder_expr_value = extruder_nr_result.value();
-        int parsed_extruder_nr;
+        size_t parsed_extruder_nr;
         if (std::holds_alternative<std::int64_t>(extruder_expr_value.value))
         {
             parsed_extruder_nr = std::get<std::int64_t>(extruder_expr_value.value);
@@ -220,20 +220,17 @@ bool processExpression(
             return false;
         }
 
-        if (parsed_extruder_nr >= 0 && parsed_extruder_nr < scene.extruders.size())
-        {
-            extruder_nr_here = parsed_extruder_nr;
-        }
-        else
-        {
-            spdlog::warn("Invalid replacement extruder number {}, using global settings instead", parsed_extruder_nr);
-            extruder_nr_here = std::nullopt;
-        }
+        extruder_nr_here = parsed_extruder_nr;
     }
 
-
-    const SettingContainersEnvironmentAdapter container_env_here(extruder_nr_here.has_value() ? scene.extruders.at(*extruder_nr_here).settings_ : scene.settings, extra_settings);
-    const zeus::expected<cfe::eval::Value, EvaluateResult> expression_result = resolveExpression(match_expression.str(), container_env_here);
+    auto environment_iterator = environments.find(extruder_nr_here);
+    if (environment_iterator == environments.end())
+    {
+        spdlog::warn("Invalid extruder number {}, using global settings instead", extruder_nr_here.value_or(-1));
+        extruder_nr_here = std::nullopt;
+        environment_iterator = environments.find(std::nullopt);
+    }
+    const zeus::expected<cfe::eval::Value, EvaluateResult> expression_result = evaluateExpression(match_expression.str(), environment_iterator->second);
     if (! expression_result.has_value())
     {
         if (expression_result.error() == EvaluateResult::Skip)
@@ -276,7 +273,25 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;
 
     static const boost::regex expression_regex(R"({\s*(?<condition>if|else|elif|endif)?\s*(?<expression>[^{}]*?)\s*(?:,\s*(?<extruder_nr>[^{},]*))?\s*}(?<end_of_line>\n?))");
-    const SettingContainersEnvironmentAdapter global_container_env(Application::getInstance().current_slice_->scene.settings, extra_settings);
+    const Scene& scene = Application::getInstance().current_slice_->scene;
+
+    std::map<std::optional<size_t>, SettingContainersEnvironmentAdapter> environment_adapters;
+    environment_adapters.emplace(std::nullopt, SettingContainersEnvironmentAdapter(scene.settings));
+    for (auto [extruder_nr, extruder_train] : scene.extruders | ranges::views::enumerate)
+    {
+        environment_adapters.emplace(extruder_nr, SettingContainersEnvironmentAdapter(extruder_train.settings_));
+    }
+
+    std::map<std::optional<size_t>, cfe::env::LocalEnvironment> environments;
+    for (const std::optional<size_t> environment_key : environment_adapters | ranges::views::keys) // Do not access by iterator because it creates a copy of the adapter
+    {
+        environments.emplace(environment_key, cfe::env::LocalEnvironment(&environment_adapters.at(environment_key)));
+        cfe::env::LocalEnvironment& local_environment = environments.at(environment_key);
+        for (auto iterator = extra_settings.begin(); iterator != extra_settings.end(); ++iterator)
+        {
+            local_environment.set(iterator->first, iterator->second);
+        }
+    }
 
     std::string::const_iterator start = input.cbegin();
     const std::string::const_iterator end = input.cend();
@@ -291,7 +306,7 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
                 processStatement(output, condition_state, match.prefix().str());
             }
 
-            if (! processExpression(output, condition_state, match, context_extruder_nr, global_container_env, extra_settings))
+            if (! processExpression(output, condition_state, match, context_extruder_nr, environments))
             {
                 // Something got wrong during expression evaluation, return raw input insteaad
                 output = input;
