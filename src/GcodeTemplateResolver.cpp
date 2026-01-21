@@ -4,8 +4,10 @@
 #include "GcodeTemplateResolver.h"
 
 #include <cura-formulae-engine/parser/parser.h>
+#include <zeus/expected.hpp>
 
 #include <boost/regex.hpp>
+#include <range/v3/algorithm/contains.hpp>
 
 #include "Application.h"
 #include "Slice.h"
@@ -15,6 +17,7 @@ namespace cfe = CuraFormulaeEngine;
 
 namespace cura::GcodeTemplateResolver
 {
+static constexpr std::array post_slice_data_variables = { "filament_cost", "print_time", "filament_amount", "filament_weight", "jobname" };
 
 /*! State-machine enum to track the conditional blocks states */
 enum class GcodeConditionState
@@ -25,26 +28,37 @@ enum class GcodeConditionState
     ConditionDone, // Inside a multi-conditional block where the valid condition has already been processed
 };
 
+enum class EvaluateResult
+{
+    Error, // An error has occured when parsing/evaluating the expression
+    Skip, // The expression should not be evaluated and kept as is
+};
+
 /*!
  * Resolve the given expression
  * @param expression The raw expression text to be resolved
  * @param environment The contextual environment to be used when resolving variables
- * @return The parsed value result, or nullopt of an error occurred
+ * @return The parsed value result, or an error description
  */
-std::optional<cfe::eval::Value> resolveExpression(const std::string_view& expression, const SettingContainersEnvironmentAdapter& environment)
+zeus::expected<cfe::eval::Value, EvaluateResult> resolveExpression(const std::string_view& expression, const SettingContainersEnvironmentAdapter& environment)
 {
     const zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(expression);
     if (! parse_result.has_value())
     {
         spdlog::error("Invalid syntax in expression [{}]", expression);
-        return std::nullopt;
+        return zeus::unexpected(EvaluateResult::Error);
     }
 
     const cfe::eval::Result result = parse_result.value().evaluate(&environment);
     if (! result.has_value())
     {
+        if (ranges::contains(post_slice_data_variables, expression))
+        {
+            return zeus::unexpected(EvaluateResult::Skip);
+        }
+
         spdlog::warn("Invalid variable identifier in expression [{}]", expression);
-        return std::nullopt;
+        return zeus::unexpected(EvaluateResult::Error);
     }
 
     return result.value();
@@ -181,8 +195,8 @@ bool processExpression(
 
     if (match_extruder_nr.matched && match_extruder_nr.length() > 0)
     {
-        const std::optional<cfe::eval::Value> extruder_nr_result = resolveExpression(match_extruder_nr.str(), global_container_env);
-        if (! extruder_nr_result.has_value())
+        const zeus::expected<cfe::eval::Value, EvaluateResult> extruder_nr_result = resolveExpression(match_extruder_nr.str(), global_container_env);
+        if (! extruder_nr_here.has_value())
         {
             return false;
         }
@@ -219,9 +233,14 @@ bool processExpression(
 
 
     const SettingContainersEnvironmentAdapter container_env_here(extruder_nr_here.has_value() ? scene.extruders.at(*extruder_nr_here).settings_ : scene.settings, extra_settings);
-    const std::optional<cfe::eval::Value> expression_result = resolveExpression(match_expression.str(), container_env_here);
+    const zeus::expected<cfe::eval::Value, EvaluateResult> expression_result = resolveExpression(match_expression.str(), container_env_here);
     if (! expression_result.has_value())
     {
+        if (expression_result.error() == EvaluateResult::Skip)
+        {
+            output += match.str();
+            return true;
+        }
         return false;
     }
 

@@ -5,6 +5,7 @@ requirements:
   - "scripta/[>=1.1.0]@ultimaker/testing"
   - "libpng/1.6.48"
   - "onetbb/2022.2.0"
+  - "zeus_expected/[>=1.1.1]"
 requirements_arcus:
   - "arcus/5.11.0"
 requirements_plugins:
