@@ -13,6 +13,7 @@ struct GCodeTemplateTestCase
     std::string input;
     std::optional<int> extruder_nr;
     std::string expected_output;
+    std::unordered_map<std::string, std::string> extra_settings{};
 };
 
 class GCodeTemplateResolverTest : public ::testing::TestWithParam<GCodeTemplateTestCase>
@@ -20,28 +21,31 @@ class GCodeTemplateResolverTest : public ::testing::TestWithParam<GCodeTemplateT
 protected:
     void SetUp() override
     {
-        std::shared_ptr<cura::Slice> slice = std::make_shared<cura::Slice>(0);
-        cura::Application::getInstance().current_slice_ = slice;
+        slice_ = std::make_shared<cura::Slice>(0);
+        cura::Application::getInstance().current_slice_ = slice_;
 
-        slice->scene.settings.add("bed_temperature", "50.0");
-        slice->scene.settings.add("initial_extruder", "0");
+        slice_->scene.settings.add("bed_temperature", "50.0");
+        slice_->scene.settings.add("initial_extruder", "0");
 
-        slice->scene.extruders.emplace_back(0, &slice->scene.settings);
-        slice->scene.extruders[0].settings_.add("material_temperature", "190.5");
+        slice_->scene.extruders.emplace_back(0, &slice_->scene.settings);
+        slice_->scene.extruders[0].settings_.add("material_temperature", "190.5");
 
-        slice->scene.extruders.emplace_back(1, &slice->scene.settings);
-        slice->scene.extruders[1].settings_.add("material_temperature", "210.0");
+        slice_->scene.extruders.emplace_back(1, &slice_->scene.settings);
+        slice_->scene.extruders[1].settings_.add("material_temperature", "210.0");
     }
 
     void TearDown() override
     {
     }
+
+private:
+    std::shared_ptr<cura::Slice> slice_;
 };
 
 TEST_P(GCodeTemplateResolverTest, ResolveTemplate)
 {
     const auto& param = GetParam();
-    std::string result = cura::GcodeTemplateResolver::resolveGCodeTemplate(param.input, param.extruder_nr);
+    std::string result = cura::GcodeTemplateResolver::resolveGCodeTemplate(param.input, param.extruder_nr, param.extra_settings);
     EXPECT_EQ(result, param.expected_output);
 }
 
@@ -246,4 +250,6 @@ INSTANTIATE_TEST_SUITE_P(
         // Multiple replaces on single line
         GCodeTemplateTestCase{ "BT={bed_temperature} IE={initial_extruder}", std::nullopt, "BT=50 IE=0\n" },
         // Multiple extruder replaces on single line
-        GCodeTemplateTestCase{ "MT0={material_temperature, 0} MT1={material_temperature, 1}", std::nullopt, "MT0=190.5 MT1=210\n" }));
+        GCodeTemplateTestCase{ "MT0={material_temperature, 0} MT1={material_temperature, 1}", std::nullopt, "MT0=190.5 MT1=210\n" },
+        // Extra settings
+        GCodeTemplateTestCase{ "ES={bed_temperature} SE={max_printer_temperature}", std::nullopt, "ES=50 SE=500\n", { { "max_printer_temperature", "500" } } }));

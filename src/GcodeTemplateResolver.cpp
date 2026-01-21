@@ -96,7 +96,7 @@ bool processExpression(
     GcodeConditionState& condition_state,
     const boost::smatch& match,
     const std::optional<size_t>& context_extruder_nr,
-    std::map<std::optional<size_t>, cfe::env::LocalEnvironment> environments)
+    const std::map<std::optional<size_t>, cfe::env::LocalEnvironment>& environments)
 {
     const auto& match_expression = match["expression"];
     const auto& match_condition = match["condition"];
@@ -195,8 +195,8 @@ bool processExpression(
 
     if (match_extruder_nr.matched && match_extruder_nr.length() > 0)
     {
-        const zeus::expected<cfe::eval::Value, EvaluateResult> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), environments[std::nullopt]);
-        if (! extruder_nr_here.has_value())
+        const zeus::expected<cfe::eval::Value, EvaluateResult> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), environments.at(std::nullopt));
+        if (! extruder_nr_result.has_value())
         {
             return false;
         }
