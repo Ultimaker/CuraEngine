@@ -67,6 +67,7 @@ public:
     struct ElementAttributes
     {
         ColorObject color{ Color::BLACK };
+        double alpha{ 1.0 };
 
         ElementAttributes() = default;
 
@@ -75,11 +76,17 @@ public:
         {
         }
 
+        ElementAttributes(const ColorObject& color, const double alpha)
+            : color(color)
+            , alpha(alpha)
+        {
+        }
+
         virtual ~ElementAttributes() = default;
 
         virtual bool isDisplayed() const
         {
-            return std::holds_alternative<Color>(color) || std::holds_alternative<RgbColor>(color);
+            return alpha > 0.0 && (std::holds_alternative<Color>(color) || std::holds_alternative<RgbColor>(color));
         }
 
         bool isRainbow() const
@@ -90,8 +97,6 @@ public:
 
     struct SurfaceAttributes : ElementAttributes
     {
-        double alpha{ 1.0 };
-
         SurfaceAttributes() = default;
 
         SurfaceAttributes(const ColorObject& color)
@@ -100,8 +105,7 @@ public:
         }
 
         SurfaceAttributes(const ColorObject& color, const double alpha)
-            : ElementAttributes(color)
-            , alpha(alpha)
+            : ElementAttributes(color, alpha)
         {
         }
 
@@ -117,6 +121,12 @@ public:
 
         LineAttributes(const ColorObject& color, const double width)
             : ElementAttributes(color)
+            , width(width)
+        {
+        }
+
+        LineAttributes(const ColorObject& color, const double width, const double alpha)
+            : ElementAttributes(color, alpha)
             , width(width)
         {
         }

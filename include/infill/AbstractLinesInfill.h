@@ -61,11 +61,20 @@ protected:
     virtual OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const = 0;
 
 private:
-    static OpenLinesSet zigZaggify(
-        const std::array<std::vector<Point2LL>, 2>& chains,
-        std::array<std::vector<unsigned>, 2>& connected_to,
-        const std::vector<int>& line_numbers,
-        const Shape& in_outline);
+    /*! Helper structure that contain data about the split lines to be joined */
+    struct SplitLines
+    {
+        std::array<Point2LL, 2> chain; // The start and end positions of the intersected polyline
+        int column_id; // The ID of the original polyline this one is a part from
+    };
+
+    /*!
+     * Adds polylines to join the intersected segments together
+     * @param split_lines The start and end positions of intersected polylines
+     * @param in_outline The outline in which to print the pattern. The input shape, so to say.
+     * @return The joining segments to be added
+     */
+    static OpenLinesSet zigZaggify(std::vector<SplitLines>& split_lines, const Shape& in_outline);
 
     /*!
      * Cut the given raw lines so that they fit inside the model outer contour

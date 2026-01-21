@@ -279,13 +279,14 @@ void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_
                 {
                     fprintf(
                         out_,
-                        "<path fill=\"%s\" fill-opacity=\"%f\" fill-rule=\"%s\" stroke=\"%s\" stroke-width=\"%f\" stroke-dasharray=\"%s\" d=\"",
+                        R"(<path fill="%s" fill-opacity="%f" fill-rule="%s" stroke="%s" stroke-width="%f" stroke-dasharray="%s" stroke-opacity="%f" stroke-linecap="round" d=")",
                         toString(visual_attributes.surface.color).c_str(),
                         visual_attributes.surface.alpha,
                         toString(fill_rule).c_str(),
                         toString(visual_attributes.line.color).c_str(),
                         visual_attributes.line.width,
-                        toString(visual_attributes.line.dash_array).c_str());
+                        toString(visual_attributes.line.dash_array).c_str(),
+                        visual_attributes.line.alpha);
                     first_path = false;
                 }
                 writePathPoints(line);
