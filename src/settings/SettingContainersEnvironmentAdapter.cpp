@@ -46,10 +46,10 @@ std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const s
     cfe::env::EnvironmentMap env;
     const cfe::ast::ExprPtr& expression = parse_result.value();
     cfe::eval::Result eval_result = expression.evaluate(&env);
-
     if (! eval_result.has_value())
     {
-        return std::nullopt;
+        // Expressions are being evaluated for numbers, but strings are being recognized as variable identifiers, which then fail to evaluate, so treat them as raw strings instead
+        return cfe::eval::Value(setting_raw_value);
     }
 
     return eval_result.value();
