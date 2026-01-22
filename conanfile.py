@@ -93,6 +93,9 @@ class CuraEngineConan(ConanFile):
             self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
+        # ARM64 Windows: Disable tbbproxy (not available on ARM64 platforms)
+        if self.settings.os == "Windows" and self.settings.arch == "armv8":
+            self.options["onetbb"].tbbproxy = False
         # Force all libraries to be static for Emscripten builds
         if self.settings.os == "Emscripten":
             self.options["*"].shared = False
