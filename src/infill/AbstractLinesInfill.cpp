@@ -243,7 +243,7 @@ OpenLinesSet AbstractLinesInfill::fitLines(const OpenLinesSet& raw_lines, const 
             result.push_back(intersected_line);
             if (zig_zaggify)
             {
-                split_lines.emplace_back(std::array{ intersected_line.front(), intersected_line.back() }, column_id);
+                split_lines.emplace_back(SplitLines{ std::array{ intersected_line.front(), intersected_line.back() }, column_id });
             }
         }
     }

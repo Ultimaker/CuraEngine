@@ -65,7 +65,7 @@ private:
     struct SplitLines
     {
         std::array<Point2LL, 2> chain; // The start and end positions of the intersected polyline
-        int column_id; // The ID of the original polyline this one is a part from
+        size_t column_id; // The ID of the original polyline this one is a part from
     };
 
     /*!
