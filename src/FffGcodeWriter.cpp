@@ -19,6 +19,7 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
+#include "GcodeTemplateResolver.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "PrimeTower/PrimeTower.h"
@@ -4365,13 +4366,17 @@ void FffGcodeWriter::finalize()
         gcode.writeJerk(mesh_group_settings.get<Velocity>("machine_max_jerk_xy"));
     }
 
-    const auto end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
+    // Replace the setting tokens in start and end g-code.
+    // Use values from the first used extruder by default so we get the expected temperatures
+    auto machine_end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
+    auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
+    machine_end_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_end_gcode, initial_extruder_nr);
 
-    if (end_gcode.length() > 0 && mesh_group_settings.get<bool>("relative_extrusion"))
+    if (! machine_end_gcode.empty() && mesh_group_settings.get<bool>("relative_extrusion"))
     {
         gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
     }
-    gcode.finalize(end_gcode.c_str());
+    gcode.finalize(machine_end_gcode);
 
     // set extrusion mode back to "normal"
     gcode.resetExtrusionMode();
