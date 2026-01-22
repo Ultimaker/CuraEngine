@@ -9,6 +9,7 @@
 #include "NoCopy.h"
 #include "SVG.h"
 #include "utils/Point2F.h"
+#include "utils/Point3D.h"
 
 namespace cura
 {
@@ -22,7 +23,12 @@ public:
 
     ~OBJ();
 
-    void writeSphere(const Point3D& position, const double radius = 1.0, const SVG::Color color = SVG::Color::BLACK);
+    void writeSphere(
+        const Point3D& position,
+        const double radius = 1.0,
+        const SVG::Color color = SVG::Color::BLACK,
+        const size_t latitude_segments = 4,
+        const size_t longitude_segments = 8);
 
     void writeTriangle(
         const Point3D& p0,
@@ -38,16 +44,14 @@ public:
 private:
     struct Triangle
     {
-        size_t p0, p1, p2;
+        Point3D p0, p1, p2;
         SVG::Color color;
-        std::optional<size_t> uv0, uv1, uv2;
+        std::optional<Point2F> uv0, uv1, uv2;
     };
 
     const std::string filename_;
     const double scale_;
-    std::vector<Point3D> vertices_;
     std::vector<Triangle> triangles_;
-    std::vector<Point2F> uv_coordinates_;
 
     Point3D scalePosition(const Point3D& p) const;
 

@@ -152,6 +152,13 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                       .speed_derivatives = { .speed = mesh.settings.get<Velocity>("speed_ironing"),
                                              .acceleration = mesh.settings.get<Acceleration>("acceleration_ironing"),
                                              .jerk = mesh.settings.get<Velocity>("jerk_ironing") } }
+    , skin_support_config{ .type = PrintFeatureType::Infill,
+                           .line_width = mesh.settings.get<coord_t>("infill_line_width"),
+                           .layer_thickness = layer_thickness,
+                           .flow = mesh.settings.get<Ratio>("skin_support_material_flow"),
+                           .speed_derivatives = { .speed = mesh.settings.get<Velocity>("skin_support_speed"),
+                                                  .acceleration = mesh.settings.get<Acceleration>("acceleration_infill"),
+                                                  .jerk = mesh.settings.get<Velocity>("jerk_infill") } }
 
 {
     infill_config.reserve(MAX_INFILL_COMBINE);

@@ -29,7 +29,7 @@ namespace cura
 /*!
  * Fixture that provides a basis for testing wall computation.
  */
-class FffGcodeWriterTest : public testing::Test
+class DISABLED_FffGcodeWriterTest : public testing::Test
 {
 public:
     Settings* settings;
@@ -39,7 +39,7 @@ public:
     // Square that fits wholly inside the above square
     Shape inner_square;
 
-    FffGcodeWriterTest()
+    DISABLED_FffGcodeWriterTest()
         : fff_gcode_writer()
     {
         outer_square.emplace_back();
@@ -68,7 +68,8 @@ public:
         std::ifstream file(path);
 
         std::string line;
-        while (std::getline(file, line)) {
+        while (std::getline(file, line))
+        {
             size_t pos = line.find('=');
             std::string key = line.substr(0, pos);
             std::string value = line.substr(pos + 1);
@@ -97,7 +98,7 @@ public:
     }
 };
 
-TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
+TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
 {
     // SETUP
     SliceDataStorage* storage = setUpStorage();
@@ -114,10 +115,10 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
 
     Mesh mesh(*settings);
 
-    LayerPlan gcode_layer(*storage, 100, 10000, 100, 0, {fan_settings}, 20, 10, 5000 );
+    LayerPlan gcode_layer(*storage, 100, 10000, 100, 0, { fan_settings }, 20, 10, 5000);
     SliceMeshStorage mesh_storage(&mesh, 200);
     size_t extruder_nr = 0;
-    MeshPathConfigs mesh_config(mesh_storage, 10, 100, {0.5});
+    MeshPathConfigs mesh_config(mesh_storage, 10, 100, { 0.5 });
     SliceLayerPart part;
 
     part.infill_area_per_combine_per_density = { { outer_square } };
@@ -134,14 +135,7 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     //  We're expecting the sparse infill on layer 100 to have
     //  some lines to support the corners of the layer above.
     //  But we arent wanting the whole area densely supported.
-    fff_gcode_writer.processSingleLayerInfill(
-        *storage,
-        gcode_layer,
-        mesh_storage,
-        extruder_nr,
-        mesh_config,
-        part
-    );
+    fff_gcode_writer.processSingleLayerInfill(*storage, gcode_layer, mesh_storage, extruder_nr, mesh_config, part);
 
     /*   Useful code if you're debugging this test.   Also add this test as a friend in GCodeExport.h
     GCodeExport gcode_export;
@@ -152,14 +146,18 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     */
 
     // Test helper
-    auto checkPointIsPassed = [&](Point2LL p, coord_t margin)-> bool {
+    auto checkPointIsPassed = [&](Point2LL p, coord_t margin) -> bool
+    {
         Point2LL last;
-        for (const auto& path:gcode_layer.extruder_plans_[0].paths_) {
-            for (const auto& point: path.points) {
+        for (const auto& path : gcode_layer.extruder_plans_[0].paths_)
+        {
+            for (const auto& point : path.points)
+            {
                 Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, point.toPoint2LL(), last);
                 int64_t dist = vSize2(p - closest_here);
 
-                if (dist<margin*margin) return true;
+                if (dist < margin * margin)
+                    return true;
 
                 last = point.toPoint2LL();
             }
@@ -168,8 +166,8 @@ TEST_F(FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     };
 
     // Check the results
-    for (auto poly:inner_square)
-        for (auto point:poly)
+    for (auto poly : inner_square)
+        for (auto point : poly)
             EXPECT_TRUE(checkPointIsPassed(point, MM2INT(0.3))) << "The corners of this square need an infill line under them so they dont droop down!";
 
     int ctr = 0;

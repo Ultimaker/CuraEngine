@@ -6,6 +6,7 @@
 
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
+#include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
 #include <spdlog/stopwatch.h>
@@ -32,6 +33,18 @@
 
 namespace cura::MeshMaterialSplitter
 {
+
+/*!
+ * Utility structure that contains pre-calculated data to generate the multi-material modifiers of a mesh
+ */
+struct MeshGeneratorData
+{
+    const Mesh& mesh; //!< The mesh for which a material modifier is to be generated
+    AABB3D bounding_box; //!< The bounding box of the mesh
+    size_t estimated_iterations; //!< The roughly estimated number of voxels-propagation iterations (for progress reporting)
+    coord_t depth; //!< The propagation depth retrieved from the mesh settings
+    coord_t resolution; //!< The points cloud resolution retrieved from the mesh settings
+};
 
 /*!
  * Utility structure to store values in a map that are grouped by unique z-height and extruder number combinations
@@ -214,19 +227,40 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
             const int32_t y_plus1 = static_cast<int32_t>(square_start.position.y) + 1;
             const bool y_plus1_valid = y_plus1 <= std::numeric_limits<uint16_t>::max();
 
-            const uint8_t occupation_bit0 = x_plus1_valid && y_plus1_valid
-                                              ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x_plus1, y_plus1, square_start.position.z)).value_or(mesh_extruder_nr)
-                                              : mesh_extruder_nr;
-            const uint8_t occupation_bit1
-                = y_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(square_start.position.x, y_plus1, square_start.position.z)).value_or(mesh_extruder_nr)
-                                : mesh_extruder_nr;
-            const uint8_t occupation_bit2
-                = x_plus1_valid ? voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x_plus1, square_start.position.y, square_start.position.z)).value_or(mesh_extruder_nr)
-                                : mesh_extruder_nr;
-            const uint8_t occupation_bit3 = voxel_grid.getOccupation(square_start).value_or(mesh_extruder_nr);
+            std::unordered_set<uint8_t> filled_extruders;
+            std::array<uint8_t, 4> occupation_bits;
+            auto add_occupied_extruder = [&voxel_grid,
+                                          &mesh_extruder_nr,
+                                          &filled_extruders,
+                                          &occupation_bits,
+                                          &square_start](const int32_t x, const int32_t y, const bool position_valid, const size_t occupation_bit_index) -> void
+            {
+                if (position_valid)
+                {
+                    const std::optional<uint8_t> occupation = voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x, y, square_start.position.z));
+                    if (occupation.has_value())
+                    {
+                        filled_extruders.insert(occupation.value());
+                        occupation_bits[occupation_bit_index] = occupation.value();
+                        return;
+                    }
+                }
 
-            const std::unordered_set<uint8_t> extruders = { occupation_bit0, occupation_bit1, occupation_bit2, occupation_bit3 };
-            for (const uint8_t extruder : extruders)
+                occupation_bits[occupation_bit_index] = mesh_extruder_nr;
+            };
+
+            add_occupied_extruder(x_plus1, y_plus1, x_plus1_valid && y_plus1_valid, 0);
+            add_occupied_extruder(square_start.position.x, y_plus1, y_plus1_valid, 1);
+            add_occupied_extruder(x_plus1, square_start.position.y, x_plus1_valid, 2);
+            add_occupied_extruder(square_start.position.x, square_start.position.y, true, 3);
+
+            if (filled_extruders.size() < 2)
+            {
+                // Early-out, since this is not going to generate any segment
+                return;
+            }
+
+            for (const uint8_t extruder : filled_extruders)
             {
                 if (extruder == mesh_extruder_nr)
                 {
@@ -234,8 +268,8 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
                 }
 
                 // Apply the marching squares base principle: calculate the index of the segments list to be added according to the occupations of the 4 positions
-                size_t segments_index = (occupation_bit0 == extruder ? 1 : 0) + ((occupation_bit1 == extruder ? 1 : 0) << 1) + ((occupation_bit2 == extruder ? 1 : 0) << 2)
-                                      + ((occupation_bit3 == extruder ? 1 : 0) << 3);
+                const size_t segments_index = (occupation_bits[0] == extruder ? 1 : 0) + ((occupation_bits[1] == extruder ? 1 : 0) << 1)
+                                            + ((occupation_bits[2] == extruder ? 1 : 0) << 2) + ((occupation_bits[3] == extruder ? 1 : 0) << 3);
                 OpenLinesSet translated_segments = marching_segments[segments_index];
 
                 if (translated_segments.empty())
@@ -293,31 +327,28 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
             const coord_t z_low = voxel_grid.toGlobalZ(z, false);
             const coord_t z_high = voxel_grid.toGlobalZ(z + 1, false);
 
-            for (const Polygon& polygon : contour.second.polygons)
+            // Add a small offset to make sure overlapping edges won't let any space in between
+            constexpr int offset_overlapping = 5;
+            const Shape simplified_polygons = simplifier.polygon(contour.second.polygons).offset(offset_overlapping);
+            for (const Polygon& simplified_polygon : simplified_polygons)
             {
-                // Do not export holes, only outer contours
-                if (polygon.area() > 0)
+                const std::lock_guard lock(mutex);
+                const auto mesh_iterator = meshes.find(extruder);
+                if (mesh_iterator == meshes.end())
                 {
-                    const Polygon simplified_polygon = simplifier.polygon(polygon);
+                    Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(extruder).settings_);
+                    mesh.settings_.add("cutting_mesh", "true");
+                    mesh.settings_.add("extruder_nr", std::to_string(extruder));
+                    meshes.insert({ extruder, mesh });
+                }
 
-                    const std::lock_guard lock(mutex);
-                    const auto mesh_iterator = meshes.find(extruder);
-                    if (mesh_iterator == meshes.end())
-                    {
-                        Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(extruder).settings_);
-                        mesh.settings_.add("cutting_mesh", "true");
-                        mesh.settings_.add("extruder_nr", std::to_string(extruder));
-                        meshes.insert({ extruder, mesh });
-                    }
-
-                    Mesh& mesh = meshes[extruder];
-                    for (auto iterator = simplified_polygon.beginSegments(); iterator != simplified_polygon.endSegments(); ++iterator)
-                    {
-                        const Point2LL& start = (*iterator).start;
-                        const Point2LL& end = (*iterator).end;
-                        mesh.addFace(Point3LL(start, z_low), Point3LL(end, z_low), Point3LL(end, z_high));
-                        mesh.addFace(Point3LL(end, z_high), Point3LL(start, z_high), Point3LL(start, z_low));
-                    }
+                Mesh& mesh = meshes[extruder];
+                for (auto iterator = simplified_polygon.beginSegments(); iterator != simplified_polygon.endSegments(); ++iterator)
+                {
+                    const Point2LL& start = (*iterator).start;
+                    const Point2LL& end = (*iterator).end;
+                    mesh.addFace(Point3LL(start, z_low), Point3LL(end, z_low), Point3LL(end, z_high));
+                    mesh.addFace(Point3LL(end, z_high), Point3LL(start, z_high), Point3LL(start, z_low));
                 }
             }
         });
@@ -346,7 +377,7 @@ std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
 
     // There is some margin in the voxel grid around the mesh, so get the actual mesh bounding box and see how many layers are actually covered
     AABB3D mesh_bounding_box = mesh.getAABB();
-    const size_t margin_below_mesh = rasterized_mesh.toLocalZ(mesh_bounding_box.min_.z_);
+    const size_t margin_below_mesh = rasterized_mesh.toLocalZ(std::max(mesh_bounding_box.min_.z_, static_cast<coord_t>(0)));
     const size_t slice_layer_count = rasterized_mesh.toLocalZ(mesh_bounding_box.max_.z_) - margin_below_mesh + 1;
 
     const double xy_offset = INT2MM(std::max(rasterized_mesh.getResolution().x_, rasterized_mesh.getResolution().y_) * 2);
@@ -392,19 +423,15 @@ bool isInside(const VoxelGrid& voxel_grid, const VoxelGrid::LocalCoordinates& po
 
 /*!
  * Find the voxels to be evaluated next, given the ones that have been previously evaluated
- * @param voxel_grid The current voxel grid to be checked. Some voxels may also be directly filled.
+ * @param voxel_grid The current voxel grid to be checked
  * @param previously_evaluated_voxels The list of voxels that were just evaluated
- * @param sliced_mesh The pre-sliced mesh, used to check for points insideness
- * @param mesh_extruder_nr The main mesh extruder number
  * @return The list of new voxels to be evaluated
  */
-boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> findVoxelsToEvaluate(
-    VoxelGrid& voxel_grid,
-    const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& previously_evaluated_voxels,
-    const std::vector<Shape>& sliced_mesh,
-    const uint8_t mesh_extruder_nr)
+boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>
+    findVoxelsToEvaluate(const VoxelGrid& voxel_grid, const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& previously_evaluated_voxels)
 {
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_considered;
 
     previously_evaluated_voxels.visit_all(
 #ifdef __cpp_lib_execution
@@ -414,25 +441,9 @@ boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> findVoxelsToEvaluate(
         {
             for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(previously_evaluated_voxel))
             {
-                if (voxels_to_evaluate.contains(voxel_around))
+                if (voxels_considered.insert(voxel_around) && ! voxel_grid.hasOccupation(voxel_around))
                 {
-                    // This voxel has already been registered for evaluation
-                    continue;
-                }
-
-                const std::optional<uint8_t> occupation = voxel_grid.getOccupation(voxel_around);
-                if (occupation.has_value())
-                {
-                    // Voxel is already filled, don't evaluate it anyhow
-                    continue;
-                }
-
-                if (! isInside(voxel_grid, voxel_around, sliced_mesh))
-                {
-                    voxel_grid.setOccupation(voxel_around, mesh_extruder_nr);
-                }
-                else
-                {
+                    // Voxel has not been considered yet and is not filled, evaluate it now
                     voxels_to_evaluate.emplace(voxel_around);
                 }
             }
@@ -446,40 +457,54 @@ boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> findVoxelsToEvaluate(
  * @param voxel_grid The voxel grid to be filled
  * @param voxels_to_evaluate The voxels to be evaluated
  * @param texture_data The lookup containing the rasterized texture data
- * @param deepness_squared The maximum deepness, squared
+ * @param sliced_mesh The pre-sliced mesh matching the voxel grid
+ * @param depth_squared The maximum depth, squared
  * @param mesh_extruder_nr The main mesh extruder number
  */
 void evaluateVoxels(
     VoxelGrid& voxel_grid,
     const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& voxels_to_evaluate,
     const SpatialLookup& texture_data,
-    const coord_t deepness_squared,
+    const std::vector<Shape>& sliced_mesh,
+    const coord_t depth_squared,
     const uint8_t mesh_extruder_nr)
 {
     voxels_to_evaluate.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid, &texture_data, &deepness_squared, &mesh_extruder_nr](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+        [&voxel_grid, &texture_data, &sliced_mesh, &depth_squared, &mesh_extruder_nr](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
         {
             const Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
 
-            // Find the nearest neighbor
-            std::optional<OccupiedPosition> nearest_occupation = texture_data.findClosestOccupation(position);
-
-            if (nearest_occupation.has_value())
+            if (! isInside(voxel_grid, voxel_to_evaluate, sliced_mesh))
             {
-                const Point3D diff = position - nearest_occupation.value().position;
-                const uint8_t new_occupation = diff.vSize2() <= deepness_squared ? nearest_occupation.value().occupation : mesh_extruder_nr;
-                voxel_grid.setOccupation(voxel_to_evaluate, new_occupation);
+                voxel_grid.setOccupation(voxel_to_evaluate, mesh_extruder_nr);
             }
             else
             {
-                voxel_grid.setOccupation(voxel_to_evaluate, mesh_extruder_nr);
+                // Find the nearest neighbor
+                const std::optional<OccupiedPosition> nearest_occupation = texture_data.findClosestOccupation(position);
+                if (nearest_occupation.has_value())
+                {
+                    const Point3D diff = position - nearest_occupation.value().position;
+                    const uint8_t new_occupation = diff.vSize2() <= depth_squared ? nearest_occupation.value().occupation : mesh_extruder_nr;
+                    voxel_grid.setOccupation(voxel_to_evaluate, new_occupation);
+                }
+                else
+                {
+                    voxel_grid.setOccupation(voxel_to_evaluate, mesh_extruder_nr);
+                }
             }
         });
 }
 
+/*!
+ * From the given evaluated voxels list, keep only those that have various extruder values around them, so that we will only evaluate voxels on the borders
+ * and skip those that grow inside the modifier meshes
+ * @param evaluated_voxels The previously evaluated voxels
+ * @param voxel_grid The voxel grid being filled
+ */
 void findBoundaryVoxels(boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& evaluated_voxels, const VoxelGrid& voxel_grid)
 {
     evaluated_voxels.erase_if(
@@ -511,31 +536,35 @@ void findBoundaryVoxels(boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>&
  * @param estimated_iterations The roughly estimated number of iterations that will be processed
  * @param sliced_mesh The pre-sliced mesh matching the voxel grid
  * @param texture_data The lookup containing the rasterized texture data
- * @param deepness_squared The maximum propagation deepness, squared
+ * @param depth_squared The maximum propagation depth, squared
  * @param mesh_extruder_nr The main mesh extruder number
+ * @param delta_iterations The number of already processed iterations over the total, for progress reporting
+ * @param total_estimated_iterations The total number of iterations to be processed, for progress reporting
  */
 void propagateVoxels(
     VoxelGrid& voxel_grid,
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& evaluated_voxels,
-    const coord_t estimated_iterations,
+    const size_t estimated_iterations,
     const std::vector<Shape>& sliced_mesh,
     const SpatialLookup& texture_data,
-    const coord_t deepness_squared,
-    const uint8_t mesh_extruder_nr)
+    const coord_t depth_squared,
+    const uint8_t mesh_extruder_nr,
+    const size_t delta_iterations,
+    const size_t total_estimated_iterations)
 {
-    uint32_t iteration = 0;
+    size_t iteration = 0;
 
     while (! evaluated_voxels.empty())
     {
-        Progress::messageProgress(Progress::Stage::SPLIT_MULTIMATERIAL, iteration, estimated_iterations);
+        Progress::messageProgress(Progress::Stage::SPLIT_MULTIMATERIAL, std::min(iteration, estimated_iterations) + delta_iterations, total_estimated_iterations);
 
         // Make the list of new voxels to be evaluated, based on which were evaluated before
         spdlog::debug("Finding voxels around {} voxels for iteration {}", evaluated_voxels.size(), iteration);
-        evaluated_voxels = findVoxelsToEvaluate(voxel_grid, evaluated_voxels, sliced_mesh, mesh_extruder_nr);
+        evaluated_voxels = findVoxelsToEvaluate(voxel_grid, evaluated_voxels);
 
         // Now actually evaluate the candidate voxels, i.e. find their closest outside point and set the according occupation
         spdlog::debug("Evaluating {} voxels", evaluated_voxels.size());
-        evaluateVoxels(voxel_grid, evaluated_voxels, texture_data, deepness_squared, mesh_extruder_nr);
+        evaluateVoxels(voxel_grid, evaluated_voxels, texture_data, sliced_mesh, depth_squared, mesh_extruder_nr);
 
         // Now we have evaluated the candidates, check which of them are to be processed next. We skip all the voxels that have only voxels with similar occupations around
         // them, because they are obviously not part of the boundaries we are looking for. This avoids filling the inside of the points clouds and speeds up calculation a lot.
@@ -548,29 +577,30 @@ void propagateVoxels(
 
 /*!
  * Generate a modifier mesh for every extruder other than 0, that has some user-painted texture data
- * @param mesh The mesh being sliced
+ * @param mesh_data The generation data for the mesh to be processed
  * @param texture_data_provider The provider containing the texture painted data
+ * @param delta_iterations The number of already processed iterations over the total, for progress reporting
+ * @param total_estimated_iterations The total number of iterations to be processed, for progress reporting
  * @return A list of modifier meshes to be added to the slicing process
  */
-std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+std::vector<Mesh> makeModifierMeshes(
+    const MeshGeneratorData& mesh_data,
+    const std::shared_ptr<TextureDataProvider>& texture_data_provider,
+    const size_t delta_iterations,
+    const size_t total_estimated_iterations)
 {
-    const Settings& settings = Application::getInstance().current_slice_->scene.settings;
-    const uint8_t mesh_extruder_nr = static_cast<uint8_t>(mesh.settings_.get<size_t>("extruder_nr"));
+    const Settings& settings = mesh_data.mesh.settings_;
+    const uint8_t mesh_extruder_nr = static_cast<uint8_t>(settings.get<size_t>("extruder_nr"));
 
     // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder
     // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
     spdlog::debug("Fill original voxels based on texture data");
-    auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
-    AABB3D bounding_box;
-    for (const MeshVertex& vertex : mesh.vertices_)
-    {
-        bounding_box.include(vertex.p_);
-    }
-    bounding_box.expand(resolution * 8);
+    AABB3D bounding_box = mesh_data.bounding_box;
+    bounding_box.expand(mesh_data.resolution * 8);
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles, which will be used as spatial reference for the texture data
-    VoxelGrid voxel_grid(bounding_box, resolution);
-    if (! makeVoxelGridFromTexture(mesh, texture_data_provider, voxel_grid, mesh_extruder_nr))
+    VoxelGrid voxel_grid(bounding_box, mesh_data.resolution);
+    if (! makeVoxelGridFromTexture(mesh_data.mesh, texture_data_provider, voxel_grid, mesh_extruder_nr))
     {
         // Texture is filled with the main extruder, don't bother doing anything
         return {};
@@ -579,11 +609,10 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
     spdlog::debug("Prepare spatial lookup for texture data");
     const SpatialLookup texture_data = SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
 
-    const auto deepness = settings.get<coord_t>("multi_material_paint_deepness");
-    const coord_t deepness_squared = deepness * deepness;
+    const coord_t depth_squared = mesh_data.depth * mesh_data.depth;
 
     // Create a slice of the mesh so that we can quickly check for points insideness
-    const std::vector<Shape> sliced_mesh = sliceMesh(mesh, voxel_grid);
+    const std::vector<Shape> sliced_mesh = sliceMesh(mesh_data.mesh, voxel_grid);
 
     spdlog::debug("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
@@ -596,35 +625,92 @@ std::vector<Mesh> makeModifierMeshes(const Mesh& mesh, const std::shared_ptr<Tex
             };
         });
 
-    // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
-    const double bounding_box_max_deepness = std::max({ bounding_box.spanX() / 2.0, bounding_box.spanY() / 2.0, bounding_box.spanZ() / 2.0 });
-    const double estimated_min_deepness = std::min(static_cast<double>(deepness), bounding_box_max_deepness);
-    const coord_t estimated_iterations = estimated_min_deepness / resolution;
-    spdlog::debug("Estimated {} iterations", estimated_iterations);
-
-    propagateVoxels(voxel_grid, previously_evaluated_voxels, estimated_iterations, sliced_mesh, texture_data, deepness_squared, mesh_extruder_nr);
+    propagateVoxels(
+        voxel_grid,
+        previously_evaluated_voxels,
+        mesh_data.estimated_iterations,
+        sliced_mesh,
+        texture_data,
+        depth_squared,
+        mesh_extruder_nr,
+        delta_iterations,
+        total_estimated_iterations);
 
     return makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr);
 }
 
-void makeMaterialModifierMeshes(const Mesh& mesh, MeshGroup* meshgroup)
+/*!
+ * Pre-calculate multi-material mesh generation data for the meshes in the given group
+ * @param meshgroup The group containing the meshes to be processed
+ * @return The list of mesh generation data for meshes that contain relevant information
+ */
+std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* meshgroup)
 {
-    if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("extruder"))
+    std::vector<MeshGeneratorData> result;
+
+    for (const Mesh& mesh : meshgroup->meshes)
     {
-        return;
+        if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("extruder"))
+        {
+            continue;
+        }
+
+        const Settings& settings = mesh.settings_;
+        MeshGeneratorData mesh_data{ .mesh = mesh,
+                                     .depth = settings.get<coord_t>("multi_material_paint_depth"),
+                                     .resolution = settings.get<coord_t>("multi_material_paint_resolution") };
+
+        for (const MeshVertex& vertex : mesh.vertices_)
+        {
+            mesh_data.bounding_box.include(vertex.p_);
+        }
+
+        // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
+        const double bounding_box_max_depth = std::max({ mesh_data.bounding_box.spanX() / 2.0, mesh_data.bounding_box.spanY() / 2.0, mesh_data.bounding_box.spanZ() / 2.0 });
+        const double estimated_min_depth = std::min(static_cast<double>(mesh_data.depth), bounding_box_max_depth);
+        mesh_data.estimated_iterations = estimated_min_depth / mesh_data.resolution;
+        spdlog::debug("Estimated {} iterations for {}", mesh_data.estimated_iterations, mesh.mesh_name_);
+
+        result.push_back(mesh_data);
     }
 
-    const spdlog::stopwatch timer;
-    spdlog::info("Start multi-material mesh generation");
+    return result;
+}
 
-    const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
+void makeMaterialModifierMeshes(MeshGroup* meshgroup)
+{
+    const std::vector<MeshGeneratorData> mesh_generation_data = makeInitialMeshesGenerationData(meshgroup);
+    size_t delta_iterations = 0;
+    const size_t total_estimated_iterations = ranges::accumulate(
+        mesh_generation_data,
+        0,
+        [](const size_t total_iterations, const MeshGeneratorData& mesh_data)
+        {
+            return total_iterations + mesh_data.estimated_iterations;
+        });
 
-    for (const Mesh& modifier_mesh : makeModifierMeshes(mesh, texture_data_provider))
+    std::vector<Mesh> modifier_meshes;
+    for (const MeshGeneratorData& mesh_data : mesh_generation_data)
     {
-        meshgroup->meshes.push_back(modifier_mesh);
+        const Mesh& mesh = mesh_data.mesh;
+        const spdlog::stopwatch timer;
+        spdlog::info("Start multi-material mesh generation for {}", mesh.mesh_name_);
+
+        const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
+        for (const Mesh& modifier_mesh : makeModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations))
+        {
+            modifier_meshes.push_back(std::move(modifier_mesh));
+        }
+
+        delta_iterations += mesh_data.estimated_iterations;
+        spdlog::info("Multi-material mesh generation for {} took {} seconds", mesh.mesh_name_, timer.elapsed().count());
     }
 
-    spdlog::info("Multi-material mesh generation took {} seconds", timer.elapsed().count());
+    // Add meshes to group afterwards to avoid re-allocating the meshes in the vector
+    for (Mesh& modifier_mesh : modifier_meshes)
+    {
+        meshgroup->meshes.push_back(std::move(modifier_mesh));
+    }
 }
 
 } // namespace cura::MeshMaterialSplitter

@@ -4,6 +4,7 @@
 #ifndef LAYER_PLAN_BUFFER_H
 #define LAYER_PLAN_BUFFER_H
 
+#include <condition_variable>
 #include <list>
 #include <vector>
 
@@ -17,6 +18,7 @@ namespace cura
 class LayerPlan;
 class ExtruderPlan;
 class GCodeExport;
+struct LayerIndex;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
@@ -57,6 +59,9 @@ class LayerPlanBuffer
      */
     std::list<LayerPlan*> buffer_;
 
+    std::mutex buffer_mutex_;
+    std::condition_variable buffer_condition_variable_;
+
 public:
     LayerPlanBuffer(GCodeExport& gcode)
         : gcode_(gcode)
@@ -65,11 +70,6 @@ public:
     }
 
     void setPreheatConfig();
-
-    /*!
-     * Push a new layer plan into the buffer
-     */
-    void push(LayerPlan& layer_plan);
 
     /*!
      * Push a new layer onto the buffer and handle the buffer.
@@ -84,6 +84,15 @@ public:
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
     void flush();
+
+    /*!
+     * Gets the layer plan for the given layer, once it has been completed. It will wait for completion if necessary
+     * @param layer_nr The layer number to get the plan for
+     * @return The completed layer plan
+     * @warning Make sure you always ask for a layer plan below the one that is being processed. Since the layers processing is started bottom to top and the engine can be run
+     *          mono-threaded, asking for a layer above could lead to a deadlock because the processing of this layer will never start.
+     */
+    const LayerPlan* getCompletedLayerPlan(const LayerIndex& layer_nr) const;
 
 private:
     /*!

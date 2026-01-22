@@ -82,7 +82,7 @@ MixedLinesSet Simplify::polyline(const MixedLinesSet& polylines) const
 
 ClosedPolyline Simplify::polyline(const ClosedPolyline& polyline) const
 {
-    return simplify(polyline, polyline.isExplicitelyClosed());
+    return simplify(polyline, polyline.isExplicitlyClosed());
 }
 
 OpenPolyline Simplify::polyline(const OpenPolyline& polyline) const

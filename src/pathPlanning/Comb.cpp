@@ -14,7 +14,6 @@
 #include "pathPlanning/LinePolygonsCrossings.h"
 #include "sliceDataStorage.h"
 #include "utils/PolygonsPointIndex.h"
-#include "utils/SVG.h"
 #include "utils/linearAlg2D.h"
 
 namespace cura
@@ -96,7 +95,8 @@ bool Comb::calc(
     bool _start_inside,
     bool _end_inside,
     coord_t max_comb_distance_ignored,
-    bool& unretract_before_last_travel_move)
+    bool& unretract_before_last_travel_move,
+    bool& do_retracted_move)
 {
     if (shorterThen(end_point - start_point, max_comb_distance_ignored))
     {
@@ -210,6 +210,8 @@ bool Comb::calc(
         // If the endpoint of the travel path changes with combing, then it means that we are moving to an outer wall
         // and we should unretract before the last travel move when travelling to that outer wall
         unretract_before_last_travel_move = comb_result && end_point != travel_end_point_before_combing;
+        // When using the minimum comb boundary, the travel move may end up closer to the walls than expected, so do a retracted move
+        do_retracted_move = true;
         return comb_result;
     }
 
@@ -413,7 +415,7 @@ bool Comb::calc(
 }
 
 // Try to move comb_path_input points inside by the amount of `move_inside_distance` and see if the points are still in boundary_inside_optimal, add result in comb_path_output
-void Comb::moveCombPathInside(Shape& boundary_inside, Shape& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output)
+void Comb::moveCombPathInside(const Shape& boundary_inside, const Shape& boundary_inside_optimal, const CombPath& comb_path_input, CombPath& comb_path_output)
 {
     const coord_t dist = move_inside_distance_;
     const coord_t dist2 = dist * dist;

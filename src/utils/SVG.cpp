@@ -5,18 +5,26 @@
 
 #include <sstream>
 
+#include <range/v3/to_container.hpp>
+#include <range/v3/view/c_str.hpp>
+#include <range/v3/view/concat.hpp>
+#include <range/v3/view/join.hpp>
+#include <range/v3/view/take.hpp>
+#include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 
+#include "geometry/MixedLinesSet.h"
+#include "geometry/OpenPolyline.h"
+#include "geometry/Point2D.h"
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
 #include "utils/ExtrusionLine.h"
-#include "utils/Point3D.h"
 
 namespace cura
 {
 
 
-std::string SVG::toString(Color color)
+std::string SVG::toString(const Color color)
 {
     switch (color)
     {
@@ -41,52 +49,91 @@ std::string SVG::toString(Color color)
     case SVG::Color::YELLOW:
         return "yellow";
     case SVG::Color::NONE:
+    case SVG::Color::RAINBOW: // rainbow case should never be reached
         return "none";
     default:
         return "black";
     }
 }
 
-SVG::ColorObject SVG::ColorObject::toRgb(const Color color)
+SVG::RgbColor SVG::toRgb(const Color color)
 {
     switch (color)
     {
     case SVG::Color::WHITE:
-        return ColorObject(255, 255, 255);
+        return RgbColor(255, 255, 255);
     case SVG::Color::GRAY:
-        return ColorObject(128, 128, 128);
+        return RgbColor(128, 128, 128);
     case SVG::Color::RED:
-        return ColorObject(255, 0, 0);
+        return RgbColor(255, 0, 0);
     case SVG::Color::BLUE:
-        return ColorObject(0, 0, 255);
+        return RgbColor(0, 0, 255);
     case SVG::Color::GREEN:
-        return ColorObject(0, 255, 0);
+        return RgbColor(0, 255, 0);
     case SVG::Color::LIME:
-        return ColorObject(191, 255, 0);
+        return RgbColor(191, 255, 0);
     case SVG::Color::ORANGE:
-        return ColorObject(255, 165, 0);
+        return RgbColor(255, 165, 0);
     case SVG::Color::MAGENTA:
-        return ColorObject(255, 0, 255);
+        return RgbColor(255, 0, 255);
     case SVG::Color::YELLOW:
-        return ColorObject(255, 255, 0);
+        return RgbColor(255, 255, 0);
     case SVG::Color::BLACK:
+    case SVG::Color::RAINBOW: // rainbow case should never be reached
     case SVG::Color::NONE:
-        return ColorObject(0, 0, 0);
+        return RgbColor(0, 0, 0);
     }
 
-    return ColorObject(0, 0, 0);
+    return RgbColor{};
 }
 
-std::string SVG::toString(const ColorObject& color) const
+std::string SVG::toString(const ColorObject& color)
 {
-    if (color.is_enum_)
-        return toString(color.color_);
-    else
+    if (std::holds_alternative<Color>(color))
     {
+        return toString(std::get<Color>(color));
+    }
+
+    if (std::holds_alternative<RgbColor>(color))
+    {
+        const RgbColor& rgb_color = std::get<RgbColor>(color);
         std::ostringstream ss;
-        ss << "rgb(" << color.r_ << "," << color.g_ << "," << color.b_ << ")";
+        ss << "rgb(" << rgb_color.r << "," << rgb_color.g << "," << rgb_color.b << ")";
         return ss.str();
     }
+
+    return "none";
+}
+
+std::string SVG::toString(const std::vector<int>& dash_array)
+{
+    if (dash_array.size() >= 2)
+    {
+        return dash_array
+             | ranges::views::transform(
+                   [](const int dash_array_part)
+                   {
+                       return std::to_string(dash_array_part);
+                   })
+             | ranges::views::join(ranges::views::c_str(",")) | ranges::to<std::string>();
+    }
+
+    return "none";
+}
+
+std::string SVG::toString(const FillRule fill_rule)
+{
+    switch (fill_rule)
+    {
+    case FillRule::NonZero:
+        return "nonzero";
+    case FillRule::EvenOdd:
+        return "evenodd";
+    case FillRule::None:
+        break;
+    }
+
+    return "none";
 }
 
 void SVG::handleFlush(const bool flush) const
@@ -98,7 +145,7 @@ void SVG::handleFlush(const bool flush) const
 }
 
 
-SVG::SVG(std::string filename, AABB aabb, Point2LL canvas_size, ColorObject background)
+SVG::SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size, const ColorObject& background)
     : SVG(filename,
           aabb,
           std::min(
@@ -109,17 +156,16 @@ SVG::SVG(std::string filename, AABB aabb, Point2LL canvas_size, ColorObject back
 {
 }
 
-SVG::SVG(std::string filename, AABB aabb, double scale, ColorObject background)
+SVG::SVG(const std::string& filename, const AABB& aabb, double scale, const ColorObject& background)
     : SVG(filename, aabb, scale, (aabb.max_ - aabb.min_) * scale, background)
 {
 }
 
-SVG::SVG(std::string filename, AABB aabb, double scale, Point2LL canvas_size, ColorObject background)
+SVG::SVG(const std::string& filename, const AABB& aabb, double scale, const Point2LL& canvas_size, const ColorObject& background)
     : aabb_(aabb)
     , aabb_size_(aabb.max_ - aabb.min_)
     , canvas_size_(canvas_size)
     , scale_(scale)
-    , background_(background)
 {
     output_is_html_ = strcmp(filename.c_str() + strlen(filename.c_str()) - 4, "html") == 0;
     out_ = fopen(filename.c_str(), "w");
@@ -146,9 +192,10 @@ SVG::SVG(std::string filename, AABB aabb, double scale, Point2LL canvas_size, Co
     fprintf(out_, "    inkscape:label=\"layer%zu\"\n", layer_nr_);
     fprintf(out_, "    id=\"layer%zu\">\n", layer_nr_);
 
-    if (! background_.is_enum_ || background_.color_ != Color::NONE)
+    std::string background_str = toString(background);
+    if (! background_str.empty())
     {
-        fprintf(out_, "<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>\n", toString(background_).c_str());
+        fprintf(out_, "<rect width=\"100%%\" height=\"100%%\" fill=\"%s\"/>\n", background_str.c_str());
     }
 }
 
@@ -180,12 +227,12 @@ void SVG::nextLayer()
 
 Point2LL SVG::transform(const Point2LL& p) const
 {
-    return Point2LL(std::llrint(static_cast<double>(p.X - aabb_.min_.X) * scale_), std::llrint(static_cast<double>(p.Y - aabb_.min_.Y) * scale_));
+    return Point2LL(std::llrint(static_cast<double>(p.X - aabb_.min_.X) * scale_), std::llrint(static_cast<double>(aabb_.max_.Y - p.Y) * scale_));
 }
 
-Point3D SVG::transformF(const Point2LL& p) const
+Point2D SVG::transformF(const Point2LL& p) const
 {
-    return Point3D(static_cast<double>(p.X - aabb_.min_.X) * scale_, static_cast<double>(p.Y - aabb_.min_.Y) * scale_, 0.0);
+    return Point2D(static_cast<double>(p.X - aabb_.min_.X) * scale_, static_cast<double>(aabb_.max_.Y - p.Y) * scale_);
 }
 
 void SVG::writeComment(const std::string& comment) const
@@ -193,291 +240,188 @@ void SVG::writeComment(const std::string& comment) const
     fprintf(out_, "<!-- %s -->\n", comment.c_str());
 }
 
-void SVG::writeAreas(const Shape& polygons, const ColorObject color, const ColorObject outline_color, const double stroke_width) const
+void SVG::write(const Shape& shape, const VisualAttributes& visual_attributes, const bool flush) const
 {
-    std::vector<SingleShape> parts = polygons.splitIntoParts();
-    for (auto part_it = parts.rbegin(); part_it != parts.rend(); ++part_it)
+    write(static_cast<LinesSet<Polygon>>(shape), visual_attributes, flush, FillRule::EvenOdd);
+}
+
+template<class LineType>
+void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const
+{
+    if (visual_attributes.line.isDisplayed() || visual_attributes.surface.isDisplayed())
     {
-        SingleShape& part = *part_it;
-        for (size_t j = 0; j < part.size(); j++)
+        if (std::holds_alternative<Color>(visual_attributes.line.color) && std::get<Color>(visual_attributes.line.color) == Color::RAINBOW)
         {
-            fprintf(out_, "<polygon points=\"");
-            for (Point2LL& p : part[j])
+            // Rainbow can't be displayed with a path, we have to draw the segments separately
+            write(lines, { .surface = visual_attributes.surface, .vertices = visual_attributes.vertices }, false);
+
+            VisualAttributes rainbow_line_attributes{ .line = visual_attributes.line };
+
+            for (const LineType& line : lines)
             {
-                Point3D fp = transformF(p);
-                fprintf(out_, "%f,%f ", static_cast<double>(fp.x_), static_cast<double>(fp.y_));
+                size_t index = 0;
+                for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
+                {
+                    RgbColor color;
+                    color.r = index * 255 / line.segmentsCount();
+                    color.g = (index * 255 * 11 / line.segmentsCount()) % (255 * 2);
+                    if (color.g > 255)
+                    {
+                        color.g = 255 * 2 - color.g;
+                    }
+                    color.b = (index * 255 * 5 / line.segmentsCount()) % (255 * 2);
+                    if (color.b > 255)
+                    {
+                        color.b = 255 * 2 - color.b;
+                    }
+
+                    rainbow_line_attributes.line.color = color;
+                    write((*iterator).start, (*iterator).end, rainbow_line_attributes, false);
+                    index++;
+                }
             }
-            if (j == 0)
-                fprintf(out_, "\" style=\"fill:%s;stroke:%s;stroke-width:%f\" />\n", toString(color).c_str(), toString(outline_color).c_str(), static_cast<double>(stroke_width));
-            else
-                fprintf(out_, "\" style=\"fill:white;stroke:%s;stroke-width:%f\" />\n", toString(outline_color).c_str(), static_cast<double>(stroke_width));
         }
-    }
-}
+        else
+        {
+            bool first_path = true;
+            for (const LineType& line : lines)
+            {
+                if (first_path)
+                {
+                    fprintf(
+                        out_,
+                        "<path fill=\"%s\" fill-opacity=\"%f\" fill-rule=\"%s\" stroke=\"%s\" stroke-width=\"%f\" stroke-dasharray=\"%s\" d=\"",
+                        toString(visual_attributes.surface.color).c_str(),
+                        visual_attributes.surface.alpha,
+                        toString(fill_rule).c_str(),
+                        toString(visual_attributes.line.color).c_str(),
+                        visual_attributes.line.width,
+                        toString(visual_attributes.line.dash_array).c_str());
+                    first_path = false;
+                }
+                writePathPoints(line);
+            }
 
-void SVG::writeAreas(const Polygon& polygon, const ColorObject color, const ColorObject outline_color, const double stroke_width) const
-{
-    fprintf(
-        out_,
-        "<polygon fill=\"%s\" stroke=\"%s\" stroke-width=\"%f\" points=\"",
-        toString(color).c_str(),
-        toString(outline_color).c_str(),
-        static_cast<double>(stroke_width)); // The beginning of the polygon tag.
-    for (const Point2LL& point : polygon) // Add every point to the list of points.
+            fprintf(out_, "\" />\n"); // Write the end of the tag.
+        }
+
+        handleFlush(flush);
+    }
+
+    for (const LineType& line : lines)
     {
-        Point3D transformed = transformF(point);
-        fprintf(out_, "%f,%f ", static_cast<double>(transformed.x_), static_cast<double>(transformed.y_));
+        write(static_cast<PointsSet>(line), visual_attributes.vertices, false);
     }
-    fprintf(out_, "\" />\n"); // The end of the polygon tag.
-}
-
-void SVG::writePoint(const Point2LL& p, const bool write_coords, const double size, const ColorObject color) const
-{
-    Point3D pf = transformF(p);
-    fprintf(
-        out_,
-        "<circle cx=\"%f\" cy=\"%f\" r=\"%f\" stroke-width=\"0\" fill=\"%s\" />\n",
-        static_cast<double>(pf.x_),
-        static_cast<double>(pf.y_),
-        static_cast<double>(size),
-        toString(color).c_str());
-
-    if (write_coords)
-    {
-        fprintf(out_, "<text x=\"%f\" y=\"%f\" style=\"font-size: 10px;\" fill=\"black\">%lli,%lli</text>\n", static_cast<double>(pf.x_), static_cast<double>(pf.y_), p.X, p.Y);
-    }
-}
-
-void SVG::writePoints(const Polygon& poly, const bool write_coords, const double size, const ColorObject color) const
-{
-    for (const Point2LL& p : poly)
-    {
-        writePoint(p, write_coords, size, color);
-    }
-}
-
-void SVG::writePoints(const Shape& polygons, const bool write_coords, const double size, const ColorObject color) const
-{
-    for (const Polygon& poly : polygons)
-    {
-        writePoints(poly, write_coords, size, color);
-    }
-}
-
-void SVG::writeLines(const std::vector<Point2LL>& polyline, const ColorObject color) const
-{
-    if (polyline.size() <= 1) // Need at least 2 points.
-    {
-        return;
-    }
-
-    Point3D transformed = transformF(polyline[0]); // Element 0 must exist due to the check above.
-    fprintf(
-        out_,
-        "<path fill=\"none\" stroke=\"%s\" stroke-width=\"1\" d=\"M%f,%f",
-        toString(color).c_str(),
-        static_cast<double>(transformed.x_),
-        static_cast<double>(transformed.y_)); // Write the start of the path tag and the first endpoint.
-    for (size_t point = 1; point < polyline.size(); point++)
-    {
-        transformed = transformF(polyline[point]);
-        fprintf(out_, "L%f,%f", static_cast<double>(transformed.x_), static_cast<double>(transformed.y_)); // Write a line segment to the next point.
-    }
-    fprintf(out_, "\" />\n"); // Write the end of the tag.
-}
-
-void SVG::writeLine(const Polyline& line, const ColorObject color, const double stroke_width) const
-{
-    for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
-    {
-        writeLine((*iterator).start, (*iterator).end, color, stroke_width, false);
-    }
-
-    handleFlush(true);
-}
-
-void SVG::writeLine(const Point2LL& a, const Point2LL& b, const ColorObject color, const double stroke_width, const bool flush) const
-{
-    Point3D fa = transformF(a);
-    Point3D fb = transformF(b);
-    fprintf(
-        out_,
-        "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:%s;stroke-width:%f\" />\n",
-        static_cast<double>(fa.x_),
-        static_cast<double>(fa.y_),
-        static_cast<double>(fb.x_),
-        static_cast<double>(fb.y_),
-        toString(color).c_str(),
-        static_cast<double>(stroke_width));
 
     handleFlush(flush);
+}
+
+template void SVG::write(const LinesSet<Polygon>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+template void SVG::write(const LinesSet<OpenPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+template void SVG::write(const LinesSet<ClosedPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+
+void SVG::write(const OpenPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
+{
+    write(LinesSet{ line }, visual_attributes, flush);
+}
+
+void SVG::write(const ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
+{
+    write(LinesSet{ line }, visual_attributes, flush);
+}
+
+void SVG::write(const MixedLinesSet& lines, const VisualAttributes& visual_attributes, const bool flush) const
+{
+    for (const PolylinePtr& line : lines)
+    {
+        if (auto open_polyline = dynamic_pointer_cast<OpenPolyline>(line))
+        {
+            write(*open_polyline, visual_attributes, false);
+        }
+        else if (auto closed_polyline = dynamic_pointer_cast<ClosedPolyline>(line))
+        {
+            write(*closed_polyline, visual_attributes, false);
+        }
+    }
+
+    handleFlush(flush);
+}
+
+void SVG::write(const PointsSet& points, const VerticesAttributes& visual_attributes, const bool flush) const
+{
+    for (const Point2LL& point : points)
+    {
+        write(point, visual_attributes, false);
+    }
+
+    handleFlush(flush);
+}
+
+void SVG::write(const Point2LL& point, const VerticesAttributes& visual_attributes, const bool flush) const
+{
+    if (visual_attributes.isDisplayed())
+    {
+        Point2D transformed_point = transformF(point);
+        fprintf(
+            out_,
+            "<circle cx=\"%f\" cy=\"%f\" r=\"%f\" stroke-width=\"0\" fill=\"%s\" />\n",
+            static_cast<double>(transformed_point.x()),
+            static_cast<double>(transformed_point.y()),
+            static_cast<double>(visual_attributes.radius),
+            toString(visual_attributes.color).c_str());
+
+        if (visual_attributes.write_coords)
+        {
+            write(fmt::format("{},{}", point.X, point.Y), point, visual_attributes, false);
+        }
+    }
+
+    handleFlush(flush);
+}
+
+void SVG::write(const Point2LL& start, const Point2LL& end, const VisualAttributes& visual_attributes, const bool flush) const
+{
+    write(OpenPolyline({ start, end }), visual_attributes, flush);
 }
 
 void SVG::writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color, const double stroke_width, const double head_size) const
 {
-    Point3D fa = transformF(a);
-    Point3D fb = transformF(b);
-    Point3D ab = fb - fa;
-    Point3D normal = Point3D(ab.y_, -ab.x_, 0.0).normalized();
-    Point3D direction = ab.normalized();
+    const Point2D fa = transformF(a);
+    const Point2D fb = transformF(b);
+    const Point2D ab = fb - fa;
+    const Point2D normal = Point2D(ab.y(), -ab.x()).vNormalized().value();
+    const Point2D direction = ab.vNormalized().value();
 
-    Point3D tip = fb + normal * head_size - direction * head_size;
-    Point3D b_base = fb + normal * stroke_width - direction * stroke_width * 2.41f;
-    Point3D a_base = fa + normal * stroke_width;
+    const Point2D tip = fb + normal * head_size - direction * head_size;
+    const Point2D b_base = fb + normal * stroke_width - direction * stroke_width * 2.41f;
+    const Point2D a_base = fa + normal * stroke_width;
     fprintf(
         out_,
         "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f %f,%f\" />",
         toString(color).c_str(),
-        static_cast<double>(fa.x_),
-        static_cast<double>(fa.y_),
-        static_cast<double>(fb.x_),
-        static_cast<double>(fb.y_),
-        static_cast<double>(tip.x_),
-        static_cast<double>(tip.y_),
-        static_cast<double>(b_base.x_),
-        static_cast<double>(b_base.y_),
-        static_cast<double>(a_base.x_),
-        static_cast<double>(a_base.y_));
+        static_cast<double>(fa.x()),
+        static_cast<double>(fa.y()),
+        static_cast<double>(fb.x()),
+        static_cast<double>(fb.y()),
+        static_cast<double>(tip.x()),
+        static_cast<double>(tip.y()),
+        static_cast<double>(b_base.x()),
+        static_cast<double>(b_base.y()),
+        static_cast<double>(a_base.x()),
+        static_cast<double>(a_base.y()));
 }
 
-void SVG::writeLineRGB(const Point2LL& from, const Point2LL& to, const int r, const int g, const int b, const double stroke_width) const
+void SVG::write(const std::string& text, const Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush) const
 {
-    Point3D fa = transformF(from);
-    Point3D fb = transformF(to);
-    fprintf(
-        out_,
-        "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" style=\"stroke:rgb(%i,%i,%i);stroke-width:%f\" />\n",
-        static_cast<double>(fa.x_),
-        static_cast<double>(fa.y_),
-        static_cast<double>(fb.x_),
-        static_cast<double>(fb.y_),
-        r,
-        g,
-        b,
-        static_cast<double>(stroke_width));
-}
-
-void SVG::writeDashedLine(const Point2LL& a, const Point2LL& b, ColorObject color) const
-{
-    Point3D fa = transformF(a);
-    Point3D fb = transformF(b);
-    fprintf(
-        out_,
-        "<line x1=\"%f\" y1=\"%f\" x2=\"%f\" y2=\"%f\" stroke=\"%s\" stroke-width=\"1\" stroke-dasharray=\"5,5\" />\n",
-        static_cast<double>(fa.x_),
-        static_cast<double>(fa.y_),
-        static_cast<double>(fb.x_),
-        static_cast<double>(fb.y_),
-        toString(color).c_str());
-}
-
-void SVG::writeText(const Point2LL& p, const std::string& txt, const ColorObject color, const double font_size) const
-{
-    Point3D pf = transformF(p);
+    const Point2D transformed_point = transformF(p);
     fprintf(
         out_,
         "<text x=\"%f\" y=\"%f\" style=\"font-size: %fpx;\" fill=\"%s\">%s</text>\n",
-        static_cast<double>(pf.x_),
-        static_cast<double>(pf.y_),
-        static_cast<double>(font_size),
-        toString(color).c_str(),
-        txt.c_str());
-}
-
-void SVG::writePolygons(const Shape& polys, const ColorObject color, const double stroke_width, const bool flush) const
-{
-    for (const Polygon& poly : polys)
-    {
-        writePolygon(poly, color, stroke_width, false);
-    }
-
-    handleFlush(flush);
-}
-
-void SVG::writePolygon(const Polygon& poly, const ColorObject color, const double stroke_width, const bool flush) const
-{
-    if (poly.size() == 0)
-    {
-        return;
-    }
-    int size = static_cast<int>(poly.size());
-    Point2LL p0 = poly.back();
-    int i = 0;
-    for (const Point2LL& p1 : poly)
-    {
-        if (color.color_ == Color::RAINBOW)
-        {
-            int g = (i * 255 * 11 / size) % (255 * 2);
-            if (g > 255)
-            {
-                g = 255 * 2 - g;
-            }
-            int b = (i * 255 * 5 / size) % (255 * 2);
-            if (b > 255)
-            {
-                b = 255 * 2 - b;
-            }
-            writeLineRGB(p0, p1, i * 255 / size, g, b, stroke_width);
-        }
-        else
-        {
-            writeLine(p0, p1, color, stroke_width, false);
-        }
-        p0 = p1;
-        i++;
-    }
-
-    handleFlush(flush);
-}
-
-
-void SVG::writePolylines(const Shape& polys, const ColorObject color, const double stroke_width, const bool flush) const
-{
-    for (const Polygon& poly : polys)
-    {
-        writePolyline(poly, color, stroke_width, false);
-    }
-
-    handleFlush(flush);
-}
-
-void SVG::writePolyline(const Polygon& poly, const ColorObject color, const double stroke_width) const
-{
-    if (poly.size() == 0)
-    {
-        return;
-    }
-    const int size = static_cast<int>(poly.size());
-    Point2LL p0 = poly[0];
-    int i = 0;
-    for (size_t p_idx = 1; p_idx < poly.size(); p_idx++)
-    {
-        Point2LL p1 = poly[p_idx];
-        if (color.color_ == Color::RAINBOW)
-        {
-            int g = (i * 255 * 11 / size) % (255 * 2);
-            if (g > 255)
-                g = 255 * 2 - g;
-            int b = (i * 255 * 5 / size) % (255 * 2);
-            if (b > 255)
-                b = 255 * 2 - b;
-            writeLineRGB(p0, p1, i * 255 / size, g, b, stroke_width);
-        }
-        else
-        {
-            writeLine(p0, p1, color, stroke_width);
-        }
-        p0 = p1;
-        i++;
-    }
-}
-
-void SVG::writePolyline(const Polyline& poly, const ColorObject color, const double stroke_width, const bool flush) const
-{
-    for (auto iterator = poly.beginSegments(); iterator != poly.endSegments(); ++iterator)
-    {
-        writeLine((*iterator).start, (*iterator).end, color, stroke_width, false);
-    }
+        transformed_point.x(),
+        transformed_point.y(),
+        vertices_attributes.font_size,
+        toString(vertices_attributes.color).c_str(),
+        text.c_str());
 
     handleFlush(flush);
 }
@@ -514,25 +458,25 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
         const Point2LL direction_vector = end_vertex.p_ - start_vertex.p_;
         const Point2LL direction_left = turn90CCW(direction_vector);
         const Point2LL direction_right = -direction_left; // Opposite of left.
-        const Point3D start_left
+        const Point2D start_left
             = transformF(start_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) * width_factor))));
-        const Point3D start_right
+        const Point2D start_right
             = transformF(start_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) * width_factor))));
-        const Point3D end_left = transformF(end_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
-        const Point3D end_right = transformF(end_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
+        const Point2D end_left = transformF(end_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
+        const Point2D end_right = transformF(end_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
 
         fprintf(
             out_,
             "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f\" />\n",
             toString(color).c_str(),
-            static_cast<double>(start_left.x_),
-            static_cast<double>(start_left.y_),
-            static_cast<double>(start_right.x_),
-            static_cast<double>(start_right.y_),
-            static_cast<double>(end_right.x_),
-            static_cast<double>(end_right.y_),
-            static_cast<double>(end_left.x_),
-            static_cast<double>(end_left.y_));
+            static_cast<double>(start_left.x()),
+            static_cast<double>(start_left.y()),
+            static_cast<double>(start_right.x()),
+            static_cast<double>(start_right.y()),
+            static_cast<double>(end_right.x()),
+            static_cast<double>(end_right.y()),
+            static_cast<double>(end_left.x()),
+            static_cast<double>(end_left.y()));
 
         start_vertex = end_vertex; // For the next line segment.
     }
@@ -543,7 +487,7 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
     }
 }
 
-void SVG::writeCoordinateGrid(const coord_t grid_size, const Color color, const double stroke_width, const double font_size) const
+void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& visual_attributes, const bool flush) const
 {
     constexpr double dist_from_edge = 0.05; // As fraction of image width or height.
     const coord_t min_x = aabb_.min_.X - (aabb_.min_.X % grid_size);
@@ -551,17 +495,44 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const Color color, const 
 
     for (coord_t x = min_x; x < aabb_.max_.X; x += grid_size)
     {
-        writeLine(Point2LL(x, aabb_.min_.Y), Point2LL(x, aabb_.max_.Y), color, stroke_width);
+        write(Point2LL(x, aabb_.min_.Y), Point2LL(x, aabb_.max_.Y), visual_attributes);
         std::stringstream ss;
         ss << INT2MM(x);
-        writeText(Point2LL(x, std::llrint(static_cast<double>(aabb_.min_.Y) + static_cast<double>(aabb_.max_.Y - aabb_.min_.Y) * dist_from_edge)), ss.str(), color, font_size);
+        write(
+            ss.str(),
+            Point2LL(x, std::llrint(static_cast<double>(aabb_.min_.Y) + static_cast<double>(aabb_.max_.Y - aabb_.min_.Y) * dist_from_edge)),
+            visual_attributes.vertices,
+            false);
     }
     for (coord_t y = min_y; y < aabb_.max_.Y; y += grid_size)
     {
-        writeLine(Point2LL(aabb_.min_.X, y), Point2LL(aabb_.max_.Y, y), color, stroke_width);
+        write(Point2LL(aabb_.min_.X, y), Point2LL(aabb_.max_.Y, y), visual_attributes);
         std::stringstream ss;
         ss << INT2MM(y);
-        writeText(Point2LL(std::llrint(static_cast<double>(aabb_.min_.X) + static_cast<double>(aabb_.max_.X - aabb_.min_.X) * dist_from_edge), y), ss.str(), color, font_size);
+        write(
+            ss.str(),
+            Point2LL(std::llrint(static_cast<double>(aabb_.min_.X) + static_cast<double>(aabb_.max_.X - aabb_.min_.X) * dist_from_edge), y),
+            visual_attributes.vertices,
+            false);
+    }
+
+    handleFlush(flush);
+}
+
+void SVG::writePathPoints(const Polyline& line) const
+{
+    bool first_segment = true;
+    for (auto iterator = line.beginSegments(); iterator != line.endSegments(); ++iterator)
+    {
+        if (first_segment)
+        {
+            const Point2D transformed_start = transformF((*iterator).start);
+            fprintf(out_, "M%f %f ", transformed_start.x(), transformed_start.y());
+            first_segment = false;
+        }
+
+        const Point2D transformed_end = transformF((*iterator).end);
+        fprintf(out_, "L%f,%f ", static_cast<double>(transformed_end.x()), static_cast<double>(transformed_end.y()));
     }
 }
 

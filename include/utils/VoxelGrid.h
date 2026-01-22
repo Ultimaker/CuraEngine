@@ -89,6 +89,8 @@ public:
 
     std::optional<uint8_t> getOccupation(const LocalCoordinates& local_position) const;
 
+    bool hasOccupation(const LocalCoordinates& local_position) const;
+
     size_t occupiedCount() const;
 
     /*!
@@ -150,6 +152,8 @@ public:
      * of the sub-sub-shape. Each iterated position is then considered as being traversed by the triangle.
      */
     std::vector<LocalCoordinates> getTraversedVoxels(const Triangle3D& triangle) const;
+
+    void saveToObj(const std::string& filename, const double scale = 1.0) const;
 
 private:
     Point3D resolution_;

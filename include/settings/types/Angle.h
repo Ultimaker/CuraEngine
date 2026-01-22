@@ -105,12 +105,12 @@ public:
     /*
      * \brief Default constructor setting the angle to 0.
      */
-    constexpr AngleRadians() noexcept = default;
+    AngleRadians() noexcept = default;
 
     /*!
      * \brief Converts an angle from degrees into radians.
      */
-    constexpr AngleRadians(const AngleDegrees& value);
+    AngleRadians(const AngleDegrees& value);
 
     /*
      * \brief Translate the double value in degrees to an AngleRadians instance.
@@ -166,7 +166,7 @@ inline AngleDegrees::AngleDegrees(const AngleRadians& value)
 {
 }
 
-constexpr inline AngleRadians::AngleRadians(const AngleDegrees& value)
+inline AngleRadians::AngleRadians(const AngleDegrees& value)
     : value_(value.value_ * TAU / 360.0)
 {
 }

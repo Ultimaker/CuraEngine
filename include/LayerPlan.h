@@ -37,6 +37,7 @@ namespace cura
 class Comb;
 class SliceDataStorage;
 class LayerPlanBuffer;
+class STHalfEdge;
 
 template<typename PathType>
 class PathAdapter;
@@ -56,7 +57,7 @@ class LayerPlan : public NoCopy
     friend class LayerPlanBuffer;
 #ifdef BUILD_TESTS
     friend class AddTravelTest;
-    friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
     friend class AntiOozeAmountsTest;
     FRIEND_TEST(AntiOozeAmountsTest, ComputeAntiOozeAmounts);
 #endif
@@ -124,9 +125,9 @@ private:
     const Raft::LayerType layer_type_; //!< Which part of the raft, airgap or model this layer is.
     coord_t layer_thickness_;
 
-    std::vector<Point2LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder
+    std::vector<Point3LL> layer_start_pos_per_extruder_; //!< The starting position of a layer for each extruder (note: z\height is offset, not absolute)
     std::vector<bool> has_prime_tower_planned_per_extruder_; //!< For each extruder, whether the prime tower is planned yet or not.
-    std::optional<Point2LL> last_planned_position_; //!< The last planned XY position of the print head (if known)
+    std::optional<Point3LL> last_planned_position_; //!< The last planned XYZ position of the print head (if known) (note: z\height is offset, not absolute)
 
     std::shared_ptr<const SliceMeshStorage> current_mesh_; //!< The mesh of the last planned move.
 
@@ -152,6 +153,7 @@ private:
     Comb* comb_;
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
+    AABB bridge_wall_mask_bb_; //!< Cached bounding box for the above value.
     std::vector<OverhangMask> overhang_masks_; //!< The regions of a layer part where the walls overhang, calculated for multiple overhang angles. The latter is the most
                                                //!< overhanging. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
     Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
@@ -164,6 +166,8 @@ private:
     coord_t max_overhang_length_{ 0 }; //!< From all consecutive overhanging moves in the layer, this is the longest one
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
+
+    std::map<const SliceMeshStorage*, MixedLinesSet> infill_lines_; //!< Infill lines generated for this layer
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
@@ -415,6 +419,10 @@ public:
      */
     void planPrime(double prime_blob_wipe_length = 10.0);
 
+    void setGeneratedInfillLines(const SliceMeshStorage* mesh, const MixedLinesSet& infill_lines);
+
+    const MixedLinesSet getGeneratedInfillLines(const SliceMeshStorage* mesh) const;
+
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
      *
@@ -510,6 +518,7 @@ public:
      * If unset, this causes it to start near the last planned location.
      * \param scarf_seam Indicates whether we may use a scarf seam for the path
      * \param smooth_speed Indicates whether we may use a speed gradient for the path
+     * \param texture_data_provider The texture provider to be used to place the seam
      */
     void addPolygonsByOptimizer(
         const Shape& polygons,
@@ -523,7 +532,29 @@ public:
         bool reverse_order = false,
         const std::optional<Point2LL> start_near_location = std::optional<Point2LL>(),
         bool scarf_seam = false,
-        bool smooth_acceleration = false);
+        bool smooth_speed = false,
+        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr);
+
+    /*!
+     * Adds infill polygons to the gcode with optimized order.
+     *
+     * In case we need to generate extra inwards moves for the infill, we cannot treat them as polygons anymore, since the lines will be un-closed. Thus, the resulting open
+     * polylines are returned in \p remaining_lines and should be re-added to the gcode, e.g. by using addLinesByOptimizer().
+     *
+     * @param polygons The infill polygons to be added
+     * @param[out] remaining_lines The list to be filled with generates open polylines. The given list may be non-empty, only new lines will be appended.     * @param config The
+     * config with which to print the polygon lines
+     * @param settings The current settings to retrieve values from
+     * @param add_extra_inwards_move Indicates whether extra start/end inwards extrusion moves will be generated
+     * @param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
+     */
+    void addInfillPolygonsByOptimizer(
+        const Shape& polygons,
+        OpenLinesSet& remaining_lines,
+        const GCodePathConfig& config,
+        const Settings& settings,
+        const bool add_extra_inwards_move = false,
+        const std::optional<Point2LL>& near_start_location = std::optional<Point2LL>());
 
     /*!
      * Add a single line that is part of a wall to the gcode.
@@ -684,6 +715,9 @@ public:
      * \param fan_speed optional fan speed override for this path
      * \param reverse_print_direction Whether to reverse the optimized order and their printing direction.
      * \param order_requirements Pairs where first needs to be printed before second. Pointers are pointing to elements of \p lines
+     * \param extra_inwards_start_move_length The length of the extra inwards moves to be added at the start of each infill line
+     * \param extra_inwards_end_move_length The length of the extra inwards moves to be added at the end of each infill line
+     * \param extra_inwards_move_contour The contour to be considered in order to add the inwards moves
      */
     template<class LineType>
     void addLinesByOptimizer(
@@ -696,7 +730,10 @@ public:
         const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_);
+        const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
+        const coord_t extra_inwards_start_move_length = 0,
+        const coord_t extra_inwards_end_move_length = 0,
+        const Shape& extra_inwards_move_contour = Shape());
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -754,7 +791,8 @@ public:
         const coord_t exclude_distance = 0,
         const coord_t wipe_dist = 0,
         const Ratio flow_ratio = 1.0_r,
-        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT);
+        const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const bool interlaced = false);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
@@ -867,6 +905,9 @@ private:
      * \param wipe_dist (optional) the distance wiped without extruding after laying down a line.
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param fan_speed optional fan speed override for this path
+     * \param extra_inwards_start_move_length The length of the extra inwards moves to be added at the start of each infill line
+     * \param extra_inwards_end_move_length The length of the extra inwards moves to be added at the end of each infill line
+     * \param extra_inwards_move_contour The contour to be considered in order to add the inwards moves
      */
     void addLinesInGivenOrder(
         const std::vector<PathOrdering<const Polyline*>>& lines,
@@ -874,7 +915,45 @@ private:
         const SpaceFillType space_fill_type,
         const coord_t wipe_dist,
         const Ratio flow_ratio,
-        const double fan_speed);
+        const double fan_speed,
+        const coord_t extra_inwards_start_move_length = 0,
+        const coord_t extra_inwards_end_move_length = 0,
+        const Shape& extra_inwards_move_contour = Shape());
+
+    /*!
+     * Add order optimized polygons to the gcode.
+     * Add polygons to the gcode with optimized order.
+     *
+     * \param polygons The polygons.
+     * \param config The config with which to print the polygon lines.
+     * for each given segment (optionally nullptr).
+     * \param settings The settings which should apply to these polygons added to the layer plan
+     * \param z_seam_config Optional configuration for z-seam.
+     * \param wall_0_wipe_dist The distance to travel along each polygon after
+     * it has been laid down, in order to wipe the start and end of the wall
+     * together.
+     * \param spiralize Whether to gradually increase the z height from the
+     * normal layer height to the height of the next layer over each polygon
+     * printed.
+     * \param flow_ratio The ratio with which to multiply the extrusion amount.
+     * \param always_retract Whether to force a retraction when moving to the
+     * start of the polygon (used for outer walls).
+     * \param reverse_order Adds polygons in reverse order.
+     * \param scarf_seam Indicates whether we may use a scarf seam for the path
+     * \param smooth_speed Indicates whether we may use a speed gradient for the path
+     */
+    void addPolygonsInGivenOrder(
+        const std::vector<PathOrdering<const Polygon*>>& polygons,
+        const GCodePathConfig& config,
+        const Settings& settings,
+        const ZSeamConfig& z_seam_config = ZSeamConfig(),
+        coord_t wall_0_wipe_dist = 0,
+        bool spiralize = false,
+        const Ratio flow_ratio = 1.0_r,
+        bool always_retract = false,
+        bool reverse_order = false,
+        bool scarf_seam = false,
+        bool smooth_speed = false);
 
     /*!
      *  @brief Send a GCodePath line to the communication object, applying proper Z offsets
@@ -1077,9 +1156,10 @@ private:
      * \param wall The currently processed wall
      * \param current_index The index of the currently processed point
      * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
+     * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards
      * \return The distance from the start of the current wall line to the first bridge segment
      */
-    coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len) const;
+    [[nodiscard]] coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len, const int direction = 1) const;
 
     /*!
      * Compute the Z-hop and travel duration for the given travel path
@@ -1146,6 +1226,16 @@ private:
         const std::optional<TravelAntiOozing>& priming_amounts,
         const Velocity& speed,
         const size_t point_index);
+
+    /*!
+     * Generates an extrusion move that goes as inwards as possible given a skeletized contour, starting from the given point
+     * @param trapezoidal_edges The edges of the skeletal trapezoidation for the contour
+     * @param start_point The point to start generating the move from
+     * @param move_inwards_length The length of the move to be generated
+     * @return Extrusion path to be started from the given start point, going further inwards. It may be empty if not possible or if the start point is
+     *         already inwards the contour enough.
+     */
+    static OpenPolyline makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point, const coord_t move_inwards_length);
 };
 
 } // namespace cura

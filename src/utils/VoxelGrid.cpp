@@ -7,6 +7,7 @@
 #include <range/v3/algorithm/min.hpp>
 
 #include "utils/AABB3D.h"
+#include "utils/OBJ.h"
 #include "utils/ParameterizedSegment.h"
 
 
@@ -58,6 +59,11 @@ std::optional<uint8_t> VoxelGrid::getOccupation(const LocalCoordinates& local_po
             result = occupation.second;
         });
     return result;
+}
+
+bool VoxelGrid::hasOccupation(const LocalCoordinates& local_position) const
+{
+    return occupied_voxels_.contains(local_position);
 }
 
 size_t VoxelGrid::occupiedCount() const
@@ -216,6 +222,20 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const Tri
     }
 
     return traversed_voxels;
+}
+
+void VoxelGrid::saveToObj(const std::string& filename, const double scale) const
+{
+    OBJ obj(filename, scale);
+    const double radius = std::min({ resolution_.x_, resolution_.y_, resolution_.z_ }) / 4.0;
+    std::mutex mutex;
+
+    visitOccupiedVoxels(
+        [this, &mutex, &obj, &radius](const auto& voxel)
+        {
+            std::lock_guard lock(mutex);
+            obj.writeSphere(toGlobalCoordinates(voxel.first), radius, static_cast<SVG::Color>(voxel.second), 2, 4);
+        });
 }
 
 } // namespace cura

@@ -56,11 +56,10 @@ public:
     /*! @brief Adds the given shared pointer to the set. The pointer reference count will be incremeted but no data is actually copied. */
     void push_back(const PolylinePtr& line);
 
-    /*! @brief Adds a copy of all the polygons contained in the shape */
-    void push_back(const Shape& shape);
-
     /*! @brief Adds a copy of all the polygons contained in the set */
     void push_back(const LinesSet<Polygon>& lines_set);
+
+    void push_back(LinesSet<Polygon>&& lines_set);
 
     /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(const OpenLinesSet& lines_set);
@@ -71,7 +70,11 @@ public:
     /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(ClosedLinesSet&& lines_set);
 
-    /*! \brief Computes the total lenght of all the polylines in the set */
+    void push_back(const MixedLinesSet& lines_set);
+
+    void push_back(MixedLinesSet&& lines_set);
+
+    /*! \brief Computes the total length of all the polylines in the set */
     [[nodiscard]] coord_t length() const;
 };
 

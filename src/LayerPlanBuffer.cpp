@@ -3,6 +3,7 @@
 
 #include "LayerPlanBuffer.h"
 
+#include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To flush g-code through the communication channel.
@@ -19,14 +20,11 @@ namespace cura
 
 constexpr Duration LayerPlanBuffer::extra_preheat_time_;
 
-void LayerPlanBuffer::push(LayerPlan& layer_plan)
-{
-    buffer_.push_back(&layer_plan);
-}
-
 void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
 {
-    push(layer_plan);
+    std::lock_guard mutex_locker(buffer_mutex_);
+
+    buffer_.push_back(&layer_plan);
 
     LayerPlan* to_be_written = processBuffer();
     if (to_be_written)
@@ -34,6 +32,8 @@ void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
         to_be_written->writeGCode(gcode);
         delete to_be_written;
     }
+
+    buffer_condition_variable_.notify_all();
 }
 
 LayerPlan* LayerPlanBuffer::processBuffer()
@@ -78,6 +78,46 @@ void LayerPlanBuffer::flush()
     }
 }
 
+const LayerPlan* LayerPlanBuffer::getCompletedLayerPlan(const LayerIndex& layer_nr) const
+{
+    const LayerPlan* result = nullptr;
+
+    const auto search_layer_plan = [&layer_nr, this]() -> const LayerPlan*
+    {
+        const auto iterator = ranges::find_if(
+            buffer_,
+            [&layer_nr](const LayerPlan* layer_plan)
+            {
+                return layer_plan->getLayerNr() == layer_nr;
+            });
+
+        if (iterator != buffer_.end())
+        {
+            return *iterator;
+        }
+
+        return nullptr;
+    };
+
+    // The method has to be const in order to be called for the layer processing, however the multi-threading sync requires a non-const pointer.
+    auto noconst_this = const_cast<LayerPlanBuffer*>(this);
+    while (true)
+    {
+        std::unique_lock mutex_locker(noconst_this->buffer_mutex_);
+        result = search_layer_plan();
+
+        if (result != nullptr)
+        {
+            break;
+        }
+
+        // Wait for next finished layer plan
+        noconst_this->buffer_condition_variable_.wait(mutex_locker);
+    }
+
+    return result;
+}
+
 void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
 {
     std::optional<std::pair<Point2LL, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
@@ -94,7 +134,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     assert(newest_layer->extruder_plans_.front().paths_[0].points[0].toPoint2LL() == first_location_new_layer);
 
     // if the last planned position in the previous layer isn't the same as the first location of the new layer, travel to the new location
-    if (! prev_layer->last_planned_position_ || *prev_layer->last_planned_position_ != first_location_new_layer)
+    if (! prev_layer->last_planned_position_ || prev_layer->last_planned_position_.value().toPoint2LL() != first_location_new_layer)
     {
         const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_layer->extruder_plans_.back().extruder_nr_].settings_;

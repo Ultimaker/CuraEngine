@@ -4,6 +4,8 @@
 #ifndef UTILS_LINEAR_ALG_2D_H
 #define UTILS_LINEAR_ALG_2D_H
 
+#include <optional>
+
 #include "geometry/Point2LL.h"
 
 namespace cura
@@ -83,6 +85,24 @@ public:
     static bool lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u);
 
     static bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output);
+
+    /*!
+     * Computes the intersection between a line and a horizontal line
+     * @param p1 One point on the line
+     * @param p2 An other point on the line
+     * @param line_y The Y coordinates of the horizontal line to intersect with
+     * @return The x coordinate of the intersection, or nullopt if they don't intersect
+     */
+    static std::optional<coord_t> lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y);
+
+    /*!
+     * Computes the intersection between a segment and a horizontal line
+     * @param p1 The segment start point
+     * @param p2 The segment end point
+     * @param line_y The Y coordinates of the horizontal line to intersect with
+     * @return The x coordinate of the intersection, or nullopt if they don't intersect
+     */
+    static std::optional<coord_t> segmentHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y);
 
     /*!
      * Find whether a point projected on a line segment would be projected to
