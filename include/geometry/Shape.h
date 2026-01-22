@@ -95,11 +95,13 @@ public:
      * \param polylines The polylines to limit to the area of this Polygons object
      * \param restitch Whether to stitch the resulting segments into longer polylines, or leave every segment as a single segment
      * \param max_stitch_distance The maximum distance for two polylines to be stitched together with a segment
+     * \param split_into_segments Split the lines into individual segments before doing the intersection. Note that this will return a list of individual segments, unless
+     *                            stitching is enabled.
      * \return The resulting polylines limited to the area of this Polygons object
      * \todo This should technically return a MixedLinesSet, because it can definitely contain open and closed polylines, but that is a heavy change
      */
     template<class LineType>
-    OpenLinesSet intersection(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu) const;
+    OpenLinesSet intersection(const LinesSet<LineType>& polylines, bool restitch = true, const coord_t max_stitch_distance = 10_mu, const bool split_into_segments = true) const;
 
     [[nodiscard]] Shape xorPolygons(const Shape& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const;
 

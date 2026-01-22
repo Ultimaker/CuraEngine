@@ -234,7 +234,10 @@ OpenLinesSet AbstractLinesInfill::fitLines(const OpenLinesSet& raw_lines, const 
             continue;
         }
 
-        const OpenLinesSet intersected_lines = in_outline.intersection(OpenLinesSet(raw_line));
+        constexpr bool restitch = false;
+        constexpr coord_t max_stitching_distance = 0;
+        constexpr bool split_into_segments = false;
+        const OpenLinesSet intersected_lines = in_outline.intersection(OpenLinesSet(raw_line), restitch, max_stitching_distance, split_into_segments);
         for (const OpenPolyline& intersected_line : intersected_lines)
         {
             result.push_back(intersected_line);
