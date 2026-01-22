@@ -44,7 +44,7 @@ enum class EvaluateResult
  */
 zeus::expected<cfe::eval::Value, EvaluateResult> evaluateExpression(const std::string_view& expression, const cfe::env::Environment& environment)
 {
-    const zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(expression);
+    const zeus::expected<cfe::ast::ExprPtr, cfe::parser::error_t> parse_result = cfe::parser::parse(expression);
     if (! parse_result.has_value())
     {
         spdlog::error("Invalid syntax in expression [{}]", expression);
