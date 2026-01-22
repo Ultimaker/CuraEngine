@@ -30,7 +30,7 @@ std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const s
 
     const std::string setting_raw_value = settings_.get<std::string>(setting_id);
 
-    zeus::expected<cfe::ast::ExprPtr, error_t> parse_result = cfe::parser::parse(setting_raw_value);
+    zeus::expected<cfe::ast::ExprPtr, cfe::parser::error_t> parse_result = cfe::parser::parse(setting_raw_value);
     if (! parse_result.has_value())
     {
         return cfe::eval::Value(setting_raw_value);
