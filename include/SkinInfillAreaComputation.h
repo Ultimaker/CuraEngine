@@ -1,21 +1,39 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SKIN_H
-#define SKIN_H
+#ifndef SKININFILLAREACOMPUTATION_H
+#define SKININFILLAREACOMPUTATION_H
 
 #include <optional>
 
+#include "geometry/Shape.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
 
-class Shape;
 class SkinPart;
 class SliceLayerPart;
 class SliceMeshStorage;
+
+enum class SliceAreaType
+{
+    Roofing,
+    Flooring,
+    Skin,
+    Infill
+};
+
+struct SliceArea
+{
+    using Ptr = std::shared_ptr<SliceArea>;
+
+    SliceAreaType type{ SliceAreaType::Infill };
+    Shape outline;
+    size_t walls{ 0 };
+    SliceArea::Ptr inner_area; // Inner area that should be also be printed with walls
+};
 
 /*!
  * Class containing all skin and infill area computation functions
@@ -39,6 +57,8 @@ public:
      * Generate the skin areas and its insets.
      */
     void generateSkinsAndInfill();
+
+    SliceArea::Ptr generateRawAreas(SliceLayerPart& part);
 
     /*!
      * \brief Combines the infill of multiple layers for a specified mesh.
@@ -98,7 +118,7 @@ protected:
      * above. The input is the area within the inner walls (or an empty Polygons
      * object).
      */
-    void calculateTopSkin(const SliceLayerPart& part, Shape& upskin);
+    Shape calculateTopSkin(const SliceLayerPart& part, Shape& upskin, const size_t layer_count);
 
     /*!
      * \brief Calculate the basic areas which have air below.
@@ -107,7 +127,7 @@ protected:
      * layers above. The input is the area within the inner walls (or an empty
      * Polygons object).
      */
-    void calculateBottomSkin(const SliceLayerPart& part, Shape& downskin);
+    void calculateBottomSkin(const SliceLayerPart& part, Shape& downskin, const size_t layer_count);
 
     /*!
      * Apply skin expansion:
@@ -194,4 +214,4 @@ private:
 
 } // namespace cura
 
-#endif // SKIN_H
+#endif

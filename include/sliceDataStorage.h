@@ -57,6 +57,14 @@ public:
 class SliceLayerPart
 {
 public:
+    enum class WallExposedType
+    {
+        LAYER_0,
+        ROOFING,
+        SIDE_ONLY,
+    };
+    WallExposedType wall_exposed = WallExposedType::SIDE_ONLY;
+
     AABB boundaryBox; //!< The boundaryBox is an axis-aligned boundary box which is used to quickly check for possible
                       //!< collision between different parts on different layers. It's an optimization used during
                       //!< skin calculations.

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
@@ -28,7 +28,16 @@ It's also the first step that stores the result in the "data storage" so all oth
 namespace cura
 {
 
-void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
+/*!
+ * \brief Split a layer into parts.
+ * \param settings The settings to get the settings from (whether to union or
+ * not).
+ * \param storageLayer Where to store the parts.
+ * \param layer The layer to split.
+ * \param bottom_parts The bottom parts of the layer.
+ * \param top_parts The top parts of the layer.
+ */
+void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer, const Shape& bottom_parts, const Shape& top_parts)
 {
     OpenPolylineStitcher::stitch(layer->open_polylines_, storageLayer.open_polylines, layer->polygons_, settings.get<coord_t>("wall_line_width_0"));
 
@@ -65,20 +74,51 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         result = layer->polygons_.splitIntoParts(union_layers || union_all_remove_holes);
     }
 
-    for (auto& part : result)
+    for (auto& main_part : result)
     {
-        storageLayer.parts.emplace_back();
-        if (part.empty())
+        std::map<SliceLayerPart::WallExposedType, std::vector<SingleShape>> parts_by_type = {
+            { SliceLayerPart::WallExposedType::LAYER_0, bottom_parts.splitIntoParts() },
+            { SliceLayerPart::WallExposedType::ROOFING, top_parts.difference(bottom_parts).splitIntoParts() },
+            { SliceLayerPart::WallExposedType::SIDE_ONLY, main_part.difference(bottom_parts).difference(top_parts).splitIntoParts() },
+        };
+
+        for (auto& [wall_exposed, parts] : parts_by_type)
         {
-            continue;
-        }
-        storageLayer.parts.back().outline = part;
-        storageLayer.parts.back().boundaryBox.calculate(storageLayer.parts.back().outline);
-        if (storageLayer.parts.back().outline.empty())
-        {
-            storageLayer.parts.pop_back();
+            for (auto& part : parts)
+            {
+                storageLayer.parts.emplace_back();
+                if (part.empty())
+                {
+                    continue;
+                }
+                auto& back_part = storageLayer.parts.back();
+                back_part.wall_exposed = wall_exposed;
+                back_part.outline = part;
+                back_part.boundaryBox.calculate(back_part.outline);
+                if (back_part.outline.empty())
+                {
+                    storageLayer.parts.pop_back();
+                }
+            }
         }
     }
+}
+
+Shape getTopOrBottom(int direction, const std::string& setting_name, size_t layer_nr, const std::vector<SlicerLayer>& slayers, const Settings& settings)
+{
+    Shape result;
+    if (settings.get<size_t>(setting_name) != settings.get<size_t>("wall_line_count") && ! settings.get<bool>("magic_spiralize"))
+    {
+        result = slayers[layer_nr].polygons_;
+        const auto next_layer = layer_nr + direction;
+        if (next_layer >= 0 && next_layer < slayers.size())
+        {
+            constexpr coord_t EPSILON = 5;
+            const auto wall_line_width = settings.get<coord_t>(layer_nr == 0 ? "wall_line_width_0" : "wall_line_width") - EPSILON;
+            result = result.offset(-wall_line_width).difference(slayers[next_layer].polygons_).offset(wall_line_width);
+        }
+    }
+    return result;
 }
 
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
@@ -93,7 +133,12 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
         {
             SliceLayer& layer_storage = mesh.layers[layer_nr];
             SlicerLayer& slice_layer = slicer->layers[layer_nr];
-            createLayerWithParts(mesh.settings, layer_storage, &slice_layer);
+            createLayerWithParts(
+                mesh.settings,
+                layer_storage,
+                &slice_layer,
+                layer_nr == 0 ? getTopOrBottom(-1, "wall_line_count_layer_0", layer_nr, slicer->layers, mesh.settings) : Shape(),
+                getTopOrBottom(+1, "wall_line_count_roofing", layer_nr, slicer->layers, mesh.settings));
         });
 
     for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
