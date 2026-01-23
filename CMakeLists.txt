@@ -73,7 +73,7 @@ set(engine_SRCS # Except main.cpp.
         src/Scene.cpp
         src/SkeletalTrapezoidation.cpp
         src/SkeletalTrapezoidationGraph.cpp
-        src/skin.cpp
+        src/SkinInfillAreaComputation.cpp
         src/SkirtBrim.cpp
         src/SupportInfillPart.cpp
         src/Slice.cpp

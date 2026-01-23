@@ -24,7 +24,7 @@
 #include "multiVolumes.h"
 #include "PrintFeature.h"
 #include "raft.h"
-#include "skin.h"
+#include "SkinInfillAreaComputation.h"
 #include "SkirtBrim.h"
 #include "Slice.h"
 #include "TextureDataProvider.h"
@@ -452,9 +452,9 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     const std::vector<size_t>& mesh_order,
     ProgressStageEstimator& inset_skin_progress_estimate)
 {
-    size_t mesh_idx = mesh_order[mesh_order_idx];
+    const size_t mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
-    size_t mesh_layer_count = mesh.layers.size();
+    const size_t mesh_layer_count = mesh.layers.size();
     if (mesh.settings.get<bool>("infill_mesh"))
     {
         processInfillMesh(storage, mesh_order_idx, mesh_order);
@@ -496,20 +496,6 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
         }
     } guarded_progress = { inset_skin_progress_estimate };
 
-    // walls
-    cura::parallel_for<size_t>(
-        0,
-        mesh_layer_count,
-        [&](size_t layer_number)
-        {
-            spdlog::debug("Processing insets for layer {} of {}", layer_number, mesh.layers.size());
-            processWalls(mesh, layer_number);
-            guarded_progress++;
-        });
-
-    ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
-    mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
-
     bool process_infill = mesh.settings.get<coord_t>("infill_line_distance") > 0;
     if (! process_infill)
     { // do process infill anyway if it's modified by modifier meshes
@@ -530,6 +516,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
         }
     }
 
+
     // skin & infill
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     bool magic_spiralize = mesh_group_settings.get<bool>("magic_spiralize");
@@ -539,6 +526,19 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
         mesh_max_initial_bottom_layer_count = std::max(mesh_max_initial_bottom_layer_count, mesh.settings.get<size_t>("initial_bottom_layers"));
     }
 
+    cura::parallel_for<size_t>(
+        0,
+        mesh_layer_count,
+        [&](size_t layer_number)
+        {
+            spdlog::debug("Processing skins and infill layer {} of {}", layer_number, mesh.layers.size());
+            if (! magic_spiralize || layer_number < mesh_max_initial_bottom_layer_count) // Only generate up/down skin and infill for the first X layers when spiralize is chosen.
+            {
+                processSkinsInfillWalls(mesh, layer_number, process_infill);
+            }
+            guarded_progress++;
+        });
+
     guarded_progress.reset();
     cura::parallel_for<size_t>(
         0,
@@ -546,12 +546,27 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
         [&](size_t layer_number)
         {
             spdlog::debug("Processing skins and infill layer {} of {}", layer_number, mesh.layers.size());
-            if (! magic_spiralize || layer_number < mesh_max_initial_bottom_layer_count) // Only generate up/downskin and infill for the first X layers when spiralize is choosen.
+            if (! magic_spiralize || layer_number < mesh_max_initial_bottom_layer_count) // Only generate up/down skin and infill for the first X layers when spiralize is chosen.
             {
                 processSkinsAndInfill(mesh, layer_number, process_infill);
             }
             guarded_progress++;
         });
+
+    // walls
+    guarded_progress.reset();
+    cura::parallel_for<size_t>(
+        0,
+        mesh_layer_count,
+        [&](size_t layer_number)
+        {
+            spdlog::debug("Processing insets for layer {} of {}", layer_number, mesh.layers.size());
+            processWalls(mesh, layer_number);
+            guarded_progress++;
+        });
+
+    ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
+    mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
 }
 
 void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order)
@@ -819,6 +834,16 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
         storage.support.layer_nr_max_filled_layer -= n_empty_first_layers;
         std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
         support_layers.erase(support_layers.begin(), support_layers.begin() + n_empty_first_layers);
+    }
+}
+
+void FffPolygonGenerator::processSkinsInfillWalls(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill)
+{
+    SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, process_infill);
+
+    for (SliceLayerPart& part : mesh.layers[layer_nr].parts)
+    {
+        skin_infill_area_computation.generateRawAreas(part);
     }
 }
 
@@ -1199,6 +1224,5 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         }
     }
 }
-
 
 } // namespace cura

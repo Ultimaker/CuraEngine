@@ -148,6 +148,8 @@ private:
      */
     void processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill);
 
+    void processSkinsInfillWalls(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill);
+
     /*!
      * Generate the polygons where the draft screen should be.
      *

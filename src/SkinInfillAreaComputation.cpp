@@ -1,7 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "skin.h"
+#include "SkinInfillAreaComputation.h"
 
 #include <cmath> // std::ceil
 
@@ -91,12 +91,113 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
 
     SliceLayer* layer = &mesh_.layers[layer_nr_];
 
+    const Shape outline = layer->getOutlines();
+    // SVG svg(fmt::format("/tmp/areas_{}.svg", layer_nr_), AABB(outline), 0.001);
+
     for (SliceLayerPart& part : layer->parts)
     {
+        // svg.write(part.outline, { .line = { 0.1 } });
+
         generateSkinRoofingFlooringFill(part);
 
         generateTopAndBottomMostSurfaces(part);
+
+        for (const SkinPart& skin_part : part.skin_parts)
+        {
+            // svg.write(skin_part.outline, { .line = { 0.05 } });
+            // svg.write(skin_part.roofing_fill, { .surface = { SVG::Color::GREEN, 0.5 } });
+            // svg.write(skin_part.flooring_fill, { .surface = { SVG::Color::RED, 0.5 } });
+            // svg.write(skin_part.skin_fill, { .surface = { SVG::Color::YELLOW, 0.5 } });
+        }
     }
+}
+
+SliceArea::Ptr SkinInfillAreaComputation::generateRawAreas(SliceLayerPart& part)
+{
+    // Make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
+    Shape top_skin;
+    if (top_layer_count_ > 0)
+    {
+        top_skin = Shape(part.outline);
+    }
+    calculateTopSkin(part, top_skin);
+
+    Shape bottom_skin;
+    if (bottom_layer_count_ > 0 || layer_nr_ < LayerIndex(initial_bottom_layer_count_))
+    {
+        bottom_skin = Shape(part.outline);
+    }
+    calculateBottomSkin(part, bottom_skin);
+
+    applySkinExpansion(part.outline, top_skin, bottom_skin);
+
+    // Now combine the resized top skin and bottom skin.
+    // Shape skin = top_skin.unionPolygons(bottom_skin);
+
+    skin.removeSmallAreas(MIN_AREA_SIZE);
+
+    const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
+    const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
+    const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
+    const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
+
+    const SliceDataStorage slice_data;
+    const Shape build_plate = slice_data.getRawMachineBorder();
+
+    const Shape filled_area_just_above = generateFilledAreaAbove(part, roofing_layer_count);
+    const Shape filled_area_just_below = generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate.offset(EPSILON));
+    const Shape filled_area_above = generateFilledAreaAbove(part, top_layer_count_);
+    const Shape filled_area_below = generateFilledAreaBelow(part, bottom_layer_count_).value_or(build_plate.offset(EPSILON));
+
+    // In order to avoid edge cases, it is safer to create the extended roofing area by reducing the area above. However, we want to avoid reducing the borders, so at this
+    // point we extend the area above with the build plate area, so that when reducing, the border will still be far away.
+    const Shape reduced_area_above
+        = build_plate.offset(roofing_expansion * 2).difference(part.outline).unionPolygons(filled_area_just_above.offset(EPSILON)).offset(-roofing_expansion - 2 * EPSILON);
+
+    Shape roofing_area = part.outline.difference(reduced_area_above);
+    Shape flooring_area = part.outline.intersection(filled_area_just_above).difference(filled_area_just_below);
+    // Shape skin_area = part.outline.difference(roofing_area).intersection(filled_area_below);
+
+    // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
+    // Otherwise, adjacent skin_fill and roofing/flooring would have doubled offset areas. Since they both offset into each other.
+    skin = skin.offset(skin_overlap).difference(roofing_area).difference(flooring_area);
+    roofing_area = roofing_area.offset(skin_overlap);
+    flooring_area = flooring_area.offset(skin_overlap).difference(roofing_area);
+
+    // Create infill area irrespective if the infill is to be generated or not(would be used for bridging).
+    const Shape infill = part.outline.difference(skin.offset(EPSILON)).difference(roofing_area.offset(EPSILON)).difference(flooring_area.offset(EPSILON)).offset(-EPSILON);
+    // part.infill_area = part.inner_area.difference(skin);
+    // if (process_infill_)
+    { // process infill when infill density > 0
+      // or when other infill meshes want to modify this infill
+      // generateInfill(part);
+    }
+    // for (const SingleShape& skin_area_part : skin.splitIntoParts())
+    // {
+    //     if (skin_area_part.empty())
+    //     {
+    //         continue;
+    //     }
+    //     part.skin_parts.emplace_back();
+    //     part.skin_parts.back().outline = skin_area_part;
+    // }
+
+    SVG svg(fmt::format("/tmp/areas_{}.svg", layer_nr_), AABB(part.outline), 0.001);
+
+    svg.write(part.outline, { .line = { 0.1 } });
+
+    // generateSkinRoofingFlooringFill(part);
+
+    // generateTopAndBottomMostSurfaces(part);
+
+    svg.write(skin, { .surface = { SVG::Color::YELLOW, 0.5 } });
+    svg.write(top_skin, { .surface = { SVG::Color::GREEN, 0.5 } });
+    svg.write(bottom_skin, { .surface = { SVG::Color::RED, 0.5 } });
+    svg.write(roofing_area, { .surface = { SVG::Color::MAGENTA, 0.5 } });
+    svg.write(flooring_area, { .surface = { SVG::Color::ORANGE, 0.5 } });
+    svg.write(infill, { .surface = { SVG::Color::YELLOW, 0.5 } });
+
+    return {};
 }
 
 /*
@@ -174,17 +275,17 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, Shape& downskin)
+Shape SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, const size_t layer_count)
 {
-    if (bottom_layer_count_ == 0 && initial_bottom_layer_count_ == 0)
+    if (layer_count == 0)
     {
         return; // downskin remains empty
     }
-    if (layer_nr_ < LayerIndex(initial_bottom_layer_count_))
+    if (layer_nr_ < LayerIndex(layer_count))
     {
         return; // don't subtract anything form the downskin
     }
-    LayerIndex bottom_check_start_layer_idx{ std::max(LayerIndex{ 0 }, LayerIndex{ layer_nr_ - bottom_layer_count_ }) };
+    LayerIndex bottom_check_start_layer_idx{ std::max(LayerIndex{ 0 }, LayerIndex{ layer_nr_ - layer_count }) };
     Shape not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
     if (! no_small_gaps_heuristic_)
     {
@@ -198,22 +299,22 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
     {
         not_air.removeSmallAreas(min_infill_area);
     }
-    downskin = downskin.difference(not_air); // skin overlaps with the walls
+    return Shape(part.outline).difference(not_air); // skin overlaps with the walls
 }
 
-void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Shape& upskin)
+Shape SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, const size_t layer_count)
 {
-    if (layer_nr_ > LayerIndex(mesh_.layers.size()) - top_layer_count_ || top_layer_count_ <= 0)
+    if (layer_nr_ > LayerIndex(mesh_.layers.size()) - layer_count || layer_count == 0)
     {
-        // If we're in the very top layers (less than top_layer_count from the top of the mesh) everything will be top skin anyway, so no need to generate infill. Just take the
-        // original inner contour. If top_layer_count is 0, no need to calculate anything either.
+        // If we're in the very top layers (less than layer_count from the top of the mesh) everything will be top skin anyway, so no need to generate infill. Just take the
+        // original inner contour. If layer_count is 0, no need to calculate anything either.
         return;
     }
 
-    Shape not_air = getOutlineOnLayer(part, layer_nr_ + top_layer_count_);
+    Shape not_air = getOutlineOnLayer(part, layer_nr_ + layer_count);
     if (! no_small_gaps_heuristic_)
     {
-        for (int upskin_layer_nr = layer_nr_ + 1; upskin_layer_nr < layer_nr_ + top_layer_count_; upskin_layer_nr++)
+        for (int upskin_layer_nr = layer_nr_ + 1; upskin_layer_nr < layer_nr_ + layer_count; upskin_layer_nr++)
         {
             not_air = not_air.intersection(getOutlineOnLayer(part, upskin_layer_nr));
         }
@@ -225,7 +326,7 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Sha
         not_air.removeSmallAreas(min_infill_area);
     }
 
-    upskin = upskin.difference(not_air); // skin overlaps with the walls
+    return Shape(part.outline).difference(not_air); // skin overlaps with the walls
 }
 
 /*
