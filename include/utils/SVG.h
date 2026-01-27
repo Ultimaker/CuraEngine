@@ -4,8 +4,6 @@
 #ifndef SVG_H
 #define SVG_H
 
-#include <concepts>
-#include <optional>
 #include <stdio.h> // for file output
 #include <variant>
 
@@ -21,6 +19,8 @@ namespace cura
 
 class Point2D;
 class MixedLinesSet;
+class SkeletalTrapezoidationGraph;
+class STHalfEdge;
 
 class SVG : NoCopy
 {
@@ -38,7 +38,6 @@ public:
         MAGENTA,
         YELLOW,
         RAINBOW, // used for making the color change throughout the polygon which is drawn
-        NONE
     };
 
     enum class FillRule
@@ -68,6 +67,7 @@ public:
     struct ElementAttributes
     {
         ColorObject color{ Color::BLACK };
+        double alpha{ 1.0 };
 
         ElementAttributes() = default;
 
@@ -76,18 +76,27 @@ public:
         {
         }
 
+        ElementAttributes(const ColorObject& color, const double alpha)
+            : color(color)
+            , alpha(alpha)
+        {
+        }
+
         virtual ~ElementAttributes() = default;
 
         virtual bool isDisplayed() const
         {
-            return (std::holds_alternative<Color>(color) && std::get<Color>(color) != Color::NONE) || std::holds_alternative<RgbColor>(color);
+            return alpha > 0.0 && (std::holds_alternative<Color>(color) || std::holds_alternative<RgbColor>(color));
+        }
+
+        bool isRainbow() const
+        {
+            return std::holds_alternative<Color>(color) && std::get<Color>(color) == Color::RAINBOW;
         }
     };
 
     struct SurfaceAttributes : ElementAttributes
     {
-        double alpha{ 1.0 };
-
         SurfaceAttributes() = default;
 
         SurfaceAttributes(const ColorObject& color)
@@ -96,8 +105,7 @@ public:
         }
 
         SurfaceAttributes(const ColorObject& color, const double alpha)
-            : ElementAttributes(color)
-            , alpha(alpha)
+            : ElementAttributes(color, alpha)
         {
         }
 
@@ -113,6 +121,12 @@ public:
 
         LineAttributes(const ColorObject& color, const double width)
             : ElementAttributes(color)
+            , width(width)
+        {
+        }
+
+        LineAttributes(const ColorObject& color, const double width, const double alpha)
+            : ElementAttributes(color, alpha)
             , width(width)
         {
         }
@@ -177,9 +191,9 @@ public:
 
     struct VisualAttributes
     {
-        SurfaceAttributes surface{ Color::NONE };
-        LineAttributes line{ Color::NONE, 0.0 };
-        VerticesAttributes vertices{ Color::NONE, 0.0 };
+        SurfaceAttributes surface{ ColorObject() };
+        LineAttributes line{ ColorObject(), 0.0 };
+        VerticesAttributes vertices{ ColorObject(), 0.0 };
     };
 
 private:
@@ -198,9 +212,9 @@ private:
     bool output_is_html_;
 
 public:
-    SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size = Point2LL(1024, 1024), const ColorObject& background = Color::NONE);
-    SVG(const std::string& filename, const AABB& aabb, const double scale, const ColorObject& background = Color::NONE);
-    SVG(const std::string& filename, const AABB& aabb, const double scale, const Point2LL& canvas_size, const ColorObject& background = Color::NONE);
+    SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size, const ColorObject& background = ColorObject());
+    SVG(const std::string& filename, const AABB& aabb, const double scale = 1.0, const ColorObject& background = ColorObject());
+    SVG(const std::string& filename, const AABB& aabb, const double scale, const Point2LL& canvas_size, const ColorObject& background = ColorObject());
 
     ~SVG();
 
@@ -245,6 +259,19 @@ public:
     void write(const Point2LL& point, const VerticesAttributes& visual_attributes, const bool flush = true) const;
 
     void write(const std::string& text, const Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush = true) const;
+
+    void write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes& visual_attributes, const bool flush = true) const;
+
+    void write(const STHalfEdge& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
+
+    template<typename T>
+    void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const VisualAttributes& visual_attributes, const bool flush = true) const;
+
+    template<typename T>
+    void write(const boost::polygon::voronoi_edge<T>& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
+
+    template<typename T>
+    void write(const boost::polygon::voronoi_cell<T>& cell, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
 
@@ -295,38 +322,10 @@ public:
      */
     void writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
-    /*!
-     * Draws the provided Voronoi diagram.
-     *
-     * @tparam T numeric type
-     * @param voronoi The Voronoi diagram to draw.
-     * @param color  The colour to draw the diagram with.
-     * @param stroke_width The width of the lines.
-     */
-    template<typename T> // Currently our compiler for Mac can't handle `template<std::floating_point T>`, since aparently floating_point isn't in std yet.
-    void writeVoronoiDiagram(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const Color color = Color::BLACK, const double stroke_width = 0.1) const
-    {
-        for (const auto& edge : voronoi_diagram.edges())
-        {
-            if (! edge.is_finite())
-            {
-                continue;
-            }
-
-            const auto& v0 = edge.vertex0();
-            const auto& v1 = edge.vertex1();
-
-            if (v0 == nullptr || v1 == nullptr)
-            {
-                continue;
-            }
-
-            writeLine(Point(v0->x(), v0->y()), Point(v1->x(), v1->y()), color, stroke_width);
-        }
-    }
-
 private:
     void writePathPoints(const Polyline& line) const;
+
+    static RgbColor makeRainbowColor(const size_t index, const size_t elementsCount);
 };
 
 template<typename... Args>

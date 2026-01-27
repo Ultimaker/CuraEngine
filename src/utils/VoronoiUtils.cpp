@@ -9,6 +9,7 @@
 #include <spdlog/spdlog.h>
 
 #include "geometry/PointMatrix.h"
+#include "geometry/conversions/Point2D_Point2LL.h"
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
 
@@ -17,9 +18,7 @@ namespace cura
 
 Point2LL VoronoiUtils::p(const vd_t::vertex_type* node)
 {
-    const double x = node->x();
-    const double y = node->y();
-    return Point2LL(x + 0.5 - (x < 0), y + 0.5 - (y < 0)); // Round to nearest integer coordinates.
+    return toPoint2LL(Point2D(node->x(), node->y()));
 }
 
 bool VoronoiUtils::isSourcePoint(Point2LL p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist)

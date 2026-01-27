@@ -23,8 +23,8 @@
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "SkeletalTrapezoidation.h"
 #include "Slice.h"
+#include "arachne/SkeletalTrapezoidation.h"
 #include "infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"

@@ -11,11 +11,11 @@
 #include <range/v3/view/transform.hpp>
 #include <scripta/logger.h>
 
+#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
-#include "SkeletalTrapezoidation.h"
+#include "arachne/SkeletalTrapezoidation.h"
 #include "utils/ExtrusionLineStitcher.h"
 #include "utils/Simplify.h"
-#include "utils/SparsePointGrid.h" //To stitch the inner contour.
 #include "utils/actions/smooth.h"
 #include "utils/polygonUtils.h"
 
@@ -115,8 +115,6 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         assert(toolpaths_.empty());
         return toolpaths_;
     }
-
-    prepared_outline = prepared_outline.removeNearSelfIntersections();
 
     const coord_t wall_transition_length = settings_.get<coord_t>("wall_transition_length");
 

@@ -285,6 +285,8 @@ AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned 
     case EFillMethod::TRIHEXAGON:
     case EFillMethod::CUBIC:
     case EFillMethod::ZIG_ZAG:
+    case EFillMethod::HONEYCOMB:
+    case EFillMethod::OCTAGON:
         bridge_angle = infill_angle_below + 90;
         break;
     case EFillMethod::QUARTER_CUBIC:
