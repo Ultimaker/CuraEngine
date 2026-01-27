@@ -59,7 +59,7 @@ jobs:
 
       - name: Install Python requirements
         run: |
-          pip install pandas
+          pip install "pandas<2.1.0"
           pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
 
       - name: Install dependencies and build CuraEngine
