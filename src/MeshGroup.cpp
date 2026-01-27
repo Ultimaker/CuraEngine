@@ -3,6 +3,7 @@
 
 #include "MeshGroup.h"
 
+#include <filesystem>
 #include <fstream>
 #include <limits>
 #include <png.h>
