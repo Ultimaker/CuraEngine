@@ -13,6 +13,8 @@ on:
       - 'include/**'
       - 'src/**'
       - '.github/workflows/gcodeanalyzer.yml'
+      - 'conandata.yml'
+      - 'conanfile.py'
     branches:
       - main
       - 'CURA-*'
