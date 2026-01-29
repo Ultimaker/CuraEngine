@@ -28,6 +28,7 @@ class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
 struct MeshPathConfigs;
+class InsetOrderOptimizer;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -406,7 +407,8 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
+        const SliceLayerPart& part,
+        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
 
     /*!
      * \brief Add thicker (multiple layers) sparse infill for a given part in a
@@ -429,7 +431,8 @@ private:
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
         const coord_t start_move_inwards_length = 0,
-        const coord_t end_move_inwards_length = 0) const;
+        const coord_t end_move_inwards_length = 0,
+        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -451,7 +454,14 @@ private:
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
         const coord_t start_move_inwards_length = 0,
-        const coord_t end_move_inwards_length = 0) const;
+        const coord_t end_move_inwards_length = 0,
+        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
+
+    struct InsetsPreprocessResult
+    {
+        std::shared_ptr<InsetOrderOptimizer> walls_optimizer{};
+        bool spiralize{ false };
+    };
 
     /*!
      * Generate the insets for the walls of a given layer part.
@@ -463,9 +473,18 @@ private:
      * \param part The part for which to create gcode
      * \return Whether this function added anything to the layer plan
      */
-    bool processInsets(
+    InsetsPreprocessResult preProcessInsets(
         const SliceDataStorage& storage,
         LayerPlan& gcodeLayer,
+        const SliceMeshStorage& mesh,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        SliceLayerPart& part) const;
+
+    bool endProcessInsets(
+        InsetsPreprocessResult& preprocess_result,
+        const SliceDataStorage& storage,
+        LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,

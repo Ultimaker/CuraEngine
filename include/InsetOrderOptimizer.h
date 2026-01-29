@@ -14,6 +14,8 @@ namespace cura
 
 class FffGcodeWriter;
 class LayerPlan;
+template<class T>
+class PathOrderOptimizer;
 
 class InsetOrderOptimizer
 {
@@ -65,6 +67,8 @@ public:
         const Shape& overhang_areas = Shape(),
         const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr);
 
+    void optimize();
+
     /*!
      * Adds the insets to the given layer plan.
      *
@@ -94,6 +98,9 @@ public:
      */
     static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
 
+
+    std::optional<Point2LL> getStartPosition() const;
+
 private:
     const FffGcodeWriter& gcode_writer_;
     const SliceDataStorage& storage_;
@@ -122,6 +129,8 @@ private:
     const bool smooth_speed_;
     Shape overhang_areas_;
     const std::shared_ptr<TextureDataProvider> texture_data_provider_;
+    std::vector<ExtrusionLine> walls_to_be_added_;
+    std::shared_ptr<PathOrderOptimizer<const ExtrusionLine*>> path_optimizer_;
 
     std::vector<std::vector<const Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
     Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
