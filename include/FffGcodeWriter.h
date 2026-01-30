@@ -161,6 +161,15 @@ private:
         std::string monotonic;
     };
 
+    /*!
+     * Helper structure to pre-process then later add the optimized insets
+     */
+    struct InsetsPreprocessResult
+    {
+        std::shared_ptr<InsetOrderOptimizer> walls_optimizer{}; // Contains the ready-to-add optimized insets
+        bool spiralize{ false }; // Indicates whether this layer is a regular or a spiral layer
+    };
+
     static const RoofingFlooringSettingsNames roofing_settings_names;
     static const RoofingFlooringSettingsNames flooring_settings_names;
 
@@ -457,21 +466,15 @@ private:
         const coord_t end_move_inwards_length = 0,
         const std::optional<Point2LL>& near_end_location = std::nullopt) const;
 
-    struct InsetsPreprocessResult
-    {
-        std::shared_ptr<InsetOrderOptimizer> walls_optimizer{};
-        bool spiralize{ false };
-    };
-
     /*!
-     * Generate the insets for the walls of a given layer part.
+     * Generate the insets for the walls of a given layer part, without inserting them to the layer plan
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
-     * \param mesh_config the line config with which to print a print feature
+     * \param mesh_config The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param part The part for which to create gcode
-     * \return Whether this function added anything to the layer plan
+     * \return The content to be later inserted
      */
     InsetsPreprocessResult preProcessInsets(
         const SliceDataStorage& storage,
@@ -481,6 +484,17 @@ private:
         const MeshPathConfigs& mesh_config,
         SliceLayerPart& part) const;
 
+    /*!
+     * Inserts the previously processed insets
+     * @param preprocess_result The pre-processed insets to be added
+     * @param storage storage where the slice data is stored.
+     * @param gcode_layer The initial planning of the gcode of the layer.
+     * @param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * @param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * @param mesh_config The extruder for which to print all features of the mesh which should be printed with this extruder
+     * @param part The part for which to create gcode
+     * @return Whether this function added anything to the layer plan
+     */
     bool endProcessInsets(
         InsetsPreprocessResult& preprocess_result,
         const SliceDataStorage& storage,

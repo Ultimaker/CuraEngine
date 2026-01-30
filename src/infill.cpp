@@ -368,41 +368,7 @@ void Infill::_generate(
 
     if (near_end_location.has_value())
     {
-        std::optional<std::pair<size_t, size_t>> closest_point;
-        coord_t closest_distance_squared;
-        for (const auto& [line_index, line] : result_lines | ranges::views::enumerate)
-        {
-            for (const auto& [point_index, point] : line | ranges::views::enumerate)
-            {
-                const coord_t distance_squared = vSize2(point - near_end_location.value());
-                if (! closest_point.has_value() || distance_squared < closest_distance_squared)
-                {
-                    closest_point = std::make_optional(std::make_pair(line_index, point_index));
-                    closest_distance_squared = distance_squared;
-                }
-            }
-        }
-
-        const bool is_polygon_closer = [result_polygons, near_end_location, closest_distance_squared]() -> bool
-        {
-            for (const Polygon& polygon : result_polygons)
-            {
-                for (const Point2LL& point : polygon)
-                {
-                    if (vSize2(point - near_end_location.value() < closest_distance_squared))
-                    {
-                        return true;
-                    }
-                }
-            }
-
-            return false;
-        }();
-
-        if (closest_point.has_value() && ! is_polygon_closer)
-        {
-            result_lines.split(closest_point->first, closest_point->second);
-        }
+        splitLineClosestToPoint(*near_end_location, result_lines, result_polygons);
     }
 }
 
@@ -1096,6 +1062,49 @@ void Infill::connectLines(OpenLinesSet& result_lines)
         }
 
         completed_groups.insert(group);
+    }
+}
+
+void Infill::splitLineClosestToPoint(const Point2LL& desired_end_position, OpenLinesSet result_lines, const Shape& result_polygons)
+{
+    // Find the point of all the open polylines that is closest to the desired end position
+    std::optional<std::pair<size_t, size_t>> closest_point;
+    coord_t closest_distance_squared;
+    for (const auto& [line_index, line] : result_lines | ranges::views::enumerate)
+    {
+        for (const auto& [point_index, point] : line | ranges::views::enumerate)
+        {
+            const coord_t distance_squared = vSize2(point - desired_end_position);
+            if (! closest_point.has_value() || distance_squared < closest_distance_squared)
+            {
+                closest_point = std::make_optional(std::make_pair(line_index, point_index));
+                closest_distance_squared = distance_squared;
+            }
+        }
+    }
+
+    // Polygons printing can start/stop at any point, so if a polygon is closer to the desired end position, don't bother doing anything
+    const bool is_polygon_closer = [result_polygons, desired_end_position, closest_distance_squared]() -> bool
+    {
+        for (const Polygon& polygon : result_polygons)
+        {
+            for (const Point2LL& point : polygon)
+            {
+                if (vSize2(point - desired_end_position < closest_distance_squared))
+                {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }();
+
+    if (closest_point.has_value() && ! is_polygon_closer)
+    {
+        // We do have found a point from an open polyline that is the closest to the desired end position, so split this line in two parts so that the start/end positions
+        // can be used to end the infill close to the position
+        result_lines.split(closest_point->first, closest_point->second);
     }
 }
 
