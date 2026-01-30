@@ -161,9 +161,7 @@ private:
         std::string monotonic;
     };
 
-    /*!
-     * Helper structure to pre-process then later add the optimized insets
-     */
+    /*! Helper structure to pre-process then later add the optimized insets */
     struct InsetsPreprocessResult
     {
         std::shared_ptr<InsetOrderOptimizer> walls_optimizer{}; // Contains the ready-to-add optimized insets

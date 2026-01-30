@@ -67,6 +67,7 @@ public:
         const Shape& overhang_areas = Shape(),
         const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr);
 
+    /*! Process the paths ordering optimization. The result can be retrieved in the path_optimizer_ variable. */
     void optimize();
 
     /*!
@@ -98,7 +99,7 @@ public:
      */
     static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
 
-
+    /*! Get the start position of the planned paths, or nullopt if optimize() has not been called yet or the paths are empty */
     std::optional<Point2LL> getStartPosition() const;
 
 private:

@@ -2343,8 +2343,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 SectionType::INFILL,
                 mesh.cross_fill_provider,
                 lightning_layer,
-                &mesh,
-                Shape());
+                &mesh);
             if (density_idx < last_idx)
             {
                 const coord_t cut_offset = get_cut_offset(skin_support_zig_zaggify, infill_line_width, min_skin_support_wall_count);
