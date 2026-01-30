@@ -1882,12 +1882,17 @@ void FffGcodeWriter::addMeshPartToGCode(
     if (infill_before_walls)
     {
         std::optional<Point2LL> near_end_location;
+        std::optional<Point2LL> infill_near_split_location;
         if (insets_preprocess_result.walls_optimizer)
         {
             near_end_location = insets_preprocess_result.walls_optimizer->getStartPosition();
+            if (mesh.settings.get<bool>("split_infill_close_to_seam"))
+            {
+                infill_near_split_location = near_end_location;
+            }
         }
 
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, near_end_location);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, near_end_location, infill_near_split_location);
     }
 
     added_something |= endProcessInsets(insets_preprocess_result, storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
@@ -1920,7 +1925,8 @@ bool FffGcodeWriter::processInfill(
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const std::optional<Point2LL>& near_end_location) const
+    const std::optional<Point2LL>& near_end_location,
+    const std::optional<Point2LL>& infill_near_split_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -1930,8 +1936,16 @@ bool FffGcodeWriter::processInfill(
     const coord_t infill_start_move_inwards_length = mesh.settings.get<coord_t>("infill_start_move_inwards_length");
     const coord_t infill_end_move_inwards_length = mesh.settings.get<coord_t>("infill_end_move_inwards_length");
 
-    bool added_something
-        = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length, near_end_location);
+    bool added_something = processMultiLayerInfill(
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        mesh_config,
+        part,
+        infill_start_move_inwards_length,
+        infill_end_move_inwards_length,
+        near_end_location,
+        infill_near_split_location);
     added_something |= processSingleLayerInfill(
         storage,
         gcode_layer,
@@ -1941,7 +1955,8 @@ bool FffGcodeWriter::processInfill(
         part,
         infill_start_move_inwards_length,
         infill_end_move_inwards_length,
-        near_end_location);
+        near_end_location,
+        infill_near_split_location);
     return added_something;
 }
 
@@ -1953,7 +1968,8 @@ bool FffGcodeWriter::processMultiLayerInfill(
     const SliceLayerPart& part,
     const coord_t start_move_inwards_length,
     const coord_t end_move_inwards_length,
-    const std::optional<Point2LL>& near_end_location) const
+    const std::optional<Point2LL>& near_end_location,
+    const std::optional<Point2LL>& infill_near_split_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2049,7 +2065,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 lightning_layer,
                 &mesh,
                 Shape(),
-                near_end_location);
+                infill_near_split_location);
             if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
             {
                 infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
@@ -2139,7 +2155,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const SliceLayerPart& part,
     const coord_t start_move_inwards_length,
     const coord_t end_move_inwards_length,
-    const std::optional<Point2LL>& near_end_location) const
+    const std::optional<Point2LL>& near_end_location,
+    const std::optional<Point2LL>& infill_near_split_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2394,7 +2411,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             lightning_layer,
             &mesh,
             Shape(),
-            near_end_location);
+            infill_near_split_location);
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);

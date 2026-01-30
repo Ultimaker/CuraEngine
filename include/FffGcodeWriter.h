@@ -408,6 +408,8 @@ private:
      * mesh which should be printed with this extruder.
      * \param mesh_config the line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param near_end_location The location where the infill should preferably end close to
+     * \param infill_near_split_location When given, the infill open polyline that passes closer to this position will be split to provide a proper start/end position
      * \return Whether this function added anything to the layer plan.
      */
     bool processInfill(
@@ -417,7 +419,8 @@ private:
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
+        const std::optional<Point2LL>& near_end_location = std::nullopt,
+        const std::optional<Point2LL>& infill_near_split_location = std::nullopt) const;
 
     /*!
      * \brief Add thicker (multiple layers) sparse infill for a given part in a
@@ -431,6 +434,8 @@ private:
      * \param part The part for which to create gcode.
      * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
      * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
+     * \param near_end_location The location where the infill should preferably end close to
+     * \param infill_near_split_location When given, the infill open polyline that passes closer to this position will be split to provide a proper start/end position
      * \return Whether this function added anything to the layer plan.
      */
     bool processMultiLayerInfill(
@@ -441,7 +446,8 @@ private:
         const SliceLayerPart& part,
         const coord_t start_move_inwards_length = 0,
         const coord_t end_move_inwards_length = 0,
-        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
+        const std::optional<Point2LL>& near_end_location = std::nullopt,
+        const std::optional<Point2LL>& infill_near_split_location = std::nullopt) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -453,6 +459,8 @@ private:
      * \param part The part for which to create gcode.
      * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
      * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
+     * \param near_end_location The location where the infill should preferably end close to
+     * \param infill_near_split_location When given, the infill open polyline that passes closer to this position will be split to provide a proper start/end position
      * \return Whether this function added anything to the layer plan.
      */
     bool processSingleLayerInfill(
@@ -464,7 +472,8 @@ private:
         const SliceLayerPart& part,
         const coord_t start_move_inwards_length = 0,
         const coord_t end_move_inwards_length = 0,
-        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
+        const std::optional<Point2LL>& near_end_location = std::nullopt,
+        const std::optional<Point2LL>& infill_near_split_location = std::nullopt) const;
 
     /*!
      * Generate the insets for the walls of a given layer part, without inserting them to the layer plan

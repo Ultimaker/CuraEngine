@@ -92,7 +92,7 @@ void Infill::generate(
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
     const Shape& prevent_small_exposed_to_air,
-    const std::optional<Point2LL>& near_end_location)
+    const std::optional<Point2LL>& near_split_location)
 {
     if (outer_contour_.empty())
     {
@@ -185,7 +185,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, near_end_location);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, near_split_location);
 
         zig_zaggify_ = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
@@ -199,7 +199,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, near_end_location);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, near_split_location);
 
         result_polygons.push_back(generated_result_polygons);
         result_lines.push_back(generated_result_lines);
@@ -260,7 +260,7 @@ void Infill::_generate(
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const std::optional<Point2LL>& near_end_location)
+    const std::optional<Point2LL>& near_split_location)
 {
     if (inner_contour_.empty())
         return;
@@ -366,9 +366,9 @@ void Infill::_generate(
     }
     result_lines = simplifier.polyline(result_lines);
 
-    if (near_end_location.has_value())
+    if (near_split_location.has_value())
     {
-        splitLineClosestToPoint(*near_end_location, result_lines, result_polygons);
+        splitLineClosestToPoint(*near_split_location, result_lines, result_polygons);
     }
 }
 
@@ -1065,7 +1065,7 @@ void Infill::connectLines(OpenLinesSet& result_lines)
     }
 }
 
-void Infill::splitLineClosestToPoint(const Point2LL& desired_end_position, OpenLinesSet result_lines, const Shape& result_polygons)
+void Infill::splitLineClosestToPoint(const Point2LL& desired_end_position, OpenLinesSet& result_lines, const Shape& result_polygons)
 {
     // Find the point of all the open polylines that is closest to the desired end position
     std::optional<std::pair<size_t, size_t>> closest_point;

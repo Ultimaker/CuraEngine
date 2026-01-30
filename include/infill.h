@@ -201,7 +201,7 @@ public:
      * \param cross_fill_provider Any pre-computed cross infill pattern, if the Cross or Cross3D pattern is selected.
      * \param mesh A mesh for which to generate infill (should only be used for non-helper-mesh objects).
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
-     * \param near_end_location When provided, the resulting lines will be split if needed to provide a start/end position that is as close as possible to this location
+     * \param near_split_location When provided, the resulting lines will be split if needed to provide a start/end position that is as close as possible to this location
      */
     void generate(
         std::vector<VariableWidthLines>& toolpaths,
@@ -214,7 +214,7 @@ public:
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
         const Shape& prevent_small_exposed_to_air = Shape(),
-        const std::optional<Point2LL>& near_end_location = std::nullopt);
+        const std::optional<Point2LL>& near_split_location = std::nullopt);
 
     coord_t getLineDistance() const
     {
@@ -395,7 +395,7 @@ private:
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
-        const std::optional<Point2LL>& near_end_location = std::nullopt);
+        const std::optional<Point2LL>& near_split_location = std::nullopt);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -661,7 +661,7 @@ private:
      * @param[in, out] result_lines The generated infill lines
      * @param result_polygons The generated infill polygons, which don't need splitting because polygon printing can start/end anywhere in the loop
      */
-    static void splitLineClosestToPoint(const Point2LL& desired_end_position, OpenLinesSet result_lines, const Shape& result_polygons);
+    static void splitLineClosestToPoint(const Point2LL& desired_end_position, OpenLinesSet& result_lines, const Shape& result_polygons);
 };
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");
 
