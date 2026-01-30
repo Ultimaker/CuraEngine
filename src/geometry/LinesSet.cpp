@@ -117,6 +117,26 @@ OpenLinesSet LinesSet<LineType>::splitIntoSegments() const
     return result;
 }
 
+template<>
+void LinesSet<OpenPolyline>::split(const size_t line_index, const size_t point_index)
+{
+    if (line_index >= lines_.size())
+    {
+        return;
+    }
+
+    OpenPolyline& line = lines_[line_index];
+    if (! line.isValid() || point_index == 0 || point_index >= line.size() - 1) // Can't split at start or end
+    {
+        return;
+    }
+
+    OpenPolyline tail(ClipperLib::Path(std::make_move_iterator(line.begin() + point_index), std::make_move_iterator(line.end())));
+    line.resize(point_index + 1);
+    line[point_index] = tail.front(); // The move may have left the point in an indeterminate state, so we need to assign it back
+    lines_.push_back(std::move(tail));
+}
+
 template<class LineType>
 coord_t LinesSet<LineType>::length() const
 {

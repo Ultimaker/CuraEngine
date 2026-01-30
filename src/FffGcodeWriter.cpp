@@ -2047,7 +2047,9 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 SectionType::INFILL,
                 mesh.cross_fill_provider,
                 lightning_layer,
-                &mesh);
+                &mesh,
+                Shape(),
+                near_end_location);
             if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
             {
                 infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
@@ -2324,7 +2326,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 SectionType::INFILL,
                 mesh.cross_fill_provider,
                 lightning_layer,
-                &mesh);
+                &mesh,
+                Shape());
             if (density_idx < last_idx)
             {
                 const coord_t cut_offset = get_cut_offset(skin_support_zig_zaggify, infill_line_width, min_skin_support_wall_count);
@@ -2389,7 +2392,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
             SectionType::INFILL,
             mesh.cross_fill_provider,
             lightning_layer,
-            &mesh);
+            &mesh,
+            Shape(),
+            near_end_location);
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);

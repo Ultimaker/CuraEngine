@@ -253,6 +253,8 @@ public:
     void splitIntoSegments(OpenLinesSet& result) const;
     [[nodiscard]] OpenLinesSet splitIntoSegments() const;
 
+    void split(const size_t line_index, const size_t point_index);
+
     /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();
 

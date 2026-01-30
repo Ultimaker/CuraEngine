@@ -212,7 +212,8 @@ public:
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
-        const Shape& prevent_small_exposed_to_air = Shape());
+        const Shape& prevent_small_exposed_to_air = Shape(),
+        const std::optional<Point2LL>& near_end_location = std::nullopt);
 
     coord_t getLineDistance() const
     {
@@ -392,7 +393,8 @@ private:
         const Settings& settings,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
-        const SliceMeshStorage* mesh = nullptr);
+        const SliceMeshStorage* mesh = nullptr,
+        const std::optional<Point2LL>& near_end_location = std::nullopt);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.

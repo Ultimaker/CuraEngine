@@ -91,7 +91,8 @@ void Infill::generate(
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const Shape& prevent_small_exposed_to_air)
+    const Shape& prevent_small_exposed_to_air,
+    const std::optional<Point2LL>& near_end_location)
 {
     if (outer_contour_.empty())
     {
@@ -184,7 +185,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, near_end_location);
 
         zig_zaggify_ = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
@@ -198,7 +199,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, near_end_location);
 
         result_polygons.push_back(generated_result_polygons);
         result_lines.push_back(generated_result_lines);
@@ -258,7 +259,8 @@ void Infill::_generate(
     const Settings& settings,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
-    const SliceMeshStorage* mesh)
+    const SliceMeshStorage* mesh,
+    const std::optional<Point2LL>& near_end_location)
 {
     if (inner_contour_.empty())
         return;
@@ -357,12 +359,51 @@ void Infill::_generate(
     if (! skip_line_stitching_
         && (zig_zaggify_ || pattern_ == EFillMethod::CROSS || pattern_ == EFillMethod::CROSS_3D || pattern_ == EFillMethod::CUBICSUBDIV || pattern_ == EFillMethod::GYROID
             || pattern_ == EFillMethod::HONEYCOMB || pattern_ == EFillMethod::OCTAGON || pattern_ == EFillMethod::ZIG_ZAG))
-    { // don't stich for non-zig-zagged line infill types
+    { // don't stitch for non-zig-zagged line infill types
         OpenLinesSet stitched_lines;
         OpenPolylineStitcher::stitch(result_lines, stitched_lines, result_polygons, infill_line_width_);
         result_lines = std::move(stitched_lines);
     }
     result_lines = simplifier.polyline(result_lines);
+
+    if (near_end_location.has_value())
+    {
+        std::optional<std::pair<size_t, size_t>> closest_point;
+        coord_t closest_distance_squared;
+        for (const auto& [line_index, line] : result_lines | ranges::views::enumerate)
+        {
+            for (const auto& [point_index, point] : line | ranges::views::enumerate)
+            {
+                const coord_t distance_squared = vSize2(point - near_end_location.value());
+                if (! closest_point.has_value() || distance_squared < closest_distance_squared)
+                {
+                    closest_point = std::make_optional(std::make_pair(line_index, point_index));
+                    closest_distance_squared = distance_squared;
+                }
+            }
+        }
+
+        const bool is_polygon_closer = [result_polygons, near_end_location, closest_distance_squared]() -> bool
+        {
+            for (const Polygon& polygon : result_polygons)
+            {
+                for (const Point2LL& point : polygon)
+                {
+                    if (vSize2(point - near_end_location.value() < closest_distance_squared))
+                    {
+                        return true;
+                    }
+                }
+            }
+
+            return false;
+        }();
+
+        if (closest_point.has_value() && ! is_polygon_closer)
+        {
+            result_lines.split(closest_point->first, closest_point->second);
+        }
+    }
 }
 
 void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
