@@ -12,7 +12,7 @@ namespace cura
 
 /*!
  * \brief Container that can hold only open polylines. This makes it explicit what the lines actually represent and adds some processing functions that can only be applied
- * to open polylines.
+ *        to open polylines.
  */
 class OpenLinesSet : public LinesSet<OpenPolyline>
 {
@@ -44,7 +44,6 @@ public:
      * Split the given line in two parts, on the given point
      * @param line_index The index of the line to be split
      * @param point_index The point at which the line will be split
-     * @note This is implemented only for containers of OpenPolyline, since splitting a closed polyline has a very different meaning
      */
     void split(const size_t line_index, const size_t point_index);
 };
