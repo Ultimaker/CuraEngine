@@ -5,7 +5,6 @@
 #define INFILL_NO_ZIGZAG_CONNECTOR_PROCESSOR_H
 
 #include "ZigzagConnectorProcessor.h"
-#include "geometry/OpenLinesSet.h"
 
 namespace cura
 {

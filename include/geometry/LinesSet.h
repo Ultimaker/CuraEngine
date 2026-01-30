@@ -8,16 +8,13 @@
 
 #include <range/v3/view/drop.hpp>
 
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 
 namespace cura
 {
 
 class Shape;
-template<class LineType>
-class LinesSet;
-class OpenPolyline;
+class OpenLinesSet;
 class PointMatrix;
 class Point3Matrix;
 
@@ -80,22 +77,6 @@ public:
     explicit LinesSet(const std::initializer_list<LineType>& initializer)
         : lines_{ initializer }
     {
-    }
-
-    /*!
-     * \brief Constructor that takes ownership of the data from the given set of lines
-     * \warning This constructor is actually only defined for a LinesSet containing OpenPolyline
-     *          objects, because closed ones require an additional argument
-     */
-    template<typename U = LineType>
-        requires std::is_same_v<U, OpenPolyline>
-    explicit LinesSet(ClipperLib::Paths&& paths)
-    {
-        reserve(paths.size());
-        for (ClipperLib::Path& path : paths)
-        {
-            lines_.emplace_back(std::move(path));
-        }
     }
 
     const std::vector<LineType>& getLines() const
@@ -210,6 +191,11 @@ public:
         lines_.emplace_back(std::forward<decltype(args)>(args)...);
     }
 
+    void insert(const_iterator iterator, LineType&& line)
+    {
+        lines_.insert(iterator, std::move(line));
+    }
+
     iterator erase(const_iterator first, const_iterator last)
     {
         return lines_.erase(first, last);
@@ -229,6 +215,16 @@ public:
         return lines_[index];
     }
 
+    const LineType& at(size_t index) const
+    {
+        return lines_.at(index);
+    }
+
+    LineType& at(size_t index)
+    {
+        return lines_.at(index);
+    }
+
     LineType& newLine()
     {
         lines_.emplace_back();
@@ -244,16 +240,11 @@ public:
      */
     void removeAt(size_t index);
 
-    /*! \brief Add a simple line consisting of two points */
-    void addSegment(const Point2LL& from, const Point2LL& to);
-
     /*! \brief Get the total length of all the lines */
     [[nodiscard]] coord_t length() const;
 
     void splitIntoSegments(OpenLinesSet& result) const;
     [[nodiscard]] OpenLinesSet splitIntoSegments() const;
-
-    void split(const size_t line_index, const size_t point_index);
 
     /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();
