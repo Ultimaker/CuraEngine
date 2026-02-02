@@ -41,7 +41,8 @@ struct MeshGeneratorData
 {
     const Mesh& mesh; //!< The mesh for which a material modifier is to be generated
     AABB3D bounding_box; //!< The bounding box of the mesh
-    size_t estimated_iterations; //!< The roughly estimated number of voxels-propagation iterations (for progress reporting)
+    size_t estimated_material_iterations{ 0 }; //!< The roughly estimated number of multi-material voxels-propagation iterations (for progress reporting)
+    size_t estimated_support_iterations{ 0 }; //!< The roughly estimated number of support-mesh voxels-propagation iterations (for progress reporting)
     coord_t depth; //!< The propagation depth retrieved from the mesh settings
     coord_t resolution; //!< The points cloud resolution retrieved from the mesh settings
 };
@@ -368,7 +369,12 @@ std::vector<Mesh> applyMeshSupport(std::map<uint8_t, Mesh>& meshes)
     std::vector<Mesh> output_meshes;
     for (auto& [support_value, mesh] : meshes)
     {
-        if (support_value == 2)
+        if (support_value == 1)
+        {
+            mesh.settings_.add("support_mesh", "true");
+            output_meshes.push_back(std::move(mesh));
+        }
+        else if (support_value == 2)
         {
             mesh.settings_.add("anti_overhang_mesh", "true");
             output_meshes.push_back(std::move(mesh));
@@ -664,7 +670,7 @@ std::vector<Mesh> makeMaterialModifierMeshes(
     propagateVoxels(
         voxel_grid,
         previously_evaluated_voxels,
-        mesh_data.estimated_iterations,
+        mesh_data.estimated_material_iterations,
         sliced_mesh,
         texture_data,
         depth_squared,
@@ -710,7 +716,14 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
 
     for (const Mesh& mesh : meshgroup->meshes)
     {
-        if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("extruder"))
+        if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr)
+        {
+            continue;
+        }
+
+        const bool has_extruder_data = mesh.texture_data_mapping_->contains("extruder");
+        const bool has_support_data = mesh.texture_data_mapping_->contains("support");
+        if (! has_extruder_data && ! has_support_data)
         {
             continue;
         }
@@ -725,11 +738,15 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
             mesh_data.bounding_box.include(vertex.p_);
         }
 
-        // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
-        const double bounding_box_max_depth = std::max({ mesh_data.bounding_box.spanX() / 2.0, mesh_data.bounding_box.spanY() / 2.0, mesh_data.bounding_box.spanZ() / 2.0 });
-        const double estimated_min_depth = std::min(static_cast<double>(mesh_data.depth), bounding_box_max_depth);
-        mesh_data.estimated_iterations = estimated_min_depth / mesh_data.resolution;
-        spdlog::debug("Estimated {} iterations for {}", mesh_data.estimated_iterations, mesh.mesh_name_);
+        if (has_extruder_data)
+        {
+            // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
+            const double bounding_box_max_depth = std::max({ mesh_data.bounding_box.spanX() / 2.0, mesh_data.bounding_box.spanY() / 2.0, mesh_data.bounding_box.spanZ() / 2.0 });
+            const double estimated_min_depth = std::min(static_cast<double>(mesh_data.depth), bounding_box_max_depth);
+            mesh_data.estimated_material_iterations = estimated_min_depth / mesh_data.resolution;
+        }
+
+        spdlog::debug("Estimated {} iterations for {}", mesh_data.estimated_material_iterations + mesh_data.estimated_support_iterations, mesh.mesh_name_);
 
         result.push_back(mesh_data);
     }
@@ -746,7 +763,7 @@ void makePaintingModifierMeshes(MeshGroup* meshgroup)
         0,
         [](const size_t total_iterations, const MeshGeneratorData& mesh_data)
         {
-            return total_iterations + mesh_data.estimated_iterations;
+            return total_iterations + mesh_data.estimated_material_iterations;
         });
 
     std::vector<Mesh> modifier_meshes;
@@ -767,7 +784,7 @@ void makePaintingModifierMeshes(MeshGroup* meshgroup)
             modifier_meshes.push_back(std::move(modifier_mesh));
         }
 
-        delta_iterations += mesh_data.estimated_iterations;
+        delta_iterations += mesh_data.estimated_material_iterations;
         spdlog::info("Multi-material mesh generation for {} took {} seconds", mesh.mesh_name_, timer.elapsed().count());
     }
 
