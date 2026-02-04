@@ -3115,7 +3115,7 @@ bool FffGcodeWriter::endProcessInsets(
             added_something = true;
             gcode_layer.setIsInside(true); // going to print stuff inside print object
 
-            // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
+            // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralized codepath.
             // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
             // one part higher up. Once all the parts have merged, layers above that level will be spiralized
             if (&mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
