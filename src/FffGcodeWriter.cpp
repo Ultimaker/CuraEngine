@@ -1936,27 +1936,27 @@ bool FffGcodeWriter::processInfill(
     const coord_t infill_start_move_inwards_length = mesh.settings.get<coord_t>("infill_start_move_inwards_length");
     const coord_t infill_end_move_inwards_length = mesh.settings.get<coord_t>("infill_end_move_inwards_length");
 
-    bool added_something = processMultiLayerInfill(
-        gcode_layer,
-        mesh,
-        extruder_nr,
-        mesh_config,
-        part,
-        infill_start_move_inwards_length,
-        infill_end_move_inwards_length,
-        near_end_location,
-        infill_near_split_location);
-    added_something |= processSingleLayerInfill(
-        storage,
-        gcode_layer,
-        mesh,
-        extruder_nr,
-        mesh_config,
-        part,
-        infill_start_move_inwards_length,
-        infill_end_move_inwards_length,
-        near_end_location,
-        infill_near_split_location);
+    const bool added_something = processMultiLayerInfill(
+                                     gcode_layer,
+                                     mesh,
+                                     extruder_nr,
+                                     mesh_config,
+                                     part,
+                                     infill_start_move_inwards_length,
+                                     infill_end_move_inwards_length,
+                                     near_end_location,
+                                     infill_near_split_location)
+                               | processSingleLayerInfill(
+                                     storage,
+                                     gcode_layer,
+                                     mesh,
+                                     extruder_nr,
+                                     mesh_config,
+                                     part,
+                                     infill_start_move_inwards_length,
+                                     infill_end_move_inwards_length,
+                                     near_end_location,
+                                     infill_near_split_location);
     return added_something;
 }
 
