@@ -212,7 +212,8 @@ public:
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
-        const Shape& prevent_small_exposed_to_air = Shape());
+        const Shape& prevent_small_exposed_to_air = Shape(),
+        const bool fiter_out_small_lines = false);
 
     coord_t getLineDistance() const
     {
@@ -390,9 +391,10 @@ private:
         Shape& result_polygons,
         OpenLinesSet& result_lines,
         const Settings& settings,
-        const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern = nullptr,
-        const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
-        const SliceMeshStorage* mesh = nullptr);
+        const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern,
+        const std::shared_ptr<LightningLayer>& lightning_layer,
+        const SliceMeshStorage* mesh,
+        const bool fiter_out_small_lines);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -649,6 +651,9 @@ private:
      * \param[in/out] result_lines The lines to connect together.
      */
     void connectLines(OpenLinesSet& result_lines);
+
+    /*! Filter out very small infill lines that don't contribute to making an actual infill. */
+    void filterOutSmallSegments(std::vector<VariableWidthLines>& toolpaths, Shape& result_polygons, OpenLinesSet& result_lines);
 };
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");
 

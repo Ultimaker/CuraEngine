@@ -1989,6 +1989,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
             constexpr bool skip_some_zags = false;
             constexpr size_t zag_skip_count = 0;
             const bool fill_gaps = density_idx == 0; // Only fill gaps for the lowest density.
+            constexpr bool fiter_out_small_lines = true;
 
             std::shared_ptr<LightningLayer> lightning_layer = nullptr;
             if (mesh.lightning_generator)
@@ -2028,7 +2029,9 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 SectionType::INFILL,
                 mesh.cross_fill_provider,
                 lightning_layer,
-                &mesh);
+                &mesh,
+                Shape(),
+                fiter_out_small_lines);
             if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
             {
                 infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
@@ -2329,6 +2332,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
         const coord_t small_area_width = 0;
+        constexpr bool fiter_out_small_lines = true;
 
         wall_tool_paths.emplace_back();
         Infill infill_comp(
@@ -2364,7 +2368,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
             SectionType::INFILL,
             mesh.cross_fill_provider,
             lightning_layer,
-            &mesh);
+            &mesh,
+            Shape(),
+            fiter_out_small_lines);
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);

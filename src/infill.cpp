@@ -8,6 +8,7 @@
 #include <numbers>
 #include <unordered_set>
 
+#include <range/v3/numeric/accumulate.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
@@ -91,7 +92,8 @@ void Infill::generate(
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const Shape& prevent_small_exposed_to_air)
+    const Shape& prevent_small_exposed_to_air,
+    const bool fiter_out_small_lines)
 {
     if (outer_contour_.empty())
     {
@@ -184,7 +186,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, fiter_out_small_lines);
 
         zig_zaggify_ = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
@@ -198,7 +200,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, fiter_out_small_lines);
 
         result_polygons.push_back(generated_result_polygons);
         result_lines.push_back(generated_result_lines);
@@ -258,7 +260,8 @@ void Infill::_generate(
     const Settings& settings,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
-    const SliceMeshStorage* mesh)
+    const SliceMeshStorage* mesh,
+    const bool fiter_out_small_lines)
 {
     if (inner_contour_.empty())
         return;
@@ -363,6 +366,11 @@ void Infill::_generate(
         result_lines = std::move(stitched_lines);
     }
     result_lines = simplifier.polyline(result_lines);
+
+    if (fiter_out_small_lines && pattern_ != EFillMethod::LIGHTNING && pattern_ != EFillMethod::CONCENTRIC)
+    {
+        filterOutSmallSegments(toolpaths, result_polygons, result_lines);
+    }
 }
 
 void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
@@ -1056,6 +1064,37 @@ void Infill::connectLines(OpenLinesSet& result_lines)
 
         completed_groups.insert(group);
     }
+}
+void Infill::filterOutSmallSegments(std::vector<VariableWidthLines>& toolpaths, Shape& result_polygons, OpenLinesSet& result_lines)
+{
+    // Minimum 10mm at 0.4mm line width.
+    const coord_t min_line_length = std::llrint(infill_line_width_ * 25);
+
+    result_lines.erase_if(
+        [min_line_length](const OpenPolyline& line)
+        {
+            return line.length() < min_line_length;
+        });
+
+    result_polygons.erase_if(
+        [min_line_length](const Polygon& polygon)
+        {
+            return polygon.length() < min_line_length;
+        });
+
+    std::erase_if(
+        toolpaths,
+        [min_line_length](const VariableWidthLines& lines)
+        {
+            const coord_t polyline_length = ranges::accumulate(
+                lines,
+                0,
+                [](coord_t total, const ExtrusionLine& line)
+                {
+                    return total + line.length();
+                });
+            return polyline_length < min_line_length;
+        });
 }
 
 bool Infill::InfillLineSegment::operator==(const InfillLineSegment& other) const
