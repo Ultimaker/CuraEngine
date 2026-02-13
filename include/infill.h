@@ -213,7 +213,7 @@ public:
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
         const Shape& prevent_small_exposed_to_air = Shape(),
-        const bool fiter_out_small_lines = false);
+        const coord_t minimum_line_length = 0);
 
     coord_t getLineDistance() const
     {
@@ -394,7 +394,7 @@ private:
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern,
         const std::shared_ptr<LightningLayer>& lightning_layer,
         const SliceMeshStorage* mesh,
-        const bool fiter_out_small_lines);
+        const coord_t minimum_line_length);
 
     /*!
      * Generate the infill pattern for the given island
@@ -675,7 +675,7 @@ private:
      * \param result_lines The generated lines
      * \return True if the lines should be included, false to discard them
      */
-    bool includeLines(const std::vector<VariableWidthLines>& toolpaths, const Shape& result_polygons, const OpenLinesSet& result_lines);
+    bool includeLines(const std::vector<VariableWidthLines>& toolpaths, const Shape& result_polygons, const OpenLinesSet& result_lines, const coord_t minimum_line_length);
 };
 
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");

@@ -93,7 +93,7 @@ void Infill::generate(
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
     const Shape& prevent_small_exposed_to_air,
-    const bool fiter_out_small_lines)
+    const coord_t minimum_line_length)
 {
     if (outer_contour_.empty())
     {
@@ -187,14 +187,14 @@ void Infill::generate(
             zig_zaggify_ = false;
         }
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, fiter_out_small_lines);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, minimum_line_length);
 
         zig_zaggify_ = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
     }
     else
     {
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, fiter_out_small_lines);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, minimum_line_length);
     }
 
     //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
@@ -258,7 +258,7 @@ void Infill::_generate(
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const bool fiter_out_small_lines)
+    const coord_t minimum_line_length)
 {
     for (const Shape& island : inner_contour_.splitIntoParts())
     {
@@ -268,7 +268,8 @@ void Infill::_generate(
 
         generateForIsland(island, island_toolpaths, island_polygons, island_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
-        if (! fiter_out_small_lines || pattern_ == EFillMethod::LIGHTNING || pattern_ == EFillMethod::CONCENTRIC || includeLines(island_toolpaths, island_polygons, island_lines))
+        if (minimum_line_length == 0 || pattern_ == EFillMethod::LIGHTNING || pattern_ == EFillMethod::CONCENTRIC
+            || includeLines(island_toolpaths, island_polygons, island_lines, minimum_line_length))
         {
             // Include lines generated for this island only if they are long enough to produce an actual infill
             SVG svg(fmt::format("/tmp/infill_{}.svg", z_), AABB(inner_contour_), 0.001);
@@ -1091,10 +1092,8 @@ void Infill::connectLines(OpenLinesSet& result_lines)
         completed_groups.insert(group);
     }
 }
-bool Infill::includeLines(const std::vector<VariableWidthLines>& toolpaths, const Shape& result_polygons, const OpenLinesSet& result_lines)
+bool Infill::includeLines(const std::vector<VariableWidthLines>& toolpaths, const Shape& result_polygons, const OpenLinesSet& result_lines, const coord_t minimum_line_length)
 {
-    // Minimum 10mm at 0.4mm line width.
-    const coord_t min_line_length = std::llrint(infill_line_width_ * 25);
     coord_t total_length = 0;
 
     total_length = ranges::accumulate(
@@ -1114,7 +1113,7 @@ bool Infill::includeLines(const std::vector<VariableWidthLines>& toolpaths, cons
     total_length += result_polygons.length();
     total_length += result_lines.length();
 
-    return total_length >= min_line_length;
+    return total_length >= minimum_line_length;
 }
 
 bool Infill::InfillLineSegment::operator==(const InfillLineSegment& other) const
