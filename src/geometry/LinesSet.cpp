@@ -53,11 +53,7 @@ template<class LineType>
 template<class OtherLineType>
 void LinesSet<LineType>::push_back(LinesSet<OtherLineType>&& lines_set)
 {
-    reserve(size() + lines_set.size());
-    for (OtherLineType& line : lines_set)
-    {
-        emplace_back(std::move(line));
-    }
+    lines_.insert(lines_.end(), std::make_move_iterator(lines_set.begin()), std::make_move_iterator(lines_set.end()));
 }
 
 template<class LineType>
