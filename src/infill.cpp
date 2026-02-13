@@ -268,8 +268,7 @@ void Infill::_generate(
 
         generateForIsland(island, island_toolpaths, island_polygons, island_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
-        if (minimum_line_length == 0 || pattern_ == EFillMethod::LIGHTNING || pattern_ == EFillMethod::CONCENTRIC
-            || includeLines(island_toolpaths, island_polygons, island_lines, minimum_line_length))
+        if (minimum_line_length == 0 || includeLines(island_toolpaths, island_polygons, island_lines, minimum_line_length))
         {
             // Include lines generated for this island only if they are long enough to produce an actual infill
             toolpaths.insert(toolpaths.end(), std::make_move_iterator(island_toolpaths.begin()), std::make_move_iterator(island_toolpaths.end()));
