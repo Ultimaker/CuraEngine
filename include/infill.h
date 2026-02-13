@@ -201,6 +201,7 @@ public:
      * \param cross_fill_provider Any pre-computed cross infill pattern, if the Cross or Cross3D pattern is selected.
      * \param mesh A mesh for which to generate infill (should only be used for non-helper-mesh objects).
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
+     * \param minimum_line_length The per-island minimum total length for the generated lines
      */
     void generate(
         std::vector<VariableWidthLines>& toolpaths,
@@ -673,6 +674,7 @@ private:
      * \param toolpaths The generated toolpaths
      * \param result_polygons The generated polygons
      * \param result_lines The generated lines
+     * \param minimum_line_length The minimum total length for the generated lines
      * \return True if the lines should be included, false to discard them
      */
     bool includeLines(const std::vector<VariableWidthLines>& toolpaths, const Shape& result_polygons, const OpenLinesSet& result_lines, const coord_t minimum_line_length);
