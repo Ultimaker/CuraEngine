@@ -272,10 +272,6 @@ void Infill::_generate(
             || includeLines(island_toolpaths, island_polygons, island_lines, minimum_line_length))
         {
             // Include lines generated for this island only if they are long enough to produce an actual infill
-            SVG svg(fmt::format("/tmp/infill_{}.svg", z_), AABB(inner_contour_), 0.001);
-            svg.write(inner_contour_, { .surface = { SVG::Color::BLUE, 0.5 } });
-            svg.write(result_lines, { .line = { SVG::Color::ORANGE, 0.4 } });
-
             toolpaths.insert(toolpaths.end(), std::make_move_iterator(island_toolpaths.begin()), std::make_move_iterator(island_toolpaths.end()));
             result_polygons.push_back(std::move(island_polygons));
             result_lines.push_back(std::move(island_lines));
