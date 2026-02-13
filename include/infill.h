@@ -378,13 +378,6 @@ private:
     };
 
     /*!
-     * Stores the infill lines (a vector) for each line of a polygon (a vector)
-     * for each polygon in a Polygons object that we create a zig-zaggified
-     * infill pattern for.
-     */
-    std::vector<std::vector<std::vector<InfillLineSegment*>>> crossings_on_line_;
-
-    /*!
      * Generate the infill pattern without the infill_multiplier functionality
      */
     void _generate(
@@ -463,25 +456,25 @@ private:
      * Generate a rectangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateGridInfill(const Shape& outline, OpenLinesSet& result);
+    void generateGridInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a shifting triangular grid of infill lines, which combine with consecutive layers into a cubic pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateCubicInfill(const Shape& outline, OpenLinesSet& result);
+    void generateCubicInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a tetrahedral pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateTetrahedralInfill(const Shape& outline, OpenLinesSet& result);
+    void generateTetrahedralInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a quarter cubic pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateQuarterCubicInfill(const Shape& outline, OpenLinesSet& result);
+    void generateQuarterCubicInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a single shifting square grid of infill lines.
@@ -491,19 +484,24 @@ private:
      * \param angle_shift The angle to add to the infill_angle
      * \param[out] result (output) The resulting lines
      */
-    void generateHalfTetrahedralInfill(const Shape& outline, double pattern_z_shift, int angle_shift, OpenLinesSet& result);
+    void generateHalfTetrahedralInfill(
+        const Shape& outline,
+        double pattern_z_shift,
+        int angle_shift,
+        OpenLinesSet& result,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a triangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateTriangleInfill(const Shape& outline, OpenLinesSet& result);
+    void generateTriangleInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a triangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateTrihexagonInfill(const Shape& outline, OpenLinesSet& result);
+    void generateTrihexagonInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
@@ -531,7 +529,6 @@ private:
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
     void addLineInfill(
-        const Shape& outline,
         OpenLinesSet& result,
         const PointMatrix& rotation_matrix,
         const int scanline_min_idx,
@@ -551,7 +548,13 @@ private:
      * \param infill_rotation The angle of the generated lines
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the infill_rotation
      */
-    void generateLineInfill(const Shape& outline, OpenLinesSet& result, int line_distance, const double& infill_rotation, coord_t extra_shift);
+    void generateLineInfill(
+        const Shape& outline,
+        OpenLinesSet& result,
+        int line_distance,
+        const double& infill_rotation,
+        coord_t extra_shift,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
@@ -575,7 +578,8 @@ private:
         const PointMatrix& rotation_matrix,
         ZigzagConnectorProcessor& zigzag_connector_processor,
         const bool connected_zigzags,
-        coord_t extra_shift);
+        coord_t extra_shift,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      *
@@ -624,7 +628,12 @@ private:
      * \param line_distance The distance between two lines which are in the same direction
      * \param infill_rotation The angle of the generated lines
      */
-    void generateZigZagInfill(const Shape& outline, OpenLinesSet& result, const coord_t line_distance, const double& infill_rotation);
+    void generateZigZagInfill(
+        const Shape& outline,
+        OpenLinesSet& result,
+        const coord_t line_distance,
+        const double& infill_rotation,
+        std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * determine how far the infill pattern should be shifted based on the values of infill_origin and \p infill_rotation
@@ -666,7 +675,7 @@ private:
      * border of the infill area, similar to the zigzag pattern.
      * \param[in/out] result_lines The lines to connect together.
      */
-    void connectLines(OpenLinesSet& result_lines);
+    void connectLines(const Shape& outline, OpenLinesSet& result_lines, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line);
 
     /*!
      * Check whether the generated lines for a single island should be included for printing, based on their total length. Tiny lines don't contribute to printing a proper infill

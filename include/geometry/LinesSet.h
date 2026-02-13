@@ -215,11 +215,6 @@ public:
         return lines_.erase(first, last);
     }
 
-    void erase_if(const std::function<bool(const LineType& line)>& pred)
-    {
-        std::erase_if(lines_, pred);
-    }
-
     LinesSet& operator=(const LinesSet& other) = default;
 
     LinesSet& operator=(LinesSet&& other) noexcept = default;

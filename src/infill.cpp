@@ -294,34 +294,37 @@ void Infill::generateForIsland(
     if (line_distance_ == 0)
         return;
 
+    // Stores the infill lines (a vector) for each line of a polygon (a vector) for each polygon in a Polygons object that we create a zig-zaggified infill pattern for.
+    std::vector<std::vector<std::vector<InfillLineSegment*>>> crossings_on_line;
+
     switch (pattern_)
     {
     case EFillMethod::GRID:
-        generateGridInfill(outline, result_lines);
+        generateGridInfill(outline, result_lines, crossings_on_line);
         break;
     case EFillMethod::LINES:
-        generateLineInfill(outline, result_lines, line_distance_, fill_angle_, 0);
+        generateLineInfill(outline, result_lines, line_distance_, fill_angle_, 0, crossings_on_line);
         break;
     case EFillMethod::CUBIC:
-        generateCubicInfill(outline, result_lines);
+        generateCubicInfill(outline, result_lines, crossings_on_line);
         break;
     case EFillMethod::TETRAHEDRAL:
-        generateTetrahedralInfill(outline, result_lines);
+        generateTetrahedralInfill(outline, result_lines, crossings_on_line);
         break;
     case EFillMethod::QUARTER_CUBIC:
-        generateQuarterCubicInfill(outline, result_lines);
+        generateQuarterCubicInfill(outline, result_lines, crossings_on_line);
         break;
     case EFillMethod::TRIANGLES:
-        generateTriangleInfill(outline, result_lines);
+        generateTriangleInfill(outline, result_lines, crossings_on_line);
         break;
     case EFillMethod::TRIHEXAGON:
-        generateTrihexagonInfill(outline, result_lines);
+        generateTrihexagonInfill(outline, result_lines, crossings_on_line);
         break;
     case EFillMethod::CONCENTRIC:
         generateConcentricInfill(outline, toolpaths, settings);
         break;
     case EFillMethod::ZIG_ZAG:
-        generateZigZagInfill(outline, result_lines, line_distance_, fill_angle_);
+        generateZigZagInfill(outline, result_lines, line_distance_, fill_angle_, crossings_on_line);
         break;
     case EFillMethod::CUBICSUBDIV:
         if (! mesh)
@@ -377,7 +380,7 @@ void Infill::generateForIsland(
         // The list should be empty because it will be again filled completely. Otherwise, might have double lines.
         assert(result_lines.empty());
         result_lines.clear();
-        connectLines(result_lines);
+        connectLines(outline, result_lines, crossings_on_line);
     }
 
     Simplify simplifier(max_resolution_, max_deviation_, 0);
@@ -511,55 +514,60 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
     }
 }
 
-void Infill::generateGridInfill(const Shape& outline, OpenLinesSet& result)
+void Infill::generateGridInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    generateLineInfill(outline, result, line_distance_, fill_angle_, 0);
-    generateLineInfill(outline, result, line_distance_, fill_angle_ + 90, 0);
+    generateLineInfill(outline, result, line_distance_, fill_angle_, 0, crossings_on_line);
+    generateLineInfill(outline, result, line_distance_, fill_angle_ + 90, 0, crossings_on_line);
 }
 
-void Infill::generateCubicInfill(const Shape& outline, OpenLinesSet& result)
+void Infill::generateCubicInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     const coord_t shift = one_over_sqrt_2 * z_;
-    generateLineInfill(outline, result, line_distance_, fill_angle_, shift);
-    generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, shift);
-    generateLineInfill(outline, result, line_distance_, fill_angle_ + 240, shift);
+    generateLineInfill(outline, result, line_distance_, fill_angle_, shift, crossings_on_line);
+    generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, shift, crossings_on_line);
+    generateLineInfill(outline, result, line_distance_, fill_angle_ + 240, shift, crossings_on_line);
 }
 
-void Infill::generateTetrahedralInfill(const Shape& outline, OpenLinesSet& result)
+void Infill::generateTetrahedralInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    generateHalfTetrahedralInfill(outline, 0.0, 0, result);
-    generateHalfTetrahedralInfill(outline, 0.0, 90, result);
+    generateHalfTetrahedralInfill(outline, 0.0, 0, result, crossings_on_line);
+    generateHalfTetrahedralInfill(outline, 0.0, 90, result, crossings_on_line);
 }
 
-void Infill::generateQuarterCubicInfill(const Shape& outline, OpenLinesSet& result)
+void Infill::generateQuarterCubicInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    generateHalfTetrahedralInfill(outline, 0.0, 0, result);
-    generateHalfTetrahedralInfill(outline, 0.5, 90, result);
+    generateHalfTetrahedralInfill(outline, 0.0, 0, result, crossings_on_line);
+    generateHalfTetrahedralInfill(outline, 0.5, 90, result, crossings_on_line);
 }
 
-void Infill::generateHalfTetrahedralInfill(const Shape& outline, double pattern_z_shift, int angle_shift, OpenLinesSet& result)
+void Infill::generateHalfTetrahedralInfill(
+    const Shape& outline,
+    double pattern_z_shift,
+    int angle_shift,
+    OpenLinesSet& result,
+    std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     const coord_t period = line_distance_ * 2;
     coord_t shift = coord_t(one_over_sqrt_2 * (z_ + pattern_z_shift * period * 2)) % period;
     shift = std::min(shift, period - shift); // symmetry due to the fact that we are applying the shift in both directions
     shift = std::min(shift, period / 2 - infill_line_width_ / 2); // don't put lines too close to each other
     shift = std::max(shift, infill_line_width_ / 2); // don't put lines too close to each other
-    generateLineInfill(outline, result, period, fill_angle_ + angle_shift, shift);
-    generateLineInfill(outline, result, period, fill_angle_ + angle_shift, -shift);
+    generateLineInfill(outline, result, period, fill_angle_ + angle_shift, shift, crossings_on_line);
+    generateLineInfill(outline, result, period, fill_angle_ + angle_shift, -shift, crossings_on_line);
 }
 
-void Infill::generateTriangleInfill(const Shape& outline, OpenLinesSet& result)
+void Infill::generateTriangleInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    generateLineInfill(outline, result, line_distance_, fill_angle_, 0);
-    generateLineInfill(outline, result, line_distance_, fill_angle_ + 60, 0);
-    generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, 0);
+    generateLineInfill(outline, result, line_distance_, fill_angle_, 0, crossings_on_line);
+    generateLineInfill(outline, result, line_distance_, fill_angle_ + 60, 0, crossings_on_line);
+    generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, 0, crossings_on_line);
 }
 
-void Infill::generateTrihexagonInfill(const Shape& outline, OpenLinesSet& result)
+void Infill::generateTrihexagonInfill(const Shape& outline, OpenLinesSet& result, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
-    generateLineInfill(outline, result, line_distance_, fill_angle_, 0);
-    generateLineInfill(outline, result, line_distance_, fill_angle_ + 60, 0);
-    generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, line_distance_ / 2);
+    generateLineInfill(outline, result, line_distance_, fill_angle_, 0, crossings_on_line);
+    generateLineInfill(outline, result, line_distance_, fill_angle_ + 60, 0, crossings_on_line);
+    generateLineInfill(outline, result, line_distance_, fill_angle_ + 120, line_distance_ / 2, crossings_on_line);
 }
 
 void Infill::generateCubicSubDivInfill(const Shape& outline, OpenLinesSet& result, const SliceMeshStorage& mesh)
@@ -596,7 +604,6 @@ void Infill::generateCrossInfill(const Shape& outline, const SierpinskiFillProvi
 }
 
 void Infill::addLineInfill(
-    const Shape& outline,
     OpenLinesSet& result,
     const PointMatrix& rotation_matrix,
     const int scanline_min_idx,
@@ -638,23 +645,34 @@ coord_t Infill::getShiftOffsetFromInfillOriginAndRotation(const double& infill_r
     return 0;
 }
 
-void Infill::generateLineInfill(const Shape& outline, OpenLinesSet& result, int line_distance, const double& infill_rotation, coord_t shift)
+void Infill::generateLineInfill(
+    const Shape& outline,
+    OpenLinesSet& result,
+    int line_distance,
+    const double& infill_rotation,
+    coord_t shift,
+    std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     shift += getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
     PointMatrix rotation_matrix(infill_rotation);
     NoZigZagConnectorProcessor lines_processor(rotation_matrix, result);
     bool connected_zigzags = false;
-    generateLinearBasedInfill(outline, result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift);
+    generateLinearBasedInfill(outline, result, line_distance, rotation_matrix, lines_processor, connected_zigzags, shift, crossings_on_line);
 }
 
 
-void Infill::generateZigZagInfill(const Shape& outline, OpenLinesSet& result, const coord_t line_distance, const double& infill_rotation)
+void Infill::generateZigZagInfill(
+    const Shape& outline,
+    OpenLinesSet& result,
+    const coord_t line_distance,
+    const double& infill_rotation,
+    std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     const coord_t shift = getShiftOffsetFromInfillOriginAndRotation(infill_rotation);
 
     PointMatrix rotation_matrix(infill_rotation);
     ZigzagConnectorProcessor zigzag_processor(rotation_matrix, result, use_endpieces_, connected_zigzags_, skip_some_zags_, zag_skip_count_);
-    generateLinearBasedInfill(outline, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags_, shift);
+    generateLinearBasedInfill(outline, result, line_distance, rotation_matrix, zigzag_processor, connected_zigzags_, shift, crossings_on_line);
 }
 
 /*
@@ -687,7 +705,8 @@ void Infill::generateLinearBasedInfill(
     const PointMatrix& rotation_matrix,
     ZigzagConnectorProcessor& zigzag_connector_processor,
     const bool connected_zigzags,
-    coord_t extra_shift)
+    coord_t extra_shift,
+    std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     if (line_distance == 0 || outline.empty()) // No infill to generate (0% density) or no area to generate it in.
     {
@@ -740,7 +759,7 @@ void Infill::generateLinearBasedInfill(
     crossings_per_scanline.resize(max_scanline_index - min_scanline_index);
     if (connect_lines_)
     {
-        crossings_on_line_.resize(transformed_outline.size()); // One for each polygon.
+        crossings_on_line.resize(transformed_outline.size()); // One for each polygon.
     }
 
     for (size_t poly_idx = 0; poly_idx < transformed_outline.size(); poly_idx++)
@@ -748,7 +767,7 @@ void Infill::generateLinearBasedInfill(
         const Polygon& poly = transformed_outline[poly_idx];
         if (connect_lines_)
         {
-            crossings_on_line_[poly_idx].resize(poly.size()); // One for each line in this polygon.
+            crossings_on_line[poly_idx].resize(poly.size()); // One for each line in this polygon.
         }
         Point2LL p0 = poly.back();
         zigzag_connector_processor.registerVertex(p0); // always adds the first point to ZigzagConnectorProcessorEndPieces::first_zigzag_connector when using a zigzag infill type
@@ -824,8 +843,8 @@ void Infill::generateLinearBasedInfill(
                 InfillLineSegment* new_segment
                     = new InfillLineSegment(unrotated_first, first.vertex_index_, first.polygon_index_, unrotated_second, second.vertex_index_, second.polygon_index_);
                 // Put the same line segment in the data structure twice: Once for each of the polygon line segment that it crosses.
-                crossings_on_line_[first.polygon_index_][first.vertex_index_].push_back(new_segment);
-                crossings_on_line_[second.polygon_index_][second.vertex_index_].push_back(new_segment);
+                crossings_on_line[first.polygon_index_][first.vertex_index_].push_back(new_segment);
+                crossings_on_line[second.polygon_index_][second.vertex_index_].push_back(new_segment);
             }
         }
     }
@@ -841,7 +860,7 @@ void Infill::generateLinearBasedInfill(
         }
 
         // We have to create our own lines when they are not created by the method connectLines.
-        addLineInfill(outline, result, rotation_matrix, scanline_min_idx, line_distance, boundary, cut_list, shift);
+        addLineInfill(result, rotation_matrix, scanline_min_idx, line_distance, boundary, cut_list, shift);
     }
 }
 
@@ -895,10 +914,10 @@ void Infill::resolveIntersection(const coord_t at_distance, const Point2LL& inte
     }
 }
 
-void Infill::connectLines(OpenLinesSet& result_lines)
+void Infill::connectLines(const Shape& outline, OpenLinesSet& result_lines, std::vector<std::vector<std::vector<InfillLineSegment*>>>& crossings_on_line)
 {
     UnionFind<InfillLineSegment*> connected_lines; // Keeps track of which lines are connected to which.
-    for (const std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line_)
+    for (const std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon : crossings_on_line)
     {
         for (const std::vector<InfillLineSegment*>& crossings_on_polygon_segment : crossings_on_polygon)
         {
@@ -913,15 +932,15 @@ void Infill::connectLines(OpenLinesSet& result_lines)
     }
 
     const auto half_line_distance_squared = (line_distance_ * line_distance_) / 4;
-    for (size_t polygon_index = 0; polygon_index < inner_contour_.size(); polygon_index++)
+    for (size_t polygon_index = 0; polygon_index < outline.size(); polygon_index++)
     {
-        const Polygon& inner_contour_polygon = inner_contour_[polygon_index];
+        const Polygon& inner_contour_polygon = outline[polygon_index];
         if (inner_contour_polygon.empty())
         {
             continue;
         }
-        assert(crossings_on_line_.size() > polygon_index && "crossings dimension should be bigger then polygon index");
-        std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon = crossings_on_line_[polygon_index];
+        assert(crossings_on_line.size() > polygon_index && "crossings dimension should be bigger then polygon index");
+        std::vector<std::vector<InfillLineSegment*>>& crossings_on_polygon = crossings_on_line[polygon_index];
         InfillLineSegment* previous_crossing = nullptr; // The crossing that we should connect to. If nullptr, we have been skipping until we find the next crossing.
         InfillLineSegment* previous_segment = nullptr; // The last segment we were connecting while drawing a line along the border.
         Point2LL vertex_before = inner_contour_polygon.back();
