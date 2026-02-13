@@ -397,6 +397,19 @@ private:
         const bool fiter_out_small_lines);
 
     /*!
+     * Generate the infill pattern for the given island
+     */
+    void generateForIsland(
+        const Shape& outline,
+        std::vector<VariableWidthLines>& toolpaths,
+        Shape& result_polygons,
+        OpenLinesSet& result_lines,
+        const Settings& settings,
+        const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern,
+        const std::shared_ptr<LightningLayer>& lightning_layer,
+        const SliceMeshStorage* mesh);
+
+    /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
      *
      * This is done in a way such that there is not overlap between the lines
@@ -414,28 +427,28 @@ private:
      * \param result_polylines (output) The resulting polylines
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect gyroid lines in a circle.
      */
-    void generateGyroidInfill(OpenLinesSet& result_polylines, Shape& result_polygons);
+    void generateGyroidInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons);
 
     /*!
      * Generate honeycomb infill
      * \param result_polylines (output) The resulting polylines
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect lines in a circle.
      */
-    void generateHoneycombInfill(OpenLinesSet& result_polylines, Shape& result_polygons);
+    void generateHoneycombInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons);
 
     /*!
      * Generate octagon infill
      * \param result_polylines (output) The resulting polylines
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect lines in a circle.
      */
-    void generateOctagonInfill(OpenLinesSet& result_polylines, Shape& result_polygons);
+    void generateOctagonInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons);
 
     /*!
      * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'
      * see https://hal.archives-ouvertes.fr/hal-02155929/document
      * \param result (output) The resulting polygons
      */
-    void generateLightningInfill(const std::shared_ptr<LightningLayer>& lightning_layer, OpenLinesSet& result_lines);
+    void generateLightningInfill(const Shape& outline, const std::shared_ptr<LightningLayer>& lightning_layer, OpenLinesSet& result_lines);
 
     /*!
      * Generate sparse concentric infill
@@ -443,31 +456,31 @@ private:
      * \param toolpaths (output) The resulting toolpaths. Binned by inset_idx.
      * \param inset_value The offset between each consecutive two polygons
      */
-    void generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
+    void generateConcentricInfill(const Shape& outline, std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
     /*!
      * Generate a rectangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateGridInfill(OpenLinesSet& result);
+    void generateGridInfill(const Shape& outline, OpenLinesSet& result);
 
     /*!
      * Generate a shifting triangular grid of infill lines, which combine with consecutive layers into a cubic pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateCubicInfill(OpenLinesSet& result);
+    void generateCubicInfill(const Shape& outline, OpenLinesSet& result);
 
     /*!
      * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a tetrahedral pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateTetrahedralInfill(OpenLinesSet& result);
+    void generateTetrahedralInfill(const Shape& outline, OpenLinesSet& result);
 
     /*!
      * Generate a double shifting square grid of infill lines, which combine with consecutive layers into a quarter cubic pattern
      * \param[out] result (output) The resulting lines
      */
-    void generateQuarterCubicInfill(OpenLinesSet& result);
+    void generateQuarterCubicInfill(const Shape& outline, OpenLinesSet& result);
 
     /*!
      * Generate a single shifting square grid of infill lines.
@@ -477,26 +490,26 @@ private:
      * \param angle_shift The angle to add to the infill_angle
      * \param[out] result (output) The resulting lines
      */
-    void generateHalfTetrahedralInfill(double pattern_z_shift, int angle_shift, OpenLinesSet& result);
+    void generateHalfTetrahedralInfill(const Shape& outline, double pattern_z_shift, int angle_shift, OpenLinesSet& result);
 
     /*!
      * Generate a triangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateTriangleInfill(OpenLinesSet& result);
+    void generateTriangleInfill(const Shape& outline, OpenLinesSet& result);
 
     /*!
      * Generate a triangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */
-    void generateTrihexagonInfill(OpenLinesSet& result);
+    void generateTrihexagonInfill(const Shape& outline, OpenLinesSet& result);
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
      * \param[out] result The resulting lines
      * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
      */
-    void generateCubicSubDivInfill(OpenLinesSet& result, const SliceMeshStorage& mesh);
+    void generateCubicSubDivInfill(const Shape& outline, OpenLinesSet& result, const SliceMeshStorage& mesh);
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points
@@ -504,7 +517,7 @@ private:
      * \param[out] result_polygons The resulting polygons
      * \param[out] result_lines The resulting lines
      */
-    void generateCrossInfill(const SierpinskiFillProvider& cross_fill_provider, Shape& result_polygons, OpenLinesSet& result_lines);
+    void generateCrossInfill(const Shape& outline, const SierpinskiFillProvider& cross_fill_provider, Shape& result_polygons, OpenLinesSet& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
@@ -517,6 +530,7 @@ private:
      * \param total_shift total shift of the scanlines in the direction perpendicular to the fill_angle.
      */
     void addLineInfill(
+        const Shape& outline,
         OpenLinesSet& result,
         const PointMatrix& rotation_matrix,
         const int scanline_min_idx,
@@ -536,7 +550,7 @@ private:
      * \param infill_rotation The angle of the generated lines
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the infill_rotation
      */
-    void generateLineInfill(OpenLinesSet& result, int line_distance, const double& infill_rotation, coord_t extra_shift);
+    void generateLineInfill(const Shape& outline, OpenLinesSet& result, int line_distance, const double& infill_rotation, coord_t extra_shift);
 
     /*!
      * Function for creating linear based infill types (Lines, ZigZag).
@@ -554,6 +568,7 @@ private:
      * \param extra_shift extra shift of the scanlines in the direction perpendicular to the fill_angle
      */
     void generateLinearBasedInfill(
+        const Shape& outline,
         OpenLinesSet& result,
         const int line_distance,
         const PointMatrix& rotation_matrix,
@@ -608,7 +623,7 @@ private:
      * \param line_distance The distance between two lines which are in the same direction
      * \param infill_rotation The angle of the generated lines
      */
-    void generateZigZagInfill(OpenLinesSet& result, const coord_t line_distance, const double& infill_rotation);
+    void generateZigZagInfill(const Shape& outline, OpenLinesSet& result, const coord_t line_distance, const double& infill_rotation);
 
     /*!
      * determine how far the infill pattern should be shifted based on the values of infill_origin and \p infill_rotation
@@ -652,9 +667,17 @@ private:
      */
     void connectLines(OpenLinesSet& result_lines);
 
-    /*! Filter out very small infill lines that don't contribute to making an actual infill. */
-    void filterOutSmallSegments(std::vector<VariableWidthLines>& toolpaths, Shape& result_polygons, OpenLinesSet& result_lines);
+    /*!
+     * Check whether the generated lines for a single island should be included for printing, based on their total length. Tiny lines don't contribute to printing a proper infill
+     * and generate unnecessary travels, retractions and unretractions.
+     * \param toolpaths The generated toolpaths
+     * \param result_polygons The generated polygons
+     * \param result_lines The generated lines
+     * \return True if the lines should be included, false to discard them
+     */
+    bool includeLines(const std::vector<VariableWidthLines>& toolpaths, const Shape& result_polygons, const OpenLinesSet& result_lines);
 };
+
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");
 
 } // namespace cura
