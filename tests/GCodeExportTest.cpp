@@ -498,7 +498,7 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
-    EXPECT_EQ(std::string("G1 F60 Z5\n"), output.str());
+    EXPECT_EQ(std::string("G1 Z5\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
@@ -528,7 +528,7 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     gcode.writeZhopEnd();
-    EXPECT_EQ(std::string("G1 F60 Z2\n"), output.str());
+    EXPECT_EQ(std::string("G1 Z2\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
@@ -566,11 +566,11 @@ TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
     std::getline(output, token, '\n');
     EXPECT_EQ(std::string(";WIPE_SCRIPT_BEGIN"), token) << "Wipe script should always start with tag.";
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 F600 X2 Y1"), token) << "Wipe script should go to its position.";
+    EXPECT_EQ(std::string("G0 F600 X2"), token) << "Wipe script should go to its position.";
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 X2.5 Y1"), token) << "There should be one wipe move.";
+    EXPECT_EQ(std::string("G0 X2.5"), token) << "There should be one wipe move.";
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 X1 Y1"), token) << "Wipe script should return back to position before wipe.";
+    EXPECT_EQ(std::string("G0 X1"), token) << "Wipe script should return back to position before wipe.";
     std::getline(output, token, '\n');
     EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
 }
@@ -598,17 +598,17 @@ TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
     std::getline(output, token, '\n');
     EXPECT_EQ(std::string(";WIPE_SCRIPT_BEGIN"), token) << "Wipe script should always start with tag.";
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 F600 X2 Y1"), token) << "Wipe script should go to its position.";
+    EXPECT_EQ(std::string("G0 F600 X2"), token) << "Wipe script should go to its position.";
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 X2.5 Y1"), token);
+    EXPECT_EQ(std::string("G0 X2.5"), token);
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 X2 Y1"), token);
+    EXPECT_EQ(std::string("G0 X2"), token);
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 X2.5 Y1"), token);
+    EXPECT_EQ(std::string("G0 X2.5"), token);
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 X2 Y1"), token);
+    EXPECT_EQ(std::string("G0 X2"), token);
     std::getline(output, token, '\n');
-    EXPECT_EQ(std::string("G0 X1 Y1"), token) << "Wipe script should return back to position before wipe.";
+    EXPECT_EQ(std::string("G0 X1"), token) << "Wipe script should return back to position before wipe.";
     std::getline(output, token, '\n');
     EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
 }

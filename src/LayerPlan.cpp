@@ -224,19 +224,20 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                     }
                     else
                     {
-                        part_combing_boundary = part.outline.offset(offset);
-
+                        part_combing_boundary = part.outline.offset(10).offset(offset - 10);
                         if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
                         {
                             part_combing_boundary = part_combing_boundary.difference(part.inner_area.difference(part.infill_area));
                         }
                         else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
                         {
+                            Shape top_and_bottom_most_fill;
                             for (const SliceLayerPart& outer_surface_part : layer.parts)
                             {
-                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.top_most_surface);
-                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.bottom_most_surface);
+                                top_and_bottom_most_fill.push_back(outer_surface_part.top_most_surface);
+                                top_and_bottom_most_fill.push_back(outer_surface_part.bottom_most_surface);
                             }
+                            part_combing_boundary = part_combing_boundary.difference(top_and_bottom_most_fill);
                         }
                     }
 
@@ -1519,7 +1520,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                     const double destination_factor = static_cast<double>(segment_processed_distance + length_to_process) / line_length;
                     split_destination = cura::lerp(p0, p1, destination_factor);
 
-                    double scarf_segment_flow_ratio = 1.0;
                     double scarf_factor_destination = 1.0; // Out of range, scarf is done => 1.0
                     if (process_scarf)
                     {
@@ -1530,18 +1530,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                         if (! is_scarf_closure)
                         {
                             split_destination.z_ = std::llrint(std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination));
-                        }
-
-                        // Interpolate flow according to interpolation factor average, because it can't be different
-                        // at start and end positions
-                        const double scarf_factor_average = (scarf_factor_origin + scarf_factor_destination) / 2.0;
-                        if (is_scarf_closure)
-                        {
-                            scarf_segment_flow_ratio = std::lerp(1.0, scarf_seam_start_ratio, scarf_factor_average);
-                        }
-                        else
-                        {
-                            scarf_segment_flow_ratio = std::lerp(scarf_seam_start_ratio, 1.0, scarf_factor_average);
                         }
 
                         if (first_split)
@@ -1579,7 +1567,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                         split_origin,
                         split_destination,
                         accelerate_speed_factor * decelerate_speed_factor,
-                        flow_ratio * scarf_segment_flow_ratio,
+                        flow_ratio,
                         line_width_ratio,
                         distance_to_bridge_start.value_or(0));
 
@@ -2226,7 +2214,7 @@ void LayerPlan::addLinesByOptimizer(
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
-    const Shape& extra_inwards_move_contour)
+    const MendedShape& extra_inwards_move_contour)
 {
     Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
@@ -2354,7 +2342,7 @@ void LayerPlan::addLinesInGivenOrder(
     const double fan_speed,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
-    const Shape& extra_inwards_move_contour)
+    const MendedShape& extra_inwards_move_contour)
 {
     const coord_t half_line_width = config.getLineWidth() / 2;
     const coord_t line_width_2 = half_line_width * half_line_width;
@@ -2869,7 +2857,21 @@ void LayerPlan::writeExtrusionRelativeZ(
     PrintFeatureType feature,
     bool update_extrusion_offset)
 {
-    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    Ratio thickness_factor;
+    const coord_t z_offset_start = gcode.getPositionZ() - z_;
+    if (z_offset_start != 0 || path_z_offset != 0)
+    {
+        // Make average flow according to Z offset, because it can't be different at start and end positions
+        const Ratio thickness_factor_start = std::clamp(1.0 + (static_cast<double>(z_offset_start) / layer_thickness_), 0.0, 1.0);
+        const Ratio thickness_factor_end = std::clamp(1.0 + (static_cast<double>(path_z_offset) / layer_thickness_), 0.0, 1.0);
+        thickness_factor = (thickness_factor_start + thickness_factor_end) / 2.0;
+    }
+    else
+    {
+        thickness_factor = 1.0;
+    }
+
+    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm * thickness_factor, feature, update_extrusion_offset);
 }
 
 void LayerPlan::addLinesMonotonic(
@@ -4165,7 +4167,7 @@ template void LayerPlan::addLinesByOptimizer(
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
-    const Shape& extra_inwards_move_contour);
+    const MendedShape& extra_inwards_move_contour);
 
 template void LayerPlan::addLinesByOptimizer(
     const ClosedLinesSet& lines,
@@ -4180,6 +4182,6 @@ template void LayerPlan::addLinesByOptimizer(
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
-    const Shape& extra_inwards_move_contour);
+    const MendedShape& extra_inwards_move_contour);
 
 } // namespace cura

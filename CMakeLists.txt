@@ -148,6 +148,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp
         src/utils/channel.cpp
+        src/utils/Segment3LL.cpp
         src/utils/Date.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
@@ -159,7 +160,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/MeshUtils.cpp
         src/utils/MinimumSpanningTree.cpp
         src/utils/OBJ.cpp
-        src/utils/ParameterizedSegment.cpp
+        src/utils/PlanarPolygon3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -197,6 +198,7 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/Polyline.cpp
         src/geometry/ClosedPolyline.cpp
         src/geometry/MixedLinesSet.cpp
+        src/geometry/MendedShape.cpp
 
         src/geometry/conversions/Point2D_Point2LL.cpp
 )

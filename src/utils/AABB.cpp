@@ -215,4 +215,55 @@ coord_t AABB::height() const
     return max_.Y - min_.Y;
 }
 
+std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape& shape)
+{
+    if (shape[0].size() < 2)
+    {
+        return { { { 0, 0 }, { 0, 0 } }, 0.0 };
+    }
+
+    coord_t min_area = std::numeric_limits<coord_t>::max();
+    AngleRadians best_angle = 0.0;
+    AABB best_aabb = { { 0, 0 }, { 0, 0 } };
+
+    // Iterate through every edge of the polygon
+    for (auto iterator = shape[0].beginSegments(); iterator != shape[0].endSegments(); ++iterator)
+    {
+        const Point2LL& p1 = (*iterator).start;
+        const Point2LL& p2 = (*iterator).end;
+
+        const auto x_hat = p2 - p1;
+        const auto length = vSize(x_hat);
+
+        if (length < 5)
+        {
+            continue;
+        }
+
+        const auto y_hat = turn90CCW(x_hat);
+
+        AABB aabb;
+
+        // Project all points onto the local axes defined by this edge
+        for (const auto& p : shape[0])
+        {
+            Point2LL local_p = {
+                dot(p, x_hat) / length,
+                dot(p, y_hat) / length,
+            };
+            aabb.include(local_p);
+        }
+
+        coord_t area = aabb.area();
+        if (area < min_area)
+        {
+            min_area = area;
+            best_angle = angle_rad(x_hat);
+            best_aabb = aabb;
+        }
+    }
+
+    return { best_aabb, best_angle };
+}
+
 } // namespace cura
