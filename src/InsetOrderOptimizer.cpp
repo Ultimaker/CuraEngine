@@ -93,7 +93,12 @@ bool InsetOrderOptimizer::addToLayer()
 {
     // Settings & configs:
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
-    const auto inset_direction = settings_.get<InsetDirection>("inset_direction");
+    
+    // For layer 0, check if there's a specific initial layer wall ordering setting
+    const auto inset_direction = (layer_nr_ == 0) 
+        ? settings_.get<InsetDirection>("initial_layer_inset_direction") 
+        : settings_.get<InsetDirection>("inset_direction");
+    
     const auto alternate_walls = settings_.get<bool>("material_alternate_walls");
 
     const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
