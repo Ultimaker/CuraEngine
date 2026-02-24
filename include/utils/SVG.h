@@ -287,7 +287,7 @@ public:
      * \param color The color to draw the paths with.
      * \param width_factor A multiplicative factor on the line widths.
      */
-    void writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color = Color::BLACK, const double width_factor = 1.0) const;
+    void write(const std::vector<VariableWidthLines>& paths, const SurfaceAttributes& visual_attributes, const bool flush = false) const;
 
     /*!
      * Draw variable-width lines into the image.
@@ -298,7 +298,7 @@ public:
      * \param color The color to draw the lines with.
      * \param width_factor A multiplicative factor on the line widths.
      */
-    void writeLines(const VariableWidthLines& lines, const ColorObject color = Color::BLACK, const double width_factor = 1.0) const;
+    void write(const VariableWidthLines& lines, const SurfaceAttributes& visual_attributes, const bool flush = false) const;
 
     /*!
      * Draw a variable-width line into the image.
@@ -309,7 +309,11 @@ public:
      * \param color The color to draw the line with.
      * \param width_factor A multiplicative factor on the line width.
      */
-    void writeLine(const ExtrusionLine& line, const ColorObject color = Color::BLACK, const double width_factor = 1.0, const bool flush = true) const;
+    void write(const ExtrusionLine& line, const SurfaceAttributes& visual_attributes, const bool flush = true) const;
+
+    void write(const SurfaceAttributes& visual_attributes, const FillRule fill_rule = FillRule::None) const;
+
+    void write(const LineAttributes& visual_attributes) const;
 
     /*!
      * Draws a grid across the image and writes down coordinates.
