@@ -4110,13 +4110,6 @@ void LayerPlan::inheritLastPlannedPositionFromPreviousLayer(const Point3LL& prev
     {
         // Inherit only XY coordinates from previous layer
         last_planned_position_ = Point3LL(previous_position.x_, previous_position.y_, z_);
-
-        // If the first travel destination was set to the layer start position, update it to the inherited position
-        // This happens for gap/empty layers that would otherwise travel to layer_start_pos
-        if (first_travel_destination_ && first_travel_destination_.value() == layer_start_pos_per_extruder_[getExtruder()].toPoint2LL())
-        {
-            first_travel_destination_ = previous_position.toPoint2LL();
-        }
     }
 }
 
