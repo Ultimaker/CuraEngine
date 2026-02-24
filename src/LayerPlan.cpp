@@ -4108,7 +4108,8 @@ void LayerPlan::inheritLastPlannedPositionFromPreviousLayer(const Point3LL& prev
     // Only inherit if we don't already have a position set
     if (! last_planned_position_)
     {
-        last_planned_position_ = previous_position;
+        // Inherit only XY coordinates from previous layer
+        last_planned_position_ = Point3LL(previous_position.x_, previous_position.y_, z_);
     }
 }
 
