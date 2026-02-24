@@ -120,14 +120,6 @@ const LayerPlan* LayerPlanBuffer::getCompletedLayerPlan(const LayerIndex& layer_
 
 void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
 {
-    // If the previous layer has a last planned position, and the new layer doesn't have one yet (e.g., if the new layer starts with a gap/empty layer content),
-    // inherit the position from the previous layer to avoid unnecessary travel to the layer start position.
-    if (prev_layer->last_planned_position_ && ! newest_layer->last_planned_position_)
-    {
-        // Cast away const to update the new layer's position - this is safe because we're just initializing it from the previous layer's final position
-        const_cast<LayerPlan*>(newest_layer)->last_planned_position_ = prev_layer->last_planned_position_;
-    }
-
     std::optional<std::pair<Point2LL, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
 
     if (! new_layer_destination_state)
