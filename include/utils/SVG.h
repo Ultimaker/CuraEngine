@@ -287,7 +287,7 @@ public:
      * \param visual_attributes The visual appearance of the paths.
      * \param flush Whether the output file should be flushed after writing.
      */
-    void write(const std::vector<VariableWidthLines>& paths, const SurfaceAttributes& visual_attributes, const bool flush = false) const;
+    void write(const std::vector<VariableWidthLines>& paths, const SurfaceAttributes& visual_attributes, const bool flush = true) const;
 
     /*!
      * Draw variable-width lines into the image.
@@ -298,7 +298,7 @@ public:
      * \param visual_attributes The visual appearance of the lines.
      * \param flush Whether the output file should be flushed after writing.
      */
-    void write(const VariableWidthLines& lines, const SurfaceAttributes& visual_attributes, const bool flush = false) const;
+    void write(const VariableWidthLines& lines, const SurfaceAttributes& visual_attributes, const bool flush = true) const;
 
     /*!
      * Draw a variable-width line into the image.
