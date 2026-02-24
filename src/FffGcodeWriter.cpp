@@ -1315,6 +1315,17 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 
     gcode_layer.applyGradualFlow();
 
+    // Inherit the last planned position from the previous layer (if there is one)
+    // This prevents gap/empty layers from traveling to layer_start_pos unnecessarily
+    if (! layer_plan_buffer.buffer_.empty())
+    {
+        const LayerPlan* previous_layer = layer_plan_buffer.buffer_.back();
+        if (previous_layer->last_planned_position_)
+        {
+            gcode_layer.inheritLastPlannedPositionFromPreviousLayer(previous_layer->last_planned_position_.value());
+        }
+    }
+
     gcode_layer.applyModifyPlugin();
     time_keeper.registerTime("Modify plugin");
 

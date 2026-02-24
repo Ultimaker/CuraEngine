@@ -260,6 +260,15 @@ public:
     Point2LL getLastPlannedPositionOrStartingPosition() const;
 
     /*!
+     * Inherit the last planned position from a previous layer.
+     * This is used for gap/empty layers that have no paths planned yet,
+     * to avoid unnecessary travel to the layer start position.
+     *
+     * \param previous_position The last position from the previous layer
+     */
+    void inheritLastPlannedPositionFromPreviousLayer(const Point3LL& previous_position);
+
+    /*!
      * return whether the last position planned was inside the mesh (used in combing)
      */
     bool getIsInsideMesh() const;

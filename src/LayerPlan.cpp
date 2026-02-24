@@ -4103,6 +4103,15 @@ Point2LL LayerPlan::getLastPlannedPositionOrStartingPosition() const
     return last_planned_position_.value_or(layer_start_pos_per_extruder_[getExtruder()]).toPoint2LL();
 }
 
+void LayerPlan::inheritLastPlannedPositionFromPreviousLayer(const Point3LL& previous_position)
+{
+    // Only inherit if we don't already have a position set
+    if (! last_planned_position_)
+    {
+        last_planned_position_ = previous_position;
+    }
+}
+
 bool LayerPlan::getIsInsideMesh() const
 {
     return was_inside_;
