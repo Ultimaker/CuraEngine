@@ -94,6 +94,13 @@ public:
      */
     const LayerPlan* getCompletedLayerPlan(const LayerIndex& layer_nr) const;
 
+    /*!
+     * Inherit the last planned position from the most recent buffered layer into the given layer plan.
+     * This is used for gap/empty layers to avoid unnecessary travel to the layer start position.
+     * @param layer_plan The layer plan that should inherit the position
+     */
+    void inheritLastPlannedPositionFromBuffer(LayerPlan& layer_plan) const;
+
 private:
     /*!
      * Process all layers in the buffer

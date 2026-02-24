@@ -36,6 +36,18 @@ void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
     buffer_condition_variable_.notify_all();
 }
 
+void LayerPlanBuffer::inheritLastPlannedPositionFromBuffer(LayerPlan& layer_plan) const
+{
+    if (! buffer_.empty())
+    {
+        const LayerPlan* previous_layer = buffer_.back();
+        if (previous_layer->last_planned_position_)
+        {
+            layer_plan.inheritLastPlannedPositionFromPreviousLayer(previous_layer->last_planned_position_.value());
+        }
+    }
+}
+
 LayerPlan* LayerPlanBuffer::processBuffer()
 {
     if (buffer_.empty())
