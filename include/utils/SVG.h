@@ -196,6 +196,23 @@ public:
         VerticesAttributes vertices{ ColorObject(), 0.0 };
     };
 
+    struct DiagramVisualAttributes : VisualAttributes
+    {
+        bool edges_arrows{ true };
+
+        DiagramVisualAttributes(const SurfaceAttributes surface_attributes, const bool edges_arrows = true)
+            : VisualAttributes({ .surface = surface_attributes })
+            , edges_arrows(edges_arrows)
+        {
+        }
+
+        DiagramVisualAttributes(const LineAttributes line_attributes, const bool edges_arrows = true)
+            : VisualAttributes({ .line = line_attributes })
+            , edges_arrows(edges_arrows)
+        {
+        }
+    };
+
 private:
     static std::string toString(const ColorObject& color);
     static std::string toString(const std::vector<int>& dash_array);
@@ -260,18 +277,18 @@ public:
 
     void write(const std::string& text, const Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush = true) const;
 
-    void write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const SkeletalTrapezoidationGraph& graph, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const STHalfEdge& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
-
-    template<typename T>
-    void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const STHalfEdge& edge, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
 
     template<typename T>
-    void write(const boost::polygon::voronoi_edge<T>& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
 
     template<typename T>
-    void write(const boost::polygon::voronoi_cell<T>& cell, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const boost::polygon::voronoi_edge<T>& edge, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
+
+    template<typename T>
+    void write(const boost::polygon::voronoi_cell<T>& cell, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
 
     void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
 
