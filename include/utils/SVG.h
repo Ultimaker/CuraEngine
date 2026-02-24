@@ -284,8 +284,8 @@ public:
      * The paths are drawn with the correct line width, as given in the paths,
      * but there is a multiplicative factor to adjust the width with.
      * \param paths The paths to draw.
-     * \param color The color to draw the paths with.
-     * \param width_factor A multiplicative factor on the line widths.
+     * \param visual_attributes The visual appearance of the paths.
+     * \param flush Whether the output file should be flushed after writing.
      */
     void write(const std::vector<VariableWidthLines>& paths, const SurfaceAttributes& visual_attributes, const bool flush = false) const;
 
@@ -295,8 +295,8 @@ public:
      * The lines are drawn with the correct line width, as given in the lines,
      * but there is a multiplicative factor to adjust the width with.
      * \param lines The lines to draw.
-     * \param color The color to draw the lines with.
-     * \param width_factor A multiplicative factor on the line widths.
+     * \param visual_attributes The visual appearance of the lines.
+     * \param flush Whether the output file should be flushed after writing.
      */
     void write(const VariableWidthLines& lines, const SurfaceAttributes& visual_attributes, const bool flush = false) const;
 
@@ -306,13 +306,24 @@ public:
      * The line is drawn with the correct line width, as given in the junctions,
      * but there is a multiplicative factor to adjust the width with.
      * \param line The line to draw.
-     * \param color The color to draw the line with.
-     * \param width_factor A multiplicative factor on the line width.
+     * \param visual_attributes The visual appearance of the lines.
+     * \param flush Whether the output file should be flushed after writing.
      */
     void write(const ExtrusionLine& line, const SurfaceAttributes& visual_attributes, const bool flush = true) const;
 
+    /*!
+     * Write the visual attributes of a surface to the output file as attributes of the current tag
+     * @param visual_attributes The surface attributes to be written
+     * @param fill_rule The polygon fill rule to be used
+     * @warning This function write the attributes without leaving empty space around. It is the duty of the caller to set proper spaces (or not).
+     */
     void write(const SurfaceAttributes& visual_attributes, const FillRule fill_rule = FillRule::None) const;
 
+    /*!
+     * Write the visual attributes of a line to the output file as attributes of the current tag
+     * @param visual_attributes The line attributes to be written
+     * @warning This function write the attributes without leaving empty space around. It is the duty of the caller to set proper spaces (or not).
+     */
     void write(const LineAttributes& visual_attributes) const;
 
     /*!
