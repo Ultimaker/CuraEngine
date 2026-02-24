@@ -996,11 +996,13 @@ void LayerPlan::addWallLine(
     const bool travel_to_z)
 {
     constexpr coord_t min_line_len = 5; // we ignore lines less than 5um long
+    constexpr coord_t min_line_len_squared = square(min_line_len);
     constexpr double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     constexpr bool spiralize = false;
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const coord_t min_bridge_line_len_squared = square(min_bridge_line_len);
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
     Point3LL cur_point = p0;
@@ -1162,7 +1164,7 @@ void LayerPlan::addWallLine(
             {
                 // This is only relevant for the very fist iteration of the loop
                 // if the start of the line segment is not at minimum distance from p0
-                if (vSize2(line_poly.front() - p0) > min_line_len * min_line_len)
+                if (vSize2(line_poly.front() - p0) > min_line_len_squared)
                 {
                     addExtrusionMove(
                         line_poly.front(),
@@ -1180,7 +1182,7 @@ void LayerPlan::addWallLine(
             }
 
             // if the last point is not yet at a minimum distance from p1 then add a move to p1
-            if (vSize2(skin_line_segments.back().back() - p1) > min_line_len * min_line_len)
+            if (vSize2(skin_line_segments.back().back() - p1) > min_line_len_squared)
             {
                 addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
             }
@@ -1206,85 +1208,77 @@ void LayerPlan::addWallLine(
             travel_to_z);
     }
     else if (
-        bridge_wall_mask_bb_.hit(AABB({ p0.toPoint2LL(), p1.toPoint2LL() })) && PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL()))
+        bridge_wall_mask_bb_.hit(AABB({ p0.toPoint2LL(), p1.toPoint2LL() })) && PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL())
+        && (p0 - p1).vSize2() >= min_bridge_line_len_squared && ! bridge_wall_mask_.inside(p0.toPoint2LL()) && ! bridge_wall_mask_.inside(p1.toPoint2LL()))
     {
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
 
-        // determine which segments of the line are bridges
-
-        OpenLinesSet line_polys;
-        line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
-        constexpr bool restitch = false; // only a single line doesn't need stitching
-        line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
-
-        // line_polys now contains the wall lines that need to be printed using bridge_config
-
-        while (line_polys.size() > 0)
+        // In order to properly bridge, the segment needs to start outside the bridging area to get a proper anchoring, then get inside and back outside at the end
+        std::vector<float> intersections = bridge_wall_mask_.intersectionsWithSegment(p0.toPoint2LL(), p1.toPoint2LL());
+        if (intersections.size() < 2)
         {
-            // find the bridge line segment that's nearest to the current point
-            size_t nearest = 0;
-            double smallest_dist2 = (cur_point - line_polys[0][0]).vSize2f();
-            for (size_t i = 1; i < line_polys.size(); ++i)
+            // Segment obviously doesn't anchor at start and end
+            addNonBridgeLine(p1);
+            return;
+        }
+
+        ranges::stable_sort(intersections);
+
+        // Calculate the lengths of the first and last subsegments, which are the ones used for anchoring
+        const coord_t segment_length = (p1 - p0).vSize();
+        const coord_t first_subsegment_length = segment_length * intersections.front();
+        const coord_t last_subsegment_length = segment_length * (1.0 - intersections.back());
+        const coord_t min_anchoring_length = default_config.line_width;
+
+        if (first_subsegment_length < min_anchoring_length || last_subsegment_length < min_anchoring_length)
+        {
+            // At least one anchoring segment is too short, segment does not anchor properly
+            addNonBridgeLine(p1);
+            return;
+        }
+
+        // Loop through all the intersections, starting with the first anchoring segment which is non-bridging, then switch bridging/non-bridging at each intersection
+        bool bridging = false;
+        for (const float next_intersection_factor : intersections)
+        {
+            Point3LL next_intersection = lerp(p0, p1, next_intersection_factor);
+
+            const coord_t bridge_line_len_squared = (next_intersection - cur_point).vSize2();
+            if (bridging && bridge_line_len_squared >= min_bridge_line_len_squared)
             {
-                double dist2 = (cur_point - line_polys[i][0]).vSize2f();
-                if (dist2 < smallest_dist2)
+                if (bridge_line_len_squared > min_line_len_squared)
                 {
-                    nearest = i;
-                    smallest_dist2 = dist2;
-                }
-            }
-            const OpenPolyline& bridge = line_polys[nearest];
-
-            // set b0 to the nearest vertex and b1 the furthest
-            Point3LL b0 = bridge[0];
-            Point3LL b1 = bridge[1];
-
-            if ((cur_point - b1).vSize2f() < (cur_point - b0).vSize2f())
-            {
-                // swap vertex order
-                b0 = bridge[1];
-                b1 = bridge[0];
-            }
-
-            // extrude using default_config to the start of the next bridge segment
-
-            addNonBridgeLine(b0);
-
-            const double bridge_line_len = (b1 - cur_point).vSize();
-
-            if (bridge_line_len >= min_bridge_line_len)
-            {
-                // extrude using bridge_config to the end of the next bridge segment
-
-                if (bridge_line_len > min_line_len)
-                {
-                    addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
+                    // this subsegment is property bridging, extrude using bridge_config to the end of the next bridge segment
+                    addExtrusionMove(
+                        next_intersection,
+                        bridge_config,
+                        SpaceFillType::Polygons,
+                        flow,
+                        width_factor,
+                        spiralize,
+                        1.0_r,
+                        GCodePathConfig::FAN_SPEED_DEFAULT,
+                        travel_to_z);
 
                     non_bridge_line_volume = 0;
-                    cur_point = b1;
+                    cur_point = next_intersection;
+
                     // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
                     speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
                 }
             }
             else
             {
-                // treat the short bridge line just like a normal line
-
-                addNonBridgeLine(b1);
+                // extrude using default_config
+                addNonBridgeLine(next_intersection);
             }
 
             // finished with this segment
-            line_polys.removeAt(nearest);
+            bridging = ! bridging;
         }
 
         // if we haven't yet reached p1, fill the gap with default_config line
         addNonBridgeLine(p1);
-    }
-    else if (bridge_wall_mask_.inside(p0.toPoint2LL(), true) && (p0 - p1).vSize() >= min_bridge_line_len)
-    {
-        // both p0 and p1 must be above air (the result will be ugly!)
-        addExtrusionMoveWithGradualOverhang(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
-        non_bridge_line_volume = 0;
     }
     else if (use_skin_config(flooring_mask_, flooring_config))
     {
