@@ -9,7 +9,7 @@
 #include <boost/unordered/concurrent_flat_map.hpp>
 
 #include "Coord_t.h"
-#include "geometry/Triangle3D.h"
+#include "geometry/Triangle3LL.h"
 #include "utils/Point3D.h"
 
 
@@ -148,10 +148,10 @@ public:
      *
      * To do a fast (enough) rasterization of the triangle, we calculate its bounding box in the voxels grid on the X axis, then we iterate on all the YZ columns
      * in the X direction. For each column we crop the edges of the triangle to fit inside the width of the column, which gives a sub-triangle or a quad shape. Then for this
-     * sub-shape, we calculate its bounding box in the Y axis, and iterate on all the Z "square tubes". For each cube we crop the edges again, and iterate over the Z bounding boxes
+     * sub-shape, we calculate its bounding box in the Y axis, and iterate on all the Z "square tubes". For each tube we crop the edges again, and iterate over the Z bounding boxes
      * of the sub-sub-shape. Each iterated position is then considered as being traversed by the triangle.
      */
-    std::vector<LocalCoordinates> getTraversedVoxels(const Triangle3D& triangle) const;
+    std::vector<LocalCoordinates> getTraversedVoxels(const Triangle3LL& triangle) const;
 
     void saveToObj(const std::string& filename, const double scale = 1.0) const;
 

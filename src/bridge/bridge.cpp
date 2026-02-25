@@ -419,6 +419,33 @@ std::optional<AngleDegrees> bridgeAngle(
         std::optional<AngleDegrees> angle;
     };
 
+    OpenLinesSet bridge_area_lines;
+    for (auto& path : skin_outline)
+    {
+        bridge_area_lines.push_back(path.toPseudoOpenPolyline());
+    }
+    bridge_area_lines = bridge_area_lines.difference(supported_regions.offset(10));
+
+    if (bridge_area_lines.empty())
+    {
+        // if bridge lines are supported in all directions, use the following heuristic
+        // 1. calculate the minimum oriented bounding box
+        // 2. bridge lines in the smallest axis of this min oriented
+        //    bounding box is considered the best orientation
+        // This heuristic is used since this produces more consistent bridging angles.
+        // While the else-case would produce a better theoretical bridging angle it would
+        // produce a different angle for similar areas within the same print. Since this
+        // would look _chaotic_ on the final print a more consistent approach is used.
+        auto skin_outline_ = skin_outline;
+        skin_outline_.makeConvex();
+        auto [aabb, angle] = AABB::minimumAreaOrientedBoundingBox(skin_outline_);
+        if (aabb.height() > aabb.width())
+        {
+            angle += AngleDegrees(90);
+        }
+        return -AngleDegrees(angle);
+    }
+
     FitAngle best_angle{ std::numeric_limits<coord_t>::lowest(), std::nullopt };
     for (AngleDegrees angle = 0; angle < 180; angle += 1)
     {
@@ -431,7 +458,6 @@ std::optional<AngleDegrees> bridgeAngle(
 
     return best_angle.angle;
 }
-
 /*!
  * Make the expanded ranges for the given segment
  * @param segment The segment to be expanded

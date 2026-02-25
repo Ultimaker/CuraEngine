@@ -610,6 +610,17 @@ public:
 
     void writeCode(const char* str);
 
+    /*!
+     * Write code while temporarily ensuring absolute extrusion mode.
+     * If relative extrusion mode is active, this will:
+     * - Switch to absolute extrusion mode
+     * - Write the provided code
+     * - Restore relative extrusion mode
+     *
+     * \param str The code string to write
+     */
+    void writeCodeWithAbsoluteExtrusion(const char* str);
+
     void resetExtruderToPrimed(const size_t extruder, const double initial_retraction);
 
     /*!

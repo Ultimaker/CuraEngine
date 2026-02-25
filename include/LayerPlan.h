@@ -11,6 +11,7 @@
 #include "SpaceFillType.h"
 #include "gcodeExport.h"
 #include "geometry/LinesSet.h"
+#include "geometry/MendedShape.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
@@ -733,7 +734,7 @@ public:
         const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
         const coord_t extra_inwards_start_move_length = 0,
         const coord_t extra_inwards_end_move_length = 0,
-        const Shape& extra_inwards_move_contour = Shape());
+        const MendedShape& extra_inwards_move_contour = MendedShape());
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -918,7 +919,7 @@ private:
         const double fan_speed,
         const coord_t extra_inwards_start_move_length = 0,
         const coord_t extra_inwards_end_move_length = 0,
-        const Shape& extra_inwards_move_contour = Shape());
+        const MendedShape& extra_inwards_move_contour = MendedShape());
 
     /*!
      * Add order optimized polygons to the gcode.

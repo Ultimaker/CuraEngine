@@ -1138,7 +1138,16 @@ void GCodeExport::writeFXYZE(
     Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
     total_bounding_box_.include(Point3LL(gcode_pos.X, gcode_pos.Y, z));
 
-    *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
+    if (x != current_position_.x_)
+    {
+        *output_stream_ << " X" << MMtoStream{ gcode_pos.X };
+    }
+
+    if (y != current_position_.y_)
+    {
+        *output_stream_ << " Y" << MMtoStream{ gcode_pos.Y };
+    }
+
     if (z != current_position_.z_)
     {
         *output_stream_ << " Z" << MMtoStream{ z };
@@ -1373,15 +1382,11 @@ void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const 
 
     is_z_hopped_ = height;
     const coord_t target_z = current_layer_z_ + is_z_hopped_;
-    current_speed_ = speed;
-    *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 } << " Z" << MMtoStream{ target_z };
-    if (retraction_amounts.has_retraction())
-    {
-        writeRawRetract(retraction_amounts);
-    }
-    *output_stream_ << new_line_;
 
-    sendTravel(Point3LL(current_position_.x_, current_position_.y_, target_z), speed, extruder_attr, retraction_amounts);
+    const PrintFeatureType travel_move_type = sendTravel(Point3LL(current_position_.x_, current_position_.y_, target_z), speed, extruder_attr, retraction_amounts);
+
+    *output_stream_ << "G1";
+    writeFXYZE(speed, current_position_.x_, current_position_.y_, target_z, current_e_value_, travel_move_type, retraction_amounts);
 
     assert(speed > 0.0 && "Z hop speed should be positive.");
     total_bounding_box_.includeZ(target_z);
@@ -1418,17 +1423,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     // to heat and run this so it's run before the change call. **Future note**
     if (! prestart_code.empty())
     {
-        if (relative_extrusion_)
-        {
-            writeExtrusionMode(false); // ensure absolute extrusion mode is set before the prestart gcode
-        }
-
-        writeCode(prestart_code.c_str());
-
-        if (relative_extrusion_)
-        {
-            writeExtrusionMode(true); // restore relative extrusion mode
-        }
+        writeCodeWithAbsoluteExtrusion(prestart_code.c_str());
     }
 
     extruder_attr_[new_extruder].is_used_ = true;
@@ -1455,17 +1450,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
 
     if (! start_code.empty())
     {
-        if (relative_extrusion_)
-        {
-            writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
-        }
-
-        writeCode(start_code.c_str());
-
-        if (relative_extrusion_)
-        {
-            writeExtrusionMode(true); // restore relative extrusion mode
-        }
+        writeCodeWithAbsoluteExtrusion(start_code.c_str());
     }
 
     Application::getInstance().communication_->setExtruderForSend(Application::getInstance().current_slice_->scene.extruders[new_extruder]);
@@ -1501,17 +1486,7 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
 
     if (! end_code.empty())
     {
-        if (relative_extrusion_)
-        {
-            writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
-        }
-
-        writeCode(end_code.c_str());
-
-        if (relative_extrusion_)
-        {
-            writeExtrusionMode(true); // restore relative extrusion mode
-        }
+        writeCodeWithAbsoluteExtrusion(end_code.c_str());
     }
 
     const auto end_code_duration = old_extruder_settings.get<Duration>("machine_extruder_end_code_duration");
@@ -1523,6 +1498,21 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
 void GCodeExport::writeCode(const char* str)
 {
     *output_stream_ << str << new_line_;
+}
+
+void GCodeExport::writeCodeWithAbsoluteExtrusion(const char* str)
+{
+    if (relative_extrusion_)
+    {
+        writeExtrusionMode(false); // ensure absolute extrusion mode is set before the gcode
+    }
+
+    writeCode(str);
+
+    if (relative_extrusion_)
+    {
+        writeExtrusionMode(true); // restore relative extrusion mode
+    }
 }
 
 void GCodeExport::resetExtruderToPrimed(const size_t extruder, const double initial_retraction)
