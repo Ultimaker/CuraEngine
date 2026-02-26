@@ -2031,7 +2031,7 @@ OpenPolyline LayerPlan::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal
     const STHalfEdge* trapezoidal_start = nullptr;
     uint8_t trapezoidal_segments = 0;
     double projection_ratio_on_outer_segment = 0.0;
-    std::optional<coord_t> distance_to_closest_segment;
+    std::optional<coord_t> distance_to_closest_segment_squared;
     for (const STHalfEdge& start_edge : trapezoidal_edges)
     {
         if (start_edge.prev_ != nullptr)
@@ -2053,11 +2053,11 @@ OpenPolyline LayerPlan::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal
         const Point2LL& outer_segment_p0 = start_edge.from_->p_;
         const Point2LL& outer_segment_p1 = end_edge->to_->p_;
 
-        coord_t projection_distance;
+        coord_t projection_distance_squared;
         double projection_ratio;
         if (outer_segment_p1 == outer_segment_p0)
         {
-            projection_distance = vSize(start_point - outer_segment_p0);
+            projection_distance_squared = vSize2(start_point - outer_segment_p0);
             projection_ratio = 0.5; // If using this segment for subsequent opposite projection, use edge center
         }
         else
@@ -2066,22 +2066,27 @@ OpenPolyline LayerPlan::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal
             const Point2LL p0_start = start_point - outer_segment_p0;
             projection_ratio = dot(p0_start, p0_p1) / vSize2f(p0_p1);
 
-            if (projection_ratio < 0.0 || projection_ratio > 1.0)
+            if (projection_ratio < 0.0)
             {
-                // point is outside segment
-                continue;
+                projection_distance_squared = vSize2(start_point - outer_segment_p0);
             }
-
-            const Point2LL projected = lerp(outer_segment_p0, outer_segment_p1, projection_ratio);
-            projection_distance = vSize(start_point - projected);
+            else if (projection_ratio > 1.0)
+            {
+                projection_distance_squared = vSize2(start_point - outer_segment_p1);
+            }
+            else
+            {
+                const Point2LL projected = lerp(outer_segment_p0, outer_segment_p1, projection_ratio);
+                projection_distance_squared = vSize2(start_point - projected);
+            }
         }
 
-        if (! distance_to_closest_segment.has_value() || projection_distance < distance_to_closest_segment.value())
+        if (! distance_to_closest_segment_squared.has_value() || projection_distance_squared < distance_to_closest_segment_squared.value())
         {
             trapezoidal_start = &start_edge;
             trapezoidal_segments = current_trapezoidal_segments;
             projection_ratio_on_outer_segment = projection_ratio;
-            distance_to_closest_segment = projection_distance;
+            distance_to_closest_segment_squared = projection_distance_squared;
         }
     }
 
@@ -2091,7 +2096,7 @@ OpenPolyline LayerPlan::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal
         return {};
     }
 
-    coord_t remaining_inwards_length = move_inwards_length - distance_to_closest_segment.value();
+    coord_t remaining_inwards_length = move_inwards_length - std::sqrt(distance_to_closest_segment_squared.value());
     if (remaining_inwards_length <= 0)
     {
         // Start point is already far enough from the outside, no need to add an extra move
