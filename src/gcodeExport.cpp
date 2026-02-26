@@ -1138,14 +1138,11 @@ void GCodeExport::writeFXYZE(
     Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
     total_bounding_box_.include(Point3LL(gcode_pos.X, gcode_pos.Y, z));
 
-    if (x != current_position_.x_)
+    // This is done intentionally to include both X and Y in case of a change in either of them.
+    // To prevent any potential issues with machines with custom FW or processing scripts that require both X and Y to be present for a move, even if only one of them is changing.
+    if (x != current_position_.x_ || y != current_position_.y_)
     {
-        *output_stream_ << " X" << MMtoStream{ gcode_pos.X };
-    }
-
-    if (y != current_position_.y_)
-    {
-        *output_stream_ << " Y" << MMtoStream{ gcode_pos.Y };
+        *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
     }
 
     if (z != current_position_.z_)
