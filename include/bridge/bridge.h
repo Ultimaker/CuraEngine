@@ -22,7 +22,7 @@ class AngleDegrees;
 class LayerPlan;
 template<class PathType>
 class PathAdapter;
-class Ratio;
+struct Ratio;
 struct ExtrusionLine;
 
 /*!
