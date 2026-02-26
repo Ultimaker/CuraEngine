@@ -787,7 +787,12 @@ bool isWallTipAnchored(
 
         bool over_air = tip_inside_bridge_mask;
         Point2LL following_segment_p0 = tip;
-        ptrdiff_t next_point_index = tip_index - segment_direction;
+        ptrdiff_t next_point_index = tip_index;
+
+        const auto increment_index = [&next_point_index, segment_direction, &wall]()
+        {
+            next_point_index = ((next_point_index - segment_direction) + wall.size()) % wall.size();
+        };
 
         const auto account_for_segment = [&over_air, &remaining_anchoring_length, &remaining_search_length](const Point2LL& start, const Point2LL& end)
         {
@@ -799,7 +804,8 @@ bool isWallTipAnchored(
             remaining_search_length = std::max(static_cast<coord_t>(0), remaining_search_length - segment_length);
         };
 
-        while (next_point_index >= 0 && next_point_index < wall.size() && remaining_search_length > 0 && remaining_anchoring_length > 0)
+        increment_index();
+        while (remaining_search_length > 0 && remaining_anchoring_length > 0)
         {
             // for each following segment, account for parts of the segments that are not over air, i.e. not inside the bridging area
             const Point2LL following_segment_p1 = wall.pointAt(next_point_index);
@@ -820,7 +826,7 @@ bool isWallTipAnchored(
             account_for_segment(current_position, following_segment_p1);
 
             following_segment_p0 = following_segment_p1;
-            next_point_index -= segment_direction;
+            increment_index();
         }
     }
 
