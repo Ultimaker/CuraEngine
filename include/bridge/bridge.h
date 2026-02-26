@@ -7,15 +7,23 @@
 #include <optional>
 #include <tuple>
 
+#include "geometry/Point2LL.h"
+#include "utils/Coord_t.h"
+
 namespace cura
 {
 
+class AABB;
 class Shape;
 class SliceMeshStorage;
 class SliceDataStorage;
 class SupportLayer;
 class AngleDegrees;
 class LayerPlan;
+template<class PathType>
+class PathAdapter;
+class Ratio;
+struct ExtrusionLine;
 
 /*!
  * \brief Computes the angle that lines have to take to bridge a certain shape
@@ -57,6 +65,16 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     const SliceMeshStorage& mesh,
     const LayerPlan* completed_layer_plan_below,
     const unsigned layer_nr);
+
+std::vector<std::tuple<Ratio, Ratio>> wallSegmentUsesBridging(
+    const AABB& bridge_mask_bb,
+    const Shape& bridge_mask,
+    const PathAdapter<ExtrusionLine>& wall,
+    const size_t segment_index,
+    const Ratio& segment_start_ratio,
+    const Ratio& segment_end_ratio,
+    const coord_t min_bridge_line_len,
+    const coord_t line_width);
 
 } // namespace cura
 

@@ -24,6 +24,7 @@
 #include "WipeScriptConfig.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "arachne/SkeletalTrapezoidationGraph.h"
+#include "bridge/bridge.h"
 #include "communication/Communication.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/conversions/Point2D_Point2LL.h"
@@ -841,7 +842,7 @@ void LayerPlan::addPolygon(
     Point2LL p0 = polygon[start_idx];
     addTravel(p0, always_retract, config.z_offset);
 
-    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam(
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<Polygon>(
         path_adapter,
         start_idx,
         settings,
@@ -854,6 +855,10 @@ void LayerPlan::addPolygon(
         scarf_seam,
         smooth_speed,
         [this, &config, &spiralize](
+            const PathAdapter<Polygon>& /*wall*/,
+            const size_t /*segment_index*/,
+            const Ratio& /*segment_start_ratio*/,
+            const Ratio& /*segment_end_ratio*/,
             const Point3LL& /*start*/,
             const Point3LL& end,
             const Ratio& speed_factor,
@@ -981,6 +986,10 @@ void LayerPlan::addInfillPolygonsByOptimizer(
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(
+    const PathAdapter<ExtrusionLine>& wall,
+    const size_t segment_index,
+    const Ratio& segment_start_ratio,
+    const Ratio& segment_end_ratio,
     const Point3LL& p0,
     const Point3LL& p1,
     const Settings& settings,
@@ -1001,8 +1010,7 @@ void LayerPlan::addWallLine(
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     constexpr bool spiralize = false;
 
-    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
-    const coord_t min_bridge_line_len_squared = square(min_bridge_line_len);
+    const coord_t min_bridge_line_len = std::max(min_line_len, settings.get<coord_t>("bridge_wall_min_length"));
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
     Point3LL cur_point = p0;
@@ -1207,77 +1215,33 @@ void LayerPlan::addWallLine(
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
-    else if (
-        bridge_wall_mask_bb_.hit(AABB({ p0.toPoint2LL(), p1.toPoint2LL() })) && PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL())
-        && (p0 - p1).vSize2() >= min_bridge_line_len_squared && ! bridge_wall_mask_.inside(p0.toPoint2LL()) && ! bridge_wall_mask_.inside(p1.toPoint2LL()))
+    else if (std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments = wallSegmentUsesBridging(
+                 bridge_wall_mask_bb_,
+                 bridge_wall_mask_,
+                 wall,
+                 segment_index,
+                 segment_start_ratio,
+                 segment_end_ratio,
+                 min_bridge_line_len,
+                 default_config.line_width);
+             ! bridging_subsegments.empty())
     {
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
-
-        // In order to properly bridge, the segment needs to start outside the bridging area to get a proper anchoring, then get inside and back outside at the end
-        std::vector<float> intersections = bridge_wall_mask_.intersectionsWithSegment(p0.toPoint2LL(), p1.toPoint2LL());
-        if (intersections.size() < 2)
+        for (const std::tuple<Ratio, Ratio>& bridging_subsegment : bridging_subsegments)
         {
-            // Segment obviously doesn't anchor at start and end
-            addNonBridgeLine(p1);
-            return;
+            const Point3LL bridging_subsegment_p0 = lerp(p0, p1, std::get<0>(bridging_subsegment).value);
+            const Point3LL bridging_subsegment_p1 = lerp(p0, p1, std::get<1>(bridging_subsegment).value);
+
+            addNonBridgeLine(bridging_subsegment_p0);
+            addExtrusionMove(bridging_subsegment_p1, bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
+
+            non_bridge_line_volume = 0;
+            cur_point = bridging_subsegment_p1;
+
+            // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
+            speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
         }
 
-        ranges::stable_sort(intersections);
-
-        // Calculate the lengths of the first and last subsegments, which are the ones used for anchoring
-        const coord_t segment_length = (p1 - p0).vSize();
-        const coord_t first_subsegment_length = segment_length * intersections.front();
-        const coord_t last_subsegment_length = segment_length * (1.0 - intersections.back());
-        const coord_t min_anchoring_length = default_config.line_width;
-
-        if (first_subsegment_length < min_anchoring_length || last_subsegment_length < min_anchoring_length)
-        {
-            // At least one anchoring segment is too short, segment does not anchor properly
-            addNonBridgeLine(p1);
-            return;
-        }
-
-        // Loop through all the intersections, starting with the first anchoring segment which is non-bridging, then switch bridging/non-bridging at each intersection
-        bool bridging = false;
-        for (const float next_intersection_factor : intersections)
-        {
-            Point3LL next_intersection = lerp(p0, p1, next_intersection_factor);
-
-            const coord_t bridge_line_len_squared = (next_intersection - cur_point).vSize2();
-            if (bridging && bridge_line_len_squared >= min_bridge_line_len_squared)
-            {
-                if (bridge_line_len_squared > min_line_len_squared)
-                {
-                    // this subsegment is property bridging, extrude using bridge_config to the end of the next bridge segment
-                    addExtrusionMove(
-                        next_intersection,
-                        bridge_config,
-                        SpaceFillType::Polygons,
-                        flow,
-                        width_factor,
-                        spiralize,
-                        1.0_r,
-                        GCodePathConfig::FAN_SPEED_DEFAULT,
-                        travel_to_z);
-
-                    non_bridge_line_volume = 0;
-                    cur_point = next_intersection;
-
-                    // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
-                    speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
-                }
-            }
-            else
-            {
-                // extrude using default_config
-                addNonBridgeLine(next_intersection);
-            }
-
-            // finished with this segment
-            bridging = ! bridging;
-        }
-
-        // if we haven't yet reached p1, fill the gap with default_config line
         addNonBridgeLine(p1);
     }
     else if (use_skin_config(flooring_mask_, flooring_config))
@@ -1369,7 +1333,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const coord_t decelerate_length,
     const bool is_scarf_closure,
     const bool compute_distance_to_bridge_start,
-    const AddExtrusionSegmentFunction& func_add_segment)
+    const AddExtrusionSegmentFunction<PathType>& func_add_segment)
 {
     std::optional<coord_t> distance_to_bridge_start; // will be updated before each line is processed
     Point2LL p0 = wall.pointAt(start_idx);
@@ -1558,6 +1522,10 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
 
                     // now add the (sub-)segment
                     func_add_segment(
+                        wall,
+                        point_index(actual_point_index - 1),
+                        static_cast<float>(segment_processed_distance) / line_length,
+                        static_cast<float>(segment_processed_distance + length_to_process) / line_length,
                         split_origin,
                         split_destination,
                         accelerate_speed_factor * decelerate_speed_factor,
@@ -1816,7 +1784,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const bool is_candidate_small_feature,
     const bool scarf_seam,
     const bool smooth_speed,
-    const AddExtrusionSegmentFunction& func_add_segment)
+    const AddExtrusionSegmentFunction<PathType>& func_add_segment)
 {
     if (wall.empty())
     {
@@ -1861,7 +1829,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     {
         constexpr bool compute_distance_to_bridge_start = true;
 
-        return addSplitWall(
+        return addSplitWall<PathType>(
             PathAdapter(wall),
             wall_length,
             start_idx,
@@ -1928,7 +1896,7 @@ void LayerPlan::addWall(
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
     const PathAdapter path_adapter(wall);
 
-    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam(
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<ExtrusionLine>(
         path_adapter,
         start_idx,
         settings,
@@ -1940,7 +1908,11 @@ void LayerPlan::addWall(
         wall.inset_idx_ == 0,
         scarf_seam,
         smooth_speed,
-        [&](const Point3LL& start,
+        [&](const PathAdapter<ExtrusionLine>& wall,
+            const size_t segment_index,
+            const Ratio& segment_start_ratio,
+            const Ratio& segment_end_ratio,
+            const Point3LL& start,
             const Point3LL& end,
             const Ratio& speed_factor,
             const Ratio& actual_flow_ratio,
@@ -1950,6 +1922,10 @@ void LayerPlan::addWall(
             constexpr bool travel_to_z = false;
 
             addWallLine(
+                wall,
+                segment_index,
+                segment_start_ratio,
+                segment_end_ratio,
                 start,
                 end,
                 settings,
