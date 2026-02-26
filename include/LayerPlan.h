@@ -559,6 +559,10 @@ public:
 
     /*!
      * Add a single line that is part of a wall to the gcode.
+     * \param wall The wall line being printed
+     * \param segment_index The index of the segment of the wall line being printed
+     * \param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
+     * \param segment_end_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment ends
      * \param p0 The start vertex of the line.
      * \param p1 The end vertex of the line.
      * \param settings The settings which should apply to this line added to the
@@ -1005,6 +1009,10 @@ private:
 
     /*!
      * \brief Alias for a function definition that adds an extrusion segment
+     * \param wall The wall line being printed
+     * \param segment_index The index of the segment of the wall line being printed
+     * \param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
+     * \param segment_end_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment ends
      * \param start The start position of the segment
      * \param end The end position of the segment
      * \param speed_factor The speed factor to be applied when extruding this specific segment (relative to nominal speed for the entire path)

@@ -66,6 +66,18 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     const LayerPlan* completed_layer_plan_below,
     const unsigned layer_nr);
 
+/*!
+ * Calculates which portions of the given wall segment should be bridging
+ * @param bridge_mask_bb The bridging mask bounding box, to speed up some calculations * @param bridge_mask The bridging mask, i.e. the regions that are fully over air
+ * @param wall The wall line being printed
+ * @param segment_index The index of the segment of the wall line being printed
+ * @param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
+ * @param segment_end_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment ends
+ * @param min_bridge_line_len The minimum allowed bridging segment length
+ * @param line_width The current nominal printing line width
+ * @return A list containing the start and end subsegments to be printed as bridge. Each start and end is represented by ratios of the current subsegment, itself contained in
+ *         segment_start_ratio and segment_end_ratio
+ */
 std::vector<std::tuple<Ratio, Ratio>> wallSegmentUsesBridging(
     const AABB& bridge_mask_bb,
     const Shape& bridge_mask,

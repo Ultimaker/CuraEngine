@@ -744,6 +744,19 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
 
+/*!
+ * Calculates whether the given tip of an extrusion segment is properly anchored for bridging
+ * @param bridge_mask The bridging mask, i.e. the regions that are fully over air
+ * @param wall The wall line being printed
+ * @param tip_index The index of the tip to be considered
+ * @param tip The position of the tip to be considered
+ * @param other_tip The position of the opposite tip of the segment
+ * @param tip_inside_bridge_mask Indicates whether the tip is inside the bridge mask
+ * @param segment_direction Indicates whether the segment goes forwards on the extrusion line (1) or backwards (-1)
+ * @param min_anchoring_length The minimum anchoring length to be reached to consider that the segment is properly anchored
+ * @param intersections The intersections of the segment with the bridge mask (ordered in original segment orientation)
+ * @return True if the tip is properly anchored, false if it is fully hanging
+ */
 bool isWallTipAnchored(
     const Shape& bridge_mask,
     const PathAdapter<ExtrusionLine>& wall,
