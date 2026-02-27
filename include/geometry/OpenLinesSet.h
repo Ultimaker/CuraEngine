@@ -46,6 +46,9 @@ public:
      * @param point_index The point at which the line will be split
      */
     void split(const size_t line_index, const size_t point_index);
+
+
+    [[nodiscard]] OpenLinesSet difference(const Shape& other) const;
 };
 
 } // namespace cura

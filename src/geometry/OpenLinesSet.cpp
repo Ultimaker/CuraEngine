@@ -2,7 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "geometry/OpenLinesSet.h"
-
+#include "geometry/Shape.h"
 
 namespace cura
 {
@@ -38,6 +38,29 @@ void OpenLinesSet::split(const size_t line_index, const size_t point_index)
     line.resize(point_index + 1);
     line[point_index] = tail.front(); // The move may have left the point in an indeterminate state, so we need to assign it back
     insert(begin() + line_index + 1, std::move(tail));
+}
+
+[[nodiscard]] OpenLinesSet OpenLinesSet::difference(const Shape& other) const
+{
+    if (empty())
+    {
+        return {};
+    }
+    if (other.empty())
+    {
+        return *this;
+    }
+
+    ClipperLib::PolyTree ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    addPaths(clipper, ClipperLib::ptSubject);
+    other.addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctDifference, ret);
+
+    ClipperLib::Paths result_paths;
+    ClipperLib::OpenPathsFromPolyTree(ret, result_paths);
+
+    return OpenLinesSet(std::move(result_paths));
 }
 
 } // namespace cura
