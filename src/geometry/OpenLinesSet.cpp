@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "geometry/OpenLinesSet.h"
+
 #include "geometry/Shape.h"
 
 namespace cura
