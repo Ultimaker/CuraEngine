@@ -443,8 +443,10 @@ std::optional<Point2LL> InsetOrderOptimizer::getStartPosition() const
         return std::nullopt;
     }
 
-    const PathOrdering<const ExtrusionLine*>& first_path = path_optimizer_->paths_.front();
-    return first_path.converted_->at(first_path.start_vertex_);
+    PathOrdering<const ExtrusionLine*>& first_path = path_optimizer_->paths_.front();
+
+    const auto vert_data = first_path.getVertexData();
+    return vert_data.at(first_path.start_vertex_);
 }
 
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
