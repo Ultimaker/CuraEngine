@@ -277,12 +277,11 @@ void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_
             {
                 if (first_path)
                 {
+                    fprintf(out_, "<path ");
+                    write(visual_attributes.surface, fill_rule);
                     fprintf(
                         out_,
-                        R"(<path fill="%s" fill-opacity="%f" fill-rule="%s" stroke="%s" stroke-width="%f" stroke-dasharray="%s" stroke-opacity="%f" stroke-linecap="round" d=")",
-                        toString(visual_attributes.surface.color).c_str(),
-                        visual_attributes.surface.alpha,
-                        toString(fill_rule).c_str(),
+                        R"( stroke="%s" stroke-width="%f" stroke-dasharray="%s" stroke-opacity="%f" stroke-linecap="round" d=")",
                         toString(visual_attributes.line.color).c_str(),
                         visual_attributes.line.width,
                         toString(visual_attributes.line.dash_array).c_str(),
@@ -471,23 +470,27 @@ void SVG::write(const STHalfEdge& edge, const VisualAttributes& visual_attribute
     write(edge_half_arrow, visual_attributes, flush);
 }
 
-void SVG::writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color, const double width_factor) const
+void SVG::write(const std::vector<VariableWidthLines>& paths, const SurfaceAttributes& visual_attributes, const bool flush) const
 {
     for (const VariableWidthLines& lines : paths)
     {
-        writeLines(lines, color, width_factor);
+        write(lines, visual_attributes, false);
     }
+
+    handleFlush(flush);
 }
 
-void SVG::writeLines(const VariableWidthLines& lines, const ColorObject color, const double width_factor) const
+void SVG::write(const VariableWidthLines& lines, const SurfaceAttributes& visual_attributes, const bool flush) const
 {
     for (const ExtrusionLine& line : lines)
     {
-        writeLine(line, color, width_factor);
+        write(line, visual_attributes, false);
     }
+
+    handleFlush(flush);
 }
 
-void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const double width_factor, const bool flush) const
+void SVG::write(const ExtrusionLine& line, const SurfaceAttributes& visual_attributes, const bool flush) const
 {
     constexpr double minimum_line_width = 10; // Always have some width, otherwise some lines become completely invisible.
     if (line.junctions_.empty()) // Only draw lines that have at least 2 junctions, otherwise they are degenerate.
@@ -503,17 +506,16 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
         const Point2LL direction_vector = end_vertex.p_ - start_vertex.p_;
         const Point2LL direction_left = turn90CCW(direction_vector);
         const Point2LL direction_right = -direction_left; // Opposite of left.
-        const Point2D start_left
-            = transformF(start_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) * width_factor))));
-        const Point2D start_right
-            = transformF(start_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) * width_factor))));
-        const Point2D end_left = transformF(end_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
-        const Point2D end_right = transformF(end_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
+        const Point2D start_left = transformF(start_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D start_right = transformF(start_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D end_left = transformF(end_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
+        const Point2D end_right = transformF(end_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
 
+        fprintf(out_, "<polygon ");
+        write(visual_attributes);
         fprintf(
             out_,
-            "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f\" />\n",
-            toString(color).c_str(),
+            " points=\"%f,%f %f,%f %f,%f %f,%f\" />\n",
             static_cast<double>(start_left.x()),
             static_cast<double>(start_left.y()),
             static_cast<double>(start_right.x()),
@@ -526,10 +528,23 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
         start_vertex = end_vertex; // For the next line segment.
     }
 
-    if (flush)
-    {
-        fflush(out_);
-    }
+    handleFlush(flush);
+}
+
+void SVG::write(const SurfaceAttributes& visual_attributes, const FillRule fill_rule) const
+{
+    fprintf(out_, R"(fill="%s" fill-opacity="%f" fill-rule="%s")", toString(visual_attributes.color).c_str(), visual_attributes.alpha, toString(fill_rule).c_str());
+}
+
+void SVG::write(const LineAttributes& visual_attributes) const
+{
+    fprintf(
+        out_,
+        R"(stroke="%s" stroke-width="%f" stroke-dasharray="%s" stroke-opacity="%f" stroke-linecap="round")",
+        toString(visual_attributes.color).c_str(),
+        visual_attributes.width,
+        toString(visual_attributes.dash_array).c_str(),
+        visual_attributes.alpha);
 }
 
 void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& visual_attributes, const bool flush) const

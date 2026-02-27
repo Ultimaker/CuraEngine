@@ -24,6 +24,7 @@
 #include "WipeScriptConfig.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "arachne/SkeletalTrapezoidationGraph.h"
+#include "bridge/bridge.h"
 #include "communication/Communication.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/conversions/Point2D_Point2LL.h"
@@ -841,7 +842,7 @@ void LayerPlan::addPolygon(
     Point2LL p0 = polygon[start_idx];
     addTravel(p0, always_retract, config.z_offset);
 
-    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam(
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<Polygon>(
         path_adapter,
         start_idx,
         settings,
@@ -854,6 +855,10 @@ void LayerPlan::addPolygon(
         scarf_seam,
         smooth_speed,
         [this, &config, &spiralize](
+            const PathAdapter<Polygon>& /*wall*/,
+            const size_t /*segment_index*/,
+            const Ratio& /*segment_start_ratio*/,
+            const Ratio& /*segment_end_ratio*/,
             const Point3LL& /*start*/,
             const Point3LL& end,
             const Ratio& speed_factor,
@@ -981,6 +986,10 @@ void LayerPlan::addInfillPolygonsByOptimizer(
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(
+    const PathAdapter<ExtrusionLine>& wall,
+    const size_t segment_index,
+    const Ratio& segment_start_ratio,
+    const Ratio& segment_end_ratio,
     const Point3LL& p0,
     const Point3LL& p1,
     const Settings& settings,
@@ -996,11 +1005,12 @@ void LayerPlan::addWallLine(
     const bool travel_to_z)
 {
     constexpr coord_t min_line_len = 5; // we ignore lines less than 5um long
+    constexpr coord_t min_line_len_squared = square(min_line_len);
     constexpr double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     constexpr bool spiralize = false;
 
-    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const coord_t min_bridge_line_len = std::max(min_line_len, settings.get<coord_t>("bridge_wall_min_length"));
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
     Point3LL cur_point = p0;
@@ -1162,7 +1172,7 @@ void LayerPlan::addWallLine(
             {
                 // This is only relevant for the very fist iteration of the loop
                 // if the start of the line segment is not at minimum distance from p0
-                if (vSize2(line_poly.front() - p0) > min_line_len * min_line_len)
+                if (vSize2(line_poly.front() - p0) > min_line_len_squared)
                 {
                     addExtrusionMove(
                         line_poly.front(),
@@ -1180,7 +1190,7 @@ void LayerPlan::addWallLine(
             }
 
             // if the last point is not yet at a minimum distance from p1 then add a move to p1
-            if (vSize2(skin_line_segments.back().back() - p1) > min_line_len * min_line_len)
+            if (vSize2(skin_line_segments.back().back() - p1) > min_line_len_squared)
             {
                 addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
             }
@@ -1205,86 +1215,34 @@ void LayerPlan::addWallLine(
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
-    else if (
-        bridge_wall_mask_bb_.hit(AABB({ p0.toPoint2LL(), p1.toPoint2LL() })) && PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.toPoint2LL(), p1.toPoint2LL()))
+    else if (std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments = wallSegmentUsesBridging(
+                 bridge_wall_mask_bb_,
+                 bridge_wall_mask_,
+                 wall,
+                 segment_index,
+                 segment_start_ratio,
+                 segment_end_ratio,
+                 min_bridge_line_len,
+                 default_config.line_width);
+             ! bridging_subsegments.empty())
     {
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
-
-        // determine which segments of the line are bridges
-
-        OpenLinesSet line_polys;
-        line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
-        constexpr bool restitch = false; // only a single line doesn't need stitching
-        line_polys = bridge_wall_mask_.intersection(line_polys, restitch);
-
-        // line_polys now contains the wall lines that need to be printed using bridge_config
-
-        while (line_polys.size() > 0)
+        for (const std::tuple<Ratio, Ratio>& bridging_subsegment : bridging_subsegments)
         {
-            // find the bridge line segment that's nearest to the current point
-            size_t nearest = 0;
-            double smallest_dist2 = (cur_point - line_polys[0][0]).vSize2f();
-            for (size_t i = 1; i < line_polys.size(); ++i)
-            {
-                double dist2 = (cur_point - line_polys[i][0]).vSize2f();
-                if (dist2 < smallest_dist2)
-                {
-                    nearest = i;
-                    smallest_dist2 = dist2;
-                }
-            }
-            const OpenPolyline& bridge = line_polys[nearest];
+            const Point3LL bridging_subsegment_p0 = lerp(p0, p1, std::get<0>(bridging_subsegment).value);
+            const Point3LL bridging_subsegment_p1 = lerp(p0, p1, std::get<1>(bridging_subsegment).value);
 
-            // set b0 to the nearest vertex and b1 the furthest
-            Point3LL b0 = bridge[0];
-            Point3LL b1 = bridge[1];
+            addNonBridgeLine(bridging_subsegment_p0);
+            addExtrusionMove(bridging_subsegment_p1, bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
 
-            if ((cur_point - b1).vSize2f() < (cur_point - b0).vSize2f())
-            {
-                // swap vertex order
-                b0 = bridge[1];
-                b1 = bridge[0];
-            }
+            non_bridge_line_volume = 0;
+            cur_point = bridging_subsegment_p1;
 
-            // extrude using default_config to the start of the next bridge segment
-
-            addNonBridgeLine(b0);
-
-            const double bridge_line_len = (b1 - cur_point).vSize();
-
-            if (bridge_line_len >= min_bridge_line_len)
-            {
-                // extrude using bridge_config to the end of the next bridge segment
-
-                if (bridge_line_len > min_line_len)
-                {
-                    addExtrusionMove(b1, bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
-
-                    non_bridge_line_volume = 0;
-                    cur_point = b1;
-                    // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
-                    speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
-                }
-            }
-            else
-            {
-                // treat the short bridge line just like a normal line
-
-                addNonBridgeLine(b1);
-            }
-
-            // finished with this segment
-            line_polys.removeAt(nearest);
+            // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
+            speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
         }
 
-        // if we haven't yet reached p1, fill the gap with default_config line
         addNonBridgeLine(p1);
-    }
-    else if (bridge_wall_mask_.inside(p0.toPoint2LL(), true) && (p0 - p1).vSize() >= min_bridge_line_len)
-    {
-        // both p0 and p1 must be above air (the result will be ugly!)
-        addExtrusionMoveWithGradualOverhang(p1, bridge_config, SpaceFillType::Polygons, flow, width_factor);
-        non_bridge_line_volume = 0;
     }
     else if (use_skin_config(flooring_mask_, flooring_config))
     {
@@ -1375,7 +1333,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const coord_t decelerate_length,
     const bool is_scarf_closure,
     const bool compute_distance_to_bridge_start,
-    const AddExtrusionSegmentFunction& func_add_segment)
+    const AddExtrusionSegmentFunction<PathType>& func_add_segment)
 {
     std::optional<coord_t> distance_to_bridge_start; // will be updated before each line is processed
     Point2LL p0 = wall.pointAt(start_idx);
@@ -1564,6 +1522,10 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
 
                     // now add the (sub-)segment
                     func_add_segment(
+                        wall,
+                        point_index(actual_point_index - 1),
+                        static_cast<float>(segment_processed_distance) / line_length,
+                        static_cast<float>(segment_processed_distance + length_to_process) / line_length,
                         split_origin,
                         split_destination,
                         accelerate_speed_factor * decelerate_speed_factor,
@@ -1822,7 +1784,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const bool is_candidate_small_feature,
     const bool scarf_seam,
     const bool smooth_speed,
-    const AddExtrusionSegmentFunction& func_add_segment)
+    const AddExtrusionSegmentFunction<PathType>& func_add_segment)
 {
     if (wall.empty())
     {
@@ -1867,7 +1829,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     {
         constexpr bool compute_distance_to_bridge_start = true;
 
-        return addSplitWall(
+        return addSplitWall<PathType>(
             PathAdapter(wall),
             wall_length,
             start_idx,
@@ -1934,7 +1896,7 @@ void LayerPlan::addWall(
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
     const PathAdapter path_adapter(wall);
 
-    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam(
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<ExtrusionLine>(
         path_adapter,
         start_idx,
         settings,
@@ -1946,7 +1908,11 @@ void LayerPlan::addWall(
         wall.inset_idx_ == 0,
         scarf_seam,
         smooth_speed,
-        [&](const Point3LL& start,
+        [&](const PathAdapter<ExtrusionLine>& wall,
+            const size_t segment_index,
+            const Ratio& segment_start_ratio,
+            const Ratio& segment_end_ratio,
+            const Point3LL& start,
             const Point3LL& end,
             const Ratio& speed_factor,
             const Ratio& actual_flow_ratio,
@@ -1956,6 +1922,10 @@ void LayerPlan::addWall(
             constexpr bool travel_to_z = false;
 
             addWallLine(
+                wall,
+                segment_index,
+                segment_start_ratio,
+                segment_end_ratio,
                 start,
                 end,
                 settings,

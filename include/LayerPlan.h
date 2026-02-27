@@ -559,6 +559,10 @@ public:
 
     /*!
      * Add a single line that is part of a wall to the gcode.
+     * \param wall The wall line being printed
+     * \param segment_index The index of the segment of the wall line being printed
+     * \param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
+     * \param segment_end_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment ends
      * \param p0 The start vertex of the line.
      * \param p1 The end vertex of the line.
      * \param settings The settings which should apply to this line added to the
@@ -582,6 +586,10 @@ public:
      * the first bridge segment.
      */
     void addWallLine(
+        const PathAdapter<ExtrusionLine>& wall,
+        const size_t segment_index,
+        const Ratio& segment_start_ratio,
+        const Ratio& segment_end_ratio,
         const Point3LL& p0,
         const Point3LL& p1,
         const Settings& settings,
@@ -1001,6 +1009,10 @@ private:
 
     /*!
      * \brief Alias for a function definition that adds an extrusion segment
+     * \param wall The wall line being printed
+     * \param segment_index The index of the segment of the wall line being printed
+     * \param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
+     * \param segment_end_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment ends
      * \param start The start position of the segment
      * \param end The end position of the segment
      * \param speed_factor The speed factor to be applied when extruding this specific segment (relative to nominal speed for the entire path)
@@ -1008,7 +1020,12 @@ private:
      * \param line_width_ratio The line width ratio to be applied when extruding this specific segment (relative to nominal line width for the entire path)
      * \param distance_to_bridge_start The calculate distance to the next bridge start, which may be irrelevant in some cases
      */
+    template<class PathType>
     using AddExtrusionSegmentFunction = std::function<void(
+        const PathAdapter<PathType>& wall,
+        const size_t segment_index,
+        const Ratio& segment_start_ratio,
+        const Ratio& segment_end_ratio,
         const Point3LL& start,
         const Point3LL& end,
         const Ratio& speed_factor,
@@ -1075,7 +1092,7 @@ private:
         const coord_t decelerate_length,
         const bool is_scarf_closure,
         const bool compute_distance_to_bridge_start,
-        const AddExtrusionSegmentFunction& func_add_segment);
+        const AddExtrusionSegmentFunction<PathType>& func_add_segment);
 
     /*!
      * \brief Add a wall to the gcode with optimized order, possibly adding a scarf seam / speed gradient according to settings
@@ -1107,7 +1124,7 @@ private:
         const bool is_candidate_small_feature,
         const bool scarf_seam,
         const bool smooth_speed,
-        const AddExtrusionSegmentFunction& func_add_segment);
+        const AddExtrusionSegmentFunction<PathType>& func_add_segment);
 
     /*!
      * \brief Add a wipe travel after the given path has been extruded
