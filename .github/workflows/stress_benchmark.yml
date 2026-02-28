@@ -16,6 +16,7 @@ on:
       - 'src/**'
       - 'stress_benchmark/**'
       - '.github/workflows/stress_benchmark.yml'
+      - 'conandata.yml'
     branches:
       - main
       - 'CURA-*'

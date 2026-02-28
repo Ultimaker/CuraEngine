@@ -18,7 +18,6 @@
 #include "settings/types/Ratio.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
-#include "utils/HalfEdgeGraph.h"
 #include "utils/PolygonsSegmentIndex.h"
 #include "utils/section_type.h"
 

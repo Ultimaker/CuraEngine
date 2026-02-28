@@ -19,11 +19,11 @@
 #include "ExtruderTrain.h"
 #include "PathAdapter.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
-#include "SkeletalTrapezoidation.h"
-#include "SkeletalTrapezoidationGraph.h"
 #include "Slice.h"
 #include "TravelAntiOozing.h"
 #include "WipeScriptConfig.h"
+#include "arachne/SkeletalTrapezoidation.h"
+#include "arachne/SkeletalTrapezoidationGraph.h"
 #include "communication/Communication.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/conversions/Point2D_Point2LL.h"
@@ -2387,7 +2387,7 @@ void LayerPlan::addLinesInGivenOrder(
         if (extra_inwards_start_move_length > 0 || extra_inwards_end_move_length > 0)
         {
             OpenPolyline start_inwards_move
-                = extra_inwards_start_move_length > 0 ? makeInwardsMove(trapezoidation->graph_.edges, start, extra_inwards_start_move_length) : OpenPolyline();
+                = extra_inwards_start_move_length > 0 ? makeInwardsMove(trapezoidation->graph_.edges_, start, extra_inwards_start_move_length) : OpenPolyline();
             const Point2LL& end = raw_polyline[path.is_closed_ ? start_idx : (start_idx == 0 ? raw_polyline.size() - 1 : 0)];
 
             OpenPolyline end_inwards_move;
@@ -2397,7 +2397,7 @@ void LayerPlan::addLinesInGivenOrder(
             }
             else if (extra_inwards_end_move_length > 0)
             {
-                end_inwards_move = makeInwardsMove(trapezoidation->graph_.edges, end, extra_inwards_end_move_length);
+                end_inwards_move = makeInwardsMove(trapezoidation->graph_.edges_, end, extra_inwards_end_move_length);
             }
 
             expanded_polyline = std::make_shared<OpenPolyline>();

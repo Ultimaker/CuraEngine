@@ -64,6 +64,18 @@ public:
         return *this;
     }
 
+    SegmentIterator& operator--()
+    {
+        current_pos_--;
+        return *this;
+    }
+
+    SegmentIterator& operator+=(difference_type difference)
+    {
+        current_pos_ += difference;
+        return *this;
+    }
+
     bool operator==(const SegmentIterator& other) const
     {
         return current_pos_ == other.current_pos_;

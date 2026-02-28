@@ -3,8 +3,13 @@
 
 #include "MeshGroup.h"
 
+#include <filesystem>
 #include <fstream>
 #include <limits>
+#include <png.h>
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/memorystream.h>
 #include <regex>
 #include <stdio.h>
 #include <string.h>
@@ -16,6 +21,7 @@
 
 #include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
 #include "utils/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
+#include "utils/MeshUtils.h"
 #include "utils/Point2F.h"
 #include "utils/Point3F.h" //To accept incoming meshes with floating point vertices.
 #include "utils/gettime.h"
@@ -172,7 +178,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matri
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
+bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates = nullptr)
 {
     FILE* f = fopen(filename, "rb");
 
@@ -206,6 +212,8 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matr
     //  Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
     mesh->faces_.reserve(face_count);
     mesh->vertices_.reserve(face_count);
+
+    size_t vertex_index = 0;
     for (size_t i = 0; i < face_count; i++)
     {
         if (fread(buffer, 50, 1, f) != 1)
@@ -218,7 +226,20 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matr
         Point3LL v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
         Point3LL v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
         Point3LL v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
-        mesh->addFace(v0, v1, v2);
+
+        // Handle UV coordinates if provided
+        if (uv_coordinates && vertex_index + 2 < uv_coordinates->size())
+        {
+            std::optional<Point2F> uv0 = (*uv_coordinates)[vertex_index];
+            std::optional<Point2F> uv1 = (*uv_coordinates)[vertex_index + 1];
+            std::optional<Point2F> uv2 = (*uv_coordinates)[vertex_index + 2];
+            vertex_index += 3;
+            mesh->addFace(v0, v1, v2, uv0, uv1, uv2);
+        }
+        else
+        {
+            mesh->addFace(v0, v1, v2);
+        }
     }
     fclose(f);
     mesh->finish();
@@ -390,6 +411,100 @@ bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matr
     return ! mesh->faces_.empty();
 }
 
+
+/*!
+ * Load UV coordinates from a binary file and store them for later application to mesh faces.
+ *
+ * @param uv_filename The path to the binary UV file
+ * @param uv_coordinates Vector to store the loaded UV coordinates
+ * @return true if UV coordinates were loaded successfully, false otherwise
+ */
+bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point2F>& uv_coordinates)
+{
+    if (! std::filesystem::exists(uv_filename))
+    {
+        return false; // File doesn't exist, not an error
+    }
+
+    std::ifstream file(uv_filename, std::ios::binary);
+    if (! file.is_open())
+    {
+        spdlog::warn("Failed to open UV file: {}", uv_filename);
+        return false;
+    }
+
+    // Read vertex count (uint32)
+    uint32_t vertex_count;
+    if (! file.read(reinterpret_cast<char*>(&vertex_count), sizeof(uint32_t)))
+    {
+        spdlog::warn("Failed to read vertex count from UV file: {}", uv_filename);
+        return false;
+    }
+
+
+    // Read UV coordinates (2 floats per vertex)
+    uv_coordinates.resize(vertex_count);
+    const std::streamsize uv_data_size = vertex_count * 2 * sizeof(float);
+
+    if (! file.read(reinterpret_cast<char*>(uv_coordinates.data()), uv_data_size))
+    {
+        spdlog::warn("Failed to read UV coordinates from file: {}", uv_filename);
+        return false;
+    }
+
+    spdlog::info("Loaded {} UV coordinates from: {}", vertex_count, uv_filename);
+    return true;
+}
+
+
+bool loadMeshSTL_with_uv(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>& uv_coordinates)
+{
+    FILE* f = fopen(filename, "rb");
+    if (f == nullptr)
+    {
+        return false;
+    }
+
+    // assign filename to mesh_name
+    mesh->mesh_name_ = filename;
+
+    // Skip any whitespace at the beginning of the file.
+    unsigned long long num_whitespace = 0; // Number of whitespace characters.
+    unsigned char whitespace;
+    if (fread(&whitespace, 1, 1, f) != 1)
+    {
+        fclose(f);
+        return false;
+    }
+    while (isspace(whitespace))
+    {
+        num_whitespace++;
+        if (fread(&whitespace, 1, 1, f) != 1)
+        {
+            fclose(f);
+            return false;
+        }
+    }
+    fseek(f, num_whitespace, SEEK_SET); // Seek to the place after all whitespace (we may have just read too far).
+
+    char buffer[6];
+    if (fread(buffer, 5, 1, f) != 1)
+    {
+        fclose(f);
+        return false;
+    }
+    fclose(f);
+
+    buffer[5] = '\0';
+    if (stringcasecompare(buffer, "solid") == 0)
+    {
+        // ASCII STL with UV coordinates not currently supported
+        spdlog::warn("ASCII STL with UV coordinates not supported, use binary STL: {}", filename);
+        return false;
+    }
+    return loadMeshSTL_binary(mesh, filename, matrix, &uv_coordinates);
+}
+
 bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
@@ -398,8 +513,41 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
     if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
     {
         Mesh mesh(object_parent_settings);
-        if (loadMeshSTL(&mesh, filename, transformation)) // Load it! If successful...
+        // Check for corresponding UV and PNG files
+        std::string filename_str(filename);
+        std::string base_filename = filename_str.substr(0, filename_str.find_last_of('.'));
+        std::string uv_filename = base_filename + ".uv";
+        std::string texture_filename = base_filename + ".png";
+
+        std::vector<Point2F> uv_coordinates;
+        bool has_uv = loadUVCoordinatesFromFile(uv_filename, uv_coordinates);
+
+        bool load_success = false;
+        if (has_uv)
         {
+            spdlog::info("Loading STL with UV coordinates from: {}", uv_filename);
+            load_success = loadMeshSTL_with_uv(&mesh, filename, transformation, uv_coordinates);
+        }
+        else
+        {
+            load_success = loadMeshSTL(&mesh, filename, transformation);
+        }
+        if (load_success) // Load it! If successful...
+        {
+            // Try to load the PNG texture if it exists
+            if (std::filesystem::exists(texture_filename))
+            {
+                spdlog::info("Found texture file: {}", texture_filename);
+                if (MeshUtils::loadTextureFromFile(mesh, texture_filename))
+                {
+                    spdlog::info("Successfully loaded texture from: {}", texture_filename);
+                }
+                else
+                {
+                    spdlog::warn("Failed to load texture from: {}", texture_filename);
+                }
+            }
+
             meshgroup->meshes.push_back(mesh);
             spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
             return true;

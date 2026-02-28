@@ -18,7 +18,7 @@ using coord_t = ClipperLib::cInt;
 
 constexpr coord_t EPSILON = 5;
 
-static inline coord_t operator""_mu(unsigned long long i)
+static constexpr coord_t operator""_mu(unsigned long long i)
 {
     return static_cast<coord_t>(i);
 }

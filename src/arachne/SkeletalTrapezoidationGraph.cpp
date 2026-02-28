@@ -1,227 +1,45 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "SkeletalTrapezoidationGraph.h"
+#include "arachne/SkeletalTrapezoidationGraph.h"
 
 #include <unordered_map>
 
 #include <spdlog/spdlog.h>
 
+#include "arachne/STHalfEdge.h"
+#include "arachne/STHalfEdgeNode.h"
 #include "utils/linearAlg2D.h"
 #include "utils/macros.h"
 
 namespace cura
 {
 
-STHalfEdge::STHalfEdge(SkeletalTrapezoidationEdge data)
-    : HalfEdge(data)
-{
-}
-
-bool STHalfEdge::canGoUp(bool strict) const
-{
-    if (to_->data_.distance_to_boundary_ > from_->data_.distance_to_boundary_)
-    {
-        return true;
-    }
-    if (to_->data_.distance_to_boundary_ < from_->data_.distance_to_boundary_ || strict)
-    {
-        return false;
-    }
-
-    // Edge is between equidistqant verts; recurse!
-    for (edge_t* outgoing = next_; outgoing != twin_; outgoing = outgoing->twin_->next_)
-    {
-        if (outgoing->canGoUp())
-        {
-            return true;
-        }
-        assert(outgoing->twin_);
-        if (! outgoing->twin_)
-            return false;
-        assert(outgoing->twin_->next_);
-        if (! outgoing->twin_->next_)
-            return true; // This point is on the boundary?! Should never occur
-    }
-    return false;
-}
-
-bool STHalfEdge::isUpward(const bool strict) const
-{
-    if (to_->data_.distance_to_boundary_ > from_->data_.distance_to_boundary_)
-    {
-        return true;
-    }
-    if (to_->data_.distance_to_boundary_ < from_->data_.distance_to_boundary_ || strict)
-    {
-        return false;
-    }
-
-    // Equidistant edge case:
-    std::optional<cura::coord_t> forward_up_dist = this->distToGoUp();
-    std::optional<cura::coord_t> backward_up_dist = twin_->distToGoUp();
-    if (forward_up_dist && backward_up_dist)
-    {
-        return forward_up_dist < backward_up_dist;
-    }
-
-    if (forward_up_dist)
-    {
-        return true;
-    }
-
-    if (backward_up_dist)
-    {
-        return false;
-    }
-    return to_->p_ < from_->p_; // Arbitrary ordering, which returns the opposite for the twin edge
-}
-
-std::optional<cura::coord_t> STHalfEdge::distToGoUp() const
-{
-    if (to_->data_.distance_to_boundary_ > from_->data_.distance_to_boundary_)
-    {
-        return 0;
-    }
-    if (to_->data_.distance_to_boundary_ < from_->data_.distance_to_boundary_)
-    {
-        return std::optional<cura::coord_t>();
-    }
-
-    // Edge is between equidistqant verts; recurse!
-    std::optional<cura::coord_t> ret;
-    for (edge_t* outgoing = next_; outgoing != twin_; outgoing = outgoing->twin_->next_)
-    {
-        std::optional<cura::coord_t> dist_to_up = outgoing->distToGoUp();
-        if (dist_to_up)
-        {
-            if (ret)
-            {
-                ret = std::min(*ret, *dist_to_up);
-            }
-            else
-            {
-                ret = dist_to_up;
-            }
-        }
-        assert(outgoing->twin_);
-        if (! outgoing->twin_)
-            return std::optional<cura::coord_t>();
-        assert(outgoing->twin_->next_);
-        if (! outgoing->twin_->next_)
-            return 0; // This point is on the boundary?! Should never occur
-    }
-    if (ret)
-    {
-        ret = *ret + cura::vSize(to_->p_ - from_->p_);
-    }
-    return ret;
-}
-
-STHalfEdge* STHalfEdge::getNextUnconnected()
-{
-    edge_t* result = static_cast<STHalfEdge*>(this);
-    while (result->next_)
-    {
-        result = result->next_;
-        if (result == this)
-        {
-            return nullptr;
-        }
-    }
-    return result->twin_;
-}
-
-STHalfEdgeNode::STHalfEdgeNode(SkeletalTrapezoidationJoint data, Point2LL p)
-    : HalfEdgeNode(data, p)
-{
-}
-
-bool STHalfEdgeNode::isMultiIntersection()
-{
-    int odd_path_count = 0;
-    edge_t* outgoing = incident_edge_;
-    do
-    {
-        if (! outgoing)
-        { // This is a node on the outside
-            return false;
-        }
-        if (outgoing->data_.isCentral())
-        {
-            odd_path_count++;
-        }
-    } while (outgoing = outgoing->twin_->next_, outgoing != incident_edge_);
-    return odd_path_count > 2;
-}
-
-bool STHalfEdgeNode::isCentral() const
-{
-    edge_t* edge = incident_edge_;
-    do
-    {
-        if (edge->data_.isCentral())
-        {
-            return true;
-        }
-        assert(edge->twin_);
-        if (! edge->twin_)
-            return false;
-    } while (edge = edge->twin_->next_, edge != incident_edge_);
-    return false;
-}
-
-bool STHalfEdgeNode::isLocalMaximum(bool strict) const
-{
-    if (data_.distance_to_boundary_ == 0)
-    {
-        return false;
-    }
-
-    edge_t* edge = incident_edge_;
-    do
-    {
-        if (edge->canGoUp(strict))
-        {
-            return false;
-        }
-        assert(edge->twin_);
-        if (! edge->twin_)
-            return false;
-
-        if (! edge->twin_->next_)
-        { // This point is on the boundary
-            return false;
-        }
-    } while (edge = edge->twin_->next_, edge != incident_edge_);
-    return true;
-}
-
 void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 {
     std::unordered_map<edge_t*, std::list<edge_t>::iterator> edge_locator;
     std::unordered_map<node_t*, std::list<node_t>::iterator> node_locator;
 
-    for (auto edge_it = edges.begin(); edge_it != edges.end(); ++edge_it)
+    for (auto edge_it = edges_.begin(); edge_it != edges_.end(); ++edge_it)
     {
         edge_locator.emplace(&*edge_it, edge_it);
     }
 
-    for (auto node_it = nodes.begin(); node_it != nodes.end(); ++node_it)
+    for (auto node_it = nodes_.begin(); node_it != nodes_.end(); ++node_it)
     {
         node_locator.emplace(&*node_it, node_it);
     }
 
     auto safelyRemoveEdge = [this, &edge_locator](edge_t* to_be_removed, std::list<edge_t>::iterator& current_edge_it, bool& edge_it_is_updated)
     {
-        if (current_edge_it != edges.end() && to_be_removed == &*current_edge_it)
+        if (current_edge_it != edges_.end() && to_be_removed == &*current_edge_it)
         {
-            current_edge_it = edges.erase(current_edge_it);
+            current_edge_it = edges_.erase(current_edge_it);
             edge_it_is_updated = true;
         }
         else
         {
-            edges.erase(edge_locator[to_be_removed]);
+            edges_.erase(edge_locator[to_be_removed]);
         }
     };
 
@@ -230,7 +48,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
         return shorterThen(a->p_ - b->p_, snap_dist);
     };
 
-    for (auto edge_it = edges.begin(); edge_it != edges.end();)
+    for (auto edge_it = edges_.begin(); edge_it != edges_.end();)
     {
         if (edge_it->prev_)
         {
@@ -281,7 +99,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
                 }
             }
 
-            nodes.erase(node_locator[quad_mid->to_]);
+            nodes_.erase(node_locator[quad_mid->to_]);
 
             quad_mid->prev_->next_ = quad_mid->next_;
             quad_mid->next_->prev_ = quad_mid->prev_;
@@ -311,7 +129,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
                     quad_end->from_->incident_edge_ = quad_end->prev_->twin_;
                 }
             }
-            nodes.erase(node_locator[quad_start->from_]);
+            nodes_.erase(node_locator[quad_start->from_]);
 
             quad_start->twin_->twin_ = quad_end->twin_;
             quad_end->twin_->twin_ = quad_start->twin_;
@@ -336,14 +154,14 @@ void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point2LL start_sou
     prev_edge->to_->data_.distance_to_boundary_ = dist;
     assert(dist >= 0);
 
-    nodes.emplace_front(SkeletalTrapezoidationJoint(), p);
-    node_t* node = &nodes.front();
+    nodes_.emplace_front(SkeletalTrapezoidationJoint(), p);
+    node_t* node = &nodes_.front();
     node->data_.distance_to_boundary_ = 0;
 
-    edges.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD));
-    edge_t* forth_edge = &edges.front();
-    edges.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD));
-    edge_t* back_edge = &edges.front();
+    edges_.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD));
+    edge_t* forth_edge = &edges_.front();
+    edges_.emplace_front(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::EXTRA_VD));
+    edge_t* back_edge = &edges_.front();
 
     prev_edge->next_ = forth_edge;
     forth_edge->prev_ = prev_edge;
@@ -374,17 +192,17 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     mid_node->data_.distance_to_boundary_ = dist;
     mid_node->data_.transition_ratio_ = 0; // Both transition end should have rest = 0, because at the ends a whole number of beads fits without rest
 
-    nodes.emplace_back(SkeletalTrapezoidationJoint(), px);
-    node_t* source_node = &nodes.back();
+    nodes_.emplace_back(SkeletalTrapezoidationJoint(), px);
+    node_t* source_node = &nodes_.back();
     source_node->data_.distance_to_boundary_ = 0;
 
     edge_t* first = &edge;
-    edges.emplace_back(SkeletalTrapezoidationEdge());
-    edge_t* second = &edges.back();
-    edges.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TRANSITION_END));
-    edge_t* outward_edge = &edges.back();
-    edges.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TRANSITION_END));
-    edge_t* inward_edge = &edges.back();
+    edges_.emplace_back(SkeletalTrapezoidationEdge());
+    edge_t* second = &edges_.back();
+    edges_.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TRANSITION_END));
+    edge_t* outward_edge = &edges_.back();
+    edges_.emplace_back(SkeletalTrapezoidationEdge(SkeletalTrapezoidationEdge::EdgeType::TRANSITION_END));
+    edge_t* inward_edge = &edges_.back();
 
     if (edge_before)
     {
@@ -442,8 +260,8 @@ SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edg
 {
     edge_t* last_edge_replacing_input = edge;
 
-    nodes.emplace_back(SkeletalTrapezoidationJoint(), mid);
-    node_t* mid_node = &nodes.back();
+    nodes_.emplace_back(SkeletalTrapezoidationJoint(), mid);
+    node_t* mid_node = &nodes_.back();
 
     edge_t* twin = last_edge_replacing_input->twin_;
     last_edge_replacing_input->twin_ = nullptr;

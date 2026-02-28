@@ -321,18 +321,24 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
 }
 
 template<class LineType>
-OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance) const
+OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const
 {
     if (empty() || polylines.empty())
     {
         return {};
     }
 
-    OpenLinesSet split_polylines = polylines.splitIntoSegments();
 
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
-    split_polylines.addPaths(clipper, ClipperLib::ptSubject);
+    if (split_into_segments)
+    {
+        polylines.splitIntoSegments().addPaths(clipper, ClipperLib::ptSubject);
+    }
+    else
+    {
+        polylines.addPaths(clipper, ClipperLib::ptSubject);
+    }
     addPaths(clipper, ClipperLib::ptClip);
     clipper.Execute(ClipperLib::ctIntersection, result);
     ClipperLib::Paths result_paths;
@@ -939,22 +945,6 @@ void Shape::ensureManifold()
     }
 }
 
-void Shape::applyMatrix(const PointMatrix& matrix)
-{
-    for (Polygon& polygon : *this)
-    {
-        polygon.applyMatrix(matrix);
-    }
-}
-
-void Shape::applyMatrix(const Point3Matrix& matrix)
-{
-    for (Polygon& polygon : *this)
-    {
-        polygon.applyMatrix(matrix);
-    }
-}
-
 #ifdef BUILD_TESTS
 [[maybe_unused]] Shape Shape::fromWkt(const std::string& wkt)
 {
@@ -1008,8 +998,8 @@ void Shape::applyMatrix(const Point3Matrix& matrix)
 }
 #endif
 
-template OpenLinesSet Shape::intersection(const OpenLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
-template OpenLinesSet Shape::intersection(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
-template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template OpenLinesSet Shape::intersection(const OpenLinesSet& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 
 } // namespace cura

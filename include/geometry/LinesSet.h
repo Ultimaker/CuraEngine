@@ -18,6 +18,8 @@ class Shape;
 template<class LineType>
 class LinesSet;
 class OpenPolyline;
+class PointMatrix;
+class Point3Matrix;
 
 enum class CheckNonEmptyParam
 {
@@ -269,6 +271,10 @@ public:
     [[nodiscard]] Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 
     void translate(const Point2LL& delta);
+
+    void applyMatrix(const PointMatrix& matrix);
+
+    void applyMatrix(const Point3Matrix& matrix);
 
     /*!
      * \brief Utility method to add all the lines to a ClipperLib::Clipper object
