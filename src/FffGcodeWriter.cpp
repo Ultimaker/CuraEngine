@@ -3052,6 +3052,10 @@ bool FffGcodeWriter::processInsets(
             mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_);
         added_something |= wall_orderer.addToLayer();
     }
+
+    // clear overhang masks for any successive part on the layer
+    gcode_layer.setOverhangMasks({});
+
     return added_something;
 }
 
