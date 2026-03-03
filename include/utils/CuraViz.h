@@ -11,7 +11,7 @@
 
 namespace cura_viz
 {
-class Step;
+class Message;
 }
 
 namespace cura
@@ -25,7 +25,7 @@ public:
 private:
     CuraViz();
 
-    void send(const cura_viz::Step& step);
+    void send(const cura_viz::Message& message, const bool should_lock = true);
 
     static CuraViz* getInstance();
 
