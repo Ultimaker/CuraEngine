@@ -283,20 +283,18 @@ bool SkeletalTrapezoidation::computePointCellRange(
     // Copy whole cell into graph or not at all
 
     const Point2LL source_point = VoronoiUtils::getSourcePoint(cell, points, segments);
-    const PolygonsPointIndex source_point_index = VoronoiUtils::getSourcePointIndex(cell, points, segments);
     Point2LL some_point = VoronoiUtils::p(cell.incident_edge()->vertex0());
     if (some_point == source_point)
     {
         some_point = VoronoiUtils::p(cell.incident_edge()->vertex1());
     }
-    // Test if the some_point is even inside the polygon.
-    // The edge leading out of a polygon must have an endpoint that's not in the corner following the contour of the polygon at that vertex.
-    // So if it's inside the corner formed by the polygon vertex, it's all fine.
-    // But if it's outside of the corner, it must be a vertex of the Voronoi diagram that goes outside of the polygon towards infinity.
-    if (! LinearAlg2D::isInsideCorner(source_point_index.prev().p(), source_point_index.p(), source_point_index.next().p(), some_point))
+
+    // Test if the some_point is even inside the polygon. If not, the whole cell is outside the polygon and must not be considered.
+    if (! polys.inside(some_point))
     {
         return false; // Don't copy any part of this cell
     }
+
     vd_t::edge_type* vd_edge = cell.incident_edge();
     do
     {
