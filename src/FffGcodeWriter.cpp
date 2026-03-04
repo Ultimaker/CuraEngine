@@ -3075,6 +3075,9 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
         result.walls_optimizer->optimize();
     }
 
+    // clear overhang masks for any successive part on the layer
+    gcode_layer.setOverhangMasks({});
+
     return result;
 }
 
