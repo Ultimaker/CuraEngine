@@ -27,7 +27,7 @@ struct voronoi_diagram_traits<cura::coord_t>
     public:
         bool operator()(const vertex_type& v1, const vertex_type& v2) const
         {
-            return cura::fuzzy_equal(v1.x(), v2.x()) && cura::fuzzy_equal(v1.y(), v2.y());
+            return v1.x() == v2.x() && v1.y() == v2.y();
         }
     };
 };
