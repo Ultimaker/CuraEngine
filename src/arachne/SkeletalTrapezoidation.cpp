@@ -273,7 +273,8 @@ bool SkeletalTrapezoidation::computePointCellRange(
     vd_t::edge_type*& starting_vd_edge,
     vd_t::edge_type*& ending_vd_edge,
     const std::vector<Point2LL>& points,
-    const std::vector<Segment>& segments)
+    const std::vector<Segment>& segments,
+    const Shape& polys)
 {
     if (cell.incident_edge()->is_infinite())
     {
@@ -428,7 +429,7 @@ void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
 
         if (cell.contains_point())
         {
-            const bool keep_going = computePointCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments);
+            const bool keep_going = computePointCellRange(cell, start_source_point, end_source_point, starting_vonoroi_edge, ending_vonoroi_edge, points, segments, polys);
             if (! keep_going)
             {
                 continue;

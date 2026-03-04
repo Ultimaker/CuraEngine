@@ -249,7 +249,8 @@ protected:
         vd_t::edge_type*& starting_vd_edge,
         vd_t::edge_type*& ending_vd_edge,
         const std::vector<Point2LL>& points,
-        const std::vector<Segment>& segments);
+        const std::vector<Segment>& segments,
+        const Shape& polys);
 
     /*!
      * Compute the range of line segments that surround a cell of the skeletal
