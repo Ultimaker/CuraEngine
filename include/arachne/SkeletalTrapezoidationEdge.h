@@ -123,9 +123,9 @@ public:
     {
         extrusion_junctions_ = storage;
     }
-    std::shared_ptr<LineJunctions> getExtrusionJunctions()
+    std::shared_ptr<LineJunctions> getExtrusionJunctions() const
     {
-        return extrusion_junctions_.lock();
+        return const_cast<SkeletalTrapezoidationEdge*>(this)->extrusion_junctions_.lock();
     }
 
     Central is_central; //! whether the edge is significant; whether the source segments have a sharp angle; -1 is unknown

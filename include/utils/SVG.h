@@ -21,6 +21,7 @@ class Point2D;
 class MixedLinesSet;
 class SkeletalTrapezoidationGraph;
 class STHalfEdge;
+class STHalfEdgeNode;
 
 class SVG : NoCopy
 {
@@ -144,7 +145,11 @@ public:
 
         ~LineAttributes() override = default;
 
-        bool isDisplayed() const override
+        static LineAttributes hidden()
+        {
+            return LineAttributes(ColorObject(), 0.0);
+        }
+ bool isDisplayed() const override
         {
             return ElementAttributes::isDisplayed() && width > 0.0;
         }
@@ -157,6 +162,14 @@ public:
         double font_size{ 10 };
 
         VerticesAttributes() = default;
+
+        VerticesAttributes(const ColorObject& color, const double radius, const bool write_coords, const double font_size)
+            : ElementAttributes(color)
+            , radius(radius)
+            , write_coords(write_coords)
+            , font_size(font_size)
+        {
+        }
 
         VerticesAttributes(const ColorObject& color, const double radius)
             : ElementAttributes(color)
@@ -183,6 +196,11 @@ public:
 
         ~VerticesAttributes() override = default;
 
+        static VerticesAttributes hidden()
+        {
+            return VerticesAttributes(SVG::ColorObject(), 0.0);
+        }
+
         bool isDisplayed() const override
         {
             return ElementAttributes::isDisplayed() && (radius > 0.0 || (write_coords && font_size > 0.0));
@@ -200,15 +218,25 @@ public:
     {
         bool edges_arrows{ true };
 
-        DiagramVisualAttributes(const SurfaceAttributes surface_attributes, const bool edges_arrows = true)
-            : VisualAttributes({ .surface = surface_attributes })
+        DiagramVisualAttributes(const VisualAttributes& visual_attributes, const bool edges_arrows = true)
+            : VisualAttributes(visual_attributes)
             , edges_arrows(edges_arrows)
         {
         }
+    };
 
-        DiagramVisualAttributes(const LineAttributes line_attributes, const bool edges_arrows = true)
-            : VisualAttributes({ .line = line_attributes })
-            , edges_arrows(edges_arrows)
+    struct STVisualAttributes : DiagramVisualAttributes
+    {
+        VerticesAttributes beads_count;
+        VerticesAttributes junctions;
+
+        STVisualAttributes(
+            const DiagramVisualAttributes& diagram_attributes,
+            const VerticesAttributes& beads_count = VerticesAttributes::hidden(),
+            const VerticesAttributes& junctions = VerticesAttributes::hidden())
+            : DiagramVisualAttributes(diagram_attributes)
+            , beads_count(beads_count)
+            , junctions(junctions)
         {
         }
     };
@@ -277,9 +305,9 @@ public:
 
     void write(const std::string& text, const Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush = true) const;
 
-    void write(const SkeletalTrapezoidationGraph& graph, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const STHalfEdge& edge, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const STHalfEdge& edge, const STVisualAttributes& visual_attributes, const bool flush = true, const std::set<const STHalfEdgeNode*>& drawn_nodes = {}) const;
 
     template<typename T>
     void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
