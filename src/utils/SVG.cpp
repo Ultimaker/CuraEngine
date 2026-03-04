@@ -406,14 +406,14 @@ void SVG::write(const std::string& text, const Point2LL& p, const VerticesAttrib
         "<text x=\"%f\" y=\"%f\" style=\"font-size: %fpx;\" fill=\"%s\">%s</text>\n",
         transformed_point.x(),
         transformed_point.y(),
-        vertices_attributes.font_size,
+        vertices_attributes.font_size * scale_,
         toString(vertices_attributes.color).c_str(),
         text.c_str());
 
     handleFlush(flush);
 }
 
-void SVG::write(const SkeletalTrapezoidationGraph& graph, const DiagramVisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush) const
 {
     const size_t start_edges_count = ranges::accumulate(
         graph.edges_,
@@ -423,6 +423,9 @@ void SVG::write(const SkeletalTrapezoidationGraph& graph, const DiagramVisualAtt
             return total + (edge.prev_ == nullptr ? 1 : 0);
         });
 
+    std::set<const STHalfEdge*> drawn_edges;
+    std::set<const STHalfEdgeNode*> drawn_nodes;
+
     for (const auto& [index, edge] : graph.edges_ | ranges::views::enumerate)
     {
         if (edge.prev_ != nullptr)
@@ -430,7 +433,7 @@ void SVG::write(const SkeletalTrapezoidationGraph& graph, const DiagramVisualAtt
             continue;
         }
 
-        DiagramVisualAttributes loop_visual_attributes = visual_attributes;
+        STVisualAttributes loop_visual_attributes = visual_attributes;
         if (loop_visual_attributes.line.isRainbow())
         {
             loop_visual_attributes.line.color = makeRainbowColor(index, start_edges_count);
@@ -439,7 +442,30 @@ void SVG::write(const SkeletalTrapezoidationGraph& graph, const DiagramVisualAtt
         const STHalfEdge* current_edge = &edge;
         while (current_edge != nullptr)
         {
-            write(*current_edge, loop_visual_attributes, false);
+            if (! drawn_edges.contains(current_edge))
+            {
+                write(*current_edge, loop_visual_attributes, false, drawn_nodes);
+
+                STVisualAttributes twin_visual_attributes = loop_visual_attributes;
+                twin_visual_attributes.line = LineAttributes::hidden();
+                if (current_edge->twin_)
+                {
+                    write(*current_edge->twin_, twin_visual_attributes, false, drawn_nodes);
+                }
+
+                if (! visual_attributes.edges_arrows)
+                {
+                    drawn_edges.emplace(current_edge);
+                    drawn_edges.emplace(current_edge->twin_);
+                }
+
+                if (visual_attributes.beads_count.isDisplayed())
+                {
+                    drawn_nodes.emplace(current_edge->from_);
+                    drawn_nodes.emplace(current_edge->to_);
+                }
+            }
+
             current_edge = current_edge->next_;
         }
     }
@@ -447,8 +473,29 @@ void SVG::write(const SkeletalTrapezoidationGraph& graph, const DiagramVisualAtt
     handleFlush(flush);
 }
 
-void SVG::write(const STHalfEdge& edge, const DiagramVisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const STHalfEdge& edge, const STVisualAttributes& visual_attributes, const bool flush, const std::set<const STHalfEdgeNode*>& drawn_nodes) const
 {
+    if (visual_attributes.beads_count.isDisplayed())
+    {
+        if (! drawn_nodes.contains(edge.from_))
+        {
+            write(std::to_string(edge.from_->data_.bead_count_), edge.from_->p_, visual_attributes.beads_count, false);
+        }
+        if (! drawn_nodes.contains(edge.to_))
+        {
+            write(std::to_string(edge.to_->data_.bead_count_), edge.to_->p_, visual_attributes.beads_count, false);
+        }
+    }
+
+    if (visual_attributes.junctions.isDisplayed() && edge.data_.hasExtrusionJunctions())
+    {
+        std::shared_ptr<LineJunctions> junctions = edge.data_.getExtrusionJunctions();
+        for (const ExtrusionJunction& junction : *junctions)
+        {
+            write(junction.p_, visual_attributes.junctions);
+        }
+    }
+
     if (! visual_attributes.edges_arrows)
     {
         write(edge.from_->p_, edge.to_->p_, visual_attributes, flush);
