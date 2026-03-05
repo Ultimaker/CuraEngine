@@ -335,7 +335,6 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
     const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
     const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
 
-    constexpr coord_t epsilon = 5;
     const SliceDataStorage slice_data;
     const Shape build_plate = slice_data.getRawMachineBorder();
 
