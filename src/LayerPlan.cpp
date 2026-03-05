@@ -232,13 +232,11 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
                         }
                         else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
                         {
-                            Shape top_and_bottom_most_fill;
                             for (const SliceLayerPart& outer_surface_part : layer.parts)
                             {
-                                top_and_bottom_most_fill.push_back(outer_surface_part.top_most_surface);
-                                top_and_bottom_most_fill.push_back(outer_surface_part.bottom_most_surface);
+                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.top_most_surface);
+                                part_combing_boundary = part_combing_boundary.difference(outer_surface_part.bottom_most_surface);
                             }
-                            part_combing_boundary = part_combing_boundary.difference(top_and_bottom_most_fill);
                         }
                     }
 
