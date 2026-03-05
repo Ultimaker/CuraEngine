@@ -151,6 +151,9 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     skin.removeSmallAreas(MIN_AREA_SIZE);
     // Create infill area irrespective if the infill is to be generated or not(would be used for bridging).
     part.infill_area = part.inner_area.difference(skin);
+
+    applySkinFillSmallInfillGaps(skin, part.infill_area);
+
     if (process_infill_)
     { // process infill when infill density > 0
         // or when other infill meshes want to modify this infill
@@ -306,6 +309,22 @@ void SkinInfillAreaComputation::applySkinExpansion(const Shape& original_outline
     {
         upskin = upskin.intersection(original_outline);
     }
+}
+
+void SkinInfillAreaComputation::applySkinFillSmallInfillGaps(Shape& skin, Shape& infill) const
+{
+    // First do an opening to close the small gaps within the skin
+    const coord_t opening_offset = skin_line_width_ * 2;
+    const Shape opened_skin = skin.offset(opening_offset).offset(-opening_offset - EPSILON);
+
+    // Now extract the filled gaps by removing the initial skin
+    const Shape filled_areas = opened_skin.difference(skin);
+    // Only keep the filled gaps that overlap infill areas
+    const Shape filled_areas_over_infill = filled_areas.intersection(infill).offset(EPSILON);
+
+    // Expand skin and shrink infill with the filled gaps
+    skin = skin.unionPolygons(filled_areas_over_infill);
+    infill = infill.difference(filled_areas_over_infill);
 }
 
 /*
