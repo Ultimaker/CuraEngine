@@ -11,7 +11,7 @@
 
 #include <range/v3/view/enumerate.hpp>
 
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/SingleShape.h"
 #include "infill.h"

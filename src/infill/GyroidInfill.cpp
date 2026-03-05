@@ -5,7 +5,7 @@
 
 #include <numbers>
 
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/Shape.h"
 #include "utils/AABB.h"
 
