@@ -390,6 +390,7 @@ private:
         Shape& result_polygons,
         OpenLinesSet& result_lines,
         const Settings& settings,
+        const int layer_idx,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr);
@@ -438,10 +439,11 @@ private:
     /*!
      * Generate sparse concentric infill
      *
-     * \param toolpaths (output) The resulting toolpaths. Binned by inset_idx.
-     * \param inset_value The offset between each consecutive two polygons
+     * \param[out] toolpaths The resulting toolpaths. Binned by inset_idx.
+     * \param settings The settings to be used for processing
+     * \param layer_idx The current layer index
      */
-    void generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
+    void generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings, const int layer_idx);
 
     /*!
      * Generate a rectangular grid of infill lines
