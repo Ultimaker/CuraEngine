@@ -4032,12 +4032,6 @@ void LayerPlan::applyModifyPlugin()
         {
             spdlog::warn("Removed {} empty paths after plugin slot GCODE_PATHS_MODIFY was executed", removed_count);
         }
-        // Ensure that the output is at least valid enough to not cause crashes.
-        if (extruder_plan.paths_.size() == 0)
-        {
-            GCodePath* reinstated_path = getLatestPathWithConfig(configs_storage_.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
-            addTravel_simple(first_travel_destination_.value_or(getLastPlannedPositionOrStartingPosition()), reinstated_path);
-        }
 
         scripta::log(
             "extruder_plan_1",
@@ -4101,16 +4095,6 @@ LayerIndex LayerPlan::getLayerNr() const
 Point2LL LayerPlan::getLastPlannedPositionOrStartingPosition() const
 {
     return last_planned_position_.value_or(layer_start_pos_per_extruder_[getExtruder()]).toPoint2LL();
-}
-
-void LayerPlan::inheritLastPlannedPositionFromPreviousLayer(const Point3LL& previous_position)
-{
-    // Only inherit if we don't already have a position set
-    if (! last_planned_position_)
-    {
-        // Inherit only XY coordinates from previous layer
-        last_planned_position_ = Point3LL(previous_position.x_, previous_position.y_, z_);
-    }
 }
 
 bool LayerPlan::getIsInsideMesh() const
