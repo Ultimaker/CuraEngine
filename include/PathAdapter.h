@@ -23,7 +23,7 @@ public:
      * \param fixed_line_width The fixed line width in case the stored path doesn't handle information about a variable
      *                         line width. Can be omitted otherwise.
      */
-    PathAdapter(const PathType& path, coord_t fixed_line_width = 0)
+    PathAdapter(const PathType& path, const coord_t fixed_line_width = 0)
         : path_(path)
         , fixed_line_width_(fixed_line_width)
     {
