@@ -137,6 +137,11 @@ public:
         return Point3D(a).cross(Point3D(b));
     }
 
+    double dot(const Point3D& p) const
+    {
+        return x_ * p.x_ + y_ * p.y_ + z_ * p.z_;
+    }
+
     Point3LL toPoint3()
     {
         return Point3LL(MM2INT(x_), MM2INT(y_), MM2INT(z_));

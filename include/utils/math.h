@@ -21,7 +21,7 @@ namespace cura
  * @return T The square of the input value.
  */
 template<utils::multipliable T>
-[[nodiscard]] T square(const T& a)
+[[nodiscard]] constexpr T square(const T& a)
 {
     return a * a;
 }

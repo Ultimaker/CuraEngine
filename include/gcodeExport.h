@@ -283,7 +283,7 @@ public:
 
     Point2LL getPositionXY() const;
 
-    int getPositionZ() const;
+    coord_t getPositionZ() const;
 
     int getExtruderNr() const;
 
@@ -609,6 +609,17 @@ public:
     void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
     void writeCode(const char* str);
+
+    /*!
+     * Write code while temporarily ensuring absolute extrusion mode.
+     * If relative extrusion mode is active, this will:
+     * - Switch to absolute extrusion mode
+     * - Write the provided code
+     * - Restore relative extrusion mode
+     *
+     * \param str The code string to write
+     */
+    void writeCodeWithAbsoluteExtrusion(const char* str);
 
     void resetExtruderToPrimed(const size_t extruder, const double initial_retraction);
 
