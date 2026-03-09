@@ -2402,7 +2402,12 @@ void LayerPlan::addLinesInGivenOrder(
         }
         else
         {
-            addTravel(start, false, config.z_offset);
+            if (config.z_offset != 0)
+            {
+                // Make sure we don't travel at fractional height
+                addTravel(getLastPlannedPositionOrStartingPosition(), false);
+            }
+            addTravel(start, false);
         }
 
         Point2LL p0 = start;
