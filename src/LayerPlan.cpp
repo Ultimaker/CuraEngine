@@ -65,14 +65,15 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{ .z_offset = z_offset,
+                   .config = config,
+                   .mesh = current_mesh_,
+                   .space_fill_type = space_fill_type,
+                   .flow = flow,
+                   .width_factor = width_factor,
+                   .spiralize = spiralize,
+                   .speed_factor = speed_factor });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -1337,7 +1338,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     Point2LL p0 = wall.pointAt(start_idx);
     coord_t w0 = wall.lineWidthAt(start_idx);
     bool first_line = ! is_scarf_closure;
-    bool first_split = ! is_scarf_closure;
     Point3LL split_origin = p0;
     if (! is_scarf_closure && scarf_seam_length > 0)
     {
@@ -1486,13 +1486,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                         if (! is_scarf_closure)
                         {
                             split_destination.z_ = std::llrint(std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination));
-                        }
-
-                        if (first_split)
-                        {
-                            // Manually add a Z-only travel move to set the nozzle at the height of the first point
-                            addTravel(p0, always_retract, split_origin.z_);
-                            first_split = false;
                         }
                     }
 
@@ -1917,7 +1910,7 @@ void LayerPlan::addWall(
             const Ratio& line_width_ratio,
             const coord_t distance_to_bridge_start)
         {
-            constexpr bool travel_to_z = false;
+            constexpr bool travel_to_z = true;
 
             addWallLine(
                 wall,
