@@ -1909,8 +1909,6 @@ void LayerPlan::addWall(
             const Ratio& line_width_ratio,
             const coord_t distance_to_bridge_start)
         {
-            constexpr bool travel_to_z = true;
-
             addWallLine(
                 wall,
                 segment_index,
@@ -1927,8 +1925,7 @@ void LayerPlan::addWall(
                 line_width_ratio,
                 non_bridge_line_volume,
                 speed_factor,
-                distance_to_bridge_start,
-                travel_to_z);
+                distance_to_bridge_start);
         });
 
     if (wall.size() >= 2)
