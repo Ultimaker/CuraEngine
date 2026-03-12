@@ -143,6 +143,13 @@ template<utils::floating_point T>
     return std::abs(value) < (std::numeric_limits<T>::epsilon() * 100.0);
 }
 
+/*! \brief Check if two values are very close to each other */
+template<utils::floating_point T>
+[[nodiscard]] bool fuzzy_equal(T value1, T value2, const T epsilon = std::numeric_limits<T>::epsilon() * 100.0)
+{
+    return std::abs(value1 - value2) <= epsilon;
+}
+
 /*!
  * Calculates the sign of a numeric value, 1 if positive and -1 if negative
  * @note 0 is also considered as positive
