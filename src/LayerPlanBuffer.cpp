@@ -375,6 +375,27 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
     }
 }
 
+void LayerPlanBuffer::insertInLayerTempCommands(ExtruderPlan& extruder_plan)
+{
+    const double normal_temperature = extruder_plan.extrusion_temperature_.value_or(extruder_plan.required_start_temperature_);
+    double actual_temperature = normal_temperature;
+    for (const auto [index, path] : extruder_plan.paths_ | ranges::views::enumerate)
+    {
+        if (path.isTravelPath())
+        {
+            continue;
+        }
+
+        const double path_temperature = path.config.temperature.has_value() ? path.config.temperature->value : normal_temperature;
+        if (! fuzzy_equal(path_temperature, actual_temperature, 0.1))
+        {
+            constexpr bool wait = false;
+            extruder_plan.insertCommand({ index, extruder_plan.extruder_nr_, path_temperature, wait });
+            actual_temperature = path_temperature;
+        }
+    }
+}
+
 void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 {
     if (! extruder_plan.extrusion_temperature_)
@@ -632,6 +653,11 @@ void LayerPlanBuffer::insertTempCommands()
         }
 
         insertTempCommands(extruder_plans, overall_extruder_plan_idx);
+    }
+
+    for (ExtruderPlan& extruder_plan : layer_plan.extruder_plans_)
+    {
+        insertInLayerTempCommands(extruder_plan);
     }
 }
 

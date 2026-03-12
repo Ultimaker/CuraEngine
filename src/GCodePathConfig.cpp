@@ -43,6 +43,11 @@ namespace cura
     return type;
 }
 
+const std::optional<Temperature>& GCodePathConfig::getTemperature() const noexcept
+{
+    return temperature;
+}
+
 [[nodiscard]] bool GCodePathConfig::isTravelPath() const noexcept
 {
     return line_width == 0;

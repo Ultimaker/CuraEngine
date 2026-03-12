@@ -181,6 +181,8 @@ private:
      */
     void insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx);
 
+    void insertInLayerTempCommands(ExtruderPlan& extruder_plan);
+
     /*!
      * Insert the temperature command to heat from the initial print temperature to the printing temperature
      *
