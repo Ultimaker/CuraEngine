@@ -5,8 +5,8 @@ requirements:
   - "libpng/1.6.48"
   - "onetbb/2022.2.0"
 requirements_arcus:
-  - "arcus/5.11.0"
+  - "arcus/5.11.1"
 requirements_plugins:
-  - "curaengine_grpc_definitions/0.3.2"
+  - "curaengine_grpc_definitions/0.3.4"
 requirements_cura_resources:
   - "cura_resources/5.13.0-alpha.0"
