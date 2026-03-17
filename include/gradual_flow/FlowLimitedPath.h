@@ -67,7 +67,8 @@ struct FlowLimitedPath
      */
     double extrusionVolumePerMm() const // um^3/um
     {
-        return original_gcode_path_data->flow * original_gcode_path_data->config.line_width * original_gcode_path_data->config.layer_thickness * original_gcode_path_data->flow;
+        return original_gcode_path_data->flow * original_gcode_path_data->config.line_width * original_gcode_path_data->config.layer_thickness
+             * original_gcode_path_data->config.getFlowRatio();
     }
 
     /*

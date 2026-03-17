@@ -1308,7 +1308,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
                 {
                     addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer);
                 }
-                time_keeper.registerTime(fmt::format("Mesh {}", mesh_idx));
+                time_keeper.registerTime(fmt::format("Mesh {}", mesh->mesh_name));
             }
         }
     }
@@ -2077,7 +2077,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                     order_requirements,
                     start_move_inwards_length,
                     end_move_inwards_length,
-                    infill_inner_contour);
+                    MendedShape(mesh.settings, SectionType::INFILL, infill_inner_contour));
             }
         }
     }
@@ -2177,7 +2177,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
     if (! infill_below_skin.empty())
     {
-        const Shape infill_contour = part.infill_area.offset(-(infill_line_width / 2) + infill_overlap);
+        const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
+        const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
+        const Shape infill_contour = part.infill_area.offset(-(infill_line_width / 2) + infill_overlap + infill_wall_offset);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
         std::tie(infill_below_skin, skin_support_angle) = makeBridgeOverInfillPrintable(infill_contour, infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
         infill_not_below_skin = infill_not_below_skin.difference(infill_below_skin);
@@ -2502,7 +2504,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             order_requirements,
             start_move_inwards_length,
             end_move_inwards_length,
-            infill_inner_contour);
+            MendedShape(mesh.settings, SectionType::INFILL, infill_inner_contour));
 
         if (! skin_support_polygons.empty())
         {
@@ -2633,10 +2635,6 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
     // there is infill below skin, is there also infill that isn't below skin?
     infill_not_below_skin = part.infill_area_per_combine_per_density.back().front().difference(infill_below_skin);
     infill_not_below_skin.removeSmallAreas(min_area);
-
-    // need to take skin/infill overlap that was added in SkinInfillAreaComputation::generateInfill() into account
-    const coord_t infill_skin_overlap = mesh.settings.get<coord_t>((part.wall_toolpaths.size() > 1) ? "wall_line_width_x" : "wall_line_width_0") / 2;
-    const Shape infill_below_skin_overlap = infill_below_skin.offset(-(infill_skin_overlap + tiny_infill_offset));
 }
 
 size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const
@@ -2817,7 +2815,7 @@ bool FffGcodeWriter::processInsets(
             // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
             // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
 
-            Shape compressed_air(part.outline.difference(outlines_below).offset(-max_air_gap));
+            Shape compressed_air = part.outline.difference(outlines_below).offset(-max_air_gap);
 
             // now expand the air regions by the same amount as they were shrunk (completing the morphological opening operation)
             // also, if the bridge-flow is light enough, compensate for the fact that the wall-vertices aren't exactly on the outline
@@ -2828,12 +2826,20 @@ bool FffGcodeWriter::processInsets(
             Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance);
             gcode_layer.setBridgeWallMask(bridge_mask);
 
+            const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
+
             // Override flooring/skin areas to register bridging areas to be treated as normal skin
             for (SkinPart& skin_part : part.skin_parts)
             {
                 Shape moved_area = skin_part.flooring_fill.intersection(bridge_mask).offset(10);
-                skin_part.flooring_fill = skin_part.flooring_fill.difference(moved_area);
                 skin_part.skin_fill = skin_part.skin_fill.unionPolygons(moved_area);
+
+                // make sure that
+                // - skin_fill (bridging) and flooring/roofing areas are distinct areas
+                // - skin overlap is reapplied on roofing and flooring areas
+                // - skin doesn't grow beyond its original area
+                skin_part.flooring_fill = skin_part.flooring_fill.difference(skin_part.skin_fill).offset(-10).offset(skin_overlap + 10).intersection(skin_part.flooring_fill);
+                skin_part.roofing_fill = skin_part.roofing_fill.difference(skin_part.skin_fill).offset(-10).offset(skin_overlap + 10).intersection(skin_part.roofing_fill);
             }
         }
         else
@@ -3046,6 +3052,10 @@ bool FffGcodeWriter::processInsets(
             mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_);
         added_something |= wall_orderer.addToLayer();
     }
+
+    // clear overhang masks for any successive part on the layer
+    gcode_layer.setOverhangMasks({});
+
     return added_something;
 }
 
@@ -4324,6 +4334,24 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
 void FffGcodeWriter::finalize()
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+
+    // In one-at-a-time mode, raise the nozzle to avoid collision with already printed objects during final travel
+    if (mesh_group_settings.get<std::string>("print_sequence") == "one_at_a_time")
+    {
+        gcode.setZ(max_object_height + MM2INT(5));
+        Application::getInstance().communication_->sendCurrentPosition(gcode.getPosition());
+        gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
+    }
+    // Write the current extruder's end G-code
+    const Scene& scene = Application::getInstance().current_slice_->scene;
+    const Settings& extruder_settings = scene.extruders[gcode.getExtruderNr()].settings_;
+    const auto extruder_end_code = extruder_settings.get<std::string>("machine_extruder_end_code");
+
+    if (! extruder_end_code.empty())
+    {
+        gcode.writeCodeWithAbsoluteExtrusion(extruder_end_code.c_str());
+    }
+
     if (mesh_group_settings.get<bool>("machine_heated_bed"))
     {
         gcode.writeBedTemperatureCommand(0); // Cool down the bed (M140).
@@ -4338,7 +4366,6 @@ void FffGcodeWriter::finalize()
     std::vector<double> filament_used;
     std::vector<std::string> material_ids;
     std::vector<bool> extruder_is_used;
-    const Scene& scene = Application::getInstance().current_slice_->scene;
     for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
     {
         filament_used.emplace_back(gcode.getTotalFilamentUsed(extruder_nr));

@@ -498,7 +498,7 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     gcode.writeZhopStart(hop_height);
-    EXPECT_EQ(std::string("G1 F60 Z5\n"), output.str());
+    EXPECT_EQ(std::string("G1 Z5\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
@@ -528,7 +528,7 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     gcode.writeZhopEnd();
-    EXPECT_EQ(std::string("G1 F60 Z2\n"), output.str());
+    EXPECT_EQ(std::string("G1 Z2\n"), output.str());
 }
 
 TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
