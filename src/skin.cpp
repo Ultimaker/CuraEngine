@@ -339,7 +339,7 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
     const Shape build_plate = slice_data.getRawMachineBorder();
 
     const Shape filled_area_above = has_roofing ? generateFilledAreaAbove(part, roofing_layer_count) : build_plate;
-    const Shape filled_area_below = has_flooring ? (generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate.offset(EPSILON))) : build_plate.offset(EPSILON);
+    const Shape filled_area_below = has_flooring ? (generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate)) : build_plate;
 
     for (SkinPart& skin_part : part.skin_parts)
     {
