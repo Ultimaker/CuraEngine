@@ -1102,8 +1102,8 @@ void Infill::splitLineClosestToPoint(const Point2LL& desired_end_position, OpenL
 
     if (closest_point.has_value() && ! is_polygon_closer)
     {
-        // We do have found a point from an open polyline that is the closest to the desired end position, so split this line in two parts so that the start/end positions
-        // can be used to end the infill close to the position
+        // We do have found a point from an open polyline that is the closest to the desired end position, so split this line in two parts
+        // so that the start/end positions can be used to end the infill close to the position
         result_lines.split(closest_point->first, closest_point->second);
     }
 }
