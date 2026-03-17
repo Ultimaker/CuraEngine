@@ -2207,16 +2207,15 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
                     Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(
-                        TreeSupportUtils::generateSupportInfillLines(
-                            support_layer_storage[layer_idx],
-                            config,
-                            false,
-                            layer_idx,
-                            config.support_line_distance,
-                            storage.support.cross_fill_provider,
-                            true)
-                            .offset(config.support_line_width / 2));
+                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
+                                                              support_layer_storage[layer_idx],
+                                                              config,
+                                                              false,
+                                                              layer_idx,
+                                                              config.support_line_distance,
+                                                              storage.support.cross_fill_provider,
+                                                              true)
+                                                              .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
