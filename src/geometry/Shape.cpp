@@ -915,6 +915,11 @@ std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const 
     return result;
 }
 
+Shape Shape::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const
+{
+    return offset(outer_offset).difference(offset(-inner_offset));
+}
+
 void Shape::ensureManifold()
 {
     std::vector<Point2LL> duplicate_locations;
