@@ -1873,17 +1873,31 @@ void FffGcodeWriter::addMeshPartToGCode(
     LayerPlan& gcode_layer) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-
+    const bool infill_before_walls = mesh.settings.get<bool>("infill_before_walls");
     bool added_something = false;
 
-    if (mesh.settings.get<bool>("infill_before_walls"))
+    // Pre-process the insets without actually adding them, so that we know where they are going to start printing
+    InsetsPreprocessResult insets_preprocess_result = preProcessInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+
+    if (infill_before_walls)
     {
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+        std::optional<Point2LL> near_end_location;
+        std::optional<Point2LL> infill_near_split_location;
+        if (insets_preprocess_result.walls_optimizer)
+        {
+            near_end_location = insets_preprocess_result.walls_optimizer->getStartPosition();
+            if (mesh.settings.get<bool>("split_infill_close_to_seam"))
+            {
+                infill_near_split_location = near_end_location;
+            }
+        }
+
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, near_end_location, infill_near_split_location);
     }
 
-    added_something = added_something | processInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    added_something |= endProcessInsets(insets_preprocess_result, storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
-    if (! mesh.settings.get<bool>("infill_before_walls"))
+    if (! infill_before_walls)
     {
         added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
     }
@@ -1910,7 +1924,9 @@ bool FffGcodeWriter::processInfill(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    const SliceLayerPart& part) const
+    const SliceLayerPart& part,
+    const std::optional<Point2LL>& near_end_location,
+    const std::optional<Point2LL>& infill_near_split_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -1920,9 +1936,27 @@ bool FffGcodeWriter::processInfill(
     const coord_t infill_start_move_inwards_length = mesh.settings.get<coord_t>("infill_start_move_inwards_length");
     const coord_t infill_end_move_inwards_length = mesh.settings.get<coord_t>("infill_end_move_inwards_length");
 
-    bool added_something = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length);
-    added_something
-        = added_something | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length);
+    const bool added_something = processMultiLayerInfill(
+                                     gcode_layer,
+                                     mesh,
+                                     extruder_nr,
+                                     mesh_config,
+                                     part,
+                                     infill_start_move_inwards_length,
+                                     infill_end_move_inwards_length,
+                                     near_end_location,
+                                     infill_near_split_location)
+                               | processSingleLayerInfill(
+                                     storage,
+                                     gcode_layer,
+                                     mesh,
+                                     extruder_nr,
+                                     mesh_config,
+                                     part,
+                                     infill_start_move_inwards_length,
+                                     infill_end_move_inwards_length,
+                                     near_end_location,
+                                     infill_near_split_location);
     return added_something;
 }
 
@@ -1933,7 +1967,9 @@ bool FffGcodeWriter::processMultiLayerInfill(
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
     const coord_t start_move_inwards_length,
-    const coord_t end_move_inwards_length) const
+    const coord_t end_move_inwards_length,
+    const std::optional<Point2LL>& near_end_location,
+    const std::optional<Point2LL>& infill_near_split_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2027,7 +2063,9 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 SectionType::INFILL,
                 mesh.cross_fill_provider,
                 lightning_layer,
-                &mesh);
+                &mesh,
+                Shape(),
+                infill_near_split_location);
             if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
             {
                 infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
@@ -2051,17 +2089,22 @@ bool FffGcodeWriter::processMultiLayerInfill(
             if (! infill_lines.empty())
             {
                 std::optional<Point2LL> near_start_location;
+                bool reverse_print_direction = false;
                 if (mesh.settings.get<bool>("infill_randomize_start_location"))
                 {
                     srand(gcode_layer.getLayerNr());
                     near_start_location = infill_lines[rand() % infill_lines.size()][0];
+                }
+                else if (near_end_location.has_value())
+                {
+                    near_start_location = near_end_location;
+                    reverse_print_direction = true;
                 }
 
                 constexpr coord_t wipe_dist = 0;
                 const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
                 constexpr Ratio flow_ratio = 1.0_r;
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-                constexpr bool reverse_print_direction = false;
                 const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
                 gcode_layer.addLinesByOptimizer(
@@ -2111,7 +2154,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
     const coord_t start_move_inwards_length,
-    const coord_t end_move_inwards_length) const
+    const coord_t end_move_inwards_length,
+    const std::optional<Point2LL>& near_end_location,
+    const std::optional<Point2LL>& infill_near_split_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -2363,7 +2408,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
             SectionType::INFILL,
             mesh.cross_fill_provider,
             lightning_layer,
-            &mesh);
+            &mesh,
+            Shape(),
+            infill_near_split_location);
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
@@ -2401,6 +2448,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         added_something = true;
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         std::optional<Point2LL> near_start_location;
+        bool reverse_print_direction = false;
         if (mesh.settings.get<bool>("infill_randomize_start_location"))
         {
             srand(gcode_layer.getLayerNr());
@@ -2424,6 +2472,12 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 near_start_location = (*start_paths)[0][0].junctions_[0].p_;
             }
         }
+        else if (near_end_location.has_value())
+        {
+            near_start_location = near_end_location;
+            reverse_print_direction = true;
+        }
+
         if (walls_generated)
         {
             for (const std::vector<VariableWidthLines>& tool_paths : wall_tool_paths)
@@ -2488,7 +2542,6 @@ bool FffGcodeWriter::processSingleLayerInfill(
         const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
         constexpr Ratio flow_ratio = 1.0_r;
         constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-        constexpr bool reverse_print_direction = false;
         const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
         gcode_layer.addLinesByOptimizer(
@@ -2692,7 +2745,7 @@ void FffGcodeWriter::processSpiralizedWall(
     }
 }
 
-bool FffGcodeWriter::processInsets(
+FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
@@ -2700,17 +2753,16 @@ bool FffGcodeWriter::processInsets(
     const MeshPathConfigs& mesh_config,
     SliceLayerPart& part) const
 {
-    bool added_something = false;
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_)
     {
-        return added_something;
+        return {};
     }
     if (mesh.settings.get<size_t>("wall_line_count") <= 0)
     {
-        return added_something;
+        return {};
     }
 
-    bool spiralize = false;
+    InsetsPreprocessResult result;
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
         const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
@@ -2719,29 +2771,16 @@ bool FffGcodeWriter::processInsets(
             || (layer_nr >= initial_bottom_layers && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
         {
             // nothing to do
-            return false;
+            return {};
         }
         if (gcode_layer.getLayerNr() >= initial_bottom_layers)
         {
-            spiralize = true;
-        }
-        if (spiralize && gcode_layer.getLayerNr() == initial_bottom_layers && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
-        { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
-            added_something = true;
-            gcode_layer.setIsInside(true); // going to print stuff inside print object
-            // start this first wall at the same vertex the spiral starts
-            const Polygon& spiral_inset = part.spiral_wall[0];
-            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[static_cast<size_t>(initial_bottom_layers.value)];
-            if (spiral_start_vertex < spiral_inset.size())
-            {
-                gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
-            }
-            int wall_0_wipe_dist(0);
-            gcode_layer.addPolygonsByOptimizer(part.spiral_wall, mesh_config.inset0_config, mesh.settings, ZSeamConfig(), wall_0_wipe_dist);
+            result.spiralize = true;
         }
     }
+
     // for non-spiralized layers, determine the shape of the unsupported areas below this part
-    if (! spiralize && gcode_layer.getLayerNr() > 0)
+    if (! result.spiralize && gcode_layer.getLayerNr() > 0)
     {
         // accumulate the outlines of all of the parts that are on the layer below
 
@@ -2993,25 +3032,7 @@ bool FffGcodeWriter::processInsets(
         gcode_layer.setFlooringMask(Shape());
     }
 
-    if (spiralize && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && ! part.spiral_wall.empty())
-    {
-        added_something = true;
-        gcode_layer.setIsInside(true); // going to print stuff inside print object
-
-        // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralize codepath.
-        // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
-        // one part higher up. Once all the parts have merged, layers above that level will be spiralized
-        if (&mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
-        {
-            processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
-        }
-        else
-        {
-            // Print the spiral walls of other parts as single walls without Z gradient.
-            gcode_layer.addWalls(part.spiral_wall, mesh.settings, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config);
-        }
-    }
-    else
+    if (! result.spiralize || extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ || part.spiral_wall.empty())
     {
         // Main case: Optimize the insets with the InsetOrderOptimizer.
         const coord_t wall_x_wipe_dist = 0;
@@ -3023,7 +3044,8 @@ bool FffGcodeWriter::processInsets(
         const Shape disallowed_areas_for_seams;
         constexpr bool scarf_seam = true;
         constexpr bool smooth_speed = true;
-        InsetOrderOptimizer wall_orderer(
+
+        result.walls_optimizer = std::make_shared<InsetOrderOptimizer>(
             *this,
             storage,
             gcode_layer,
@@ -3050,13 +3072,71 @@ bool FffGcodeWriter::processInsets(
             smooth_speed,
             gcode_layer.getSeamOverhangMask(),
             mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_);
-        added_something |= wall_orderer.addToLayer();
+        result.walls_optimizer->optimize();
     }
 
     // clear overhang masks for any successive part on the layer
     gcode_layer.setOverhangMasks({});
 
-    return added_something;
+    return result;
+}
+
+bool FffGcodeWriter::endProcessInsets(
+    InsetsPreprocessResult& preprocess_result,
+    const SliceDataStorage& storage,
+    LayerPlan& gcode_layer,
+    const SliceMeshStorage& mesh,
+    const size_t extruder_nr,
+    const MeshPathConfigs& mesh_config,
+    SliceLayerPart& part) const
+{
+    if (preprocess_result.spiralize)
+    {
+        bool added_something = false;
+        const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
+
+        if (gcode_layer.getLayerNr() == initial_bottom_layers && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+        { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
+            added_something = true;
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+            // start this first wall at the same vertex the spiral starts
+            const Polygon& spiral_inset = part.spiral_wall[0];
+            const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[static_cast<size_t>(initial_bottom_layers.value)];
+            if (spiral_start_vertex < spiral_inset.size())
+            {
+                gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
+            }
+            int wall_0_wipe_dist(0);
+            gcode_layer.addPolygonsByOptimizer(part.spiral_wall, mesh_config.inset0_config, mesh.settings, ZSeamConfig(), wall_0_wipe_dist);
+        }
+
+        if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && ! part.spiral_wall.empty())
+        {
+            added_something = true;
+            gcode_layer.setIsInside(true); // going to print stuff inside print object
+
+            // Only spiralize the first part in the mesh, any other parts will be printed using the normal, non-spiralized codepath.
+            // This sounds weird but actually does the right thing when you have a model that has multiple parts at the bottom that merge into
+            // one part higher up. Once all the parts have merged, layers above that level will be spiralized
+            if (&mesh.layers[gcode_layer.getLayerNr()].parts[0] == &part)
+            {
+                processSpiralizedWall(storage, gcode_layer, mesh_config, part, mesh);
+            }
+            else
+            {
+                // Print the spiral walls of other parts as single walls without Z gradient.
+                gcode_layer.addWalls(part.spiral_wall, mesh.settings, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config, mesh_config.inset0_config);
+            }
+        }
+
+        return added_something;
+    }
+    else if (preprocess_result.walls_optimizer != nullptr)
+    {
+        return preprocess_result.walls_optimizer->addToLayer();
+    }
+
+    return false;
 }
 
 std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Shape& filling_part, int filling_angle, Point2LL last_position) const

@@ -9,7 +9,6 @@
 #include <range/v3/range/concepts.hpp>
 
 #include "geometry/LinesSet.h"
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
@@ -201,6 +200,7 @@ public:
      * \param cross_fill_provider Any pre-computed cross infill pattern, if the Cross or Cross3D pattern is selected.
      * \param mesh A mesh for which to generate infill (should only be used for non-helper-mesh objects).
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
+     * \param near_split_location When provided, the resulting lines will be split if needed to provide a start/end position that is as close as possible to this location
      */
     void generate(
         std::vector<VariableWidthLines>& toolpaths,
@@ -212,7 +212,8 @@ public:
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
-        const Shape& prevent_small_exposed_to_air = Shape());
+        const Shape& prevent_small_exposed_to_air = Shape(),
+        const std::optional<Point2LL>& near_split_location = std::nullopt);
 
     coord_t getLineDistance() const
     {
@@ -392,7 +393,8 @@ private:
         const Settings& settings,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
-        const SliceMeshStorage* mesh = nullptr);
+        const SliceMeshStorage* mesh = nullptr,
+        const std::optional<Point2LL>& near_split_location = std::nullopt);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -649,6 +651,16 @@ private:
      * \param[in/out] result_lines The lines to connect together.
      */
     void connectLines(OpenLinesSet& result_lines);
+
+    /*!
+     * Try to split the open polyline that passes the closest to the given desired end position. This way, we provide a start/end position that can be used to end the global
+     * infill pattern as close as possible to the end position. Otherwise, infill can likely end up in a single very long line with only one start and one end, that are very far
+     * from the end position.
+     * @param desired_end_position The position we want to start/end as close as possible to
+     * @param[in, out] result_lines The generated infill lines
+     * @param result_polygons The generated infill polygons, which don't need splitting because polygon printing can start/end anywhere in the loop
+     */
+    static void splitLineClosestToPoint(const Point2LL& desired_end_position, OpenLinesSet& result_lines, const Shape& result_polygons);
 };
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");
 
