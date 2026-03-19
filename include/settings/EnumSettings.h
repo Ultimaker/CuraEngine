@@ -290,6 +290,16 @@ enum class CoolDuringExtruderSwitch
 };
 
 /*!
+ * How to select the starting position of the infill
+ */
+enum class InfillStartPosition
+{
+    NONE, // Just start at the first vertex of the first line
+    RANDOM, // Pick a random line to start at
+    CLOSE_TO_WALL_SEAM // Split line to provide a position close to next wall seam
+};
+
+/*!
  * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::OUTSIDE)
  */
 [[maybe_unused]] static int operator&(BrimLocation location1, BrimLocation location2)

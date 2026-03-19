@@ -740,6 +740,24 @@ CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::stri
 }
 
 template<>
+InfillStartPosition Settings::get<InfillStartPosition>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "close_to_wall_seam")
+    {
+        return InfillStartPosition::CLOSE_TO_WALL_SEAM;
+    }
+    else if (value == "random")
+    {
+        return InfillStartPosition::RANDOM;
+    }
+    else // Default.
+    {
+        return InfillStartPosition::NONE;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);

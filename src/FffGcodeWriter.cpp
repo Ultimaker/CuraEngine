@@ -1886,7 +1886,7 @@ void FffGcodeWriter::addMeshPartToGCode(
         if (insets_preprocess_result.walls_optimizer)
         {
             near_end_location = insets_preprocess_result.walls_optimizer->getStartPosition();
-            if (mesh.settings.get<bool>("split_infill_close_to_seam"))
+            if (mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::CLOSE_TO_WALL_SEAM)
             {
                 infill_near_split_location = near_end_location;
             }
@@ -2090,7 +2090,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
             {
                 std::optional<Point2LL> near_start_location;
                 bool reverse_print_direction = false;
-                if (mesh.settings.get<bool>("infill_randomize_start_location"))
+                if (mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::RANDOM)
                 {
                     srand(gcode_layer.getLayerNr());
                     near_start_location = infill_lines[rand() % infill_lines.size()][0];
@@ -2449,7 +2449,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         gcode_layer.setIsInside(true); // going to print stuff inside print object
         std::optional<Point2LL> near_start_location;
         bool reverse_print_direction = false;
-        if (mesh.settings.get<bool>("infill_randomize_start_location"))
+        if (mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::RANDOM)
         {
             srand(gcode_layer.getLayerNr());
             if (! infill_lines.empty())
