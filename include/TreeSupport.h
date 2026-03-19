@@ -332,12 +332,14 @@ private:
      * \param support_layer_storage[in] Areas where support should be generated.
      * \param support_roof_storage[in] Areas where support was replaced with roof.
      * \param storage[in,out] The storage where the support should be stored.
+     * \param major_trunk_storage[in] Storage for major trunk areas that need solid infill.
      */
     void finalizeInterfaceAndSupportAreas(
         std::vector<Shape>& support_layer_storage,
         std::vector<Shape>& support_roof_storage,
         std::vector<Shape>& support_layer_storage_fractional,
-        SliceDataStorage& storage);
+        SliceDataStorage& storage,
+        const std::vector<Shape>& major_trunk_storage);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
