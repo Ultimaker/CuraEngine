@@ -2413,7 +2413,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 const Polygon& start_poly = infill_polygons[rand() % infill_polygons.size()];
                 near_start_location = start_poly[rand() % start_poly.size()];
             }
-            else // So walls_generated must be true.
+            else if (walls_generated)
             {
                 std::vector<VariableWidthLines>* start_paths = &wall_tool_paths[rand() % wall_tool_paths.size()];
                 while (start_paths->empty() || (*start_paths)[0].empty()) // We know for sure (because walls_generated) that one of them is not empty. So randomise until we hit
