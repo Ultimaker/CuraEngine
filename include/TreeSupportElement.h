@@ -91,6 +91,8 @@ struct TreeSupportElement
         , all_tips_({ target_position })
         , influence_area_limit_active_(influence_area_limit_active)
         , influence_area_limit_range_(influence_area_limit_range)
+        , is_major_trunk_(false)
+        , trunk_branch_count_(1)
     {
         RecreateInfluenceLimitArea();
     }
@@ -120,6 +122,8 @@ struct TreeSupportElement
         , influence_area_limit_active_(elem.influence_area_limit_active_)
         , influence_area_limit_range_(elem.influence_area_limit_range_)
         , influence_area_limit_area_(elem.influence_area_limit_area_)
+        , is_major_trunk_(elem.is_major_trunk_)
+        , trunk_branch_count_(elem.trunk_branch_count_)
     {
         parents_.insert(parents_.begin(), elem.parents_.begin(), elem.parents_.end());
     }
@@ -152,6 +156,8 @@ struct TreeSupportElement
         , influence_area_limit_active_(element_above->influence_area_limit_active_)
         , influence_area_limit_range_(element_above->influence_area_limit_range_)
         , influence_area_limit_area_(element_above->influence_area_limit_area_)
+        , is_major_trunk_(element_above->is_major_trunk_)
+        , trunk_branch_count_(element_above->trunk_branch_count_)
     {
         parents_ = { element_above };
     }
@@ -223,6 +229,11 @@ struct TreeSupportElement
         all_tips_.insert(all_tips_.end(), second.all_tips_.begin(), second.all_tips_.end());
         influence_area_limit_range_ = std::max(first.influence_area_limit_range_, second.influence_area_limit_range_);
         influence_area_limit_active_ = first.influence_area_limit_active_ || second.influence_area_limit_active_;
+        
+        // Mark as major trunk if merging multiple branches
+        trunk_branch_count_ = first.trunk_branch_count_ + second.trunk_branch_count_;
+        is_major_trunk_ = trunk_branch_count_ >= 3 || parents_.size() >= 3;
+        
         RecreateInfluenceLimitArea();
         if (first.to_buildplate_ != second.to_buildplate_)
         {
@@ -357,6 +368,16 @@ struct TreeSupportElement
      * \brief Additional locations that the tip should reach
      */
     std::vector<Point2LL> additional_ovalization_targets_;
+
+    /*!
+     * \brief Whether this element is a major trunk resulting from merging multiple branches
+     */
+    bool is_major_trunk_;
+
+    /*!
+     * \brief Count of parent branches this trunk supports (for structural validation)
+     */
+    size_t trunk_branch_count_;
 
 
     bool operator==(const TreeSupportElement& other) const
