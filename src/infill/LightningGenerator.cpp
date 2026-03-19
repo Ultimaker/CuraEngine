@@ -66,13 +66,13 @@ LightningGenerator::LightningGenerator(const SupportStorage& support)
     const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const auto support_extruder = settings.get<ExtruderTrain&>("support_extruder_nr");
     const Settings& extruder_settings = support_extruder.settings_;
-    const auto layer_thickness = extruder_settings.get<coord_t>("layer_height");
+    const auto layer_thickness = extruder_settings.get<coord_t>("support_infill_sparse_thickness");
     const auto infill_line_width = extruder_settings.get<coord_t>("support_line_width");
     const auto infill_wall_line_count = static_cast<coord_t>(settings.get<size_t>("support_wall_count"));
     const auto line_distance = extruder_settings.get<coord_t>("support_line_distance");
-    const auto overhang_angle = extruder_settings.get<AngleRadians>("lightning_infill_overhang_angle");
-    const auto prune_angle = extruder_settings.get<AngleRadians>("lightning_infill_prune_angle");
-    const auto straightening_angle = extruder_settings.get<AngleRadians>("lightning_infill_straightening_angle");
+    const auto overhang_angle = extruder_settings.get<AngleRadians>("support_lightning_overhang_angle");
+    const auto prune_angle = extruder_settings.get<AngleRadians>("support_lightning_prune_angle");
+    const auto straightening_angle = extruder_settings.get<AngleRadians>("support_lightning_straightening_angle");
 
     std::vector<Shape> areas_per_layer;
     areas_per_layer.reserve(support.supportLayers.size());
