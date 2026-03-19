@@ -1129,8 +1129,11 @@ void GCodeExport::writeFXYZE(
     const PrintFeatureType& feature,
     const std::optional<RetractionAmounts>& retraction_amounts)
 {
+    bool any_written = false;
+
     if (current_speed_ != speed)
     {
+        any_written = true;
         *output_stream_ << " F" << PrecisionedDouble{ 1, speed * 60 };
         current_speed_ = speed;
     }
@@ -1142,11 +1145,13 @@ void GCodeExport::writeFXYZE(
     // To prevent any potential issues with machines with custom FW or processing scripts that require both X and Y to be present for a move, even if only one of them is changing.
     if (x != current_position_.x_ || y != current_position_.y_)
     {
+        any_written = true;
         *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
     }
 
     if (z != current_position_.z_)
     {
+        any_written = true;
         *output_stream_ << " Z" << MMtoStream{ z };
     }
 
@@ -1154,14 +1159,23 @@ void GCodeExport::writeFXYZE(
     {
         if (retraction_amounts->has_retraction())
         {
+            any_written = true;
             writeRawRetract(retraction_amounts.value());
         }
     }
     else if (e + current_e_offset_ != current_e_value_)
     {
+        any_written = true;
         const double output_e = (relative_extrusion_) ? e + current_e_offset_ - current_e_value_ : e + current_e_offset_;
         *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
         current_e_value_ = e;
+    }
+
+    if (! any_written)
+    {
+        // Just write XY in case absolutely nothing else changed.
+        *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
+        spdlog::warn("No axis-value (F,X,Y,Z,E) changed, but write-move requested; outputting XY anyway.\n");
     }
     *output_stream_ << new_line_;
 

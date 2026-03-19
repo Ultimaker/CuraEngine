@@ -260,18 +260,6 @@ public:
 
     [[nodiscard]] LinesSet<LineType> difference(const Shape& other) const;
 
-    /*!
-     * Utility method for creating the tube (or 'donut') of a shape.
-     *
-     * \param inner_offset Offset relative to the original shape-outline towards the inside of the
-     *        shape. Sort-of like a negative normal offset, except it's the offset part that's kept,
-     *        not the shape.
-     * \param outer_offset Offset relative to the original shape-outline towards the outside of the
-     *        shape. Comparable to normal offset.
-     * \return The resulting polygons.
-     */
-    [[nodiscard]] Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
-
     void translate(const Point2LL& delta);
 
     void applyMatrix(const PointMatrix& matrix);

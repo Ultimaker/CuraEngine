@@ -2024,7 +2024,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
             }
 
             const Shape& relevant_forbidden = volumes_.getCollision(0, layer_idx, true);
-            Shape outer_walls = TreeSupportUtils::toPolylines(support_layer_storage[layer_idx - 1].getOutsidePolygons()).createTubeShape(closing_dist, 0);
+            Shape outer_walls = support_layer_storage[layer_idx - 1].getOutsidePolygons().createTubeShape(closing_dist, 0);
 
             Shape holes_below;
 
