@@ -115,42 +115,6 @@ private:
      */
     void generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
 
-
-    /*!
-     * \brief Validates that a merged trunk can structurally support all parent branches.
-     *
-     * IMPROVED: Ensures merged trunks have adequate cross-sectional area to bear the load
-     * of all branches they support, preventing structural failure.
-     *
-     * \param trunk_elem[in] The merged trunk element to validate
-     * \param trunk_radius[in] The radius of the trunk
-     * \param supported_branches[in] All branches this trunk must support
-     * \return True if trunk can structurally support all branches
-     */
-    bool validateTrunkStructuralCapacity(const TreeSupportElement& trunk_elem, coord_t trunk_radius, const std::vector<TreeSupportElement*>& supported_branches) const;
-
-    /*!
-     * \brief Calculates the required trunk radius to support given branches.
-     *
-     * IMPROVED: Pre-calculates optimal trunk sizing based on structural requirements.
-     *
-     * \param supported_branches[in] All branches that need support
-     * \return Required radius for structural integrity
-     */
-    coord_t calculateRequiredTrunkRadius(const std::vector<TreeSupportElement*>& supported_branches) const;
-
-    /*!
-     * \brief Checks if branches should merge based on structural benefit analysis.
-     *
-     * IMPROVED: Quality-based merge decision rather than pure geometric overlap.
-     *
-     * \param first[in] First branch to potentially merge
-     * \param second[in] Second branch to potentially merge
-     * \param layer_idx[in] Current layer
-     * \return True if merge would improve structural quality
-     */
-    bool shouldMergeForStructuralBenefit(const TreeSupportElement& first, const TreeSupportElement& second, LayerIndex layer_idx) const;
-
     /*!
      * \brief Merges Influence Areas if possible.
      *

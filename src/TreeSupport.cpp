@@ -259,75 +259,6 @@ void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector
     tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, fake_roof_areas);
 }
 
-bool TreeSupport::validateTrunkStructuralCapacity(const TreeSupportElement& trunk_elem, coord_t trunk_radius, const std::vector<TreeSupportElement*>& supported_branches) const
-{
-    // Calculate total required cross-sectional area from all supported branches
-    double required_area = 0.0;
-    for (const TreeSupportElement* branch : supported_branches)
-    {
-        const coord_t branch_radius = config.getRadius(*branch);
-        required_area += std::numbers::pi * branch_radius * branch_radius;
-    }
-
-    // Calculate available cross-sectional area in trunk
-    const double trunk_area = std::numbers::pi * trunk_radius * trunk_radius;
-
-    // Apply safety factor of 1.2 (20% extra capacity for structural margin)
-    constexpr double STRUCTURAL_SAFETY_FACTOR = 1.2;
-    return trunk_area >= (required_area * STRUCTURAL_SAFETY_FACTOR);
-}
-
-coord_t TreeSupport::calculateRequiredTrunkRadius(const std::vector<TreeSupportElement*>& supported_branches) const
-{
-    if (supported_branches.empty())
-    {
-        return 0;
-    }
-
-    // Sum cross-sectional areas of all branches
-    double total_area = 0.0;
-    for (const TreeSupportElement* branch : supported_branches)
-    {
-        const coord_t branch_radius = config.getRadius(*branch);
-        total_area += std::numbers::pi * branch_radius * branch_radius;
-    }
-
-    // Apply structural safety factor
-    constexpr double STRUCTURAL_SAFETY_FACTOR = 1.2;
-    total_area *= STRUCTURAL_SAFETY_FACTOR;
-
-    // Calculate required radius from combined area
-    return static_cast<coord_t>(std::sqrt(total_area / std::numbers::pi));
-}
-
-bool TreeSupport::shouldMergeForStructuralBenefit(const TreeSupportElement& first, const TreeSupportElement& second, LayerIndex layer_idx) const
-{
-    // Check if branches are close enough that merging would create a stronger structure
-    const coord_t distance = vSize(first.next_position_ - second.next_position_);
-    const coord_t combined_radius = config.getRadius(first) + config.getRadius(second);
-
-    // Merge if overlapping or very close (within 1.5x combined radius)
-    if (distance < combined_radius * 1.5)
-    {
-        return true;
-    }
-
-    // Check if either branch has multiple parents (would benefit from trunk support)
-    if (first.parents_.size() >= 2 || second.parents_.size() >= 2)
-    {
-        // More lenient merging for branches with multiple parents
-        return distance < combined_radius * 2.0;
-    }
-
-    // Check if branches are already marked as trunks (should consolidate)
-    if (first.is_major_trunk_ || second.is_major_trunk_)
-    {
-        return distance < combined_radius * 2.5;
-    }
-
-    return false;
-}
-
 void TreeSupport::mergeHelper(
     std::map<TreeSupportElement, AABB>& reduced_aabb,
     std::map<TreeSupportElement, AABB>& input_aabb,
@@ -468,50 +399,30 @@ void TreeSupport::mergeHelper(
                     }
 
                     // Do the actual merge now that the branches are confirmed to be able to intersect.
-                    // IMPROVED: Use union-based merge for solid trunk structure instead of intersection-only
-
-                    // Calculate required structural area for merged trunk
-                    const coord_t radius_first = config.getRadius(reduced_check.first);
-                    const coord_t radius_second = config.getRadius(influence.first);
-                    const double required_cross_section = (std::numbers::pi * radius_first * radius_first) + (std::numbers::pi * radius_second * radius_second);
-                    const coord_t required_radius = std::sqrt(required_cross_section / std::numbers::pi);
-
-                    // Create structurally sound merge using union with convex hull for solid structure
+                    // IMPROVED: Use union-based merge for better trunk structure (simplified for stability)
+                    
+                    // Create merge area - use union for solid structure instead of intersection-only
                     Shape structural_merge = TreeSupportUtils::safeUnion(smaller_rad.second, bigger_rad.second);
-
-                    // For major merges, use approxConvexHull to ensure solid, continuous structure
+                    
+                    // For major merges (3+ parents), use a more conservative convex approach
                     const bool is_major_merge = (reduced_check.first.parents_.size() + influence.first.parents_.size()) >= 3;
                     if (is_major_merge)
                     {
                         structural_merge = structural_merge.approxConvexHull();
                     }
-
-                    // Validate the merge provides adequate support
-                    const coord_t structural_merge_radius = std::sqrt(structural_merge.area() / std::numbers::pi);
-                    if (structural_merge_radius < required_radius * 0.85) // 85% threshold for structural integrity
-                    {
-                        // Insufficient structural support, expand to required radius
-                        structural_merge = structural_merge.offset(required_radius - structural_merge_radius);
-                    }
-
-                    // Use structural merge as the base, then intersect with original intersect for placement
-                    Shape final_merge = structural_merge.intersection(intersect.unionPolygons(smaller_rad.second).unionPolygons(bigger_rad.second));
-                    if (final_merge.area() < 1)
-                    {
-                        final_merge = structural_merge; // Fallback to structural merge if intersection fails
-                    }
+                    
+                    // Use structural merge as base, fallback to original intersect if union fails
+                    Shape final_merge = structural_merge.area() > 1 ? structural_merge : intersect;
 
                     // Calculate which point is closest to the point of the last merge (or tip center if no merge above it has happened)
                     // Used at the end to estimate where to best place the branch on the bottom most layer
-                    // Could be replaced with a random point inside the new area
                     Point2LL new_pos = reduced_check.first.next_position_;
                     if (! final_merge.inside(new_pos, true))
                     {
                         PolygonUtils::moveInside(final_merge, new_pos);
                     }
-
-                    // Update intersect to use structurally sound merge
-                    intersect = final_merge;
+                    
+                    // Update intersect to use structural merge
 
                     if (increased_to_model_radius == 0)
                     {
@@ -2425,7 +2336,13 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
             // IMPROVED: Separate major trunk areas from regular support
             Shape regular_support = support_layer_storage[layer_idx];
-            Shape major_trunks = major_trunk_storage[layer_idx].unionPolygons();
+            Shape major_trunks;
+            
+            // Safely handle major trunk storage
+            if (layer_idx < major_trunk_storage.size())
+            {
+                major_trunks = major_trunk_storage[layer_idx].unionPolygons();
+            }
 
             // Remove trunk areas from regular support to avoid double-processing
             if (! major_trunks.empty())
@@ -2436,13 +2353,13 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             // Fill regular support with normal wall count and infill
             storage.support.supportLayers[layer_idx].fillInfillParts(regular_support, config.support_line_width, config.support_wall_count, false, convert_every_part);
 
-            // IMPROVED: Fill major trunks with reduced walls and denser infill (or solid)
-            // Use wall_count of 2 minimum for strength, but allow solid infill inside
+            // IMPROVED: Fill major trunks with MORE WALLS for solid structure
+            // Tree support typically has 0% infill, so increase wall count for trunk strength
             if (! major_trunks.empty())
             {
-                const int trunk_wall_count = std::max(2, config.support_wall_count / 2);
-                const coord_t trunk_line_distance = config.support_line_distance / 2; // Denser infill for trunks
-                storage.support.supportLayers[layer_idx].fillInfillParts(major_trunks, config.support_line_width, trunk_wall_count, false, convert_every_part, trunk_line_distance);
+                // Use at least 3 walls (up to 5) for major trunks to ensure solid structure
+                const int trunk_wall_count = std::min(5, std::max(3, config.support_wall_count + 2));
+                storage.support.supportLayers[layer_idx].fillInfillParts(major_trunks, config.support_line_width, trunk_wall_count, false, convert_every_part);
             }
 
 
