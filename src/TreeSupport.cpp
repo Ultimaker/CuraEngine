@@ -1791,7 +1791,8 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
 void TreeSupport::generateBranchAreas(
     std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
     std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
-    const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order)
+    const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order,
+    std::vector<Shape>& major_trunk_storage)
 {
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC;
     constexpr int progress_report_steps = 10;
@@ -2526,7 +2527,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     const auto t_start = std::chrono::high_resolution_clock::now();
 
     // Generate the circles that will be the branches.
-    generateBranchAreas(linear_data, layer_tree_polygons, inverse_tree_order);
+    generateBranchAreas(linear_data, layer_tree_polygons, inverse_tree_order, major_trunk_storage);
     const auto t_generate = std::chrono::high_resolution_clock::now();
 
     // In some edge-cases a branch may go through a hole, where the regular radius does not fit. This can result in an apparent jump in branch radius. As such this cases need to be

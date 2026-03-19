@@ -294,11 +294,13 @@ private:
      * \param layer_tree_polygons[out] Resulting branch areas with the layerindex they appear on.
      *    layer_tree_polygons.size() has to be at least linear_data.size() as each Influence area in linear_data will save have at least one (that's why it's a vector<vector>)
      * corresponding branch area in layer_tree_polygons. \param inverse_tree_order[in] A mapping that returns the child of every influence area.
+     * \param major_trunk_storage[out] Storage for major trunk areas that need solid infill.
      */
     void generateBranchAreas(
         std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
         std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
-        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
+        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order,
+        std::vector<Shape>& major_trunk_storage);
 
     /*!
      * \brief Applies some smoothing to the outer wall, intended to smooth out sudden jumps as they can happen when a branch moves though a hole.
