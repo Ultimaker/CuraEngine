@@ -118,7 +118,7 @@ private:
 
     /*!
      * \brief Validates that a merged trunk can structurally support all parent branches.
-     * 
+     *
      * IMPROVED: Ensures merged trunks have adequate cross-sectional area to bear the load
      * of all branches they support, preventing structural failure.
      *
@@ -127,14 +127,11 @@ private:
      * \param supported_branches[in] All branches this trunk must support
      * \return True if trunk can structurally support all branches
      */
-    bool validateTrunkStructuralCapacity(
-        const TreeSupportElement& trunk_elem,
-        coord_t trunk_radius,
-        const std::vector<TreeSupportElement*>& supported_branches) const;
+    bool validateTrunkStructuralCapacity(const TreeSupportElement& trunk_elem, coord_t trunk_radius, const std::vector<TreeSupportElement*>& supported_branches) const;
 
     /*!
      * \brief Calculates the required trunk radius to support given branches.
-     * 
+     *
      * IMPROVED: Pre-calculates optimal trunk sizing based on structural requirements.
      *
      * \param supported_branches[in] All branches that need support
@@ -144,7 +141,7 @@ private:
 
     /*!
      * \brief Checks if branches should merge based on structural benefit analysis.
-     * 
+     *
      * IMPROVED: Quality-based merge decision rather than pure geometric overlap.
      *
      * \param first[in] First branch to potentially merge
@@ -152,10 +149,7 @@ private:
      * \param layer_idx[in] Current layer
      * \return True if merge would improve structural quality
      */
-    bool shouldMergeForStructuralBenefit(
-        const TreeSupportElement& first,
-        const TreeSupportElement& second,
-        LayerIndex layer_idx) const;
+    bool shouldMergeForStructuralBenefit(const TreeSupportElement& first, const TreeSupportElement& second, LayerIndex layer_idx) const;
 
     /*!
      * \brief Merges Influence Areas if possible.

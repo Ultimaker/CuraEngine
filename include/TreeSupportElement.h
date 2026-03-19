@@ -229,11 +229,11 @@ struct TreeSupportElement
         all_tips_.insert(all_tips_.end(), second.all_tips_.begin(), second.all_tips_.end());
         influence_area_limit_range_ = std::max(first.influence_area_limit_range_, second.influence_area_limit_range_);
         influence_area_limit_active_ = first.influence_area_limit_active_ || second.influence_area_limit_active_;
-        
+
         // Mark as major trunk if merging multiple branches
         trunk_branch_count_ = first.trunk_branch_count_ + second.trunk_branch_count_;
         is_major_trunk_ = trunk_branch_count_ >= 3 || parents_.size() >= 3;
-        
+
         RecreateInfluenceLimitArea();
         if (first.to_buildplate_ != second.to_buildplate_)
         {
