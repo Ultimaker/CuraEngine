@@ -400,17 +400,17 @@ void TreeSupport::mergeHelper(
 
                     // Do the actual merge now that the branches are confirmed to be able to intersect.
                     // IMPROVED: Use union-based merge for better trunk structure (simplified for stability)
-                    
+
                     // Create merge area - use union for solid structure instead of intersection-only
                     Shape structural_merge = TreeSupportUtils::safeUnion(smaller_rad.second, bigger_rad.second);
-                    
+
                     // For major merges (3+ parents), use a more conservative convex approach
                     const bool is_major_merge = (reduced_check.first.parents_.size() + influence.first.parents_.size()) >= 3;
                     if (is_major_merge)
                     {
                         structural_merge = structural_merge.approxConvexHull();
                     }
-                    
+
                     // Use structural merge as base, fallback to original intersect if union fails
                     Shape final_merge = structural_merge.area() > 1 ? structural_merge : intersect;
 
@@ -421,7 +421,7 @@ void TreeSupport::mergeHelper(
                     {
                         PolygonUtils::moveInside(final_merge, new_pos);
                     }
-                    
+
                     // Update intersect to use structural merge
 
                     if (increased_to_model_radius == 0)
@@ -2337,7 +2337,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             // IMPROVED: Separate major trunk areas from regular support
             Shape regular_support = support_layer_storage[layer_idx];
             Shape major_trunks;
-            
+
             // Safely handle major trunk storage
             if (layer_idx < major_trunk_storage.size())
             {
