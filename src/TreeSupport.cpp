@@ -271,7 +271,7 @@ bool TreeSupport::validateTrunkStructuralCapacity(const TreeSupportElement& trun
 
     // Calculate available cross-sectional area in trunk
     const double trunk_area = std::numbers::pi * trunk_radius * trunk_radius;
-    
+
     // Apply safety factor of 1.2 (20% extra capacity for structural margin)
     constexpr double STRUCTURAL_SAFETY_FACTOR = 1.2;
     return trunk_area >= (required_area * STRUCTURAL_SAFETY_FACTOR);
@@ -475,10 +475,10 @@ void TreeSupport::mergeHelper(
                     const coord_t radius_second = config.getRadius(influence.first);
                     const double required_cross_section = (std::numbers::pi * radius_first * radius_first) + (std::numbers::pi * radius_second * radius_second);
                     const coord_t required_radius = std::sqrt(required_cross_section / std::numbers::pi);
-                    
+
                     // Create structurally sound merge using union with convex hull for solid structure
                     Shape structural_merge = TreeSupportUtils::safeUnion(smaller_rad.second, bigger_rad.second);
-                    
+
                     // For major merges, use approxConvexHull to ensure solid, continuous structure
                     const bool is_major_merge = (reduced_check.first.parents_.size() + influence.first.parents_.size()) >= 3;
                     if (is_major_merge)
