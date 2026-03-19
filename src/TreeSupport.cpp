@@ -266,12 +266,12 @@ bool TreeSupport::validateTrunkStructuralCapacity(const TreeSupportElement& trun
     for (const TreeSupportElement* branch : supported_branches)
     {
         const coord_t branch_radius = config.getRadius(*branch);
-        required_area += PI * branch_radius * branch_radius;
+        required_area += std::numbers::pi * branch_radius * branch_radius;
     }
 
     // Calculate available cross-sectional area in trunk
-    const double trunk_area = PI * trunk_radius * trunk_radius;
-
+    const double trunk_area = std::numbers::pi * trunk_radius * trunk_radius;
+    
     // Apply safety factor of 1.2 (20% extra capacity for structural margin)
     constexpr double STRUCTURAL_SAFETY_FACTOR = 1.2;
     return trunk_area >= (required_area * STRUCTURAL_SAFETY_FACTOR);
@@ -289,7 +289,7 @@ coord_t TreeSupport::calculateRequiredTrunkRadius(const std::vector<TreeSupportE
     for (const TreeSupportElement* branch : supported_branches)
     {
         const coord_t branch_radius = config.getRadius(*branch);
-        total_area += PI * branch_radius * branch_radius;
+        total_area += std::numbers::pi * branch_radius * branch_radius;
     }
 
     // Apply structural safety factor
@@ -297,7 +297,7 @@ coord_t TreeSupport::calculateRequiredTrunkRadius(const std::vector<TreeSupportE
     total_area *= STRUCTURAL_SAFETY_FACTOR;
 
     // Calculate required radius from combined area
-    return static_cast<coord_t>(std::sqrt(total_area / PI));
+    return static_cast<coord_t>(std::sqrt(total_area / std::numbers::pi));
 }
 
 bool TreeSupport::shouldMergeForStructuralBenefit(const TreeSupportElement& first, const TreeSupportElement& second, LayerIndex layer_idx) const
@@ -473,21 +473,21 @@ void TreeSupport::mergeHelper(
                     // Calculate required structural area for merged trunk
                     const coord_t radius_first = config.getRadius(reduced_check.first);
                     const coord_t radius_second = config.getRadius(influence.first);
-                    const double required_cross_section = (PI * radius_first * radius_first) + (PI * radius_second * radius_second);
-                    const coord_t required_radius = std::sqrt(required_cross_section / PI);
-
+                    const double required_cross_section = (std::numbers::pi * radius_first * radius_first) + (std::numbers::pi * radius_second * radius_second);
+                    const coord_t required_radius = std::sqrt(required_cross_section / std::numbers::pi);
+                    
                     // Create structurally sound merge using union with convex hull for solid structure
                     Shape structural_merge = TreeSupportUtils::safeUnion(smaller_rad.second, bigger_rad.second);
-
-                    // For major merges, use convex hull to ensure solid, continuous structure
+                    
+                    // For major merges, use approxConvexHull to ensure solid, continuous structure
                     const bool is_major_merge = (reduced_check.first.parents_.size() + influence.first.parents_.size()) >= 3;
                     if (is_major_merge)
                     {
-                        structural_merge = structural_merge.convexHull();
+                        structural_merge = structural_merge.approxConvexHull();
                     }
 
                     // Validate the merge provides adequate support
-                    const coord_t structural_merge_radius = std::sqrt(structural_merge.area() / PI);
+                    const coord_t structural_merge_radius = std::sqrt(structural_merge.area() / std::numbers::pi);
                     if (structural_merge_radius < required_radius * 0.85) // 85% threshold for structural integrity
                     {
                         // Insufficient structural support, expand to required radius
