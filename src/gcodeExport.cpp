@@ -658,20 +658,10 @@ void GCodeExport::writeLayerCountComment(const size_t layer_count)
 
 void GCodeExport::writeLine(const std::string& line)
 {
-    writeLine(line.c_str());
-}
-
-void GCodeExport::writeLine(const char* line)
-{
     *output_stream_ << line << new_line_;
 }
 
 void GCodeExport::writeRaw(const std::string& gcode)
-{
-    writeRaw(gcode.c_str());
-}
-
-void GCodeExport::writeRaw(const char* gcode)
 {
     *output_stream_ << gcode;
 }

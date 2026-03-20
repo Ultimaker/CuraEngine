@@ -347,11 +347,7 @@ public:
 
     void writeLine(const std::string& line);
 
-    void writeLine(const char* line);
-
     void writeRaw(const std::string& gcode);
-
-    void writeRaw(const char* gcode);
 
     /*!
      * Reset the current_e_value to prevent too high E values.
