@@ -32,8 +32,8 @@ std::string resolveGCodeTemplate(
     const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {},
     const SliceDataStorage* storage = nullptr);
 
-}
+} // namespace GcodeTemplateResolver
 
-}
+} // namespace cura
 
 #endif

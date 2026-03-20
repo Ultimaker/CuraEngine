@@ -5,6 +5,7 @@
 #define SETTINGS_SLICEDATASTORAGEENVIRONMENTADAPTER_H
 
 #include <cura-formulae-engine/ast/ast.h>
+
 #include "utils/AABB.h"
 
 namespace cura
@@ -22,7 +23,7 @@ public:
      * Base constructor
      * @param settings The settings to be used as the base contextual stack
      */
-    explicit SliceDataStorageEnvironmentAdapter(const SliceDataStorage& storage, const CuraFormulaeEngine::env::Environment *next_environment = nullptr);
+    explicit SliceDataStorageEnvironmentAdapter(const SliceDataStorage& storage, const CuraFormulaeEngine::env::Environment* next_environment = nullptr);
 
     [[nodiscard]] std::optional<CuraFormulaeEngine::eval::Value> get(const std::string& variable_id) const override;
 
@@ -32,7 +33,7 @@ public:
 
 private:
     const SliceDataStorage& storage_;
-    const CuraFormulaeEngine::env::Environment *const next_environment_;
+    const CuraFormulaeEngine::env::Environment* const next_environment_;
     const std::vector<std::string> additional_variables_;
     std::optional<AABB> initial_layer_bb_;
 };
