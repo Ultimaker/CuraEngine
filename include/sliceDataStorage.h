@@ -293,6 +293,7 @@ public:
 
     std::vector<SupportLayer> supportLayers;
     std::shared_ptr<SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+    std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     SupportStorage();
     ~SupportStorage();
