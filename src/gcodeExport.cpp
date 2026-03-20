@@ -718,7 +718,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     // Use values from the first used extruder by default so we get the expected temperatures
     auto machine_start_gcode = mesh_group_settings.get<std::string>("machine_start_gcode");
     auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
-    machine_start_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_start_gcode, initial_extruder_nr);
+    machine_start_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_start_gcode, initial_extruder_nr, {}, &storage);
 
     if (! machine_start_gcode.empty() && mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {

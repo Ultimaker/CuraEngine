@@ -14,6 +14,7 @@
 #include "Application.h"
 #include "Slice.h"
 #include "settings/SettingContainersEnvironmentAdapter.h"
+#include "settings/SliceDataStorageEnvironmentAdapter.h"
 
 namespace cfe = CuraFormulaeEngine;
 
@@ -95,7 +96,7 @@ bool processExpression(
     GcodeConditionState& condition_state,
     const boost::smatch& match,
     const std::optional<size_t>& context_extruder_nr,
-    const std::map<std::optional<size_t>, cfe::env::LocalEnvironment>& environments)
+    const std::map<std::optional<size_t>, cfe::env::Environment*>& environments)
 {
     const auto& match_expression = match["expression"];
     const auto& match_condition = match["condition"];
@@ -194,7 +195,7 @@ bool processExpression(
 
     if (match_extruder_nr.matched && match_extruder_nr.length() > 0)
     {
-        const zeus::expected<cfe::eval::Value, EvaluateResult> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), environments.at(context_extruder_nr));
+        const zeus::expected<cfe::eval::Value, EvaluateResult> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), *environments.at(context_extruder_nr));
         if (! extruder_nr_result.has_value())
         {
             return false;
@@ -229,7 +230,7 @@ bool processExpression(
         extruder_nr_here = std::nullopt;
         environment_iterator = environments.find(std::nullopt);
     }
-    const zeus::expected<cfe::eval::Value, EvaluateResult> expression_result = evaluateExpression(match_expression.str(), environment_iterator->second);
+    const zeus::expected<cfe::eval::Value, EvaluateResult> expression_result = evaluateExpression(match_expression.str(), *environment_iterator->second);
     if (! expression_result.has_value())
     {
         if (expression_result.error() == EvaluateResult::Skip)
@@ -266,7 +267,49 @@ bool processExpression(
     return true;
 }
 
-std::string resolveGCodeTemplate(const std::string& input, const std::optional<int> context_extruder_nr, const std::unordered_map<std::string, cfe::eval::Value>& extra_settings)
+cfe::env::Environment* makeEnvironment(
+    const Settings& settings,
+    const std::unordered_map<std::string, cfe::eval::Value>& extra_settings,
+    const SliceDataStorage* storage,
+    std::vector<std::shared_ptr<cfe::env::Environment>>& environments)
+{
+    cfe::env::Environment* top_level_environment;
+
+    // First level: create an environment that will directly map to the settings
+    {
+        auto settings_environment = std::make_shared<SettingContainersEnvironmentAdapter>(settings);
+        environments.push_back(settings_environment);
+        top_level_environment = settings_environment.get();
+    }
+
+    // Second level: create an environment that contains the given extra settings
+    if (! extra_settings.empty())
+    {
+        auto local_environment = std::make_shared<cfe::env::LocalEnvironment>(top_level_environment);
+        for (auto [extra_setting_key, extra_setting_value] : extra_settings)
+        {
+            local_environment->set(extra_setting_key, extra_setting_value);
+        }
+        environments.push_back(local_environment);
+        top_level_environment = local_environment.get();
+    }
+
+    // Third level: create an environment that contain extra variables given by the current slicing data
+    if (storage)
+    {
+        auto storage_environment = std::make_shared<SliceDataStorageEnvironmentAdapter>(*storage, top_level_environment);
+        environments.push_back(storage_environment);
+        top_level_environment = storage_environment.get();
+    }
+
+    return top_level_environment;
+}
+
+std::string resolveGCodeTemplate(
+    const std::string& input,
+    const std::optional<int> context_extruder_nr,
+    const std::unordered_map<std::string, cfe::eval::Value>& extra_settings,
+    const SliceDataStorage* storage)
 {
     std::string output;
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;
@@ -274,22 +317,15 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
     static const boost::regex expression_regex(R"({\s*(?<condition>if|else|elif|endif)?\s*(?<expression>[^{}]*?)\s*(?:,\s*(?<extruder_nr>[^{},]*))?\s*}(?<end_of_line>\n?))");
     const Scene& scene = Application::getInstance().current_slice_->scene;
 
-    std::map<std::optional<size_t>, SettingContainersEnvironmentAdapter> environment_adapters;
-    environment_adapters.emplace(std::nullopt, SettingContainersEnvironmentAdapter(scene.settings));
+    // Store all environments here so they are properly destroyed at the end
+    std::vector<std::shared_ptr<cfe::env::Environment>> environments_storage;
+    std::map<std::optional<size_t>, cfe::env::Environment*> environments;
+
+    environments.emplace(std::nullopt, makeEnvironment(scene.settings, extra_settings, storage, environments_storage));
+
     for (auto [extruder_nr, extruder_train] : scene.extruders | ranges::views::enumerate)
     {
-        environment_adapters.emplace(extruder_nr, SettingContainersEnvironmentAdapter(extruder_train.settings_));
-    }
-
-    std::map<std::optional<size_t>, cfe::env::LocalEnvironment> environments;
-    for (const std::optional<size_t> environment_key : environment_adapters | ranges::views::keys) // Do not access by iterator because it creates a copy of the adapter
-    {
-        environments.emplace(environment_key, cfe::env::LocalEnvironment(&environment_adapters.at(environment_key)));
-        cfe::env::LocalEnvironment& local_environment = environments.at(environment_key);
-        for (auto iterator = extra_settings.begin(); iterator != extra_settings.end(); ++iterator)
-        {
-            local_environment.set(iterator->first, iterator->second);
-        }
+        environments.emplace(extruder_nr, makeEnvironment(extruder_train.settings_, extra_settings, storage, environments_storage));
     }
 
     std::string::const_iterator start = input.cbegin();
