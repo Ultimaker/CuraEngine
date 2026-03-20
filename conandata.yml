@@ -1,4 +1,4 @@
-version: "5.12.0-alpha.0"
+version: "5.14.0-alpha.0"
 commit: "unknown"
 requirements:
   - "cura-formulae-engine/1.0.0"
@@ -7,8 +7,8 @@ requirements:
   - "onetbb/2022.2.0"
   - "zeus_expected/[>=1.1.1]"
 requirements_arcus:
-  - "arcus/5.11.0"
+  - "arcus/5.11.1"
 requirements_plugins:
-  - "curaengine_grpc_definitions/0.3.2"
+  - "curaengine_grpc_definitions/0.3.4"
 requirements_cura_resources:
-  - "cura_resources/5.12.0-alpha.0@ultimaker/testing"
+  - "cura_resources/5.14.0-alpha.0"

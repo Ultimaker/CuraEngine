@@ -18,7 +18,7 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
 #include "geometry/Triangle2F.h"
-#include "geometry/Triangle3D.h"
+#include "geometry/Triangle3LL.h"
 #include "mesh.h"
 #include "progress/Progress.h"
 #include "slicer.h"
@@ -81,6 +81,8 @@ bool operator==(const ContourKey& key1, const ContourKey& key2)
  */
 bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_grid, const uint8_t mesh_extruder_nr)
 {
+    spdlog::stopwatch timer;
+
     boost::concurrent_flat_set<uint8_t> found_extruders;
     std::unordered_set<size_t> active_extruders;
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
@@ -103,16 +105,13 @@ bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDat
             }
 
             const Triangle2F face_uvs{ uv0.value(), uv1.value(), uv2.value() };
-
-            constexpr double scale = 1.0;
-            const Triangle3D triangle{ Point3D(mesh.vertices_[face.vertex_index_[0]].p_, scale),
-                                       Point3D(mesh.vertices_[face.vertex_index_[1]].p_, scale),
-                                       Point3D(mesh.vertices_[face.vertex_index_[2]].p_, scale) };
+            const Triangle3LL triangle{ mesh.vertices_[face.vertex_index_[0]].p_, mesh.vertices_[face.vertex_index_[1]].p_, mesh.vertices_[face.vertex_index_[2]].p_ };
 
             for (const VoxelGrid::LocalCoordinates& traversed_voxel : voxel_grid.getTraversedVoxels(triangle))
             {
                 const Point3D global_position = voxel_grid.toGlobalCoordinates(traversed_voxel);
-                const std::optional<Point3D> barycentric_coordinates = MeshUtils::getBarycentricCoordinates(global_position, triangle);
+                const Point3LL global_position_ll = Point3LL(std::llrint(global_position.x_), std::llrint(global_position.y_), std::llrint(global_position.z_));
+                const std::optional<Point3D> barycentric_coordinates = MeshUtils::getBarycentricCoordinates(global_position_ll, triangle);
                 if (! barycentric_coordinates.has_value() || barycentric_coordinates.value().x_ < 0 || barycentric_coordinates.value().y_ < 0
                     || barycentric_coordinates.value().z_ < 0)
                 {
@@ -145,6 +144,7 @@ bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDat
         return is_specific_extruder;
     }
 
+    spdlog::info("Total voxel grid creation time from texture {}ms", timer.elapsed_ms().count());
     return true;
 }
 

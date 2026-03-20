@@ -340,15 +340,13 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
     const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
     const Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate.offset(epsilon));
 
-    // In order to avoid edge cases, it is safer to create the extended roofing area by reducing the area above. However, we want to avoid reducing the borders, so at this
-    // point we extend the area above with the build plate area, so that when reducing, the border will still be far away.
-    const Shape reduced_area_above
-        = build_plate.offset(roofing_expansion * 2).difference(part.outline).unionPolygons(filled_area_above.offset(epsilon)).offset(-roofing_expansion - 2 * epsilon);
-
     for (SkinPart& skin_part : part.skin_parts)
     {
-        skin_part.roofing_fill = skin_part.outline.difference(reduced_area_above);
-        skin_part.flooring_fill = skin_part.outline.intersection(filled_area_above).difference(filled_area_below);
+        const Shape below_inside = skin_part.outline.intersection(filled_area_below);
+        const Shape above_inside = skin_part.outline.intersection(filled_area_above);
+
+        skin_part.roofing_fill = below_inside.difference(filled_area_above).offset(roofing_expansion).intersection(below_inside);
+        skin_part.flooring_fill = above_inside.difference(filled_area_below);
         skin_part.skin_fill = skin_part.outline.difference(skin_part.roofing_fill).intersection(filled_area_below);
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.

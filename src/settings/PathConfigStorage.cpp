@@ -159,12 +159,10 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     for (auto& config : support_fractional_infill_config)
     {
         config.z_offset = -leftover_support_distance;
-        config.flow *= Ratio(layer_height - leftover_support_distance, layer_height);
     }
 
     support_fractional_roof_config = support_roof_config; // copy
     support_fractional_roof_config.z_offset = -leftover_support_distance;
-    support_fractional_roof_config.flow *= Ratio(layer_height - leftover_support_distance, layer_height);
 }
 
 void MeshPathConfigs::smoothAllSpeeds(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer)
