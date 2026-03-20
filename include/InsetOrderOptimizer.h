@@ -12,7 +12,6 @@
 namespace cura
 {
 
-class FffGcodeWriter;
 class LayerPlan;
 template<class T>
 class PathOrderOptimizer;
@@ -27,8 +26,6 @@ public:
      *
      * This constructor gets basically all of the locals passed when it needs to
      * optimise the order of insets.
-     * \param gcode_writer The FffGcodeWriter on whose behalf the inset order is
-     * being optimized.
      * \param storage Read slice data from this storage.
      * \param gcode_layer The layer where the resulting insets must be planned.
      * \param mesh The mesh that these insets are part of.
@@ -40,7 +37,6 @@ public:
      * \param layer_nr The current layer number.
      */
     InsetOrderOptimizer(
-        const FffGcodeWriter& gcode_writer,
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const Settings& settings,
@@ -103,7 +99,6 @@ public:
     std::optional<Point2LL> getStartPosition() const;
 
 private:
-    const FffGcodeWriter& gcode_writer_;
     const SliceDataStorage& storage_;
     LayerPlan& gcode_layer_;
     const Settings& settings_;

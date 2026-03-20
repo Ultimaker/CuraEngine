@@ -91,8 +91,7 @@ void Infill::generate(
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
-    const Shape& prevent_small_exposed_to_air,
-    const std::optional<Point2LL>& near_split_location)
+    const Shape& prevent_small_exposed_to_air)
 {
     if (outer_contour_.empty())
     {
@@ -185,7 +184,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, near_split_location);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
         zig_zaggify_ = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
@@ -199,7 +198,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, near_split_location);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
 
         result_polygons.push_back(generated_result_polygons);
         result_lines.push_back(generated_result_lines);
@@ -259,8 +258,7 @@ void Infill::_generate(
     const Settings& settings,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
-    const SliceMeshStorage* mesh,
-    const std::optional<Point2LL>& near_split_location)
+    const SliceMeshStorage* mesh)
 {
     if (inner_contour_.empty())
         return;
@@ -365,11 +363,6 @@ void Infill::_generate(
         result_lines = std::move(stitched_lines);
     }
     result_lines = simplifier.polyline(result_lines);
-
-    if (near_split_location.has_value())
-    {
-        splitLineClosestToPoint(*near_split_location, result_lines, result_polygons);
-    }
 }
 
 void Infill::multiplyInfill(Shape& result_polygons, OpenLinesSet& result_lines)
@@ -1062,49 +1055,6 @@ void Infill::connectLines(OpenLinesSet& result_lines)
         }
 
         completed_groups.insert(group);
-    }
-}
-
-void Infill::splitLineClosestToPoint(const Point2LL& desired_end_position, OpenLinesSet& result_lines, const Shape& result_polygons)
-{
-    // Find the point of all the open polylines that is closest to the desired end position
-    std::optional<std::pair<size_t, size_t>> closest_point;
-    coord_t closest_distance_squared;
-    for (const auto& [line_index, line] : result_lines | ranges::views::enumerate)
-    {
-        for (const auto& [point_index, point] : line | ranges::views::enumerate)
-        {
-            const coord_t distance_squared = vSize2(point - desired_end_position);
-            if (! closest_point.has_value() || distance_squared < closest_distance_squared)
-            {
-                closest_point = std::make_optional(std::make_pair(line_index, point_index));
-                closest_distance_squared = distance_squared;
-            }
-        }
-    }
-
-    // Polygons printing can start/stop at any point, so if a polygon is closer to the desired end position, don't bother doing anything
-    const bool is_polygon_closer = [result_polygons, desired_end_position, closest_distance_squared]() -> bool
-    {
-        for (const Polygon& polygon : result_polygons)
-        {
-            for (const Point2LL& point : polygon)
-            {
-                if (vSize2(point - desired_end_position < closest_distance_squared))
-                {
-                    return true;
-                }
-            }
-        }
-
-        return false;
-    }();
-
-    if (closest_point.has_value() && ! is_polygon_closer)
-    {
-        // We do have found a point from an open polyline that is the closest to the desired end position, so split this line in two parts
-        // so that the start/end positions can be used to end the infill close to the position
-        result_lines.split(closest_point->first, closest_point->second);
     }
 }
 

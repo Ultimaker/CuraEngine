@@ -33,7 +33,6 @@ namespace cura
 {
 
 InsetOrderOptimizer::InsetOrderOptimizer(
-    const FffGcodeWriter& gcode_writer,
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const Settings& settings,
@@ -59,8 +58,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const bool smooth_speed,
     const Shape& overhang_areas,
     const std::shared_ptr<TextureDataProvider>& texture_data_provider)
-    : gcode_writer_(gcode_writer)
-    , storage_(storage)
+    : storage_(storage)
     , gcode_layer_(gcode_layer)
     , settings_(settings)
     , extruder_nr_(extruder_nr)
