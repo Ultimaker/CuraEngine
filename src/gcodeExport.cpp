@@ -1898,6 +1898,14 @@ void GCodeExport::finalize(const std::string& endCode)
     flushOutputStream();
 }
 
+void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)
+{
+    const std::unordered_map<std::string, cfe::eval::Value> extra_settings
+        = { { "previous_extruder_nr", static_cast<int64_t>(getExtruderNr()) }, { "next_extruder_nr", static_cast<int64_t>(-1) } };
+    const std::string resolved_end_code = GcodeTemplateResolver::resolveGCodeTemplate(extruder_end_code, getExtruderNr(), extra_settings);
+    writeCodeWithAbsoluteExtrusion(resolved_end_code);
+}
+
 void GCodeExport::flushOutputStream()
 {
     output_stream_->flush();

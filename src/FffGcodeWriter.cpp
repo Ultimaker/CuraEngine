@@ -4350,7 +4350,7 @@ void FffGcodeWriter::finalize()
 
     if (! extruder_end_code.empty())
     {
-        gcode.writeCodeWithAbsoluteExtrusion(extruder_end_code.c_str());
+        gcode.finalizeExtruder(extruder_end_code);
     }
 
     if (mesh_group_settings.get<bool>("machine_heated_bed"))

@@ -711,9 +711,16 @@ public:
     /*!
      * Finish the gcode: turn fans off, write end gcode and flush all gcode left in the buffer.
      *
-     * \param endCode The end gcode to be appended at the very end.
+     * \param end_code The end gcode to be appended at the very end.
      */
-    void finalize(const std::string& endCode);
+    void finalize(const std::string& end_code);
+
+    /*!
+     * Finish the extruder gcode: write extrude rend gcode.
+     *
+     * \param extruder_end_code The end gcode to be appended at the end.
+     */
+    void finalizeExtruder(const std::string& extruder_end_code);
 
     /*!
      * Get amount of material extruded since last wipe script was inserted.
