@@ -90,10 +90,11 @@ public:
      * If this returns ``false``, that means that the setting would be obtained
      * via some inheritance.
      * \param key The setting to check.
+     * \param parent_lookup Indicates whether the setting should also be looked up in the parent settings, as the get() would
      * \return Whether that setting is contained in this particular Settings
      * instance (``true``) or would be obtained via inheritance (``false``).
      */
-    bool has(const std::string& key) const;
+    bool has(const std::string& key, const bool parent_lookup = false) const;
 
     /*
      * Change the parent settings object.
