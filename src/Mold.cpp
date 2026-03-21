@@ -12,7 +12,7 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "slicer.h"
 
 namespace cura

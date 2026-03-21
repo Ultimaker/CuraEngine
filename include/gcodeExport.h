@@ -28,7 +28,7 @@ namespace cura
 {
 
 class RetractionConfig;
-class SliceDataStorage;
+class MeshGroupSliceData;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -406,7 +406,7 @@ public:
      * \param[in] storage where the slice data is stored.
      * \param[in] start_extruder_nr The extruder with which to start the print.
      */
-    bool initializeExtruderTrains(const SliceDataStorage& storage, const size_t start_extruder_nr);
+    bool initializeExtruderTrains(const MeshGroupSliceData& storage, const size_t start_extruder_nr);
 
     /*!
      * Set temperatures for the initial layer. Called by 'processStartingCode' and whenever a new object is started at layer 0.
@@ -414,7 +414,7 @@ public:
      * \param[in] storage where the slice data is stored.
      * \param[in] start_extruder_nr The extruder with which to start the print.
      */
-    void processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr);
+    void processInitialLayerTemperature(const MeshGroupSliceData& storage, const size_t start_extruder_nr);
 
     /*!
      * Certain gcode flavors require a prime blob to be printed before the first layer.
@@ -517,7 +517,7 @@ private:
      * \param wait_start_extruder Indicates whether we should always wait for the start extruder temperature to be reached
      * \param start_extruder_nr The index of the start extruder
      */
-    void processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr);
+    void processInitialLayerExtrudersTemperatures(const MeshGroupSliceData& storage, const bool wait_start_extruder, const size_t start_extruder_nr);
 
     /*!
      * Write a stationary or travelling retraction/unretraction and set the proper associated internal variables

@@ -17,7 +17,7 @@
 #include "gcodeExport.h"
 #include "infill.h"
 #include "raft.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 #define CIRCLE_RESOLUTION 32 // The number of vertices in each circle.
 #define ARC_RESOLUTION 4 // The number of segments in each arc of a wheel

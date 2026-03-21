@@ -6,7 +6,7 @@
 #include "ExtruderTrain.h"
 #include "infill/LightningLayer.h"
 #include "infill/LightningTreeNode.h"
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees
@@ -24,7 +24,7 @@
 
 using namespace cura;
 
-LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
+LightningGenerator::LightningGenerator(const MeshSliceData& mesh)
 {
     const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr");
     const auto layer_thickness = infill_extruder.settings_.get<coord_t>(
@@ -39,7 +39,7 @@ LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
     generateTrees(mesh);
 }
 
-void LightningGenerator::generateInitialInternalOverhangs(const SliceMeshStorage& mesh)
+void LightningGenerator::generateInitialInternalOverhangs(const MeshSliceData& mesh)
 {
     overhang_per_layer.resize(mesh.layers.size());
     const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
@@ -71,7 +71,7 @@ const LightningLayer& LightningGenerator::getTreesForLayer(const size_t& layer_i
     return lightning_layers[layer_id];
 }
 
-void LightningGenerator::generateTrees(const SliceMeshStorage& mesh)
+void LightningGenerator::generateTrees(const MeshSliceData& mesh)
 {
     lightning_layers.resize(mesh.layers.size());
     const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));

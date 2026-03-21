@@ -23,8 +23,8 @@ namespace cura
 class AngleDegrees;
 class Shape;
 class SkinPart;
-class SliceDataStorage;
-class SliceMeshStorage;
+class MeshGroupSliceData;
+class MeshSliceData;
 class SliceLayer;
 class SliceLayerPart;
 struct MeshPathConfigs;
@@ -143,7 +143,7 @@ public:
      * \param[in] storage The data storage from which to get the polygons to print and the areas to fill.
      * \param timeKeeper The stop watch to see how long it takes for each of the stages in the slicing process.
      */
-    void writeGCode(SliceDataStorage& storage, TimeKeeper& timeKeeper);
+    void writeGCode(MeshGroupSliceData& storage, TimeKeeper& timeKeeper);
 
 private:
     struct ProcessLayerResult
@@ -174,7 +174,7 @@ private:
      *
      * \param[out] storage The data storage to which to save the configurations
      */
-    void setConfigRetractionAndWipe(SliceDataStorage& storage);
+    void setConfigRetractionAndWipe(MeshGroupSliceData& storage);
 
     /*!
      * Get the extruder with which to start the print.
@@ -186,7 +186,7 @@ private:
      *
      * \param[in] storage where to get settings from.
      */
-    size_t getStartExtruder(const SliceDataStorage& storage) const;
+    size_t getStartExtruder(const MeshGroupSliceData& storage) const;
 
     /*!
      * Set the infill angles and skin angles in the SliceDataStorage.
@@ -195,7 +195,7 @@ private:
      *
      * \param mesh The mesh for which to determine the infill and skin angles.
      */
-    void setInfillAndSkinAngles(SliceMeshStorage& mesh);
+    void setInfillAndSkinAngles(MeshSliceData& mesh);
 
     /*!
      * Set the support and interface infill angles in the SliceDataStorage.
@@ -207,25 +207,25 @@ private:
      *
      * \param storage The storage for which to determine the support infill angles.
      */
-    void setSupportAngles(SliceDataStorage& storage);
+    void setSupportAngles(MeshGroupSliceData& storage);
 
     /*!
      * Move up and over the already printed meshgroups to print the next meshgroup.
      *
      * \param[in] storage where the slice data is stored.
      */
-    void processNextMeshGroupCode(const SliceDataStorage& storage);
+    void processNextMeshGroupCode(const MeshGroupSliceData& storage);
 
     /*!
      * Add raft layer plans onto the FffGcodeWriter::layer_plan_buffer
      *
      * \param[in,out] storage where the slice data is stored.
      */
-    void processRaft(const SliceDataStorage& storage);
+    void processRaft(const MeshGroupSliceData& storage);
 
-    void startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder);
+    void startRaftLayer(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder);
 
-    void endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower = true);
+    void endRaftLayer(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower = true);
 
     /*!
      * Convert the polygon data of a layer into a layer plan on the FffGcodeWriter::layer_plan_buffer
@@ -238,7 +238,7 @@ private:
      * \param total_layers The total number of layers.
      * \return The layer plans
      */
-    ProcessLayerResult processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const;
+    ProcessLayerResult processLayer(const MeshGroupSliceData& storage, LayerIndex layer_nr, const size_t total_layers) const;
 
     /*!
      * This function checks whether prime blob should happen for any extruder on the first layer.
@@ -249,7 +249,7 @@ private:
      *
      * \return whether any extruder need to be primed separately just before they are used
      */
-    bool getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const;
+    bool getExtruderNeedPrimeBlobDuringFirstLayer(const MeshGroupSliceData& storage, const size_t extruder_nr) const;
 
     /*!
      * Add the skirt or the brim to the layer plan \p gcodeLayer if it hasn't already been added yet.
@@ -263,7 +263,7 @@ private:
      * brim.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr, LayerIndex layer_nr) const;
+    void processSkirtBrim(const MeshGroupSliceData& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr, LayerIndex layer_nr) const;
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.
@@ -271,7 +271,7 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void processOozeShield(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
+    void processOozeShield(const MeshGroupSliceData& storage, LayerPlan& gcodeLayer) const;
 
     /*!
      * Adds the draft protection screen to the layer plan \p gcodeLayer.
@@ -279,7 +279,7 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void processDraftShield(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
+    void processDraftShield(const MeshGroupSliceData& storage, LayerPlan& gcodeLayer) const;
 
     /*!
      * Calculate in which order to plan the extruders for each layer
@@ -295,7 +295,7 @@ private:
      *
      * \param[in] storage where the slice data is stored.
      */
-    void calculateExtruderOrderPerLayer(const SliceDataStorage& storage);
+    void calculateExtruderOrderPerLayer(const MeshGroupSliceData& storage);
 
     /*!
      * Calculate on which layer we should be priming for each extruder.
@@ -304,7 +304,7 @@ private:
      * \param storage Slice data storage containing information on which layers
      * each extruder is used.
      */
-    void calculatePrimeLayerPerExtruder(const SliceDataStorage& storage);
+    void calculatePrimeLayerPerExtruder(const MeshGroupSliceData& storage);
 
     /*!
      * Gets a list of extruders that are used on the given layer.
@@ -319,7 +319,7 @@ private:
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
     std::vector<ExtruderUse>
-        getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used) const;
+        getUsedExtrudersOnLayer(const MeshGroupSliceData& storage, const size_t start_extruder, const LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
@@ -330,7 +330,7 @@ private:
      * \param extruder_nr The extruder for which to determine the order
      * \return A vector of mesh indices ordered on print order for that extruder.
      */
-    std::vector<size_t> calculateMeshOrder(const SliceDataStorage& storage, const size_t extruder_nr) const;
+    std::vector<size_t> calculateMeshOrder(const MeshGroupSliceData& storage, const size_t extruder_nr) const;
 
     /*!
      * Add a single layer from a single mesh-volume to the layer plan \p gcodeLayer in mesh surface mode.
@@ -339,7 +339,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
+    void addMeshLayerToGCode_meshSurfaceMode(const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
 
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -349,7 +349,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
+    void addMeshOpenPolyLinesToGCode(const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add all features of a given extruder from a single layer from a single mesh-volume to the layer plan \p gcode_layer.
@@ -363,8 +363,8 @@ private:
      * \param gcode_layer The initial planning of the gcode of the layer.
      */
     void addMeshLayerToGCode(
-        const SliceDataStorage& storage,
-        const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+        const MeshGroupSliceData& storage,
+        const std::shared_ptr<MeshSliceData>& mesh_ptr,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         LayerPlan& gcode_layer) const;
@@ -382,8 +382,8 @@ private:
      * \param gcode_layer The initial planning of the gcode of the layer.
      */
     void addMeshPartToGCode(
-        const SliceDataStorage& storage,
-        const SliceMeshStorage& mesh,
+        const MeshGroupSliceData& storage,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         SliceLayerPart& part,
@@ -401,9 +401,9 @@ private:
      * \return Whether this function added anything to the layer plan.
      */
     bool processInfill(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcodeLayer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part) const;
@@ -424,7 +424,7 @@ private:
      */
     bool processMultiLayerInfill(
         LayerPlan& gcodeLayer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
@@ -444,9 +444,9 @@ private:
      * \return Whether this function added anything to the layer plan.
      */
     bool processSingleLayerInfill(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcodeLayer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
@@ -464,9 +464,9 @@ private:
      * \return Whether this function added anything to the layer plan
      */
     bool processInsets(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcodeLayer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         SliceLayerPart& part) const;
@@ -480,7 +480,7 @@ private:
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
     void
-        processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh)
+        processSpiralizedWall(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const MeshPathConfigs& mesh_config, const SliceLayerPart& part, const MeshSliceData& mesh)
             const;
 
     /*!
@@ -495,9 +495,9 @@ private:
      * \return Whether this function added anything to the layer plan
      */
     bool processSkin(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcode_layer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part) const;
@@ -524,9 +524,9 @@ private:
      * \return Whether this function added anything to the layer plan
      */
     bool processSkinPart(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcode_layer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SkinPart& skin_part) const;
@@ -543,9 +543,9 @@ private:
      * \param[out] added_something Whether this function added anything to the layer plan
      */
     void processRoofingFlooring(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcode_layer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const RoofingFlooringSettingsNames& settings_names,
         const Shape& fill,
@@ -566,9 +566,9 @@ private:
      * \param[out] added_something Whether this function added anything to the layer plan
      */
     void processTopBottom(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcode_layer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SkinPart& skin_part,
@@ -595,9 +595,9 @@ private:
      * \param forced_small_area_width A specific value to be used for small_area_width when generating the infill, or nullopt to use the normal value
      */
     void processSkinPrintFeature(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcode_layer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const size_t extruder_nr,
         const Shape& area,
         const GCodePathConfig& config,
@@ -651,7 +651,7 @@ private:
      * \param[out] gcode_layer The output layer to put the resulting paths in.
      * \return Whether this function added anything to the layer plan.
      */
-    bool processIroning(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const SliceLayer& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
+    bool processIroning(const MeshGroupSliceData& storage, const MeshSliceData& mesh, const SliceLayer& part, const GCodePathConfig& line_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support to the layer plan \p gcodeLayer of the current layer for all support parts with the given \p extruder_nr.
@@ -659,7 +659,7 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \return whether any support was added to the layer plan
      */
-    bool addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const size_t extruder_nr) const;
+    bool addSupportToGCode(const MeshGroupSliceData& storage, LayerPlan& gcodeLayer, const size_t extruder_nr) const;
 
     /*!
      * Add the support lines/walls to the layer plan \p gcodeLayer of the current layer.
@@ -667,7 +667,7 @@ private:
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \return whether any support infill was added to the layer plan
      */
-    bool processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer) const;
+    bool processSupportInfill(const MeshGroupSliceData& storage, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support roofs to the layer plan \p gcodeLayer of the current
@@ -679,7 +679,7 @@ private:
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
-    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
+    bool addSupportRoofsToGCode(const MeshGroupSliceData& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support bottoms to the layer plan \p gcodeLayer of the current
@@ -689,7 +689,7 @@ private:
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
-    bool addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcodeLayer) const;
+    bool addSupportBottomsToGCode(const MeshGroupSliceData& storage, LayerPlan& gcodeLayer) const;
 
     /*!
      * Change to a new extruder, and add the prime tower instructions if the new extruder is different from the last.
@@ -703,7 +703,7 @@ private:
      *                              case before actually using the extruder) or just do the basic priming (i.e. on first
      *                              layer before starting the print
      */
-    void setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr, const bool append_to_prime_tower = true) const;
+    void setExtruder_addPrime(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const size_t extruder_nr, const bool append_to_prime_tower = true) const;
 
     /*!
      * Add the prime tower gcode for the current layer.
@@ -711,7 +711,7 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param prev_extruder The current extruder with which we last printed.
      */
-    void addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcodeLayer, const size_t prev_extruder) const;
+    void addPrimeTower(const MeshGroupSliceData& storage, LayerPlan& gcodeLayer, const size_t prev_extruder) const;
 
     /*!
      * Add the end gcode and set all temperatures to zero.
@@ -723,7 +723,7 @@ private:
      * \param storage where the slice data is stored.
      * \param total_layers The total number of layers
      */
-    void findLayerSeamsForSpiralize(SliceDataStorage& storage, size_t total_layers);
+    void findLayerSeamsForSpiralize(MeshGroupSliceData& storage, size_t total_layers);
 
     /*!
      * Calculate the index of the vertex that is considered to be the seam for the given layer
@@ -733,7 +733,7 @@ private:
      * \param last_layer_nr layer number of the previous layer
      * \return layer seam vertex index
      */
-    unsigned int findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr);
+    unsigned int findSpiralizedLayerSeamVertexIndex(const MeshGroupSliceData& storage, const MeshSliceData& mesh, const int layer_nr, const int last_layer_nr);
 
     /*!
      * Partition the Infill regions by the skin at N layers above.
@@ -754,7 +754,7 @@ private:
         Shape& infill_below_skin,
         Shape& infill_not_below_skin,
         const LayerPlan& gcode_layer,
-        const SliceMeshStorage& mesh,
+        const MeshSliceData& mesh,
         const SliceLayerPart& part,
         coord_t infill_line_width);
 
@@ -768,7 +768,7 @@ private:
      * \param last Indicates whether we want to retrieve the last or the first extruder being used
      * \return The first or last exruder used at the given index
      */
-    size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
+    size_t findUsedExtruderIndex(const MeshGroupSliceData& storage, const LayerIndex& layer_nr, bool last) const;
 };
 
 } // namespace cura

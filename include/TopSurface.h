@@ -11,9 +11,9 @@ namespace cura
 
 class FffGcodeWriter;
 class LayerPlan;
-class SliceDataStorage;
-class SliceMeshStorage;
-class SliceDataStorage;
+class MeshGroupSliceData;
+class MeshSliceData;
+class MeshGroupSliceData;
 struct GCodePathConfig;
 
 class TopSurface
@@ -35,7 +35,7 @@ public:
      * \param mesh The mesh to generate the top surface area for.
      * \param layer_number The layer to generate the top surface area for.
      */
-    void setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number);
+    void setAreasFromMeshAndLayerNumber(MeshSliceData& mesh, size_t layer_number);
 
     /*!
      * \brief Generate paths for ironing over the top surface.
@@ -52,7 +52,7 @@ public:
      * \param[out] layer The output g-code layer to put the resulting lines in.
      * \param gcode_writer The gcode writer for processing extra steps to write into the layer
      */
-    bool ironing(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer, const FffGcodeWriter& gcode_writer) const;
+    bool ironing(const MeshGroupSliceData& storage, const MeshSliceData& mesh, const GCodePathConfig& line_config, LayerPlan& layer, const FffGcodeWriter& gcode_writer) const;
 
 public:
     /*!

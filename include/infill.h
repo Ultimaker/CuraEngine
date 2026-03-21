@@ -24,7 +24,7 @@ namespace cura
 {
 
 class SierpinskiFillProvider;
-class SliceMeshStorage;
+class MeshSliceData;
 
 class Infill
 {
@@ -211,7 +211,7 @@ public:
         SectionType section_type,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
-        const SliceMeshStorage* mesh = nullptr,
+        const MeshSliceData* mesh = nullptr,
         const Shape& prevent_small_exposed_to_air = Shape());
 
     coord_t getLineDistance() const
@@ -392,7 +392,7 @@ private:
         const Settings& settings,
         const std::shared_ptr<SierpinskiFillProvider>& cross_fill_pattern = nullptr,
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
-        const SliceMeshStorage* mesh = nullptr);
+        const MeshSliceData* mesh = nullptr);
 
     /*!
      * Multiply the infill lines, so that any single line becomes [infill_multiplier] lines next to each other.
@@ -494,7 +494,7 @@ private:
      * \param[out] result The resulting lines
      * \param[in] mesh Where the Cubic Subdivision Infill precomputation is stored
      */
-    void generateCubicSubDivInfill(OpenLinesSet& result, const SliceMeshStorage& mesh);
+    void generateCubicSubDivInfill(OpenLinesSet& result, const MeshSliceData& mesh);
 
     /*!
      * Generate a 3d pattern of subdivided cubes on their points

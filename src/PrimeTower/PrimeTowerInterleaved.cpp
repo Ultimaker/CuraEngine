@@ -7,7 +7,7 @@
 #include "LayerPlan.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {
@@ -21,7 +21,7 @@ ExtruderPrime PrimeTowerInterleaved::getExtruderPrime(
     const std::vector<bool>& extruder_is_used_on_this_layer,
     size_t extruder_nr,
     size_t last_extruder,
-    const SliceDataStorage& /*storage*/,
+    const MeshGroupSliceData& /*storage*/,
     const LayerIndex& /*layer_nr*/) const
 {
     // For now, just calculate prime or not. Support extrusion requires the whole extruders list to be calculted, and

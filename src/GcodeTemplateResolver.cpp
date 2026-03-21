@@ -270,7 +270,7 @@ bool processExpression(
 cfe::env::Environment* makeEnvironment(
     const Settings& settings,
     const std::unordered_map<std::string, cfe::eval::Value>& extra_settings,
-    const SliceDataStorage* storage,
+    const MeshGroupSliceData* storage,
     std::vector<std::shared_ptr<cfe::env::Environment>>& environments)
 {
     cfe::env::Environment* top_level_environment;
@@ -309,7 +309,7 @@ std::string resolveGCodeTemplate(
     const std::string& input,
     const std::optional<int> context_extruder_nr,
     const std::unordered_map<std::string, cfe::eval::Value>& extra_settings,
-    const SliceDataStorage* storage)
+    const MeshGroupSliceData* storage)
 {
     std::string output;
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;

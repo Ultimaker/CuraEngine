@@ -16,7 +16,7 @@ namespace cura
 {
 
 class Polygon;
-class SliceMeshStorage;
+class MeshSliceData;
 
 class SubDivCube
 {
@@ -27,13 +27,13 @@ public:
      * \param my_center the center of the cube
      * \param depth the recursion depth of the cube (0 is most recursed)
      */
-    SubDivCube(SliceMeshStorage& mesh, Point3LL& center, size_t depth);
+    SubDivCube(MeshSliceData& mesh, Point3LL& center, size_t depth);
 
     /*!
      * Precompute the octree of subdivided cubes
      * \param mesh contains infill layer data and settings
      */
-    static void precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill_origin);
+    static void precomputeOctree(MeshSliceData& mesh, const Point2LL& infill_origin);
 
     /*!
      * Generates the lines of subdivision of the specific cube at the specific layer. It recursively calls itself, so it ends up drawing all the subdivision lines of sub-cubes too.
@@ -79,7 +79,7 @@ private:
      * \param radius the radius of the enclosing sphere
      * \return the described cube should be subdivided
      */
-    static bool isValidSubdivision(SliceMeshStorage& mesh, Point3LL& center, coord_t radius);
+    static bool isValidSubdivision(MeshSliceData& mesh, Point3LL& center, coord_t radius);
 
     /*!
      * Finds the distance to the infill border at the specified layer from the specified point.
@@ -89,7 +89,7 @@ private:
      * \param[out] distance2 the squared distance to the infill border
      * \return Code 0: outside, 1: inside, 2: boundary does not exist at specified layer
      */
-    static coord_t distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerIndex layer_nr, Point2LL& location, coord_t* distance2);
+    static coord_t distanceFromPointToMesh(MeshSliceData& mesh, const LayerIndex layer_nr, Point2LL& location, coord_t* distance2);
 
     /*!
      * Adds the defined line to the specified polygons. It assumes that the specified polygons are all parallel lines. Combines line segments with touching ends closer than

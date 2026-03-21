@@ -19,7 +19,7 @@
 #include "infill.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/Coord_t.h"
 
 namespace cura

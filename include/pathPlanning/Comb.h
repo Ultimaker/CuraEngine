@@ -19,7 +19,7 @@ namespace cura
 class CombPath;
 class CombPaths;
 class ExtruderTrain;
-class SliceDataStorage;
+class MeshGroupSliceData;
 
 /*!
  * \brief Class for generating a full combing actions from a travel move from a start
@@ -123,7 +123,7 @@ private:
     };
 
 
-    const SliceDataStorage& storage_; //!< The storage from which to compute the outside boundary, when needed.
+    const MeshGroupSliceData& storage_; //!< The storage from which to compute the outside boundary, when needed.
     const LayerIndex layer_nr_; //!< The layer number for the layer for which to compute the outside boundary, when needed.
 
     const coord_t travel_avoid_distance_; //!<
@@ -216,7 +216,7 @@ public:
      * the path to move it from the border a bit.
      */
     Comb(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         const LayerIndex layer_nr,
         const Shape& comb_boundary_inside_minimum,
         const Shape& comb_boundary_inside_optimal,

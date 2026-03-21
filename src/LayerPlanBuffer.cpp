@@ -11,7 +11,7 @@
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "gcodeExport.h"
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 
 namespace cura
 {
@@ -142,7 +142,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         const bool travel_retract_before_outer_wall = mesh_group_settings.get<bool>("travel_retract_before_outer_wall");
         const bool retract_at_layer_change = extruder_settings.get<bool>("retract_at_layer_change");
         bool next_mesh_retract_before_outer_wall = false;
-        std::shared_ptr<const SliceMeshStorage> first_printed_mesh = newest_layer->findFirstPrintedMesh();
+        std::shared_ptr<const MeshSliceData> first_printed_mesh = newest_layer->findFirstPrintedMesh();
         if (! retract_at_layer_change && first_printed_mesh && travel_retract_before_outer_wall)
         {
             // Check whether we are moving toving towards an outer wall and it should be retracted

@@ -13,8 +13,8 @@ namespace cura
 {
 
 class LayerIndex;
-class SliceDataStorage;
-class SliceMeshStorage;
+class MeshGroupSliceData;
+class MeshSliceData;
 struct TreeSupportElement;
 class TreeModelVolumes;
 struct FakeRoofArea;
@@ -23,7 +23,7 @@ class SierpinskiFillProvider;
 class TreeSupportTipGenerator
 {
 public:
-    TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_);
+    TreeSupportTipGenerator(const MeshSliceData& mesh, TreeModelVolumes& volumes_);
 
     /*!
      * \brief Generate tips, that will later form branches
@@ -36,8 +36,8 @@ public:
      * \return All lines of the \p polylines object, with information for each point regarding in which avoidance it is currently valid in.
      */
     void generateTips(
-        SliceDataStorage& storage,
-        const SliceMeshStorage& mesh,
+        MeshGroupSliceData& storage,
+        const MeshSliceData& mesh,
         std::vector<std::set<TreeSupportElement*>>& move_bounds,
         std::vector<Shape>& additional_support_areas,
         std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas);
@@ -111,7 +111,7 @@ private:
      * \param line_width[in] What is the width of a line used in the infill.
      * \return A valid CrossInfillProvider. Has to be freed manually to avoid a memory leak.
      */
-    std::shared_ptr<SierpinskiFillProvider> generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const;
+    std::shared_ptr<SierpinskiFillProvider> generateCrossFillProvider(const MeshSliceData& mesh, coord_t line_distance, coord_t line_width) const;
 
 
     /*!
@@ -120,13 +120,13 @@ private:
      * \param result[out] The dropped overhang ares
      * \param roof[in] Whether the result is for roof generation.
      */
-    void dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Shape>& result, bool roof);
+    void dropOverhangAreas(const MeshSliceData& mesh, std::vector<Shape>& result, bool roof);
 
     /*!
      * \brief Calculates which areas should be supported with roof, and saves these in roof support_roof_drawn
      * \param mesh[in] The mesh that is currently processed.
      */
-    void calculateRoofAreas(const SliceMeshStorage& mesh);
+    void calculateRoofAreas(const MeshSliceData& mesh);
 
     /*!
      * \brief Add a point as a tip
@@ -173,7 +173,7 @@ private:
      * \param storage[in] Background storage, required for adding roofs.
      * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Shape>& additional_support_areas);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, MeshGroupSliceData& storage, std::vector<Shape>& additional_support_areas);
 
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.

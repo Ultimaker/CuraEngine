@@ -13,7 +13,7 @@
 
 namespace cura
 {
-class SliceMeshStorage;
+class MeshSliceData;
 
 /*!
  * Generates the Lightning Infill pattern.
@@ -43,7 +43,7 @@ public:
      * already be calculated at this point.
      * \param mesh The mesh to generate infill for.
      */
-    LightningGenerator(const SliceMeshStorage& mesh);
+    LightningGenerator(const MeshSliceData& mesh);
 
     /*!
      * Get a tree of paths generated for a certain layer of the mesh.
@@ -65,12 +65,12 @@ protected:
      * only when support is generated. For this pattern, we also need to
      * generate overhang areas for the inside of the model.
      */
-    void generateInitialInternalOverhangs(const SliceMeshStorage& mesh);
+    void generateInitialInternalOverhangs(const MeshSliceData& mesh);
 
     /*!
      * Calculate the tree structure of all layers.
      */
-    void generateTrees(const SliceMeshStorage& mesh);
+    void generateTrees(const MeshSliceData& mesh);
 
     /*!
      * How far each piece of infill can support skin in the layer above.

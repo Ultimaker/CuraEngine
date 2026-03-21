@@ -12,8 +12,8 @@
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/Simplify.h"
 #include "utils/math.h"
 
@@ -22,7 +22,7 @@
 namespace cura
 {
 
-coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
+coord_t SkinInfillAreaComputation::getSkinLineWidth(const MeshSliceData& mesh, const LayerIndex& layer_nr)
 {
     coord_t skin_line_width = mesh.settings.get<coord_t>("skin_line_width");
     if (layer_nr == 0)
@@ -33,7 +33,7 @@ coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh
     return skin_line_width;
 }
 
-SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill)
+SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr, MeshSliceData& mesh, bool process_infill)
     : layer_nr_(layer_nr)
     , mesh_(mesh)
     , bottom_layer_count_(mesh.settings.get<size_t>("bottom_layers"))
@@ -82,7 +82,7 @@ Shape SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_he
  *
  * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinsAndInfill(const SliceDataStorage& storage)
+void SkinInfillAreaComputation::generateSkinsAndInfill(const MeshGroupSliceData& storage)
 {
     generateSkinAndInfillAreas();
 
@@ -323,7 +323,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(const SliceDataStorage& storage, SliceLayerPart& part)
+void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(const MeshGroupSliceData& storage, SliceLayerPart& part)
 {
     const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
     const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
@@ -433,7 +433,7 @@ std::optional<Shape> SkinInfillAreaComputation::generateFilledAreaBelow(SliceLay
     return filled_area_below;
 }
 
-void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
+void SkinInfillAreaComputation::generateInfillSupport(MeshSliceData& mesh)
 {
     const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const AngleRadians support_angle = mesh.settings.get<AngleRadians>("infill_support_angle");
@@ -472,7 +472,7 @@ void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
     }
 }
 
-void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
+void SkinInfillAreaComputation::generateGradualInfill(MeshSliceData& mesh)
 {
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     double layer_skip_count = 8; // skip every so many layers as to ignore small gaps in the model making computation more easy
@@ -571,7 +571,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     }
 }
 
-void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
+void SkinInfillAreaComputation::combineInfillLayers(MeshSliceData& mesh)
 {
     if (mesh.layers.empty() || mesh.layers.size() - 1 < mesh.settings.get<size_t>("top_layers")
         || mesh.settings.get<coord_t>("infill_line_distance") == 0) // No infill is even generated.

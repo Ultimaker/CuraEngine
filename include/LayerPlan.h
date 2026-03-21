@@ -33,7 +33,7 @@ namespace cura
 {
 
 class Comb;
-class SliceDataStorage;
+class MeshGroupSliceData;
 class LayerPlanBuffer;
 class STHalfEdge;
 
@@ -117,7 +117,7 @@ private:
         Priming, // We are priming while traveling
     };
 
-    const SliceDataStorage& storage_; //!< The polygon data obtained from FffPolygonProcessor
+    const MeshGroupSliceData& storage_; //!< The polygon data obtained from FffPolygonProcessor
     const LayerIndex layer_nr_; //!< The layer number of this layer plan
     const bool is_initial_layer_; //!< Whether this is the first layer (which might be raft)
     const Raft::LayerType layer_type_; //!< Which part of the raft, airgap or model this layer is.
@@ -127,7 +127,7 @@ private:
     std::vector<bool> has_prime_tower_planned_per_extruder_; //!< For each extruder, whether the prime tower is planned yet or not.
     std::optional<Point3LL> last_planned_position_; //!< The last planned XYZ position of the print head (if known) (note: z\height is offset, not absolute)
 
-    std::shared_ptr<const SliceMeshStorage> current_mesh_; //!< The mesh of the last planned move.
+    std::shared_ptr<const MeshSliceData> current_mesh_; //!< The mesh of the last planned move.
 
     /*!
      * Whether the skirt or brim polygons have been processed into planned paths
@@ -165,7 +165,7 @@ private:
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
-    std::map<const SliceMeshStorage*, MixedLinesSet> infill_lines_; //!< Infill lines generated for this layer
+    std::map<const MeshSliceData*, MixedLinesSet> infill_lines_; //!< Infill lines generated for this layer
 
     const std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_;
 
@@ -225,7 +225,7 @@ public:
      * parts when travelling through air.
      */
     LayerPlan(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerIndex layer_nr,
         coord_t z,
         coord_t layer_height,
@@ -331,7 +331,7 @@ public:
      * Track the currently printing mesh.
      * \param mesh_id A unique ID indicating the current mesh.
      */
-    void setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh);
+    void setMesh(const std::shared_ptr<const MeshSliceData>& mesh);
 
     /*!
      * Set bridge_wall_mask.
@@ -417,9 +417,9 @@ public:
      */
     void planPrime(double prime_blob_wipe_length = 10.0);
 
-    void setGeneratedInfillLines(const SliceMeshStorage* mesh, const MixedLinesSet& infill_lines);
+    void setGeneratedInfillLines(const MeshSliceData* mesh, const MixedLinesSet& infill_lines);
 
-    const MixedLinesSet getGeneratedInfillLines(const SliceMeshStorage* mesh) const;
+    const MixedLinesSet getGeneratedInfillLines(const MeshSliceData* mesh) const;
 
     /*!
      * Add an extrusion move to a certain point, optionally with a different flow than the one in the \p config.
@@ -882,7 +882,7 @@ public:
     /*!
      * Gets the mesh being printed first on this layer
      */
-    std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+    std::shared_ptr<const MeshSliceData> findFirstPrintedMesh() const;
 
 private:
     /*!

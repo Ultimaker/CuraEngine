@@ -12,7 +12,7 @@
 #include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Ratio.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "support.h"
 #include "utils/MixedPolylineStitcher.h"
 #include "utils/Simplify.h"
@@ -20,7 +20,7 @@
 namespace cura
 {
 
-SkirtBrim::SkirtBrim(SliceDataStorage& storage)
+SkirtBrim::SkirtBrim(MeshGroupSliceData& storage)
     : storage_(storage)
     , adhesion_type_(storage.settings_.get<EPlatformAdhesion>("adhesion_type"))
     , has_ooze_shield_(storage.ooze_shield.size() > 0 && storage.ooze_shield[0].size() > 0)

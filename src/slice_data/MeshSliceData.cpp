@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 
 #include "ExtruderTrain.h"
 #include "geometry/OpenPolyline.h"
@@ -14,7 +14,7 @@
 namespace cura
 {
 
-SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
+MeshSliceData::MeshSliceData(Mesh* mesh, const size_t slice_layer_count)
     : settings(mesh->settings_)
     , mesh_name(mesh->mesh_name_)
     , layer_nr_max_filled_layer(0)
@@ -26,7 +26,7 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     layers.resize(slice_layer_count);
 }
 
-bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
+bool MeshSliceData::getExtruderIsUsed(const size_t extruder_nr) const
 {
     if (settings.get<bool>("anti_overhang_mesh") || settings.get<bool>("support_mesh"))
     { // object is not printed as object, but as support.
@@ -77,7 +77,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     return false;
 }
 
-bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIndex& layer_nr) const
+bool MeshSliceData::getExtruderIsUsed(const size_t extruder_nr, const LayerIndex& layer_nr) const
 {
     if (layer_nr < 0 || layer_nr >= static_cast<int>(layers.size()))
     {
@@ -167,12 +167,12 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     return false;
 }
 
-bool SliceMeshStorage::isPrinted() const
+bool MeshSliceData::isPrinted() const
 {
     return ! settings.get<bool>("infill_mesh") && ! settings.get<bool>("cutting_mesh") && ! settings.get<bool>("anti_overhang_mesh");
 }
 
-Point2LL SliceMeshStorage::getZSeamHint() const
+Point2LL MeshSliceData::getZSeamHint() const
 {
     Point2LL pos(settings.get<coord_t>("z_seam_x"), settings.get<coord_t>("z_seam_y"));
     if (settings.get<bool>("z_seam_relative"))

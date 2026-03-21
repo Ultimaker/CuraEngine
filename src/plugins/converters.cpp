@@ -16,7 +16,7 @@
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 
 
 namespace cura::plugins
@@ -474,7 +474,7 @@ gcode_paths_modify_response::native_value_type
     gcode_paths_modify_response::operator()(gcode_paths_modify_response::native_value_type& original_value, const gcode_paths_modify_response::value_type& message) const
 {
     std::vector<GCodePath> paths;
-    using map_t = std::unordered_map<std::string, std::shared_ptr<const SliceMeshStorage>>;
+    using map_t = std::unordered_map<std::string, std::shared_ptr<const MeshSliceData>>;
     auto meshes = original_value
                 | ranges::views::filter(
                       [](const auto& path)

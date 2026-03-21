@@ -18,7 +18,7 @@
 namespace cura
 {
 
-class SliceDataStorage;
+class MeshGroupSliceData;
 class LayerPlan;
 
 /*!
@@ -94,7 +94,7 @@ public:
      * \param new_extruder_nr The switched to extruder with which the prime tower paths should be generated.
      */
     void addToGcode(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcode_layer,
         const std::vector<ExtruderUse>& required_extruder_prime,
         const size_t prev_extruder_nr,
@@ -142,7 +142,7 @@ public:
         const std::vector<bool>& extruder_is_used_on_this_layer,
         size_t extruder_nr,
         size_t last_extruder,
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         const LayerIndex& layer_nr) const = 0;
 
     /*!
@@ -159,7 +159,7 @@ public:
      * \param storage The storage containing all the slice data
      * \return The proper prime tower object, which may be null if prime tower is actually disabled or not required
      */
-    static PrimeTower* createPrimeTower(SliceDataStorage& storage);
+    static PrimeTower* createPrimeTower(MeshGroupSliceData& storage);
 
 protected:
     /*!
@@ -226,7 +226,7 @@ private:
      * \brief Subtract the prime tower from the support areas in storage.
      * \param storage The storage where to find the support from which to subtract a prime tower.
      */
-    void subtractFromSupport(SliceDataStorage& storage);
+    void subtractFromSupport(MeshGroupSliceData& storage);
 };
 
 } // namespace cura

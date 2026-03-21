@@ -9,6 +9,8 @@
 namespace cura
 {
 
+class MeshGroupSliceData;
+
 /*
  * \brief Represents a command to slice something.
  *
@@ -27,6 +29,8 @@ public:
      * \brief The scene that must be sliced.
      */
     Scene scene;
+
+    std::vector<std::shared_ptr<MeshGroupSliceData>> storages_;
 
     /*
      * \brief Slice the scene, producing g-code output.

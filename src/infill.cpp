@@ -20,7 +20,7 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
 #include "plugins/slots.h"
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonConnector.h"
 #include "utils/Simplify.h"
@@ -84,7 +84,7 @@ void Infill::generate(
     SectionType section_type,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
-    const SliceMeshStorage* mesh,
+    const MeshSliceData* mesh,
     const Shape& prevent_small_exposed_to_air)
 {
     if (outer_contour_.empty())
@@ -252,7 +252,7 @@ void Infill::_generate(
     const Settings& settings,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
-    const SliceMeshStorage* mesh)
+    const MeshSliceData* mesh)
 {
     if (inner_contour_.empty())
         return;
@@ -527,7 +527,7 @@ void Infill::generateTrihexagonInfill(OpenLinesSet& result)
     generateLineInfill(result, line_distance_, fill_angle_ + 120, line_distance_ / 2);
 }
 
-void Infill::generateCubicSubDivInfill(OpenLinesSet& result, const SliceMeshStorage& mesh)
+void Infill::generateCubicSubDivInfill(OpenLinesSet& result, const MeshSliceData& mesh)
 {
     OpenLinesSet uncropped;
     mesh.base_subdiv_cube->generateSubdivisionLines(z_, uncropped);

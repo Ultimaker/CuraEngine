@@ -11,13 +11,13 @@
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/EnumSettings.h" //For EPlatformAdhesion.
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/math.h"
 
 namespace cura
 {
 
-void Raft::generate(SliceDataStorage& storage)
+void Raft::generate(MeshGroupSliceData& storage)
 {
     assert(
         storage.raft_base_outline.size() == 0 && storage.raft_interface_outline.size() == 0 && storage.raft_surface_outline.size() == 0

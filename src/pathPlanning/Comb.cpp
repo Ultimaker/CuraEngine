@@ -12,7 +12,7 @@
 #include "Slice.h"
 #include "pathPlanning/CombPaths.h"
 #include "pathPlanning/LinePolygonsCrossings.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/PolygonsPointIndex.h"
 #include "utils/linearAlg2D.h"
 
@@ -58,7 +58,7 @@ LocToLineGrid& Comb::getModelBoundaryLocToLine(const ExtruderTrain& train)
 }
 
 Comb::Comb(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     const LayerIndex layer_nr,
     const Shape& comb_boundary_inside_minimum,
     const Shape& comb_boundary_inside_optimal,

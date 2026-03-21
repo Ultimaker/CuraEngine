@@ -34,7 +34,7 @@ namespace cura
 
 InsetOrderOptimizer::InsetOrderOptimizer(
     const FffGcodeWriter& gcode_writer,
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
     const Settings& settings,
     const int extruder_nr,

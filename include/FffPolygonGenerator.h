@@ -12,8 +12,8 @@ namespace cura
 
 class MeshGroup;
 class ProgressStageEstimator;
-class SliceDataStorage;
-class SliceMeshStorage;
+class MeshGroupSliceData;
+class MeshSliceData;
 class TimeKeeper;
 
 /*!
@@ -34,7 +34,7 @@ public:
      * \param timeKeeper Object which keeps track of timings of each stage.
      * \param storage Output parameter: where the outlines are stored. See SliceLayerPart::outline.
      */
-    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, TimeKeeper& timeKeeper);
+    bool generateAreas(MeshGroupSliceData& storage, MeshGroup* object, TimeKeeper& timeKeeper);
 
 private:
     /*!
@@ -59,7 +59,7 @@ private:
      *
      * \return Whether the process succeeded (always true).
      */
-    bool sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
+    bool sliceModel(MeshGroup* object, TimeKeeper& timeKeeper, MeshGroupSliceData& storage); /// slices the model
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, support area polygons, etc.
@@ -67,7 +67,7 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param timeKeeper Object which keeps track of timings of each stage.
      */
-    void slices2polygons(SliceDataStorage& storage, TimeKeeper& timeKeeper);
+    void slices2polygons(MeshGroupSliceData& storage, TimeKeeper& timeKeeper);
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, skin and infill
@@ -78,7 +78,7 @@ private:
      * \param inset_skin_progress_estimate The progress stage estimate calculator
      */
     void processBasicWallsSkinInfill(
-        SliceDataStorage& storage,
+        MeshGroupSliceData& storage,
         const size_t mesh_order_idx,
         const std::vector<size_t>& mesh_order,
         ProgressStageEstimator& inset_skin_progress_estimate);
@@ -90,7 +90,7 @@ private:
      * \param mesh_order_idx The index of the mesh_idx in \p mesh_order to process in the vector of meshes in \p storage
      * \param mesh_order The order in which the meshes are processed
      */
-    void processInfillMesh(SliceDataStorage& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order);
+    void processInfillMesh(MeshGroupSliceData& storage, const size_t mesh_order_idx, const std::vector<size_t>& mesh_order);
 
     /*!
      * Process features which are derived from the basic walls, skin, and infill:
@@ -98,7 +98,7 @@ private:
      *
      * \param mesh Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      */
-    void processDerivedWallsSkinInfill(SliceMeshStorage& mesh);
+    void processDerivedWallsSkinInfill(MeshSliceData& mesh);
 
     /*!
      * Checks whether a layer is empty or not
@@ -108,7 +108,7 @@ private:
      *
      * \return Whether or not the layer is empty
      */
-    bool isEmptyLayer(SliceDataStorage& storage, const LayerIndex& layer_idx);
+    bool isEmptyLayer(MeshGroupSliceData& storage, const LayerIndex& layer_idx);
 
     /*!
      * \brief Remove all bottom layers which are empty.
@@ -118,7 +118,7 @@ private:
      * \param[in, out] storage Stores all layers.
      * \param[in, out] total_layers The total number of layers.
      */
-    void removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers);
+    void removeEmptyFirstLayers(MeshGroupSliceData& storage, size_t& total_layers);
 
     /*!
      * Set \ref SliceDataStorage::max_print_height_per_extruder and \ref SliceDataStorage::max_print_height_order and \ref
@@ -126,19 +126,19 @@ private:
      *
      * \param[in,out] storage Where to retrieve mesh and support etc settings from and where the print height statistics are saved.
      */
-    void computePrintHeightStatistics(SliceDataStorage& storage);
+    void computePrintHeightStatistics(MeshGroupSliceData& storage);
 
     /*!
      * \brief Generate the inset polygons which form the walls.
      * \param layer_nr The layer for which to generate the insets.
      */
-    void processWalls(SliceMeshStorage& mesh, size_t layer_nr);
+    void processWalls(MeshSliceData& mesh, size_t layer_nr);
 
     /*!
      * Generate the outline of the ooze shield.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      */
-    void processOozeShield(SliceDataStorage& storage);
+    void processOozeShield(MeshGroupSliceData& storage);
 
     /*!
      * Generate the skin areas.
@@ -146,20 +146,20 @@ private:
      * \param layer_nr The layer for which to generate the skin areas.
      * \param process_infill Generate infill areas
      */
-    void processSkinsAndInfill(const SliceDataStorage &storage, SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill);
+    void processSkinsAndInfill(const MeshGroupSliceData &storage, MeshSliceData& mesh, const LayerIndex layer_nr, bool process_infill);
 
     /*!
      * Generate the polygons where the draft screen should be.
      *
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      */
-    void processDraftShield(SliceDataStorage& storage);
+    void processDraftShield(MeshGroupSliceData& storage);
 
     /*!
      * Generate the skirt/brim/raft areas/insets.
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      */
-    void processPlatformAdhesion(SliceDataStorage& storage);
+    void processPlatformAdhesion(MeshGroupSliceData& storage);
 
     /*!
      * Make the outer wall 'fuzzy'
@@ -170,7 +170,7 @@ private:
      *
      * \param[in,out] mesh where the outer wall is retrieved and stored in.
      */
-    void processFuzzyWalls(SliceMeshStorage& mesh);
+    void processFuzzyWalls(MeshSliceData& mesh);
 };
 
 } // namespace cura

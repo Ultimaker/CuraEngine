@@ -7,12 +7,12 @@
 
 #include "ExtruderTrain.h"
 #include "PrintFeature.h"
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 
 namespace cura
 {
 
-MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t layer_thickness, const LayerIndex layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder)
+MeshPathConfigs::MeshPathConfigs(const MeshSliceData& mesh, const coord_t layer_thickness, const LayerIndex layer_nr, const std::vector<Ratio>& line_width_factor_per_extruder)
     : inset0_config{ .type = PrintFeatureType::OuterWall,
                      .line_width = static_cast<coord_t>(
                          mesh.settings.get<coord_t>("wall_line_width_0") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_]),

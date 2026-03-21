@@ -23,7 +23,7 @@ class Settings;
 class SliceLayer;
 class Slicer;
 class SlicerLayer;
-class SliceMeshStorage;
+class MeshSliceData;
 
 /*!
  * \brief Split a layer into parts.
@@ -39,7 +39,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
  * \param mesh The mesh of which to split the layers into parts.
  * \param slicer The slicer to get the layers from.
  */
-void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
+void createLayerParts(MeshSliceData& mesh, Slicer* slicer);
 
 }//namespace cura
 

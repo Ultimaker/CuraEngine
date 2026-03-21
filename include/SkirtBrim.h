@@ -8,14 +8,14 @@
 
 #include "ExtruderTrain.h"
 #include "settings/EnumSettings.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
 
 class Shape;
-class SliceDataStorage;
+class MeshGroupSliceData;
 
 constexpr coord_t min_brim_line_length = 3000u; //!< open polyline brim lines smaller than this will be removed
 
@@ -92,7 +92,7 @@ private:
                                                return a.total_offset_ != b.total_offset_ ? a.total_offset_ < b.total_offset_ : a.extruder_nr_ < b.extruder_nr_;
                                            } };
 
-    SliceDataStorage& storage_; //!< Where to retrieve settings and store brim lines.
+    MeshGroupSliceData& storage_; //!< Where to retrieve settings and store brim lines.
     const EPlatformAdhesion adhesion_type_; //!< Whether we are generating brim, skirt, or raft
     const bool has_ooze_shield_; //!< Whether the meshgroup has an ooze shield
     const bool has_draft_shield_; //!< Whether the meshgroup has a draft shield
@@ -108,7 +108,7 @@ public:
      *
      * \param storage Storage containing the parts at the first layer.
      */
-    SkirtBrim(SliceDataStorage& storage);
+    SkirtBrim(MeshGroupSliceData& storage);
 
     /*!
      * Generate skirt or brim (depending on parameters).

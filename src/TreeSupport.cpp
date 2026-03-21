@@ -22,8 +22,8 @@
 #include "infill.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "support.h" //For precomputeCrossInfillTree
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
@@ -34,11 +34,11 @@
 namespace cura
 {
 
-TreeSupport::TreeSupport(const SliceDataStorage& storage)
+TreeSupport::TreeSupport(const MeshGroupSliceData& storage)
 {
     size_t largest_printed_mesh_idx = 0;
 
-    for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+    for (const std::shared_ptr<MeshSliceData>& mesh_ptr : storage.meshes)
     {
         const auto& mesh = *mesh_ptr;
         TreeSupportSettings::some_model_contains_thick_roof |= mesh.settings.get<coord_t>("support_roof_height") >= 2 * mesh.settings.get<coord_t>("layer_height");
@@ -51,7 +51,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     // Only one setting object is needed per group, as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
     for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
-        SliceMeshStorage& mesh = *mesh_ptr;
+        MeshSliceData& mesh = *mesh_ptr;
         const bool non_supportable_mesh = mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh");
         if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! mesh.settings.get<bool>("support_enable") || non_supportable_mesh)
         {
@@ -96,7 +96,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     fake_roof_areas = std::vector<std::vector<FakeRoofArea>>(storage.support.supportLayers.size(), std::vector<FakeRoofArea>());
 }
 
-void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
+void TreeSupport::generateSupportAreas(MeshGroupSliceData& storage)
 {
     if (grouped_meshes.empty())
     {
@@ -212,13 +212,13 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes)
+LayerIndex TreeSupport::precalculate(const MeshGroupSliceData& storage, std::vector<size_t> currently_processing_meshes)
 {
     // Calculate top most layer that is relevant for support.
     LayerIndex max_layer = -1;
     for (size_t mesh_idx : currently_processing_meshes)
     {
-        const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+        const MeshSliceData& mesh = *storage.meshes[mesh_idx];
         const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
         const size_t z_distance_top_layers = round_up_divide(z_distance_top,
@@ -252,7 +252,7 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
 }
 
 
-void TreeSupport::generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::generateInitialAreas(const MeshSliceData& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, MeshGroupSliceData& storage)
 {
     TreeSupportTipGenerator tip_gen(mesh, volumes_);
     tip_gen.generateTips(storage, mesh, move_bounds, additional_required_support_area, fake_roof_areas);
@@ -2148,7 +2148,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
     std::vector<Shape>& support_layer_storage,
     std::vector<Shape>& support_roof_storage,
     std::vector<Shape>& support_layer_storage_fractional,
-    SliceDataStorage& storage)
+    MeshGroupSliceData& storage)
 {
     InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE;
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES + TREE_PROGRESS_AREA_CALC + TREE_PROGRESS_GENERATE_BRANCH_AREAS
@@ -2304,7 +2304,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         });
 }
 
-void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, MeshGroupSliceData& storage)
 {
     std::vector<Shape> support_layer_storage(move_bounds.size());
     std::vector<Shape> support_layer_storage_fractional(move_bounds.size());

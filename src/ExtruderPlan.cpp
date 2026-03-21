@@ -71,7 +71,7 @@ void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compe
     }
 }
 
-std::shared_ptr<const SliceMeshStorage> ExtruderPlan::findFirstPrintedMesh() const
+std::shared_ptr<const MeshSliceData> ExtruderPlan::findFirstPrintedMesh() const
 {
     for (const GCodePath& path : paths_)
     {

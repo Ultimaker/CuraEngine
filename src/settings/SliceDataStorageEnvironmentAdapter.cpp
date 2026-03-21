@@ -7,14 +7,14 @@
 
 #include <range/v3/algorithm/contains.hpp>
 
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 namespace cfe = CuraFormulaeEngine;
 
 namespace cura
 {
 
-SliceDataStorageEnvironmentAdapter::SliceDataStorageEnvironmentAdapter(const SliceDataStorage& storage, const CuraFormulaeEngine::env::Environment* next_environment)
+SliceDataStorageEnvironmentAdapter::SliceDataStorageEnvironmentAdapter(const MeshGroupSliceData& storage, const CuraFormulaeEngine::env::Environment* next_environment)
     : storage_(storage)
     , next_environment_(next_environment)
     , additional_variables_(

@@ -26,7 +26,7 @@ public:
         const std::vector<bool>& extruder_is_used_on_this_layer,
         size_t extruder_nr,
         size_t last_extruder,
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         const LayerIndex& layer_nr) const override;
 
 protected:

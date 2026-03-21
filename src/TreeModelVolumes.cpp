@@ -14,15 +14,15 @@
 #include "TreeSupport.h"
 #include "TreeSupportEnums.h"
 #include "progress/Progress.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/ThreadPool.h"
 
 namespace cura
 {
 
 TreeModelVolumes::TreeModelVolumes(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     const coord_t max_move,
     const coord_t max_move_slow,
     const coord_t min_offset_per_step,
@@ -571,7 +571,7 @@ bool TreeModelVolumes::checkSettingsEquality(const Settings& me, const Settings&
     return TreeSupportSettings(me) == TreeSupportSettings(other);
 }
 
-Shape TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const
+Shape TreeModelVolumes::extractOutlineFromMesh(const MeshSliceData& mesh, LayerIndex layer_idx) const
 {
     // Similar to SliceDataStorage.getLayerOutlines but only for one mesh instead of for all of them.
 

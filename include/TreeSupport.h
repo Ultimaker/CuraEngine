@@ -19,7 +19,7 @@ namespace cura
 {
 
 class AABB;
-class SliceDataStorage;
+class MeshGroupSliceData;
 
 // The various stages of the process can be weighted differently in the progress bar.
 // These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.
@@ -83,7 +83,7 @@ public:
      *
      * \param storage The data storage to get global settings from.
      */
-    TreeSupport(const SliceDataStorage& storage);
+    TreeSupport(const MeshGroupSliceData& storage);
 
     /*!
      * \brief Create the areas that need support.
@@ -92,7 +92,7 @@ public:
      * \param storage The data storage where the mesh data is gotten from and
      * where the resulting support areas are stored.
      */
-    void generateSupportAreas(SliceDataStorage& storage);
+    void generateSupportAreas(MeshGroupSliceData& storage);
 
 
 private:
@@ -103,7 +103,7 @@ private:
      * \param currently_processing_meshes[in] Indexes of all meshes that are processed in this iteration
      * \return Uppermost layer precalculated. -1 if no layer were precalculated as no overhang is present.
      */
-    LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
+    LayerIndex precalculate(const MeshGroupSliceData& storage, std::vector<size_t> currently_processing_meshes);
 
 
     /*!
@@ -115,7 +115,7 @@ private:
      * \param move_bounds[out] Storage for the influence areas.
      * \param storage[in] Background storage, required for adding roofs.
      */
-    void generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
+    void generateInitialAreas(const MeshSliceData& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, MeshGroupSliceData& storage);
 
 
     /*!
@@ -302,7 +302,7 @@ private:
         std::vector<Shape>& support_layer_storage,
         std::vector<Shape>& support_roof_storage,
         std::vector<Shape>& support_layer_storage_fractional,
-        SliceDataStorage& storage);
+        MeshGroupSliceData& storage);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
@@ -310,7 +310,7 @@ private:
      * \param move_bounds[in] All currently existing influence areas
      * \param storage[in,out] The storage where the support should be stored.
      */
-    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
+    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, MeshGroupSliceData& storage);
 
     /*!
      * \brief Settings with the indexes of meshes that use these settings.

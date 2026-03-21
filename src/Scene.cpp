@@ -9,7 +9,7 @@
 #include "FffProcessor.h" //To start a slice.
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {
@@ -62,7 +62,7 @@ const std::string Scene::getAllSettingsString() const
     return output.str();
 }
 
-void Scene::processMeshGroup(MeshGroup& mesh_group, SliceDataStorage& storage)
+void Scene::processMeshGroup(MeshGroup& mesh_group, MeshGroupSliceData& storage)
 {
     FffProcessor* fff_processor = FffProcessor::getInstance();
     fff_processor->time_keeper.restart();

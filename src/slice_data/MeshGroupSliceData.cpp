@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 #include <numbers>
 
@@ -10,20 +10,20 @@
 #include "PrimeTower/PrimeTower.h"
 #include "Slice.h"
 #include "raft.h"
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 
 
 namespace cura
 {
 
-std::vector<RetractionAndWipeConfig> SliceDataStorage::initializeRetractionAndWipeConfigs()
+std::vector<RetractionAndWipeConfig> MeshGroupSliceData::initializeRetractionAndWipeConfigs()
 {
     std::vector<RetractionAndWipeConfig> ret;
     ret.resize(Application::getInstance().current_slice_->scene.extruders.size()); // initializes with constructor RetractionConfig()
     return ret;
 }
 
-SliceDataStorage::SliceDataStorage(const Settings& settings)
+MeshGroupSliceData::MeshGroupSliceData(const Settings& settings)
     : settings_(settings)
     , print_layer_count(0)
     , retraction_wipe_config_per_extruder(initializeRetractionAndWipeConfigs())
@@ -40,12 +40,12 @@ SliceDataStorage::SliceDataStorage(const Settings& settings)
     machine_size.include(machine_max);
 }
 
-SliceDataStorage::~SliceDataStorage()
+MeshGroupSliceData::~MeshGroupSliceData()
 {
     delete prime_tower_;
 }
 
-Shape SliceDataStorage::getLayerOutlines(
+Shape MeshGroupSliceData::getLayerOutlines(
     const LayerIndex layer_nr,
     const bool include_support,
     const bool include_prime_tower,
@@ -111,7 +111,7 @@ Shape SliceDataStorage::getLayerOutlines(
         Shape total;
         if (include_models && layer_nr >= 0)
         {
-            for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
+            for (const std::shared_ptr<MeshSliceData>& mesh : meshes)
             {
                 if (mesh->settings.get<bool>("infill_mesh") || mesh->settings.get<bool>("anti_overhang_mesh")
                     || (extruder_nr != -1 && extruder_nr != int(mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)))
@@ -151,7 +151,7 @@ Shape SliceDataStorage::getLayerOutlines(
     }
 }
 
-AABB3D SliceDataStorage::getModelBoundingBox() const
+AABB3D MeshGroupSliceData::getModelBoundingBox() const
 {
     AABB3D bounding_box;
     for (const auto& mesh : meshes)
@@ -161,7 +161,7 @@ AABB3D SliceDataStorage::getModelBoundingBox() const
     return bounding_box;
 }
 
-std::vector<bool> SliceDataStorage::getExtrudersUsed() const
+std::vector<bool> MeshGroupSliceData::getExtrudersUsed() const
 {
     std::vector<bool> ret;
     ret.resize(Application::getInstance().current_slice_->scene.extruders.size(), false);
@@ -207,7 +207,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
 
     // support
     // support is presupposed to be present...
-    for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
+    for (const std::shared_ptr<MeshSliceData>& mesh : meshes)
     {
         if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh"))
         {
@@ -225,7 +225,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     }
 
     // all meshes are presupposed to actually have content
-    for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
+    for (const std::shared_ptr<MeshSliceData>& mesh : meshes)
     {
         for (unsigned int extruder_nr = 0; extruder_nr < ret.size(); extruder_nr++)
         {
@@ -235,7 +235,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     return ret;
 }
 
-std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) const
+std::vector<bool> MeshGroupSliceData::getExtrudersUsed(const LayerIndex layer_nr) const
 {
     const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice_->scene.extruders;
     std::vector<bool> ret;
@@ -333,7 +333,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
 
     if (include_models)
     {
-        for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
+        for (const std::shared_ptr<MeshSliceData>& mesh : meshes)
         {
             for (unsigned int extruder_nr = 0; extruder_nr < ret.size(); extruder_nr++)
             {
@@ -344,7 +344,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed(const LayerIndex layer_nr) 
     return ret;
 }
 
-bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) const
+bool MeshGroupSliceData::getExtruderPrimeBlobEnabled(const size_t extruder_nr) const
 {
     if (extruder_nr >= Application::getInstance().current_slice_->scene.extruders.size())
     {
@@ -355,7 +355,7 @@ bool SliceDataStorage::getExtruderPrimeBlobEnabled(const size_t extruder_nr) con
     return train.settings_.get<bool>("prime_blob_enable");
 }
 
-Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
+Shape MeshGroupSliceData::getMachineBorder(int checking_extruder_nr) const
 {
     Shape border = getRawMachineBorder();
 
@@ -455,7 +455,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     return border;
 }
 
-Shape SliceDataStorage::getRawMachineBorder() const
+Shape MeshGroupSliceData::getRawMachineBorder() const
 {
     Shape border;
     border.emplace_back();
@@ -484,7 +484,7 @@ Shape SliceDataStorage::getRawMachineBorder() const
     return border;
 }
 
-void SliceDataStorage::initializePrimeTower()
+void MeshGroupSliceData::initializePrimeTower()
 {
     prime_tower_ = PrimeTower::createPrimeTower(*this);
 }

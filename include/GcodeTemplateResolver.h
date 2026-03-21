@@ -12,7 +12,7 @@
 namespace cura
 {
 
-class SliceDataStorage;
+class MeshGroupSliceData;
 
 namespace GcodeTemplateResolver
 {
@@ -30,7 +30,7 @@ std::string resolveGCodeTemplate(
     const std::string& input,
     const std::optional<int> context_extruder_nr = std::nullopt,
     const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {},
-    const SliceDataStorage* storage = nullptr);
+    const MeshGroupSliceData* storage = nullptr);
 
 } // namespace GcodeTemplateResolver
 

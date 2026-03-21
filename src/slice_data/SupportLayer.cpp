@@ -4,7 +4,7 @@
 #include "slice_data/SupportLayer.h"
 
 #include "settings/Settings.h"
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 
 
 namespace cura
@@ -76,7 +76,7 @@ void SupportLayer::fillInfillParts(
     const LayerIndex layer_nr,
     const std::vector<Shape>& support_fill_per_layer,
     const coord_t infill_layer_height,
-    const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
+    const std::vector<std::shared_ptr<MeshSliceData>>& meshes,
     const coord_t support_line_width,
     const coord_t wall_line_count,
     const coord_t grow_layer_above /*has default 0*/,

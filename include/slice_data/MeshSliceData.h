@@ -18,7 +18,7 @@ class SierpinskiFillProvider;
 class LightningGenerator;
 class Mesh;
 
-class SliceMeshStorage
+class MeshSliceData
 {
 public:
     Settings& settings;
@@ -52,7 +52,7 @@ public:
      * results of the mesh. This needs to be at least as high as the highest
      * layer that contains a part of the mesh.
      */
-    SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count);
+    MeshSliceData(Mesh* mesh, const size_t slice_layer_count);
 
     /*!
      * \param extruder_nr The extruder for which to check

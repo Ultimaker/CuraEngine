@@ -8,7 +8,7 @@
 #include "settings/EnumSettings.h" //For ESurfaceMode.
 #include "settings/Settings.h"
 #include "slice_data/SliceLayer.h"
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 #include "slicer.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/Simplify.h" //Simplifying the layers after creating them.
@@ -82,7 +82,7 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
     }
 }
 
-void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
+void createLayerParts(MeshSliceData& mesh, Slicer* slicer)
 {
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);

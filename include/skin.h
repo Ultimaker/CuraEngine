@@ -15,8 +15,8 @@ namespace cura
 class Shape;
 class SkinPart;
 class SliceLayerPart;
-class SliceMeshStorage;
-class SliceDataStorage;
+class MeshSliceData;
+class MeshGroupSliceData;
 
 /*!
  * Class containing all skin and infill area computation functions
@@ -34,12 +34,12 @@ public:
      * \param process_infill Whether to process infill, i.e. whether there's a
      * positive infill density or there are infill meshes modifying this mesh.
      */
-    SkinInfillAreaComputation(const LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill);
+    SkinInfillAreaComputation(const LayerIndex& layer_nr, MeshSliceData& mesh, bool process_infill);
 
     /*!
      * Generate the skin areas and its insets.
      */
-    void generateSkinsAndInfill(const SliceDataStorage &storage);
+    void generateSkinsAndInfill(const MeshGroupSliceData &storage);
 
     /*!
      * \brief Combines the infill of multiple layers for a specified mesh.
@@ -50,7 +50,7 @@ public:
      *
      * \param mesh The mesh to combine the infill layers of.
      */
-    static void combineInfillLayers(SliceMeshStorage& mesh);
+    static void combineInfillLayers(MeshSliceData& mesh);
 
     /*!
      * \brief Generate infill areas which cause a gradually less dense infill
@@ -67,7 +67,7 @@ public:
      * infill_area after this function.
      * \param mesh The mesh to generate the infill areas for.
      */
-    static void generateGradualInfill(SliceMeshStorage& mesh);
+    static void generateGradualInfill(MeshSliceData& mesh);
 
     /*!
      * Limit the infill areas to places where they support internal overhangs.
@@ -77,7 +77,7 @@ public:
      *
      * \param mesh The mesh for which to recalculate the infill areas
      */
-    static void generateInfillSupport(SliceMeshStorage& mesh);
+    static void generateInfillSupport(MeshSliceData& mesh);
 
 protected:
     /*!
@@ -135,7 +135,7 @@ protected:
      *
      * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing/flooring areas
      */
-    void generateSkinRoofingFlooringFill(const SliceDataStorage &storage, SliceLayerPart& part);
+    void generateSkinRoofingFlooringFill(const MeshGroupSliceData &storage, SliceLayerPart& part);
 
     /*!
      * Generate the top and bottom-most surfaces of the given \p part, i.e. the surfaces that have nothing above or below
@@ -161,7 +161,7 @@ protected:
 
 protected:
     LayerIndex layer_nr_; //!< The index of the layer for which to generate the skins and infill.
-    SliceMeshStorage& mesh_; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
+    MeshSliceData& mesh_; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
     size_t bottom_layer_count_; //!< The number of layers of bottom skin
     size_t initial_bottom_layer_count_; //!< Whether to make bottom skin for the initial layer
     size_t top_layer_count_; //!< The number of layers of top skin
@@ -177,7 +177,7 @@ protected:
     coord_t bottom_skin_expand_distance_; //!< The distance by which the bottom skins should be larger than the original bottom skins.
 
 private:
-    static coord_t getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
+    static coord_t getSkinLineWidth(const MeshSliceData& mesh, const LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
 
     /*!
      * Helper function to get the outline of each part which might intersect

@@ -10,7 +10,7 @@ namespace cura
 {
 
 class AABB;
-class SliceMeshStorage;
+class MeshSliceData;
 struct LayerIndex;
 
 class SupportLayer
@@ -75,7 +75,7 @@ public:
         const LayerIndex layer_nr,
         const std::vector<Shape>& support_fill_per_layer,
         const coord_t infill_layer_height,
-        const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
+        const std::vector<std::shared_ptr<MeshSliceData>>& meshes,
         const coord_t support_line_width,
         const coord_t wall_line_count,
         const coord_t grow_layer_above = 0,

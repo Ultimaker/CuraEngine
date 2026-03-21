@@ -19,8 +19,8 @@ namespace cura
 {
 constexpr coord_t FUDGE_LENGTH = 50;
 
-class SliceDataStorage;
-class SliceMeshStorage;
+class MeshGroupSliceData;
+class MeshSliceData;
 class LayerIndex;
 class Settings;
 
@@ -33,7 +33,7 @@ class TreeModelVolumes
 public:
     TreeModelVolumes() = default;
     TreeModelVolumes(
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         coord_t max_move,
         coord_t max_move_slow,
         coord_t min_offset_per_step,
@@ -166,7 +166,7 @@ private:
      * \param layer_idx The layer which should be extracted from the mesh
      * \return Shape object representing the outline
      */
-    Shape extractOutlineFromMesh(const SliceMeshStorage& mesh, LayerIndex layer_idx) const;
+    Shape extractOutlineFromMesh(const MeshSliceData& mesh, LayerIndex layer_idx) const;
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.

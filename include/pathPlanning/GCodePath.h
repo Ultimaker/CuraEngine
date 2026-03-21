@@ -12,7 +12,7 @@
 #include "TimeMaterialEstimates.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {
@@ -31,7 +31,7 @@ struct GCodePath
 {
     coord_t z_offset{}; //<! Actual vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
     GCodePathConfig config{}; //!< The configuration settings of the path.
-    std::shared_ptr<const SliceMeshStorage> mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
+    std::shared_ptr<const MeshSliceData> mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type{}; //!< The type of space filling of which this path is a part
     Ratio flow{}; //!< A type-independent flow configuration
     Ratio width_factor{}; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.

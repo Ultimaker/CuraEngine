@@ -88,11 +88,11 @@ set(engine_SRCS # Except main.cpp.
         src/WallsComputation.cpp
         src/WallToolPaths.cpp
 
-        src/slice_data/SliceDataStorage.cpp
+        src/slice_data/MeshGroupSliceData.cpp
+        src/slice_data/MeshSliceData.cpp
         src/slice_data/SliceLayer.cpp
         src/slice_data/SliceLayerPart.cpp
         src/slice_data/SupportLayer.cpp
-        src/slice_data/SliceMeshStorage.cpp
 
         src/arachne/SkeletalTrapezoidation.cpp
         src/arachne/SkeletalTrapezoidationGraph.cpp

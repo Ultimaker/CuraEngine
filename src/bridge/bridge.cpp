@@ -16,8 +16,8 @@
 #include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Ratio.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
@@ -250,7 +250,7 @@ coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_re
  * @param layer_nr The number of the layer being processed
  * @return The angle to be applied to bridging over infill on this layer
  */
-AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned layer_nr)
+AngleDegrees bridgeOverInfillAngle(const MeshSliceData& mesh, const unsigned layer_nr)
 {
     if (layer_nr == 0)
     {
@@ -302,9 +302,9 @@ AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned 
 }
 
 std::optional<AngleDegrees> bridgeAngle(
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const Shape& skin_outline,
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
@@ -329,7 +329,7 @@ std::optional<AngleDegrees> bridgeAngle(
     Shape prev_layer_infill;
 
     // include parts from all meshes
-    for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+    for (const std::shared_ptr<MeshSliceData>& mesh_ptr : storage.meshes)
     {
         const auto& mesh = *mesh_ptr;
         if (mesh.isPrinted())
@@ -675,7 +675,7 @@ void expandSegment(
 std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     const Shape& infill_contour,
     const Shape& infill_below_skin_area,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const LayerPlan* completed_layer_plan_below,
     const unsigned layer_nr)
 {

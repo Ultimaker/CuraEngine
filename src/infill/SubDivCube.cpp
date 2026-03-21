@@ -8,7 +8,7 @@
 #include "geometry/Shape.h"
 #include "settings/Settings.h"
 #include "settings/types/Angle.h" //For the infill angle.
-#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/MeshSliceData.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 
@@ -25,7 +25,7 @@ coord_t SubDivCube::radius_addition_ = 0;
 Point3Matrix SubDivCube::rotation_matrix_;
 PointMatrix SubDivCube::infill_rotation_matrix_;
 
-void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill_origin)
+void SubDivCube::precomputeOctree(MeshSliceData& mesh, const Point2LL& infill_origin)
 {
     radius_addition_ = mesh.settings.get<coord_t>("sub_div_rad_add");
 
@@ -147,7 +147,7 @@ void SubDivCube::generateSubdivisionLines(const coord_t z, OpenLinesSet (&direct
     }
 }
 
-SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3LL& center, size_t depth)
+SubDivCube::SubDivCube(MeshSliceData& mesh, Point3LL& center, size_t depth)
     : depth_(depth)
     , center_(center)
 {
@@ -185,7 +185,7 @@ SubDivCube::SubDivCube(SliceMeshStorage& mesh, Point3LL& center, size_t depth)
     }
 }
 
-bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3LL& center, coord_t radius)
+bool SubDivCube::isValidSubdivision(MeshSliceData& mesh, Point3LL& center, coord_t radius)
 {
     coord_t distance2 = 0;
     coord_t sphere_slice_radius2; //!< squared radius of bounding sphere slice on target layer
@@ -223,7 +223,7 @@ bool SubDivCube::isValidSubdivision(SliceMeshStorage& mesh, Point3LL& center, co
     return false;
 }
 
-coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerIndex layer_nr, Point2LL& location, coord_t* distance2)
+coord_t SubDivCube::distanceFromPointToMesh(MeshSliceData& mesh, const LayerIndex layer_nr, Point2LL& location, coord_t* distance2)
 {
     if (layer_nr < 0 || (unsigned int)layer_nr >= mesh.layers.size()) //!< this layer is outside of valid range
     {

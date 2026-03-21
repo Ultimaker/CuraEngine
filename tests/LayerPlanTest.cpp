@@ -10,7 +10,7 @@
 #include "Slice.h" //To provide settings for the layer plan.
 #include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
 #include "pathPlanning/NozzleTempInsert.h" //To provide nozzle temperature commands.
-#include "slice_data/SliceDataStorage.h" //To provide slice data as input for the planning stage.
+#include "slice_data/MeshGroupSliceData.h" //To provide slice data as input for the planning stage.
 #include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)

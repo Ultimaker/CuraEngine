@@ -19,7 +19,7 @@
 #include "gcodeExport.h"
 #include "infill.h"
 #include "raft.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 
 namespace cura
@@ -166,7 +166,7 @@ ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, co
 }
 
 void PrimeTower::addToGcode(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
     const std::vector<ExtruderUse>& required_extruder_prime,
     const size_t prev_extruder_nr,
@@ -283,7 +283,7 @@ const Polygon& PrimeTower::getExtrusionOutline(const LayerIndex& layer_nr) const
     }
 }
 
-void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
+void PrimeTower::subtractFromSupport(MeshGroupSliceData& storage)
 {
     for (size_t layer = 0; static_cast<int>(layer) <= storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
@@ -303,7 +303,7 @@ void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extr
     generateFirtLayerInset();
 }
 
-PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
+PrimeTower* PrimeTower::createPrimeTower(MeshGroupSliceData& storage)
 {
     PrimeTower* prime_tower = nullptr;
     const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;

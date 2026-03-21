@@ -127,7 +127,7 @@ public:
     /*!
      * Gets the mesh being printed first on this plan
      */
-    std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+    std::shared_ptr<const MeshSliceData> findFirstPrintedMesh() const;
 
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.

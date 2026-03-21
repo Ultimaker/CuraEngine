@@ -30,8 +30,8 @@
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //To compute overhang distance from the angle.
 #include "settings/types/Ratio.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "slicer.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
@@ -41,7 +41,7 @@
 namespace cura
 {
 
-bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer)
+bool AreaSupport::handleSupportModifierMesh(MeshGroupSliceData& storage, const Settings& mesh_settings, const Slicer* slicer)
 {
     if (! mesh_settings.get<bool>("anti_overhang_mesh") && ! mesh_settings.get<bool>("support_mesh"))
     {
@@ -76,7 +76,7 @@ bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Set
 }
 
 
-void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count)
+void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(MeshGroupSliceData& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count)
 {
     if (total_layer_count == 0)
     {
@@ -125,7 +125,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
 }
 
 
-void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
+void AreaSupport::generateSupportInfillFeatures(MeshGroupSliceData& storage)
 {
     AreaSupport::generateGradualSupport(storage);
 
@@ -135,7 +135,7 @@ void AreaSupport::generateSupportInfillFeatures(SliceDataStorage& storage)
     AreaSupport::cleanup(storage);
 }
 
-void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
+void AreaSupport::generateGradualSupport(MeshGroupSliceData& storage)
 {
     //
     // # How gradual support infill works:
@@ -315,7 +315,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 }
 
 
-void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
+void AreaSupport::combineSupportInfillLayers(MeshGroupSliceData& storage)
 {
     const Settings& mesh_group_settings = storage.settings_;
     const unsigned int total_layer_count = storage.print_layer_count;
@@ -418,7 +418,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
     }
 }
 
-void AreaSupport::cleanup(SliceDataStorage& storage)
+void AreaSupport::cleanup(MeshGroupSliceData& storage)
 {
     const coord_t support_line_width = storage.settings_.get<coord_t>("support_line_width");
     for (LayerIndex layer_nr = 0; layer_nr < storage.support.supportLayers.size(); layer_nr++)
@@ -461,7 +461,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
     }
 }
 
-Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLayer_up, Shape& supportLayer_this)
+Shape AreaSupport::join(const MeshGroupSliceData& storage, const Shape& supportLayer_up, Shape& supportLayer_this)
 {
     Shape joined;
 
@@ -591,9 +591,9 @@ Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLay
     return joined;
 }
 
-void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
+void AreaSupport::generateOverhangAreas(MeshGroupSliceData& storage)
 {
-    for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+    for (std::shared_ptr<MeshSliceData>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
@@ -605,7 +605,7 @@ void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
     }
 }
 
-void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
+void AreaSupport::generateSupportAreas(MeshGroupSliceData& storage)
 {
     std::vector<Shape> global_support_areas_per_layer;
     global_support_areas_per_layer.resize(storage.print_layer_count);
@@ -640,7 +640,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     const Settings& mesh_group_settings = storage.settings_;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+        MeshSliceData& mesh = *storage.meshes[mesh_idx];
         if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
         {
             continue;
@@ -708,7 +708,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     precomputeCrossInfillTree(storage);
 }
 
-void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
+void AreaSupport::precomputeCrossInfillTree(MeshGroupSliceData& storage)
 {
     const Settings& mesh_group_settings = storage.settings_;
     const ExtruderTrain& infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
@@ -718,7 +718,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         AABB3D aabb;
         for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
-            const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+            const MeshSliceData& mesh = *storage.meshes[mesh_idx];
             if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
             {
                 continue;
@@ -762,7 +762,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
     }
 }
 
-void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh)
+void AreaSupport::generateOverhangAreasForMesh(MeshGroupSliceData& storage, MeshSliceData& mesh)
 {
     if (! mesh.settings.get<bool>("support_enable") && ! mesh.settings.get<bool>("support_mesh"))
     {
@@ -814,7 +814,7 @@ void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceM
         });
 }
 
-Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& storage, const LayerIndex layer_idx)
+Shape AreaSupport::generateVaryingXYDisallowedArea(const MeshSliceData& storage, const LayerIndex layer_idx)
 {
     const auto& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const Simplify simplify{ mesh_group_settings };
@@ -980,7 +980,7 @@ Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& stora
  * for support buildplate only: purge all support not connected to build plate
  */
 void AreaSupport::generateSupportAreasForMesh(
-    SliceDataStorage& storage,
+    MeshGroupSliceData& storage,
     const Settings& infill_settings,
     const Settings& roof_settings,
     const Settings& bottom_settings,
@@ -988,7 +988,7 @@ void AreaSupport::generateSupportAreasForMesh(
     const size_t layer_count,
     std::vector<Shape>& support_areas)
 {
-    SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+    MeshSliceData& mesh = *storage.meshes[mesh_idx];
 
     const ESupportStructure support_structure = mesh.settings.get<ESupportStructure>("support_structure");
     const bool is_support_mesh_place_holder
@@ -1346,7 +1346,7 @@ void AreaSupport::generateSupportAreasForMesh(
 }
 
 void AreaSupport::moveUpFromModel(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     Shape& stair_removal,
     Shape& sloped_areas,
     Shape& support_areas,
@@ -1454,7 +1454,7 @@ void AreaSupport::moveUpFromModel(
  *         ^^^^^^^^^      overhang extensions
  *         ^^^^^^^^^^^^^^ overhang
  */
-std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const LayerIndex& layer_idx)
+std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const MeshGroupSliceData& storage, const MeshSliceData& mesh, const LayerIndex& layer_idx)
 {
     const Shape outlines = mesh.layers[layer_idx].getOutlines();
     constexpr bool no_support = false;
@@ -1500,7 +1500,7 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
 }
 
 
-void AreaSupport::detectOverhangPoints(const SliceDataStorage& storage, SliceMeshStorage& mesh)
+void AreaSupport::detectOverhangPoints(const MeshGroupSliceData& storage, MeshSliceData& mesh)
 {
     const coord_t max_tower_supported_diameter = mesh.settings.get<coord_t>("support_tower_maximum_supported_diameter");
     const coord_t max_tower_supported_area = max_tower_supported_diameter * max_tower_supported_diameter;
@@ -1690,7 +1690,7 @@ void AreaSupport::handleWallStruts(const Settings& settings, Shape& supportLayer
     }
 }
 
-void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Shape>& global_support_areas_per_layer)
+void AreaSupport::generateSupportBottom(MeshGroupSliceData& storage, const MeshSliceData& mesh, std::vector<Shape>& global_support_areas_per_layer)
 {
     const Settings& mesh_group_settings = storage.settings_;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
@@ -1721,7 +1721,7 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     }
 }
 
-void AreaSupport::generateSupportRoof(SliceDataStorage& storage, const SliceMeshStorage& mesh, std::vector<Shape>& global_support_areas_per_layer)
+void AreaSupport::generateSupportRoof(MeshGroupSliceData& storage, const MeshSliceData& mesh, std::vector<Shape>& global_support_areas_per_layer)
 {
     const Settings& mesh_group_settings = storage.settings_;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");

@@ -17,7 +17,7 @@
 #include "WallsComputation.h"
 #include "geometry/Polygon.h"
 #include "settings/Settings.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {

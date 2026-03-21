@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {

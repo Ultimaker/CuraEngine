@@ -17,7 +17,7 @@ namespace cura
 
 class PrimeTower;
 
-class SliceDataStorage : public NoCopy
+class MeshGroupSliceData : public NoCopy
 {
 public:
     const Settings& settings_; // The settings for the mesh group being processed by this storage
@@ -25,7 +25,7 @@ public:
 
     Point3LL model_size, model_min, model_max;
     AABB3D machine_size; //!< The bounding box with the width, height and depth of the printer.
-    std::vector<std::shared_ptr<SliceMeshStorage>> meshes;
+    std::vector<std::shared_ptr<MeshSliceData>> meshes;
 
     std::vector<RetractionAndWipeConfig> retraction_wipe_config_per_extruder; //!< Config for retractions, extruder switch retractions, and wipes, per extruder.
 
@@ -56,9 +56,9 @@ public:
      * \brief Creates a new slice data storage that stores the slice data of the
      * current mesh group.
      */
-    SliceDataStorage(const Settings &settings);
+    MeshGroupSliceData(const Settings &settings);
 
-    ~SliceDataStorage();
+    ~MeshGroupSliceData();
 
     /*!
      * Get all outlines within a given layer.

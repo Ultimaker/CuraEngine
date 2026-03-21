@@ -16,8 +16,8 @@ namespace cura
 {
 
 class ExtruderTrain;
-class SliceDataStorage;
-class SliceMeshStorage;
+class MeshGroupSliceData;
+class MeshSliceData;
 
 /*!
  * A class to represent all configurations for all features types of printed lines in a meshgroup.
@@ -58,10 +58,10 @@ public:
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */
-    PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness);
+    PathConfigStorage(const MeshGroupSliceData& storage, const LayerIndex& layer_nr, const coord_t layer_thickness);
 
 private:
-    void handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count);
+    void handleInitialLayerSpeedup(const MeshGroupSliceData& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count);
 };
 
 } // namespace cura

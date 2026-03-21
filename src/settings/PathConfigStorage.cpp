@@ -9,8 +9,8 @@
 #include "raft.h"
 #include "settings/EnumSettings.h" //For EPlatformAdhesion.
 #include "settings/Settings.h" // MAX_INFILL_COMBINE
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {
@@ -33,7 +33,7 @@ std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerI
     return ret;
 }
 
-PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness)
+PathConfigStorage::PathConfigStorage(const MeshGroupSliceData& storage, const LayerIndex& layer_nr, const coord_t layer_thickness)
     : support_infill_extruder_nr(storage.settings_.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_)
     , support_roof_extruder_nr(storage.settings_.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_)
     , support_bottom_extruder_nr(storage.settings_.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_)
@@ -125,7 +125,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     }
 
     mesh_configs.reserve(storage.meshes.size());
-    for (const std::shared_ptr<SliceMeshStorage>& mesh_storage : storage.meshes)
+    for (const std::shared_ptr<MeshSliceData>& mesh_storage : storage.meshes)
     {
         mesh_configs.emplace_back(*mesh_storage, layer_thickness, layer_nr, line_width_factor_per_extruder);
     }
@@ -179,7 +179,7 @@ void MeshPathConfigs::smoothAllSpeeds(const SpeedDerivatives& first_layer_config
     }
 }
 
-void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count)
+void PathConfigStorage::handleInitialLayerSpeedup(const MeshGroupSliceData& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count)
 {
     std::vector<SpeedDerivatives> global_first_layer_config_per_extruder;
     global_first_layer_config_per_extruder.reserve(Application::getInstance().current_slice_->scene.extruders.size());
@@ -238,7 +238,7 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
     { // meshes
         for (size_t mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
-            const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+            const MeshSliceData& mesh = *storage.meshes[mesh_idx];
 
             const SpeedDerivatives initial_layer_speed_config{ .speed = mesh.settings.get<Velocity>("speed_print_layer_0"),
                                                                .acceleration = mesh.settings.get<Acceleration>("acceleration_print_layer_0"),

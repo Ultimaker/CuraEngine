@@ -8,8 +8,8 @@
 #include "LayerPlan.h"
 #include "geometry/OpenPolyline.h"
 #include "infill.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 
 namespace cura
@@ -20,7 +20,7 @@ TopSurface::TopSurface()
     // Do nothing. Areas stays empty.
 }
 
-void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number)
+void TopSurface::setAreasFromMeshAndLayerNumber(MeshSliceData& mesh, size_t layer_number)
 {
     // The top surface is all parts of the mesh where there's no mesh above it, so find the layer above it first.
     Shape mesh_above;
@@ -44,7 +44,7 @@ void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t l
     }
 }
 
-bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer, const FffGcodeWriter& gcode_writer)
+bool TopSurface::ironing(const MeshGroupSliceData& storage, const MeshSliceData& mesh, const GCodePathConfig& line_config, LayerPlan& layer, const FffGcodeWriter& gcode_writer)
     const
 {
     if (areas.empty())

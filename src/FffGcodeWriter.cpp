@@ -33,8 +33,8 @@
 #include "infill.h"
 #include "progress/Progress.h"
 #include "raft.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
@@ -91,7 +91,7 @@ bool FffGcodeWriter::setTargetFile(const char* filename)
     return false;
 }
 
-void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
+void FffGcodeWriter::writeGCode(MeshGroupSliceData& storage, TimeKeeper& time_keeper)
 {
     const size_t start_extruder_nr = getStartExtruder(storage);
     gcode.preSetup(start_extruder_nr);
@@ -126,7 +126,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     }
 
     size_t total_layers = 0;
-    for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+    for (std::shared_ptr<MeshSliceData>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
         size_t mesh_layer_num = mesh.layers.size();
@@ -216,7 +216,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     gcode.writeRetraction(storage.retraction_wipe_config_per_extruder[gcode.getExtruderNr()].retraction_config, force); // retract after finishing each meshgroup
 }
 
-unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr)
+unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const MeshGroupSliceData& storage, const MeshSliceData& mesh, const int layer_nr, const int last_layer_nr)
 {
     const SliceLayer& layer = mesh.layers[layer_nr];
 
@@ -276,7 +276,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
     }
 }
 
-void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_t total_layers)
+void FffGcodeWriter::findLayerSeamsForSpiralize(MeshGroupSliceData& storage, size_t total_layers)
 {
     // The spiral has to continue on in an anti-clockwise direction from where the last layer finished, it can't jump backwards
 
@@ -300,7 +300,7 @@ void FffGcodeWriter::findLayerSeamsForSpiralize(SliceDataStorage& storage, size_
             const std::vector<size_t>& mesh_order = mesh_order_per_extruder[extruder_nr];
             for (unsigned int mesh_idx : mesh_order)
             {
-                SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+                MeshSliceData& mesh = *storage.meshes[mesh_idx];
                 // if this mesh has layer data for this layer process it
                 if (! done_this_layer && mesh.layers.size() > layer_nr)
                 {
@@ -399,7 +399,7 @@ static void retractionAndWipeConfigFromSettings(const Settings& settings, Retrac
     wipe_config.clean_between_layers = settings.get<bool>("clean_between_layers");
 }
 
-void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
+void FffGcodeWriter::setConfigRetractionAndWipe(MeshGroupSliceData& storage)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     for (size_t extruder_index = 0; extruder_index < scene.extruders.size(); extruder_index++)
@@ -407,13 +407,13 @@ void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
         ExtruderTrain& train = scene.extruders[extruder_index];
         retractionAndWipeConfigFromSettings(train.settings_, &storage.retraction_wipe_config_per_extruder[extruder_index]);
     }
-    for (std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
+    for (std::shared_ptr<MeshSliceData>& mesh : storage.meshes)
     {
         retractionAndWipeConfigFromSettings(mesh->settings, &mesh->retraction_wipe_config);
     }
 }
 
-size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage) const
+size_t FffGcodeWriter::getStartExtruder(const MeshGroupSliceData& storage) const
 {
     const Settings& mesh_group_settings = storage.settings_;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
@@ -460,7 +460,7 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage) const
     return start_extruder_nr;
 }
 
-void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
+void FffGcodeWriter::setInfillAndSkinAngles(MeshSliceData& mesh)
 {
     if (mesh.infill_angles.size() == 0)
     {
@@ -519,7 +519,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
     }
 }
 
-void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
+void FffGcodeWriter::setSupportAngles(MeshGroupSliceData& storage)
 {
     const Settings& mesh_group_settings = storage.settings_;
     const ExtruderTrain& support_infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
@@ -580,7 +580,7 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
         = getInterfaceAngles(bottom_extruder, "support_bottom_angles", bottom_extruder.settings_.get<EFillMethod>("support_bottom_pattern"), "support_bottom_height");
 }
 
-void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
+void FffGcodeWriter::processNextMeshGroupCode(const MeshGroupSliceData& storage)
 {
     gcode.writeFanCommand(0);
     gcode.setZ(max_object_height + MM2INT(5));
@@ -593,7 +593,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
 
-void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
+void FffGcodeWriter::processRaft(const MeshGroupSliceData& storage)
 {
     const Settings& mesh_group_settings = storage.settings_;
     const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
@@ -1136,7 +1136,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     }
 }
 
-void FffGcodeWriter::startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder)
+void FffGcodeWriter::startRaftLayer(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder)
 {
     // If required, fill prime tower with previous extruder
     setExtruder_addPrime(storage, gcode_layer, current_extruder);
@@ -1149,7 +1149,7 @@ void FffGcodeWriter::startRaftLayer(const SliceDataStorage& storage, LayerPlan& 
     }
 }
 
-void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower)
+void FffGcodeWriter::endRaftLayer(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower)
 {
     // If required, fill prime tower with current extruder
     setExtruder_addPrime(storage, gcode_layer, current_extruder, append_to_prime_tower);
@@ -1165,7 +1165,7 @@ void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gc
     }
 }
 
-FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
+FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const MeshGroupSliceData& storage, LayerIndex layer_nr, const size_t total_layers) const
 {
     spdlog::debug("GcodeWriter processing layer {} of {}", layer_nr, total_layers);
     TimeKeeper time_keeper;
@@ -1188,7 +1188,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     {
         z = storage.meshes[0]->layers[layer_nr].printZ; // stub default
         // find printZ of first actual printed mesh
-        for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+        for (const std::shared_ptr<MeshSliceData>& mesh_ptr : storage.meshes)
         {
             const auto& mesh = *mesh_ptr;
             if (layer_nr >= static_cast<int>(mesh.layers.size()) || mesh.settings.get<bool>("support_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")
@@ -1228,7 +1228,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     }
 
     coord_t max_inner_wall_width = 0;
-    for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+    for (const std::shared_ptr<MeshSliceData>& mesh_ptr : storage.meshes)
     {
         const auto& mesh = *mesh_ptr;
         coord_t mesh_inner_wall_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
@@ -1298,7 +1298,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             const std::vector<size_t>& mesh_order = mesh_order_per_extruder[extruder_nr];
             for (size_t mesh_idx : mesh_order)
             {
-                const std::shared_ptr<SliceMeshStorage>& mesh = storage.meshes[mesh_idx];
+                const std::shared_ptr<MeshSliceData>& mesh = storage.meshes[mesh_idx];
                 const MeshPathConfigs& mesh_config = gcode_layer.configs_storage_.mesh_configs[mesh_idx];
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
@@ -1327,7 +1327,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     return { &gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
 }
 
-bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const
+bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const MeshGroupSliceData& storage, const size_t extruder_nr) const
 {
     auto need_prime_blob = gcode.needPrimeBlob();
 
@@ -1344,7 +1344,7 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     return need_prime_blob;
 }
 
-void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr, LayerIndex layer_nr) const
+void FffGcodeWriter::processSkirtBrim(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, unsigned int extruder_nr, LayerIndex layer_nr) const
 {
     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
     const int skirt_height = train.settings_.get<int>("skirt_height");
@@ -1520,7 +1520,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 }
 
-void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
+void FffGcodeWriter::processOozeShield(const MeshGroupSliceData& storage, LayerPlan& gcode_layer) const
 {
     LayerIndex layer_nr = std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr());
     const Settings& mesh_group_settings = storage.settings_;
@@ -1534,7 +1534,7 @@ void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPla
     }
 }
 
-void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
+void FffGcodeWriter::processDraftShield(const MeshGroupSliceData& storage, LayerPlan& gcode_layer) const
 {
     const Settings& mesh_group_settings = storage.settings_;
     const LayerIndex layer_nr = std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr());
@@ -1566,7 +1566,7 @@ void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPl
     gcode_layer.addPolygonsByOptimizer(storage.draft_protection_shield, gcode_layer.configs_storage_.skirt_brim_config_per_extruder[0], mesh_group_settings);
 }
 
-void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& storage)
+void FffGcodeWriter::calculateExtruderOrderPerLayer(const MeshGroupSliceData& storage)
 {
     size_t last_extruder;
     // set the initial extruder of this meshgroup
@@ -1602,7 +1602,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     }
 }
 
-void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
+void FffGcodeWriter::calculatePrimeLayerPerExtruder(const MeshGroupSliceData& storage)
 {
     LayerIndex first_print_layer = -LayerIndex(Raft::getTotalExtraLayers());
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
@@ -1628,7 +1628,7 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
 }
 
 std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     const size_t start_extruder,
     const LayerIndex& layer_nr,
     const std::vector<bool>& global_extruders_used) const
@@ -1708,14 +1708,14 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     return ret;
 }
 
-std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& storage, const size_t extruder_nr) const
+std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const MeshGroupSliceData& storage, const size_t extruder_nr) const
 {
     OrderOptimizer<size_t> mesh_idx_order_optimizer;
 
     std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+        const MeshSliceData& mesh = *storage.meshes[mesh_idx];
         if (mesh.getExtruderIsUsed(extruder_nr))
         {
             const Mesh& mesh_data = mesh_group->meshes[mesh_idx];
@@ -1738,7 +1738,7 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
 {
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
@@ -1795,7 +1795,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
 }
 
-void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
 {
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
 
@@ -1803,8 +1803,8 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, c
 }
 
 void FffGcodeWriter::addMeshLayerToGCode(
-    const SliceDataStorage& storage,
-    const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+    const MeshGroupSliceData& storage,
+    const std::shared_ptr<MeshSliceData>& mesh_ptr,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
@@ -1868,8 +1868,8 @@ void FffGcodeWriter::addMeshLayerToGCode(
 }
 
 void FffGcodeWriter::addMeshPartToGCode(
-    const SliceDataStorage& storage,
-    const SliceMeshStorage& mesh,
+    const MeshGroupSliceData& storage,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     SliceLayerPart& part,
@@ -1908,9 +1908,9 @@ void FffGcodeWriter::addMeshPartToGCode(
 }
 
 bool FffGcodeWriter::processInfill(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
@@ -1931,7 +1931,7 @@ bool FffGcodeWriter::processInfill(
 
 bool FffGcodeWriter::processMultiLayerInfill(
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
@@ -2107,9 +2107,9 @@ void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& w
 }
 
 bool FffGcodeWriter::processSingleLayerInfill(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
@@ -2564,7 +2564,7 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
     Shape& infill_below_skin,
     Shape& infill_not_below_skin,
     const LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const SliceLayerPart& part,
     coord_t infill_line_width)
 {
@@ -2640,7 +2640,7 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
     infill_not_below_skin.removeSmallAreas(min_area);
 }
 
-size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const
+size_t FffGcodeWriter::findUsedExtruderIndex(const MeshGroupSliceData& storage, const LayerIndex& layer_nr, bool last) const
 {
     const std::vector<ExtruderUse> extruder_use = extruder_order_per_layer.get(layer_nr);
 
@@ -2661,11 +2661,11 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
 }
 
 void FffGcodeWriter::processSpiralizedWall(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const SliceMeshStorage& mesh) const
+    const MeshSliceData& mesh) const
 {
     if (part.spiral_wall.empty())
     {
@@ -2696,9 +2696,9 @@ void FffGcodeWriter::processSpiralizedWall(
 }
 
 bool FffGcodeWriter::processInsets(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     SliceLayerPart& part) const
@@ -2750,7 +2750,7 @@ bool FffGcodeWriter::processInsets(
 
         Shape outlines_below;
         AABB boundaryBox(part.outline);
-        for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
+        for (const std::shared_ptr<MeshSliceData>& mesh_ptr : storage.meshes)
         {
             const auto& m = *mesh_ptr;
             if (m.isPrinted())
@@ -3096,9 +3096,9 @@ std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Shape& fil
 }
 
 bool FffGcodeWriter::processSkin(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
@@ -3134,9 +3134,9 @@ bool FffGcodeWriter::processSkin(
 }
 
 bool FffGcodeWriter::processSkinPart(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part) const
@@ -3167,9 +3167,9 @@ bool FffGcodeWriter::processSkinPart(
 }
 
 void FffGcodeWriter::processRoofingFlooring(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const RoofingFlooringSettingsNames& settings_names,
     const Shape& fill,
@@ -3211,9 +3211,9 @@ void FffGcodeWriter::processRoofingFlooring(
 }
 
 void FffGcodeWriter::processTopBottom(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part,
@@ -3411,9 +3411,9 @@ void FffGcodeWriter::processTopBottom(
 }
 
 void FffGcodeWriter::processSkinPrintFeature(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const size_t extruder_nr,
     const Shape& area,
     const GCodePathConfig& config,
@@ -3616,8 +3616,8 @@ void FffGcodeWriter::processSkinPrintFeature(
 }
 
 bool FffGcodeWriter::processIroning(
-    const SliceDataStorage& storage,
-    const SliceMeshStorage& mesh,
+    const MeshGroupSliceData& storage,
+    const MeshSliceData& mesh,
     const SliceLayer& layer,
     const GCodePathConfig& line_config,
     LayerPlan& gcode_layer) const
@@ -3638,7 +3638,7 @@ bool FffGcodeWriter::processIroning(
 }
 
 
-bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const
+bool FffGcodeWriter::addSupportToGCode(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
     bool support_added = false;
     if (! storage.support.generated || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer)
@@ -3682,7 +3682,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
 }
 
 
-bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
+bool FffGcodeWriter::processSupportInfill(const MeshGroupSliceData& storage, LayerPlan& gcode_layer) const
 {
     bool added_something = false;
     const SupportLayer& support_layer
@@ -3795,7 +3795,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             Shape disallowed_area_for_seams{};
             if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model") && (layer_nr >= 0))
             {
-                for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage.meshes)
+                for (std::shared_ptr<MeshSliceData> mesh_ptr : storage.meshes)
                 {
                     auto& mesh = *mesh_ptr;
                     for (auto& part : mesh.layers[layer_nr].parts)
@@ -4029,7 +4029,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 }
 
 
-bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer)
+bool FffGcodeWriter::addSupportRoofsToGCode(const MeshGroupSliceData& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer)
     const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
@@ -4164,7 +4164,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
     return true;
 }
 
-bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
+bool FffGcodeWriter::addSupportBottomsToGCode(const MeshGroupSliceData& storage, LayerPlan& gcode_layer) const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
 
@@ -4283,7 +4283,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     return true;
 }
 
-void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t extruder_nr, const bool append_to_prime_tower) const
+void FffGcodeWriter::setExtruder_addPrime(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const size_t extruder_nr, const bool append_to_prime_tower) const
 {
     const size_t previous_extruder = gcode_layer.getExtruder();
     const bool extruder_changed = gcode_layer.setExtruder(extruder_nr);
@@ -4322,7 +4322,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
     }
 }
 
-void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
+void FffGcodeWriter::addPrimeTower(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const size_t prev_extruder) const
 {
     if (! storage.prime_tower_)
     {

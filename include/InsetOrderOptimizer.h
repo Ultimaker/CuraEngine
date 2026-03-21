@@ -7,7 +7,7 @@
 #include <optional>
 
 #include "settings/ZSeamConfig.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {
@@ -41,7 +41,7 @@ public:
      */
     InsetOrderOptimizer(
         const FffGcodeWriter& gcode_writer,
-        const SliceDataStorage& storage,
+        const MeshGroupSliceData& storage,
         LayerPlan& gcode_layer,
         const Settings& settings,
         const int extruder_nr,
@@ -98,7 +98,7 @@ public:
 
 private:
     const FffGcodeWriter& gcode_writer_;
-    const SliceDataStorage& storage_;
+    const MeshGroupSliceData& storage_;
     LayerPlan& gcode_layer_;
     const Settings& settings_;
     const size_t extruder_nr_;

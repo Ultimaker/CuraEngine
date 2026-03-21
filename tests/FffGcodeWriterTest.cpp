@@ -21,7 +21,7 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" //To create example polygons.
 #include "settings/Settings.h" //Settings to generate walls with.
-#include "slice_data/SliceDataStorage.h" //Sl
+#include "slice_data/MeshGroupSliceData.h" //Sl
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura
@@ -116,7 +116,7 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     Mesh mesh(*settings);
 
     LayerPlan gcode_layer(*storage, 100, 10000, 100, 0, { fan_settings }, 20, 10, 5000);
-    SliceMeshStorage mesh_storage(&mesh, 200);
+    MeshSliceData mesh_storage(&mesh, 200);
     size_t extruder_nr = 0;
     MeshPathConfigs mesh_config(mesh_storage, 10, 100, { 0.5 });
     SliceLayerPart part;

@@ -22,7 +22,7 @@
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "settings/types/LayerIndex.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/Date.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
@@ -700,7 +700,7 @@ void GCodeExport::resetExtrusionValue()
     extruder_attr_[current_extruder_].retraction_e_amount_at_e_start_ = extruder_attr_[current_extruder_].retraction_e_amount_current_;
 }
 
-bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, const size_t start_extruder_nr)
+bool GCodeExport::initializeExtruderTrains(const MeshGroupSliceData& storage, const size_t start_extruder_nr)
 {
     bool should_prime_extruder = true;
     const Settings& mesh_group_settings = storage.settings_;
@@ -806,7 +806,7 @@ void GCodeExport::processInitialLayerBedTemperature()
     }
 }
 
-void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr)
+void GCodeExport::processInitialLayerExtrudersTemperatures(const MeshGroupSliceData& storage, const bool wait_start_extruder, const size_t start_extruder_nr)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     const bool material_print_temp_prepend = storage.settings_.get<bool>("material_print_temp_prepend");
@@ -883,7 +883,7 @@ GCodeExport::RetractionAmounts GCodeExport::computeRetractionAmounts(const Extru
     return amounts;
 }
 
-void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage, const size_t start_extruder_nr)
+void GCodeExport::processInitialLayerTemperature(const MeshGroupSliceData& storage, const size_t start_extruder_nr)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     bool wait_start_extruder = false;

@@ -15,8 +15,8 @@ namespace cura
 
 class AABB;
 class Shape;
-class SliceMeshStorage;
-class SliceDataStorage;
+class MeshSliceData;
+class MeshGroupSliceData;
 class SupportLayer;
 class AngleDegrees;
 class LayerPlan;
@@ -41,9 +41,9 @@ struct ExtrusionLine;
  * support.
  */
 std::optional<AngleDegrees> bridgeAngle(
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const Shape& skin_outline,
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
@@ -62,7 +62,7 @@ std::optional<AngleDegrees> bridgeAngle(
 std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     const Shape& infill_contour,
     const Shape& infill_below_skin_area,
-    const SliceMeshStorage& mesh,
+    const MeshSliceData& mesh,
     const LayerPlan* completed_layer_plan_below,
     const unsigned layer_nr);
 

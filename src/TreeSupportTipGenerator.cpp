@@ -17,8 +17,8 @@
 #include "geometry/OpenPolyline.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "settings/EnumSettings.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/ThreadPool.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.
@@ -27,7 +27,7 @@
 namespace cura
 {
 
-TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_s)
+TreeSupportTipGenerator::TreeSupportTipGenerator(const MeshSliceData& mesh, TreeModelVolumes& volumes_s)
     : config_(mesh.settings)
     , use_fake_roof_(! mesh.settings.get<bool>("support_roof_enable"))
     , volumes_(volumes_s)
@@ -379,7 +379,7 @@ OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLi
 }
 
 
-std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFillProvider(const SliceMeshStorage& mesh, coord_t line_distance, coord_t line_width) const
+std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFillProvider(const MeshSliceData& mesh, coord_t line_distance, coord_t line_width) const
 {
     if (config_.support_pattern == EFillMethod::CROSS || config_.support_pattern == EFillMethod::CROSS_3D)
     {
@@ -407,7 +407,7 @@ std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFi
     return nullptr;
 }
 
-void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, std::vector<Shape>& result, bool roof)
+void TreeSupportTipGenerator::dropOverhangAreas(const MeshSliceData& mesh, std::vector<Shape>& result, bool roof)
 {
     std::mutex critical;
 
@@ -463,7 +463,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
         });
 }
 
-void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh)
+void TreeSupportTipGenerator::calculateRoofAreas(const cura::MeshSliceData& mesh)
 {
     std::vector<Shape> potential_support_roofs(mesh.overhang_areas.size(), Shape());
     std::mutex critical_potential_support_roofs;
@@ -794,7 +794,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
 
 void TreeSupportTipGenerator::removeUselessAddedPoints(
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
-    SliceDataStorage& storage,
+    MeshGroupSliceData& storage,
     std::vector<Shape>& additional_support_areas)
 {
     cura::parallel_for<coord_t>(
@@ -843,8 +843,8 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
 
 
 void TreeSupportTipGenerator::generateTips(
-    SliceDataStorage& storage,
-    const SliceMeshStorage& mesh,
+    MeshGroupSliceData& storage,
+    const MeshSliceData& mesh,
     std::vector<std::set<TreeSupportElement*>>& move_bounds,
     std::vector<Shape>& additional_support_areas,
     std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas)

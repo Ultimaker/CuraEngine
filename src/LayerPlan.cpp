@@ -36,8 +36,8 @@
 #include "range/v3/view/chunk_by.hpp"
 #include "settings/types/Ratio.h"
 #include "slice_data/SliceLayer.h"
-#include "slice_data/SliceMeshStorage.h"
-#include "slice_data/SliceDataStorage.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/Simplify.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
@@ -93,7 +93,7 @@ void LayerPlan::forceNewPathStart()
 }
 
 LayerPlan::LayerPlan(
-    const SliceDataStorage& storage,
+    const MeshGroupSliceData& storage,
     LayerIndex layer_nr,
     coord_t z,
     coord_t layer_thickness,
@@ -190,7 +190,7 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
             break;
 
         case Raft::LayerType::Model:
-            for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage_.meshes)
+            for (const std::shared_ptr<MeshSliceData>& mesh_ptr : storage_.meshes)
             {
                 const auto& mesh = *mesh_ptr;
                 const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr_)];
@@ -320,7 +320,7 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     }
     return true;
 }
-void LayerPlan::setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh)
+void LayerPlan::setMesh(const std::shared_ptr<const MeshSliceData>& mesh)
 {
     current_mesh_ = mesh;
 }
@@ -546,12 +546,12 @@ void LayerPlan::planPrime(double prime_blob_wipe_length)
     forceNewPathStart();
 }
 
-void LayerPlan::setGeneratedInfillLines(const SliceMeshStorage* mesh, const MixedLinesSet& infill_lines)
+void LayerPlan::setGeneratedInfillLines(const MeshSliceData* mesh, const MixedLinesSet& infill_lines)
 {
     infill_lines_[mesh].push_back(infill_lines);
 }
 
-const MixedLinesSet LayerPlan::getGeneratedInfillLines(const SliceMeshStorage* mesh) const
+const MixedLinesSet LayerPlan::getGeneratedInfillLines(const MeshSliceData* mesh) const
 {
     auto iterator = infill_lines_.find(mesh);
     if (iterator != infill_lines_.end())
@@ -2199,7 +2199,7 @@ void LayerPlan::addLinesByOptimizer(
         if (layer_nr_ >= 0)
         {
             // determine how much the skin/infill lines overlap the combing boundary
-            for (const std::shared_ptr<SliceMeshStorage>& mesh : storage_.meshes)
+            for (const std::shared_ptr<MeshSliceData>& mesh : storage_.meshes)
             {
                 const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
@@ -2269,7 +2269,7 @@ void LayerPlan::addLinesByOptimizer(
         if (layer_nr_ >= 0)
         {
             // determine how much the skin/infill lines overlap the combing boundary
-            for (const std::shared_ptr<SliceMeshStorage>& mesh : storage_.meshes)
+            for (const std::shared_ptr<MeshSliceData>& mesh : storage_.meshes)
             {
                 const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
@@ -3392,13 +3392,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
     const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
     const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
-    std::shared_ptr<const SliceMeshStorage> current_mesh;
+    std::shared_ptr<const MeshSliceData> current_mesh;
 
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans_.size(); extruder_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
 
-        auto get_retraction_config = [&extruder_nr, this](std::shared_ptr<const SliceMeshStorage>& mesh) -> std::optional<const RetractionAndWipeConfig*>
+        auto get_retraction_config = [&extruder_nr, this](std::shared_ptr<const MeshSliceData>& mesh) -> std::optional<const RetractionAndWipeConfig*>
         {
             if (mesh)
             {
@@ -4055,11 +4055,11 @@ void LayerPlan::applyGradualFlow()
     }
 }
 
-std::shared_ptr<const SliceMeshStorage> LayerPlan::findFirstPrintedMesh() const
+std::shared_ptr<const MeshSliceData> LayerPlan::findFirstPrintedMesh() const
 {
     for (const ExtruderPlan& extruder_plan : extruder_plans_)
     {
-        if (std::shared_ptr<const SliceMeshStorage> mesh = extruder_plan.findFirstPrintedMesh())
+        if (std::shared_ptr<const MeshSliceData> mesh = extruder_plan.findFirstPrintedMesh())
         {
             return mesh;
         }
