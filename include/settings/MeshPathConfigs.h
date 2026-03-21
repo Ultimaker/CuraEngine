@@ -7,10 +7,12 @@
 #include "GCodePathConfig.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
 
 namespace cura
 {
+
+class SliceMeshStorage;
+
 struct MeshPathConfigs
 {
     GCodePathConfig inset0_config{};

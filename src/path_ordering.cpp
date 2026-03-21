@@ -3,9 +3,10 @@
 
 #include "path_ordering.h" //The definitions we're implementing here.
 
-#include "WallToolPaths.h"
+#include "SupportInfillPart.h"
 #include "geometry/OpenPolyline.h"
-#include "sliceDataStorage.h" //For SliceLayerPart.
+#include "slice_data/SliceLayerPart.h"
+#include "utils/ExtrusionLine.h"
 
 namespace cura
 {

@@ -4,7 +4,6 @@
 #include "support.h"
 
 #include <cmath> // sqrt, round
-#include <deque>
 #include <fstream> // ifstream.good()
 #include <utility> // pair
 
@@ -24,7 +23,6 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "arachne/SkeletalTrapezoidation.h"
 #include "infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
@@ -32,7 +30,8 @@
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //To compute overhang distance from the angle.
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "slicer.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"

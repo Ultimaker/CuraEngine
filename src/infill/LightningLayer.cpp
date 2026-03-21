@@ -8,7 +8,7 @@
 #include "geometry/OpenPolyline.h"
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/linearAlg2D.h"
 

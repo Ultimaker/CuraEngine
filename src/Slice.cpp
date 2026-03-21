@@ -9,6 +9,7 @@
 #endif
 
 #include "ExtruderTrain.h"
+#include "slice_data/SliceDataStorage.h"
 
 namespace cura
 {
@@ -27,14 +28,20 @@ void Slice::compute()
     }
 #endif
 
-    for (std::vector<MeshGroup>::iterator mesh_group = scene.mesh_groups.begin(); mesh_group != scene.mesh_groups.end(); mesh_group++)
+    std::vector<std::shared_ptr<SliceDataStorage>> storages;
+    for (const MeshGroup& mesh_group : scene.mesh_groups)
     {
-        scene.current_mesh_group = mesh_group;
+        storages.push_back(std::make_shared<SliceDataStorage>(mesh_group.settings));
+    }
+
+    for (auto [mesh_group_index, mesh_group] : scene.mesh_groups | ranges::views::enumerate)
+    {
+        scene.current_mesh_group = std::next(scene.mesh_groups.begin(), mesh_group_index);
         for (ExtruderTrain& extruder : scene.extruders)
         {
-            extruder.settings_.setParent(&scene.current_mesh_group->settings);
+            extruder.settings_.setParent(&mesh_group.settings);
         }
-        scene.processMeshGroup(*mesh_group);
+        Scene::processMeshGroup(mesh_group, *storages.at(mesh_group_index));
     }
 }
 

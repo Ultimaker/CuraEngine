@@ -12,7 +12,7 @@
 #include "TimeMaterialEstimates.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 
 namespace cura
 {

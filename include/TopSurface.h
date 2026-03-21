@@ -4,7 +4,6 @@
 #ifndef TOPSURFACE_H
 #define TOPSURFACE_H
 
-#include "GCodePathConfig.h"
 #include "geometry/Shape.h"
 
 namespace cura
@@ -15,6 +14,7 @@ class LayerPlan;
 class SliceDataStorage;
 class SliceMeshStorage;
 class SliceDataStorage;
+struct GCodePathConfig;
 
 class TopSurface
 {

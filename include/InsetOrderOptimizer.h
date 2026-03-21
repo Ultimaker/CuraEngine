@@ -4,16 +4,18 @@
 #ifndef INSET_ORDER_OPTIMIZER_H
 #define INSET_ORDER_OPTIMIZER_H
 
-#include <unordered_set>
+#include <optional>
 
 #include "settings/ZSeamConfig.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 
 namespace cura
 {
 
 class FffGcodeWriter;
 class LayerPlan;
+class TextureDataProvider;
+struct GCodePathConfig;
 
 class InsetOrderOptimizer
 {

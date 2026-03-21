@@ -9,7 +9,8 @@
 #include "raft.h"
 #include "settings/EnumSettings.h" //For EPlatformAdhesion.
 #include "settings/Settings.h" // MAX_INFILL_COMBINE
-#include "sliceDataStorage.h" // SliceDataStorage
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
 
 namespace cura
 {

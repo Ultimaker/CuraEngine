@@ -14,7 +14,7 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" //To create example polygons.
 #include "settings/Settings.h" //Settings to generate walls with.
-#include "sliceDataStorage.h" //Sl
+#include "slice_data/SliceDataStorage.h" //Sl
 #include "slicer.h"
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT

@@ -35,7 +35,9 @@
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceLayer.h"
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/Simplify.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"

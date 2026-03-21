@@ -11,7 +11,7 @@
 #include "ExtruderTrain.h"
 #include "Slice.h"
 #include "settings/EnumSettings.h" //For EPlatformAdhesion.
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/math.h"
 
 namespace cura

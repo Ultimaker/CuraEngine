@@ -7,18 +7,15 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "Slice.h"
-#include "WallToolPaths.h"
 #include "infill.h"
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/Simplify.h"
 #include "utils/math.h"
-#include "utils/polygonUtils.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 

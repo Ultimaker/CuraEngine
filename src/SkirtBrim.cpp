@@ -12,7 +12,7 @@
 #include "geometry/Shape.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "support.h"
 #include "utils/MixedPolylineStitcher.h"
 #include "utils/Simplify.h"

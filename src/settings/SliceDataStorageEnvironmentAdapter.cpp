@@ -7,7 +7,7 @@
 
 #include <range/v3/algorithm/contains.hpp>
 
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 
 namespace cfe = CuraFormulaeEngine;
 

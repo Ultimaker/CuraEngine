@@ -7,12 +7,11 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To flush g-code through the communication channel.
-#include "ExtruderTrain.h"
-#include "FffProcessor.h"
 #include "LayerPlan.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "gcodeExport.h"
+#include "slice_data/SliceMeshStorage.h"
 
 namespace cura
 {

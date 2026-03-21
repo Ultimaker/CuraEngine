@@ -33,12 +33,15 @@
 #include "infill.h"
 #include "progress/Progress.h"
 #include "raft.h"
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
 #include "utils/orderOptimizer.h"
 #include "utils/polygonUtils.h"
+
 
 namespace cura
 {

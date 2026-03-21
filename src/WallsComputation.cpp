@@ -3,22 +3,19 @@
 
 #include "WallsComputation.h"
 
-#include <fstream>
-#include <iostream>
-
 #include <fmt/format.h>
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/c_str.hpp>
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/transform.hpp>
 
-#include "Application.h"
 #include "ExtruderTrain.h"
-#include "Slice.h"
 #include "WallToolPaths.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceLayer.h"
+#include "slice_data/SliceLayerPart.h"
 #include "utils/Simplify.h" // We're simplifying the spiralized insets.
+
 
 namespace cura
 {

@@ -4,7 +4,6 @@
 #include "infill.h"
 
 #include <algorithm> //For std::sort.
-#include <functional>
 #include <numbers>
 #include <unordered_set>
 
@@ -12,21 +11,16 @@
 #include <spdlog/spdlog.h>
 
 #include "WallToolPaths.h"
-#include "arachne/SkeletalTrapezoidation.h"
 #include "geometry/OpenPolyline.h"
-#include "geometry/Point2D.h"
 #include "geometry/PointMatrix.h"
 #include "infill/GyroidInfill.h"
-#include "infill/ImageBasedDensityProvider.h"
 #include "infill/LightningGenerator.h"
 #include "infill/NoZigZagConnectorProcessor.h"
 #include "infill/RegularNGonalInfill.h"
-#include "infill/SierpinskiFill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
-#include "infill/UniformDensityProvider.h"
 #include "plugins/slots.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceMeshStorage.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonConnector.h"
 #include "utils/Simplify.h"

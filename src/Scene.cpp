@@ -9,7 +9,7 @@
 #include "FffProcessor.h" //To start a slice.
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 
 namespace cura
 {
@@ -62,7 +62,7 @@ const std::string Scene::getAllSettingsString() const
     return output.str();
 }
 
-void Scene::processMeshGroup(MeshGroup& mesh_group)
+void Scene::processMeshGroup(MeshGroup& mesh_group, SliceDataStorage& storage)
 {
     FffProcessor* fff_processor = FffProcessor::getInstance();
     fff_processor->time_keeper.restart();
@@ -70,7 +70,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     TimeKeeper time_keeper_total;
 
     bool empty = true;
-    for (Mesh& mesh : mesh_group.meshes)
+    for (const Mesh& mesh : mesh_group.meshes)
     {
         if (! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
         {
@@ -85,7 +85,6 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
         return;
     }
 
-    SliceDataStorage storage(mesh_group.settings);
     if (! fff_processor->polygon_generator.generateAreas(storage, &mesh_group, fff_processor->time_keeper))
     {
         return;

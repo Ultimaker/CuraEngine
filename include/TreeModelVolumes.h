@@ -4,7 +4,6 @@
 #ifndef TREEMODELVOLUMES_H
 #define TREEMODELVOLUMES_H
 
-#include <future>
 #include <mutex>
 #include <optional>
 #include <unordered_map>
@@ -12,7 +11,6 @@
 
 #include "TreeSupportEnums.h"
 #include "geometry/Shape.h"
-#include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "utils/PairHash.h"
 #include "utils/Simplify.h"

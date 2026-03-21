@@ -12,7 +12,7 @@
 #include "Slice.h"
 #include "pathPlanning/CombPaths.h"
 #include "pathPlanning/LinePolygonsCrossings.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/PolygonsPointIndex.h"
 #include "utils/linearAlg2D.h"
 

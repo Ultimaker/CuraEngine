@@ -4,10 +4,13 @@
 #include "TopSurface.h"
 
 #include "ExtruderTrain.h"
+#include "GCodePathConfig.h"
 #include "LayerPlan.h"
 #include "geometry/OpenPolyline.h"
 #include "infill.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
+
 
 namespace cura
 {

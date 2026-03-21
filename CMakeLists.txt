@@ -76,7 +76,6 @@ set(engine_SRCS # Except main.cpp.
         src/SkirtBrim.cpp
         src/SupportInfillPart.cpp
         src/Slice.cpp
-        src/sliceDataStorage.cpp
         src/slicer.cpp
         src/support.cpp
         src/timeEstimate.cpp
@@ -88,6 +87,12 @@ set(engine_SRCS # Except main.cpp.
         src/TreeSupport.cpp
         src/WallsComputation.cpp
         src/WallToolPaths.cpp
+
+        src/slice_data/SliceDataStorage.cpp
+        src/slice_data/SliceLayer.cpp
+        src/slice_data/SliceLayerPart.cpp
+        src/slice_data/SupportLayer.cpp
+        src/slice_data/SliceMeshStorage.cpp
 
         src/arachne/SkeletalTrapezoidation.cpp
         src/arachne/SkeletalTrapezoidationGraph.cpp

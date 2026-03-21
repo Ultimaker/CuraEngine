@@ -10,13 +10,14 @@
 #include <range/v3/view/transform.hpp>
 
 #include "GCodePathConfig.h"
-#include "WallToolPaths.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
+#include "slice_data/SliceMeshStorage.h"
+
 
 namespace cura::plugins
 {

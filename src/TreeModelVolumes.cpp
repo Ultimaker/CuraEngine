@@ -3,6 +3,8 @@
 
 #include "TreeModelVolumes.h"
 
+#include <future>
+
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/reverse.hpp>
@@ -12,9 +14,9 @@
 #include "TreeSupport.h"
 #include "TreeSupportEnums.h"
 #include "progress/Progress.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/ThreadPool.h"
-#include "utils/algorithm.h"
 
 namespace cura
 {

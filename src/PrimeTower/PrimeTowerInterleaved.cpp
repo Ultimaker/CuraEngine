@@ -7,7 +7,7 @@
 #include "LayerPlan.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 
 namespace cura
 {

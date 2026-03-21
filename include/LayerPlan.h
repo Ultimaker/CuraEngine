@@ -16,18 +16,15 @@
 #include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
-#include "pathPlanning/TimeMaterialEstimates.h"
 #include "raft.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/ExtrusionJunction.h"
+#include "slice_data/SliceLayerPart.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
 #endif
 
-#include <functional>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <vector>

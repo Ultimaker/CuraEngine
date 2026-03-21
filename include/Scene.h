@@ -11,6 +11,8 @@
 namespace cura
 {
 
+class SliceDataStorage;
+
 /*
  * Represents a scene that should be sliced.
  */
@@ -69,7 +71,7 @@ public:
      * \brief Generate the 3D printing instructions to print a given mesh group.
      * \param mesh_group The mesh group to slice.
      */
-    void processMeshGroup(MeshGroup& mesh_group);
+    static void processMeshGroup(MeshGroup& mesh_group, SliceDataStorage &storage);
 
 private:
     /*

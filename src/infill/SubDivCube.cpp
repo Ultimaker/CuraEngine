@@ -3,13 +3,12 @@
 
 #include "infill/SubDivCube.h"
 
-#include <functional>
-
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
+#include "settings/Settings.h"
 #include "settings/types/Angle.h" //For the infill angle.
-#include "sliceDataStorage.h"
+#include "slice_data/SliceMeshStorage.h"
 #include "utils/math.h"
 #include "utils/polygonUtils.h"
 

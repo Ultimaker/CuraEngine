@@ -6,9 +6,7 @@
 #include "ExtruderTrain.h"
 #include "infill/LightningLayer.h"
 #include "infill/LightningTreeNode.h"
-#include "sliceDataStorage.h"
-#include "utils/SparsePointGridInclusive.h"
-#include "utils/linearAlg2D.h"
+#include "slice_data/SliceMeshStorage.h"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees

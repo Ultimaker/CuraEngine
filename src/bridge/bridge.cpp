@@ -11,15 +11,16 @@
 #include "bridge/ExpansionRange.h"
 #include "bridge/SegmentOverlapping.h"
 #include "bridge/TransformedShape.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
-#include "utils/types/geometry.h"
 
 
 namespace cura

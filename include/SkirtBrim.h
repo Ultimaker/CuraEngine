@@ -8,7 +8,7 @@
 
 #include "ExtruderTrain.h"
 #include "settings/EnumSettings.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "utils/Coord_t.h"
 
 namespace cura

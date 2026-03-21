@@ -7,6 +7,7 @@
 
 #include "ExtruderTrain.h"
 #include "PrintFeature.h"
+#include "slice_data/SliceMeshStorage.h"
 
 namespace cura
 {

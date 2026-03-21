@@ -19,7 +19,7 @@
 #include "gcodeExport.h"
 #include "infill.h"
 #include "raft.h"
-#include "sliceDataStorage.h"
+#include "slice_data/SliceDataStorage.h"
 
 
 namespace cura

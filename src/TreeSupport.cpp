@@ -4,7 +4,6 @@
 #include "TreeSupport.h"
 
 #include <chrono>
-#include <fstream>
 #include <optional>
 #include <stdio.h>
 #include <string>
@@ -21,13 +20,13 @@
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
 #include "infill.h"
-#include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
+#include "slice_data/SliceMeshStorage.h"
+#include "slice_data/SliceDataStorage.h"
 #include "support.h" //For precomputeCrossInfillTree
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
-#include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.
 #include "utils/section_type.h"

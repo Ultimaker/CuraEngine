@@ -13,11 +13,13 @@
 #include "geometry/Polygon.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EnumSettings.h"
-#include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
+
+class AABB;
+class SliceDataStorage;
 
 // The various stages of the process can be weighted differently in the progress bar.
 // These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.

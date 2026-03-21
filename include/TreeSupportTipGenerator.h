@@ -4,24 +4,21 @@
 #ifndef TREESUPPORTTIPGENERATOR_H
 #define TREESUPPORTTIPGENERATOR_H
 
-#include "TreeModelVolumes.h"
 #include "TreeSupport.h"
-#include "TreeSupportBaseCircle.h"
-#include "TreeSupportElement.h"
-#include "TreeSupportEnums.h"
-#include "TreeSupportSettings.h"
-#include "boost/functional/hash.hpp" // For combining hashes
-#include "geometry/LinesSet.h"
-#include "geometry/OpenLinesSet.h"
-#include "geometry/Polygon.h"
-#include "polyclipping/clipper.hpp"
-#include "settings/EnumSettings.h"
-#include "sliceDataStorage.h"
+#include "geometry/Shape.h"
 #include "utils/Coord_t.h"
+#include "TreeSupportSettings.h"
 
 namespace cura
 {
 
+class LayerIndex;
+class SliceDataStorage;
+class SliceMeshStorage;
+struct TreeSupportElement;
+class TreeModelVolumes;
+struct FakeRoofArea;
+class SierpinskiFillProvider;
 
 class TreeSupportTipGenerator
 {
