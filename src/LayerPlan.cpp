@@ -122,7 +122,7 @@ LayerPlan::LayerPlan(
     size_t current_extruder = start_extruder;
     was_inside_ = true; // not used, because the first travel move is bogus
     is_inside_ = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
-    const auto& local_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const auto& local_settings = storage_.settings_;
     if (local_settings.get<CombingMode>("retraction_combing") != CombingMode::OFF && local_settings.get<coord_t>("retraction_combing_avoid_distance") > 0)
     {
         comb_ = new Comb(storage, layer_nr, comb_boundary_minimum_, comb_boundary_preferred_, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
@@ -166,7 +166,7 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
 Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 {
     Shape comb_boundary;
-    const CombingMode mesh_combing_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
+    const CombingMode mesh_combing_mode = storage_.settings_.get<CombingMode>("retraction_combing");
     if (mesh_combing_mode != CombingMode::OFF && (layer_nr_ >= 0 || mesh_combing_mode != CombingMode::NO_SKIN))
     {
         switch (layer_type_)
@@ -2919,7 +2919,7 @@ void LayerPlan::spiralizeWallSlice(
     const bool is_top_layer,
     const bool is_bottom_layer)
 {
-    const bool smooth_contours = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
+    const bool smooth_contours = storage_.settings_.get<bool>("smooth_spiralized_contours");
     constexpr bool spiralize = true; // In addExtrusionMove calls, enable spiralize and use nominal line width.
     constexpr Ratio width_factor = 1.0_r;
 
@@ -3359,7 +3359,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     }
 
     // flow-rate compensation
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage_.settings_;
     gcode.setFlowRateExtrusionSettings(
         mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"),
         mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.

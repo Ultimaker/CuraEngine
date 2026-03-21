@@ -22,7 +22,7 @@ void Raft::generate(SliceDataStorage& storage)
     assert(
         storage.raft_base_outline.size() == 0 && storage.raft_interface_outline.size() == 0 && storage.raft_surface_outline.size() == 0
         && "Raft polygon isn't generated yet, so should be empty!");
-    const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
+    const Settings& settings = storage.settings_.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     constexpr bool include_support = true;
     constexpr bool dont_include_prime_tower = false; // Prime tower raft will be handled separately in 'storage.primeRaftOutline'; see below.
     const auto raft_base_margin = settings.get<coord_t>("raft_base_margin");

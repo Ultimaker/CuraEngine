@@ -366,6 +366,7 @@ public:
 class SliceDataStorage : public NoCopy
 {
 public:
+    const Settings& settings_; // The settings for the mesh group being processed by this storage
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
     Point3LL model_size, model_min, model_max;
@@ -401,7 +402,7 @@ public:
      * \brief Creates a new slice data storage that stores the slice data of the
      * current mesh group.
      */
-    SliceDataStorage();
+    SliceDataStorage(const Settings &settings);
 
     ~SliceDataStorage();
 

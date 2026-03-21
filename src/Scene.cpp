@@ -85,7 +85,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
         return;
     }
 
-    SliceDataStorage storage;
+    SliceDataStorage storage(mesh_group.settings);
     if (! fff_processor->polygon_generator.generateAreas(storage, &mesh_group, fff_processor->time_keeper))
     {
         return;

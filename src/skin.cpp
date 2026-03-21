@@ -85,7 +85,7 @@ Shape SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_he
  *
  * generateSkins therefore reads (depends on) data from mesh.layers[*].parts[*].insets and writes mesh.layers[n].parts[*].skin_parts
  */
-void SkinInfillAreaComputation::generateSkinsAndInfill()
+void SkinInfillAreaComputation::generateSkinsAndInfill(const SliceDataStorage& storage)
 {
     generateSkinAndInfillAreas();
 
@@ -93,7 +93,7 @@ void SkinInfillAreaComputation::generateSkinsAndInfill()
 
     for (SliceLayerPart& part : layer->parts)
     {
-        generateSkinRoofingFlooringFill(part);
+        generateSkinRoofingFlooringFill(storage, part);
 
         generateTopAndBottomMostSurfaces(part);
     }
@@ -326,7 +326,7 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& part)
+void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(const SliceDataStorage& storage, SliceLayerPart& part)
 {
     const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
     const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
@@ -334,8 +334,7 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
     const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
 
     constexpr coord_t epsilon = 5;
-    const SliceDataStorage slice_data;
-    const Shape build_plate = slice_data.getRawMachineBorder();
+    const Shape build_plate = storage.getRawMachineBorder();
 
     const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
     const Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate.offset(epsilon));

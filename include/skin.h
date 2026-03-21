@@ -16,6 +16,7 @@ class Shape;
 class SkinPart;
 class SliceLayerPart;
 class SliceMeshStorage;
+class SliceDataStorage;
 
 /*!
  * Class containing all skin and infill area computation functions
@@ -38,7 +39,7 @@ public:
     /*!
      * Generate the skin areas and its insets.
      */
-    void generateSkinsAndInfill();
+    void generateSkinsAndInfill(const SliceDataStorage &storage);
 
     /*!
      * \brief Combines the infill of multiple layers for a specified mesh.
@@ -134,7 +135,7 @@ protected:
      *
      * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing/flooring areas
      */
-    void generateSkinRoofingFlooringFill(SliceLayerPart& part);
+    void generateSkinRoofingFlooringFill(const SliceDataStorage &storage, SliceLayerPart& part);
 
     /*!
      * Generate the top and bottom-most surfaces of the given \p part, i.e. the surfaces that have nothing above or below

@@ -165,13 +165,13 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     calculateExtruderOrderPerLayer(storage);
     calculatePrimeLayerPerExtruder(storage);
 
-    if (scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
+    if (storage.settings_.get<bool>("magic_spiralize"))
     {
         findLayerSeamsForSpiralize(storage, total_layers);
     }
 
     int process_layer_starting_layer_nr = 0;
-    const bool has_raft = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
+    const bool has_raft = storage.settings_.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
     {
         processRaft(storage);
@@ -412,7 +412,7 @@ void FffGcodeWriter::setConfigRetractionAndWipe(SliceDataStorage& storage)
 
 size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage) const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
     const int skirt_brim_extruder_nr = mesh_group_settings.get<int>("skirt_brim_extruder_nr");
     const ExtruderTrain* skirt_brim_extruder = (skirt_brim_extruder_nr < 0) ? nullptr : &mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
@@ -518,7 +518,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 
 void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     const ExtruderTrain& support_infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     storage.support.support_infill_angles = support_infill_extruder.settings_.get<std::vector<AngleDegrees>>("support_infill_angles");
     if (storage.support.support_infill_angles.empty())
@@ -551,8 +551,7 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
             {
                 for (const auto& mesh : storage.meshes)
                 {
-                    if (mesh->settings.get<coord_t>(interface_height_setting)
-                        >= 2 * Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height"))
+                    if (mesh->settings.get<coord_t>(interface_height_setting) >= 2 * storage.settings_.get<coord_t>("layer_height"))
                     {
                         // Some roofs are quite thick.
                         // Alternate between the two kinds of diagonal: / and \ .
@@ -593,7 +592,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 
 void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 {
-    Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
     const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_;
     const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
@@ -1169,7 +1168,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     TimeKeeper time_keeper;
     spdlog::stopwatch timer_total;
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     coord_t z;
     bool include_helper_parts = true;
@@ -1500,7 +1499,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     // Add the support brim after the skirt_brim to gcode_layer
     // Support brim is only added in layer 0
     // For support brim we don't care about the order, because support doesn't need to be accurate.
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     if ((layer_nr == 0) && (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_))
     {
         total_line_count += storage.support_brim.size();
@@ -1521,7 +1520,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
 {
     LayerIndex layer_nr = std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr());
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
     {
         return; // ooze shield already generated by brim
@@ -1534,7 +1533,7 @@ void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPla
 
 void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     const LayerIndex layer_nr = std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr());
     if (storage.draft_protection_shield.size() == 0)
     {
@@ -1544,7 +1543,7 @@ void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPl
     {
         return;
     }
-    if (layer_nr == 0 && Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
+    if (layer_nr == 0 && storage.settings_.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
     {
         return; // draft shield already generated by brim
     }
@@ -1631,7 +1630,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     const LayerIndex& layer_nr,
     const std::vector<bool>& global_extruders_used) const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     size_t extruder_count = global_extruders_used.size();
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
@@ -1873,7 +1872,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     SliceLayerPart& part,
     LayerPlan& gcode_layer) const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
 
     bool added_something = false;
 
@@ -2712,7 +2711,7 @@ bool FffGcodeWriter::processInsets(
     }
 
     bool spiralize = false;
-    if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
+    if (storage.settings_.get<bool>("magic_spiralize"))
     {
         const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
         const auto layer_nr = gcode_layer.getLayerNr();
@@ -2767,7 +2766,7 @@ bool FffGcodeWriter::processInsets(
 
         // if support is enabled, add the support outlines also so we don't generate bridges over support
 
-        const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+        const Settings& mesh_group_settings = storage.settings_;
         if (mesh_group_settings.get<bool>("support_enable"))
         {
             const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
@@ -3226,7 +3225,7 @@ void FffGcodeWriter::processTopBottom(
     {
         return;
     }
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
 
     const size_t layer_nr = gcode_layer.getLayerNr();
 
@@ -3644,7 +3643,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
         return support_added;
     }
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     const size_t support_roof_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_;
     const size_t support_bottom_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_;
     size_t support_infill_extruder_nr = (gcode_layer.getLayerNr() <= 0) ? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_
@@ -3691,7 +3690,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         return added_something;
     }
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     const size_t extruder_nr = (gcode_layer.getLayerNr() <= 0) ? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_
                                                                : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_;
     const ExtruderTrain& infill_extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
@@ -4037,7 +4036,7 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
         return false; // No need to generate support roof if there's no support.
     }
 
-    const size_t roof_extruder_nr = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_;
+    const size_t roof_extruder_nr = storage.settings_.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_;
     const ExtruderTrain& roof_extruder = Application::getInstance().current_slice_->scene.extruders[roof_extruder_nr];
 
     const EFillMethod pattern = roof_extruder.settings_.get<EFillMethod>("support_roof_pattern");
@@ -4171,7 +4170,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         return false; // No need to generate support bottoms if there's no support.
     }
 
-    const size_t bottom_extruder_nr = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_;
+    const size_t bottom_extruder_nr = storage.settings_.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_;
     const ExtruderTrain& bottom_extruder = Application::getInstance().current_slice_->scene.extruders[bottom_extruder_nr];
 
     const EFillMethod pattern = bottom_extruder.settings_.get<EFillMethod>("support_bottom_pattern");

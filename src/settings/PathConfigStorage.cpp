@@ -33,12 +33,12 @@ std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerI
 }
 
 PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness)
-    : support_infill_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_)
-    , support_roof_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_)
-    , support_bottom_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_)
-    , raft_base_train(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_base_extruder_nr"))
-    , raft_interface_train(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_interface_extruder_nr"))
-    , raft_surface_train(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("raft_surface_extruder_nr"))
+    : support_infill_extruder_nr(storage.settings_.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_)
+    , support_roof_extruder_nr(storage.settings_.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_)
+    , support_bottom_extruder_nr(storage.settings_.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_)
+    , raft_base_train(storage.settings_.get<ExtruderTrain&>("raft_base_extruder_nr"))
+    , raft_interface_train(storage.settings_.get<ExtruderTrain&>("raft_interface_extruder_nr"))
+    , raft_surface_train(storage.settings_.get<ExtruderTrain&>("raft_surface_extruder_nr"))
     , support_infill_train(Application::getInstance().current_slice_->scene.extruders[support_infill_extruder_nr])
     , support_roof_train(Application::getInstance().current_slice_->scene.extruders[support_roof_extruder_nr])
     , support_bottom_train(Application::getInstance().current_slice_->scene.extruders[support_bottom_extruder_nr])
@@ -87,7 +87,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     travel_config_per_extruder.reserve(extruder_count);
     skirt_brim_config_per_extruder.reserve(extruder_count);
     prime_tower_config_per_extruder.reserve(extruder_count);
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
@@ -151,8 +151,8 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
         handleInitialLayerSpeedup(storage, layer_nr, initial_speedup_layer_count);
     }
 
-    const auto layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
-    const auto support_top_distance = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("support_top_distance");
+    const auto layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const auto support_top_distance = mesh_group_settings.get<coord_t>("support_top_distance");
     const coord_t leftover_support_distance = support_top_distance % layer_height;
 
     support_fractional_infill_config = support_infill_config; // copy
@@ -192,7 +192,7 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
     { // support
         if (layer_nr < static_cast<LayerIndex>(initial_speedup_layer_count))
         {
-            const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+            const Settings& mesh_group_settings = storage.settings_;
             const size_t extruder_nr_support_infill
                 = mesh_group_settings.get<ExtruderTrain&>((layer_nr <= 0) ? "support_extruder_nr_layer_0" : "support_infill_extruder_nr").extruder_nr_;
             for (unsigned int idx = 0; idx < MAX_INFILL_COMBINE; idx++)

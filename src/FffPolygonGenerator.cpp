@@ -389,7 +389,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
 
     // we need to remove empty layers after we have processed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
@@ -531,7 +531,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     }
 
     // skin & infill
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     bool magic_spiralize = mesh_group_settings.get<bool>("magic_spiralize");
     size_t mesh_max_initial_bottom_layer_count = 0;
     if (magic_spiralize)
@@ -548,7 +548,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
             spdlog::debug("Processing skins and infill layer {} of {}", layer_number, mesh.layers.size());
             if (! magic_spiralize || layer_number < mesh_max_initial_bottom_layer_count) // Only generate up/downskin and infill for the first X layers when spiralize is choosen.
             {
-                processSkinsAndInfill(mesh, layer_number, process_infill);
+                processSkinsAndInfill(storage, mesh, layer_number, process_infill);
             }
             guarded_progress++;
         });
@@ -798,7 +798,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
     if (n_empty_first_layers > 0)
     {
         spdlog::info("Removing {} layers because they are empty", n_empty_first_layers);
-        const coord_t layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+        const coord_t layer_height = storage.settings_.get<coord_t>("layer_height");
         for (auto& mesh_ptr : storage.meshes)
         {
             auto& mesh = *mesh_ptr;
@@ -832,7 +832,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
  * processSkinsAndInfill read (depend on) mesh.layers[*].parts[*].{insets,boundingBox}.
  *                       write mesh.layers[n].parts[*].{skin_parts,infill_area}.
  */
-void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill)
+void FffPolygonGenerator::processSkinsAndInfill(const SliceDataStorage& storage, SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill)
 {
     if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
     {
@@ -840,7 +840,7 @@ void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const La
     }
 
     SkinInfillAreaComputation skin_infill_area_computation(layer_nr, mesh, process_infill);
-    skin_infill_area_computation.generateSkinsAndInfill();
+    skin_infill_area_computation.generateSkinsAndInfill(storage);
 
     if (((mesh.settings.get<bool>("ironing_enabled") && (! mesh.settings.get<bool>("ironing_only_highest_layer"))) || mesh.layer_nr_max_filled_layer == layer_nr)
         || ! mesh.settings.get<bool>("small_skin_on_surface"))
@@ -891,8 +891,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         }
 
         // Height of where the support reaches.
-        Scene& scene = Application::getInstance().current_slice_->scene;
-        const Settings& mesh_group_settings = scene.current_mesh_group->settings;
+        const Settings& mesh_group_settings = storage.settings_;
         const size_t support_infill_extruder_nr
             = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_; // TODO: Support extruder should be configurable per object.
         max_print_height_per_extruder[support_infill_extruder_nr] = std::max(max_print_height_per_extruder[support_infill_extruder_nr], storage.support.layer_nr_max_filled_layer);
@@ -950,7 +949,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
 
 void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     if (! mesh_group_settings.get<bool>("ooze_shield_enabled"))
     {
         return;
@@ -1012,7 +1011,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
     {
         return;
     }
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
 
     const LayerIndex layer_skip{ 500 / layer_height + 1 };
@@ -1056,7 +1055,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
     EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
     if (adhesion_type == EPlatformAdhesion::RAFT)

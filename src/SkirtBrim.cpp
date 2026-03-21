@@ -22,7 +22,7 @@ namespace cura
 
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     : storage_(storage)
-    , adhesion_type_(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type"))
+    , adhesion_type_(storage.settings_.get<EPlatformAdhesion>("adhesion_type"))
     , has_ooze_shield_(storage.ooze_shield.size() > 0 && storage.ooze_shield[0].size() > 0)
     , has_draft_shield_(storage.draft_protection_shield.size() > 0)
     , extruders_(Application::getInstance().current_slice_->scene.extruders)
@@ -44,7 +44,7 @@ SkirtBrim::SkirtBrim(SliceDataStorage& storage)
     first_used_extruder_nr_ = first_used_extruder_nr.value_or(0);
 
 
-    skirt_brim_extruder_nr_ = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<int>("skirt_brim_extruder_nr");
+    skirt_brim_extruder_nr_ = storage.settings_.get<int>("skirt_brim_extruder_nr");
     if (skirt_brim_extruder_nr_ == -1 && adhesion_type_ == EPlatformAdhesion::SKIRT)
     { // Skirt is always printed with all extruders in order to satisfy minimum legnth constraint
         // NOTE: the line count will only be satisfied for the first extruder used.

@@ -703,7 +703,7 @@ void GCodeExport::resetExtrusionValue()
 bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     bool should_prime_extruder = true;
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = storage.settings_;
 
     if (Application::getInstance().communication_->isSequential()) // If we must output the g-code sequentially, we must already place the g-code header here even if we don't know
                                                                    // the exact time/material usages yet.
@@ -809,8 +809,8 @@ void GCodeExport::processInitialLayerBedTemperature()
 void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorage& storage, const bool wait_start_extruder, const size_t start_extruder_nr)
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
-    const bool material_print_temp_prepend = scene.current_mesh_group->settings.get<bool>("material_print_temp_prepend");
-    const bool material_print_temp_wait = scene.current_mesh_group->settings.get<bool>("material_print_temp_wait");
+    const bool material_print_temp_prepend = storage.settings_.get<bool>("material_print_temp_prepend");
+    const bool material_print_temp_wait = storage.settings_.get<bool>("material_print_temp_wait");
 
     if (! material_print_temp_prepend && (scene.current_mesh_group == scene.mesh_groups.begin()))
     {
