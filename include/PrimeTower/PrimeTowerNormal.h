@@ -22,7 +22,7 @@ private:
     const std::vector<size_t> used_extruders_;
 
 public:
-    PrimeTowerNormal(const std::vector<size_t>& used_extruders, const Settings &mesh_group_settings);
+    PrimeTowerNormal(const std::vector<size_t>& used_extruders, const Settings& mesh_group_settings);
 
     virtual ExtruderPrime getExtruderPrime(
         const std::vector<bool>& extruder_is_used_on_this_layer,
@@ -32,7 +32,8 @@ public:
         const LayerIndex& layer_nr) const override;
 
 protected:
-    virtual std::map<LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const Settings& mesh_group_settings) override;
+    virtual std::map<LayerIndex, std::vector<ExtruderToolPaths>>
+        generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const Settings& mesh_group_settings) override;
 };
 
 } // namespace cura

@@ -17,8 +17,8 @@
 #include "geometry/OpenPolyline.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "settings/EnumSettings.h"
-#include "slice_data/MeshSliceData.h"
 #include "slice_data/MeshGroupSliceData.h"
+#include "slice_data/MeshSliceData.h"
 #include "utils/ThreadPool.h"
 #include "utils/math.h" //For round_up_divide and PI.
 #include "utils/polygonUtils.h" //For moveInside.

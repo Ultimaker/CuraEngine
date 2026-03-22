@@ -22,8 +22,8 @@
 #include "infill.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
-#include "slice_data/MeshSliceData.h"
 #include "slice_data/MeshGroupSliceData.h"
+#include "slice_data/MeshSliceData.h"
 #include "support.h" //For precomputeCrossInfillTree
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"

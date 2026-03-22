@@ -81,7 +81,7 @@ private:
 
 public:
     /*! \brief Creates a prime tower instance that will determine where and how the prime tower gets printed. */
-    PrimeTower(const Settings &mesh_group_settings);
+    PrimeTower(const Settings& mesh_group_settings);
 
     virtual ~PrimeTower() = default;
 
@@ -144,7 +144,8 @@ public:
         size_t extruder_nr,
         size_t last_extruder,
         const MeshGroupSliceData& storage,
-        const LayerIndex& layer_nr) const = 0;
+        const LayerIndex& layer_nr) const
+        = 0;
 
     /*!
      * \brief This method has to be called once the extruders use for each layer have been calculated. From this point,
@@ -153,7 +154,7 @@ public:
      *                      the prime tower can be properly printed.
      * \param start_extruder The very first used extruder
      */
-    void processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder, const Settings &mesh_group_settings);
+    void processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder, const Settings& mesh_group_settings);
 
     /*!
      * \brief Create the proper prime tower object according to the current settings
@@ -181,7 +182,8 @@ protected:
      * \return A map of extruders toolpaths per layer. The inner list is sorted from outer annuli to inner
      *         annuli, which is not the printing chronological order, but the physical arrangement. @sa toolpaths_
      */
-    virtual std::map<LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const Settings& mesh_group_settings) = 0;
+    virtual std::map<LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const Settings& mesh_group_settings)
+        = 0;
 
     /*!
      * \brief Generate the actual priming toolpaths for the given extruder, starting at the given outer circle radius
@@ -189,7 +191,7 @@ protected:
      * \param outer_radius The radius of the starting outer circle
      * \return A tuple containing the newly generated toolpaths, and the inner radius of the newly generated annulus
      */
-    std::tuple<ClosedLinesSet, coord_t> generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius, const Settings &mesh_group_settings);
+    std::tuple<ClosedLinesSet, coord_t> generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius, const Settings& mesh_group_settings);
 
     /*!
      * \brief Generate support toolpaths using the wheel pattern applied on an annulus
@@ -221,7 +223,7 @@ private:
      * This function picks a start location for this extruder on the prime tower's perimeter and travels there to avoid
      * starting at the location everytime which can result in z-seam blobs.
      */
-    void gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder, const Settings &mesh_group_settings) const;
+    void gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder, const Settings& mesh_group_settings) const;
 
     /*!
      * \brief Subtract the prime tower from the support areas in storage.

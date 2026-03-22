@@ -7,8 +7,8 @@
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h" //For ESurfaceMode.
 #include "settings/Settings.h"
-#include "slice_data/SliceLayer.h"
 #include "slice_data/MeshSliceData.h"
+#include "slice_data/SliceLayer.h"
 #include "slicer.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/Simplify.h" //Simplifying the layers after creating them.

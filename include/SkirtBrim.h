@@ -123,7 +123,7 @@ public:
      * \param primary_line_count Number of offsets / brim lines of the primary extruder.
      * \param set to false to force not doing brim generation for helper-structures (support and ooze/draft shields)
      */
-    void generate(const Settings &mesh_group_settings);
+    void generate(const Settings& mesh_group_settings);
 
 private:
     /*!
@@ -224,7 +224,7 @@ public:
     /*!
      * Generate the brim which is printed from the outlines of the support inward.
      */
-    void generateSupportBrim(const Settings &mesh_group_settings);
+    void generateSupportBrim(const Settings& mesh_group_settings);
 };
 } // namespace cura
 

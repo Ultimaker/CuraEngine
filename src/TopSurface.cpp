@@ -8,8 +8,8 @@
 #include "LayerPlan.h"
 #include "geometry/OpenPolyline.h"
 #include "infill.h"
-#include "slice_data/MeshSliceData.h"
 #include "slice_data/MeshGroupSliceData.h"
+#include "slice_data/MeshSliceData.h"
 
 
 namespace cura

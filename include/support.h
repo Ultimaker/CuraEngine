@@ -76,7 +76,8 @@ private:
      * \param global_support_areas_per_layer the global support areas per layer
      * \param total_layer_count total number of layers
      */
-    static void splitGlobalSupportAreasIntoSupportInfillParts(MeshGroupSliceData& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count);
+    static void
+        splitGlobalSupportAreasIntoSupportInfillParts(MeshGroupSliceData& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count);
 
     /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
@@ -324,7 +325,7 @@ private:
      * \param layer_idx The layer for which the disallowed areas are to be calcualted
      *
      */
-    static Shape generateVaryingXYDisallowedArea(const MeshSliceData& storage, const Settings &mesh_group_settings, const LayerIndex layer_idx);
+    static Shape generateVaryingXYDisallowedArea(const MeshSliceData& storage, const Settings& mesh_group_settings, const LayerIndex layer_idx);
 };
 
 

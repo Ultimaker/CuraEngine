@@ -4,13 +4,13 @@
 #ifndef SLICEDATA_MESHGROUPSLICEDATA_H
 #define SLICEDATA_MESHGROUPSLICEDATA_H
 
+#include "WipeScriptConfig.h"
 #include "geometry/MixedLinesSet.h"
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
+#include "slice_data/SupportStorage.h"
 #include "utils/AABB3D.h"
 #include "utils/NoCopy.h"
-#include "slice_data/SupportStorage.h"
-#include "WipeScriptConfig.h"
 
 namespace cura
 {
@@ -21,7 +21,7 @@ class PrimeTower;
 class MeshGroupSliceData : public NoCopy
 {
 public:
-    MeshGroup &mesh_group_;
+    MeshGroup& mesh_group_;
     const Settings& settings_; // The settings for the mesh group being processed by this storage
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
@@ -58,7 +58,7 @@ public:
      * \brief Creates a new slice data storage that stores the slice data of the
      * current mesh group.
      */
-    MeshGroupSliceData(MeshGroup &mesh_group);
+    MeshGroupSliceData(MeshGroup& mesh_group);
 
     ~MeshGroupSliceData();
 

@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef SLICE_H
 #define SLICE_H
@@ -60,19 +60,19 @@ private:
     /*
      * \brief Disallow copying slice objects.
      */
-    Slice& operator =(const Slice& other) = delete;
+    Slice& operator=(const Slice& other) = delete;
 
-    void activateMeshGroup(const Settings &mesh_group_settings);
+    void activateMeshGroup(const Settings& mesh_group_settings);
 
-    static bool preProcessMeshGroup(MeshGroupSliceData &storage);
+    static bool preProcessMeshGroup(MeshGroupSliceData& storage);
 
     /*
      * \brief Generate the 3D printing instructions to print a given mesh group.
      * \param mesh_group The mesh group to slice.
      */
-    static void processMeshGroup(MeshGroupSliceData &storage);
+    static void processMeshGroup(MeshGroupSliceData& storage);
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //SLICE_H
+#endif // SLICE_H

@@ -112,7 +112,7 @@ private:
      * Optionally, a parent setting container to ask for the value of a setting
      * if this container has no value for it.
      */
-    const Settings* parent{nullptr};
+    const Settings* parent{ nullptr };
 
     /*!
      * \brief A dictionary to map the setting keys to the actual setting values.

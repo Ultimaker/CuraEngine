@@ -14,7 +14,7 @@ class Mesh;
 class Slicer;
 class Settings;
 
-void carveMultipleVolumes(std::vector<Slicer*>& meshes, const Settings &mesh_group_settings);
+void carveMultipleVolumes(std::vector<Slicer*>& meshes, const Settings& mesh_group_settings);
 
 /*!
  * Expand each layer a bit and then keep the extra overlapping parts that overlap with other volumes.

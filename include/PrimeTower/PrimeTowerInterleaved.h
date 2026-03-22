@@ -20,7 +20,7 @@ namespace cura
 class PrimeTowerInterleaved : public PrimeTower
 {
 public:
-    PrimeTowerInterleaved(const Settings &mesh_group_settings);
+    PrimeTowerInterleaved(const Settings& mesh_group_settings);
 
     virtual ExtruderPrime getExtruderPrime(
         const std::vector<bool>& extruder_is_used_on_this_layer,
@@ -32,7 +32,8 @@ public:
 protected:
     virtual void polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder) override;
 
-    virtual std::map<LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const Settings& mesh_group_settings) override;
+    virtual std::map<LayerIndex, std::vector<ExtruderToolPaths>>
+        generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const Settings& mesh_group_settings) override;
 };
 
 } // namespace cura

@@ -247,10 +247,12 @@ public:
      * \param mat_ids The material GUIDs for each material.
      * \return The string representing the file header
      */
-    std::string getFileHeader(const std::vector<bool>& extruder_is_used, const Settings &mesh_group_settings,
-                              const Duration* print_time = nullptr,
-                              const std::vector<double>& filament_used = std::vector<double>(),
-                              const std::vector<std::string>& mat_ids = std::vector<std::string>());
+    std::string getFileHeader(
+        const std::vector<bool>& extruder_is_used,
+        const Settings& mesh_group_settings,
+        const Duration* print_time = nullptr,
+        const std::vector<double>& filament_used = std::vector<double>(),
+        const std::vector<std::string>& mat_ids = std::vector<std::string>());
 
     void setSliceUUID(const std::string& slice_uuid);
 
@@ -363,7 +365,7 @@ public:
      * \param p location to go to
      * \param speed movement speed
      */
-    void writeTravel(const Point2LL& p, const Velocity& speed, const Settings &mesh_group_settings);
+    void writeTravel(const Point2LL& p, const Velocity& speed, const Settings& mesh_group_settings);
 
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -373,7 +375,13 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, const Settings &mesh_group_settings, bool update_extrusion_offset = false);
+    void writeExtrusion(
+        const Point2LL& p,
+        const Velocity& speed,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        const Settings& mesh_group_settings,
+        bool update_extrusion_offset = false);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
@@ -383,7 +391,7 @@ public:
      * \param speed movement speed
      *  \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const Point3LL& p, const Velocity& speed, const Settings &mesh_group_settings, const std::optional<double> retract_distance = std::nullopt);
+    void writeTravel(const Point3LL& p, const Velocity& speed, const Settings& mesh_group_settings, const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Go to a X/Y location with the extrusion Z
@@ -397,7 +405,13 @@ public:
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, const Settings &mesh_group_settings, bool update_extrusion_offset = false);
+    void writeExtrusion(
+        const Point3LL& p,
+        const Velocity& speed,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        const Settings& mesh_group_settings,
+        bool update_extrusion_offset = false);
 
     /*!
      * Initialize the extruder trains.
@@ -449,7 +463,13 @@ private:
      * \param speed movement speed
      * \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const Settings &mesh_group_settings,  const std::optional<double> retract_distance = std::nullopt);
+    void writeTravel(
+        const coord_t x,
+        const coord_t y,
+        const coord_t z,
+        const Velocity& speed,
+        const Settings& mesh_group_settings,
+        const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Perform un-z-hop
@@ -508,7 +528,7 @@ private:
     /*!
      * Set bed temperature for the initial layer. Called by 'processInitialLayerTemperatures'.
      */
-    void processInitialLayerBedTemperature(const Settings &mesh_group_settings);
+    void processInitialLayerBedTemperature(const Settings& mesh_group_settings);
 
     /*!
      * Set extruders temperatures for the initial layer. Called by 'processInitialLayerTemperatures'.
@@ -539,10 +559,14 @@ private:
      * \param height The actual height to be reached, relative to the current layer height
      * \param retract_distance The absolute retraction distance to be reached while doing the z-hop move, or nullopt to leave it unchanged
      */
-    void writeZhop(const Settings &mesh_group_settings, Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
+    void writeZhop(const Settings& mesh_group_settings, Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
 
-    static PrintFeatureType
-        sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts, const Settings &mesh_group_settings);
+    static PrintFeatureType sendTravel(
+        const Point3LL& p,
+        const Velocity& speed,
+        const ExtruderTrainAttributes& extruder_attr,
+        const std::optional<RetractionAmounts>& retraction_amounts,
+        const Settings& mesh_group_settings);
 
 public:
     /*!
@@ -574,7 +598,12 @@ public:
      * \param retract_ratio This is the ratio of the complete z-hop move that should be used to process the retraction. If >0 and <1 then the z-hop move
      *                      will actually be split in two part, one with retraction and one without.
      */
-    void writeZhopStart(const coord_t hop_height, const Settings &mesh_group_settings, Velocity speed = 0.0, std::optional<double> retract_distance = std::nullopt, const Ratio& retract_ratio = 0.0_r);
+    void writeZhopStart(
+        const coord_t hop_height,
+        const Settings& mesh_group_settings,
+        Velocity speed = 0.0,
+        std::optional<double> retract_distance = std::nullopt,
+        const Ratio& retract_ratio = 0.0_r);
 
     /*!
      * End a z hop: go back to the layer height
@@ -584,7 +613,12 @@ public:
      * \param prime_ratio This is the ratio of the complete z-hop move that should be used to process the priming. If >0 and <1 then the z-hop move
      *                    will actually be split in two part, one without priming and one with.
      */
-    void writeZhopEnd(const Settings& mesh_group_settings, Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> prime_distance = std::nullopt, const Ratio& prime_ratio = 0.0_r);
+    void writeZhopEnd(
+        const Settings& mesh_group_settings,
+        Velocity speed = 0.0,
+        const coord_t height = 0,
+        const std::optional<double> prime_distance = std::nullopt,
+        const Ratio& prime_ratio = 0.0_r);
 
     /*!
      * Start the new_extruder:
@@ -608,7 +642,7 @@ public:
      * \param retraction_config_old_extruder The extruder switch retraction config of the old extruder, to perform the extruder switch retraction with.
      * \param perform_z_hop The amount by which the print head should be z hopped during extruder switch, or zero if it should not z hop.
      */
-    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, const Settings &mesh_group_settings, coord_t perform_z_hop = 0);
+    void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, const Settings& mesh_group_settings, coord_t perform_z_hop = 0);
 
     void writeCode(const std::string& str);
 
@@ -630,7 +664,7 @@ public:
      *
      * \param travel_speed The travel speed when priming involves a movement
      */
-    void writePrimeTrain(const Velocity& travel_speed, const Settings &mesh_group_settings);
+    void writePrimeTrain(const Velocity& travel_speed, const Settings& mesh_group_settings);
 
     /*!
      * \brief Write a set fan speed command, if different from the actual speed
@@ -685,7 +719,7 @@ public:
     /*!
      * Set member variables using the settings in \p settings.
      */
-    void preSetup(const size_t start_extruder, const MeshGroupSliceData &mesh_group_data);
+    void preSetup(const size_t start_extruder, const MeshGroupSliceData& mesh_group_data);
 
     /*!
      * Handle the initial (bed/nozzle) temperatures before any gcode is processed.
@@ -694,7 +728,7 @@ public:
      * See FffGcodeWriter::processStartingCode
      * \param start_extruder_nr The extruder with which to start this print
      */
-    void setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr, const Settings &mesh_group_settings);
+    void setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr, const Settings& mesh_group_settings);
 
     /*!
      * Override or set an initial nozzle temperature as written by GCodeExport::setInitialTemps
@@ -741,7 +775,7 @@ public:
      *
      * \param wipe_config Config with wipe script settings.
      */
-    void insertWipeScript(const WipeScriptConfig& wipe_config, const Settings &mesh_group_settings);
+    void insertWipeScript(const WipeScriptConfig& wipe_config, const Settings& mesh_group_settings);
 
     /*!
      * Set the priming leftover to be processed during the next z-hop end

@@ -62,7 +62,7 @@ public:
      * to.
      * \param meshgroup The meshgroup to process.
      */
-    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroupSliceData &mesh_group_data);
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroupSliceData& mesh_group_data);
 
 private:
     /*!
@@ -111,13 +111,13 @@ private:
     /*!
      * Calculates the layers based on the given mesh and allowed layer heights
      */
-    void calculateLayers(const MeshGroupSliceData &mesh_group_data);
+    void calculateLayers(const MeshGroupSliceData& mesh_group_data);
 
     /*!
      * Calculates the slopes for each triangle in the mesh.
      * These are uses later by calculateLayers to find the steepest triangle in a potential layer.
      */
-    void calculateMeshTriangleSlopes(const MeshGroup &mesh_group);
+    void calculateMeshTriangleSlopes(const MeshGroup& mesh_group);
 };
 
 } // namespace cura

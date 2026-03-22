@@ -5,9 +5,9 @@
 #define TREESUPPORTTIPGENERATOR_H
 
 #include "TreeSupport.h"
+#include "TreeSupportSettings.h"
 #include "geometry/Shape.h"
 #include "utils/Coord_t.h"
-#include "TreeSupportSettings.h"
 
 namespace cura
 {

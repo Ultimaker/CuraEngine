@@ -4,10 +4,10 @@
 #ifndef SLICEDATA_MESHSLICEDATA_H
 #define SLICEDATA_MESHSLICEDATA_H
 
-#include "slice_data/SliceLayer.h"
-#include "utils/AABB3D.h"
 #include "WipeScriptConfig.h"
 #include "settings/types/LayerIndex.h"
+#include "slice_data/SliceLayer.h"
+#include "utils/AABB3D.h"
 
 namespace cura
 {

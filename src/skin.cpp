@@ -12,8 +12,8 @@
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
-#include "slice_data/MeshSliceData.h"
 #include "slice_data/MeshGroupSliceData.h"
+#include "slice_data/MeshSliceData.h"
 #include "utils/Simplify.h"
 #include "utils/math.h"
 

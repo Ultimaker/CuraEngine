@@ -339,7 +339,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const Settings &mesh_group_settings, const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
+    void addMeshLayerToGCode_meshSurfaceMode(const Settings& mesh_group_settings, const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
 
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -479,9 +479,8 @@ private:
      * \param part The part for which to create gcode
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
-    void
-        processSpiralizedWall(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const MeshPathConfigs& mesh_config, const SliceLayerPart& part, const MeshSliceData& mesh)
-            const;
+    void processSpiralizedWall(const MeshGroupSliceData& storage, LayerPlan& gcode_layer, const MeshPathConfigs& mesh_config, const SliceLayerPart& part, const MeshSliceData& mesh)
+        const;
 
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.

@@ -493,7 +493,7 @@ public:
 
     Slicer(
         Mesh* mesh,
-        const Settings &mesh_group_settings,
+        const Settings& mesh_group_settings,
         const coord_t thickness,
         const size_t slice_layer_count,
         bool use_variable_layer_heights,

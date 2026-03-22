@@ -93,7 +93,7 @@ public:
     /*!
      * Add the end gcode and set all temperatures to zero.
      */
-    void finalize(const Settings &mesh_group_settings);
+    void finalize(const Settings& mesh_group_settings);
 };
 
 } // namespace cura

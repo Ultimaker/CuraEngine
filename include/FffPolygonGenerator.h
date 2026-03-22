@@ -48,7 +48,7 @@ private:
      * of the draft shield if the limit is FULL.
      * \return The actual height of the draft shield.
      */
-    size_t getDraftShieldLayerCount(const MeshGroupSliceData &mesh_group_data) const;
+    size_t getDraftShieldLayerCount(const MeshGroupSliceData& mesh_group_data) const;
 
     /*!
      * Slice the \p object and store the outlines in the \p storage.
@@ -146,7 +146,7 @@ private:
      * \param layer_nr The layer for which to generate the skin areas.
      * \param process_infill Generate infill areas
      */
-    void processSkinsAndInfill(const MeshGroupSliceData &storage, MeshSliceData& mesh, const LayerIndex layer_nr, bool process_infill);
+    void processSkinsAndInfill(const MeshGroupSliceData& storage, MeshSliceData& mesh, const LayerIndex layer_nr, bool process_infill);
 
     /*!
      * Generate the polygons where the draft screen should be.

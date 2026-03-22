@@ -15,9 +15,9 @@ class SierpinskiFillProvider;
 class SupportStorage
 {
 public:
-    bool generated{false}; //!< whether generateSupportGrid(.) has completed (successfully)
+    bool generated{ false }; //!< whether generateSupportGrid(.) has completed (successfully)
 
-    int layer_nr_max_filled_layer{-1}; //!< the layer number of the uppermost layer with content
+    int layer_nr_max_filled_layer{ -1 }; //!< the layer number of the uppermost layer with content
 
     std::vector<AngleDegrees> support_infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
     std::vector<AngleDegrees> support_infill_angles_layer_0; //!< a list of angle values which is cycled through to determine the infill angle of each layer

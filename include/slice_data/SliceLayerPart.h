@@ -7,8 +7,8 @@
 #include <optional>
 
 #include "geometry/SingleShape.h"
-#include "utils/AABB.h"
 #include "slice_data/SkinPart.h"
+#include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 
 namespace cura

@@ -39,7 +39,7 @@ public:
     /*!
      * Generate the skin areas and its insets.
      */
-    void generateSkinsAndInfill(const MeshGroupSliceData &storage);
+    void generateSkinsAndInfill(const MeshGroupSliceData& storage);
 
     /*!
      * \brief Combines the infill of multiple layers for a specified mesh.
@@ -135,7 +135,7 @@ protected:
      *
      * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing/flooring areas
      */
-    void generateSkinRoofingFlooringFill(const MeshGroupSliceData &storage, SliceLayerPart& part);
+    void generateSkinRoofingFlooringFill(const MeshGroupSliceData& storage, SliceLayerPart& part);
 
     /*!
      * Generate the top and bottom-most surfaces of the given \p part, i.e. the surfaces that have nothing above or below
