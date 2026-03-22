@@ -11,19 +11,16 @@
 namespace cura
 {
 
-class MeshGroupSliceData;
-
 /*!
- * Adapter class used to expose the engine settings stack to the formulae engine resolving system
+ * Adapter class used to expose global scene data to the formulae engine resolving system
  */
-class SliceDataStorageEnvironmentAdapter : public CuraFormulaeEngine::env::Environment
+class SceneEnvironmentAdapter : public CuraFormulaeEngine::env::Environment
 {
 public:
     /*!
      * Base constructor
-     * @param settings The settings to be used as the base contextual stack
      */
-    explicit SliceDataStorageEnvironmentAdapter(const MeshGroupSliceData& storage, const CuraFormulaeEngine::env::Environment* next_environment = nullptr);
+    explicit SceneEnvironmentAdapter(const CuraFormulaeEngine::env::Environment* next_environment = nullptr);
 
     [[nodiscard]] std::optional<CuraFormulaeEngine::eval::Value> get(const std::string& variable_id) const override;
 
@@ -32,7 +29,6 @@ public:
     [[nodiscard]] std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> getAll() const override;
 
 private:
-    const MeshGroupSliceData& storage_;
     const CuraFormulaeEngine::env::Environment* const next_environment_;
     const std::vector<std::string> additional_variables_;
     std::optional<AABB> initial_layer_bb_;

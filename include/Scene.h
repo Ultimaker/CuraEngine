@@ -11,8 +11,6 @@
 namespace cura
 {
 
-class MeshGroupSliceData;
-
 /*
  * Represents a scene that should be sliced.
  */
@@ -22,7 +20,6 @@ public:
     /*
      * \brief The global settings in the scene.
      */
-#warning This seems to remain empty forever, thus it is pretty much useless
     Settings settings;
 
     /*
@@ -58,12 +55,6 @@ public:
      * reproduce the output.
      */
     const std::string getAllSettingsString() const;
-
-    /*
-     * \brief Generate the 3D printing instructions to print a given mesh group.
-     * \param mesh_group The mesh group to slice.
-     */
-    static void processMeshGroup(MeshGroupSliceData &storage);
 
     std::vector<MeshGroup>::const_iterator find(const MeshGroup &mesh_group) const;
 

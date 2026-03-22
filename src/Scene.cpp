@@ -4,13 +4,6 @@
 #include "Scene.h"
 
 #include <range/v3/algorithm/find_if.hpp>
-#include <spdlog/spdlog.h>
-
-#include "Application.h"
-#include "FffProcessor.h" //To start a slice.
-#include "communication/Communication.h" //To flush g-code and layer view when we're done.
-#include "progress/Progress.h"
-#include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {
@@ -60,43 +53,6 @@ const std::string Scene::getAllSettingsString() const
     output << "\n";
 
     return output.str();
-}
-
-void Scene::processMeshGroup(MeshGroupSliceData& storage)
-{
-    FffProcessor* fff_processor = FffProcessor::getInstance();
-    fff_processor->time_keeper.restart();
-
-    TimeKeeper time_keeper_total;
-
-    bool empty = true;
-    for (const Mesh& mesh : storage.mesh_group_.meshes)
-    {
-        if (! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
-        {
-            empty = false;
-            break;
-        }
-    }
-    if (empty)
-    {
-        Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
-        spdlog::info("Total time elapsed {:03.3f}s", time_keeper_total.restart());
-        return;
-    }
-
-    if (! fff_processor->polygon_generator.generateAreas(storage, &storage.mesh_group_, fff_processor->time_keeper))
-    {
-        return;
-    }
-
-    Progress::messageProgressStage(Progress::Stage::EXPORT, &fff_processor->time_keeper);
-    fff_processor->gcode_writer.writeGCode(storage, fff_processor->time_keeper);
-
-    Progress::messageProgress(Progress::Stage::FINISH, 1, 1); // 100% on this meshgroup
-    Application::getInstance().communication_->flushGCode();
-    Application::getInstance().communication_->sendOptimizedLayerData();
-    spdlog::info("Total time elapsed {:03.3f}s\n", time_keeper_total.restart());
 }
 
 std::vector<MeshGroup>::const_iterator Scene::find(const MeshGroup& mesh_group) const

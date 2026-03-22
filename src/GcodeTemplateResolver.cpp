@@ -13,8 +13,8 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "settings/SceneEnvironmentAdapter.h"
 #include "settings/SettingContainersEnvironmentAdapter.h"
-#include "settings/SliceDataStorageEnvironmentAdapter.h"
 
 namespace cfe = CuraFormulaeEngine;
 
@@ -270,7 +270,6 @@ bool processExpression(
 cfe::env::Environment* makeEnvironment(
     const Settings& settings,
     const std::unordered_map<std::string, cfe::eval::Value>& extra_settings,
-    const MeshGroupSliceData* storage,
     std::vector<std::shared_ptr<cfe::env::Environment>>& environments)
 {
     cfe::env::Environment* top_level_environment;
@@ -294,22 +293,17 @@ cfe::env::Environment* makeEnvironment(
         top_level_environment = local_environment.get();
     }
 
-    // Third level: create an environment that contain extra variables given by the current slicing data
-    if (storage)
+    // Third level: create an environment that contain extra variables given by the current scene
     {
-        auto storage_environment = std::make_shared<SliceDataStorageEnvironmentAdapter>(*storage, top_level_environment);
-        environments.push_back(storage_environment);
-        top_level_environment = storage_environment.get();
+        auto scene_environment = std::make_shared<SceneEnvironmentAdapter>(top_level_environment);
+        environments.push_back(scene_environment);
+        top_level_environment = scene_environment.get();
     }
 
     return top_level_environment;
 }
 
-std::string resolveGCodeTemplate(
-    const std::string& input,
-    const std::optional<int> context_extruder_nr,
-    const std::unordered_map<std::string, cfe::eval::Value>& extra_settings,
-    const MeshGroupSliceData* storage)
+std::string resolveGCodeTemplate(const std::string& input, const std::optional<int> context_extruder_nr, const std::unordered_map<std::string, cfe::eval::Value>& extra_settings)
 {
     std::string output;
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;
@@ -321,11 +315,11 @@ std::string resolveGCodeTemplate(
     std::vector<std::shared_ptr<cfe::env::Environment>> environments_storage;
     std::map<std::optional<size_t>, cfe::env::Environment*> environments;
 
-    environments.emplace(std::nullopt, makeEnvironment(scene.settings, extra_settings, storage, environments_storage));
+    environments.emplace(std::nullopt, makeEnvironment(scene.settings, extra_settings, environments_storage));
 
     for (auto [extruder_nr, extruder_train] : scene.extruders | ranges::views::enumerate)
     {
-        environments.emplace(extruder_nr, makeEnvironment(extruder_train.settings_, extra_settings, storage, environments_storage));
+        environments.emplace(extruder_nr, makeEnvironment(extruder_train.settings_, extra_settings, environments_storage));
     }
 
     std::string::const_iterator start = input.cbegin();

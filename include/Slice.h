@@ -30,7 +30,7 @@ public:
      */
     Scene scene;
 
-    std::vector<std::shared_ptr<MeshGroupSliceData>> storages_;
+    std::vector<std::shared_ptr<MeshGroupSliceData>> slice_data_;
 
     /*
      * \brief Slice the scene, producing g-code output.
@@ -61,6 +61,16 @@ private:
      * \brief Disallow copying slice objects.
      */
     Slice& operator =(const Slice& other) = delete;
+
+    void activateMeshGroup(const Settings &mesh_group_settings);
+
+    static bool preProcessMeshGroup(MeshGroupSliceData &storage);
+
+    /*
+     * \brief Generate the 3D printing instructions to print a given mesh group.
+     * \param mesh_group The mesh group to slice.
+     */
+    static void processMeshGroup(MeshGroupSliceData &storage);
 };
 
 } //namespace cura

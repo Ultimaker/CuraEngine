@@ -502,7 +502,7 @@ void CommandLine::sliceNext()
 #endif // DEBUG
 
     // Finalize the processor. This adds the end g-code and reports statistics.
-    FffProcessor::getInstance()->finalize(slice->storages_.back()->settings_);
+    FffProcessor::getInstance()->finalize(slice->slice_data_.back()->settings_);
 }
 
 int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)
