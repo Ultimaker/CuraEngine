@@ -7,6 +7,7 @@
 #include <cassert>
 #include <optional>
 
+#include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <spdlog/spdlog.h>
 
@@ -19,14 +20,25 @@ namespace cura
 std::array<double, N_PROGRESS_STAGES> Progress::accumulated_times = { -1 };
 double Progress::total_timing = -1;
 std::optional<LayerIndex> Progress::first_skipped_layer{};
+std::vector<double> Progress::mesh_groups_progress;
+size_t Progress::current_mesh_group = 0;
 
 double Progress::calcOverallProgress(Stage stage, double stage_progress)
 {
     stage_progress = std::clamp(stage_progress, 0.0, 1.0);
-    return (accumulated_times.at(static_cast<size_t>(stage)) + stage_progress * times.at(static_cast<size_t>(stage))) / total_timing;
+    mesh_groups_progress[current_mesh_group] = (accumulated_times.at(static_cast<size_t>(stage)) + stage_progress * times.at(static_cast<size_t>(stage)));
+
+    return ranges::accumulate(
+               mesh_groups_progress,
+               0.0,
+               [](const double total_time, const double mesh_group_time)
+               {
+                   return total_time + mesh_group_time;
+               })
+         / total_timing;
 }
 
-void Progress::init()
+void Progress::init(const size_t nb_mesh_groups)
 {
     double accumulated_time = 0;
     for (size_t stage = 0; stage < N_PROGRESS_STAGES; stage++)
@@ -34,7 +46,13 @@ void Progress::init()
         accumulated_times.at(static_cast<size_t>(stage)) = accumulated_time;
         accumulated_time += times.at(static_cast<size_t>(stage));
     }
-    total_timing = accumulated_time;
+    total_timing = accumulated_time * nb_mesh_groups;
+    mesh_groups_progress = std::vector<double>(nb_mesh_groups, 0.0);
+}
+
+void Progress::setCurrentMeshGroup(size_t current_mesh_group_index)
+{
+    current_mesh_group = current_mesh_group_index;
 }
 
 void Progress::messageProgress(Progress::Stage stage, int progress_in_stage, int progress_in_stage_max)

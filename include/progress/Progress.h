@@ -58,6 +58,8 @@ private:
     static std::array<double, N_PROGRESS_STAGES> accumulated_times; //!< Time past before each stage
     static double total_timing; //!< An estimate of the total time
     static std::optional<LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
+    static std::vector<double> mesh_groups_progress;
+    static size_t current_mesh_group;
     /*!
      * Give an estimate between 0 and 1 of how far the process is.
      *
@@ -68,7 +70,10 @@ private:
     static double calcOverallProgress(Stage stage, double stage_progress);
 
 public:
-    static void init(); //!< Initialize some values needed in a fast computation of the progress
+    static void init(const size_t nb_mesh_groups); //!< Initialize some values needed in a fast computation of the progress
+
+    static void setCurrentMeshGroup(size_t current_mesh_group_index);
+
     /*!
      * Message progress over the CommandSocket and to the terminal (if the command line arg '-p' is provided).
      *

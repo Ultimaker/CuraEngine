@@ -232,7 +232,6 @@ void Application::run(const size_t argc, char** argv)
 
     printHeader();
     printLicense();
-    Progress::init();
 
     if (argc < 2)
     {

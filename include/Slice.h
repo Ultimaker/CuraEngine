@@ -62,7 +62,7 @@ private:
      */
     Slice& operator=(const Slice& other) = delete;
 
-    void activateMeshGroup(const Settings& mesh_group_settings);
+    void activateMeshGroup(const std::shared_ptr<MeshGroupSliceData>& mesh_group_data);
 
     static bool preProcessMeshGroup(MeshGroupSliceData& storage);
 

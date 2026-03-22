@@ -3,6 +3,7 @@
 
 #include "Slice.h"
 
+#include <range/v3/algorithm/find.hpp>
 #include <spdlog/spdlog.h>
 #ifdef SENTRY_URL
 #include <sentry.h>
@@ -25,11 +26,17 @@ Slice::Slice(const size_t num_mesh_groups)
 {
 }
 
-void Slice::activateMeshGroup(const Settings& mesh_group_settings)
+void Slice::activateMeshGroup(const std::shared_ptr<MeshGroupSliceData>& mesh_group_data)
 {
     for (ExtruderTrain& extruder : scene.extruders)
     {
-        extruder.settings_.setParent(&mesh_group_settings);
+        extruder.settings_.setParent(&mesh_group_data->settings_);
+    }
+
+    auto iterator = ranges::find(slice_data_, mesh_group_data);
+    if (iterator != slice_data_.end())
+    {
+        Progress::setCurrentMeshGroup(std::distance(slice_data_.begin(), iterator));
     }
 }
 
@@ -69,6 +76,8 @@ void Slice::compute()
     }
 #endif
 
+    Progress::init(scene.mesh_groups.size());
+
     // First, create all the mesh groups slice data and start pre-processing them
     size_t index = 0;
     std::map<std::shared_ptr<MeshGroupSliceData>, bool> needs_processing;
@@ -76,7 +85,7 @@ void Slice::compute()
     {
         std::shared_ptr<MeshGroupSliceData> mesh_group_data = std::make_shared<MeshGroupSliceData>(mesh_group);
         slice_data_[index++] = mesh_group_data;
-        activateMeshGroup(mesh_group.settings);
+        activateMeshGroup(mesh_group_data);
         needs_processing[mesh_group_data] = preProcessMeshGroup(*mesh_group_data);
     }
 
@@ -86,7 +95,7 @@ void Slice::compute()
     {
         if (needs_processing[mesh_group_data])
         {
-            activateMeshGroup(mesh_group_data->settings_);
+            activateMeshGroup(mesh_group_data);
             processMeshGroup(*mesh_group_data);
         }
     }

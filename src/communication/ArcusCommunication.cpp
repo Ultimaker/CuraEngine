@@ -454,9 +454,7 @@ void ArcusCommunication::sendProgress(double progress) const
     }
 
     std::shared_ptr<proto::Progress> message = std::make_shared<cura::proto::Progress>();
-    double progress_all_objects = progress / private_data->object_count;
-    progress_all_objects += private_data->optimized_layers.sliced_objects * (1.0 / private_data->object_count);
-    message->set_amount(progress_all_objects);
+    message->set_amount(progress);
     private_data->socket->sendMessage(message);
 
     private_data->last_sent_progress = rounded_amount;
