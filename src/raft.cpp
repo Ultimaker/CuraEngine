@@ -127,9 +127,8 @@ void Raft::generate(MeshGroupSliceData& storage)
         nominal_raft_line_width);
 }
 
-coord_t Raft::getTotalThickness()
+coord_t Raft::getTotalThickness(const Settings& mesh_group_settings)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const Settings& base_train = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
     const Settings& interface_train = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
     const Settings& surface_train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
@@ -138,9 +137,8 @@ coord_t Raft::getTotalThickness()
          + interface_train.get<coord_t>("raft_surface_z_offset");
 }
 
-coord_t Raft::getZdiffBetweenRaftAndLayer0()
+coord_t Raft::getZdiffBetweenRaftAndLayer0(const Settings& mesh_group_settings)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
@@ -150,32 +148,30 @@ coord_t Raft::getZdiffBetweenRaftAndLayer0()
     return airgap;
 }
 
-size_t Raft::getFillerLayerCount()
+size_t Raft::getFillerLayerCount(const Settings& mesh_group_settings)
 {
-    const coord_t normal_layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
-    return round_divide(getZdiffBetweenRaftAndLayer0(), normal_layer_height);
+    const coord_t normal_layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    return round_divide(getZdiffBetweenRaftAndLayer0(mesh_group_settings), normal_layer_height);
 }
 
-coord_t Raft::getFillerLayerHeight()
+coord_t Raft::getFillerLayerHeight(const Settings& mesh_group_settings)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         const coord_t normal_layer_height = mesh_group_settings.get<coord_t>("layer_height");
         return normal_layer_height;
     }
 
-    return round_divide(getZdiffBetweenRaftAndLayer0(), getFillerLayerCount());
+    return round_divide(getZdiffBetweenRaftAndLayer0(mesh_group_settings), getFillerLayerCount(mesh_group_settings));
 }
 
-size_t Raft::getTotalExtraLayers()
+size_t Raft::getTotalExtraLayers(const Settings& mesh_group_settings)
 {
-    return getBaseLayers() + getInterfaceLayers() + getSurfaceLayers() + getFillerLayerCount();
+    return getBaseLayers(mesh_group_settings) + getInterfaceLayers(mesh_group_settings) + getSurfaceLayers(mesh_group_settings) + getFillerLayerCount(mesh_group_settings);
 }
 
-size_t Raft::getBaseLayers()
+size_t Raft::getBaseLayers(const Settings& mesh_group_settings)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;
@@ -183,21 +179,21 @@ size_t Raft::getBaseLayers()
     return 1;
 }
 
-size_t Raft::getInterfaceLayers()
+size_t Raft::getInterfaceLayers(const Settings& mesh_group_settings)
 {
-    return getLayersAmount("raft_interface_extruder_nr", "raft_interface_layers");
+    return getLayersAmount("raft_interface_extruder_nr", "raft_interface_layers", mesh_group_settings);
 }
 
-size_t Raft::getSurfaceLayers()
+size_t Raft::getSurfaceLayers(const Settings& mesh_group_settings)
 {
-    return getLayersAmount("raft_surface_extruder_nr", "raft_surface_layers");
+    return getLayersAmount("raft_surface_extruder_nr", "raft_surface_layers", mesh_group_settings);
 }
 
-Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
+Raft::LayerType Raft::getLayerType(LayerIndex layer_index, const Settings& mesh_group_settings)
 {
-    const auto airgap = Raft::getFillerLayerCount();
-    const auto interface_layers = Raft::getInterfaceLayers();
-    const auto surface_layers = Raft::getSurfaceLayers();
+    const auto airgap = Raft::getFillerLayerCount(mesh_group_settings);
+    const auto interface_layers = Raft::getInterfaceLayers(mesh_group_settings);
+    const auto surface_layers = Raft::getSurfaceLayers(mesh_group_settings);
 
     if (layer_index < -LayerIndex(airgap + surface_layers + interface_layers))
     {
@@ -218,9 +214,8 @@ Raft::LayerType Raft::getLayerType(LayerIndex layer_index)
     return LayerType::Model;
 }
 
-size_t Raft::getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section)
+size_t Raft::getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section, const Settings& mesh_group_settings)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     if (mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
         return 0;

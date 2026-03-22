@@ -806,6 +806,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
 Slicer::Slicer(
     Mesh* i_mesh,
+    const Settings& mesh_group_settings,
     const coord_t thickness,
     const size_t slice_layer_count,
     bool use_variable_layer_heights,
@@ -829,7 +830,7 @@ Slicer::Slicer(
         mesh->settings_.get<coord_t>("raft_base_thickness"),
         mesh->settings_.get<coord_t>("raft_airgap"),
         mesh->settings_.get<coord_t>("layer_0_z_overlap"),
-        Raft::getFillerLayerCount());
+        Raft::getFillerLayerCount(mesh_group_settings));
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
 

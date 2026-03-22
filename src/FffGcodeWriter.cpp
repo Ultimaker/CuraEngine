@@ -33,8 +33,8 @@
 #include "infill.h"
 #include "progress/Progress.h"
 #include "raft.h"
-#include "slice_data/MeshSliceData.h"
 #include "slice_data/MeshGroupSliceData.h"
+#include "slice_data/MeshSliceData.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
 #include "utils/linearAlg2D.h"
@@ -94,14 +94,14 @@ bool FffGcodeWriter::setTargetFile(const char* filename)
 void FffGcodeWriter::writeGCode(MeshGroupSliceData& storage, TimeKeeper& time_keeper)
 {
     const size_t start_extruder_nr = getStartExtruder(storage);
-    gcode.preSetup(start_extruder_nr);
+    gcode.preSetup(start_extruder_nr, storage);
     gcode.setSliceUUID(slice_uuid);
 
     Scene& scene = Application::getInstance().current_slice_->scene;
-    if (scene.current_mesh_group == scene.mesh_groups.begin()) // First mesh group.
+    if (&storage.mesh_group_ == &scene.mesh_groups.front()) // First mesh group.
     {
         gcode.resetTotalPrintTimeAndFilament();
-        gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
+        gcode.setInitialAndBuildVolumeTemps(start_extruder_nr, storage.settings_);
     }
 
     Application::getInstance().communication_->beginGCode();
@@ -110,7 +110,7 @@ void FffGcodeWriter::writeGCode(MeshGroupSliceData& storage, TimeKeeper& time_ke
 
     setConfigRetractionAndWipe(storage);
 
-    if (scene.current_mesh_group == scene.mesh_groups.begin())
+    if (&storage.mesh_group_ == &scene.mesh_groups.front())
     {
         auto should_prime_extruder = gcode.initializeExtruderTrains(storage, start_extruder_nr);
 
@@ -162,7 +162,7 @@ void FffGcodeWriter::writeGCode(MeshGroupSliceData& storage, TimeKeeper& time_ke
     {
         // Setting first travel move of the first extruder to the machine start position
         Point3LL p(extruder_settings.get<coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
-        gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"));
+        gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"), storage.settings_);
     }
 
     calculateExtruderOrderPerLayer(storage);
@@ -184,7 +184,7 @@ void FffGcodeWriter::writeGCode(MeshGroupSliceData& storage, TimeKeeper& time_ke
         {
             if (extruder_is_used_in_filler_layers)
             {
-                process_layer_starting_layer_nr = -static_cast<int>(Raft::getFillerLayerCount());
+                process_layer_starting_layer_nr = -static_cast<int>(Raft::getFillerLayerCount(storage.settings_));
                 break;
             }
         }
@@ -197,14 +197,14 @@ void FffGcodeWriter::writeGCode(MeshGroupSliceData& storage, TimeKeeper& time_ke
         {
             return std::make_optional(processLayer(storage, layer_nr, total_layers));
         },
-        [this, total_layers](std::optional<ProcessLayerResult> result_opt)
+        [this, total_layers, &storage](std::optional<ProcessLayerResult> result_opt)
         {
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
-            layer_plan_buffer.handle(*result.layer_plan, gcode);
+            layer_plan_buffer.handle(*result.layer_plan, gcode, storage);
         });
 
-    layer_plan_buffer.flush();
+    layer_plan_buffer.flush(storage);
 
     Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
@@ -586,9 +586,12 @@ void FffGcodeWriter::processNextMeshGroupCode(const MeshGroupSliceData& storage)
     gcode.setZ(max_object_height + MM2INT(5));
 
     Application::getInstance().communication_->sendCurrentPosition(gcode.getPositionXY());
-    gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
+    gcode.writeTravel(
+        gcode.getPositionXY(),
+        Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"),
+        storage.settings_);
     Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
-    gcode.writeTravel(start_pos, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
+    gcode.writeTravel(start_pos, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"), storage.settings_);
 
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
@@ -601,7 +604,7 @@ void FffGcodeWriter::processRaft(const MeshGroupSliceData& storage)
     const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
 
     coord_t z = 0;
-    const LayerIndex initial_raft_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
+    const LayerIndex initial_raft_layer_nr = -LayerIndex(Raft::getTotalExtraLayers(mesh_group_settings));
     const Settings& interface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
     const size_t num_interface_layers = interface_settings.get<size_t>("raft_interface_layers");
     const Settings& surface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
@@ -782,7 +785,7 @@ void FffGcodeWriter::processRaft(const MeshGroupSliceData& storage)
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr, false);
 
-        layer_plan_buffer.handle(gcode_layer, gcode);
+        layer_plan_buffer.handle(gcode_layer, gcode, storage);
     }
 
     const coord_t interface_layer_height = interface_settings.get<coord_t>("raft_interface_thickness");
@@ -944,7 +947,7 @@ void FffGcodeWriter::processRaft(const MeshGroupSliceData& storage)
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr);
 
-        layer_plan_buffer.handle(gcode_layer, gcode);
+        layer_plan_buffer.handle(gcode_layer, gcode, storage);
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
@@ -1132,7 +1135,7 @@ void FffGcodeWriter::processRaft(const MeshGroupSliceData& storage)
 
         endRaftLayer(storage, gcode_layer, layer_nr, current_extruder_nr);
 
-        layer_plan_buffer.handle(gcode_layer, gcode);
+        layer_plan_buffer.handle(gcode_layer, gcode, storage);
     }
 }
 
@@ -1180,9 +1183,9 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const MeshGroupS
 #ifdef DEBUG
         assert(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
 #endif // DEBUG
-        const int filler_layer_count = Raft::getFillerLayerCount();
-        layer_thickness = Raft::getFillerLayerHeight();
-        z = Raft::getTotalThickness() + (filler_layer_count + layer_nr + 1) * layer_thickness;
+        const int filler_layer_count = Raft::getFillerLayerCount(mesh_group_settings);
+        layer_thickness = Raft::getFillerLayerHeight(mesh_group_settings);
+        z = Raft::getTotalThickness(mesh_group_settings) + (filler_layer_count + layer_nr + 1) * layer_thickness;
     }
     else
     {
@@ -1305,7 +1308,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const MeshGroupS
                            == mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ // mesh surface mode should always only be printed with the outer wall extruder!
                 )
                 {
-                    addMeshLayerToGCode_meshSurfaceMode(*mesh, mesh_config, gcode_layer);
+                    addMeshLayerToGCode_meshSurfaceMode(mesh_group_settings, *mesh, mesh_config, gcode_layer);
                 }
                 else
                 {
@@ -1572,7 +1575,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const MeshGroupSliceData& st
     // set the initial extruder of this meshgroup
     Scene& scene = Application::getInstance().current_slice_->scene;
     size_t start_extruder;
-    if (scene.current_mesh_group == scene.mesh_groups.begin())
+    if (&storage.mesh_group_ == &scene.mesh_groups.front())
     { // first meshgroup
         start_extruder = getStartExtruder(storage);
     }
@@ -1582,10 +1585,10 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const MeshGroupSliceData& st
     }
     last_extruder = start_extruder;
 
-    extruder_order_per_layer.init(true, storage.print_layer_count);
+    extruder_order_per_layer.init(true, storage.settings_, storage.print_layer_count);
 
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
-    for (LayerIndex layer_nr = -LayerIndex(Raft::getTotalExtraLayers()); layer_nr < LayerIndex(storage.print_layer_count); layer_nr++)
+    for (LayerIndex layer_nr = -LayerIndex(Raft::getTotalExtraLayers(storage.settings_)); layer_nr < LayerIndex(storage.print_layer_count); layer_nr++)
     {
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);
         extruder_order_per_layer.push_back(extruder_order);
@@ -1598,13 +1601,13 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const MeshGroupSliceData& st
 
     if (storage.prime_tower_)
     {
-        storage.prime_tower_->processExtrudersUse(extruder_order_per_layer, start_extruder);
+        storage.prime_tower_->processExtrudersUse(extruder_order_per_layer, start_extruder, storage.settings_);
     }
 }
 
 void FffGcodeWriter::calculatePrimeLayerPerExtruder(const MeshGroupSliceData& storage)
 {
-    LayerIndex first_print_layer = -LayerIndex(Raft::getTotalExtraLayers());
+    LayerIndex first_print_layer = -LayerIndex(Raft::getTotalExtraLayers(storage.settings_));
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
         if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, extruder_nr))
@@ -1638,8 +1641,8 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const LayerIndex raft_base_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
-    Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
+    const LayerIndex raft_base_layer_nr = -LayerIndex(Raft::getTotalExtraLayers(mesh_group_settings));
+    Raft::LayerType layer_type = Raft::getLayerType(layer_nr, mesh_group_settings);
 
     if (layer_type == Raft::RaftBase)
     {
@@ -1712,13 +1715,12 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const MeshGroupSliceData&
 {
     OrderOptimizer<size_t> mesh_idx_order_optimizer;
 
-    std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
         const MeshSliceData& mesh = *storage.meshes[mesh_idx];
         if (mesh.getExtruderIsUsed(extruder_nr))
         {
-            const Mesh& mesh_data = mesh_group->meshes[mesh_idx];
+            const Mesh& mesh_data = storage.mesh_group_.meshes[mesh_idx];
             const Point3LL middle = (mesh_data.getAABB().min_ + mesh_data.getAABB().max_) / 2;
             mesh_idx_order_optimizer.addItem(Point2LL(middle.x_, middle.y_), mesh_idx);
         }
@@ -1738,7 +1740,8 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const MeshGroupSliceData&
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const Settings& mesh_group_settings, const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer)
+    const
 {
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
@@ -1769,7 +1772,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const MeshSliceData& me
         mesh.getZSeamHint(),
         mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
         mesh.settings.get<coord_t>("wall_line_width_0") * 2);
-    const bool spiralize = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize");
+    const bool spiralize = mesh_group_settings.get<bool>("magic_spiralize");
     constexpr Ratio flow_ratio = 1.0;
     constexpr bool always_retract = false;
     constexpr bool reverse_order = false;
@@ -2648,7 +2651,7 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const MeshGroupSliceData& storage, 
     {
         return last ? extruder_use.back().extruder_nr : extruder_use.front().extruder_nr;
     }
-    else if (layer_nr <= -LayerIndex(Raft::getTotalExtraLayers()))
+    else if (layer_nr <= -LayerIndex(Raft::getTotalExtraLayers(storage.settings_)))
     {
         // Asking for extruder use below first layer, give first extruder
         return getStartExtruder(storage);
@@ -4029,8 +4032,11 @@ bool FffGcodeWriter::processSupportInfill(const MeshGroupSliceData& storage, Lay
 }
 
 
-bool FffGcodeWriter::addSupportRoofsToGCode(const MeshGroupSliceData& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer)
-    const
+bool FffGcodeWriter::addSupportRoofsToGCode(
+    const MeshGroupSliceData& storage,
+    const Shape& support_roof_outlines,
+    const GCodePathConfig& current_roof_config,
+    LayerPlan& gcode_layer) const
 {
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
 
@@ -4334,16 +4340,17 @@ void FffGcodeWriter::addPrimeTower(const MeshGroupSliceData& storage, LayerPlan&
     storage.prime_tower_->addToGcode(storage, gcode_layer, extruder_order, prev_extruder, gcode_layer.getExtruder());
 }
 
-void FffGcodeWriter::finalize()
+void FffGcodeWriter::finalize(const Settings& mesh_group_settings)
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-
     // In one-at-a-time mode, raise the nozzle to avoid collision with already printed objects during final travel
     if (mesh_group_settings.get<std::string>("print_sequence") == "one_at_a_time")
     {
         gcode.setZ(max_object_height + MM2INT(5));
         Application::getInstance().communication_->sendCurrentPosition(gcode.getPosition());
-        gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
+        gcode.writeTravel(
+            gcode.getPositionXY(),
+            Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"),
+            mesh_group_settings);
     }
     // Write the current extruder's end G-code
     const Scene& scene = Application::getInstance().current_slice_->scene;
@@ -4375,7 +4382,7 @@ void FffGcodeWriter::finalize()
         material_ids.emplace_back(scene.extruders[extruder_nr].settings_.get<std::string>("material_guid"));
         extruder_is_used.push_back(gcode.getExtruderIsUsed(extruder_nr));
     }
-    std::string prefix = gcode.getFileHeader(extruder_is_used, &print_time, filament_used, material_ids);
+    std::string prefix = gcode.getFileHeader(extruder_is_used, mesh_group_settings, &print_time, filament_used, material_ids);
     if (! Application::getInstance().communication_->isSequential())
     {
         Application::getInstance().communication_->sendGCodePrefix(prefix);

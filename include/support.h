@@ -324,7 +324,7 @@ private:
      * \param layer_idx The layer for which the disallowed areas are to be calcualted
      *
      */
-    static Shape generateVaryingXYDisallowedArea(const MeshSliceData& storage, const LayerIndex layer_idx);
+    static Shape generateVaryingXYDisallowedArea(const MeshSliceData& storage, const Settings &mesh_group_settings, const LayerIndex layer_idx);
 };
 
 

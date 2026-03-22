@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SLICEDATA_SLICEDATASTORAGE_H
-#define SLICEDATA_SLICEDATASTORAGE_H
+#ifndef SLICEDATA_MESHGROUPSLICEDATA_H
+#define SLICEDATA_MESHGROUPSLICEDATA_H
 
 #include "geometry/MixedLinesSet.h"
 #include "settings/Settings.h"
@@ -15,11 +15,13 @@
 namespace cura
 {
 
+class MeshGroup;
 class PrimeTower;
 
 class MeshGroupSliceData : public NoCopy
 {
 public:
+    MeshGroup &mesh_group_;
     const Settings& settings_; // The settings for the mesh group being processed by this storage
     size_t print_layer_count; //!< The total number of layers (except the raft and filler layers)
 
@@ -56,7 +58,7 @@ public:
      * \brief Creates a new slice data storage that stores the slice data of the
      * current mesh group.
      */
-    MeshGroupSliceData(const Settings &settings);
+    MeshGroupSliceData(MeshGroup &mesh_group);
 
     ~MeshGroupSliceData();
 

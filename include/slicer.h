@@ -26,6 +26,7 @@ class Mesh;
 class MeshVertex;
 class Point3D;
 class SlicedUVCoordinates;
+class Settings;
 
 class SlicerSegment
 {
@@ -492,6 +493,7 @@ public:
 
     Slicer(
         Mesh* mesh,
+        const Settings &mesh_group_settings,
         const coord_t thickness,
         const size_t slice_layer_count,
         bool use_variable_layer_heights,

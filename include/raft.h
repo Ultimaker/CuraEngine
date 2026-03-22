@@ -11,6 +11,7 @@ namespace cura
 {
 
 class MeshGroupSliceData;
+class Settings;
 
 class Raft
 {
@@ -25,7 +26,7 @@ public:
      * \brief Get the height difference between the raft and the bottom of
      * layer 0.
      */
-    static coord_t getZdiffBetweenRaftAndLayer0();
+    static coord_t getZdiffBetweenRaftAndLayer0(const Settings &mesh_group_settings);
 
     /*!
      * \brief Get the amount of layers to fill the airgap and initial layer with
@@ -34,18 +35,18 @@ public:
      * The initial layer gets a separate filler layer because we don't want to
      * apply the layer_0_z_overlap to it.
      */
-    static size_t getFillerLayerCount();
+    static size_t getFillerLayerCount(const Settings &mesh_group_settings);
 
     /*!
      * \brief Get the layer height of the filler layers in between the raft and
      * layer 1.
      */
-    static coord_t getFillerLayerHeight();
+    static coord_t getFillerLayerHeight(const Settings &mesh_group_settings);
 
     /*!
      * \brief Get the total thickness of the raft (without airgap).
      */
-    static coord_t getTotalThickness();
+    static coord_t getTotalThickness(const Settings &mesh_group_settings);
 
     /*!
      * \brief Get the total amount of extra layers below zero because there is a
@@ -53,19 +54,19 @@ public:
      *
      * This includes the filler layers which are introduced in the air gap.
      */
-    static size_t getTotalExtraLayers();
+    static size_t getTotalExtraLayers(const Settings& mesh_group_settings);
 
     /*!
      *  \brief Get the amount of layers for the raft base.
      *  \note This is currently hard-coded to 1 because we have yet no setting for the base
      */
-    static size_t getBaseLayers();
+    static size_t getBaseLayers(const Settings &mesh_group_settings);
 
     /*! \brief Get the amount of layers for the raft interface. */
-    static size_t getInterfaceLayers();
+    static size_t getInterfaceLayers(const Settings &mesh_group_settings);
 
     /*! \brief Get the amount of layers for the raft top. */
-    static size_t getSurfaceLayers();
+    static size_t getSurfaceLayers(const Settings &mesh_group_settings);
 
     enum LayerType
     {
@@ -81,7 +82,7 @@ public:
      * \param layer_index The layer index to get the type of.
      * \return The type of layer at the given layer index.
      */
-    static LayerType getLayerType(LayerIndex layer_index);
+    static LayerType getLayerType(LayerIndex layer_index, const Settings& mesh_group_settings);
 
 private:
     /*!
@@ -90,7 +91,7 @@ private:
      * \param target_raft_section The name of the setting to be fetched to get the number of layers
      * \return The number of layers for the given raft section, or 0 if raft is disabled
      */
-    static size_t getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section);
+    static size_t getLayersAmount(const std::string& extruder_nr_setting_name, const std::string& target_raft_section, const Settings &mesh_group_settings);
 };
 
 } // namespace cura

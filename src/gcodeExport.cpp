@@ -81,16 +81,16 @@ GCodeExport::~GCodeExport()
 {
 }
 
-void GCodeExport::preSetup(const size_t start_extruder)
+void GCodeExport::preSetup(const size_t start_extruder, const MeshGroupSliceData& mesh_group_data)
 {
     current_extruder_ = start_extruder;
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
-    setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
-    use_extruder_offset_to_offset_coords_ = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
-    const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
-    ppr_enable_ = mesh_group->settings.get<bool>("ppr_enable");
+    const Settings& mesh_group_settings = mesh_group_data.settings_;
+    setFlavor(mesh_group_settings.get<EGCodeFlavor>("machine_gcode_flavor"));
+    use_extruder_offset_to_offset_coords_ = mesh_group_settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
+    const size_t extruder_count = scene.extruders.size();
+    ppr_enable_ = mesh_group_settings.get<bool>("ppr_enable");
 
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
@@ -103,7 +103,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
         fans_count_ = std::max(fans_count_, extruder_attr_[extruder_nr].fan_number_ + 1);
 
         // Cache some settings that we use frequently.
-        const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_;
+        const Settings& extruder_settings = scene.extruders[extruder_nr].settings_;
         if (use_extruder_offset_to_offset_coords_)
         {
             extruder_attr_[extruder_nr].nozzle_offset_
@@ -116,10 +116,10 @@ void GCodeExport::preSetup(const size_t start_extruder)
         extruder_attr_[extruder_nr].machine_firmware_retract_ = extruder_settings.get<bool>("machine_firmware_retract");
     }
 
-    machine_name_ = mesh_group->settings.get<std::string>("machine_name");
+    machine_name_ = mesh_group_settings.get<std::string>("machine_name");
 
-    relative_extrusion_ = mesh_group->settings.get<bool>("relative_extrusion");
-    always_write_active_tool_ = mesh_group->settings.get<bool>("machine_always_write_active_tool");
+    relative_extrusion_ = mesh_group_settings.get<bool>("relative_extrusion");
+    always_write_active_tool_ = mesh_group_settings.get<bool>("machine_always_write_active_tool");
 
     if (flavor_ == EGCodeFlavor::BFB)
     {
@@ -130,14 +130,15 @@ void GCodeExport::preSetup(const size_t start_extruder)
         new_line_ = "\n";
     }
 
-    estimate_calculator_.setFirmwareDefaults(mesh_group->settings);
+    estimate_calculator_.setFirmwareDefaults(mesh_group_settings);
 
-    if (mesh_group == scene.mesh_groups.begin())
+    auto current_mesh_group_iterator = scene.find(mesh_group_data.mesh_group_);
+    if (current_mesh_group_iterator == scene.mesh_groups.cbegin())
     {
-        if (! scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
+        if (! mesh_group_settings.get<bool>("material_bed_temp_prepend"))
         {
             // Current bed temperature is the one of the first layer (has already been set in header)
-            bed_temperature_ = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+            bed_temperature_ = mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0");
         }
         else
         {
@@ -147,11 +148,11 @@ void GCodeExport::preSetup(const size_t start_extruder)
     else
     {
         // Current bed temperature is the one of the previous group
-        bed_temperature_ = (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature");
+        bed_temperature_ = std::prev(current_mesh_group_iterator)->settings.get<Temperature>("material_bed_temperature");
     }
 }
 
-void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr)
+void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extruder_nr, const Settings& mesh_group_settings)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
@@ -165,9 +166,9 @@ void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extrude
         setInitialTemp(extruder_nr, temp);
     }
 
-    initial_bed_temp_ = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
-    machine_heated_build_volume_ = scene.current_mesh_group->settings.get<bool>("machine_heated_build_volume");
-    build_volume_temperature_ = machine_heated_build_volume_ ? scene.current_mesh_group->settings.get<Temperature>("build_volume_temperature") : Temperature(0);
+    initial_bed_temp_ = mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0");
+    machine_heated_build_volume_ = mesh_group_settings.get<bool>("machine_heated_build_volume");
+    build_volume_temperature_ = machine_heated_build_volume_ ? mesh_group_settings.get<Temperature>("build_volume_temperature") : Temperature(0);
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
@@ -209,6 +210,7 @@ std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
 
 std::string GCodeExport::getFileHeader(
     const std::vector<bool>& extruder_is_used,
+    const Settings& mesh_group_settings,
     const Duration* print_time,
     const std::vector<double>& filament_used,
     const std::vector<std::string>& mat_ids)
@@ -334,7 +336,7 @@ std::string GCodeExport::getFileHeader(
                 prefix << "0m";
             }
             prefix << new_line_;
-            prefix << ";Layer height: " << Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height") << new_line_;
+            prefix << ";Layer height: " << mesh_group_settings.get<double>("layer_height") << new_line_;
         }
         prefix << ";MINX:" << INT2MM(total_bounding_box_.min_.x_) << new_line_;
         prefix << ";MINY:" << INT2MM(total_bounding_box_.min_.y_) << new_line_;
@@ -708,7 +710,7 @@ bool GCodeExport::initializeExtruderTrains(const MeshGroupSliceData& storage, co
     if (Application::getInstance().communication_->isSequential()) // If we must output the g-code sequentially, we must already place the g-code header here even if we don't know
                                                                    // the exact time/material usages yet.
     {
-        std::string prefix = getFileHeader(storage.getExtrudersUsed());
+        std::string prefix = getFileHeader(storage.getExtrudersUsed(), storage.settings_);
         writeLine(prefix);
     }
 
@@ -770,7 +772,7 @@ bool GCodeExport::initializeExtruderTrains(const MeshGroupSliceData& storage, co
     { // initialize extruder trains
         ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[start_extruder_nr];
         processInitialLayerTemperature(storage, start_extruder_nr);
-        writePrimeTrain(train.settings_.get<Velocity>("speed_travel"));
+        writePrimeTrain(train.settings_.get<Velocity>("speed_travel"), mesh_group_settings);
         should_prime_extruder = false;
         const RetractionConfig& retraction_config = storage.retraction_wipe_config_per_extruder[start_extruder_nr].retraction_config;
         writeRetraction(retraction_config);
@@ -795,14 +797,14 @@ bool GCodeExport::initializeExtruderTrains(const MeshGroupSliceData& storage, co
     return should_prime_extruder;
 }
 
-void GCodeExport::processInitialLayerBedTemperature()
+void GCodeExport::processInitialLayerBedTemperature(const Settings& mesh_group_settings)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    const bool heated = scene.current_mesh_group->settings.get<bool>("machine_heated_bed");
-    const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
+    const bool heated = mesh_group_settings.get<bool>("machine_heated_bed");
+    const Temperature bed_temp = mesh_group_settings.get<Temperature>("material_bed_temperature_layer_0");
     if (heated && bed_temp != 0)
     {
-        writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
+        writeBedTemperatureCommand(bed_temp, mesh_group_settings.get<bool>("material_bed_temp_wait"));
     }
 }
 
@@ -812,7 +814,7 @@ void GCodeExport::processInitialLayerExtrudersTemperatures(const MeshGroupSliceD
     const bool material_print_temp_prepend = storage.settings_.get<bool>("material_print_temp_prepend");
     const bool material_print_temp_wait = storage.settings_.get<bool>("material_print_temp_wait");
 
-    if (! material_print_temp_prepend && (scene.current_mesh_group == scene.mesh_groups.begin()))
+    if (! material_print_temp_prepend && (&storage.mesh_group_ == &scene.mesh_groups.front()))
     {
         // Nozzle initial temperatures are handled by start GCode, ignore
         return;
@@ -914,7 +916,7 @@ void GCodeExport::processInitialLayerTemperature(const MeshGroupSliceData& stora
         writeSpecificFanCommand(fan_speed, scene.settings.get<size_t>("build_volume_fan_nr"));
     }
 
-    processInitialLayerBedTemperature();
+    processInitialLayerBedTemperature(storage.settings_);
     processInitialLayerExtrudersTemperatures(storage, wait_start_extruder, start_extruder_nr);
 }
 
@@ -937,33 +939,46 @@ void GCodeExport::writeDelay(const Duration& time_amount)
     estimate_calculator_.addTime(time_amount);
 }
 
-void GCodeExport::writeTravel(const Point2LL& p, const Velocity& speed)
+void GCodeExport::writeTravel(const Point2LL& p, const Velocity& speed, const Settings& mesh_group_settings)
 {
-    writeTravel(Point3LL(p.X, p.Y, current_layer_z_), speed);
-}
-void GCodeExport::writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
-{
-    writeExtrusion(Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    writeTravel(Point3LL(p.X, p.Y, current_layer_z_), speed, mesh_group_settings);
 }
 
-void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance)
+void GCodeExport::writeExtrusion(
+    const Point2LL& p,
+    const Velocity& speed,
+    double extrusion_mm3_per_mm,
+    PrintFeatureType feature,
+    const Settings& mesh_group_settings,
+    bool update_extrusion_offset)
+{
+    writeExtrusion(Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, mesh_group_settings, update_extrusion_offset);
+}
+
+void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const Settings& mesh_group_settings, const std::optional<double> retract_distance)
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x_, p.y_, p.z_ + is_z_hopped_, speed, 0.0, PrintFeatureType::MoveUnretracted);
         return;
     }
-    writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed, retract_distance);
+    writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed, mesh_group_settings, retract_distance);
 }
 
-void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(
+    const Point3LL& p,
+    const Velocity& speed,
+    double extrusion_mm3_per_mm,
+    PrintFeatureType feature,
+    const Settings& mesh_group_settings,
+    bool update_extrusion_offset)
 {
     if (flavor_ == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature);
         return;
     }
-    writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, mesh_group_settings, update_extrusion_offset);
 }
 
 void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
@@ -1034,7 +1049,13 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velo
         feature);
 }
 
-void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const std::optional<double> retract_distance)
+void GCodeExport::writeTravel(
+    const coord_t x,
+    const coord_t y,
+    const coord_t z,
+    const Velocity& speed,
+    const Settings& mesh_group_settings,
+    const std::optional<double> retract_distance)
 {
     const ExtruderTrainAttributes& extruder_attr = extruder_attr_[current_extruder_];
     std::optional<RetractionAmounts> retraction_amounts
@@ -1052,7 +1073,7 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
 #endif // ASSERT_INSANE_OUTPUT
 
-    const PrintFeatureType travel_move_type = sendTravel(Point3LL(x, y, z), speed, extruder_attr, retraction_amounts);
+    const PrintFeatureType travel_move_type = sendTravel(Point3LL(x, y, z), speed, extruder_attr, retraction_amounts, mesh_group_settings);
 
     *output_stream_ << "G0";
     writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type, retraction_amounts);
@@ -1065,6 +1086,7 @@ void GCodeExport::writeExtrusion(
     const Velocity& speed,
     const double extrusion_mm3_per_mm,
     const PrintFeatureType& feature,
+    const Settings& mesh_group_settings,
     const bool update_extrusion_offset)
 {
     if (current_position_.x_ == x && current_position_.y_ == y && current_position_.z_ == z)
@@ -1104,7 +1126,7 @@ void GCodeExport::writeExtrusion(
 
     if (is_z_hopped_ > 0)
     {
-        writeZhopEnd();
+        writeZhopEnd(mesh_group_settings);
     }
 
     const Point3LL diff = Point3LL(x, y, z) - current_position_;
@@ -1338,29 +1360,39 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     return true;
 }
 
-void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*/, const std::optional<double> retract_distance, const Ratio& retract_ratio)
+void GCodeExport::writeZhopStart(
+    const coord_t hop_height,
+    const Settings& mesh_group_settings,
+    Velocity speed /*= 0*/,
+    const std::optional<double> retract_distance,
+    const Ratio& retract_ratio)
 {
     if (retract_distance.has_value() && retract_ratio > 0.0 && retract_ratio < 1.0)
     {
         // We have to split the z-hop move in two sub-moves, one with retraction and one without
-        writeZhopStart(hop_height * retract_ratio, speed, retract_distance, 0.0);
-        writeZhopStart(hop_height, speed, retract_distance, 0.0);
+        writeZhopStart(hop_height * retract_ratio, mesh_group_settings, speed, retract_distance, 0.0);
+        writeZhopStart(hop_height, mesh_group_settings, speed, retract_distance, 0.0);
         return;
     }
 
     if (hop_height > 0)
     {
-        writeZhop(speed, hop_height, retract_distance);
+        writeZhop(mesh_group_settings, speed, hop_height, retract_distance);
     }
 }
 
-void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, const std::optional<double> prime_distance, const Ratio& prime_ratio)
+void GCodeExport::writeZhopEnd(
+    const Settings& mesh_group_settings,
+    Velocity speed /*= 0*/,
+    const coord_t height,
+    const std::optional<double> prime_distance,
+    const Ratio& prime_ratio)
 {
     if (z_hop_prime_leftover_.has_value())
     {
         const ZHopAntiOozing z_hop_prime_leftover = z_hop_prime_leftover_.value();
         z_hop_prime_leftover_.reset();
-        writeZhopEnd(speed, height, z_hop_prime_leftover.amount, z_hop_prime_leftover.ratio);
+        writeZhopEnd(mesh_group_settings, speed, height, z_hop_prime_leftover.amount, z_hop_prime_leftover.ratio);
     }
 
     if (is_z_hopped_)
@@ -1368,17 +1400,17 @@ void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, con
         if (prime_distance.has_value() && prime_ratio > 0.0 && prime_ratio < 1.0)
         {
             // We have to split the z-hop move in two sub-moves, one without prime and one with
-            writeZhopEnd(speed, is_z_hopped_ * prime_ratio, extruder_attr_[current_extruder_].retraction_e_amount_current_, 0.0);
-            writeZhopEnd(speed, 0, prime_distance, 0.0);
+            writeZhopEnd(mesh_group_settings, speed, is_z_hopped_ * prime_ratio, extruder_attr_[current_extruder_].retraction_e_amount_current_, 0.0);
+            writeZhopEnd(mesh_group_settings, speed, 0, prime_distance, 0.0);
             return;
         }
 
-        writeZhop(speed, height, prime_distance);
+        writeZhop(mesh_group_settings, speed, height, prime_distance);
         current_position_.z_ = current_layer_z_;
     }
 }
 
-void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const std::optional<double> retract_distance)
+void GCodeExport::writeZhop(const Settings& mesh_group_settings, Velocity speed /*= 0*/, const coord_t height, const std::optional<double> retract_distance)
 {
     if (speed == 0)
     {
@@ -1396,7 +1428,8 @@ void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const 
     is_z_hopped_ = height;
     const coord_t target_z = current_layer_z_ + is_z_hopped_;
 
-    const PrintFeatureType travel_move_type = sendTravel(Point3LL(current_position_.x_, current_position_.y_, target_z), speed, extruder_attr, retraction_amounts);
+    const PrintFeatureType travel_move_type
+        = sendTravel(Point3LL(current_position_.x_, current_position_.y_, target_z), speed, extruder_attr, retraction_amounts, mesh_group_settings);
 
     *output_stream_ << "G1";
     writeFXYZE(speed, current_position_.x_, current_position_.y_, target_z, current_e_value_, travel_move_type, retraction_amounts);
@@ -1405,8 +1438,12 @@ void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const 
     total_bounding_box_.includeZ(target_z);
 }
 
-PrintFeatureType
-    GCodeExport::sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts)
+PrintFeatureType GCodeExport::sendTravel(
+    const Point3LL& p,
+    const Velocity& speed,
+    const ExtruderTrainAttributes& extruder_attr,
+    const std::optional<RetractionAmounts>& retraction_amounts,
+    const Settings& mesh_group_settings)
 {
     PrintFeatureType travel_move_type;
     if (retraction_amounts.has_value() && retraction_amounts.value().has_retraction())
@@ -1418,7 +1455,8 @@ PrintFeatureType
         travel_move_type = extruder_attr.retraction_e_amount_current_ > 0.0 ? PrintFeatureType::MoveRetracted : PrintFeatureType::MoveUnretracted;
     }
     const int display_width = extruder_attr.retraction_e_amount_current_ ? MM2INT(0.2) : MM2INT(0.1);
-    const double layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<double>("layer_height");
+#warning see if we can instead store the current layer height and avoid giving the storage everywhere
+    const double layer_height = mesh_group_settings.get<double>("layer_height");
     Application::getInstance().communication_->sendLineTo(travel_move_type, p, display_width, layer_height, speed);
 
     return travel_move_type;
@@ -1475,7 +1513,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     current_position_.z_ += 1;
 }
 
-void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop /*= 0*/)
+void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, const Settings& mesh_group_settings, coord_t perform_z_hop /*= 0*/)
 {
     if (current_extruder_ == new_extruder)
     {
@@ -1492,7 +1530,7 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
 
     if (perform_z_hop > 0)
     {
-        writeZhopStart(perform_z_hop);
+        writeZhopStart(perform_z_hop, mesh_group_settings);
     }
 
     resetExtrusionValue(); // zero the E value on the old extruder, so that the current_e_value is registered on the old extruder
@@ -1539,7 +1577,7 @@ void GCodeExport::resetExtruderToPrimed(const size_t extruder, const double init
     extruder_attr_[extruder].retraction_e_amount_current_ = initial_retraction;
 }
 
-void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
+void GCodeExport::writePrimeTrain(const Velocity& travel_speed, const Settings& mesh_group_settings)
 {
     if (extruder_attr_[current_extruder_].is_primed_)
     { // extruder is already primed once!
@@ -1560,7 +1598,7 @@ void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
             // currentPosition.z can be already z hopped
             prime_pos += Point3LL(current_position_.x_, current_position_.y_, current_layer_z_);
         }
-        writeTravel(prime_pos, travel_speed);
+        writeTravel(prime_pos, travel_speed, mesh_group_settings);
     }
 
     if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
@@ -1921,7 +1959,7 @@ void GCodeExport::ResetLastEValueAfterWipe(size_t extruder)
     extruder_attr_[extruder].last_e_value_after_wipe_ = 0;
 }
 
-void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
+void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config, const Settings& mesh_group_settings)
 {
     const Point3LL prev_position = current_position_;
     writeComment("WIPE_SCRIPT_BEGIN");
@@ -1933,21 +1971,21 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 
     if (wipe_config.hop_enable)
     {
-        writeZhopStart(wipe_config.hop_amount, wipe_config.hop_speed);
+        writeZhopStart(wipe_config.hop_amount, mesh_group_settings, wipe_config.hop_speed);
     }
 
-    writeTravel(Point2LL(wipe_config.brush_pos_x, current_position_.y_), wipe_config.move_speed);
+    writeTravel(Point2LL(wipe_config.brush_pos_x, current_position_.y_), wipe_config.move_speed, mesh_group_settings);
     for (size_t i = 0; i < wipe_config.repeat_count; ++i)
     {
         coord_t x = current_position_.x_ + (i % 2 ? -wipe_config.move_distance : wipe_config.move_distance);
-        writeTravel(Point2LL(x, current_position_.y_), wipe_config.move_speed);
+        writeTravel(Point2LL(x, current_position_.y_), wipe_config.move_speed, mesh_group_settings);
     }
 
-    writeTravel(prev_position, wipe_config.move_speed);
+    writeTravel(prev_position, wipe_config.move_speed, mesh_group_settings);
 
     if (wipe_config.hop_enable)
     {
-        writeZhopEnd(wipe_config.hop_speed);
+        writeZhopEnd(mesh_group_settings, wipe_config.hop_speed);
     }
 
     if (wipe_config.retraction_enable)

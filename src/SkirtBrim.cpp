@@ -71,13 +71,13 @@ SkirtBrim::SkirtBrim(MeshGroupSliceData& storage)
     }
 }
 
-std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Outline>& starting_outlines)
+std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Outline>& starting_outlines, const Settings& mesh_group_settings)
 {
     std::vector<Offset> all_brim_offsets;
 
     if (skirt_brim_extruder_nr_ >= 0)
     {
-        starting_outlines[skirt_brim_extruder_nr_] = getFirstLayerOutline();
+        starting_outlines[skirt_brim_extruder_nr_] = getFirstLayerOutline(mesh_group_settings);
     }
     else
     {
@@ -87,7 +87,7 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Out
             {
                 continue;
             }
-            starting_outlines[extruder_nr] = getFirstLayerOutline(extruder_nr);
+            starting_outlines[extruder_nr] = getFirstLayerOutline(mesh_group_settings, extruder_nr);
         }
     }
 
@@ -140,10 +140,10 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Out
     return all_brim_offsets;
 }
 
-void SkirtBrim::generate()
+void SkirtBrim::generate(const Settings& mesh_group_settings)
 {
     std::vector<Outline> starting_outlines(extruder_count_);
-    std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
+    std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines, mesh_group_settings);
     std::vector<Shape> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines);
 
     // Apply 'approximate convex hull' if the adhesion is skirt _after_ any skirt but also prime-tower-brim adhesion.
@@ -175,9 +175,8 @@ void SkirtBrim::generate()
     generateSecondarySkirtBrim(covered_area, allowed_areas_per_extruder, total_length);
 
     // simplify paths to prevent buffer unnerruns in firmware
-    const Settings& global_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const coord_t maximum_resolution = global_settings.get<coord_t>("meshfix_maximum_resolution");
-    const coord_t maximum_deviation = global_settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t maximum_resolution = mesh_group_settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t maximum_deviation = mesh_group_settings.get<coord_t>("meshfix_maximum_deviation");
     constexpr coord_t max_area_dev = 0u; // No area deviation applied
     for (int extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
     {
@@ -306,10 +305,9 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
     return length_added;
 }
 
-SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1 */)
+SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const Settings& mesh_group_settings, const int extruder_nr /* = -1 */)
 {
     Outline first_layer_outline;
-    Settings& global_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     int reference_extruder_nr = skirt_brim_extruder_nr_;
     assert(! (reference_extruder_nr == -1 && extruder_nr == -1) && "We should only request the outlines of all layers when the brim is being generated for only one material");
     if (reference_extruder_nr == -1)
@@ -368,10 +366,10 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
         }
 
         if (storage_.support.generated && primary_line_count > 0 && ! storage_.support.supportLayers.empty()
-            && (extruder_nr == -1 || extruder_nr == global_settings.get<int>("support_infill_extruder_nr")))
+            && (extruder_nr == -1 || extruder_nr == mesh_group_settings.get<int>("support_infill_extruder_nr")))
         { // remove model-brim from support
             SupportLayer& support_layer = storage_.support.supportLayers[0];
-            const ExtruderTrain& support_infill_extruder = global_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
+            const ExtruderTrain& support_infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
             if (support_infill_extruder.settings_.get<bool>("brim_replaces_support"))
             {
                 // avoid gap in the middle
@@ -667,12 +665,11 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
     return allowed_areas_per_extruder;
 }
 
-void SkirtBrim::generateSupportBrim()
+void SkirtBrim::generateSupportBrim(const Settings& mesh_group_settings)
 {
     constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
 
-    Scene& scene = Application::getInstance().current_slice_->scene;
-    const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
+    const ExtruderTrain& support_infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t brim_line_width
         = support_infill_extruder.settings_.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
     size_t line_count = support_infill_extruder.settings_.get<size_t>("support_brim_line_count");

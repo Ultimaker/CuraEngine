@@ -367,7 +367,7 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
  * @param rasterized_mesh The voxels grid containing the rasterized mesh
  * @return A vector of shapes, that has as many elements as Z planes in the voxels grid
  */
-std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
+std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh, const Settings& mesh_group_settings)
 {
     const coord_t thickness = rasterized_mesh.getResolution().z_;
     const coord_t initial_layer_thickness = thickness;
@@ -387,7 +387,7 @@ std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
     sliced_mesh.settings_.add("hole_xy_offset", "0");
     sliced_mesh.settings_.add("hole_xy_offset_max_diameter", "0");
 
-    Slicer slicer(&sliced_mesh, thickness, slice_layer_count, use_variable_layer_heights, adaptive_layers, slicing_tolerance, initial_layer_thickness);
+    Slicer slicer(&sliced_mesh, mesh_group_settings, thickness, slice_layer_count, use_variable_layer_heights, adaptive_layers, slicing_tolerance, initial_layer_thickness);
 
     // In order to re-create an offset on the Z direction, union the sliced shapes over a few layers so that we get an approximate outer shell of it
     std::vector<Shape> slices;
@@ -587,7 +587,8 @@ std::vector<Mesh> makeModifierMeshes(
     const MeshGeneratorData& mesh_data,
     const std::shared_ptr<TextureDataProvider>& texture_data_provider,
     const size_t delta_iterations,
-    const size_t total_estimated_iterations)
+    const size_t total_estimated_iterations,
+    const Settings& mesh_group_settings)
 {
     const Settings& settings = mesh_data.mesh.settings_;
     const uint8_t mesh_extruder_nr = static_cast<uint8_t>(settings.get<size_t>("extruder_nr"));
@@ -612,7 +613,7 @@ std::vector<Mesh> makeModifierMeshes(
     const coord_t depth_squared = mesh_data.depth * mesh_data.depth;
 
     // Create a slice of the mesh so that we can quickly check for points insideness
-    const std::vector<Shape> sliced_mesh = sliceMesh(mesh_data.mesh, voxel_grid);
+    const std::vector<Shape> sliced_mesh = sliceMesh(mesh_data.mesh, voxel_grid, mesh_group_settings);
 
     spdlog::debug("Get initially filled voxels");
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
@@ -677,7 +678,7 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
     return result;
 }
 
-void makeMaterialModifierMeshes(MeshGroup* meshgroup)
+void makeMaterialModifierMeshes(MeshGroup* meshgroup, const Settings& mesh_group_settings)
 {
     const std::vector<MeshGeneratorData> mesh_generation_data = makeInitialMeshesGenerationData(meshgroup);
     size_t delta_iterations = 0;
@@ -697,7 +698,7 @@ void makeMaterialModifierMeshes(MeshGroup* meshgroup)
         spdlog::info("Start multi-material mesh generation for {}", mesh.mesh_name_);
 
         const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
-        for (const Mesh& modifier_mesh : makeModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations))
+        for (const Mesh& modifier_mesh : makeModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations, mesh_group_settings))
         {
             modifier_meshes.push_back(std::move(modifier_mesh));
         }

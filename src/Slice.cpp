@@ -30,19 +30,18 @@ void Slice::compute()
 #endif
 
     size_t index = 0;
-    for (const MeshGroup& mesh_group : scene.mesh_groups)
+    for (MeshGroup& mesh_group : scene.mesh_groups)
     {
-        storages_[index++] = std::make_shared<MeshGroupSliceData>(mesh_group.settings);
+        storages_[index++] = std::make_shared<MeshGroupSliceData>(mesh_group);
     }
 
-    for (auto [mesh_group_index, mesh_group] : scene.mesh_groups | ranges::views::enumerate)
+    for (const std::shared_ptr<MeshGroupSliceData>& mesh_group_data : storages_)
     {
-        scene.current_mesh_group = std::next(scene.mesh_groups.begin(), mesh_group_index);
         for (ExtruderTrain& extruder : scene.extruders)
         {
-            extruder.settings_.setParent(&mesh_group.settings);
+            extruder.settings_.setParent(&mesh_group_data->settings_);
         }
-        Scene::processMeshGroup(mesh_group, *storages_.at(mesh_group_index));
+        Scene::processMeshGroup(*mesh_group_data);
     }
 }
 

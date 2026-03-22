@@ -44,11 +44,11 @@ private:
      * limitation to FULL. Otherwise the height is set to the height limit
      * setting. If the draft shield is disabled, the height is always 0.
      *
-     * \param total_layers The total number of layers in the print (the height
+     * \param storage The total number of layers in the print (the height
      * of the draft shield if the limit is FULL.
      * \return The actual height of the draft shield.
      */
-    size_t getDraftShieldLayerCount(const size_t total_layers) const;
+    size_t getDraftShieldLayerCount(const MeshGroupSliceData &mesh_group_data) const;
 
     /*!
      * Slice the \p object and store the outlines in the \p storage.

@@ -3,17 +3,13 @@
 
 #include "PrimeTower/PrimeTowerInterleaved.h"
 
-#include "Application.h"
-#include "LayerPlan.h"
-#include "Scene.h"
-#include "Slice.h"
 #include "slice_data/MeshGroupSliceData.h"
 
 namespace cura
 {
 
-PrimeTowerInterleaved::PrimeTowerInterleaved()
-    : PrimeTower()
+PrimeTowerInterleaved::PrimeTowerInterleaved(const Settings& mesh_group_settings)
+    : PrimeTower(mesh_group_settings)
 {
 }
 
@@ -36,10 +32,9 @@ ExtruderPrime PrimeTowerInterleaved::getExtruderPrime(
     }
 }
 
-std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInterleaved::generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use)
+std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>>
+    PrimeTowerInterleaved::generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const Settings& mesh_group_settings)
 {
-    const Scene& scene = Application::getInstance().current_slice_->scene;
-    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
     const coord_t min_shell_thickness = mesh_group_settings.get<coord_t>("prime_tower_min_shell_thickness");
     coord_t shell_thickness = 0;
@@ -63,7 +58,8 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInter
                 extruder_toolpaths.outer_radius = prime_next_outer_radius;
                 extruder_toolpaths.extruder_nr = extruder_use.extruder_nr;
 
-                std::tie(extruder_toolpaths.toolpaths, extruder_toolpaths.inner_radius) = generatePrimeToolpaths(extruder_use.extruder_nr, prime_next_outer_radius);
+                std::tie(extruder_toolpaths.toolpaths, extruder_toolpaths.inner_radius)
+                    = generatePrimeToolpaths(extruder_use.extruder_nr, prime_next_outer_radius, mesh_group_settings);
                 toolpaths_at_layer.push_back(extruder_toolpaths);
 
                 prime_next_outer_radius = extruder_toolpaths.inner_radius;

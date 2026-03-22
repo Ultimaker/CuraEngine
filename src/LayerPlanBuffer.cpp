@@ -19,13 +19,13 @@ namespace cura
 
 constexpr Duration LayerPlanBuffer::extra_preheat_time_;
 
-void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
+void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode, const MeshGroupSliceData& mesh_group_data)
 {
     std::lock_guard mutex_locker(buffer_mutex_);
 
     buffer_.push_back(&layer_plan);
 
-    LayerPlan* to_be_written = processBuffer();
+    LayerPlan* to_be_written = processBuffer(mesh_group_data);
     if (to_be_written)
     {
         to_be_written->writeGCode(gcode);
@@ -35,7 +35,7 @@ void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
     buffer_condition_variable_.notify_all();
 }
 
-LayerPlan* LayerPlanBuffer::processBuffer()
+LayerPlan* LayerPlanBuffer::processBuffer(const MeshGroupSliceData& mesh_group_data)
 {
     if (buffer_.empty())
     {
@@ -44,11 +44,11 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     processFanSpeedLayerTime();
     if (buffer_.size() >= 2)
     {
-        addConnectingTravelMove(*--(--buffer_.end()), *--buffer_.end());
+        addConnectingTravelMove(*--(--buffer_.end()), *--buffer_.end(), mesh_group_data.settings_);
     }
     if (buffer_.size() > 0)
     {
-        insertTempCommands(); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
+        insertTempCommands(mesh_group_data); // insert preheat commands of the just completed layer plan (not the newly emplaced one)
     }
     if (buffer_.size() > buffer_size_)
     {
@@ -60,13 +60,13 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     return nullptr;
 }
 
-void LayerPlanBuffer::flush()
+void LayerPlanBuffer::flush(const MeshGroupSliceData& mesh_group_data)
 {
     Application::getInstance()
         .communication_->flushGCode(); // If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
     if (buffer_.size() > 0)
     {
-        insertTempCommands(); // insert preheat commands of the very last layer
+        insertTempCommands(mesh_group_data); // insert preheat commands of the very last layer
     }
     while (! buffer_.empty())
     {
@@ -117,7 +117,7 @@ const LayerPlan* LayerPlanBuffer::getCompletedLayerPlan(const LayerIndex& layer_
     return result;
 }
 
-void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
+void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer, const Settings& mesh_group_settings)
 {
     std::optional<std::pair<Point2LL, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
 
@@ -135,7 +135,6 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
     // if the last planned position in the previous layer isn't the same as the first location of the new layer, travel to the new location
     if (! prev_layer->last_planned_position_ || prev_layer->last_planned_position_.value().toPoint2LL() != first_location_new_layer)
     {
-        const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_layer->extruder_plans_.back().extruder_nr_].settings_;
         prev_layer->setIsInside(new_layer_destination_state->second);
 
@@ -541,7 +540,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
     }
 }
 
-void LayerPlanBuffer::insertTempCommands()
+void LayerPlanBuffer::insertTempCommands(const MeshGroupSliceData& mesh_group_data)
 {
     if (buffer_.back()->extruder_plans_.size() == 0 || (buffer_.back()->extruder_plans_.size() == 1 && buffer_.back()->extruder_plans_[0].paths_.size() == 0))
     { // disregard empty layer
@@ -567,7 +566,7 @@ void LayerPlanBuffer::insertTempCommands()
         const size_t overall_extruder_plan_idx = extruder_plans.size() - layer_plan.extruder_plans_.size() + extruder_plan_idx;
         ExtruderPlan& extruder_plan = layer_plan.extruder_plans_[extruder_plan_idx];
         size_t extruder = extruder_plan.extruder_nr_;
-        const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
+        const Settings& extruder_settings = scene.extruders[extruder].settings_;
         Duration time = extruder_plan.estimates_.getTotalUnretractedTime();
         if (time <= 0.0)
         {
@@ -604,8 +603,8 @@ void LayerPlanBuffer::insertTempCommands()
         { // the very first extruder plan of the current meshgroup
             for (size_t extruder_idx = 0; extruder_idx < scene.extruders.size(); extruder_idx++)
             { // set temperature of the first nozzle, turn other nozzles down
-                const Settings& other_extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder_idx].settings_;
-                if (scene.current_mesh_group == scene.mesh_groups.begin()) // First mesh group.
+                const Settings& other_extruder_settings = scene.extruders[extruder_idx].settings_;
+                if (&mesh_group_data.mesh_group_ == &scene.mesh_groups.front()) // First mesh group.
                 {
                     // override values from GCodeExport::setInitialTemps
                     // the first used extruder should be set to the required temp in the start gcode

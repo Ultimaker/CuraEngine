@@ -30,8 +30,8 @@
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //To compute overhang distance from the angle.
 #include "settings/types/Ratio.h"
-#include "slice_data/MeshSliceData.h"
 #include "slice_data/MeshGroupSliceData.h"
+#include "slice_data/MeshSliceData.h"
 #include "slicer.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
@@ -76,7 +76,10 @@ bool AreaSupport::handleSupportModifierMesh(MeshGroupSliceData& storage, const S
 }
 
 
-void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(MeshGroupSliceData& storage, const std::vector<Shape>& global_support_areas_per_layer, unsigned int total_layer_count)
+void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(
+    MeshGroupSliceData& storage,
+    const std::vector<Shape>& global_support_areas_per_layer,
+    unsigned int total_layer_count)
 {
     if (total_layer_count == 0)
     {
@@ -814,9 +817,8 @@ void AreaSupport::generateOverhangAreasForMesh(MeshGroupSliceData& storage, Mesh
         });
 }
 
-Shape AreaSupport::generateVaryingXYDisallowedArea(const MeshSliceData& storage, const LayerIndex layer_idx)
+Shape AreaSupport::generateVaryingXYDisallowedArea(const MeshSliceData& storage, const Settings& mesh_group_settings, const LayerIndex layer_idx)
 {
-    const auto& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const Simplify simplify{ mesh_group_settings };
     const auto layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     const auto support_distance_top = static_cast<double>(mesh_group_settings.get<coord_t>("support_top_distance"));
@@ -1091,7 +1093,7 @@ void AreaSupport::generateSupportAreasForMesh(
                     // layer below that protrudes beyond the current layer's area and combine it with the current layer's overhang disallowed area
 
                     Shape minimum_xy_disallowed_areas = mesh.layers[layer_idx].getOutlines().offset(xy_distance_overhang);
-                    Shape varying_xy_disallowed_areas = generateVaryingXYDisallowedArea(mesh, layer_idx);
+                    Shape varying_xy_disallowed_areas = generateVaryingXYDisallowedArea(mesh, storage.settings_, layer_idx);
                     xy_disallowed_per_layer[layer_idx] = minimum_xy_disallowed_areas.unionPolygons(varying_xy_disallowed_areas);
                     scripta::log("support_xy_disallowed_areas", xy_disallowed_per_layer[layer_idx], SectionType::SUPPORT, layer_idx);
                 }

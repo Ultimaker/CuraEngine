@@ -28,6 +28,7 @@
 #include "FffProcessor.h" //To start a slice and get time estimates.
 #include "MeshGroup.h"
 #include "Slice.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
 #include "utils/format/filesystem_path.h"
 #include "utils/views/split_paths.h"
@@ -501,7 +502,7 @@ void CommandLine::sliceNext()
 #endif // DEBUG
 
     // Finalize the processor. This adds the end g-code and reports statistics.
-    FffProcessor::getInstance()->finalize();
+    FffProcessor::getInstance()->finalize(slice->storages_.back()->settings_);
 }
 
 int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)

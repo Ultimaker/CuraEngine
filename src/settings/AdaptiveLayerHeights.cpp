@@ -8,10 +8,10 @@
 #include <limits>
 #include <numbers>
 
-#include "Application.h"
-#include "Slice.h"
+#include "MeshGroup.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Angle.h"
+#include "slice_data/MeshGroupSliceData.h"
 #include "utils/Point3D.h"
 
 namespace cura
@@ -22,16 +22,20 @@ AdaptiveLayer::AdaptiveLayer(const coord_t layer_height)
 {
 }
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup)
+AdaptiveLayerHeights::AdaptiveLayerHeights(
+    const coord_t base_layer_height,
+    const coord_t variation,
+    const coord_t step_size,
+    const coord_t threshold,
+    const MeshGroupSliceData& mesh_group_data)
     : base_layer_height_{ base_layer_height }
     , max_variation_{ variation }
     , step_size_{ step_size }
     , threshold_{ threshold }
-    , meshgroup_{ meshgroup }
 {
     calculateAllowedLayerHeights();
-    calculateMeshTriangleSlopes();
-    calculateLayers();
+    calculateMeshTriangleSlopes(mesh_group_data.mesh_group_);
+    calculateLayers(mesh_group_data);
 }
 
 size_t AdaptiveLayerHeights::getLayerCount() const
@@ -59,13 +63,13 @@ void AdaptiveLayerHeights::calculateAllowedLayerHeights()
     }
 }
 
-void AdaptiveLayerHeights::calculateLayers()
+void AdaptiveLayerHeights::calculateLayers(const MeshGroupSliceData& mesh_group_data)
 {
     const coord_t minimum_layer_height = *std::min_element(allowed_layer_heights_.begin(), allowed_layer_heights_.end());
-    Settings const& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = mesh_group_data.settings_;
     auto slicing_tolerance = mesh_group_settings.get<SlicingTolerance>("slicing_tolerance");
     std::vector<size_t> triangles_of_interest;
-    const coord_t model_max_z = meshgroup_->max().z_;
+    const coord_t model_max_z = mesh_group_data.mesh_group_.max().z_;
     coord_t z_level = 0;
     coord_t previous_layer_height = 0;
 
@@ -185,10 +189,10 @@ void AdaptiveLayerHeights::calculateLayers()
     }
 }
 
-void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
+void AdaptiveLayerHeights::calculateMeshTriangleSlopes(const MeshGroup& mesh_group)
 {
     // loop over all mesh faces (triangles) and find their slopes
-    for (const Mesh& mesh : Application::getInstance().current_slice_->scene.current_mesh_group->meshes)
+    for (const Mesh& mesh : mesh_group.meshes)
     {
         // Skip meshes that are not printable
         if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh") || mesh.settings_.get<bool>("anti_overhang_mesh"))

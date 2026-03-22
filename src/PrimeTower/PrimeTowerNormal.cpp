@@ -4,7 +4,6 @@
 #include "PrimeTower/PrimeTowerNormal.h"
 
 #include "Application.h"
-#include "LayerPlan.h"
 #include "Scene.h"
 #include "Slice.h"
 #include "slice_data/MeshGroupSliceData.h"
@@ -12,8 +11,8 @@
 namespace cura
 {
 
-PrimeTowerNormal::PrimeTowerNormal(const std::vector<size_t>& used_extruders)
-    : PrimeTower()
+PrimeTowerNormal::PrimeTowerNormal(const std::vector<size_t>& used_extruders, const Settings& mesh_group_settings)
+    : PrimeTower(mesh_group_settings)
     , used_extruders_(used_extruders)
 {
 }
@@ -39,10 +38,10 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     }
 }
 
-std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNormal::generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use)
+std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>>
+    PrimeTowerNormal::generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use, const Settings& mesh_group_settings)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
     std::map<LayerIndex, std::vector<ExtruderToolPaths>> toolpaths;
 
@@ -69,7 +68,7 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNorma
         ExtruderToolPaths extruder_prime_toolpaths;
         extruder_prime_toolpaths.extruder_nr = extruder_nr;
         extruder_prime_toolpaths.outer_radius = current_radius;
-        std::tie(extruder_prime_toolpaths.toolpaths, extruder_prime_toolpaths.inner_radius) = generatePrimeToolpaths(extruder_nr, current_radius);
+        std::tie(extruder_prime_toolpaths.toolpaths, extruder_prime_toolpaths.inner_radius) = generatePrimeToolpaths(extruder_nr, current_radius, mesh_group_settings);
         extruders_prime_toolpaths[extruder_nr] = extruder_prime_toolpaths;
 
         ExtruderToolPaths extruder_support_toolpaths = extruder_prime_toolpaths;

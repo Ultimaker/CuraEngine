@@ -33,9 +33,9 @@ std::vector<Duration> FffProcessor::getTotalPrintTimePerFeature()
     return gcode_writer.getTotalPrintTimePerFeature();
 }
 
-void FffProcessor::finalize()
+void FffProcessor::finalize(const Settings& mesh_group_settings)
 {
-    gcode_writer.finalize();
+    gcode_writer.finalize(mesh_group_settings);
 }
 
 } // namespace cura

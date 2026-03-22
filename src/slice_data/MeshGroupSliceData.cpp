@@ -23,8 +23,9 @@ std::vector<RetractionAndWipeConfig> MeshGroupSliceData::initializeRetractionAnd
     return ret;
 }
 
-MeshGroupSliceData::MeshGroupSliceData(const Settings& settings)
-    : settings_(settings)
+MeshGroupSliceData::MeshGroupSliceData(MeshGroup& mesh_group)
+    : mesh_group_(mesh_group)
+    , settings_(mesh_group_.settings)
     , print_layer_count(0)
     , retraction_wipe_config_per_extruder(initializeRetractionAndWipeConfigs())
     , max_print_height_second_to_last_extruder(-1)
@@ -53,7 +54,7 @@ Shape MeshGroupSliceData::getLayerOutlines(
     const int extruder_nr,
     const bool include_models) const
 {
-    const auto layer_type = Raft::getLayerType(layer_nr);
+    const auto layer_type = Raft::getLayerType(layer_nr, settings_);
     switch (layer_type)
     {
     case Raft::LayerType::RaftBase:
@@ -248,7 +249,7 @@ std::vector<bool> MeshGroupSliceData::getExtrudersUsed(const LayerIndex layer_nr
     if (layer_nr < 0)
     {
         include_models = false;
-        if (layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount()))
+        if (layer_nr < -static_cast<LayerIndex>(Raft::getFillerLayerCount(settings_)))
         {
             include_helper_parts = false;
         }
@@ -273,7 +274,7 @@ std::vector<bool> MeshGroupSliceData::getExtrudersUsed(const LayerIndex layer_nr
         }
         if (adhesion_type == EPlatformAdhesion::RAFT)
         {
-            const Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
+            const Raft::LayerType layer_type = Raft::getLayerType(layer_nr, settings_);
             if (layer_type == Raft::RaftBase)
             {
                 ret[settings_.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_] = true;

@@ -5,12 +5,11 @@
 
 #include <numbers>
 
-#include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "Scene.h"
-#include "Slice.h"
+#include "MeshGroup.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Point2LL.h"
+#include "mesh.h"
 #include "settings/types/Ratio.h"
 #include "slice_data/MeshGroupSliceData.h"
 #include "slicer.h"
@@ -18,14 +17,13 @@
 namespace cura
 {
 
-void Mold::process(std::vector<Slicer*>& slicer_list)
+void Mold::process(std::vector<Slicer*>& slicer_list, const MeshGroupSliceData& mesh_group_data)
 {
-    Scene& scene = Application::getInstance().current_slice_->scene;
     { // check whether we even need to process molds
         bool has_any_mold = false;
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
+            Mesh& mesh = mesh_group_data.mesh_group_.meshes[mesh_idx];
             if (mesh.settings_.get<bool>("mold_enabled"))
             {
                 has_any_mold = true;
@@ -48,7 +46,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         }
     }
 
-    const coord_t layer_height = scene.current_mesh_group->settings.get<coord_t>("layer_height");
+    const coord_t layer_height = mesh_group_data.settings_.get<coord_t>("layer_height");
     std::vector<Shape> mold_outline_above_per_mesh; // the outer outlines of the layer above without the original model(s) being cut out
     mold_outline_above_per_mesh.resize(slicer_list.size());
     for (int layer_nr = layer_count - 1; layer_nr >= 0; layer_nr--)
@@ -58,7 +56,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         // first generate outlines
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
+            const Mesh& mesh = mesh_group_data.mesh_group_.meshes[mesh_idx];
             Slicer& slicer = *slicer_list[mesh_idx];
             if (! mesh.settings_.get<bool>("mold_enabled") || layer_nr >= static_cast<int>(slicer.layers.size()))
             {
@@ -110,7 +108,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         // carve molds out of all other models
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
-            const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
+            const Mesh& mesh = mesh_group_data.mesh_group_.meshes[mesh_idx];
             if (! mesh.settings_.get<bool>("mold_enabled"))
             {
                 continue; // only cut original models out of all molds

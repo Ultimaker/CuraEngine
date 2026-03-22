@@ -36,11 +36,6 @@
 namespace cura
 {
 
-Settings::Settings()
-{
-    parent = nullptr; // Needs to be properly initialised because we check against this if the parent is not set.
-}
-
 void Settings::add(const std::string& key, const std::string& value)
 {
     if (settings.find(key) != settings.end()) // Already exists.
@@ -851,7 +846,7 @@ bool Settings::has(const std::string& key, const bool parent_lookup) const
     return false;
 }
 
-void Settings::setParent(Settings* new_parent)
+void Settings::setParent(const Settings *new_parent)
 {
     parent = new_parent;
 }

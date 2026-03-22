@@ -9,7 +9,7 @@
 
 #include <spdlog/spdlog.h>
 
-#include "Application.h" //To get settings.
+#include "Application.h"
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
 #include "PrimeTower/PrimeTowerInterleaved.h"
@@ -25,18 +25,16 @@
 namespace cura
 {
 
-PrimeTower::PrimeTower()
+PrimeTower::PrimeTower(const Settings& mesh_group_settings)
     : wipe_from_middle_(false)
 {
-    const Scene& scene = Application::getInstance().current_slice_->scene;
-    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
     const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
     const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
-    const coord_t base_height = scene.settings.get<coord_t>("prime_tower_base_height");
+    const coord_t base_extra_radius = mesh_group_settings.get<coord_t>("prime_tower_base_size");
+    const coord_t base_height = mesh_group_settings.get<coord_t>("prime_tower_base_height");
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
     middle_ = Point2LL(x - tower_radius, y + tower_radius);
@@ -46,7 +44,7 @@ PrimeTower::PrimeTower()
     // Generate the base outline
     if (base_enabled && base_extra_radius > 0 && base_height > 0)
     {
-        base_occupied_outline_.init(true);
+        base_occupied_outline_.init(true, mesh_group_settings);
 
         for (coord_t z = 0; z < base_height; z += layer_height)
         {
@@ -58,17 +56,16 @@ PrimeTower::PrimeTower()
     }
 }
 
-void PrimeTower::generateBase()
+void PrimeTower::generateBase(const Settings& mesh_group_settings)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
-    const coord_t base_height = scene.settings.get<coord_t>("prime_tower_base_height");
+    const coord_t base_extra_radius = mesh_group_settings.get<coord_t>("prime_tower_base_size");
+    const coord_t base_height = mesh_group_settings.get<coord_t>("prime_tower_base_height");
 
     if (base_enabled && base_extra_radius > 0 && base_height > 0)
     {
-        base_extrusion_outline_.init(true);
+        base_extrusion_outline_.init(true, mesh_group_settings);
 
         // Generate the base outside extra annuli for the first extruder of each layer
         auto iterator_extrusion_paths = toolpaths_.begin();
@@ -111,10 +108,9 @@ void PrimeTower::generateFirtLayerInset()
     }
 }
 
-std::tuple<ClosedLinesSet, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius)
+std::tuple<ClosedLinesSet, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius, const Settings& mesh_group_settings)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
     const double required_volume = scene.extruders[extruder_nr].settings_.get<double>("prime_tower_min_volume") * 1000000000;
@@ -225,7 +221,7 @@ void PrimeTower::addToGcode(
 
     if (toolpaths && ! toolpaths->empty())
     {
-        gotoStartLocation(gcode_layer, new_extruder_nr);
+        gotoStartLocation(gcode_layer, new_extruder_nr, storage.settings_);
 
         const GCodePathConfig& config = gcode_layer.configs_storage_.prime_tower_config_per_extruder[new_extruder_nr];
         gcode_layer.addLinesByOptimizer(*toolpaths, config, SpaceFillType::PolyLines);
@@ -295,19 +291,19 @@ void PrimeTower::subtractFromSupport(MeshGroupSliceData& storage)
     }
 }
 
-void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder)
+void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder, const Settings& mesh_group_settings)
 {
     polishExtrudersUses(extruders_use, start_extruder);
-    toolpaths_ = generateToolPaths(extruders_use);
-    generateBase();
+    toolpaths_ = generateToolPaths(extruders_use, mesh_group_settings);
+    generateBase(mesh_group_settings);
     generateFirtLayerInset();
 }
 
 PrimeTower* PrimeTower::createPrimeTower(MeshGroupSliceData& storage)
 {
     PrimeTower* prime_tower = nullptr;
-    const Settings& settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const size_t raft_total_extra_layers = Raft::getTotalExtraLayers();
+    const Settings& settings = storage.settings_;
+    const size_t raft_total_extra_layers = Raft::getTotalExtraLayers(storage.settings_);
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
 
     std::vector<size_t> used_extruders_nrs;
@@ -327,10 +323,10 @@ PrimeTower* PrimeTower::createPrimeTower(MeshGroupSliceData& storage)
         switch (method)
         {
         case PrimeTowerMode::NORMAL:
-            prime_tower = new PrimeTowerNormal(used_extruders_nrs);
+            prime_tower = new PrimeTowerNormal(used_extruders_nrs, settings);
             break;
         case PrimeTowerMode::INTERLEAVED:
-            prime_tower = new PrimeTowerInterleaved();
+            prime_tower = new PrimeTowerInterleaved(settings);
             break;
         }
     }
@@ -348,10 +344,10 @@ bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used
     return extruder_is_used_on_this_layer[extruder_nr] && extruder_nr != last_extruder;
 }
 
-void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr) const
+void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr, const Settings& mesh_group_settings) const
 {
     LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr != -LayerIndex(Raft::getTotalExtraLayers()))
+    if (layer_nr != -LayerIndex(Raft::getTotalExtraLayers(mesh_group_settings)))
     {
         coord_t wipe_radius;
         auto iterator = base_occupied_outline_.iterator_at(gcode_layer.getLayerNr());

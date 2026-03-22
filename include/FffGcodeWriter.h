@@ -339,7 +339,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
+    void addMeshLayerToGCode_meshSurfaceMode(const Settings &mesh_group_settings, const MeshSliceData& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
 
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -716,7 +716,7 @@ private:
     /*!
      * Add the end gcode and set all temperatures to zero.
      */
-    void finalize();
+    void finalize(const Settings& mesh_group_settings);
 
     /*!
      * Calculate for each layer the index of the vertex that is considered to be the seam

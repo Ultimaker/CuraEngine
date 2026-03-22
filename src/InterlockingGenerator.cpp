@@ -23,13 +23,12 @@ namespace cura
 
 // TODO: optimization: only go up to the min layer count + a couple of layers instead of max_layer_count
 
-void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes)
+void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& volumes, const Settings& mesh_group_settings)
 {
-    Settings& global_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const PointMatrix rotation(global_settings.get<AngleDegrees>("interlocking_orientation"));
-    const coord_t beam_layer_count = global_settings.get<int>("interlocking_beam_layer_count");
-    const int interface_depth = global_settings.get<int>("interlocking_depth");
-    const int boundary_avoidance = global_settings.get<int>("interlocking_boundary_avoidance");
+    const PointMatrix rotation(mesh_group_settings.get<AngleDegrees>("interlocking_orientation"));
+    const coord_t beam_layer_count = mesh_group_settings.get<int>("interlocking_beam_layer_count");
+    const int interface_depth = mesh_group_settings.get<int>("interlocking_depth");
+    const int boundary_avoidance = mesh_group_settings.get<int>("interlocking_boundary_avoidance");
 
     for (size_t mesh_a_idx = 0; mesh_a_idx < volumes.size(); mesh_a_idx++)
     {
@@ -64,7 +63,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             const Point3LL cell_size(cell_width, cell_width, 2 * beam_layer_count);
 
             InterlockingGenerator gen(mesh_a, mesh_b, beam_width_a, beam_width_b, rotation, cell_size, beam_layer_count, interface_dilation, air_dilation, air_filtering);
-            gen.generateInterlockingStructure();
+            gen.generateInterlockingStructure(mesh_group_settings);
         }
     }
 }
@@ -90,10 +89,9 @@ std::pair<Shape, Shape> InterlockingGenerator::growBorderAreasPerpendicular(cons
     return { from_border_a, from_border_b };
 }
 
-void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const
+void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes, const Settings& mesh_group_settings) const
 {
-    Settings& global_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const coord_t boundary_avoidance = global_settings.get<int>("interlocking_boundary_avoidance");
+    const coord_t boundary_avoidance = mesh_group_settings.get<int>("interlocking_boundary_avoidance");
 
     const coord_t number_of_beams_detect = boundary_avoidance;
     const coord_t number_of_beams_expand = boundary_avoidance - 1;
@@ -148,7 +146,7 @@ void InterlockingGenerator::handleThinAreas(const std::unordered_set<GridPoint3>
     }
 }
 
-void InterlockingGenerator::generateInterlockingStructure() const
+void InterlockingGenerator::generateInterlockingStructure(const Settings& mesh_group_settings) const
 {
     std::vector<std::unordered_set<GridPoint3>> voxels_per_mesh = getShellVoxels(interface_dilation_);
 
@@ -168,7 +166,7 @@ void InterlockingGenerator::generateInterlockingStructure() const
             has_all_meshes.erase(p);
         }
 
-        handleThinAreas(has_all_meshes);
+        handleThinAreas(has_all_meshes, mesh_group_settings);
     }
 
     applyMicrostructureToOutlines(has_all_meshes, layer_regions);

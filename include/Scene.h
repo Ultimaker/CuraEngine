@@ -22,6 +22,7 @@ public:
     /*
      * \brief The global settings in the scene.
      */
+#warning This seems to remain empty forever, thus it is pretty much useless
     Settings settings;
 
     /*
@@ -39,15 +40,6 @@ public:
      * \brief The extruders in the scene.
      */
     std::vector<ExtruderTrain> extruders;
-
-    /*
-     * \brief The mesh group that is being processed right now.
-     *
-     * During initialisation this may be nullptr. For the most part, during the
-     * slicing process, you can be assured that this will not be null so you can
-     * safely dereference it.
-     */
-    std::vector<MeshGroup>::iterator current_mesh_group;
 
     /*
      * \brief Create an empty scene.
@@ -71,7 +63,9 @@ public:
      * \brief Generate the 3D printing instructions to print a given mesh group.
      * \param mesh_group The mesh group to slice.
      */
-    static void processMeshGroup(MeshGroup& mesh_group, MeshGroupSliceData &storage);
+    static void processMeshGroup(MeshGroupSliceData &storage);
+
+    std::vector<MeshGroup>::const_iterator find(const MeshGroup &mesh_group) const;
 
 private:
     /*

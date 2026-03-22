@@ -123,7 +123,7 @@ public:
      * \param primary_line_count Number of offsets / brim lines of the primary extruder.
      * \param set to false to force not doing brim generation for helper-structures (support and ooze/draft shields)
      */
-    void generate();
+    void generate(const Settings &mesh_group_settings);
 
 private:
     /*!
@@ -136,7 +136,7 @@ private:
      * \param[out] starting_outlines The first layer outlines from which to compute the offsets. Returned as output parameter because pointers need to stay valid.
      * \return An ordered list of offsets to perform in the order in which they are to be performed.
      */
-    std::vector<Offset> generateBrimOffsetPlan(std::vector<Outline>& starting_outlines);
+    std::vector<Offset> generateBrimOffsetPlan(std::vector<Outline>& starting_outlines, const Settings& mesh_group_settings);
 
     /*!
      * Generate the primary skirt/brim of the one skirt_brim_extruder or of all extruders simultaneously.
@@ -170,7 +170,7 @@ private:
      * \param extruder_nr The extruder for which to get the outlines. -1 to include outliens for all extruders
      * \return The resulting reference polygons
      */
-    Outline getFirstLayerOutline(const int extruder_nr = -1);
+    Outline getFirstLayerOutline(const Settings& mesh_group_settings, const int extruder_nr = -1);
 
     /*!
      * The disallowed area around the internal holes of parts with other parts inside which would get an external brim.
@@ -224,7 +224,7 @@ public:
     /*!
      * Generate the brim which is printed from the outlines of the support inward.
      */
-    void generateSupportBrim();
+    void generateSupportBrim(const Settings &mesh_group_settings);
 };
 } // namespace cura
 

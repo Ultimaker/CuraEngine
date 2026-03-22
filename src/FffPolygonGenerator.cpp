@@ -64,7 +64,7 @@ namespace cura
 
 bool FffPolygonGenerator::generateAreas(MeshGroupSliceData& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    MeshMaterialSplitter::makeMaterialModifierMeshes(meshgroup);
+    MeshMaterialSplitter::makeMaterialModifierMeshes(meshgroup, storage.settings_);
 
     if (! sliceModel(meshgroup, timeKeeper, storage))
     {
@@ -76,9 +76,10 @@ bool FffPolygonGenerator::generateAreas(MeshGroupSliceData& storage, MeshGroup* 
     return true;
 }
 
-size_t FffPolygonGenerator::getDraftShieldLayerCount(const size_t total_layers) const
+size_t FffPolygonGenerator::getDraftShieldLayerCount(const MeshGroupSliceData& mesh_group_data) const
 {
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const size_t total_layers = mesh_group_data.print_layer_count;
+    const Settings& mesh_group_settings = mesh_group_data.settings_;
     if (! mesh_group_settings.get<bool>("draft_shield_enabled"))
     {
         return 0;
@@ -107,7 +108,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     spdlog::info("Slicing model...");
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& mesh_group_settings = meshgroup->settings;
 
     // regular layers
     int slice_layer_count = 0; // Use signed int because we need to subtract the initial layer in a calculation temporarily.
@@ -138,8 +139,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         const auto variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
         const auto variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
         const auto adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
-        adaptive_layer_heights
-            = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, meshgroup);
+        adaptive_layer_heights = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, storage);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -218,8 +218,15 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         const SlicingTolerance slicing_tolerance = mesh.settings_.get<SlicingTolerance>("slicing_tolerance");
 
-        Slicer* slicer
-            = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness);
+        Slicer* slicer = new Slicer(
+            &mesh,
+            storage.settings_,
+            layer_thickness,
+            slice_layer_count,
+            use_variable_layer_heights,
+            adaptive_layer_height_values,
+            slicing_tolerance,
+            initial_layer_thickness);
 
         slicerList.push_back(slicer);
 
@@ -229,39 +236,38 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
     meshgroup->clear();
 
-    Mold::process(slicerList);
+    Mold::process(slicerList, storage);
 
-    const Scene& scene = Application::getInstance().current_slice_->scene;
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
-        const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
+        const Mesh& mesh = meshgroup->meshes[mesh_idx];
         if (mesh.settings_.get<bool>("conical_overhang_enabled") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
         {
             ConicalOverhang::apply(slicerList[mesh_idx], mesh);
         }
     }
 
-    MultiVolumes::carveCuttingMeshes(slicerList, scene.current_mesh_group->meshes);
+    MultiVolumes::carveCuttingMeshes(slicerList, meshgroup->meshes);
 
     Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
 
-    if (scene.current_mesh_group->settings.get<bool>("carve_multiple_volumes"))
+    if (mesh_group_settings.get<bool>("carve_multiple_volumes"))
     {
-        carveMultipleVolumes(slicerList);
+        carveMultipleVolumes(slicerList, storage.settings_);
     }
 
     generateMultipleVolumesOverlap(slicerList);
 
 
-    if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("interlocking_enable"))
+    if (mesh_group_settings.get<bool>("interlocking_enable"))
     {
-        InterlockingGenerator::generateInterlockingStructure(slicerList);
+        InterlockingGenerator::generateInterlockingStructure(slicerList, storage.settings_);
     }
 
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
-        const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
+        const Mesh& mesh = meshgroup->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
         if (! mesh.settings_.get<bool>("anti_overhang_mesh") && ! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("cutting_mesh"))
         {
@@ -275,7 +281,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Slicer* slicer = slicerList[meshIdx];
-        const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
+        const Mesh& mesh = meshgroup->meshes[meshIdx];
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
         storage.meshes.push_back(std::make_shared<MeshSliceData>(&meshgroup->meshes[meshIdx], slicer->layers.size())); // new mesh in storage had settings from the Mesh
@@ -333,7 +339,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             if (has_raft)
             {
                 const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-                layer.printZ += Raft::getTotalThickness() + train.settings_.get<coord_t>("raft_airgap")
+                layer.printZ += Raft::getTotalThickness(storage.settings_) + train.settings_.get<coord_t>("raft_airgap")
                               - train.settings_.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
 
                 if (layer_nr == 0)
@@ -515,15 +521,14 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     bool process_infill = mesh.settings.get<coord_t>("infill_line_distance") > 0;
     if (! process_infill)
     { // do process infill anyway if it's modified by modifier meshes
-        const Scene& scene = Application::getInstance().current_slice_->scene;
         for (size_t other_mesh_order_idx = mesh_order_idx + 1; other_mesh_order_idx < mesh_order.size(); ++other_mesh_order_idx)
         {
             const size_t other_mesh_idx = mesh_order[other_mesh_order_idx];
             MeshSliceData& other_mesh = *storage.meshes[other_mesh_idx];
             if (other_mesh.settings.get<bool>("infill_mesh"))
             {
-                AABB3D aabb = scene.current_mesh_group->meshes[mesh_idx].getAABB();
-                AABB3D other_aabb = scene.current_mesh_group->meshes[other_mesh_idx].getAABB();
+                AABB3D aabb = storage.mesh_group_.meshes[mesh_idx].getAABB();
+                AABB3D other_aabb = storage.mesh_group_.meshes[other_mesh_idx].getAABB();
                 if (aabb.hit(other_aabb))
                 {
                     process_infill = true;
@@ -868,7 +873,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(MeshGroupSliceData& stora
 
     std::vector<int>& max_print_height_per_extruder = storage.max_print_height_per_extruder;
     assert(max_print_height_per_extruder.size() == 0 && "storage.max_print_height_per_extruder shouldn't have been initialized yet!");
-    const int raft_layers = Raft::getTotalExtraLayers();
+    const int raft_layers = Raft::getTotalExtraLayers(storage.settings_);
     max_print_height_per_extruder.resize(extruder_count, -(raft_layers + 1)); // Initialize all as -1 (or lower in case of raft).
     { // compute max_object_height_per_extruder
         // Height of the meshes themselves.
@@ -1008,7 +1013,7 @@ void FffPolygonGenerator::processOozeShield(MeshGroupSliceData& storage)
 
 void FffPolygonGenerator::processDraftShield(MeshGroupSliceData& storage)
 {
-    const size_t draft_shield_layers = getDraftShieldLayerCount(storage.print_layer_count);
+    const size_t draft_shield_layers = getDraftShieldLayerCount(storage);
     if (draft_shield_layers <= 0)
     {
         return;
@@ -1069,12 +1074,12 @@ void FffPolygonGenerator::processPlatformAdhesion(MeshGroupSliceData& storage)
     SkirtBrim skirt_brim(storage);
     if (adhesion_type != EPlatformAdhesion::NONE)
     {
-        skirt_brim.generate();
+        skirt_brim.generate(storage.settings_);
     }
 
     if (mesh_group_settings.get<bool>("support_brim_enable"))
     {
-        skirt_brim.generateSupportBrim();
+        skirt_brim.generateSupportBrim(storage.settings_);
     }
 }
 

@@ -5,11 +5,11 @@
 
 #include <algorithm>
 
-#include "Application.h"
-#include "Slice.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
+#include "mesh.h"
 #include "settings/EnumSettings.h"
+#include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "slicer.h"
 #include "utils/OpenPolylineStitcher.h"
@@ -17,10 +17,10 @@
 namespace cura
 {
 
-void carveMultipleVolumes(std::vector<Slicer*>& volumes)
+void carveMultipleVolumes(std::vector<Slicer*>& volumes, const Settings& mesh_group_settings)
 {
     // Go trough all the volumes, and remove the previous volume outlines from our own outline, so we never have overlapped areas.
-    const bool alternate_carve_order = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("alternate_carve_order");
+    const bool alternate_carve_order = mesh_group_settings.get<bool>("alternate_carve_order");
     std::vector<Slicer*> ranked_volumes = volumes;
     std::stable_sort(
         ranked_volumes.begin(),

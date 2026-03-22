@@ -35,9 +35,9 @@
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
 #include "settings/types/Ratio.h"
-#include "slice_data/SliceLayer.h"
-#include "slice_data/MeshSliceData.h"
 #include "slice_data/MeshGroupSliceData.h"
+#include "slice_data/MeshSliceData.h"
+#include "slice_data/SliceLayer.h"
 #include "utils/Simplify.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
@@ -107,8 +107,8 @@ LayerPlan::LayerPlan(
     , final_travel_z_(z)
     , storage_(storage)
     , layer_nr_(layer_nr)
-    , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
-    , layer_type_(Raft::getLayerType(layer_nr))
+    , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers(storage_.settings_)))
+    , layer_type_(Raft::getLayerType(layer_nr, storage_.settings_))
     , layer_thickness_(layer_thickness)
     , has_prime_tower_planned_per_extruder_(Application::getInstance().current_slice_->scene.extruders.size(), false)
     , current_mesh_(nullptr)
@@ -2820,7 +2820,7 @@ void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, cons
 
 void LayerPlan::writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset, const std::optional<double> retract_distance)
 {
-    gcode.writeTravel(position + Point3LL(0, 0, z_ + path_z_offset), speed, retract_distance);
+    gcode.writeTravel(position + Point3LL(0, 0, z_ + path_z_offset), speed, storage_.settings_, retract_distance);
 }
 
 void LayerPlan::writeExtrusionRelativeZ(
@@ -2846,7 +2846,7 @@ void LayerPlan::writeExtrusionRelativeZ(
         thickness_factor = 1.0;
     }
 
-    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm * thickness_factor, feature, update_extrusion_offset);
+    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm * thickness_factor, feature, storage_.settings_, update_extrusion_offset);
 }
 
 void LayerPlan::addLinesMonotonic(
@@ -3366,7 +3366,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"),
         mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
 
-    static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) };
+    static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers(storage_.settings_)) };
     if (layer_nr_ == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed"))
     {
         constexpr bool wait = false;
@@ -3381,7 +3381,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             gcode.writeSpecificFanCommand(fan_speed, mesh_group_settings.get<size_t>("build_volume_fan_nr"));
         }
     }
-
 
     gcode.setZ(z_);
 
@@ -3430,11 +3429,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (prev_retraction_config.retraction_hop_after_extruder_switch)
             {
                 z_hop_height = prev_retraction_config.extruder_switch_retraction_config.zHop;
-                gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config, z_hop_height);
+                gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config, storage_.settings_, z_hop_height);
             }
             else
             {
-                gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config);
+                gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config, storage_.settings_);
             }
 
             { // require printing temperature to be met
@@ -3467,7 +3466,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             const WipeScriptConfig& wipe_config = storage_.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_].wipe_config;
             if (wipe_config.clean_between_layers && gcode.getExtrudedVolumeAfterLastWipe(extruder_nr) > wipe_config.max_extrusion_mm3)
             {
-                gcode.insertWipeScript(wipe_config);
+                gcode.insertWipeScript(wipe_config, storage_.settings_);
                 gcode.ResetLastEValueAfterWipe(extruder_nr);
             }
             else if (layer_nr_ != 0 && Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_.get<bool>("retract_at_layer_change"))
@@ -3519,7 +3518,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (path.perform_prime)
             {
-                gcode.writePrimeTrain(extruder.settings_.get<Velocity>("speed_travel"));
+                gcode.writePrimeTrain(extruder.settings_.get<Velocity>("speed_travel"), storage_.settings_);
                 // Don't update cumulative path time, as ComputeNaiveTimeEstimates also doesn't.
                 gcode.writeRetraction(retraction_config->retraction_config);
             }
@@ -3638,6 +3637,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     gcode.writeZhopStart(
                         z_hop_height,
+                        storage_.settings_,
                         0.0,
                         retraction_amounts.has_value() ? std::make_optional(retraction_amounts->z_hop.amount) : std::nullopt,
                         retraction_amounts.has_value() ? retraction_amounts->z_hop.ratio : 0.0_r);
@@ -3645,7 +3645,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 else
                 {
-                    gcode.writeZhopEnd();
+                    gcode.writeZhopEnd(storage_.settings_);
 
                     if (z_ > 0 && path.z_offset != 0)
                     {
@@ -3687,7 +3687,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 && (path_idx > 0 || layer_nr_ > 0))
             {
                 // First move to desired height to then make a plain horizontal move
-                gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), speed);
+                gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), speed, storage_.settings_);
             }
 
             if (path.config.isTravelPath())
@@ -3697,7 +3697,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
                     Point3LL current_position = gcode.getPosition();
                     current_position.z_ = final_travel_z_;
-                    gcode.writeTravel(current_position, extruder.settings_.get<Velocity>("speed_z_hop"));
+                    gcode.writeTravel(current_position, extruder.settings_.get<Velocity>("speed_z_hop"), storage_.settings_);
 
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
                     path.z_offset = final_travel_z_ - z_;
@@ -3831,7 +3831,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (extruder_plan_idx == extruder_plans_.size() - 1 || ! extruder.settings_.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
                 // or do it anyway when we switch extruder in-place
-                gcode.writeZhopStart(MM2INT(3.0));
+                gcode.writeZhopStart(MM2INT(3.0), storage_.settings_);
             }
             gcode.writeDelay(extruder_plan.extra_time_);
         }

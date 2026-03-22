@@ -3,6 +3,7 @@
 
 #include "Scene.h"
 
+#include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
@@ -16,7 +17,6 @@ namespace cura
 
 Scene::Scene(const size_t num_mesh_groups)
     : mesh_groups(num_mesh_groups)
-    , current_mesh_group(mesh_groups.begin())
 {
     for (MeshGroup& mesh_group : mesh_groups)
     {
@@ -62,7 +62,7 @@ const std::string Scene::getAllSettingsString() const
     return output.str();
 }
 
-void Scene::processMeshGroup(MeshGroup& mesh_group, MeshGroupSliceData& storage)
+void Scene::processMeshGroup(MeshGroupSliceData& storage)
 {
     FffProcessor* fff_processor = FffProcessor::getInstance();
     fff_processor->time_keeper.restart();
@@ -70,7 +70,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group, MeshGroupSliceData& storage)
     TimeKeeper time_keeper_total;
 
     bool empty = true;
-    for (const Mesh& mesh : mesh_group.meshes)
+    for (const Mesh& mesh : storage.mesh_group_.meshes)
     {
         if (! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
         {
@@ -85,7 +85,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group, MeshGroupSliceData& storage)
         return;
     }
 
-    if (! fff_processor->polygon_generator.generateAreas(storage, &mesh_group, fff_processor->time_keeper))
+    if (! fff_processor->polygon_generator.generateAreas(storage, &storage.mesh_group_, fff_processor->time_keeper))
     {
         return;
     }
@@ -97,6 +97,16 @@ void Scene::processMeshGroup(MeshGroup& mesh_group, MeshGroupSliceData& storage)
     Application::getInstance().communication_->flushGCode();
     Application::getInstance().communication_->sendOptimizedLayerData();
     spdlog::info("Total time elapsed {:03.3f}s\n", time_keeper_total.restart());
+}
+
+std::vector<MeshGroup>::const_iterator Scene::find(const MeshGroup& mesh_group) const
+{
+    return ranges::find_if(
+        mesh_groups,
+        [&mesh_group](const MeshGroup& child_mesh_group)
+        {
+            return &child_mesh_group == &mesh_group;
+        });
 }
 
 } // namespace cura

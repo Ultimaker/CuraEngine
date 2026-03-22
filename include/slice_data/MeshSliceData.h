@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SLICEDATA_SLICEMESHSTORAGE_H
-#define SLICEDATA_SLICEMESHSTORAGE_H
+#ifndef SLICEDATA_MESHSLICEDATA_H
+#define SLICEDATA_MESHSLICEDATA_H
 
 #include "slice_data/SliceLayer.h"
 #include "utils/AABB3D.h"

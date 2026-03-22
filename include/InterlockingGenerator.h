@@ -16,6 +16,7 @@ namespace cura
 {
 
 class Slicer;
+class Settings;
 
 /*!
  * Class for generating an interlocking structure between two adjacent models of a different extruder.
@@ -53,13 +54,13 @@ public:
     /*!
      * Generate an interlocking structure between each two adjacent meshes.
      */
-    static void generateInterlockingStructure(std::vector<Slicer*>& volumes);
+    static void generateInterlockingStructure(std::vector<Slicer*>& volumes, const Settings &mesh_group_settings);
 
 protected:
     /*!
      * Generate an interlocking structure between two meshes
      */
-    void generateInterlockingStructure() const;
+    void generateInterlockingStructure(const Settings &mesh_group_settings) const;
 
     /*!
      * Private class for storing some variables used in the computation of the interlocking structure between two meshes.
@@ -114,7 +115,7 @@ protected:
      * Expand the meshes into each other where they need it, namely when a thin strip of material needs to be attached.
      * \param has_all_meshes Only do this special handling if there's actually microstructure nearby that needs to be adhered to.
      */
-    void handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes) const;
+    void handleThinAreas(const std::unordered_set<GridPoint3>& has_all_meshes, const cura::Settings &mesh_group_settings) const;
 
     /*!
      * Compute the voxels overlapping with the shell of both models.

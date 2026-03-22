@@ -9,6 +9,7 @@
 namespace cura
 {
 
+class MeshGroupSliceData;
 class Slicer;
 
 /*!
@@ -34,7 +35,7 @@ public:
      * \param layer_height The overall layer height used (used to compute an
      * offset from the mold angle).
      */
-    static void process(std::vector<Slicer*>& slicer_list);
+    static void process(std::vector<Slicer*>& slicer_list, const MeshGroupSliceData &mesh_group_data);
 
 private:
 };

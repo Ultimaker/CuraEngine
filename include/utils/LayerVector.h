@@ -43,9 +43,9 @@ public:
      *                     stored data and can be safely omitted.
      * \note It is not mandatory to call this method if you do not intend to store raft layers, but still good practice
      */
-    void init(bool contains_raft_layers, size_t print_layers = 0)
+    void init(bool contains_raft_layers, const Settings& mesh_group_settings, size_t print_layers = 0)
     {
-        delta_ = contains_raft_layers ? Raft::getTotalExtraLayers() : 0;
+        delta_ = contains_raft_layers ? Raft::getTotalExtraLayers(mesh_group_settings) : 0;
 
         vector_.clear();
         if (print_layers)

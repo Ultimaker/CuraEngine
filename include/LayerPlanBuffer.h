@@ -19,6 +19,7 @@ class LayerPlan;
 class ExtruderPlan;
 class GCodeExport;
 struct LayerIndex;
+class MeshGroupSliceData;
 
 /*!
  * Class for buffering multiple layer plans (\ref LayerPlan) / extruder plans within those layer plans, so that temperature commands can be inserted in earlier layer plans.
@@ -78,12 +79,12 @@ public:
      * \param layer_plan The layer to handle
      * \param gcode The exporter with which to write a layer to gcode if the buffer is too large after pushing the new layer.
      */
-    void handle(LayerPlan& layer_plan, GCodeExport& gcode);
+    void handle(LayerPlan& layer_plan, GCodeExport& gcode, const MeshGroupSliceData &mesh_group_data);
 
     /*!
      * Write all remaining layer plans (LayerPlan) to gcode and empty the buffer.
      */
-    void flush();
+    void flush(const MeshGroupSliceData &mesh_group_data);
 
     /*!
      * Gets the layer plan for the given layer, once it has been completed. It will wait for completion if necessary
@@ -104,7 +105,7 @@ private:
      * Pop out the earliest layer in the buffer if the buffer size is exceeded
      * \return A nullptr or the popped gcode_layer
      */
-    LayerPlan* processBuffer();
+    LayerPlan* processBuffer(const MeshGroupSliceData &mesh_group_data);
 
     /*!
      * Add the travel move to properly travel from the end location of the previous layer to the starting location of the next
@@ -112,7 +113,7 @@ private:
      * \param prev_layer The layer before the just added layer, to which to add the combing travel move.
      * \param newest_layer The newly added layer, with a non-combing travel move as first path.
      */
-    void addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer);
+    void addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer, const Settings &mesh_group_settings);
 
     /*!
      * Apply fan speed and correct extrusion flow for minimal layer time settings of the last layer plan in the buffer.
@@ -205,7 +206,7 @@ private:
     /*!
      * Insert the preheat commands for the last added layer (unless that layer was empty)
      */
-    void insertTempCommands();
+    void insertTempCommands(const MeshGroupSliceData &mesh_group_data);
 
     /*!
      * Reconfigure the standby temperature during which we didn't print with this extruder.

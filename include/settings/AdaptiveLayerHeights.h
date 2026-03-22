@@ -4,11 +4,14 @@
 #ifndef ADAPTIVELAYERHEIGHTS_H
 #define ADAPTIVELAYERHEIGHTS_H
 
-#include "MeshGroup.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
+
+class MeshGroupSliceData;
+class MeshGroup;
+class Settings;
 
 class AdaptiveLayer
 {
@@ -59,7 +62,7 @@ public:
      * to.
      * \param meshgroup The meshgroup to process.
      */
-    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup);
+    AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroupSliceData &mesh_group_data);
 
 private:
     /*!
@@ -99,7 +102,6 @@ private:
     std::vector<double> face_slopes_;
     std::vector<int> face_min_z_values_;
     std::vector<int> face_max_z_values_;
-    const MeshGroup* meshgroup_;
 
     /*!
      * Calculate the allowed layer heights depending on variation and step input
@@ -109,13 +111,13 @@ private:
     /*!
      * Calculates the layers based on the given mesh and allowed layer heights
      */
-    void calculateLayers();
+    void calculateLayers(const MeshGroupSliceData &mesh_group_data);
 
     /*!
      * Calculates the slopes for each triangle in the mesh.
      * These are uses later by calculateLayers to find the steepest triangle in a potential layer.
      */
-    void calculateMeshTriangleSlopes();
+    void calculateMeshTriangleSlopes(const MeshGroup &mesh_group);
 };
 
 } // namespace cura
