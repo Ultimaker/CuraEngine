@@ -584,7 +584,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.setZ(max_object_height + MM2INT(5));
 
     Application::getInstance().communication_->sendCurrentPosition(gcode.getPositionXY());
-    gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
+    gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_z_hop"));
     Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
     gcode.writeTravel(start_pos, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
 
@@ -4237,7 +4237,7 @@ void FffGcodeWriter::finalize()
     {
         gcode.setZ(max_object_height + MM2INT(5));
         Application::getInstance().communication_->sendCurrentPosition(gcode.getPosition());
-        gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
+        gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_z_hop"));
     }
     // Write the current extruder's end G-code
     const Scene& scene = Application::getInstance().current_slice_->scene;

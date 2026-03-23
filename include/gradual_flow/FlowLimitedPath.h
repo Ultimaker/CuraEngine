@@ -292,7 +292,7 @@ struct FlowLimitedPath
             output_path.points.push_back(point);
         }
 
-        output_path.config.speed_derivatives.speed = speed * 1e-3;
+        output_path.config.speed_derivatives.speed = (speed / 1e3) / output_path.speed_factor;
 
         return output_path;
     }

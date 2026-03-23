@@ -125,12 +125,6 @@ coord_t LinesSet<LineType>::length() const
 }
 
 template<class LineType>
-Shape LinesSet<LineType>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const
-{
-    return offset(outer_offset).difference(offset(-inner_offset));
-}
-
-template<class LineType>
 void LinesSet<LineType>::translate(const Point2LL& delta)
 {
     if (delta.X != 0 || delta.Y != 0)
@@ -328,7 +322,6 @@ template void LinesSet<OpenPolyline>::removeAt(size_t index);
 template void LinesSet<OpenPolyline>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<OpenPolyline>::splitIntoSegments() const;
 template coord_t LinesSet<OpenPolyline>::length() const;
-template Shape LinesSet<OpenPolyline>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<OpenPolyline>::translate(const Point2LL& delta);
 template void LinesSet<OpenPolyline>::applyMatrix(const PointMatrix& matrix);
 template void LinesSet<OpenPolyline>::applyMatrix(const Point3Matrix& matrix);
@@ -344,7 +337,6 @@ template void ClosedLinesSet::removeAt(size_t index);
 template void ClosedLinesSet::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet ClosedLinesSet::splitIntoSegments() const;
 template coord_t ClosedLinesSet::length() const;
-template Shape ClosedLinesSet::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void ClosedLinesSet::translate(const Point2LL& delta);
 template void ClosedLinesSet::applyMatrix(const PointMatrix& matrix);
 template void ClosedLinesSet::applyMatrix(const Point3Matrix& matrix);
@@ -361,7 +353,6 @@ template void LinesSet<Polygon>::removeAt(size_t index);
 template void LinesSet<Polygon>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<Polygon>::splitIntoSegments() const;
 template coord_t LinesSet<Polygon>::length() const;
-template Shape LinesSet<Polygon>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<Polygon>::translate(const Point2LL& delta);
 template void LinesSet<Polygon>::applyMatrix(const PointMatrix& matrix);
 template void LinesSet<Polygon>::applyMatrix(const Point3Matrix& matrix);
