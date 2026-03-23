@@ -47,7 +47,6 @@ public:
      */
     void split(const size_t line_index, const size_t point_index);
 
-
     [[nodiscard]] OpenLinesSet difference(const Shape& other) const;
 };
 
