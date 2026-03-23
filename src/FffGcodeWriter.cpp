@@ -1874,13 +1874,15 @@ void FffGcodeWriter::addMeshPartToGCode(
     const bool infill_before_walls = mesh.settings.get<bool>("infill_before_walls");
     bool added_something = false;
 
+    const bool end_infill_close_to_seam = infill_before_walls && mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::CLOSE_TO_WALL_SEAM;
+
     // Pre-process the insets without actually adding them, so that we know where they are going to start printing
-    InsetsPreprocessResult insets_preprocess_result = preProcessInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    InsetsPreprocessResult insets_preprocess_result = preProcessInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, end_infill_close_to_seam);
 
     if (infill_before_walls)
     {
         std::optional<Point2LL> near_end_location;
-        if (insets_preprocess_result.walls_optimizer && mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::CLOSE_TO_WALL_SEAM)
+        if (end_infill_close_to_seam && insets_preprocess_result.walls_optimizer)
         {
             near_end_location = insets_preprocess_result.walls_optimizer->getStartPosition();
         }
@@ -2570,7 +2572,8 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    SliceLayerPart& part) const
+    SliceLayerPart& part,
+    const bool end_infill_close_to_seam) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_)
     {
@@ -2889,7 +2892,8 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             scarf_seam,
             smooth_speed,
             gcode_layer.getSeamOverhangMask(),
-            mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_);
+            mesh.layers[gcode_layer.getLayerNr()].texture_data_provider_,
+            end_infill_close_to_seam);
         result.walls_optimizer->optimize();
     }
 

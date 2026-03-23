@@ -479,6 +479,7 @@ private:
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param part The part for which to create gcode
+     * \param end_infill_close_to_seam Indicates whether the infill will end close to the seam, in which case we can slightly adjust the insets ordering
      * \return The content to be later inserted
      */
     InsetsPreprocessResult preProcessInsets(
@@ -487,7 +488,8 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        SliceLayerPart& part) const;
+        SliceLayerPart& part,
+        const bool end_infill_close_to_seam) const;
 
     /*!
      * Inserts the previously processed insets
