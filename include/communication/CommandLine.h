@@ -47,7 +47,7 @@ public:
      */
     void flushGCode() override;
 
-    void sendGCodePart(const std::string &gcode_part) override;
+    void sendGCodePart(const std::string& gcode_part) override;
 
     /*
      * \brief Indicates that for command line output we need to send the g-code

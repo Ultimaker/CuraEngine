@@ -4,10 +4,10 @@
 #ifndef GCODEEXPORT_RESOLVEDGCODEPART_H
 #define GCODEEXPORT_RESOLVEDGCODEPART_H
 
-#include "gcode_export/GCodePart.h"
-
 #include <optional>
 #include <unordered_map>
+
+#include "gcode_export/GCodePart.h"
 
 namespace CuraFormulaeEngine::eval
 {
@@ -20,9 +20,10 @@ namespace cura
 class ResolvedGCodePart : public GCodePart
 {
 public:
-    explicit ResolvedGCodePart(const std::string& raw_string,
-                               std::optional<int>& context_extruder_nr,
-                               const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings);
+    explicit ResolvedGCodePart(
+        const std::string& raw_string,
+        std::optional<int>& context_extruder_nr,
+        const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings);
 
     std::string str() const override;
 

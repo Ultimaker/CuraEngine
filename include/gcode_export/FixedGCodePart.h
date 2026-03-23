@@ -4,9 +4,9 @@
 #ifndef GCODEEXPORT_FIXEDGCODEPART_H
 #define GCODEEXPORT_FIXEDGCODEPART_H
 
-#include "gcode_export/GCodePart.h"
-
 #include <sstream>
+
+#include "gcode_export/GCodePart.h"
 
 namespace cura
 {

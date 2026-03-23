@@ -67,7 +67,7 @@ public:
      */
     void flushGCode() override;
 
-    void sendGCodePart(const std::string &gcode_part) override;
+    void sendGCodePart(const std::string& gcode_part) override;
 
     /*
      * \brief Indicates that for Arcus we don't need to send the g-code from
