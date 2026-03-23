@@ -68,7 +68,8 @@ static inline void writeInt2mm(const int32_t coord, std::ostream& ss)
 {
     constexpr size_t buffer_size = 24;
     char buffer[buffer_size];
-    int char_count = snprintf(buffer, buffer_size, "%d", coord); // we haven't found any way for the windows compiler to accept formatting of a coord_t, so it has to be int32_t instead
+    int char_count
+        = snprintf(buffer, buffer_size, "%d", coord); // we haven't found any way for the windows compiler to accept formatting of a coord_t, so it has to be int32_t instead
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
