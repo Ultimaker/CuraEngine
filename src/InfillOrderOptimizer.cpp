@@ -56,16 +56,21 @@ void InfillOrderOptimizer::addPart(InfillPartArea part_area, const std::vector<s
     }
 }
 
-void InfillOrderOptimizer::optimize(const bool skin_support_interlace_lines, const std::optional<Point2LL>& near_end_location, const bool split_near_end_location)
+void InfillOrderOptimizer::optimize(const bool skin_support_interlace_lines, const std::optional<Point2LL>& near_end_location)
 {
-    if (infill_parts_.empty() || ! near_end_location.has_value())
+    if (infill_parts_.empty())
     {
-        // We can't really optimize the infill ordering, print it as is
         return;
     }
 
     // First order the parts in preferred order
     ranges::sort(infill_parts_, &InfillOrderOptimizer::shouldPrintBefore);
+
+    if (! near_end_location.has_value())
+    {
+        // We can't really optimize the infill ordering, print it as is
+        return;
+    }
 
     // Find the infill part that should be printed at last
     auto closest_infill_part_iterator = infill_parts_.end();
@@ -122,25 +127,22 @@ void InfillOrderOptimizer::optimize(const bool skin_support_interlace_lines, con
         infill_parts_.push_back(closest_infill_part);
     }
 
-    if (split_near_end_location)
+    // If needed and possible, split the last part so that we provide an actual position to end close to the seam
+    InfillPart& last_part = infill_parts_.back();
+    if (last_part.type == InfillPartType::Lines && last_part.area == InfillPartArea::Infill)
     {
-        // If needed and possible, split the last part so that we provide an actual position to end close to the seam
-        InfillPart& last_part = infill_parts_.back();
-        if (last_part.type == InfillPartType::Lines && last_part.area == InfillPartArea::Infill)
+        if (! closest_line_point.has_value())
         {
-            if (! closest_line_point.has_value())
-            {
-                // Closest point was not previously calculated, maybe because there is only one element in the list, so do it now
-                isCloserTo(*last_part.paths.lines, *near_end_location, closest_line_point, closest_distance_squared);
-            }
-
-            if (closest_line_point.has_value())
-            {
-                last_part.paths.lines->split(closest_line_point->first, closest_line_point->second);
-            }
+            // Closest point was not previously calculated, maybe because there is only one element in the list, so do it now
+            isCloserTo(*last_part.paths.lines, *near_end_location, closest_line_point, closest_distance_squared);
         }
-        // Other parts don't require splitting: either polygons or skin support, which is only separate segments already
+
+        if (closest_line_point.has_value())
+        {
+            last_part.paths.lines->split(closest_line_point->first, closest_line_point->second);
+        }
     }
+    // Other parts don't require splitting: either polygons or skin support, which is only separate segments already
 }
 
 bool InfillOrderOptimizer::addToLayer(
@@ -527,7 +529,6 @@ bool InfillOrderOptimizer::shouldPrintBefore(const InfillPart& part1, const Infi
     }
     else
     {
-        // Preferably print infill before skin support so that skin support lines have more material to stick to
         return part1.area < part2.area;
     }
 }

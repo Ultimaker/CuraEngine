@@ -1880,17 +1880,12 @@ void FffGcodeWriter::addMeshPartToGCode(
     if (infill_before_walls)
     {
         std::optional<Point2LL> near_end_location;
-        bool split_near_end_location = false;
-        if (insets_preprocess_result.walls_optimizer)
+        if (insets_preprocess_result.walls_optimizer && mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::CLOSE_TO_WALL_SEAM)
         {
             near_end_location = insets_preprocess_result.walls_optimizer->getStartPosition();
-            if (mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::CLOSE_TO_WALL_SEAM)
-            {
-                split_near_end_location = true;
-            }
         }
 
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, near_end_location, split_near_end_location);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, near_end_location);
     }
 
     added_something |= endProcessInsets(insets_preprocess_result, storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
@@ -1923,8 +1918,7 @@ bool FffGcodeWriter::processInfill(
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const std::optional<Point2LL>& near_end_location,
-    const bool split_near_end_location) const
+    const std::optional<Point2LL>& near_end_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
@@ -1934,27 +1928,9 @@ bool FffGcodeWriter::processInfill(
     const coord_t infill_start_move_inwards_length = mesh.settings.get<coord_t>("infill_start_move_inwards_length");
     const coord_t infill_end_move_inwards_length = mesh.settings.get<coord_t>("infill_end_move_inwards_length");
 
-    const bool added_something = processMultiLayerInfill(
-                                     gcode_layer,
-                                     mesh,
-                                     extruder_nr,
-                                     mesh_config,
-                                     part,
-                                     infill_start_move_inwards_length,
-                                     infill_end_move_inwards_length,
-                                     near_end_location,
-                                     split_near_end_location)
-                               | processSingleLayerInfill(
-                                     storage,
-                                     gcode_layer,
-                                     mesh,
-                                     extruder_nr,
-                                     mesh_config,
-                                     part,
-                                     infill_start_move_inwards_length,
-                                     infill_end_move_inwards_length,
-                                     near_end_location,
-                                     split_near_end_location);
+    const bool added_something
+        = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length, near_end_location)
+        | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length, near_end_location);
     return added_something;
 }
 
@@ -2432,7 +2408,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     optimizer.addPart(InfillOrderOptimizer::InfillPartArea::SkinSupport, skin_support_lines);
     optimizer.addPart(InfillOrderOptimizer::InfillPartArea::SkinSupport, skin_support_polygons);
 
-    optimizer.optimize(skin_support_interlace_lines, near_end_location, split_near_end_location);
+    optimizer.optimize(skin_support_interlace_lines, near_end_location);
 
     const bool added_something = optimizer.addToLayer(
         gcode_layer,

@@ -51,7 +51,7 @@ public:
     void addPart(InfillPartArea part_area, const std::vector<std::vector<VariableWidthLines>>& walls);
 
     /*! Process the paths ordering optimization. The result can be retrieved in the path_optimizer_ variable. */
-    void optimize(const bool skin_support_interlace_lines, const std::optional<Point2LL>& near_end_location = std::nullopt, const bool split_near_end_location = false);
+    void optimize(const bool skin_support_interlace_lines, const std::optional<Point2LL>& near_end_location = std::nullopt);
 
     /*!
      * Adds the insets to the given layer plan.

@@ -407,7 +407,6 @@ private:
      * \param mesh_config the line config with which to print a print feature.
      * \param part The part for which to create gcode.
      * \param near_end_location The location where the infill should preferably end close to
-     * \param split_near_end_location If true, the infill open polyline that passes closer to the near_end_location will be split to provide a proper start/end position
      * \return Whether this function added anything to the layer plan.
      */
     bool processInfill(
@@ -417,8 +416,7 @@ private:
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const std::optional<Point2LL>& near_end_location = std::nullopt,
-        const bool split_near_end_location = false) const;
+        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
 
     /*!
      * \brief Add thicker (multiple layers) sparse infill for a given part in a
