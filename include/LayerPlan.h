@@ -9,7 +9,7 @@
 #include "InsetOrderOptimizer.h"
 #include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 #include "geometry/LinesSet.h"
 #include "geometry/MendedShape.h"
 #include "geometry/OpenLinesSet.h"

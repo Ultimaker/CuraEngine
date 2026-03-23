@@ -8,16 +8,6 @@ namespace cura
 
 FffProcessor FffProcessor::instance; // definition must be in cpp
 
-bool FffProcessor::setTargetFile(const char* filename)
-{
-    return gcode_writer.setTargetFile(filename);
-}
-
-void FffProcessor::setTargetStream(std::ostream* stream)
-{
-    return gcode_writer.setTargetStream(stream);
-}
-
 bool FffProcessor::getExtruderActualUse(int extruder_nr)
 {
     return gcode_writer.getExtruderActualUse(extruder_nr);

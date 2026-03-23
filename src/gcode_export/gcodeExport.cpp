@@ -1,7 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 
 #include <cassert>
 #include <cmath>
@@ -21,6 +21,8 @@
 #include "TravelAntiOozing.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
+#include "gcode_export/FixedGCodePart.h"
+#include "gcode_export/ResolvedGCodePart.h"
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Date.h"
@@ -44,13 +46,10 @@ std::string transliterate(const std::string& text)
 }
 
 GCodeExport::GCodeExport()
-    : output_stream_(&std::cout)
-    , current_position_(0, 0, MM2INT(20))
+    : current_position_(0, 0, MM2INT(20))
     , layer_nr_(0)
     , relative_extrusion_(false)
 {
-    *output_stream_ << std::fixed;
-
     current_e_value_ = 0;
     current_extruder_ = 0;
 
@@ -75,6 +74,8 @@ GCodeExport::GCodeExport()
     new_line_ = "\n";
 
     total_bounding_box_ = AABB3D();
+
+    prepareNewFixedGCodePart();
 }
 
 GCodeExport::~GCodeExport()
@@ -352,12 +353,7 @@ std::string GCodeExport::getFileHeader(
 void GCodeExport::setLayerNr(const LayerIndex& layer_nr)
 {
     layer_nr_ = layer_nr;
-}
-
-void GCodeExport::setOutputStream(std::ostream* stream)
-{
-    output_stream_ = stream;
-    *output_stream_ << std::fixed;
+    prepareNewFixedGCodePart(); // Now is a good time to switch to a new buffer
 }
 
 bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
@@ -1424,6 +1420,19 @@ PrintFeatureType
     return travel_move_type;
 }
 
+void GCodeExport::sendFinalGCode()
+{
+    std::shared_ptr<Communication> communication = Application::getInstance().communication_;
+    for (std::shared_ptr<GCodePart>& gcode_part : gcode_parts_)
+    {
+        const std::string gcode_part_str = gcode_part->str();
+        if (! gcode_part_str.empty())
+        {
+            communication->sendGCodePart(gcode_part_str);
+        }
+    }
+}
+
 void GCodeExport::startExtruder(const size_t new_extruder)
 {
     const std::unordered_map<std::string, cfe::eval::Value> extra_settings
@@ -1896,6 +1905,7 @@ void GCodeExport::finalize(const std::string& endCode)
         if (getTotalFilamentUsed(n) > 0)
             spdlog::info("Filament {}: {}", n + 1, int(getTotalFilamentUsed(n)));
     flushOutputStream();
+    sendFinalGCode();
 }
 
 void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)
@@ -1908,7 +1918,14 @@ void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)
 
 void GCodeExport::flushOutputStream()
 {
-    output_stream_->flush();
+    prepareNewFixedGCodePart();
+}
+
+void GCodeExport::prepareNewFixedGCodePart()
+{
+    auto fixed_gcode_part = std::make_shared<FixedGCodePart>();
+    gcode_parts_.push_back(fixed_gcode_part);
+    output_stream_ = &fixed_gcode_part->stream();
 }
 
 double GCodeExport::getExtrudedVolumeAfterLastWipe(size_t extruder)

@@ -4,7 +4,6 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
-#include <fstream>
 #include <optional>
 
 #include "ExtruderUse.h"
@@ -12,7 +11,7 @@
 #include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
 #include "LinesOrderingMethod.h"
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
@@ -59,11 +58,6 @@ private:
      */
     GCodeExport gcode;
 
-    /*!
-     * The gcode file to write to when using CuraEngine as command line tool.
-     */
-    std::ofstream output_file;
-
     //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
     LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
 
@@ -92,24 +86,6 @@ public:
      * it's ready for writing.
      */
     FffGcodeWriter();
-
-    /*!
-     * Set the target to write gcode to: to a file.
-     *
-     * Used when CuraEngine is used as command line tool.
-     *
-     * \param filename The filename of the file to which to write the gcode.
-     */
-    bool setTargetFile(const char* filename);
-
-    /*!
-     * Set the target to write gcode to: an output stream.
-     *
-     * Used when CuraEngine is NOT used as command line tool.
-     *
-     * \param stream The stream to write gcode to.
-     */
-    void setTargetStream(std::ostream* stream);
 
     /*!
      * Wether or not the extruder is actually used in the print, regardless of enablement.

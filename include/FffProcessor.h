@@ -48,24 +48,6 @@ public:
     TimeKeeper time_keeper; // TODO: use singleton time keeper
 
     /*!
-     * Set the target to write gcode to: to a file.
-     *
-     * Used when CuraEngine is used as command line tool.
-     *
-     * \param filename The filename of the file to which to write the gcode.
-     */
-    bool setTargetFile(const char* filename);
-
-    /*!
-     * Set the target to write gcode to: an output stream.
-     *
-     * Used when CuraEngine is NOT used as command line tool.
-     *
-     * \param stream The stream to write gcode to.
-     */
-    void setTargetStream(std::ostream* stream);
-
-    /*!
      * Wether or not the extruder is actually used in the print, regardless of enablement.
      *
      * \param extruder_nr The extruder number for which to get the useage

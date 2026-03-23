@@ -1,0 +1,37 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#ifndef GCODEEXPORT_RESOLVEDGCODEPART_H
+#define GCODEEXPORT_RESOLVEDGCODEPART_H
+
+#include "gcode_export/GCodePart.h"
+
+#include <optional>
+#include <unordered_map>
+
+namespace CuraFormulaeEngine::eval
+{
+struct Value;
+}
+
+namespace cura
+{
+
+class ResolvedGCodePart : public GCodePart
+{
+public:
+    explicit ResolvedGCodePart(const std::string& raw_string,
+                               std::optional<int>& context_extruder_nr,
+                               const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings);
+
+    std::string str() const override;
+
+private:
+    const std::string raw_string_;
+    const std::optional<int> context_extruder_nr_;
+    const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> extra_settings_;
+};
+
+} // namespace cura
+
+#endif

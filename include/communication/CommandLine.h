@@ -47,6 +47,8 @@ public:
      */
     void flushGCode() override;
 
+    void sendGCodePart(const std::string &gcode_part) override;
+
     /*
      * \brief Indicates that for command line output we need to send the g-code
      * from start to finish.
@@ -156,6 +158,9 @@ private:
      * The last progress update that we output to stdcerr.
      */
     unsigned int last_shown_progress_;
+
+    std::shared_ptr<std::ofstream> output_file_;
+    std::ostream* output_stream_;
 
     /*
      * \brief Load a JSON file and store the settings inside it.

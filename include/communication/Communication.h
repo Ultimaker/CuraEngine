@@ -125,6 +125,8 @@ public:
      */
     virtual void flushGCode() = 0;
 
+    virtual void sendGCodePart(const std::string &gcode_part) = 0;
+
     /*
      * \brief Send the starting g-code separately so that it may be processed by
      * the front-end for its replacement variables.

@@ -12,7 +12,7 @@
 #include "LayerPlan.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 
 namespace cura
 {

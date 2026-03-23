@@ -4,10 +4,14 @@
 #ifndef GCODETEMPLATERESOLVER_H
 #define GCODETEMPLATERESOLVER_H
 
-#include <cura-formulae-engine/eval.h>
 #include <optional>
 #include <string>
 #include <unordered_map>
+
+namespace CuraFormulaeEngine::eval
+{
+struct Value;
+}
 
 namespace cura::GcodeTemplateResolver
 {

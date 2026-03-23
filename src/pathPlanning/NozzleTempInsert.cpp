@@ -1,7 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 #include "pathPlanning/NozzleTempInsert.h"
 
 namespace cura

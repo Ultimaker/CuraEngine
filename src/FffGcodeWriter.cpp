@@ -4,6 +4,7 @@
 #include "FffGcodeWriter.h"
 
 #include <algorithm>
+#include <cura-formulae-engine/eval.h>
 #include <limits> // numeric_limits
 #include <list>
 #include <memory>
@@ -57,11 +58,6 @@ FffGcodeWriter::FffGcodeWriter()
     }
 }
 
-void FffGcodeWriter::setTargetStream(std::ostream* stream)
-{
-    gcode.setOutputStream(stream);
-}
-
 bool FffGcodeWriter::getExtruderActualUse(int extruder_nr)
 {
     return gcode.getExtruderIsUsed(extruder_nr);
@@ -75,17 +71,6 @@ double FffGcodeWriter::getTotalFilamentUsed(int extruder_nr)
 std::vector<Duration> FffGcodeWriter::getTotalPrintTimePerFeature()
 {
     return gcode.getTotalPrintTimePerFeature();
-}
-
-bool FffGcodeWriter::setTargetFile(const char* filename)
-{
-    output_file.open(filename);
-    if (output_file.is_open())
-    {
-        gcode.setOutputStream(&output_file);
-        return true;
-    }
-    return false;
 }
 
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)

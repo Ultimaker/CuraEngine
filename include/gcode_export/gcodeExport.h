@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_H
-#define GCODEEXPORT_H
+#ifndef GCODEEXPORT_GCODEEXPORT_H
+#define GCODEEXPORT_GCODEEXPORT_H
 
 #include <deque> // for extrusionAmountAtPreviousRetractions
 #ifdef BUILD_TESTS
@@ -29,6 +29,7 @@ namespace cura
 
 class RetractionConfig;
 class SliceDataStorage;
+class GCodePart;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -138,8 +139,8 @@ private:
     std::string machine_name_;
     std::string slice_uuid_; //!< The UUID of the current slice.
 
-    std::ostream* output_stream_;
     std::string new_line_;
+    std::ostream* output_stream_;
 
     double current_e_value_; //!< The last E value written to gcode (in mm or mm^3)
 
@@ -190,6 +191,8 @@ private:
     Temperature build_volume_temperature_; //!< build volume temperature
     bool machine_heated_build_volume_; //!< does the machine have the ability to control/stabilize build-volume-temperature
     bool ppr_enable_; //!< if the print process reporting is enabled
+
+    std::vector<std::shared_ptr<GCodePart>> gcode_parts_;
 
 protected:
     /*!
@@ -256,8 +259,6 @@ public:
     void setSliceUUID(const std::string& slice_uuid);
 
     void setLayerNr(const LayerIndex& layer_nr);
-
-    void setOutputStream(std::ostream* stream);
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
@@ -429,6 +430,8 @@ public:
      */
     void flushOutputStream();
 
+    void prepareNewFixedGCodePart();
+
     /*!
      * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
      *
@@ -543,6 +546,8 @@ private:
 
     static PrintFeatureType
         sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
+
+    void sendFinalGCode();
 
 public:
     /*!
@@ -756,4 +761,4 @@ public:
 
 } // namespace cura
 
-#endif // GCODEEXPORT_H
+#endif
