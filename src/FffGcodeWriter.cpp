@@ -2424,8 +2424,16 @@ bool FffGcodeWriter::processSingleLayerInfill(
     wall_tool_paths.emplace_back(part.infill_wall_toolpaths); // The extra infill walls were generated separately. Add these too.
 
     const auto skin_support_interlace_lines = mesh.settings.get<bool>("skin_support_interlace_lines");
-    InfillOrderOptimizer optimizer(infill_lines, infill_polygons, wall_tool_paths, skin_support_lines, skin_support_polygons);
+
+    InfillOrderOptimizer optimizer;
+    optimizer.addPart(InfillOrderOptimizer::InfillPartArea::Infill, infill_lines);
+    optimizer.addPart(InfillOrderOptimizer::InfillPartArea::Infill, infill_polygons);
+    optimizer.addPart(InfillOrderOptimizer::InfillPartArea::Infill, wall_tool_paths);
+    optimizer.addPart(InfillOrderOptimizer::InfillPartArea::SkinSupport, skin_support_lines);
+    optimizer.addPart(InfillOrderOptimizer::InfillPartArea::SkinSupport, skin_support_polygons);
+
     optimizer.optimize(skin_support_interlace_lines, near_end_location, split_near_end_location);
+
     const bool added_something = optimizer.addToLayer(
         gcode_layer,
         mesh.settings,
