@@ -2093,7 +2093,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                     order_requirements,
                     start_move_inwards_length,
                     end_move_inwards_length,
-                    MendedShape(mesh.settings, SectionType::INFILL, infill_inner_contour));
+                    MendedShape(&mesh.settings, SectionType::INFILL, &infill_inner_contour));
             }
         }
     }

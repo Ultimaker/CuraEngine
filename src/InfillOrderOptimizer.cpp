@@ -467,8 +467,7 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
         order_requirements,
         start_move_inwards_length,
         end_move_inwards_length,
-        MendedShape(settings, SectionType::INFILL, infill_inner_contour));
-#warning MendedShape is calculated even if not needed by the inwards move
+        MendedShape(&settings, SectionType::INFILL, &infill_inner_contour));
 }
 
 void InfillOrderOptimizer::addSkinSupportLinesToLayer(
