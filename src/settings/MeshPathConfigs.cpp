@@ -138,7 +138,7 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                       .speed_derivatives = { .speed = mesh.settings.get<Velocity>("speed_roofing"),
                                              .acceleration = mesh.settings.get<Acceleration>("acceleration_roofing"),
                                              .jerk = mesh.settings.get<Velocity>("jerk_roofing") },
-                      .temperature = mesh.settings.get<Temperature>("material_print_temperature_roofing") }
+                      .temperature_delta = mesh.settings.get<Temperature>("material_delta_temperature_roofing") }
     , flooring_config{ .type = PrintFeatureType::Skin,
                        .line_width = mesh.settings.get<coord_t>("flooring_line_width"),
                        .layer_thickness = layer_thickness,
@@ -162,24 +162,20 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                                                   .jerk = mesh.settings.get<Velocity>("jerk_infill") } }
 
 {
-    if (roofing_config.temperature == mesh.settings.get<Temperature>("material_print_temperature"))
-    {
-        roofing_config.temperature.reset();
-    }
-
     infill_config.reserve(MAX_INFILL_COMBINE);
 
     for (const auto combine_idx : ranges::views::iota(1, MAX_INFILL_COMBINE + 1))
     {
-        infill_config.emplace_back(GCodePathConfig{
-            .type = PrintFeatureType::Infill,
-            .line_width = static_cast<coord_t>(
-                mesh.settings.get<coord_t>("infill_line_width") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_]),
-            .layer_thickness = layer_thickness,
-            .flow = mesh.settings.get<Ratio>("infill_material_flow") * (layer_nr == 0 ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio{ 1.0 }) * combine_idx,
-            .speed_derivatives = { .speed = mesh.settings.get<Velocity>("speed_infill"),
-                                   .acceleration = mesh.settings.get<Acceleration>("acceleration_infill"),
-                                   .jerk = mesh.settings.get<Velocity>("jerk_infill") } });
+        infill_config.emplace_back(
+            GCodePathConfig{
+                .type = PrintFeatureType::Infill,
+                .line_width = static_cast<coord_t>(
+                    mesh.settings.get<coord_t>("infill_line_width") * line_width_factor_per_extruder[mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_]),
+                .layer_thickness = layer_thickness,
+                .flow = mesh.settings.get<Ratio>("infill_material_flow") * (layer_nr == 0 ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio{ 1.0 }) * combine_idx,
+                .speed_derivatives = { .speed = mesh.settings.get<Velocity>("speed_infill"),
+                                       .acceleration = mesh.settings.get<Acceleration>("acceleration_infill"),
+                                       .jerk = mesh.settings.get<Velocity>("jerk_infill") } });
     }
 }
 

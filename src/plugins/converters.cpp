@@ -393,10 +393,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_flow_ratio(path.config.getFlowRatio());
         gcode_path->set_is_bridge_path(path.config.isBridgePath());
         gcode_path->set_z_offset(path.config.z_offset);
-        if (path.config.temperature.has_value())
-        {
-            gcode_path->set_temperature(path.config.temperature->value);
-        }
+        gcode_path->set_temperature_delta(path.config.temperature_delta);
     }
 
     return message;
@@ -472,7 +469,7 @@ gcode_paths_modify_request::value_type
         = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
         .is_bridge_path = path.is_bridge_path(),
         .fan_speed = path.fan_speed(),
-        .temperature = path.has_temperature() ? std::make_optional(path.temperature()) : std::nullopt,
+        .temperature_delta = path.temperature_delta(),
     };
 }
 

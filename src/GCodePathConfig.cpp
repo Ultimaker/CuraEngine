@@ -43,9 +43,9 @@ namespace cura
     return type;
 }
 
-const std::optional<Temperature>& GCodePathConfig::getTemperature() const noexcept
+const Temperature& GCodePathConfig::getTemperatureDelta() const noexcept
 {
-    return temperature;
+    return temperature_delta;
 }
 
 [[nodiscard]] bool GCodePathConfig::isTravelPath() const noexcept

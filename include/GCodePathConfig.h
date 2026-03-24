@@ -32,7 +32,7 @@ struct GCodePathConfig
     bool is_bridge_path{ false }; //!< whether current config is used when bridging
     double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
-    std::optional<Temperature> temperature;
+    Temperature temperature_delta;
 
     [[nodiscard]] constexpr bool operator==(const GCodePathConfig& other) const noexcept = default;
     [[nodiscard]] constexpr auto operator<=>(const GCodePathConfig& other) const = default;
@@ -71,7 +71,7 @@ struct GCodePathConfig
 
     [[nodiscard]] PrintFeatureType getPrintFeatureType() const noexcept;
 
-    [[nodiscard]] const std::optional<Temperature>& getTemperature() const noexcept;
+    [[nodiscard]] const Temperature& getTemperatureDelta() const noexcept;
 
 private:
     [[nodiscard]] double calculateExtrusion() const noexcept;

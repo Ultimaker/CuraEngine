@@ -386,8 +386,8 @@ void LayerPlanBuffer::insertInLayerTempCommands(ExtruderPlan& extruder_plan)
             continue;
         }
 
-        const double path_temperature = path.config.temperature.has_value() ? path.config.temperature->value : normal_temperature;
-        if (! fuzzy_equal(path_temperature, actual_temperature, 0.1))
+        const Temperature path_temperature = normal_temperature + path.config.temperature_delta;
+        if (! fuzzy_equal(path_temperature.value, actual_temperature, 0.1))
         {
             constexpr bool wait = false;
             extruder_plan.insertCommand({ index, extruder_plan.extruder_nr_, path_temperature, wait });
