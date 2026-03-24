@@ -5,6 +5,7 @@
 #define INFILL_ORDER_OPTIMIZER_H
 
 #include <optional>
+#include <unordered_map>
 
 #include "utils/ExtrusionLine.h"
 
