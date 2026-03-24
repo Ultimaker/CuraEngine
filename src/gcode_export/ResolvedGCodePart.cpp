@@ -13,7 +13,7 @@ namespace cura
 
 ResolvedGCodePart::ResolvedGCodePart(
     const std::string& raw_string,
-    std::optional<int>& context_extruder_nr,
+    const ResolvingExtruderContext& context_extruder_nr,
     const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings)
     : raw_string_(raw_string)
     , context_extruder_nr_(context_extruder_nr)

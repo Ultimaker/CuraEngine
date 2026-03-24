@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 #include "TravelAntiOozing.h"
+#include "gcode_export/ResolvingExtruderContext.h"
 #include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
@@ -23,6 +24,11 @@
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
 #include "utils/string.h"
+
+namespace CuraFormulaeEngine::eval
+{
+struct Value;
+}
 
 namespace cura
 {
@@ -286,7 +292,7 @@ public:
 
     coord_t getPositionZ() const;
 
-    int getExtruderNr() const;
+    size_t getExtruderNr() const;
 
     void setFilamentDiameter(size_t extruder, const coord_t diameter);
 
@@ -431,6 +437,11 @@ public:
     void flushOutputStream();
 
     void prepareNewFixedGCodePart();
+
+    void writeResolvableGCode(
+        const std::string& raw_text,
+        const ResolvingExtruderContext& extruder_nr = DynamicExtruderContext::Global,
+        const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {});
 
     /*!
      * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
@@ -626,7 +637,10 @@ public:
      *
      * \param str The code string to write
      */
-    void writeCodeWithAbsoluteExtrusion(const std::string& str);
+    void writeCodeWithAbsoluteExtrusion(
+        const std::string& str,
+        const ResolvingExtruderContext& extruder_nr = DynamicExtruderContext::Global,
+        const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {});
 
     void resetExtruderToPrimed(const size_t extruder, const double initial_retraction);
 

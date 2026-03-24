@@ -8,6 +8,8 @@
 #include <string>
 #include <unordered_map>
 
+#include "gcode_export/ResolvingExtruderContext.h"
+
 namespace CuraFormulaeEngine::eval
 {
 struct Value;
@@ -27,7 +29,7 @@ namespace cura::GcodeTemplateResolver
  */
 std::string resolveGCodeTemplate(
     const std::string& input,
-    const std::optional<int> context_extruder_nr = std::nullopt,
+    const ResolvingExtruderContext &context_extruder_nr = DynamicExtruderContext::Global,
     const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {});
 
 } // namespace cura::GcodeTemplateResolver

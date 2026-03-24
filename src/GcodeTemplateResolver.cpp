@@ -266,7 +266,8 @@ bool processExpression(
     return true;
 }
 
-std::string resolveGCodeTemplate(const std::string& input, const std::optional<int> context_extruder_nr, const std::unordered_map<std::string, cfe::eval::Value>& extra_settings)
+std::string
+    resolveGCodeTemplate(const std::string& input, const ResolvingExtruderContext& context_extruder_nr, const std::unordered_map<std::string, cfe::eval::Value>& extra_settings)
 {
     std::string output;
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;
@@ -292,6 +293,27 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
         }
     }
 
+    std::optional<size_t> actual_extruder_nr;
+    std::visit(
+        [&actual_extruder_nr](auto&& context_extruder_nr_value)
+        {
+            using T = std::decay_t<decltype(context_extruder_nr_value)>;
+            if constexpr (std::is_same_v<T, DynamicExtruderContext>)
+            {
+                if (context_extruder_nr_value == DynamicExtruderContext::Initial)
+                {
+#warning use the actual initial extruder, now we actually can !!!!!!!!!
+                    actual_extruder_nr = 0;
+                }
+                // Otherwise actual_extruder_nr stays nullopt, which means use global context
+            }
+            else if constexpr (std::is_same_v<T, size_t>)
+            {
+                actual_extruder_nr = context_extruder_nr_value;
+            }
+        },
+        context_extruder_nr);
+
     std::string::const_iterator start = input.cbegin();
     const std::string::const_iterator end = input.cend();
     boost::smatch match;
@@ -305,7 +327,7 @@ std::string resolveGCodeTemplate(const std::string& input, const std::optional<i
                 processStatement(output, condition_state, match.prefix().str());
             }
 
-            if (! processExpression(output, condition_state, match, context_extruder_nr, environments))
+            if (! processExpression(output, condition_state, match, actual_extruder_nr, environments))
             {
                 // Something got wrong during expression evaluation, return raw input insteaad
                 output = input;

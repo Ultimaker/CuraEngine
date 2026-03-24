@@ -20,7 +20,6 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
-#include "GcodeTemplateResolver.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "PrimeTower/PrimeTower.h"
@@ -4380,9 +4379,7 @@ void FffGcodeWriter::finalize()
 
     // Replace the setting tokens in start and end g-code.
     // Use values from the first used extruder by default so we get the expected temperatures
-    auto machine_end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
-    auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
-    machine_end_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_end_gcode, initial_extruder_nr);
+    const auto machine_end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
 
     if (! machine_end_gcode.empty() && mesh_group_settings.get<bool>("relative_extrusion"))
     {
