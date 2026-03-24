@@ -18,13 +18,13 @@ struct Temperature
      * \brief Default constructor setting the temperature to 0.
      */
     constexpr Temperature()
-        : value(0.0) {};
+        : value(0.0){};
 
     /*
      * \brief Casts a double to a Temperature instance.
      */
     constexpr Temperature(double value_t)
-        : value(value_t) {};
+        : value(value_t){};
 
     /*
      * \brief Casts the Temperature instance to a double.
