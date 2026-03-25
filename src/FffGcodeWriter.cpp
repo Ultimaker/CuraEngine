@@ -2070,11 +2070,12 @@ bool FffGcodeWriter::processMultiLayerInfill(
                     srand(gcode_layer.getLayerNr());
                     near_start_location = infill_lines[rand() % infill_lines.size()][0];
                 }
-                else if (near_end_location.has_value())
+                else if (near_end_location.has_value()) // Handles InfillStartPosition::CLOSE_TO_WALL_SEAM which is calculated earlier
                 {
                     near_start_location = near_end_location;
                     reverse_print_direction = true;
                 }
+                // The InfillStartPosition::NONE case leaves the near_start_location empty
 
                 constexpr coord_t wipe_dist = 0;
                 const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
