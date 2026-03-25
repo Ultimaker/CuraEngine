@@ -3719,7 +3719,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     };
     const AngleDegrees support_infill_angle = get_support_infill_angle(storage.support, gcode_layer.getLayerNr());
 
-    constexpr size_t infill_multiplier = 1; // there is no frontend setting for this (yet)
+    const auto infill_multiplier = mesh_group_settings.get<size_t>("support_infill_multiplier");
     size_t infill_density_multiplier = 1;
     if (gcode_layer.getLayerNr() <= 0)
     {
@@ -3833,7 +3833,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             added_something |= wall_orderer.addToLayer();
         }
 
-        if ((default_support_line_distance <= 0 && support_structure != ESupportStructure::TREE) || part.infill_area_per_combine_per_density_.empty())
+        if (default_support_line_distance <= 0 || part.infill_area_per_combine_per_density_.empty())
         {
             continue;
         }
@@ -3870,6 +3870,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
                 const Shape& area = Simplify(infill_extruder.settings_).polygon(part.infill_area_per_combine_per_density_[density_idx][combine_idx]);
 
+                std::shared_ptr<LightningLayer> lightning_layer;
+                if (storage.support.lightning_generator)
+                {
+                    lightning_layer = std::make_shared<LightningLayer>(storage.support.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
+                }
+
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
                 const coord_t small_area_width = 0;
                 constexpr bool skip_stitching = false;
@@ -3905,7 +3911,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     infill_extruder.settings_,
                     gcode_layer.getLayerNr(),
                     SectionType::SUPPORT,
-                    storage.support.cross_fill_provider);
+                    storage.support.cross_fill_provider,
+                    lightning_layer);
             }
 
             if (need_travel_to_end_of_last_spiral && infill_extruder.settings_.get<bool>("magic_spiralize"))
