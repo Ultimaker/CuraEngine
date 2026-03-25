@@ -13,7 +13,7 @@ struct GCodeTemplateTestCase
     std::string input;
     std::optional<int> extruder_nr;
     std::string expected_output;
-    std::unordered_map<std::string, std::string> extra_settings{};
+    std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> extra_settings{};
 };
 
 class GCodeTemplateResolverTest : public ::testing::TestWithParam<GCodeTemplateTestCase>
@@ -249,4 +249,7 @@ INSTANTIATE_TEST_SUITE_P(
         // Multiple extruder replaces on single line
         GCodeTemplateTestCase{ "MT0={material_temperature, 0} MT1={material_temperature, 1}", std::nullopt, "MT0=190.5 MT1=210\n" },
         // Extra settings
-        GCodeTemplateTestCase{ "ES={bed_temperature} SE={max_printer_temperature}", std::nullopt, "ES=50 SE=500\n", { { "max_printer_temperature", "500" } } }));
+        GCodeTemplateTestCase{ "ES={bed_temperature} SE={max_printer_temperature}",
+                               std::nullopt,
+                               "ES=50 SE=500\n",
+                               { { "max_printer_temperature", static_cast<int64_t>(500) } } }));
