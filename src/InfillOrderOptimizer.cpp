@@ -168,7 +168,7 @@ bool InfillOrderOptimizer::addToLayer(
 
     layer_plan.setIsInside(true); // going to print stuff inside print object
     std::optional<Point2LL> near_start_location;
-    if (settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::RANDOM)
+    if (settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::START_RANDOM)
     {
         srand(layer_plan.getLayerNr());
         const InfillPart& first_part = infill_parts_.front();

@@ -1874,7 +1874,8 @@ void FffGcodeWriter::addMeshPartToGCode(
     const bool infill_before_walls = mesh.settings.get<bool>("infill_before_walls");
     bool added_something = false;
 
-    const bool end_infill_close_to_seam = infill_before_walls && mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::CLOSE_TO_WALL_SEAM;
+    const bool end_infill_close_to_seam
+        = infill_before_walls && mesh.settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::END_CLOSE_TO_SEAM;
 
     // Pre-process the insets without actually adding them, so that we know where they are going to start printing
     InsetsPreprocessResult insets_preprocess_result = preProcessInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, end_infill_close_to_seam);
@@ -2065,17 +2066,17 @@ bool FffGcodeWriter::processMultiLayerInfill(
             {
                 std::optional<Point2LL> near_start_location;
                 bool reverse_print_direction = false;
-                if (mesh.settings.get<InfillStartPosition>("infill_start_position") == InfillStartPosition::RANDOM)
+                if (mesh.settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::START_RANDOM)
                 {
                     srand(gcode_layer.getLayerNr());
                     near_start_location = infill_lines[rand() % infill_lines.size()][0];
                 }
-                else if (near_end_location.has_value()) // Handles InfillStartPosition::CLOSE_TO_WALL_SEAM which is calculated earlier
+                else if (near_end_location.has_value()) // Handles InfillStartEndPreference::END_CLOSE_TO_SEAM which is calculated earlier
                 {
                     near_start_location = near_end_location;
                     reverse_print_direction = true;
                 }
-                // The InfillStartPosition::NONE case leaves the near_start_location empty
+                // The InfillStartEndPreference::START_CLOSEST case leaves the near_start_location empty, so that current location will be used
 
                 constexpr coord_t wipe_dist = 0;
                 const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
