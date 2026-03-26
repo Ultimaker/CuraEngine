@@ -4,12 +4,14 @@
 #include "gcode_export/gcodeExport.h"
 
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cura-formulae-engine/parser/parser.h>
 #include <iomanip>
 #include <numbers>
 #include <regex>
 
+#include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To send layer view data.
@@ -21,10 +23,12 @@
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "gcode_export/FixedGCodePart.h"
+#include "gcode_export/GcodeTemplateResolver.h"
 #include "gcode_export/ResolvedGCodePart.h"
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Date.h"
+#include "utils/math.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cfe = CuraFormulaeEngine;
@@ -48,6 +52,7 @@ GCodeExport::GCodeExport()
     : current_position_(0, 0, MM2INT(20))
     , layer_nr_(0)
     , relative_extrusion_(false)
+    , template_resolver_(std::make_shared<GcodeTemplateResolver>())
 {
     current_e_value_ = 0;
     current_extruder_ = 0;
@@ -1896,15 +1901,65 @@ void GCodeExport::finalize(const std::string& end_code)
 {
     writeFanCommand(0);
     writeResolvableGCode(end_code, DynamicExtruderContext::Initial);
-    int64_t print_time = getSumTotalPrintTimes();
+
+    std::chrono::seconds print_time(static_cast<int64_t>(getSumTotalPrintTimes()));
+    spdlog::info("Print time: {}", print_time);
+
+    auto print_hours = std::chrono::duration_cast<std::chrono::hours>(print_time);
+    print_time -= print_hours;
+    auto print_minutes = std::chrono::duration_cast<std::chrono::minutes>(print_time);
+    print_time -= print_minutes;
+    auto print_seconds = std::chrono::duration_cast<std::chrono::seconds>(print_time);
+    spdlog::info("Print time (hr|min|s): {} {} {}", print_hours, print_minutes, print_seconds);
+
     int mat_0 = getTotalFilamentUsed(0);
-    spdlog::info("Print time (s): {}", print_time);
-    spdlog::info("Print time (hr|min|s): {}h {}m {}s", int(print_time / 60 / 60), int((print_time / 60) % 60), int(print_time % 60));
     spdlog::info("Filament (mm^3): {}", mat_0);
+
     for (int n = 1; n < MAX_EXTRUDERS; n++)
+    {
         if (getTotalFilamentUsed(n) > 0)
+        {
             spdlog::info("Filament {}: {}", n + 1, int(getTotalFilamentUsed(n)));
-    flushOutputStream();
+        }
+    }
+
+    template_resolver_->addGlobalExtraSetting("print_time", fmt::format("{:02d}:{:02d}:{:02d}", print_hours.count(), print_minutes.count(), print_seconds.count()));
+
+    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice_->scene.extruders;
+    const size_t used_extruders = extruders.size();
+    std::vector<cfe::eval::Value> filaments_amounts(used_extruders);
+    std::vector<cfe::eval::Value> filaments_weights(used_extruders);
+    std::vector<cfe::eval::Value> filaments_costs(used_extruders);
+    for (size_t extruder_nr = 0; extruder_nr < used_extruders; ++extruder_nr)
+    {
+        const Settings& extruder_settings = extruders[extruder_nr].settings_;
+        const double material_radius = extruder_settings.get<double>("material_diameter") / 2;
+        const double material_density = extruder_settings.get<double>("material_density");
+        const double material_spool_weight = extruder_settings.get<double>("material_spool_weight");
+        const double material_spool_cost = extruder_settings.get<double>("material_spool_cost");
+
+        const double filament_used_volume = getTotalFilamentUsed(extruder_nr);
+        const double filament_used_length = (filament_used_volume / (std::numbers::pi * square(material_radius))) / 1000;
+        const double filament_used_weight = filament_used_volume * material_density / 1000.0;
+
+        double filament_cost = 0.0;
+        if (material_spool_weight > 0.0 && material_spool_cost > 0.0)
+        {
+            const double filament_cost_per_weight = material_spool_cost / material_spool_weight;
+            filament_cost = filament_used_weight * filament_cost_per_weight;
+        }
+
+        filaments_amounts[extruder_nr] = filament_used_length;
+        filaments_weights[extruder_nr] = filament_used_weight;
+        filaments_costs[extruder_nr] = filament_cost;
+    }
+
+    template_resolver_->addGlobalExtraSetting("filament_amount", filaments_amounts);
+    template_resolver_->addGlobalExtraSetting("filament_weight", filaments_weights);
+    template_resolver_->addGlobalExtraSetting("filament_cost", filaments_costs);
+
+    template_resolver_->setInitialExtruderNr(Application::getInstance().current_slice_->scene.settings.get<size_t>("initial_extruder_nr"));
+
     sendFinalGCode();
 }
 
@@ -1937,7 +1992,7 @@ void GCodeExport::writeResolvableGCode(
         return;
     }
 
-    gcode_parts_.push_back(std::make_shared<ResolvedGCodePart>(raw_text, extruder_nr, extra_settings));
+    gcode_parts_.push_back(std::make_shared<ResolvedGCodePart>(template_resolver_, raw_text, extruder_nr, extra_settings));
     prepareNewFixedGCodePart();
 }
 

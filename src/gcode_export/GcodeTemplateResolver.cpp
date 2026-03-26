@@ -1,12 +1,10 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "GcodeTemplateResolver.h"
+#include "gcode_export/GcodeTemplateResolver.h"
 
 #include <cura-formulae-engine/parser/parser.h>
-#include <zeus/expected.hpp>
 
-#include <boost/regex.hpp>
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/map.hpp>
@@ -17,62 +15,39 @@
 
 namespace cfe = CuraFormulaeEngine;
 
-namespace cura::GcodeTemplateResolver
+namespace cura
 {
-static constexpr std::array post_slice_data_variables = { "filament_cost", "print_time", "filament_amount", "filament_weight", "jobname" };
 
-/*! State-machine enum to track the conditional blocks states */
-enum class GcodeConditionState
+void GcodeTemplateResolver::setInitialExtruderNr(const size_t initial_extruder_nr)
 {
-    OutsideCondition, // Normal statement, not currently inside a conditional block
-    ConditionFalse, // Inside a conditional block where the current condition is false
-    ConditionTrue, // Inside a conditional block where the current condition is true
-    ConditionDone, // Inside a multi-conditional block where the valid condition has already been processed
-};
+    initial_extruder_nr_ = initial_extruder_nr;
+}
 
-enum class EvaluateResult
+void GcodeTemplateResolver::addGlobalExtraSetting(const std::string& name, const CuraFormulaeEngine::eval::Value& value)
 {
-    Error, // An error has occured when parsing/evaluating the expression
-    Skip, // The expression should not be evaluated and kept as is
-};
+    global_extra_settings_.emplace(name, value);
+}
 
-/*!
- * Resolve the given expression
- * @param expression The raw expression text to be resolved
- * @param environment The contextual environment to be used when resolving variables
- * @return The parsed value result, or an error description
- */
-zeus::expected<cfe::eval::Value, EvaluateResult> evaluateExpression(const std::string_view& expression, const cfe::env::Environment& environment)
+std::optional<CuraFormulaeEngine::eval::Value> GcodeTemplateResolver::evaluateExpression(const std::string_view& expression, const cfe::env::Environment& environment)
 {
     const zeus::expected<cfe::ast::ExprPtr, cfe::parser::error_t> parse_result = cfe::parser::parse(expression);
     if (! parse_result.has_value())
     {
         spdlog::error("Invalid syntax in expression [{}]", expression);
-        return zeus::unexpected(EvaluateResult::Error);
+        return std::nullopt;
     }
 
     const cfe::eval::Result result = parse_result.value().evaluate(&environment);
     if (! result.has_value())
     {
-        if (ranges::contains(post_slice_data_variables, expression))
-        {
-            return zeus::unexpected(EvaluateResult::Skip);
-        }
-
         spdlog::warn("Invalid variable identifier in expression [{}]", expression);
-        return zeus::unexpected(EvaluateResult::Error);
+        return std::nullopt;
     }
 
     return result.value();
 }
 
-/*!
- * Processes a statement, adding it to the output or not, depending on the current conditional state
- * @param output The output string to add the statement to
- * @param condition_state The current conditional state
- * @param statement The raw statement to be added
- */
-void processStatement(std::string& output, const GcodeConditionState condition_state, const std::string_view& statement)
+void GcodeTemplateResolver::processStatement(std::string& output, const GcodeConditionState condition_state, const std::string_view& statement)
 {
     if (condition_state == GcodeConditionState::OutsideCondition || condition_state == GcodeConditionState::ConditionTrue)
     {
@@ -80,17 +55,7 @@ void processStatement(std::string& output, const GcodeConditionState condition_s
     }
 }
 
-/*!
- * Processes a matched expression block
- * @param[out] output The output string to add the resolved expression to
- * @param[in,out] condition_state The current conditional state, which may be updated
- * @param match The matched regular expression containing the various parts of the expression
- * @param context_extruder_nr The default contextual extruder number, which should be the current extruder number when dealing when an extruder start/end GCode, and nullopt when
- *                            dealing with the global machine start/end gcode
- * @param environments The environments adapters mapped to the settings
- * @return True if the expression processing succeeded, false if an error occurred
- */
-bool processExpression(
+bool GcodeTemplateResolver::processExpression(
     std::string& output,
     GcodeConditionState& condition_state,
     const boost::smatch& match,
@@ -194,7 +159,7 @@ bool processExpression(
 
     if (match_extruder_nr.matched && match_extruder_nr.length() > 0)
     {
-        const zeus::expected<cfe::eval::Value, EvaluateResult> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), environments.at(context_extruder_nr));
+        std::optional<CuraFormulaeEngine::eval::Value> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), environments.at(context_extruder_nr));
         if (! extruder_nr_result.has_value())
         {
             return false;
@@ -229,14 +194,9 @@ bool processExpression(
         extruder_nr_here = std::nullopt;
         environment_iterator = environments.find(std::nullopt);
     }
-    const zeus::expected<cfe::eval::Value, EvaluateResult> expression_result = evaluateExpression(match_expression.str(), environment_iterator->second);
+    std::optional<CuraFormulaeEngine::eval::Value> expression_result = evaluateExpression(match_expression.str(), environment_iterator->second);
     if (! expression_result.has_value())
     {
-        if (expression_result.error() == EvaluateResult::Skip)
-        {
-            output += match.str();
-            return true;
-        }
         return false;
     }
 
@@ -266,8 +226,10 @@ bool processExpression(
     return true;
 }
 
-std::string
-    resolveGCodeTemplate(const std::string& input, const ResolvingExtruderContext& context_extruder_nr, const std::unordered_map<std::string, cfe::eval::Value>& extra_settings)
+std::string GcodeTemplateResolver::resolveGCodeTemplate(
+    const std::string& input,
+    const ResolvingExtruderContext& context_extruder_nr,
+    const std::unordered_map<std::string, cfe::eval::Value>& extra_settings) const
 {
     std::string output;
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;
@@ -287,7 +249,13 @@ std::string
     {
         environments.emplace(environment_key, cfe::env::LocalEnvironment(&environment_adapters.at(environment_key)));
         cfe::env::LocalEnvironment& local_environment = environments.at(environment_key);
+
         for (auto iterator = extra_settings.begin(); iterator != extra_settings.end(); ++iterator)
+        {
+            local_environment.set(iterator->first, iterator->second);
+        }
+
+        for (auto iterator = global_extra_settings_.begin(); iterator != global_extra_settings_.end(); ++iterator)
         {
             local_environment.set(iterator->first, iterator->second);
         }
@@ -295,15 +263,14 @@ std::string
 
     std::optional<size_t> actual_extruder_nr;
     std::visit(
-        [&actual_extruder_nr](auto&& context_extruder_nr_value)
+        [this, &actual_extruder_nr](auto&& context_extruder_nr_value)
         {
             using T = std::decay_t<decltype(context_extruder_nr_value)>;
             if constexpr (std::is_same_v<T, DynamicExtruderContext>)
             {
                 if (context_extruder_nr_value == DynamicExtruderContext::Initial)
                 {
-#warning use the actual initial extruder, now we actually can !!!!!!!!!
-                    actual_extruder_nr = 0;
+                    actual_extruder_nr = initial_extruder_nr_;
                 }
                 // Otherwise actual_extruder_nr stays nullopt, which means use global context
             }
@@ -352,4 +319,4 @@ std::string
     return output;
 }
 
-} // namespace cura::GcodeTemplateResolver
+} // namespace cura

@@ -36,6 +36,7 @@ namespace cura
 class RetractionConfig;
 class SliceDataStorage;
 class GCodePart;
+class GcodeTemplateResolver;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -199,6 +200,7 @@ private:
     bool ppr_enable_; //!< if the print process reporting is enabled
 
     std::vector<std::shared_ptr<GCodePart>> gcode_parts_;
+    std::shared_ptr<GcodeTemplateResolver> template_resolver_;
 
 protected:
     /*!
