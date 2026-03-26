@@ -5,7 +5,7 @@
 #define UTILS_STRING_H
 
 #include <cmath>
-#include <cstdio> // sprintf
+#include <cstdio> // snprintf
 #include <ctype.h>
 #include <sstream> // ostringstream
 
@@ -68,7 +68,8 @@ static inline void writeInt2mm(const int32_t coord, std::ostream& ss)
 {
     constexpr size_t buffer_size = 24;
     char buffer[buffer_size];
-    int char_count = sprintf(buffer, "%d", coord); // we haven't found any way for the windows compiler to accept formatting of a coord_t, so it has to be int32_t instead
+    int char_count
+        = snprintf(buffer, buffer_size, "%d", coord); // we haven't found any way for the windows compiler to accept formatting of a coord_t, so it has to be int32_t instead
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
@@ -155,7 +156,7 @@ static inline void writeDoubleToStream(const uint8_t precision, const double coo
     format[2] = '0' + static_cast<char>(precision); // set [x]
     constexpr size_t buffer_size = 400;
     char buffer[buffer_size];
-    int char_count = sprintf(buffer, format, coord);
+    int char_count = snprintf(buffer, buffer_size, format, coord);
 #ifdef DEBUG
     if (char_count + 1 >= int(buffer_size)) // + 1 for the null character
     {
