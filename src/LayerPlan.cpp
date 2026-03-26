@@ -1337,7 +1337,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     Point2LL p0 = wall.pointAt(start_idx);
     coord_t w0 = wall.lineWidthAt(start_idx);
     bool first_line = ! is_scarf_closure;
-    bool first_split = ! is_scarf_closure;
     Point3LL split_origin = p0;
     if (! is_scarf_closure && scarf_seam_length > 0)
     {
@@ -1486,13 +1485,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                         if (! is_scarf_closure)
                         {
                             split_destination.z_ = std::llrint(std::lerp(scarf_max_z_offset, 0.0, scarf_factor_destination));
-                        }
-
-                        if (first_split)
-                        {
-                            // Manually add a Z-only travel move to set the nozzle at the height of the first point
-                            addTravel(p0, always_retract, split_origin.z_);
-                            first_split = false;
                         }
                     }
 
@@ -1917,8 +1909,6 @@ void LayerPlan::addWall(
             const Ratio& line_width_ratio,
             const coord_t distance_to_bridge_start)
         {
-            constexpr bool travel_to_z = false;
-
             addWallLine(
                 wall,
                 segment_index,
@@ -1935,8 +1925,7 @@ void LayerPlan::addWall(
                 line_width_ratio,
                 non_bridge_line_volume,
                 speed_factor,
-                distance_to_bridge_start,
-                travel_to_z);
+                distance_to_bridge_start);
         });
 
     if (wall.size() >= 2)
@@ -2409,7 +2398,12 @@ void LayerPlan::addLinesInGivenOrder(
         }
         else
         {
-            addTravel(start, false, config.z_offset);
+            if (config.z_offset != 0)
+            {
+                // Make sure we don't travel at fractional height
+                addTravel(getLastPlannedPositionOrStartingPosition(), false);
+            }
+            addTravel(start, false);
         }
 
         Point2LL p0 = start;
@@ -4004,12 +3998,6 @@ void LayerPlan::applyModifyPlugin()
         if (removed_count > 0)
         {
             spdlog::warn("Removed {} empty paths after plugin slot GCODE_PATHS_MODIFY was executed", removed_count);
-        }
-        // Ensure that the output is at least valid enough to not cause crashes.
-        if (extruder_plan.paths_.size() == 0)
-        {
-            GCodePath* reinstated_path = getLatestPathWithConfig(configs_storage_.travel_config_per_extruder[getExtruder()], SpaceFillType::None);
-            addTravel_simple(first_travel_destination_.value_or(getLastPlannedPositionOrStartingPosition()), reinstated_path);
         }
 
         scripta::log(
