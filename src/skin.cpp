@@ -329,24 +329,32 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
 void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& part)
 {
     const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
+    const bool has_roofing = roofing_layer_count > 0;
     const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
+    const bool has_flooring = flooring_layer_count > 0;
     const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
     const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
 
-    constexpr coord_t epsilon = 5;
     const SliceDataStorage slice_data;
     const Shape build_plate = slice_data.getRawMachineBorder();
 
-    const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
-    const Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate.offset(epsilon));
+    const Shape filled_area_above = has_roofing ? generateFilledAreaAbove(part, roofing_layer_count) : build_plate;
+    const Shape filled_area_below = has_flooring ? (generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate)) : build_plate;
 
     for (SkinPart& skin_part : part.skin_parts)
     {
-        const Shape below_inside = skin_part.outline.intersection(filled_area_below);
-        const Shape above_inside = skin_part.outline.intersection(filled_area_above);
+        if (has_roofing)
+        {
+            const Shape below_inside = skin_part.outline.intersection(filled_area_below);
+            skin_part.roofing_fill = below_inside.difference(filled_area_above).offset(roofing_expansion).intersection(below_inside);
+        }
 
-        skin_part.roofing_fill = below_inside.difference(filled_area_above).offset(roofing_expansion).intersection(below_inside);
-        skin_part.flooring_fill = above_inside.difference(filled_area_below);
+        if (has_flooring)
+        {
+            const Shape above_inside = skin_part.outline.intersection(filled_area_above);
+            skin_part.flooring_fill = above_inside.difference(filled_area_below);
+        }
+
         skin_part.skin_fill = skin_part.outline.difference(skin_part.roofing_fill).intersection(filled_area_below);
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
