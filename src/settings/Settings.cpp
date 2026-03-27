@@ -740,6 +740,24 @@ CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::stri
 }
 
 template<>
+InfillStartEndPreference Settings::get<InfillStartEndPreference>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "end_close_to_seam")
+    {
+        return InfillStartEndPreference::END_CLOSE_TO_SEAM;
+    }
+    else if (value == "start_random")
+    {
+        return InfillStartEndPreference::START_RANDOM;
+    }
+    else // Default.
+    {
+        return InfillStartEndPreference::START_CLOSEST;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);

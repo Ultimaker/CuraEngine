@@ -12,7 +12,6 @@
 #include "gcodeExport.h"
 #include "geometry/LinesSet.h"
 #include "geometry/MendedShape.h"
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"

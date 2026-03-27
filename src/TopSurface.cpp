@@ -41,8 +41,7 @@ void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t l
     }
 }
 
-bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer, const FffGcodeWriter& gcode_writer)
-    const
+bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer) const
 {
     if (areas.empty())
     {
@@ -166,7 +165,6 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         constexpr coord_t wipe_dist = 0u;
         const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
         InsetOrderOptimizer wall_orderer(
-            gcode_writer,
             storage,
             layer,
             mesh.settings,

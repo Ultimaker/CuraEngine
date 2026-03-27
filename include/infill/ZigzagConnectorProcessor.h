@@ -6,15 +6,16 @@
 
 #include <vector>
 
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 
 namespace cura
 {
 
+class OpenLinesSet;
+class OpenPolyline;
+class PointMatrix;
 class Polygon;
 class Shape;
-class PointMatrix;
 
 /*!
  * Processor class for processing the connections between lines which makes the infill a zigzag pattern.

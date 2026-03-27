@@ -12,8 +12,9 @@
 namespace cura
 {
 
-class FffGcodeWriter;
 class LayerPlan;
+template<class T>
+class PathOrderOptimizer;
 
 class InsetOrderOptimizer
 {
@@ -25,8 +26,6 @@ public:
      *
      * This constructor gets basically all of the locals passed when it needs to
      * optimise the order of insets.
-     * \param gcode_writer The FffGcodeWriter on whose behalf the inset order is
-     * being optimized.
      * \param storage Read slice data from this storage.
      * \param gcode_layer The layer where the resulting insets must be planned.
      * \param mesh The mesh that these insets are part of.
@@ -38,7 +37,6 @@ public:
      * \param layer_nr The current layer number.
      */
     InsetOrderOptimizer(
-        const FffGcodeWriter& gcode_writer,
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const Settings& settings,
@@ -63,7 +61,11 @@ public:
         const bool scarf_seam = false,
         const bool smooth_speed = false,
         const Shape& overhang_areas = Shape(),
-        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr);
+        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr,
+        const bool start_width_longest_wall = false);
+
+    /*! Process the paths ordering optimization. The result can be retrieved in the path_optimizer_ variable. */
+    void optimize();
 
     /*!
      * Adds the insets to the given layer plan.
@@ -94,8 +96,10 @@ public:
      */
     static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
 
+    /*! Get the start position of the planned paths, or nullopt if optimize() has not been called yet or the paths are empty */
+    std::optional<Point2LL> getStartPosition() const;
+
 private:
-    const FffGcodeWriter& gcode_writer_;
     const SliceDataStorage& storage_;
     LayerPlan& gcode_layer_;
     const Settings& settings_;
@@ -122,6 +126,9 @@ private:
     const bool smooth_speed_;
     Shape overhang_areas_;
     const std::shared_ptr<TextureDataProvider> texture_data_provider_;
+    const bool start_width_longest_wall_;
+    std::vector<ExtrusionLine> walls_to_be_added_;
+    std::shared_ptr<PathOrderOptimizer<const ExtrusionLine*>> path_optimizer_;
 
     std::vector<std::vector<const Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
     Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
@@ -166,6 +173,15 @@ private:
      * \return A vector of ExtrusionLines with walls that should be printed
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
+
+    /*!
+     * Appends constraints to the walls ordering so that for the first processed inset, we will start with the longest wall. The first printed wall can have a better seam
+     * quality in some conditions, and the longest one is likely to be the most visible.
+     * @param walls The walls to be ordered
+     * @param[in, out] order The order to which the constraints should be appended
+     * @param outer_to_inner Indicates of the outer walls are printed first (or the inner walls first)
+     */
+    static void addFirstWallOrder(const std::vector<ExtrusionLine>& walls, std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*>& order, const bool outer_to_inner);
 };
 } // namespace cura
 
