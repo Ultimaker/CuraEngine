@@ -28,6 +28,7 @@ class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
 struct MeshPathConfigs;
+class InsetOrderOptimizer;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -158,6 +159,13 @@ private:
         std::string extruder_nr;
         std::string pattern;
         std::string monotonic;
+    };
+
+    /*! Helper structure to pre-process then later add the optimized insets */
+    struct InsetsPreprocessResult
+    {
+        std::shared_ptr<InsetOrderOptimizer> walls_optimizer{}; // Contains the ready-to-add optimized insets
+        bool spiralize{ false }; // Indicates whether this layer is a regular or a spiral layer
     };
 
     static const RoofingFlooringSettingsNames roofing_settings_names;
@@ -398,6 +406,7 @@ private:
      * mesh which should be printed with this extruder.
      * \param mesh_config the line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param near_end_location The location where the infill should preferably end close to
      * \return Whether this function added anything to the layer plan.
      */
     bool processInfill(
@@ -406,7 +415,8 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
+        const SliceLayerPart& part,
+        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
 
     /*!
      * \brief Add thicker (multiple layers) sparse infill for a given part in a
@@ -420,6 +430,8 @@ private:
      * \param part The part for which to create gcode.
      * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
      * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
+     * \param near_end_location The location where the infill should preferably end close to
+     * \param split_near_end_location If true, the infill open polyline that passes closer to the near_end_location will be split to provide a proper start/end position
      * \return Whether this function added anything to the layer plan.
      */
     bool processMultiLayerInfill(
@@ -429,7 +441,9 @@ private:
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
         const coord_t start_move_inwards_length = 0,
-        const coord_t end_move_inwards_length = 0) const;
+        const coord_t end_move_inwards_length = 0,
+        const std::optional<Point2LL>& near_end_location = std::nullopt,
+        const bool split_near_end_location = false) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -441,6 +455,8 @@ private:
      * \param part The part for which to create gcode.
      * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
      * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
+     * \param near_end_location The location where the infill should preferably end close to
+     * \param split_near_end_location If true, the infill open polyline that passes closer to the near_end_location will be split to provide a proper start/end position
      * \return Whether this function added anything to the layer plan.
      */
     bool processSingleLayerInfill(
@@ -451,21 +467,45 @@ private:
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
         const coord_t start_move_inwards_length = 0,
-        const coord_t end_move_inwards_length = 0) const;
+        const coord_t end_move_inwards_length = 0,
+        const std::optional<Point2LL>& near_end_location = std::nullopt,
+        const bool split_near_end_location = false) const;
 
     /*!
-     * Generate the insets for the walls of a given layer part.
+     * Generate the insets for the walls of a given layer part, without inserting them to the layer plan
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
-     * \param mesh_config the line config with which to print a print feature
+     * \param mesh_config The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param part The part for which to create gcode
-     * \return Whether this function added anything to the layer plan
+     * \param end_infill_close_to_seam Indicates whether the infill will end close to the seam, in which case we can slightly adjust the insets ordering
+     * \return The content to be later inserted
      */
-    bool processInsets(
+    InsetsPreprocessResult preProcessInsets(
         const SliceDataStorage& storage,
         LayerPlan& gcodeLayer,
+        const SliceMeshStorage& mesh,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        SliceLayerPart& part,
+        const bool end_infill_close_to_seam) const;
+
+    /*!
+     * Inserts the previously processed insets
+     * @param preprocess_result The pre-processed insets to be added
+     * @param storage storage where the slice data is stored.
+     * @param gcode_layer The initial planning of the gcode of the layer.
+     * @param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * @param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * @param mesh_config The extruder for which to print all features of the mesh which should be printed with this extruder
+     * @param part The part for which to create gcode
+     * @return Whether this function added anything to the layer plan
+     */
+    bool endProcessInsets(
+        InsetsPreprocessResult& preprocess_result,
+        const SliceDataStorage& storage,
+        LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,

@@ -4128,7 +4128,7 @@ void LayerPlan::setFlooringMask(const Shape& shape)
 }
 
 template void LayerPlan::addLinesByOptimizer(
-    const OpenLinesSet& lines,
+    const LinesSet<OpenPolyline>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,

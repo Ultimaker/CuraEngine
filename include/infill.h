@@ -9,7 +9,6 @@
 #include <range/v3/range/concepts.hpp>
 
 #include "geometry/LinesSet.h"
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"

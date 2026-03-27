@@ -4,6 +4,8 @@
 #ifndef GEOMETRY_MENDEDSHAPE_H
 #define GEOMETRY_MENDEDSHAPE_H
 
+#include <optional>
+
 #include "geometry/Shape.h"
 #include "settings/Settings.h"
 #include "utils/section_type.h"
@@ -28,15 +30,15 @@ namespace cura
 class MendedShape
 {
 public:
-    MendedShape()
-        : shape_(Shape())
-    {
-    }
-    MendedShape(const Settings& settings, const SectionType section_type, const Shape& shape);
+    MendedShape() = default;
+    MendedShape(const Settings* settings, const SectionType section_type, const Shape* shape);
     const Shape& getShape() const;
 
 protected:
-    Shape shape_;
+    const Settings* settings_{ nullptr };
+    const SectionType section_type_{};
+    const Shape* shape_{ nullptr };
+    std::optional<Shape> mended_shape_;
 };
 } // namespace cura
 
