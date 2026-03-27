@@ -43,6 +43,11 @@ namespace cura
     return type;
 }
 
+const Temperature& GCodePathConfig::getTemperatureDelta() const noexcept
+{
+    return temperature_delta;
+}
+
 [[nodiscard]] bool GCodePathConfig::isTravelPath() const noexcept
 {
     return line_width == 0;

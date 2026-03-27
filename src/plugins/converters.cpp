@@ -393,6 +393,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_flow_ratio(path.config.getFlowRatio());
         gcode_path->set_is_bridge_path(path.config.isBridgePath());
         gcode_path->set_z_offset(path.config.z_offset);
+        gcode_path->set_temperature_delta(path.config.temperature_delta);
     }
 
     return message;
@@ -458,15 +459,18 @@ gcode_paths_modify_request::value_type
 
 [[nodiscard]] GCodePathConfig gcode_paths_modify_response::buildConfig(const v0::GCodePath& path)
 {
-    return { .z_offset = path.z_offset(),
-             .type = getPrintFeatureType(path.feature()),
-             .line_width = path.line_width(),
-             .layer_thickness = path.layer_thickness(),
-             .flow = path.flow_ratio(),
-             .speed_derivatives
-             = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
-             .is_bridge_path = path.is_bridge_path(),
-             .fan_speed = path.fan_speed() };
+    return {
+        .z_offset = path.z_offset(),
+        .type = getPrintFeatureType(path.feature()),
+        .line_width = path.line_width(),
+        .layer_thickness = path.layer_thickness(),
+        .flow = path.flow_ratio(),
+        .speed_derivatives
+        = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
+        .is_bridge_path = path.is_bridge_path(),
+        .fan_speed = path.fan_speed(),
+        .temperature_delta = path.temperature_delta(),
+    };
 }
 
 gcode_paths_modify_response::native_value_type
