@@ -115,16 +115,6 @@ public:
      */
     virtual void sendPrintTimeMaterialEstimates() const = 0;
 
-    /*
-     * \brief Indicate that we're beginning to send g-code.
-     */
-    virtual void beginGCode() = 0;
-
-    /*
-     * \brief Flush all remaining g-code to the user.
-     */
-    virtual void flushGCode() = 0;
-
     virtual void sendGCodePart(const std::string& gcode_part) = 0;
 
     /*

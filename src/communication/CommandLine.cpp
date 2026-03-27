@@ -46,14 +46,6 @@ CommandLine::CommandLine(const std::vector<std::string>& arguments)
     };
 }
 
-// These are not applicable to command line slicing.
-void CommandLine::beginGCode()
-{
-}
-void CommandLine::flushGCode()
-{
-}
-
 void CommandLine::sendGCodePart(const std::string& gcode_part)
 {
     *output_stream_ << gcode_part;
@@ -513,9 +505,6 @@ void CommandLine::sliceNext()
         exit(1);
     }
 #endif // DEBUG
-
-    // Finalize the processor. This adds the end g-code and reports statistics.
-    FffProcessor::getInstance()->finalize();
 }
 
 int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)

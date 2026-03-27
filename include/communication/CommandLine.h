@@ -36,17 +36,6 @@ public:
      */
     CommandLine(const std::vector<std::string>& arguments);
 
-    /*
-     * \brief Indicate that we're beginning to send g-code.
-     * This does nothing to the command line.
-     */
-    void beginGCode() override;
-
-    /*
-     * \brief Flush all g-code still in the stream into cout.
-     */
-    void flushGCode() override;
-
     void sendGCodePart(const std::string& gcode_part) override;
 
     /*

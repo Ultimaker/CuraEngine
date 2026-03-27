@@ -312,28 +312,6 @@ void ArcusCommunication::setSocketMock(Arcus::Socket* socket)
     private_data->socket = socket;
 }
 
-void ArcusCommunication::beginGCode()
-{
-    // FffProcessor::getInstance()->setTargetStream(&private_data->gcode_output_stream);
-}
-
-void ArcusCommunication::flushGCode()
-{
-    // std::string gcode_output_stream = private_data->gcode_output_stream.str();
-    // auto message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_output_stream);
-    // if (message_str.size() == 0)
-    // {
-    //     return;
-    // }
-    // std::shared_ptr<proto::GCodeLayer> message = std::make_shared<proto::GCodeLayer>();
-    // message->set_data(message_str);
-
-    // // Send the g-code to the front-end! Yay!
-    // private_data->socket->sendMessage(message);
-
-    // private_data->gcode_output_stream.str("");
-}
-
 void ArcusCommunication::sendGCodePart(const std::string& gcode_part)
 {
     const std::string message_str = slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_part);
@@ -558,8 +536,6 @@ void ArcusCommunication::sliceNext()
     if (! slice->scene.mesh_groups.empty())
     {
         slice->compute();
-        FffProcessor::getInstance()->finalize();
-        flushGCode();
         sendPrintTimeMaterialEstimates();
         sendFinishedSlicing();
         slice.reset();

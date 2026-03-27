@@ -85,8 +85,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
     }
 
-    Application::getInstance().communication_->beginGCode();
-
     setConfigFanSpeedLayerTime();
 
     setConfigRetractionAndWipe(storage);
