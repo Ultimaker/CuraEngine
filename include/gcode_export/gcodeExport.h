@@ -1,8 +1,8 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_H
-#define GCODEEXPORT_H
+#ifndef GCODEEXPORT_GCODEEXPORT_H
+#define GCODEEXPORT_GCODEEXPORT_H
 
 #include <deque> // for extrusionAmountAtPreviousRetractions
 #ifdef BUILD_TESTS
@@ -13,6 +13,7 @@
 #include <stdio.h>
 
 #include "TravelAntiOozing.h"
+#include "gcode_export/ResolvingExtruderContext.h"
 #include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
@@ -24,11 +25,18 @@
 #include "utils/NoCopy.h"
 #include "utils/string.h"
 
+namespace CuraFormulaeEngine::eval
+{
+struct Value;
+}
+
 namespace cura
 {
 
 class RetractionConfig;
 class SliceDataStorage;
+class GCodePart;
+class GcodeTemplateResolver;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -138,8 +146,8 @@ private:
     std::string machine_name_;
     std::string slice_uuid_; //!< The UUID of the current slice.
 
-    std::ostream* output_stream_;
     std::string new_line_;
+    std::ostream* output_stream_;
 
     double current_e_value_; //!< The last E value written to gcode (in mm or mm^3)
 
@@ -190,6 +198,9 @@ private:
     Temperature build_volume_temperature_; //!< build volume temperature
     bool machine_heated_build_volume_; //!< does the machine have the ability to control/stabilize build-volume-temperature
     bool ppr_enable_; //!< if the print process reporting is enabled
+
+    std::vector<std::shared_ptr<GCodePart>> gcode_parts_;
+    std::shared_ptr<GcodeTemplateResolver> template_resolver_;
 
 protected:
     /*!
@@ -257,8 +268,6 @@ public:
 
     void setLayerNr(const LayerIndex& layer_nr);
 
-    void setOutputStream(std::ostream* stream);
-
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
     Point2LL getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const;
@@ -285,7 +294,7 @@ public:
 
     coord_t getPositionZ() const;
 
-    int getExtruderNr() const;
+    size_t getExtruderNr() const;
 
     void setFilamentDiameter(size_t extruder, const coord_t diameter);
 
@@ -429,6 +438,13 @@ public:
      */
     void flushOutputStream();
 
+    void prepareNewFixedGCodePart();
+
+    void writeResolvableGCode(
+        const std::string& raw_text,
+        const ResolvingExtruderContext& extruder_nr = DynamicExtruderContext::Global,
+        const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {});
+
     /*!
      * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
      *
@@ -544,6 +560,8 @@ private:
     static PrintFeatureType
         sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
 
+    void sendFinalGCode();
+
 public:
     /*!
      * Get ready for extrusion moves:
@@ -621,7 +639,10 @@ public:
      *
      * \param str The code string to write
      */
-    void writeCodeWithAbsoluteExtrusion(const std::string& str);
+    void writeCodeWithAbsoluteExtrusion(
+        const std::string& str,
+        const ResolvingExtruderContext& extruder_nr = DynamicExtruderContext::Global,
+        const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {});
 
     void resetExtruderToPrimed(const size_t extruder, const double initial_retraction);
 
@@ -756,4 +777,4 @@ public:
 
 } // namespace cura
 
-#endif // GCODEEXPORT_H
+#endif

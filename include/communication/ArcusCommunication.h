@@ -56,16 +56,7 @@ public:
      */
     void connect(const std::string& ip, const uint16_t port);
 
-    /*
-     * \brief Indicate that we're beginning to send g-code.
-     */
-    void beginGCode() override;
-
-    /*
-     * \brief Flush all g-code still in the stream into a message queued in the
-     * socket.
-     */
-    void flushGCode() override;
+    void sendGCodePart(const std::string& gcode_part) override;
 
     /*
      * \brief Indicates that for Arcus we don't need to send the g-code from

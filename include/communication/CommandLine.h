@@ -36,16 +36,7 @@ public:
      */
     CommandLine(const std::vector<std::string>& arguments);
 
-    /*
-     * \brief Indicate that we're beginning to send g-code.
-     * This does nothing to the command line.
-     */
-    void beginGCode() override;
-
-    /*
-     * \brief Flush all g-code still in the stream into cout.
-     */
-    void flushGCode() override;
+    void sendGCodePart(const std::string& gcode_part) override;
 
     /*
      * \brief Indicates that for command line output we need to send the g-code
@@ -156,6 +147,9 @@ private:
      * The last progress update that we output to stdcerr.
      */
     unsigned int last_shown_progress_;
+
+    std::shared_ptr<std::ofstream> output_file_;
+    std::ostream* output_stream_;
 
     /*
      * \brief Load a JSON file and store the settings inside it.

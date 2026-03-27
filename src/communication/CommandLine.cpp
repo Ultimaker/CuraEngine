@@ -38,6 +38,7 @@ namespace cura
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
     : arguments_{ arguments }
     , last_shown_progress_{ 0 }
+    , output_stream_(&std::cout)
 {
     if (auto search_paths = spdlog::details::os::getenv("CURA_ENGINE_SEARCH_PATH"); ! search_paths.empty())
     {
@@ -45,13 +46,11 @@ CommandLine::CommandLine(const std::vector<std::string>& arguments)
     };
 }
 
-// These are not applicable to command line slicing.
-void CommandLine::beginGCode()
+void CommandLine::sendGCodePart(const std::string& gcode_part)
 {
+    *output_stream_ << gcode_part;
 }
-void CommandLine::flushGCode()
-{
-}
+
 void CommandLine::sendCurrentPosition(const Point3LL&)
 {
 }
@@ -307,9 +306,16 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    if (! FffProcessor::getInstance()->setTargetFile(argument.c_str()))
+
+                    output_file_ = std::make_shared<std::ofstream>();
+                    output_file_->open(argument);
+                    if (output_file_->is_open())
                     {
-                        spdlog::error("Failed to open {} for output.", argument.c_str());
+                        output_stream_ = output_file_.get();
+                    }
+                    else
+                    {
+                        spdlog::error("Failed to open {} for output.", argument);
                         exit(1);
                     }
                     break;
@@ -499,9 +505,6 @@ void CommandLine::sliceNext()
         exit(1);
     }
 #endif // DEBUG
-
-    // Finalize the processor. This adds the end g-code and reports statistics.
-    FffProcessor::getInstance()->finalize();
 }
 
 int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)
