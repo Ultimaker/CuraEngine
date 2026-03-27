@@ -184,7 +184,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, layer_idx, cross_fill_provider, lightning_trees, mesh);
 
         zig_zaggify_ = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
@@ -198,7 +198,7 @@ void Infill::generate(
         Shape generated_result_polygons;
         OpenLinesSet generated_result_lines;
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, layer_idx, cross_fill_provider, lightning_trees, mesh);
 
         result_polygons.push_back(generated_result_polygons);
         result_lines.push_back(generated_result_lines);
@@ -256,6 +256,7 @@ void Infill::_generate(
     Shape& result_polygons,
     OpenLinesSet& result_lines,
     const Settings& settings,
+    const int layer_idx,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh)
@@ -289,7 +290,7 @@ void Infill::_generate(
         generateTrihexagonInfill(result_lines);
         break;
     case EFillMethod::CONCENTRIC:
-        generateConcentricInfill(toolpaths, settings);
+        generateConcentricInfill(toolpaths, settings, layer_idx);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(result_lines, line_distance_, fill_angle_);
@@ -454,7 +455,7 @@ void Infill::generateLightningInfill(const std::shared_ptr<LightningLayer>& tree
     result_lines.push_back(trees->convertToLines(inner_contour_, infill_line_width_));
 }
 
-void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
+void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths, const Settings& settings, const int layer_idx)
 {
     const coord_t min_area = infill_line_width_ * infill_line_width_;
 
@@ -473,8 +474,7 @@ void Infill::generateConcentricInfill(std::vector<VariableWidthLines>& toolpaths
 
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, settings, 0, SectionType::CONCENTRIC_INFILL); // FIXME: @jellespijker pass
-                                                                                                                                                      // the correct layer
+        WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL);
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 
