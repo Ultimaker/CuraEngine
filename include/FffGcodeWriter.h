@@ -88,31 +88,6 @@ public:
     FffGcodeWriter();
 
     /*!
-     * Wether or not the extruder is actually used in the print, regardless of enablement.
-     *
-     * \param extruder_nr The extruder number for which to get the useage
-     * \return actual use y/n boolean
-     */
-    bool getExtruderActualUse(int extruder_nr);
-
-    /*!
-     * Get the total extruded volume for a specific extruder in mm^3
-     *
-     * Retractions and unretractions don't contribute to this.
-     *
-     * \param extruder_nr The extruder number for which to get the total netto extruded volume
-     * \return total filament printed in mm^3
-     */
-    double getTotalFilamentUsed(int extruder_nr);
-
-    /*!
-     * Get the total estimated print time in seconds for each feature
-     *
-     * \return total print time in seconds for each feature
-     */
-    std::vector<Duration> getTotalPrintTimePerFeature();
-
-    /*!
      * Write all the gcode for the current meshgroup.
      * This is the primary function of this class.
      *
@@ -745,6 +720,8 @@ private:
      * \return The first or last exruder used at the given index
      */
     size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
+
+    void computeFirstLayerVariables(const LayerPlan* layer_plan);
 };
 
 } // namespace cura

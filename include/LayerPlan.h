@@ -887,6 +887,8 @@ public:
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
 
+    std::optional<size_t> findInitialExtruderNr() const;
+
 private:
     /*!
      * \brief Compute the preferred or minimum combing boundary

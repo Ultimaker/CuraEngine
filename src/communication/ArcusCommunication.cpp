@@ -399,12 +399,12 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.slice_data.clear();
 }
 
-void ArcusCommunication::sendPrintTimeMaterialEstimates() const
+void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const
 {
-    spdlog::debug("Sending print time and material estimates.");
+    spdlog::debug("Sending print information.");
+
     std::shared_ptr<proto::PrintTimeMaterialEstimates> message = std::make_shared<proto::PrintTimeMaterialEstimates>();
 
-    std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
     message->set_time_infill(time_estimates[static_cast<unsigned char>(PrintFeatureType::Infill)]);
     message->set_time_inset_0(time_estimates[static_cast<unsigned char>(PrintFeatureType::OuterWall)]);
     message->set_time_inset_x(time_estimates[static_cast<unsigned char>(PrintFeatureType::InnerWall)]);
@@ -424,16 +424,35 @@ void ArcusCommunication::sendPrintTimeMaterialEstimates() const
     {
         proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);
-        auto fff_proc = FffProcessor::getInstance();
-        material_message->set_material_amount(
-            fff_proc->getExtruderActualUse(extruder_nr) ? fff_proc->getTotalFilamentUsed(extruder_nr) : std::numeric_limits<float>::signaling_NaN());
-        // NOTE: Set to signalling-NaN to specify that no calculations should be done on the result, and if attempted, should fail fast instead of propagate.
-        //       Instead, it's meant to repressent the state of a completely unused extruder or tool, since a value of 0.0 could be a rounding error.
-        //       (Also future-proof: '0.0' might conceivably signal a state in which a tool is used that doesn't extrude material, 'NaN' still means unused.)
+
+        const std::optional<ExtruderPrintInformation>& extruder_info = print_information[extruder_nr];
+        if (extruder_info.has_value())
+        {
+            material_message->set_material_amount(extruder_info->filament_amount);
+            material_message->set_material_length(extruder_info->filament_length);
+            material_message->set_material_weight(extruder_info->filament_weight);
+            material_message->set_material_cost(extruder_info->filament_cost);
+        }
+        else
+        {
+            material_message->set_material_amount(std::numeric_limits<float>::signaling_NaN());
+            // NOTE: Set to signalling-NaN to specify that no calculations should be done on the result, and if attempted, should fail fast instead of propagate.
+            //       Instead, it's meant to repressent the state of a completely unused extruder or tool, since a value of 0.0 could be a rounding error.
+            //       (Also future-proof: '0.0' might conceivably signal a state in which a tool is used that doesn't extrude material, 'NaN' still means unused.)
+            material_message->set_material_length(0.0);
+            material_message->set_material_weight(0.0);
+            material_message->set_material_cost(0.0);
+        }
+        material_message->set_material_name(extruder_info->material_name);
     }
 
     private_data->socket->sendMessage(message);
-    spdlog::debug("Done sending print time and material estimates.");
+
+    auto initial_extruder_message = std::make_shared<proto::InitialExtruder>();
+    initial_extruder_message->set_extruder_nr(initial_extruder_nr);
+    private_data->socket->sendMessage(initial_extruder_message);
+
+    spdlog::debug("Done sending print information.");
 }
 
 void ArcusCommunication::sendProgress(double progress) const
@@ -536,7 +555,6 @@ void ArcusCommunication::sliceNext()
     if (! slice->scene.mesh_groups.empty())
     {
         slice->compute();
-        sendPrintTimeMaterialEstimates();
         sendFinishedSlicing();
         slice.reset();
         private_data->slice_count++;

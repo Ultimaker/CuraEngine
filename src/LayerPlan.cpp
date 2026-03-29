@@ -4066,6 +4066,22 @@ std::shared_ptr<const SliceMeshStorage> LayerPlan::findFirstPrintedMesh() const
     return nullptr;
 }
 
+std::optional<size_t> LayerPlan::findInitialExtruderNr() const
+{
+    auto iterator = ranges::find_if(
+        extruder_plans_,
+        [](const ExtruderPlan& extruder_plan)
+        {
+            return extruder_plan.hasExtrusion();
+        });
+    if (iterator != extruder_plans_.end())
+    {
+        return iterator->extruder_nr_;
+    }
+
+    return std::nullopt;
+}
+
 LayerIndex LayerPlan::getLayerNr() const
 {
     return layer_nr_;

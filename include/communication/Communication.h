@@ -4,6 +4,7 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
+#include "PrintInformation.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
@@ -15,6 +16,7 @@ enum class PrintFeatureType : unsigned char;
 class Shape;
 class Polygon;
 class ExtruderTrain;
+struct Duration;
 
 /*
  * An abstract class to provide a common interface for all methods of
@@ -113,7 +115,7 @@ public:
      * \brief Send an estimate of how long the print would take and how much
      * material it would use.
      */
-    virtual void sendPrintTimeMaterialEstimates() const = 0;
+    virtual void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const = 0;
 
     virtual void sendGCodePart(const std::string& gcode_part) = 0;
 

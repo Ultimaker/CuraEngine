@@ -104,7 +104,7 @@ public:
      * \brief Show an estimate of how long the print would take and how much
      * material it would use.
      */
-    void sendPrintTimeMaterialEstimates() const override;
+    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const override;
 
     /*
      * \brief Show an update of our slicing progress.

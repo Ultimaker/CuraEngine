@@ -505,6 +505,16 @@ double GCodeExport::mm3ToE(double mm3) const
     }
 }
 
+std::optional<size_t> GCodeExport::getInitialExtruderNr() const
+{
+    return template_resolver_->getInitialExtruderNr();
+}
+
+void GCodeExport::setInitialExtruderNr(const size_t initial_extruder_nr)
+{
+    template_resolver_->setInitialExtruderNr(initial_extruder_nr);
+}
+
 double GCodeExport::mmToE(double mm) const
 {
     if (is_volumetric_)
@@ -529,22 +539,17 @@ double GCodeExport::eToMm3(double e, size_t extruder)
     }
 }
 
-double GCodeExport::getTotalFilamentUsed(size_t extruder_nr)
+double GCodeExport::getTotalFilamentUsed(size_t extruder_nr) const
 {
     if (extruder_nr == current_extruder_)
         return extruder_attr_[extruder_nr].total_filament_ + getCurrentExtrudedVolume();
     return extruder_attr_[extruder_nr].total_filament_;
 }
 
-std::vector<Duration> GCodeExport::getTotalPrintTimePerFeature()
-{
-    return total_print_times_;
-}
-
 double GCodeExport::getSumTotalPrintTimes()
 {
     double sum = 0.0;
-    for (double item : getTotalPrintTimePerFeature())
+    for (double item : total_print_times_)
     {
         sum += item;
     }
@@ -1435,6 +1440,52 @@ void GCodeExport::sendFinalGCode()
     }
 }
 
+void GCodeExport::sendEndOfPrintData(const PrintInformation& print_information) const
+{
+    Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_information, template_resolver_->getInitialExtruderNr().value_or(0));
+}
+
+PrintInformation GCodeExport::calculatePrintInformation() const
+{
+    PrintInformation print_info;
+
+    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice_->scene.extruders;
+    const size_t used_extruders = extruders.size();
+    print_info.resize(used_extruders);
+
+    for (size_t extruder_nr = 0; extruder_nr < used_extruders; ++extruder_nr)
+    {
+        if (! getExtruderIsUsed(extruder_nr))
+        {
+            continue;
+        }
+
+        ExtruderPrintInformation extruder_info;
+
+        const Settings& extruder_settings = extruders[extruder_nr].settings_;
+        const double material_radius = extruder_settings.get<double>("material_diameter") / 2;
+        const double material_density = extruder_settings.get<double>("material_density");
+        const double material_spool_weight = extruder_settings.get<double>("material_spool_weight");
+        const double material_spool_cost = extruder_settings.get<double>("material_spool_cost");
+
+        extruder_info.material_name = extruder_settings.get<std::string>("material_name");
+        extruder_info.filament_amount = getTotalFilamentUsed(extruder_nr);
+        extruder_info.filament_length = (extruder_info.filament_amount / (std::numbers::pi * square(material_radius))) / 1000;
+        extruder_info.filament_weight = extruder_info.filament_amount * material_density / 1000.0;
+
+        extruder_info.filament_cost = 0.0;
+        if (material_spool_weight > 0.0 && material_spool_cost > 0.0)
+        {
+            const double filament_cost_per_weight = material_spool_cost / material_spool_weight;
+            extruder_info.filament_cost = extruder_info.filament_weight * filament_cost_per_weight;
+        }
+
+        print_info[extruder_nr] = extruder_info;
+    }
+
+    return print_info;
+}
+
 void GCodeExport::startExtruder(const size_t new_extruder)
 {
     const std::unordered_map<std::string, cfe::eval::Value> extra_settings
@@ -1911,56 +1962,37 @@ void GCodeExport::finalize(const std::string& end_code)
     print_time -= print_minutes;
     auto print_seconds = std::chrono::duration_cast<std::chrono::seconds>(print_time);
     spdlog::info("Print time (hr|min|s): {} {} {}", print_hours, print_minutes, print_seconds);
+    template_resolver_->addGlobalExtraSetting("print_time", fmt::format("{:02d}:{:02d}:{:02d}", print_hours.count(), print_minutes.count(), print_seconds.count()));
 
-    int mat_0 = getTotalFilamentUsed(0);
-    spdlog::info("Filament (mm^3): {}", mat_0);
-
-    for (int n = 1; n < MAX_EXTRUDERS; n++)
+    const PrintInformation print_info = calculatePrintInformation();
+    spdlog::info("Filament (mm^3): {}", print_info[0].value_or(ExtruderPrintInformation()).filament_amount);
+    for (const auto& [extruder_nr, extruder_info] : print_info | ranges::views::enumerate | ranges::views::drop(1))
     {
-        if (getTotalFilamentUsed(n) > 0)
+        if (extruder_info.has_value())
         {
-            spdlog::info("Filament {}: {}", n + 1, int(getTotalFilamentUsed(n)));
+            spdlog::info("Filament {}: {}", extruder_nr + 1, static_cast<int>(extruder_info->filament_amount));
         }
     }
 
-    template_resolver_->addGlobalExtraSetting("print_time", fmt::format("{:02d}:{:02d}:{:02d}", print_hours.count(), print_minutes.count(), print_seconds.count()));
-
-    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice_->scene.extruders;
-    const size_t used_extruders = extruders.size();
+    const size_t used_extruders = print_info.size();
     std::vector<cfe::eval::Value> filaments_amounts(used_extruders);
     std::vector<cfe::eval::Value> filaments_weights(used_extruders);
     std::vector<cfe::eval::Value> filaments_costs(used_extruders);
-    for (size_t extruder_nr = 0; extruder_nr < used_extruders; ++extruder_nr)
+    for (const auto& [extruder_nr, extruder_info_opt] : print_info | ranges::views::enumerate)
     {
-        const Settings& extruder_settings = extruders[extruder_nr].settings_;
-        const double material_radius = extruder_settings.get<double>("material_diameter") / 2;
-        const double material_density = extruder_settings.get<double>("material_density");
-        const double material_spool_weight = extruder_settings.get<double>("material_spool_weight");
-        const double material_spool_cost = extruder_settings.get<double>("material_spool_cost");
-
-        const double filament_used_volume = getTotalFilamentUsed(extruder_nr);
-        const double filament_used_length = (filament_used_volume / (std::numbers::pi * square(material_radius))) / 1000;
-        const double filament_used_weight = filament_used_volume * material_density / 1000.0;
-
-        double filament_cost = 0.0;
-        if (material_spool_weight > 0.0 && material_spool_cost > 0.0)
-        {
-            const double filament_cost_per_weight = material_spool_cost / material_spool_weight;
-            filament_cost = filament_used_weight * filament_cost_per_weight;
-        }
-
-        filaments_amounts[extruder_nr] = filament_used_length;
-        filaments_weights[extruder_nr] = filament_used_weight;
-        filaments_costs[extruder_nr] = filament_cost;
+        const ExtruderPrintInformation extruder_info = extruder_info_opt.value_or(ExtruderPrintInformation());
+#warning is it length or amount here ??
+        filaments_amounts[extruder_nr] = extruder_info.filament_length;
+        filaments_weights[extruder_nr] = extruder_info.filament_weight;
+        filaments_costs[extruder_nr] = extruder_info.filament_cost;
     }
 
     template_resolver_->addGlobalExtraSetting("filament_amount", filaments_amounts);
     template_resolver_->addGlobalExtraSetting("filament_weight", filaments_weights);
     template_resolver_->addGlobalExtraSetting("filament_cost", filaments_costs);
 
-    template_resolver_->setInitialExtruderNr(Application::getInstance().current_slice_->scene.settings.get<size_t>("initial_extruder_nr"));
-
     sendFinalGCode();
+    sendEndOfPrintData(print_info);
 }
 
 void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)

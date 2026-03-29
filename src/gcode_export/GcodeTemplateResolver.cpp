@@ -18,10 +18,6 @@ namespace cfe = CuraFormulaeEngine;
 namespace cura
 {
 
-void GcodeTemplateResolver::setInitialExtruderNr(const size_t initial_extruder_nr)
-{
-    initial_extruder_nr_ = initial_extruder_nr;
-}
 
 void GcodeTemplateResolver::addGlobalExtraSetting(const std::string& name, const CuraFormulaeEngine::eval::Value& value)
 {
@@ -270,7 +266,7 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
             {
                 if (context_extruder_nr_value == DynamicExtruderContext::Initial)
                 {
-                    actual_extruder_nr = initial_extruder_nr_;
+                    actual_extruder_nr = initial_extruder_nr_.value_or(0);
                 }
                 // Otherwise actual_extruder_nr stays nullopt, which means use global context
             }
@@ -317,6 +313,16 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
     }
 
     return output;
+}
+
+std::optional<size_t> GcodeTemplateResolver::getInitialExtruderNr() const
+{
+    return initial_extruder_nr_;
+}
+
+void GcodeTemplateResolver::setInitialExtruderNr(size_t initial_extruder_nr)
+{
+    initial_extruder_nr_ = initial_extruder_nr;
 }
 
 } // namespace cura

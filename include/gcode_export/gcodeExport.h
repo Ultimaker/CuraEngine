@@ -12,6 +12,7 @@
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
+#include "PrintInformation.h"
 #include "TravelAntiOozing.h"
 #include "gcode_export/ResolvingExtruderContext.h"
 #include "geometry/Point2LL.h"
@@ -308,14 +309,8 @@ public:
      * \param extruder_nr The extruder number for which to get the total netto extruded volume
      * \return total filament printed in mm^3
      */
-    double getTotalFilamentUsed(size_t extruder_nr);
+    double getTotalFilamentUsed(size_t extruder_nr) const;
 
-    /*!
-     * Get the total estimated print time in seconds for each feature
-     *
-     * \return total print time in seconds for each feature
-     */
-    std::vector<Duration> getTotalPrintTimePerFeature();
     /*!
      * Get the total print time in seconds for the complete print
      *
@@ -456,6 +451,10 @@ public:
      */
     double mm3ToE(double mm3) const;
 
+    std::optional<size_t> getInitialExtruderNr() const;
+
+    void setInitialExtruderNr(const size_t initial_extruder_nr);
+
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -561,6 +560,10 @@ private:
         sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
 
     void sendFinalGCode();
+
+    void sendEndOfPrintData(const PrintInformation& print_information) const;
+
+    PrintInformation calculatePrintInformation() const;
 
 public:
     /*!

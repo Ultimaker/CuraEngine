@@ -38,8 +38,6 @@ class GcodeTemplateResolver
 public:
     explicit GcodeTemplateResolver() = default;
 
-    void setInitialExtruderNr(const size_t initial_extruder_nr);
-
     void addGlobalExtraSetting(const std::string& name, const CuraFormulaeEngine::eval::Value& value);
 
     /*!
@@ -56,6 +54,10 @@ public:
         const std::string& input,
         const ResolvingExtruderContext& context_extruder_nr = DynamicExtruderContext::Global,
         const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {}) const;
+
+    std::optional<size_t> getInitialExtruderNr() const;
+
+    void setInitialExtruderNr(const size_t initial_extruder_nr);
 
 private:
     /*! State-machine enum to track the conditional blocks states */
@@ -106,7 +108,7 @@ private:
         const std::map<std::optional<size_t>, CuraFormulaeEngine::env::LocalEnvironment>& environments);
 
 private:
-    size_t initial_extruder_nr_{ 0 };
+    std::optional<size_t> initial_extruder_nr_;
     std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> global_extra_settings_;
 };
 

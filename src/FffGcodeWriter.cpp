@@ -57,21 +57,6 @@ FffGcodeWriter::FffGcodeWriter()
     }
 }
 
-bool FffGcodeWriter::getExtruderActualUse(int extruder_nr)
-{
-    return gcode.getExtruderIsUsed(extruder_nr);
-}
-
-double FffGcodeWriter::getTotalFilamentUsed(int extruder_nr)
-{
-    return gcode.getTotalFilamentUsed(extruder_nr);
-}
-
-std::vector<Duration> FffGcodeWriter::getTotalPrintTimePerFeature()
-{
-    return gcode.getTotalPrintTimePerFeature();
-}
-
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     const size_t start_extruder_nr = getStartExtruder(storage);
@@ -181,6 +166,11 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
             layer_plan_buffer.handle(*result.layer_plan, gcode);
+
+            if (result.layer_plan->getLayerNr() == 0)
+            {
+                computeFirstLayerVariables(result.layer_plan);
+            }
         });
 
     layer_plan_buffer.flush();
@@ -2637,6 +2627,18 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
     {
         // Asking for extruder on an empty layer, get the last one from layer below
         return findUsedExtruderIndex(storage, layer_nr - 1, true);
+    }
+}
+
+void FffGcodeWriter::computeFirstLayerVariables(const LayerPlan* layer_plan)
+{
+    if (! gcode.getInitialExtruderNr().has_value())
+    {
+        const std::optional<size_t> initial_extruder_nr = layer_plan->findInitialExtruderNr();
+        if (initial_extruder_nr.has_value())
+        {
+            gcode.setInitialExtruderNr(initial_extruder_nr.value());
+        }
     }
 }
 

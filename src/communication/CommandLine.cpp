@@ -93,17 +93,10 @@ void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) 
     // pass
 }
 
-void CommandLine::sendPrintTimeMaterialEstimates() const
+void CommandLine::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const
 {
-    std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
-    double sum = std::accumulate(time_estimates.begin(), time_estimates.end(), 0.0);
+    double sum = ranges::accumulate(time_estimates, 0.0);
     spdlog::info("Total print time: {:3}", sum);
-
-    sum = 0.0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
-    {
-        sum += FffProcessor::getInstance()->getTotalFilamentUsed(static_cast<int>(extruder_nr));
-    }
 }
 
 void CommandLine::sendProgress(double progress) const
