@@ -341,7 +341,6 @@ void InfillOrderOptimizer::addToLayer(
         {
             for (const std::vector<VariableWidthLines>& tool_paths : *part.paths.extrusion_lines)
             {
-                constexpr bool retract_before_outer_wall = false;
                 constexpr coord_t wipe_dist = 0;
                 const ZSeamConfig z_seam_config(EZSeamType::USER_SPECIFIED, near_start_location.value_or(mesh.getZSeamHint()));
                 InsetOrderOptimizer wall_orderer(
@@ -357,7 +356,6 @@ void InfillOrderOptimizer::addToLayer(
                     mesh_config.infill_config[0],
                     mesh_config.infill_config[0],
                     mesh_config.infill_config[0],
-                    retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
                     extruder_nr,
