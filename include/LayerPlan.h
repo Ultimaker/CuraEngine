@@ -547,6 +547,7 @@ public:
      * @param settings The current settings to retrieve values from
      * @param add_extra_inwards_move Indicates whether extra start/end inwards extrusion moves will be generated
      * @param near_start_location Optional: Location near where to add the first line. If not provided the last position is used.
+     * @param reverse_print_direction Whether to reverse the optimized order and their printing direction.
      */
     void addInfillPolygonsByOptimizer(
         const Shape& polygons,
@@ -554,7 +555,8 @@ public:
         const GCodePathConfig& config,
         const Settings& settings,
         const bool add_extra_inwards_move = false,
-        const std::optional<Point2LL>& near_start_location = std::optional<Point2LL>());
+        const std::optional<Point2LL>& near_start_location = std::optional<Point2LL>(),
+        const bool reverse_print_direction = false);
 
     /*!
      * Add a single line that is part of a wall to the gcode.

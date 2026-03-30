@@ -947,14 +947,19 @@ void LayerPlan::addInfillPolygonsByOptimizer(
     const GCodePathConfig& config,
     const Settings& settings,
     const bool add_extra_inwards_move,
-    const std::optional<Point2LL>& near_start_location)
+    const std::optional<Point2LL>& near_start_location,
+    const bool reverse_print_direction)
 {
     if (polygons.empty())
     {
         return;
     }
 
-    PathOrderOptimizer<const Polygon*> orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()));
+    const ZSeamConfig seam_config = ZSeamConfig();
+    constexpr bool detect_loops = false;
+    constexpr Shape* combing_boundary = nullptr;
+    PathOrderOptimizer<const Polygon*>
+        orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), seam_config, detect_loops, combing_boundary, reverse_print_direction);
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(&polygons[poly_idx]);

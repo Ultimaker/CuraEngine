@@ -315,7 +315,8 @@ void InfillOrderOptimizer::addToLayer(
                 mesh_config.infill_config[0],
                 settings,
                 start_move_inwards_length > 0 || end_move_inwards_length > 0,
-                near_start_location);
+                near_start_location,
+                reverse_print_direction);
             if (! remaining_lines.empty())
             {
                 addInfillLinesToLayer(
