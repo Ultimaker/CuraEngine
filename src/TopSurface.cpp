@@ -119,8 +119,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     bool added = false;
     if (! ironing_polygons.empty())
     {
-        constexpr bool force_comb_retract = false;
-        layer.addTravel(ironing_polygons[0][0], force_comb_retract);
+        layer.addTravel(ironing_polygons[0][0]);
         layer.addPolygonsByOptimizer(ironing_polygons, line_config, mesh.settings, ZSeamConfig());
         added = true;
     }
@@ -161,7 +160,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     if (! ironing_paths.empty())
     {
-        constexpr bool retract_before_outer_wall = false;
+        constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         constexpr coord_t wipe_dist = 0u;
         const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
         InsetOrderOptimizer wall_orderer(

@@ -22,6 +22,7 @@
 
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
+#include "ForceRetract.h"
 #include "LayerPlan.h"
 #include "utils/views/convert.h"
 #include "utils/views/dfs.h"
@@ -45,7 +46,7 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const GCodePathConfig& inset_X_flooring_config,
     const GCodePathConfig& inset_0_bridge_config,
     const GCodePathConfig& inset_X_bridge_config,
-    const bool retract_before_outer_wall,
+    const RetractBeforeOuterWall retract_before_outer_wall,
     const coord_t wall_0_wipe_dist,
     const coord_t wall_x_wipe_dist,
     const size_t wall_0_extruder_nr,
@@ -160,6 +161,21 @@ bool InsetOrderOptimizer::addToLayer()
     constexpr Ratio flow = 1.0_r;
     bool added_something = false;
 
+    ForceRetract force_retract = ForceRetract::AUTOMATIC;
+    switch (retract_before_outer_wall_)
+    {
+    case RetractBeforeOuterWall::AUTOMATIC:
+        force_retract = ForceRetract::AUTOMATIC;
+        break;
+    case RetractBeforeOuterWall::RETRACTED:
+        force_retract = ForceRetract::RETRACTED;
+        break;
+    case RetractBeforeOuterWall::NOT_RETRACTED:
+    case RetractBeforeOuterWall::NOT_RETRACTED_FIRST:
+        force_retract = ForceRetract::NOT_RETRACTED;
+        break;
+    }
+
     for (const PathOrdering<const ExtrusionLine*>& path : path_optimizer_->paths_)
     {
         if (path.vertices_->empty())
@@ -174,7 +190,7 @@ bool InsetOrderOptimizer::addToLayer()
         const GCodePathConfig& flooring_config = is_outer_wall ? inset_0_flooring_config_ : inset_X_flooring_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
-        const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
+        const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::AUTOMATIC;
         const bool scarf_seam = scarf_seam_ && is_outer_wall;
         const bool smooth_speed = smooth_speed_ && is_outer_wall;
 
@@ -202,6 +218,12 @@ bool InsetOrderOptimizer::addToLayer()
             scarf_seam,
             smooth_speed);
         added_something = true;
+
+        if (retract_before_outer_wall_ == RetractBeforeOuterWall::NOT_RETRACTED_FIRST)
+        {
+            // Only the first should be forced, the next ones use auto
+            force_retract = ForceRetract::AUTOMATIC;
+        }
     }
 
     return added_something;

@@ -609,7 +609,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
     constexpr bool fill_gaps = true;
-    constexpr bool retract_before_outer_wall = false;
+    constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
     constexpr coord_t wipe_dist = 0;
 
     Shape raft_polygons;
@@ -749,7 +749,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             const auto spiralize = false;
             const auto flow_ratio = 1.0_r;
             const auto enable_travel_optimization = false;
-            const auto always_retract = false;
+            const auto always_retract = ForceRetract::AUTOMATIC;
             const auto reverse_order = false;
 
             gcode_layer.addLinesByOptimizer(
@@ -911,7 +911,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         const auto spiralize = false;
         const auto flow_ratio = 1.0_r;
         const auto enable_travel_optimization = false;
-        const auto always_retract = false;
+        const auto always_retract = ForceRetract::AUTOMATIC;
         const auto reverse_order = false;
 
         gcode_layer.addLinesByOptimizer(
@@ -1085,7 +1085,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             const auto spiralize = false;
             const auto flow_ratio = 1.0_r;
             const auto enable_travel_optimization = false;
-            const auto always_retract = false;
+            const auto always_retract = ForceRetract::AUTOMATIC;
             const auto reverse_order = false;
 
             if (monotonic)
@@ -1766,7 +1766,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
         mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     const bool spiralize = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize");
     constexpr Ratio flow_ratio = 1.0;
-    constexpr bool always_retract = false;
+    constexpr auto always_retract = ForceRetract::AUTOMATIC;
     constexpr bool reverse_order = false;
     const std::optional<Point2LL> start_near_location = std::nullopt;
     constexpr bool scarf_seam = true;
@@ -2882,7 +2882,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             mesh_config.insetX_flooring_config,
             mesh_config.bridge_inset0_config,
             mesh_config.bridge_insetX_config,
-            mesh.settings.get<bool>("travel_retract_before_outer_wall"),
+            mesh.settings.get<RetractBeforeOuterWall>("travel_retract_before_outer_wall"),
             mesh.settings.get<coord_t>("wall_0_wipe_dist"),
             wall_x_wipe_dist,
             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_,
@@ -3398,7 +3398,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         if (! skin_paths.empty())
         {
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
-            constexpr bool retract_before_outer_wall = false;
+            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
             constexpr coord_t wipe_dist = 0;
             const ZSeamConfig z_seam_config(
                 mesh.settings.get<EZSeamType>("z_seam_type"),
@@ -3430,8 +3430,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         }
         if (! skin_polygons.empty())
         {
-            constexpr bool force_comb_retract = false;
-            gcode_layer.addTravel(skin_polygons[0][0], force_comb_retract);
+            gcode_layer.addTravel(skin_polygons[0][0]);
             gcode_layer.addPolygonsByOptimizer(skin_polygons, config, mesh.settings);
         }
 
@@ -3687,7 +3686,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         if (! wall_toolpaths.empty())
         {
             const GCodePathConfig& config = configs[0];
-            constexpr bool retract_before_outer_wall = false;
+            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
             constexpr coord_t wipe_dist = 0;
             const LayerIndex layer_nr = gcode_layer.getLayerNr();
             ZSeamConfig z_seam_config
@@ -3845,14 +3844,13 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             if (! support_polygons.empty())
             {
-                constexpr bool force_comb_retract = false;
-                gcode_layer.addTravel(support_polygons[0][0], force_comb_retract);
+                gcode_layer.addTravel(support_polygons[0][0]);
 
                 const ZSeamConfig& z_seam_config = ZSeamConfig();
                 constexpr coord_t wall_0_wipe_dist = 0;
                 constexpr bool spiralize = false;
                 constexpr Ratio flow_ratio = 1.0_r;
-                constexpr bool always_retract = false;
+                constexpr auto always_retract = ForceRetract::AUTOMATIC;
                 const std::optional<Point2LL> start_near_location = std::optional<Point2LL>();
 
                 gcode_layer.addPolygonsByOptimizer(
@@ -3896,7 +3894,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             if (wall_line_count == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = configs[0];
-                constexpr bool retract_before_outer_wall = false;
+                constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
                 constexpr coord_t wipe_dist = 0;
                 constexpr coord_t simplify_curvature = 0;
                 const ZSeamConfig z_seam_config(
@@ -4030,14 +4028,13 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
     }
     if (! roof_polygons.empty())
     {
-        constexpr bool force_comb_retract = false;
-        gcode_layer.addTravel(roof_polygons[0][0], force_comb_retract);
+        gcode_layer.addTravel(roof_polygons[0][0]);
         gcode_layer.addPolygonsByOptimizer(roof_polygons, current_roof_config, roof_extruder.settings_);
     }
     if (! roof_paths.empty())
     {
         const GCodePathConfig& config = current_roof_config;
-        constexpr bool retract_before_outer_wall = false;
+        constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         constexpr coord_t wipe_dist = 0;
         const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
@@ -4145,14 +4142,13 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     gcode_layer.setIsInside(false); // going to print stuff outside print object, i.e. support
     if (! bottom_polygons.empty())
     {
-        constexpr bool force_comb_retract = false;
-        gcode_layer.addTravel(bottom_polygons[0][0], force_comb_retract);
+        gcode_layer.addTravel(bottom_polygons[0][0]);
         gcode_layer.addPolygonsByOptimizer(bottom_polygons, gcode_layer.configs_storage_.support_bottom_config, bottom_extruder.settings_);
     }
     if (! bottom_paths.empty())
     {
         const GCodePathConfig& config = gcode_layer.configs_storage_.support_bottom_config;
-        constexpr bool retract_before_outer_wall = false;
+        constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         constexpr coord_t wipe_dist = 0;
         const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 

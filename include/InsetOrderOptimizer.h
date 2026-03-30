@@ -49,7 +49,7 @@ public:
         const GCodePathConfig& inset_X_flooring_config,
         const GCodePathConfig& inset_0_bridge_config,
         const GCodePathConfig& inset_X_bridge_config,
-        const bool retract_before_outer_wall,
+        const RetractBeforeOuterWall retract_before_outer_wall,
         const coord_t wall_0_wipe_dist,
         const coord_t wall_x_wipe_dist,
         const size_t wall_0_extruder_nr,
@@ -112,7 +112,7 @@ private:
     const GCodePathConfig& inset_X_flooring_config_;
     const GCodePathConfig& inset_0_bridge_config_;
     const GCodePathConfig& inset_X_bridge_config_;
-    const bool retract_before_outer_wall_;
+    const RetractBeforeOuterWall retract_before_outer_wall_;
     const coord_t wall_0_wipe_dist_;
     const coord_t wall_x_wipe_dist_;
     const size_t wall_0_extruder_nr_;
