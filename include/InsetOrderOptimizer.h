@@ -49,7 +49,6 @@ public:
         const GCodePathConfig& inset_X_flooring_config,
         const GCodePathConfig& inset_0_bridge_config,
         const GCodePathConfig& inset_X_bridge_config,
-        const RetractBeforeOuterWall retract_before_outer_wall,
         const coord_t wall_0_wipe_dist,
         const coord_t wall_x_wipe_dist,
         const size_t wall_0_extruder_nr,
@@ -72,9 +71,10 @@ public:
      *
      * The insets and the layer plan are passed to the constructor of this
      * class, so this optimize function needs no additional information.
+     * \param retract_before_outer_wall The retraction behavior to be applied when moving to outer walls
      * \return Whether anything was added to the layer plan.
      */
-    bool addToLayer();
+    bool addToLayer(const RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC);
 
     /*!
      * Get the order constraints of the insets when printing walls per region / hole.
@@ -112,7 +112,6 @@ private:
     const GCodePathConfig& inset_X_flooring_config_;
     const GCodePathConfig& inset_0_bridge_config_;
     const GCodePathConfig& inset_X_bridge_config_;
-    const RetractBeforeOuterWall retract_before_outer_wall_;
     const coord_t wall_0_wipe_dist_;
     const coord_t wall_x_wipe_dist_;
     const size_t wall_0_extruder_nr_;

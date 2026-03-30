@@ -307,7 +307,7 @@ enum class RetractBeforeOuterWall
     AUTOMATIC, // Let retraction be calculated automatically for the travel move
     RETRACTED, // Force travel move to be retracted
     NOT_RETRACTED, // Force travel move not to be retracted
-    NOT_RETRACTED_FIRST, // Force the first travel move not to be retracted, others will be use automatic
+    NOT_RETRACTED_FROM_INFILL, // Force the first travel move coming from an infill area not to be retracted, others will be use automatic
 };
 
 /*!

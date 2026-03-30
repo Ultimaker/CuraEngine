@@ -160,7 +160,6 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     if (! ironing_paths.empty())
     {
-        constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         constexpr coord_t wipe_dist = 0u;
         const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
         InsetOrderOptimizer wall_orderer(
@@ -176,7 +175,6 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
             line_config,
             line_config,
             line_config,
-            retract_before_outer_wall,
             wipe_dist,
             wipe_dist,
             extruder_nr,

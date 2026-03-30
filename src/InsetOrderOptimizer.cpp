@@ -46,7 +46,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const GCodePathConfig& inset_X_flooring_config,
     const GCodePathConfig& inset_0_bridge_config,
     const GCodePathConfig& inset_X_bridge_config,
-    const RetractBeforeOuterWall retract_before_outer_wall,
     const coord_t wall_0_wipe_dist,
     const coord_t wall_x_wipe_dist,
     const size_t wall_0_extruder_nr,
@@ -72,7 +71,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , inset_X_flooring_config_(inset_X_flooring_config)
     , inset_0_bridge_config_(inset_0_bridge_config)
     , inset_X_bridge_config_(inset_X_bridge_config)
-    , retract_before_outer_wall_(retract_before_outer_wall)
     , wall_0_wipe_dist_(wall_0_wipe_dist)
     , wall_x_wipe_dist_(wall_x_wipe_dist)
     , wall_0_extruder_nr_(wall_0_extruder_nr)
@@ -150,7 +148,7 @@ void InsetOrderOptimizer::optimize()
     path_optimizer_->optimize();
 }
 
-bool InsetOrderOptimizer::addToLayer()
+bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before_outer_wall)
 {
     if (path_optimizer_ == nullptr)
     {
@@ -162,7 +160,7 @@ bool InsetOrderOptimizer::addToLayer()
     bool added_something = false;
 
     ForceRetract force_retract = ForceRetract::AUTOMATIC;
-    switch (retract_before_outer_wall_)
+    switch (retract_before_outer_wall)
     {
     case RetractBeforeOuterWall::AUTOMATIC:
         force_retract = ForceRetract::AUTOMATIC;
@@ -171,7 +169,7 @@ bool InsetOrderOptimizer::addToLayer()
         force_retract = ForceRetract::RETRACTED;
         break;
     case RetractBeforeOuterWall::NOT_RETRACTED:
-    case RetractBeforeOuterWall::NOT_RETRACTED_FIRST:
+    case RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL:
         force_retract = ForceRetract::NOT_RETRACTED;
         break;
     }
@@ -219,7 +217,7 @@ bool InsetOrderOptimizer::addToLayer()
             smooth_speed);
         added_something = true;
 
-        if (retract_before_outer_wall_ == RetractBeforeOuterWall::NOT_RETRACTED_FIRST)
+        if (retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL)
         {
             // Only the first should be forced, the next ones use auto
             force_retract = ForceRetract::AUTOMATIC;

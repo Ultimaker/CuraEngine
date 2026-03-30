@@ -609,7 +609,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
     constexpr bool fill_gaps = true;
-    constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
     constexpr coord_t wipe_dist = 0;
 
     Shape raft_polygons;
@@ -734,7 +733,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     config,
                     config,
                     config,
-                    retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
                     base_extruder_nr,
@@ -896,7 +894,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 config,
                 config,
                 config,
-                retract_before_outer_wall,
                 wipe_dist,
                 wipe_dist,
                 interface_extruder_nr,
@@ -1070,7 +1067,6 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     config,
                     config,
                     config,
-                    retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
                     surface_extruder_nr,
@@ -1879,6 +1875,7 @@ void FffGcodeWriter::addMeshPartToGCode(
 
     // Pre-process the insets without actually adding them, so that we know where they are going to start printing
     InsetsPreprocessResult insets_preprocess_result = preProcessInsets(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, end_infill_close_to_seam);
+    bool infill_added = false;
 
     if (infill_before_walls)
     {
@@ -1888,10 +1885,11 @@ void FffGcodeWriter::addMeshPartToGCode(
             near_end_location = insets_preprocess_result.walls_optimizer->getStartPosition();
         }
 
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, near_end_location);
+        infill_added = processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, near_end_location);
+        added_something = added_something | infill_added;
     }
 
-    added_something |= endProcessInsets(insets_preprocess_result, storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    added_something |= endProcessInsets(insets_preprocess_result, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_added);
 
     if (! infill_before_walls)
     {
@@ -2882,7 +2880,6 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             mesh_config.insetX_flooring_config,
             mesh_config.bridge_inset0_config,
             mesh_config.bridge_insetX_config,
-            mesh.settings.get<RetractBeforeOuterWall>("travel_retract_before_outer_wall"),
             mesh.settings.get<coord_t>("wall_0_wipe_dist"),
             wall_x_wipe_dist,
             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_,
@@ -2912,7 +2909,8 @@ bool FffGcodeWriter::endProcessInsets(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    SliceLayerPart& part) const
+    SliceLayerPart& part,
+    const bool infill_added) const
 {
     if (preprocess_result.spiralize)
     {
@@ -2957,7 +2955,13 @@ bool FffGcodeWriter::endProcessInsets(
     }
     else if (preprocess_result.walls_optimizer != nullptr)
     {
-        return preprocess_result.walls_optimizer->addToLayer();
+        auto travel_retract_before_outer_wall = mesh.settings.get<RetractBeforeOuterWall>("travel_retract_before_outer_wall");
+        if (travel_retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL && ! infill_added)
+        {
+            travel_retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
+        }
+
+        return preprocess_result.walls_optimizer->addToLayer(travel_retract_before_outer_wall);
     }
 
     return false;
@@ -3398,7 +3402,6 @@ void FffGcodeWriter::processSkinPrintFeature(
         if (! skin_paths.empty())
         {
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
-            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
             constexpr coord_t wipe_dist = 0;
             const ZSeamConfig z_seam_config(
                 mesh.settings.get<EZSeamType>("z_seam_type"),
@@ -3418,7 +3421,6 @@ void FffGcodeWriter::processSkinPrintFeature(
                 config,
                 config,
                 config,
-                retract_before_outer_wall,
                 wipe_dist,
                 wipe_dist,
                 extruder_nr,
@@ -3686,7 +3688,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         if (! wall_toolpaths.empty())
         {
             const GCodePathConfig& config = configs[0];
-            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
             constexpr coord_t wipe_dist = 0;
             const LayerIndex layer_nr = gcode_layer.getLayerNr();
             ZSeamConfig z_seam_config
@@ -3722,7 +3723,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 config,
                 config,
                 config,
-                retract_before_outer_wall,
                 wipe_dist,
                 wipe_dist,
                 extruder_nr,
@@ -3894,7 +3894,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             if (wall_line_count == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = configs[0];
-                constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
                 constexpr coord_t wipe_dist = 0;
                 constexpr coord_t simplify_curvature = 0;
                 const ZSeamConfig z_seam_config(
@@ -3915,7 +3914,6 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     config,
                     config,
                     config,
-                    retract_before_outer_wall,
                     wipe_dist,
                     wipe_dist,
                     extruder_nr,
@@ -4034,7 +4032,6 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
     if (! roof_paths.empty())
     {
         const GCodePathConfig& config = current_roof_config;
-        constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         constexpr coord_t wipe_dist = 0;
         const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
@@ -4051,7 +4048,6 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
             config,
             config,
             config,
-            retract_before_outer_wall,
             wipe_dist,
             wipe_dist,
             roof_extruder_nr,
@@ -4148,7 +4144,6 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     if (! bottom_paths.empty())
     {
         const GCodePathConfig& config = gcode_layer.configs_storage_.support_bottom_config;
-        constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         constexpr coord_t wipe_dist = 0;
         const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
@@ -4165,7 +4160,6 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
             config,
             config,
             config,
-            retract_before_outer_wall,
             wipe_dist,
             wipe_dist,
             bottom_extruder_nr,

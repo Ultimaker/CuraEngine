@@ -769,9 +769,9 @@ RetractBeforeOuterWall Settings::get<RetractBeforeOuterWall>(const std::string& 
     {
         return RetractBeforeOuterWall::NOT_RETRACTED;
     }
-    else if (value == "force_not_retracted_first")
+    else if (value == "force_not_retracted_from_infill")
     {
-        return RetractBeforeOuterWall::NOT_RETRACTED_FIRST;
+        return RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL;
     }
     else // Default.
     {
