@@ -758,6 +758,28 @@ InfillStartEndPreference Settings::get<InfillStartEndPreference>(const std::stri
 }
 
 template<>
+RetractBeforeOuterWall Settings::get<RetractBeforeOuterWall>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "force_retracted")
+    {
+        return RetractBeforeOuterWall::RETRACTED;
+    }
+    else if (value == "force_not_retracted")
+    {
+        return RetractBeforeOuterWall::NOT_RETRACTED;
+    }
+    else if (value == "force_not_retracted_from_infill")
+    {
+        return RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL;
+    }
+    else // Default.
+    {
+        return RetractBeforeOuterWall::AUTOMATIC;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);

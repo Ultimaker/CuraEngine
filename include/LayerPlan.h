@@ -31,6 +31,8 @@
 #include <optional>
 #include <vector>
 
+#include "ForceRetract.h"
+
 namespace cura
 {
 
@@ -400,9 +402,9 @@ public:
      * no combing and no retraction. This travel move needs to be fixed
      * afterwards.
      * \param p The point to travel to.
-     * \param force_retract Whether to force a retraction to occur.
+     * \param force_retract Whether to force a retraction to occur or not occur.
      */
-    GCodePath& addTravel(const Point2LL& p, const bool force_retract = false, const coord_t z_offset = 0);
+    GCodePath& addTravel(const Point2LL& p, const ForceRetract force_retract = ForceRetract::AUTOMATIC, const coord_t z_offset = 0);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -472,7 +474,7 @@ public:
      * \param wall_0_wipe_dist The distance to travel along the polygon after it has been laid down, in order to wipe the start and end of the wall together
      * \param spiralize Whether to gradually increase the z height from the normal layer height to the height of the next layer over this polygon
      * \param flow_ratio The ratio with which to multiply the extrusion amount
-     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param force_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      * \param scarf_seam Indicates whether we may use a scarf seam for the path
      * \param smooth_speed Indicates whether we may use a speed gradient for the path
      */
@@ -485,7 +487,7 @@ public:
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio& flow_ratio = 1.0_r,
-        bool always_retract = false,
+        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
         bool scarf_seam = false,
         bool smooth_speed = false);
 
@@ -511,7 +513,7 @@ public:
      * normal layer height to the height of the next layer over each polygon
      * printed.
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
-     * \param always_retract Whether to force a retraction when moving to the
+     * \param force_retract Whether to force a retraction when moving to the
      * start of the polygon (used for outer walls).
      * \param reverse_order Adds polygons in reverse order.
      * \param start_near_location Start optimising the path near this location.
@@ -528,7 +530,7 @@ public:
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio flow_ratio = 1.0_r,
-        bool always_retract = false,
+        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
         bool reverse_order = false,
         const std::optional<Point2LL> start_near_location = std::optional<Point2LL>(),
         bool scarf_seam = false,
@@ -619,7 +621,7 @@ public:
      * \param wall_0_wipe_dist The distance to travel along the wall after it
      * has been laid down, in order to wipe the start and end of the wall
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
-     * \param always_retract Whether to force a retraction when moving to the
+     * \param force_retract Whether to force a retraction when moving to the
      * start of the wall (used for outer walls).
      */
     void addWall(
@@ -632,7 +634,7 @@ public:
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
         double flow_ratio,
-        bool always_retract);
+        const ForceRetract force_retract);
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -650,7 +652,7 @@ public:
      * \param wall_0_wipe_dist The distance to travel along the wall after it
      * has been laid down, in order to wipe the start and end of the wall
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
-     * \param always_retract Whether to force a retraction when moving to the
+     * \param force_retract Whether to force a retraction when moving to the
      * start of the wall (used for outer walls).
      * \param is_closed Whether this wall is a closed loop (a polygon) or not (a
      * polyline).
@@ -669,7 +671,7 @@ public:
         const GCodePathConfig& bridge_config,
         coord_t wall_0_wipe_dist,
         double flow_ratio,
-        bool always_retract,
+        const ForceRetract force_retract,
         const bool is_closed,
         const bool is_reversed,
         const bool is_linked_path,
@@ -682,7 +684,7 @@ public:
      * \param wall he wall as ExtrusionJunctions
      * \param path_config The config with which to print the wall lines
      */
-    void addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config, bool force_retract);
+    void addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config, const ForceRetract force_retract);
 
     /*!
      * Add walls (polygons) to the gcode with optimized order.
@@ -698,7 +700,7 @@ public:
      * \param z_seam_config Optional configuration for z-seam
      * \param wall_0_wipe_dist The distance to travel along each wall after it has been laid down, in order to wipe the start and end of the wall together
      * \param flow_ratio The ratio with which to multiply the extrusion amount
-     * \param always_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
+     * \param force_retract Whether to force a retraction when moving to the start of a wall (used for outer walls)
      * \param alternate_inset_direction_modifier Whether to alternate the direction of the walls for each inset.
      */
     void addWalls(
@@ -711,7 +713,7 @@ public:
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         double flow_ratio = 1.0,
-        bool always_retract = false);
+        const ForceRetract force_retract = ForceRetract::AUTOMATIC);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -946,7 +948,7 @@ private:
      * normal layer height to the height of the next layer over each polygon
      * printed.
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
-     * \param always_retract Whether to force a retraction when moving to the
+     * \param force_retract Whether to force a retraction when moving to the
      * start of the polygon (used for outer walls).
      * \param reverse_order Adds polygons in reverse order.
      * \param scarf_seam Indicates whether we may use a scarf seam for the path
@@ -960,7 +962,7 @@ private:
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
         const Ratio flow_ratio = 1.0_r,
-        bool always_retract = false,
+        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
         bool reverse_order = false,
         bool scarf_seam = false,
         bool smooth_speed = false);
@@ -1046,7 +1048,7 @@ private:
      * \param flow_ratio The ratio with which to multiply the extrusion amount
      * \param nominal_line_width The nominal line width for the wall
      * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
-     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param force_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      * \param is_small_feature Indicates whether the wall is so small that it should be processed differently
      * \param small_feature_speed_factor The speed factor to be applied to small feature walls
      * \param max_area_deviation The maximum allowed area deviation to split a segment into pieces
@@ -1074,7 +1076,7 @@ private:
         const size_t max_index,
         const int direction,
         const GCodePathConfig& default_config,
-        const bool always_retract,
+        const ForceRetract force_retract,
         const bool is_small_feature,
         Ratio small_feature_speed_factor,
         const coord_t max_area_deviation,
@@ -1103,7 +1105,7 @@ private:
      * \param settings The settings which should apply to this wall added to the layer plan
      * \param default_config The config with which to print the wall lines that are not spanning a bridge or are exposed to air
      * \param flow_ratio The ratio with which to multiply the extrusion amount
-     * \param always_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
+     * \param force_retract Whether to force a retraction when moving to the start of the polygon (used for outer walls)
      * \param is_closed Indicates whether the path is closed (or open)
      * \param is_reversed Indicates if the path is to be processed backwards
      * \param is_candidate_small_feature Indicates whether the path should be tested for being treated as a smell feature
@@ -1119,7 +1121,7 @@ private:
         const Settings& settings,
         const GCodePathConfig& default_config,
         const double flow_ratio,
-        bool always_retract,
+        const ForceRetract force_retract,
         const bool is_closed,
         const bool is_reversed,
         const bool is_candidate_small_feature,

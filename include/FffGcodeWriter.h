@@ -500,6 +500,7 @@ private:
      * @param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * @param mesh_config The extruder for which to print all features of the mesh which should be printed with this extruder
      * @param part The part for which to create gcode
+     * @param infill_added Indicates whether infill was added just before
      * @return Whether this function added anything to the layer plan
      */
     bool endProcessInsets(
@@ -509,7 +510,8 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        SliceLayerPart& part) const;
+        SliceLayerPart& part,
+        const bool infill_added) const;
 
     /*!
      * Generate the a spiralized wall for a given layer part.
