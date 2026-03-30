@@ -153,7 +153,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
 
             next_mesh_retract_before_outer_wall = inset_direction == InsetDirection::OUTSIDE_IN || wall_line_count == 1;
         }
-        const ForceRetract force_retract = retract_at_layer_change || next_mesh_retract_before_outer_wall ? ForceRetract::RETRACTED : ForceRetract::AUTOMATIC;
+        const ForceRetract force_retract = (retract_at_layer_change || next_mesh_retract_before_outer_wall) ? ForceRetract::RETRACTED : ForceRetract::AUTOMATIC;
         prev_layer->final_travel_z_ = newest_layer->z_;
         GCodePath& path = prev_layer->addTravel(first_location_new_layer, force_retract);
         if (force_retract == ForceRetract::RETRACTED && ! path.retract)
