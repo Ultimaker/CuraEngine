@@ -1981,7 +1981,6 @@ void GCodeExport::finalize(const std::string& end_code)
     for (const auto& [extruder_nr, extruder_info_opt] : print_info | ranges::views::enumerate)
     {
         const ExtruderPrintInformation extruder_info = extruder_info_opt.value_or(ExtruderPrintInformation());
-#warning is it length or amount here ??
         filaments_amounts[extruder_nr] = extruder_info.filament_length;
         filaments_weights[extruder_nr] = extruder_info.filament_weight;
         filaments_costs[extruder_nr] = extruder_info.filament_cost;
