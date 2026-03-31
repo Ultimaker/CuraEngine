@@ -3131,6 +3131,19 @@ bool FffGcodeWriter::processSkin(
     return added_something;
 }
 
+std::tuple<Shape, Shape> mergeThinOverlap(const coord_t max_dist, const Shape& assume_bigger, const Shape& assume_smaller)
+{
+    const auto result_smaller =
+        assume_smaller                                     // Of the (suppoisedly) smaller area,
+            .difference(assume_bigger.offset(max_dist))    // take the difference with an offset of the bigger area,
+            .offset(max_dist)                              // then 'inflate' any leftover pieces (so, ones that are certainly big enough),
+            .intersection(assume_smaller);                 // and lastly intersect with the original area, so we don't go outside those bounds.
+    return std::make_tuple(
+        assume_bigger.unionPolygons(assume_smaller.difference(result_smaller).offset(5)), // Glue any 'not leftover' pieces to the (supposedly) bigger area.
+        result_smaller
+    );
+}
+
 bool FffGcodeWriter::processSkinPart(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
@@ -3140,13 +3153,23 @@ bool FffGcodeWriter::processSkinPart(
     const SkinPart& skin_part) const
 {
     bool added_something = false;
+
+    // TOOD?: Does it occur (often) that roofing and flooring _both_ have small or thin areas?
+    // TODO?: Does it occur that roofing/flooring is too small on it's own?
+    // TODO?: How much does this slow down the total process?
+    constexpr coord_t decimate_roofing_flooring_distance = 400;
+    Shape skin_fill, roofing_fill, flooring_fill, dummy_;
+    std::tie(skin_fill, roofing_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.skin_fill, skin_part.roofing_fill);
+    std::tie(skin_fill, flooring_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_fill, skin_part.flooring_fill);
+    std::tie(dummy_, skin_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, flooring_fill.unionPolygons(roofing_fill), skin_part.skin_fill);
+
     processRoofingFlooring(
         storage,
         gcode_layer,
         mesh,
         extruder_nr,
         roofing_settings_names,
-        skin_part.roofing_fill,
+        roofing_fill,
         mesh_config.roofing_config,
         mesh.roofing_angles,
         added_something);
@@ -3156,11 +3179,18 @@ bool FffGcodeWriter::processSkinPart(
         mesh,
         extruder_nr,
         flooring_settings_names,
-        skin_part.flooring_fill,
+        flooring_fill,
         mesh_config.flooring_config,
         mesh.flooring_angles,
         added_something);
-    processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part, added_something);
+    processTopBottom(
+        storage,
+        gcode_layer,
+        mesh,
+        extruder_nr,
+        mesh_config,
+        skin_fill,
+        added_something);
     return added_something;
 }
 
@@ -3214,10 +3244,10 @@ void FffGcodeWriter::processTopBottom(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    const SkinPart& skin_part,
+    const Shape& skin_fill,
     bool& added_something) const
 {
-    if (skin_part.skin_fill.empty())
+    if (skin_fill.empty())
     {
         return; // bridgeAngle requires a non-empty skin_fill.
     }
@@ -3272,9 +3302,9 @@ void FffGcodeWriter::processTopBottom(
 
         Shape supported_skin_part_regions;
 
-        const std::optional<AngleDegrees> bridge_angle = bridgeAngle(mesh, skin_part.skin_fill, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
+        const std::optional<AngleDegrees> bridge_angle = bridgeAngle(mesh, skin_fill, storage, layer_nr, bridge_layer, support_layer, supported_skin_part_regions);
 
-        if (bridge_angle.has_value() || (support_threshold > 0 && (supported_skin_part_regions.area() / (skin_part.skin_fill.area() + 1) < support_threshold)))
+        if (bridge_angle.has_value() || (support_threshold > 0 && (supported_skin_part_regions.area() / (skin_fill.area() + 1) < support_threshold)))
         {
             if (bridge_angle.has_value())
             {
@@ -3338,7 +3368,7 @@ void FffGcodeWriter::processTopBottom(
     {
         // skin isn't a bridge but is it above support and we need to modify the fan speed?
 
-        AABB skin_bb(skin_part.skin_fill);
+        AABB skin_bb(skin_fill);
 
         support_layer = &storage.support.supportLayers[support_layer_nr];
 
@@ -3349,7 +3379,7 @@ void FffGcodeWriter::processTopBottom(
             AABB support_roof_bb(support_layer->support_roof);
             if (skin_bb.hit(support_roof_bb))
             {
-                supported = ! skin_part.skin_fill.intersection(support_layer->support_roof).empty();
+                supported = ! skin_fill.intersection(support_layer->support_roof).empty();
             }
         }
         else
@@ -3359,7 +3389,7 @@ void FffGcodeWriter::processTopBottom(
                 AABB support_part_bb(support_part.getInfillArea());
                 if (skin_bb.hit(support_part_bb))
                 {
-                    supported = ! skin_part.skin_fill.intersection(support_part.getInfillArea()).empty();
+                    supported = ! skin_fill.intersection(support_part.getInfillArea()).empty();
 
                     if (supported)
                     {
@@ -3395,7 +3425,7 @@ void FffGcodeWriter::processTopBottom(
         gcode_layer,
         mesh,
         extruder_nr,
-        skin_part.skin_fill,
+        skin_fill,
         *skin_config,
         pattern,
         skin_angle,
