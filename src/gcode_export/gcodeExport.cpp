@@ -28,6 +28,7 @@
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Date.h"
+#include "utils/ThreadPool.h"
 #include "utils/math.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
@@ -1430,14 +1431,21 @@ PrintFeatureType
 void GCodeExport::sendFinalGCode()
 {
     std::shared_ptr<Communication> communication = Application::getInstance().communication_;
-    for (std::shared_ptr<GCodePart>& gcode_part : gcode_parts_)
-    {
-        const std::string gcode_part_str = gcode_part->str();
-        if (! gcode_part_str.empty())
+
+    run_multiple_producers_ordered_consumer(
+        0,
+        gcode_parts_.size(),
+        [this](int gcode_part_index)
         {
-            communication->sendGCodePart(gcode_part_str);
-        }
-    }
+            return std::make_optional(gcode_parts_.at(gcode_part_index)->str());
+        },
+        [communication](const std::optional<std::string>& gcode_part_str)
+        {
+            if (! gcode_part_str->empty())
+            {
+                communication->sendGCodePart(*gcode_part_str);
+            }
+        });
 }
 
 void GCodeExport::sendEndOfPrintData(const PrintInformation& print_information) const
