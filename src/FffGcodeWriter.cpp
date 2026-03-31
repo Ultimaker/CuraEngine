@@ -3133,15 +3133,13 @@ bool FffGcodeWriter::processSkin(
 
 std::tuple<Shape, Shape> mergeThinOverlap(const coord_t max_dist, const Shape& assume_bigger, const Shape& assume_smaller)
 {
-    const auto result_smaller =
-        assume_smaller                                     // Of the (suppoisedly) smaller area,
-            .difference(assume_bigger.offset(max_dist))    // take the difference with an offset of the bigger area,
-            .offset(max_dist)                              // then 'inflate' any leftover pieces (so, ones that are certainly big enough),
-            .intersection(assume_smaller);                 // and lastly intersect with the original area, so we don't go outside those bounds.
+    const auto result_smaller = assume_smaller // Of the (suppoisedly) smaller area,
+                                    .difference(assume_bigger.offset(max_dist)) // take the difference with an offset of the bigger area,
+                                    .offset(max_dist) // then 'inflate' any leftover pieces (so, ones that are certainly big enough),
+                                    .intersection(assume_smaller); // and lastly intersect with the original area, so we don't go outside those bounds.
     return std::make_tuple(
         assume_bigger.unionPolygons(assume_smaller.difference(result_smaller).offset(5)), // Glue any 'not leftover' pieces to the (supposedly) bigger area.
-        result_smaller
-    );
+        result_smaller);
 }
 
 bool FffGcodeWriter::processSkinPart(
@@ -3163,34 +3161,9 @@ bool FffGcodeWriter::processSkinPart(
     std::tie(skin_fill, flooring_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_fill, skin_part.flooring_fill);
     std::tie(dummy_, skin_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, flooring_fill.unionPolygons(roofing_fill), skin_part.skin_fill);
 
-    processRoofingFlooring(
-        storage,
-        gcode_layer,
-        mesh,
-        extruder_nr,
-        roofing_settings_names,
-        roofing_fill,
-        mesh_config.roofing_config,
-        mesh.roofing_angles,
-        added_something);
-    processRoofingFlooring(
-        storage,
-        gcode_layer,
-        mesh,
-        extruder_nr,
-        flooring_settings_names,
-        flooring_fill,
-        mesh_config.flooring_config,
-        mesh.flooring_angles,
-        added_something);
-    processTopBottom(
-        storage,
-        gcode_layer,
-        mesh,
-        extruder_nr,
-        mesh_config,
-        skin_fill,
-        added_something);
+    processRoofingFlooring(storage, gcode_layer, mesh, extruder_nr, roofing_settings_names, roofing_fill, mesh_config.roofing_config, mesh.roofing_angles, added_something);
+    processRoofingFlooring(storage, gcode_layer, mesh, extruder_nr, flooring_settings_names, flooring_fill, mesh_config.flooring_config, mesh.flooring_angles, added_something);
+    processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_fill, added_something);
     return added_something;
 }
 
