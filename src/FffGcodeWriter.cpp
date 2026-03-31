@@ -3152,14 +3152,14 @@ bool FffGcodeWriter::processSkinPart(
 {
     bool added_something = false;
 
-    // TOOD?: Does it occur (often) that roofing and flooring _both_ have small or thin areas?
-    // TODO?: Does it occur that roofing/flooring is too small on it's own?
-    // TODO?: How much does this slow down the total process?
+    // TODO?: Does it occur (often) that roofing and flooring _both_ have small or thin areas?
+    //  \->+: What's the correct order of operations here? (Roofing before flooring, or flooring before roofing?)
+    // TODO: Make setting out of constexpr.
     constexpr coord_t decimate_roofing_flooring_distance = 400;
     Shape skin_fill, roofing_fill, flooring_fill, dummy_;
     std::tie(skin_fill, roofing_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.skin_fill, skin_part.roofing_fill);
     std::tie(skin_fill, flooring_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_fill, skin_part.flooring_fill);
-    std::tie(dummy_, skin_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, flooring_fill.unionPolygons(roofing_fill), skin_part.skin_fill);
+    std::tie(dummy_, skin_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, flooring_fill.unionPolygons(roofing_fill), skin_fill);
 
     processRoofingFlooring(storage, gcode_layer, mesh, extruder_nr, roofing_settings_names, roofing_fill, mesh_config.roofing_config, mesh.roofing_angles, added_something);
     processRoofingFlooring(storage, gcode_layer, mesh, extruder_nr, flooring_settings_names, flooring_fill, mesh_config.flooring_config, mesh.flooring_angles, added_something);
