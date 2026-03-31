@@ -144,34 +144,29 @@ ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, co
     const coord_t semi_line_width = line_width / 2;
 
     ClosedLinesSet toolpaths;
+    // Split annuli according to max bridging distance with constraints to ensure we can fit the wheel
+    const coord_t nb_annuli = max_bridging_distance > 0.0 ? static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance)) : 0;
+    const coord_t actual_radius_step = nb_annuli > 0 ? radius_delta / nb_annuli : 0;
 
-    // Split annuli according to max bridging distance
-    const coord_t nb_annuli = static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
-    if (nb_annuli > 0)
+    if (nb_annuli == 0 || actual_radius_step <= line_width)
     {
-        const coord_t actual_radius_step = radius_delta / nb_annuli;
-
-        if (actual_radius_step <= line_width)
+        // Bridging distance is 0 or too small for a proper wheel pattern; use solid concentric circles instead.
+        const coord_t nb_circles = radius_delta / line_width;
+        for (coord_t i = 0; i < nb_circles; ++i)
         {
-            // The bridging distance is too small to allow a proper wheel pattern (the annulus width would be <= 0 after
-            // accounting for line width offsets). Fall back to a solid concentric circles pattern instead.
-            const coord_t nb_circles = radius_delta / line_width;
-            for (coord_t i = 0; i < nb_circles; ++i)
-            {
-                toolpaths.push_back(PolygonUtils::makeCircle(middle_, outer_radius - semi_line_width - i * line_width, circle_definition_));
-            }
+            toolpaths.push_back(PolygonUtils::makeCircle(middle_, outer_radius - semi_line_width - i * line_width, circle_definition_));
         }
-        else
+    }
+    else
+    {
+        for (coord_t i = 0; i < nb_annuli; ++i)
         {
-            for (coord_t i = 0; i < nb_annuli; ++i)
-            {
-                const coord_t annulus_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
-                const coord_t annulus_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
+            const coord_t annulus_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
+            const coord_t annulus_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
 
-                const size_t semi_nb_spokes = static_cast<size_t>(std::ceil((std::numbers::pi * static_cast<double>(annulus_outer_radius)) / max_bridging_distance));
+            const size_t semi_nb_spokes = static_cast<size_t>(std::ceil((std::numbers::pi * static_cast<double>(annulus_outer_radius)) / max_bridging_distance));
 
-                toolpaths.push_back(PolygonUtils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, arc_definition_));
-            }
+            toolpaths.push_back(PolygonUtils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, arc_definition_));
         }
     }
 
