@@ -38,7 +38,7 @@ class GcodeTemplateResolver
 public:
     explicit GcodeTemplateResolver() = default;
 
-    void addGlobalExtraSetting(const std::string& name, const CuraFormulaeEngine::eval::Value& value);
+    void prepareForResolving(const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_global_settings = {});
 
     /*!
      * Resolve a raw GCode template that can contains conditional code and complex formulas
@@ -105,11 +105,12 @@ private:
         GcodeConditionState& condition_state,
         const boost::smatch& match,
         const std::optional<size_t>& context_extruder_nr,
-        const std::map<std::optional<size_t>, CuraFormulaeEngine::env::LocalEnvironment>& environments);
+        const std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::LocalEnvironment>>& environments);
 
 private:
     std::optional<size_t> initial_extruder_nr_;
-    std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> global_extra_settings_;
+    std::shared_ptr<CuraFormulaeEngine::env::LocalEnvironment> global_environment_;
+    std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::Environment>> environment_adapters_;
 };
 
 } // namespace cura

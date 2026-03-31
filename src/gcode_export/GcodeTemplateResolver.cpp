@@ -19,9 +19,20 @@ namespace cura
 {
 
 
-void GcodeTemplateResolver::addGlobalExtraSetting(const std::string& name, const CuraFormulaeEngine::eval::Value& value)
+void GcodeTemplateResolver::prepareForResolving(const std::unordered_map<std::string, cfe::eval::Value>& extra_global_settings)
 {
-    global_extra_settings_.emplace(name, value);
+    // Create an environment containing all the extra global settings
+    global_environment_ = std::make_shared<cfe::env::LocalEnvironment>();
+    global_environment_->add(extra_global_settings);
+    global_environment_->set("initial_extruder_nr", static_cast<int64_t>(initial_extruder_nr_.value_or(0)));
+
+    // Now create the global and extruder environment, each pointing towards the extra environment
+    const Scene& scene = Application::getInstance().current_slice_->scene;
+    environment_adapters_[std::nullopt] = std::make_shared<SettingContainersEnvironmentAdapter>(scene.settings, global_environment_.get());
+    for (auto [extruder_nr, extruder_train] : scene.extruders | ranges::views::enumerate)
+    {
+        environment_adapters_[extruder_nr] = std::make_shared<SettingContainersEnvironmentAdapter>(extruder_train.settings_, global_environment_.get());
+    }
 }
 
 std::optional<CuraFormulaeEngine::eval::Value> GcodeTemplateResolver::evaluateExpression(const std::string_view& expression, const cfe::env::Environment& environment)
@@ -56,7 +67,7 @@ bool GcodeTemplateResolver::processExpression(
     GcodeConditionState& condition_state,
     const boost::smatch& match,
     const std::optional<size_t>& context_extruder_nr,
-    const std::map<std::optional<size_t>, cfe::env::LocalEnvironment>& environments)
+    const std::map<std::optional<size_t>, std::shared_ptr<cfe::env::LocalEnvironment>>& environments)
 {
     const auto& match_expression = match["expression"];
     const auto& match_condition = match["condition"];
@@ -155,7 +166,7 @@ bool GcodeTemplateResolver::processExpression(
 
     if (match_extruder_nr.matched && match_extruder_nr.length() > 0)
     {
-        std::optional<CuraFormulaeEngine::eval::Value> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), environments.at(context_extruder_nr));
+        std::optional<CuraFormulaeEngine::eval::Value> extruder_nr_result = evaluateExpression(match_extruder_nr.str(), *environments.at(context_extruder_nr));
         if (! extruder_nr_result.has_value())
         {
             return false;
@@ -190,7 +201,7 @@ bool GcodeTemplateResolver::processExpression(
         extruder_nr_here = std::nullopt;
         environment_iterator = environments.find(std::nullopt);
     }
-    std::optional<CuraFormulaeEngine::eval::Value> expression_result = evaluateExpression(match_expression.str(), environment_iterator->second);
+    std::optional<CuraFormulaeEngine::eval::Value> expression_result = evaluateExpression(match_expression.str(), *environment_iterator->second);
     if (! expression_result.has_value())
     {
         return false;
@@ -231,30 +242,14 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;
 
     static const boost::regex expression_regex(R"({\s*(?<condition>if|else|elif|endif)?\s*(?<expression>[^{}]*?)\s*(?:,\s*(?<extruder_nr>[^{},]*))?\s*}(?<end_of_line>\n?))");
-    const Scene& scene = Application::getInstance().current_slice_->scene;
 
-    std::map<std::optional<size_t>, SettingContainersEnvironmentAdapter> environment_adapters;
-    environment_adapters.emplace(std::nullopt, SettingContainersEnvironmentAdapter(scene.settings));
-    for (auto [extruder_nr, extruder_train] : scene.extruders | ranges::views::enumerate)
+    // Create local environment containing the context-specific extra settings, and are chained to the extruder and global environment
+    std::map<std::optional<size_t>, std::shared_ptr<cfe::env::LocalEnvironment>> local_environments;
+    for (auto iterator = environment_adapters_.begin(); iterator != environment_adapters_.end(); ++iterator)
     {
-        environment_adapters.emplace(extruder_nr, SettingContainersEnvironmentAdapter(extruder_train.settings_));
-    }
-
-    std::map<std::optional<size_t>, cfe::env::LocalEnvironment> environments;
-    for (const std::optional<size_t> environment_key : environment_adapters | ranges::views::keys) // Do not access by iterator because it creates a copy of the adapter
-    {
-        environments.emplace(environment_key, cfe::env::LocalEnvironment(&environment_adapters.at(environment_key)));
-        cfe::env::LocalEnvironment& local_environment = environments.at(environment_key);
-
-        for (auto iterator = extra_settings.begin(); iterator != extra_settings.end(); ++iterator)
-        {
-            local_environment.set(iterator->first, iterator->second);
-        }
-
-        for (auto iterator = global_extra_settings_.begin(); iterator != global_extra_settings_.end(); ++iterator)
-        {
-            local_environment.set(iterator->first, iterator->second);
-        }
+        auto local_environment = std::make_shared<cfe::env::LocalEnvironment>(iterator->second.get());
+        local_environment->add(extra_settings);
+        local_environments.emplace(iterator->first, local_environment);
     }
 
     std::optional<size_t> actual_extruder_nr;
@@ -290,7 +285,7 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
                 processStatement(output, condition_state, match.prefix().str());
             }
 
-            if (! processExpression(output, condition_state, match, actual_extruder_nr, environments))
+            if (! processExpression(output, condition_state, match, actual_extruder_nr, local_environments))
             {
                 // Something got wrong during expression evaluation, return raw input insteaad
                 output = input;

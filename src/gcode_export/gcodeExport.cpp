@@ -1953,6 +1953,8 @@ void GCodeExport::finalize(const std::string& end_code)
     writeFanCommand(0);
     writeResolvableGCode(end_code, DynamicExtruderContext::Initial);
 
+    std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> extra_global_settings;
+
     std::chrono::seconds print_time(static_cast<int64_t>(getSumTotalPrintTimes()));
     spdlog::info("Print time: {}", print_time);
 
@@ -1962,7 +1964,7 @@ void GCodeExport::finalize(const std::string& end_code)
     print_time -= print_minutes;
     auto print_seconds = std::chrono::duration_cast<std::chrono::seconds>(print_time);
     spdlog::info("Print time (hr|min|s): {} {} {}", print_hours, print_minutes, print_seconds);
-    template_resolver_->addGlobalExtraSetting("print_time", fmt::format("{:02d}:{:02d}:{:02d}", print_hours.count(), print_minutes.count(), print_seconds.count()));
+    extra_global_settings.emplace("print_time", fmt::format("{:02d}:{:02d}:{:02d}", print_hours.count(), print_minutes.count(), print_seconds.count()));
 
     const PrintInformation print_info = calculatePrintInformation();
     spdlog::info("Filament (mm^3): {}", print_info[0].value_or(ExtruderPrintInformation()).filament_amount);
@@ -1986,9 +1988,11 @@ void GCodeExport::finalize(const std::string& end_code)
         filaments_costs[extruder_nr] = extruder_info.filament_cost;
     }
 
-    template_resolver_->addGlobalExtraSetting("filament_amount", filaments_amounts);
-    template_resolver_->addGlobalExtraSetting("filament_weight", filaments_weights);
-    template_resolver_->addGlobalExtraSetting("filament_cost", filaments_costs);
+    extra_global_settings.emplace("filament_amount", filaments_amounts);
+    extra_global_settings.emplace("filament_weight", filaments_weights);
+    extra_global_settings.emplace("filament_cost", filaments_costs);
+
+    template_resolver_->prepareForResolving(extra_global_settings);
 
     sendFinalGCode();
     sendEndOfPrintData(print_info);
