@@ -3133,12 +3133,12 @@ bool FffGcodeWriter::processSkin(
 
 std::tuple<Shape, Shape> mergeThinOverlap(const coord_t max_dist, const Shape& assume_bigger, const Shape& assume_smaller)
 {
-    const auto result_smaller = assume_smaller // Of the (suppoisedly) smaller area,
+    const auto result_smaller = assume_smaller // Of the (supposedly) smaller area,
                                     .difference(assume_bigger.offset(max_dist)) // take the difference with an offset of the bigger area,
                                     .offset(max_dist) // then 'inflate' any leftover pieces (so, ones that are certainly big enough),
                                     .intersection(assume_smaller); // and lastly intersect with the original area, so we don't go outside those bounds.
     return std::make_tuple(
-        assume_bigger.unionPolygons(assume_smaller.difference(result_smaller).offset(5)), // Glue any 'not leftover' pieces to the (supposedly) bigger area.
+        assume_bigger.unionPolygons(assume_smaller.difference(result_smaller).offset(EPSILON)), // Glue any 'not leftover' pieces to the (supposedly) bigger area.
         result_smaller);
 }
 
