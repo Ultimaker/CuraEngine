@@ -1520,7 +1520,7 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
 
 void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& assume_bigger, Shape& assume_smaller)
 {
-    if (assume_bigger.area() == 0.0 || assume_smaller.area() == 0.0)
+    if (assume_bigger.empty() || assume_smaller.empty())
     {
         return;
     }
