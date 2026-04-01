@@ -51,6 +51,7 @@ set(engine_SRCS # Except main.cpp.
         src/FffProcessor.cpp
         src/gcodeExport.cpp
         src/GCodePathConfig.cpp
+        src/GcodeTemplateResolver.cpp
         src/infill.cpp
         src/InterlockingGenerator.cpp
         src/InsetOrderOptimizer.cpp
@@ -142,12 +143,14 @@ set(engine_SRCS # Except main.cpp.
         src/settings/FlowTempGraph.cpp
         src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
+        src/settings/SettingContainersEnvironmentAdapter.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
 
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp
         src/utils/channel.cpp
+        src/utils/Segment3LL.cpp
         src/utils/Date.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
@@ -159,7 +162,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/MeshUtils.cpp
         src/utils/MinimumSpanningTree.cpp
         src/utils/OBJ.cpp
-        src/utils/ParameterizedSegment.cpp
+        src/utils/PlanarPolygon3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -196,6 +199,7 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/Polyline.cpp
         src/geometry/ClosedPolyline.cpp
         src/geometry/MixedLinesSet.cpp
+        src/geometry/MendedShape.cpp
 
         src/geometry/conversions/Point2D_Point2LL.cpp
 )
@@ -249,6 +253,8 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(PNG REQUIRED)
+find_package(cura-formulae-engine REQUIRED)
+
 if (NOT EMSCRIPTEN)
     find_package(TBB REQUIRED)
 endif ()
@@ -273,6 +279,7 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         PNG::PNG
+        cura-formulae-engine::cura-formulae-engine
         $<$<NOT:$<BOOL:${EMSCRIPTEN}>>:onetbb::onetbb>
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>

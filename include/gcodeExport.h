@@ -283,7 +283,7 @@ public:
 
     Point2LL getPositionXY() const;
 
-    int getPositionZ() const;
+    coord_t getPositionZ() const;
 
     int getExtruderNr() const;
 
@@ -345,7 +345,9 @@ public:
      */
     void writeLayerCountComment(const size_t layer_count);
 
-    void writeLine(const char* line);
+    void writeLine(const std::string& line);
+
+    void writeRaw(const std::string& gcode);
 
     /*!
      * Reset the current_e_value to prevent too high E values.
@@ -608,7 +610,18 @@ public:
      */
     void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
-    void writeCode(const char* str);
+    void writeCode(const std::string& str);
+
+    /*!
+     * Write code while temporarily ensuring absolute extrusion mode.
+     * If relative extrusion mode is active, this will:
+     * - Switch to absolute extrusion mode
+     * - Write the provided code
+     * - Restore relative extrusion mode
+     *
+     * \param str The code string to write
+     */
+    void writeCodeWithAbsoluteExtrusion(const std::string& str);
 
     void resetExtruderToPrimed(const size_t extruder, const double initial_retraction);
 
@@ -698,9 +711,16 @@ public:
     /*!
      * Finish the gcode: turn fans off, write end gcode and flush all gcode left in the buffer.
      *
-     * \param endCode The end gcode to be appended at the very end.
+     * \param end_code The end gcode to be appended at the very end.
      */
-    void finalize(const char* endCode);
+    void finalize(const std::string& end_code);
+
+    /*!
+     * Finish the extruder gcode: write extrude rend gcode.
+     *
+     * \param extruder_end_code The end gcode to be appended at the end.
+     */
+    void finalizeExtruder(const std::string& extruder_end_code);
 
     /*!
      * Get amount of material extruded since last wipe script was inserted.

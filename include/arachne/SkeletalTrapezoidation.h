@@ -14,6 +14,7 @@
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationGraph.h"
 #include "SkeletalTrapezoidationJoint.h"
+#include "geometry/MendedShape.h"
 #include "geometry/Polygon.h"
 #include "settings/types/Ratio.h"
 #include "utils/ExtrusionJunction.h"
@@ -109,7 +110,7 @@ public:
      * distance.
      */
     SkeletalTrapezoidation(
-        const Shape& polys,
+        const MendedShape& polys,
         const BeadingStrategy& beading_strategy,
         AngleRadians transitioning_angle,
         coord_t discretization_step_size,

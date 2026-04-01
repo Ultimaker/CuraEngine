@@ -25,8 +25,8 @@
      inkscape:document-units="mm"
      showgrid="false"
      inkscape:zoom="0.84096521"
-     inkscape:cx="315.70866"
-     inkscape:cy="591.58214"
+     inkscape:cx="366.84038"
+     inkscape:cy="628.44455"
      inkscape:window-width="1920"
      inkscape:window-height="1008"
      inkscape:window-x="0"
@@ -168,14 +168,14 @@
     <text
        xml:space="preserve"
        style="font-style:normal;font-weight:normal;font-size:8.02758px;line-height:1.25;font-family:sans-serif;fill:#da6c6c;fill-opacity:1;stroke:none;stroke-width:0.20069"
-       x="137.95074"
-       y="129.97104"
+       x="129.27446"
+       y="129.30363"
        id="text10723"><tspan
          sodipodi:role="line"
          id="tspan10721"
          style="fill:#da6c6c;fill-opacity:1;stroke-width:0.20069"
-         x="137.95074"
-         y="129.97104">above_inside</tspan></text>
+         x="129.27446"
+         y="129.30363">above_inside</tspan></text>
     <path
        style="fill:none;stroke:#da6c6c;stroke-width:0.665;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.665, 0.665;stroke-dashoffset:0;stroke-opacity:1"
        d="m 144.24947,131.25669 -1.52375,9.77747"
@@ -183,27 +183,27 @@
        sodipodi:nodetypes="cc" />
     <text
        xml:space="preserve"
-       style="font-style:normal;font-weight:normal;font-size:4.27285px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:0.28235295;stroke:none;stroke-width:0.106822"
+       style="font-style:normal;font-weight:normal;font-size:4.27285px;line-height:1.25;font-family:sans-serif;fill:#000000;fill-opacity:0.5181818;stroke:none;stroke-width:0.106822"
        x="52.245739"
        y="157.93419"
        id="text11623"><tspan
          sodipodi:role="line"
          id="tspan11621"
-         style="stroke-width:0.106822;fill:#000000;fill-opacity:0.28235295"
+         style="stroke-width:0.106822;fill:#000000;fill-opacity:0.5181818"
          x="52.245739"
          y="157.93419">Roofing</tspan><tspan
          sodipodi:role="line"
-         style="stroke-width:0.106822;fill:#000000;fill-opacity:0.28235295"
+         style="stroke-width:0.106822;fill:#000000;fill-opacity:0.5181818"
          x="52.245739"
          y="163.27525"
          id="tspan11625">extension</tspan><tspan
          sodipodi:role="line"
-         style="stroke-width:0.106822;fill:#000000;fill-opacity:0.28235295"
+         style="stroke-width:0.106822;fill:#000000;fill-opacity:0.5181818"
          x="52.245739"
          y="168.61632"
          id="tspan11627">area</tspan></text>
     <path
-       style="fill:none;stroke:#000000;stroke-width:0.665;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.665, 0.665;stroke-dashoffset:0;stroke-opacity:0.28235295"
+       style="fill:none;stroke:#000000;stroke-width:0.665;stroke-linecap:butt;stroke-linejoin:miter;stroke-dasharray:0.665, 0.665;stroke-dashoffset:0;stroke-opacity:0.54545456"
        d="m 69.999471,157.52735 13.735259,4.11433"
        id="path12355"
        sodipodi:nodetypes="cc" />

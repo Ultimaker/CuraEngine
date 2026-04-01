@@ -15,6 +15,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <numbers>
 #include <polyclipping/clipper.hpp>
 
+#include "settings/types/Angle.h"
 #include "utils/Coord_t.h"
 #include "utils/types/generic.h"
 
@@ -198,6 +199,16 @@ INLINE coord_t cross(const Point2LL& p0, const Point2LL& p1)
 INLINE const Point2LL& make_point(const Point2LL& p)
 {
     return p;
+}
+
+INLINE const AngleRadians angle_rad(const Point2LL& p)
+{
+    return std::atan2(p.Y, p.X);
+}
+
+INLINE const AngleDegrees angle_deg(const Point2LL& p)
+{
+    return AngleDegrees(angle_rad(p));
 }
 
 Point2LL operator+(const Point2LL& p2, const Point3LL& p3);

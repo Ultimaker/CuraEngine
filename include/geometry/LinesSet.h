@@ -258,6 +258,8 @@ public:
 
     [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
+    [[nodiscard]] LinesSet<LineType> difference(const Shape& other) const;
+
     /*!
      * Utility method for creating the tube (or 'donut') of a shape.
      *

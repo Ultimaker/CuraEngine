@@ -116,6 +116,8 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.8.3")
             self.test_requires("docopt.cpp/0.6.3")
+        if self.options.enable_plugins:
+            self.tool_requires("protobuf/6.33.5")
 
     def requirements(self):
         super().requirements()

@@ -23,33 +23,32 @@
 namespace cura::MeshUtils
 {
 
-std::optional<Point3D> getBarycentricCoordinates(const Point3D& point, const Triangle3D& triangle)
+std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Triangle3LL& triangle)
 {
     // Calculate vectors from p0 to p1 and p0 to p2
-    const Point3D v0(triangle[1] - triangle[0]);
-    const Point3D v1(triangle[2] - triangle[0]);
-    const Point3D v2(point - triangle[0]);
+    const Point3LL v0(triangle[1] - triangle[0]);
+    const Point3LL v1(triangle[2] - triangle[0]);
+    const Point3LL v2(point - triangle[0]);
 
     // Compute dot products
-    const double d00 = v0 * v0;
-    const double d01 = v0 * v1;
-    const double d11 = v1 * v1;
-    const double d20 = v2 * v0;
-    const double d21 = v2 * v1;
+    const coord_t d00 = v0.dot(v0);
+    const coord_t d01 = v0.dot(v1);
+    const coord_t d11 = v1.dot(v1);
+    const coord_t d20 = v2.dot(v0);
+    const coord_t d21 = v2.dot(v1);
 
     // Calculate denominator for barycentric coordinates
-    const double denom = d00 * d11 - d01 * d01;
+    const coord_t denom = d00 * d11 - d01 * d01;
 
     // Check if triangle is degenerate
-    constexpr double epsilon_triangle_cross_products = 0.000001;
-    if (std::abs(denom) < epsilon_triangle_cross_products)
+    if (denom == 0)
     {
         return std::nullopt;
     }
 
     // Calculate barycentric coordinates
-    const double v = (d11 * d20 - d01 * d21) / denom;
-    const double w = (d00 * d21 - d01 * d20) / denom;
+    const double v = static_cast<double>(d11 * d20 - d01 * d21) / denom;
+    const double w = static_cast<double>(d00 * d21 - d01 * d20) / denom;
     const double u = 1.0 - v - w;
 
     // Return as a Point3D where x/y/z represent the barycentric coordinates u/v/w

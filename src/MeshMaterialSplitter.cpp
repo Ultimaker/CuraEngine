@@ -18,7 +18,7 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
 #include "geometry/Triangle2F.h"
-#include "geometry/Triangle3D.h"
+#include "geometry/Triangle3LL.h"
 #include "mesh.h"
 #include "progress/Progress.h"
 #include "slicer.h"
@@ -89,6 +89,7 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
     const std::unordered_set<size_t>& authorized_values,
     const bool ignore_default_value = false)
 {
+    spdlog::stopwatch timer;
     boost::concurrent_flat_set<uint8_t> found_values;
 
     cura::parallel_for(
@@ -106,16 +107,13 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
             }
 
             const Triangle2F face_uvs{ uv0.value(), uv1.value(), uv2.value() };
-
-            constexpr double scale = 1.0;
-            const Triangle3D triangle{ Point3D(mesh.vertices_[face.vertex_index_[0]].p_, scale),
-                                       Point3D(mesh.vertices_[face.vertex_index_[1]].p_, scale),
-                                       Point3D(mesh.vertices_[face.vertex_index_[2]].p_, scale) };
+            const Triangle3LL triangle{ mesh.vertices_[face.vertex_index_[0]].p_, mesh.vertices_[face.vertex_index_[1]].p_, mesh.vertices_[face.vertex_index_[2]].p_ };
 
             for (const VoxelGrid::LocalCoordinates& traversed_voxel : voxel_grid.getTraversedVoxels(triangle))
             {
                 const Point3D global_position = voxel_grid.toGlobalCoordinates(traversed_voxel);
-                const std::optional<Point3D> barycentric_coordinates = MeshUtils::getBarycentricCoordinates(global_position, triangle);
+                const Point3LL global_position_ll = Point3LL(std::llrint(global_position.x_), std::llrint(global_position.y_), std::llrint(global_position.z_));
+                const std::optional<Point3D> barycentric_coordinates = MeshUtils::getBarycentricCoordinates(global_position_ll, triangle);
                 if (! barycentric_coordinates.has_value() || barycentric_coordinates.value().x_ < 0 || barycentric_coordinates.value().y_ < 0
                     || barycentric_coordinates.value().z_ < 0)
                 {
@@ -141,6 +139,7 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
             }
         });
 
+    spdlog::info("Total voxel grid creation time from texture {}ms", timer.elapsed_ms().count());
     return found_values;
 }
 
@@ -148,13 +147,16 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
  * Create modifier meshes from the given voxels grid, filled with the contours of the areas that should be processed by the different extruders.
  * @param voxel_grid The voxels grid containing the extruder occupations
  * @param ignore_value The main mesh extruder number
+ * @param use_value_as_extruder_nr Indicates if the occupation value should be used as an extruder number to get the proper mesh settings
+ * @param is_hollow Indicates whether the occupied voxels have a hollow core and are surrounded by a solid shell of ignored values (which is the case for materials voxels grid)
+ *                  or if they just form a solid block themselves (which is the case for support voxels grid)
  * @return A list of modifier meshes to be registered
  *
  * This function works by treating each horizontal plane separately of the voxels grid. For each plane, we apply a marching squares algorithm in order to generate 2D polygons.
  * Then we just have to extrude those polygons vertically. The final mesh has no horizontal face, thus it is not watertight at all. However, since it will subsequently
  * be re-sliced on XY planes, this is good enough.
  */
-std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const bool use_value_as_extruder_nr)
+std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const bool use_value_as_extruder_nr, const bool is_hollow)
 {
     spdlog::debug("Make modifier meshes from voxels grid");
 
@@ -216,7 +218,7 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid, &raw_contours, &position_delta_center, &marching_segments, &ignore_value](const VoxelGrid::LocalCoordinates square_start)
+        [&voxel_grid, &raw_contours, &position_delta_center, &marching_segments, &ignore_value, &is_hollow](const VoxelGrid::LocalCoordinates square_start)
         {
             const int32_t x_plus1 = static_cast<int32_t>(square_start.position.x) + 1;
             const bool x_plus1_valid = x_plus1 <= std::numeric_limits<uint16_t>::max();
@@ -225,11 +227,11 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
 
             std::unordered_set<uint8_t> filled_values;
             std::array<uint8_t, 4> occupation_bits;
-            auto add_occupied_value = [&voxel_grid,
-                                       &ignore_value,
-                                       &filled_values,
-                                       &occupation_bits,
-                                       &square_start](const int32_t x, const int32_t y, const bool position_valid, const size_t occupation_bit_index) -> void
+            auto add_occupied_value = [&voxel_grid, &ignore_value, &filled_values, &occupation_bits, &square_start, &is_hollow](
+                                          const int32_t x,
+                                          const int32_t y,
+                                          const bool position_valid,
+                                          const size_t occupation_bit_index) -> void
             {
                 if (position_valid)
                 {
@@ -242,6 +244,10 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
                     }
                 }
 
+                if (! is_hollow)
+                {
+                    filled_values.insert(ignore_value);
+                }
                 occupation_bits[occupation_bit_index] = ignore_value;
             };
 
@@ -679,7 +685,8 @@ std::vector<Mesh> makeMaterialModifierMeshes(
         total_estimated_iterations);
 
     constexpr bool use_value_as_extruder_nr = true;
-    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, use_value_as_extruder_nr);
+    constexpr bool is_hollow = true;
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, use_value_as_extruder_nr, is_hollow);
     return applyMeshExtruders(meshes);
 }
 
@@ -688,7 +695,7 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh
     const Settings& settings = mesh.settings_;
     const auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
 
-    // Create the voxel grid and initially fill it with the rasterized mesh triangles
+    // Create the voxel grid and initially fill it with the rasterized mesh triangles=
     VoxelGrid voxel_grid(mesh_bounding_box, resolution);
     constexpr bool ignore_default_value = true;
     const boost::concurrent_flat_set<uint8_t> found_support_values
@@ -701,7 +708,8 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh
 
     constexpr uint8_t ignore_value = 0;
     constexpr bool use_value_as_extruder_nr = false;
-    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, use_value_as_extruder_nr);
+    constexpr bool is_hollow = false;
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, use_value_as_extruder_nr, is_hollow);
     return applyMeshSupport(meshes);
 }
 
