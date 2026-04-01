@@ -1525,9 +1525,9 @@ void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& assume_bigger
         return;
     }
     const auto result_smaller = assume_smaller // Of the (supposedly) smaller area,
-        .difference(assume_bigger.offset(max_dist)) // take the difference with an offset of the bigger area,
-        .offset(max_dist) // then 'inflate' any leftover pieces (so, ones that are certainly big enough),
-        .intersection(assume_smaller); // and lastly intersect with the original area, so we don't go outside those bounds.
+                                    .difference(assume_bigger.offset(max_dist)) // take the difference with an offset of the bigger area,
+                                    .offset(max_dist) // then 'inflate' any leftover pieces (so, ones that are certainly big enough),
+                                    .intersection(assume_smaller); // and lastly intersect with the original area, so we don't go outside those bounds.
     assume_bigger = assume_bigger.unionPolygons(assume_smaller.difference(result_smaller).offset(EPSILON)); // Glue any 'not leftover' pieces to the (supposedly) bigger area.
     assume_smaller = result_smaller;
 }
