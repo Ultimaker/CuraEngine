@@ -140,7 +140,8 @@ public:
     std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 
     Mesh(const Settings& parent);
-    Mesh();
+    Mesh(Settings&& parent);
+    Mesh() = default;
 
     /*!
      *
@@ -204,8 +205,8 @@ public:
     bool canInterlock() const;
 
 private:
-    mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
-    mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
+    mutable bool has_disconnected_faces{ false }; //!< Whether it has been logged that this mesh contains disconnected faces
+    mutable bool has_overlapping_faces{ false }; //!< Whether it has been logged that this mesh contains overlapping faces
     int findIndexOfVertex(const Point3LL& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
 
     /*!

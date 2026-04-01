@@ -25,15 +25,11 @@ static inline uint32_t pointHash(const Point3LL& p)
 
 Mesh::Mesh(const Settings& parent)
     : settings_(parent)
-    , has_disconnected_faces(false)
-    , has_overlapping_faces(false)
 {
 }
 
-Mesh::Mesh()
-    : settings_()
-    , has_disconnected_faces(false)
-    , has_overlapping_faces(false)
+Mesh::Mesh(Settings&& parent)
+    : settings_(std::move(parent))
 {
 }
 

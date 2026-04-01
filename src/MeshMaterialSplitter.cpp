@@ -147,7 +147,8 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
  * Create modifier meshes from the given voxels grid, filled with the contours of the areas that should be processed by the different extruders.
  * @param voxel_grid The voxels grid containing the extruder occupations
  * @param ignore_value The main mesh extruder number
- * @param use_value_as_extruder_nr Indicates if the occupation value should be used as an extruder number to get the proper mesh settings
+ * @param mesh_settings The mesh settings to be applied to the generated meshes. If not provided, the occupation values will be considered as extruder number and we will
+ *                      use the settings of the associated extruder.
  * @param is_hollow Indicates whether the occupied voxels have a hollow core and are surrounded by a solid shell of ignored values (which is the case for materials voxels grid)
  *                  or if they just form a solid block themselves (which is the case for support voxels grid)
  * @return A list of modifier meshes to be registered
@@ -156,7 +157,7 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
  * Then we just have to extrude those polygons vertically. The final mesh has no horizontal face, thus it is not watertight at all. However, since it will subsequently
  * be re-sliced on XY planes, this is good enough.
  */
-std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const bool use_value_as_extruder_nr, const bool is_hollow)
+std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const std::optional<Settings>& mesh_settings, const bool is_hollow)
 {
     spdlog::debug("Make modifier meshes from voxels grid");
 
@@ -322,7 +323,7 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&simplifier, &voxel_grid, &meshes, &mutex, &use_value_as_extruder_nr](const auto& contour)
+        [&simplifier, &voxel_grid, &meshes, &mutex, &mesh_settings](const auto& contour)
         {
             const uint16_t z = contour.first.definition.z;
             const uint8_t value = contour.first.definition.value;
@@ -338,8 +339,7 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
                 const auto mesh_iterator = meshes.find(value);
                 if (mesh_iterator == meshes.end())
                 {
-                    const Settings& settings = use_value_as_extruder_nr ? Application::getInstance().current_slice_->scene.extruders[value].settings_
-                                                                        : Application::getInstance().current_slice_->scene.settings;
+                    const Settings settings = mesh_settings.value_or(Application::getInstance().current_slice_->scene.extruders[value].settings_);
                     meshes.insert({ value, Mesh(settings) });
                 }
 
@@ -370,7 +370,7 @@ std::vector<Mesh> applyMeshExtruders(std::map<uint8_t, Mesh>& meshes)
     return output_meshes;
 }
 
-std::vector<Mesh> applyMeshSupport(std::map<uint8_t, Mesh>& meshes)
+std::vector<Mesh> applyMeshSupport(std::map<uint8_t, Mesh>& meshes, const size_t support_extruder_nr)
 {
     std::vector<Mesh> output_meshes;
     for (auto& [support_value, mesh] : meshes)
@@ -684,9 +684,9 @@ std::vector<Mesh> makeMaterialModifierMeshes(
         delta_iterations,
         total_estimated_iterations);
 
-    constexpr bool use_value_as_extruder_nr = true;
+    constexpr std::optional<Settings> mesh_settings = std::nullopt;
     constexpr bool is_hollow = true;
-    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, use_value_as_extruder_nr, is_hollow);
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, mesh_settings, is_hollow);
     return applyMeshExtruders(meshes);
 }
 
@@ -694,6 +694,7 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh
 {
     const Settings& settings = mesh.settings_;
     const auto resolution = settings.get<coord_t>("multi_material_paint_resolution");
+    const auto support_extruder_nr = settings.get<size_t>("support_extruder_nr");
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles=
     VoxelGrid voxel_grid(mesh_bounding_box, resolution);
@@ -707,10 +708,9 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh
     }
 
     constexpr uint8_t ignore_value = 0;
-    constexpr bool use_value_as_extruder_nr = false;
     constexpr bool is_hollow = false;
-    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, use_value_as_extruder_nr, is_hollow);
-    return applyMeshSupport(meshes);
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, mesh.settings_, is_hollow);
+    return applyMeshSupport(meshes, support_extruder_nr);
 }
 
 /*!
