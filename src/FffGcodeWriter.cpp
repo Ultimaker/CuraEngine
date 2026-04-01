@@ -3152,21 +3152,29 @@ bool FffGcodeWriter::processSkinPart(
 {
     bool added_something = false;
 
-    // TODO: Make setting out of constexpr.
-    constexpr coord_t decimate_roofing_flooring_distance = 400;
-
-    // For each of these, have flooring take precedence over roofing;
-    // while roofing is likely visually more pleasing, the flooring settings are probably more important for structural integrity.
+    const coord_t decimate_roofing_flooring_distance = mesh.settings.get<coord_t>("top_bottom_skin_merge_distance");
     Shape skin_fill, roofing_fill, flooring_fill;
-    // First, if there _is_ a situation where skin is thinner than flooring/roofing, we probably want that merged into either of those instead of the other way around.
-    std::tie(flooring_fill, skin_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.flooring_fill, skin_part.skin_fill);
-    std::tie(roofing_fill, skin_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.roofing_fill, skin_fill);
-    // Then, the less likely scenario that flooring and roofing are both present, next to each other, and one is far thinner than the other.
-    std::tie(flooring_fill, roofing_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, flooring_fill, roofing_fill);
-    std::tie(roofing_fill, flooring_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, roofing_fill, flooring_fill);
-    // Lastly, the most likely scenario, where flooring/roofing is thinner than skin (even after merging as much as possible into either), merge into skin.
-    std::tie(skin_fill, flooring_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_fill, flooring_fill);
-    std::tie(skin_fill, roofing_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_fill, roofing_fill);
+    if (decimate_roofing_flooring_distance > 0)
+    {
+        // For each of these, have flooring take precedence over roofing;
+        // while roofing is likely visually more pleasing, the flooring settings are probably more important for structural integrity.
+
+        // First, if there _is_ a situation where skin is thinner than flooring/roofing, we probably want that merged into either of those instead of the other way around.
+        std::tie(flooring_fill, skin_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.flooring_fill, skin_part.skin_fill);
+        std::tie(roofing_fill, skin_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.roofing_fill, skin_fill);
+        // Then, the less likely scenario that flooring and roofing are both present, next to each other, and one is far thinner than the other.
+        std::tie(flooring_fill, roofing_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, flooring_fill, roofing_fill);
+        std::tie(roofing_fill, flooring_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, roofing_fill, flooring_fill);
+        // Lastly, the most likely scenario, where flooring/roofing is thinner than skin (even after merging as much as possible into either), merge into skin.
+        std::tie(skin_fill, flooring_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_fill, flooring_fill);
+        std::tie(skin_fill, roofing_fill) = mergeThinOverlap(decimate_roofing_flooring_distance, skin_fill, roofing_fill);
+    }
+    else
+    {
+        skin_fill = skin_part.skin_fill;
+        roofing_fill = skin_part.roofing_fill;
+        flooring_fill = skin_part.flooring_fill;
+    }
 
     processRoofingFlooring(storage, gcode_layer, mesh, extruder_nr, roofing_settings_names, roofing_fill, mesh_config.roofing_config, mesh.roofing_angles, added_something);
     processRoofingFlooring(storage, gcode_layer, mesh, extruder_nr, flooring_settings_names, flooring_fill, mesh_config.flooring_config, mesh.flooring_angles, added_something);
