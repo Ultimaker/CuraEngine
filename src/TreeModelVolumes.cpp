@@ -576,7 +576,7 @@ Shape TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, Lay
     constexpr bool external_polys_only = false;
     Shape total;
 
-    if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+    if (! mesh.isPrinted())
     {
         return Shape();
     }

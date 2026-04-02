@@ -40,7 +40,7 @@ void InterlockingGenerator::generateInterlockingStructure(std::vector<Slicer*>& 
             Slicer& mesh_b = *volumes[mesh_b_idx];
             size_t extruder_nr_b = mesh_b.mesh->settings_.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_;
 
-            if (! mesh_a.mesh->canInterlock() || ! mesh_b.mesh->canInterlock())
+            if (! mesh_a.mesh->isPrinted() || ! mesh_b.mesh->isPrinted())
             {
                 continue;
             }

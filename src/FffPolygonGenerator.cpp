@@ -233,7 +233,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
         const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
-        if (mesh.settings_.get<bool>("conical_overhang_enabled") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
+        if (mesh.settings_.get<bool>("conical_overhang_enabled") && mesh.isPrinted())
         {
             ConicalOverhang::apply(slicerList[mesh_idx], mesh);
         }
@@ -261,7 +261,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     {
         const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
-        if (! mesh.settings_.get<bool>("anti_overhang_mesh") && ! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("cutting_mesh"))
+        if (mesh.isPrinted())
         {
             storage.print_layer_count = std::max(storage.print_layer_count, slicer->layers.size());
         }
@@ -356,7 +356,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
-        if (! mesh.settings.get<bool>("infill_mesh") && ! mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (mesh.isPrinted())
         {
             slice_layer_count = std::max<unsigned int>(slice_layer_count, mesh.layers.size());
         }
@@ -873,7 +873,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
         {
             auto& mesh = *mesh_ptr;
-            if (mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh"))
+            if (! mesh.isPrinted())
             {
                 continue; // Special type of mesh that doesn't get printed.
             }

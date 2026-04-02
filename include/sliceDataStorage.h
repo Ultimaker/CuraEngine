@@ -221,6 +221,7 @@ public:
     Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Shape anti_overhang; //!< Areas where no overhang should be detected.
+    Shape force_overhang; //!< Areas where overhang should be forced.
 
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
@@ -327,6 +328,8 @@ public:
     std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     RetractionAndWipeConfig retraction_wipe_config; //!< Per-Object retraction and wipe settings.
+
+    const bool is_printed_; //!< Whether this is an actual printed mesh, or some kind of modifier
 
     /*!
      * \brief Creates a storage space for slice results of a mesh.

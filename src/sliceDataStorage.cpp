@@ -102,14 +102,14 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     , base_subdiv_cube(nullptr)
     , cross_fill_provider(nullptr)
     , lightning_generator(nullptr)
+    , is_printed_(mesh->isPrinted())
 {
     layers.resize(slice_layer_count);
 }
 
-
 bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
 {
-    if (settings.get<bool>("anti_overhang_mesh") || settings.get<bool>("support_mesh"))
+    if (! is_printed_)
     { // object is not printed as object, but as support.
         return false;
     }
@@ -164,7 +164,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         return false;
     }
-    if (settings.get<bool>("anti_overhang_mesh") || settings.get<bool>("support_mesh"))
+    if (! isPrinted())
     { // object is not printed as object, but as support.
         return false;
     }
@@ -250,7 +250,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
 
 bool SliceMeshStorage::isPrinted() const
 {
-    return ! settings.get<bool>("infill_mesh") && ! settings.get<bool>("cutting_mesh") && ! settings.get<bool>("anti_overhang_mesh");
+    return is_printed_;
 }
 
 Point2LL SliceMeshStorage::getZSeamHint() const
@@ -363,8 +363,7 @@ Shape SliceDataStorage::getLayerOutlines(
         {
             for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
             {
-                if (mesh->settings.get<bool>("infill_mesh") || mesh->settings.get<bool>("anti_overhang_mesh")
-                    || (extruder_nr != -1 && extruder_nr != int(mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)))
+                if (! mesh->isPrinted() || (extruder_nr != -1 && extruder_nr != int(mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)))
                 {
                     continue;
                 }
