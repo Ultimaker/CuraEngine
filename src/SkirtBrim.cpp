@@ -746,6 +746,7 @@ void SkirtBrim::generateSupportBrim()
 
     // Generate outside brim: outward rings around the support footprint.
     // Rings that overlap with already-generated build plate adhesion brim are skipped entirely to avoid double-printing.
+    // Rings are also clipped against model mesh outlines so the support brim never prints into model geometry.
     if (location & BrimLocation::OUTSIDE)
     {
         // Build covered area from any brim lines already generated for the support extruder (e.g. from adhesion_type brim).
@@ -753,6 +754,17 @@ void SkirtBrim::generateSupportBrim()
         for (const MixedLinesSet& brim_lines : storage_.skirt_brim[support_infill_extruder.extruder_nr_])
         {
             existing_brim_coverage = existing_brim_coverage.unionPolygons(brim_lines.offset(brim_line_width / 2));
+        }
+
+        // Collect model-only outlines at layer 0 to use as a collision mask.
+        // Expanded by half the line width so the outside edge of the brim never overlaps the model surface.
+        Shape model_collision;
+        {
+            constexpr bool include_support = false;
+            constexpr bool include_prime_tower = false;
+            constexpr bool external_polys_only = false;
+            model_collision = storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only, support_infill_extruder.extruder_nr_)
+                                  .offset(brim_line_width / 2, ClipperLib::jtRound);
         }
 
         size_t line_count = base_line_count;
@@ -768,6 +780,12 @@ void SkirtBrim::generateSupportBrim()
             if (! existing_brim_coverage.empty() && ! brim_line.intersection(existing_brim_coverage).empty())
             {
                 continue;
+            }
+
+            // Clip the ring against the model mesh so the support brim never prints into model geometry.
+            if (! model_collision.empty())
+            {
+                brim_line = brim_line.difference(model_collision);
             }
 
             // Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then multiplier x extrusion "area"
