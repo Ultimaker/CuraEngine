@@ -72,7 +72,7 @@ void Scene::processMeshGroup(MeshGroup& mesh_group)
     bool empty = true;
     for (Mesh& mesh : mesh_group.meshes)
     {
-        if (mesh.isPrinted())
+        if (mesh.isModelMesh())
         {
             empty = false;
             break;

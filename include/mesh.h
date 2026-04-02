@@ -188,12 +188,11 @@ public:
      */
     void transform(const Matrix4x3D& transformation);
 
-    /*!
-     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
-     * etc.)
-     * \return True if it's a mesh that gets printed.
-     */
+    /*! Gets whether this is a printable mesh (not a modifier mesh). This includes infill meshes, because they do get printed. */
     bool isPrinted() const;
+
+    /*! Gets whether this is a regular model mesh (not a modifier or infill mesh) */
+    bool isModelMesh() const;
 
 private:
     mutable bool has_disconnected_faces{ false }; //!< Whether it has been logged that this mesh contains disconnected faces

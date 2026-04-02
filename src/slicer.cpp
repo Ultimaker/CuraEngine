@@ -1049,7 +1049,7 @@ void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::v
     }
 
     size_t layer_apply_initial_xy_offset = 0;
-    if (layers.size() > 0 && layers[0].polygons_.size() == 0 && ! mesh.settings_.get<bool>("support_mesh") && mesh.isPrinted())
+    if (layers.size() > 0 && layers[0].polygons_.size() == 0 && ! mesh.settings_.get<bool>("support_mesh") && mesh.isModelMesh())
     {
         layer_apply_initial_xy_offset = 1;
     }

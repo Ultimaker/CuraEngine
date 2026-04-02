@@ -190,8 +190,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
     // loop over all mesh faces (triangles) and find their slopes
     for (const Mesh& mesh : Application::getInstance().current_slice_->scene.current_mesh_group->meshes)
     {
-        // Skip meshes that are not printable
-        if (! mesh.isPrinted())
+        // Skip meshes that are not regular models
+        if (! mesh.isModelMesh())
         {
             continue;
         }

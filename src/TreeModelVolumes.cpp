@@ -576,7 +576,7 @@ Shape TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, Lay
     constexpr bool external_polys_only = false;
     Shape total;
 
-    if (! mesh.isPrinted())
+    if (! mesh.isModelMesh())
     {
         return Shape();
     }

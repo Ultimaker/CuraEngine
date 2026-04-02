@@ -329,7 +329,8 @@ public:
 
     RetractionAndWipeConfig retraction_wipe_config; //!< Per-Object retraction and wipe settings.
 
-    const bool is_printed_; //!< Whether this is an actual printed mesh, or some kind of modifier
+    const bool is_printed_; //!< Whether this is an actual printed mesh
+    const bool is_model_mesh_; //!< Whether this is a regular model mesh
 
     /*!
      * \brief Creates a storage space for slice results of a mesh.
@@ -353,12 +354,11 @@ public:
      */
     bool getExtruderIsUsed(const size_t extruder_nr, const LayerIndex& layer_nr) const;
 
-    /*!
-     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
-     * etc.)
-     * \return True if it's a mesh that gets printed.
-     */
+    /*! Gets whether this is a printable mesh (not a modifier mesh). This includes infill meshes, because they do get printed. */
     bool isPrinted() const;
+
+    /*! Gets whether this is a regular model mesh (not a modifier or infill mesh) */
+    bool isModelMesh() const;
 
     /*!
      * \return the mesh's user specified z seam hint
