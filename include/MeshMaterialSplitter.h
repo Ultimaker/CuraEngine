@@ -14,7 +14,7 @@ namespace MeshMaterialSplitter
 {
 
 /*!
- * Generate a modifier mesh for every extruder other than 0, that has some user-painted texture data
+ * Generate modifier mesh based user-painted texture data, either for multi-material or support customization
  * @param meshgroup The group to take the sliced meshes from and add the modifier meshes to
  */
 void makePaintingModifierMeshes(MeshGroup* meshgroup);

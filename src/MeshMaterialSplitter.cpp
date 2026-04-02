@@ -74,10 +74,11 @@ bool operator==(const ContourKey& key1, const ContourKey& key2)
  * Fills the given voxels grid by setting an occupation everywhere the triangles of the mesh cross voxels. The extruder number is set according to the texture data
  * @param mesh The mesh to fill the voxels grid with
  * @param texture_data_provider The provider containing the painted texture data
+ * @param texture_feature The name of the feature to be looked for in the texture
  * @param voxel_grid The voxels grid to be filled with mesh data
- * @param default_value The main mesh extruder number
- * @return True if this generated relevant data for multi-extruder, otherwise this means the mesh is completely filled with only extruder 0 and there is no need to go further on
- *         trying to calculate the modified meshes.
+ * @param default_value The default value to be used when the value retrieved in the texture doesn't belong to authorized_values (e.g. a disabled extruder number)
+ * @param authorized_values The list of authorized values that can be found in the texture data
+ * @return The set of unique values actually placed in the voxels grid. This helps to determine whether it actually contains multiple values and should be further processed.
  */
 boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
     const Mesh& mesh,
@@ -350,6 +351,11 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
     return meshes;
 }
 
+/*!
+ * Apply the proper settings to make the given meshes actual material mesh modifiers
+ * @param meshes The list of meshes, indexed by extruder to be used
+ * @return The meshes containing the proper settings that identify them as extruder modifier meshes
+ */
 std::vector<Mesh> applyMeshExtruders(std::map<uint8_t, Mesh>& meshes)
 {
     std::vector<Mesh> output_meshes;
@@ -363,7 +369,12 @@ std::vector<Mesh> applyMeshExtruders(std::map<uint8_t, Mesh>& meshes)
     return output_meshes;
 }
 
-std::vector<Mesh> applyMeshSupport(std::map<uint8_t, Mesh>& meshes, const size_t support_extruder_nr)
+/*!
+ * Apply the proper settings to make the given meshes actual support mesh modifiers
+ * @param meshes The list of meshes, indexed by support value
+ * @return The meshes containing the proper settings that identify them as support modifier meshes
+ */
+std::vector<Mesh> applyMeshSupport(std::map<uint8_t, Mesh>& meshes)
 {
     std::vector<Mesh> output_meshes;
     for (auto& [support_value, mesh] : meshes)
@@ -683,6 +694,13 @@ std::vector<Mesh> makeMaterialModifierMeshes(
     return applyMeshExtruders(meshes);
 }
 
+/*!
+ * Generate a modifier mesh for every part that has some user-painted texture data
+ * @param mesh The mesh to be processed
+ * @param mesh_bounding_box The pre-calculated bounding box of the mesh
+ * @param texture_data_provider The provider containing the texture painted data
+ * @return A list of modifier meshes to be added to the slicing process
+ */
 std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh_bounding_box, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
     const Settings& settings = mesh.settings_;
@@ -737,9 +755,8 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh
         });
 
     constexpr bool is_hollow = false;
-    const auto support_extruder_nr = settings.get<size_t>("support_extruder_nr");
     std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, mesh.settings_, is_hollow);
-    return applyMeshSupport(meshes, support_extruder_nr);
+    return applyMeshSupport(meshes);
 }
 
 /*!
