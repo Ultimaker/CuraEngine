@@ -42,7 +42,6 @@ struct MeshGeneratorData
     const Mesh& mesh; //!< The mesh for which a material modifier is to be generated
     AABB3D bounding_box; //!< The bounding box of the mesh
     size_t estimated_material_iterations{ 0 }; //!< The roughly estimated number of multi-material voxels-propagation iterations (for progress reporting)
-    size_t estimated_support_iterations{ 0 }; //!< The roughly estimated number of support-mesh voxels-propagation iterations (for progress reporting)
     coord_t depth; //!< The propagation depth retrieved from the mesh settings
     coord_t resolution; //!< The points cloud resolution retrieved from the mesh settings
 };
@@ -784,7 +783,7 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
             mesh_data.estimated_material_iterations = estimated_min_depth / mesh_data.resolution;
         }
 
-        spdlog::debug("Estimated {} iterations for {}", mesh_data.estimated_material_iterations + mesh_data.estimated_support_iterations, mesh.mesh_name_);
+        spdlog::debug("Estimated {} iterations for {}", mesh_data.estimated_material_iterations, mesh.mesh_name_);
 
         result.push_back(mesh_data);
     }
