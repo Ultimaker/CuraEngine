@@ -188,7 +188,10 @@ public:
      */
     void transform(const Matrix4x3D& transformation);
 
-    /*! Gets whether this is a printable mesh (not a modifier mesh). This includes infill meshes, because they do get printed. */
+    /*!
+     * Gets whether this is a printable mesh (not a modifier mesh). This includes infill meshes, because they do get printed. Cutting meshes are not considered as printable though,
+     * because they are early converted into regular meshes and should not be considered in subsequent algorithms.
+     */
     bool isPrinted() const;
 
     /*! Gets whether this is a regular model mesh (not a modifier or infill mesh) */
