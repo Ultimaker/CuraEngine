@@ -165,7 +165,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         return false;
     }
-    if (! isPrinted() || settings.get<bool>("support_mesh"))
+    if (! is_printed_ || settings.get<bool>("support_mesh"))
     { // object is not printed as object, but as support.
         return false;
     }

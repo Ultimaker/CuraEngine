@@ -53,7 +53,8 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
         SliceMeshStorage& mesh = *mesh_ptr;
-        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! mesh.settings.get<bool>("support_enable") || ! mesh.isModelMesh())
+        const bool non_supportable_mesh = ! mesh.isModelMesh() || mesh.settings.get<bool>("support_mesh");
+        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! mesh.settings.get<bool>("support_enable") || non_supportable_mesh)
         {
             continue;
         }
