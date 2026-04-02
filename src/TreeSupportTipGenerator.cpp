@@ -385,7 +385,7 @@ std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFi
     if (config_.support_pattern == EFillMethod::CROSS || config_.support_pattern == EFillMethod::CROSS_3D)
     {
         AABB3D aabb;
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (! mesh.isModelMesh())
         {
             spdlog::warn("Tree support tried to generate a CrossFillProvider for a non model mesh.");
             return nullptr;

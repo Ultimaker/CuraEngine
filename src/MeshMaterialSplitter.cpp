@@ -41,7 +41,7 @@ struct MeshGeneratorData
 {
     const Mesh& mesh; //!< The mesh for which a material modifier is to be generated
     AABB3D bounding_box; //!< The bounding box of the mesh
-    size_t estimated_iterations; //!< The roughly estimated number of voxels-propagation iterations (for progress reporting)
+    size_t estimated_material_iterations{ 0 }; //!< The roughly estimated number of multi-material voxels-propagation iterations (for progress reporting)
     coord_t depth; //!< The propagation depth retrieved from the mesh settings
     coord_t resolution; //!< The points cloud resolution retrieved from the mesh settings
 };
@@ -55,7 +55,7 @@ union ContourKey
     struct
     {
         uint16_t z;
-        uint8_t extruder;
+        uint8_t value;
         uint8_t black_hole{ 0 }; // Don't place anything in there, or it would be lost forever (it exists only to properly set the 4th byte of the key)
     } definition;
 };
@@ -74,21 +74,22 @@ bool operator==(const ContourKey& key1, const ContourKey& key2)
  * Fills the given voxels grid by setting an occupation everywhere the triangles of the mesh cross voxels. The extruder number is set according to the texture data
  * @param mesh The mesh to fill the voxels grid with
  * @param texture_data_provider The provider containing the painted texture data
+ * @param texture_feature The name of the feature to be looked for in the texture
  * @param voxel_grid The voxels grid to be filled with mesh data
- * @param mesh_extruder_nr The main mesh extruder number
- * @return True if this generated relevant data for multi-extruder, otherwise this means the mesh is completely filled with only extruder 0 and there is no need to go further on
- *         trying to calculate the modified meshes.
+ * @param default_value The default value to be used when the value retrieved in the texture doesn't belong to authorized_values (e.g. a disabled extruder number)
+ * @param authorized_values The list of authorized values that can be found in the texture data
+ * @return The set of unique values actually placed in the voxels grid. This helps to determine whether it actually contains multiple values and should be further processed.
  */
-bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDataProvider>& texture_data_provider, VoxelGrid& voxel_grid, const uint8_t mesh_extruder_nr)
+boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
+    const Mesh& mesh,
+    const std::shared_ptr<TextureDataProvider>& texture_data_provider,
+    const std::string& texture_feature,
+    VoxelGrid& voxel_grid,
+    const uint8_t default_value,
+    const std::unordered_set<size_t>& authorized_values)
 {
     spdlog::stopwatch timer;
-
-    boost::concurrent_flat_set<uint8_t> found_extruders;
-    std::unordered_set<size_t> active_extruders;
-    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
-    {
-        active_extruders.insert(extruder.extruder_nr_);
-    }
+    boost::concurrent_flat_set<uint8_t> found_values;
 
     cura::parallel_for(
         mesh.faces_,
@@ -121,53 +122,45 @@ bool makeVoxelGridFromTexture(const Mesh& mesh, const std::shared_ptr<TextureDat
 
                 const Point2F point_uv_coords = MeshUtils::getUVCoordinates(barycentric_coordinates.value(), face_uvs);
                 const std::pair<size_t, size_t> pixel = texture_data_provider->getTexture()->getPixelCoordinates(Point2F(point_uv_coords.x_, point_uv_coords.y_));
-                std::optional<uint32_t> extruder_nr = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), "extruder");
-                if (! extruder_nr.has_value() || ! active_extruders.contains(extruder_nr.value()))
+                std::optional<uint32_t> texture_value = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), texture_feature);
+                if (! texture_value.has_value() || ! authorized_values.contains(texture_value.value()))
                 {
-                    extruder_nr = mesh_extruder_nr;
+                    texture_value = default_value;
                 }
 
-                voxel_grid.setOrUpdateOccupation(traversed_voxel, extruder_nr.value());
-                found_extruders.insert(extruder_nr.value());
+                voxel_grid.setOrUpdateOccupation(traversed_voxel, texture_value.value());
+                found_values.insert(texture_value.value());
             }
         });
 
-    if (found_extruders.size() == 1)
-    {
-        // We have found only one extruder in the texture, so return true only if this extruder is not the mesh extruder, otherwise the rest is useless
-        bool is_specific_extruder = true;
-        found_extruders.visit_all(
-            [&is_specific_extruder, &mesh_extruder_nr](const uint8_t extruder_nr)
-            {
-                is_specific_extruder = extruder_nr != mesh_extruder_nr;
-            });
-        return is_specific_extruder;
-    }
-
     spdlog::info("Total voxel grid creation time from texture {}ms", timer.elapsed_ms().count());
-    return true;
+    return found_values;
 }
 
 /*!
- * Create modifier meshes from the given voxels grid, filled with the contours of the areas that should be processed by the different extruders.
- * @param voxel_grid The voxels grid containing the extruder occupations
- * @param mesh_extruder_nr The main mesh extruder number
+ * Create modifier meshes from the given voxels grid, filled with the contours of the areas that should be processed by the different valuess.
+ * @param voxel_grid The voxels grid containing the values occupations
+ * @param ignore_value The "default" value for which no mesh should be created
+ * @param mesh_settings The mesh settings to be applied to the generated meshes. If not provided, the occupation values will be considered as extruder number and we will
+ *                      use the settings of the associated extruder.
+ * @param is_hollow Indicates whether the occupied voxels have a hollow core and are surrounded by a solid shell of ignored values (which is the case for materials voxels grid)
+ *                  or if they just form a solid block themselves (which is the case for support voxels grid)
  * @return A list of modifier meshes to be registered
  *
  * This function works by treating each horizontal plane separately of the voxels grid. For each plane, we apply a marching squares algorithm in order to generate 2D polygons.
  * Then we just have to extrude those polygons vertically. The final mesh has no horizontal face, thus it is not watertight at all. However, since it will subsequently
  * be re-sliced on XY planes, this is good enough.
  */
-std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t mesh_extruder_nr)
+std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const std::optional<Settings>& mesh_settings, const bool is_hollow)
 {
     spdlog::debug("Make modifier meshes from voxels grid");
 
-    // First, gather all positions that should be considered for the marching square, e.g. all that have a specific extruder and around them
+    // First, gather all positions that should be considered for the marching square, e.g. all that have a specific value and around them
     boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> marching_squares;
     voxel_grid.visitOccupiedVoxels(
-        [&marching_squares, &mesh_extruder_nr](const auto& occupied_voxel)
+        [&marching_squares, &ignore_value](const auto& occupied_voxel)
         {
-            if (occupied_voxel.second != mesh_extruder_nr)
+            if (occupied_voxel.second != ignore_value)
             {
                 marching_squares.insert(occupied_voxel.first);
                 if (occupied_voxel.first.position.x > 0)
@@ -220,56 +213,60 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid, &raw_contours, &position_delta_center, &marching_segments, &mesh_extruder_nr](const VoxelGrid::LocalCoordinates square_start)
+        [&voxel_grid, &raw_contours, &position_delta_center, &marching_segments, &ignore_value, &is_hollow](const VoxelGrid::LocalCoordinates square_start)
         {
             const int32_t x_plus1 = static_cast<int32_t>(square_start.position.x) + 1;
             const bool x_plus1_valid = x_plus1 <= std::numeric_limits<uint16_t>::max();
             const int32_t y_plus1 = static_cast<int32_t>(square_start.position.y) + 1;
             const bool y_plus1_valid = y_plus1 <= std::numeric_limits<uint16_t>::max();
 
-            std::unordered_set<uint8_t> filled_extruders;
+            std::unordered_set<uint8_t> filled_values;
             std::array<uint8_t, 4> occupation_bits;
-            auto add_occupied_extruder = [&voxel_grid,
-                                          &mesh_extruder_nr,
-                                          &filled_extruders,
-                                          &occupation_bits,
-                                          &square_start](const int32_t x, const int32_t y, const bool position_valid, const size_t occupation_bit_index) -> void
+            auto add_occupied_value = [&voxel_grid, &ignore_value, &filled_values, &occupation_bits, &square_start, &is_hollow](
+                                          const int32_t x,
+                                          const int32_t y,
+                                          const bool position_valid,
+                                          const size_t occupation_bit_index) -> void
             {
                 if (position_valid)
                 {
                     const std::optional<uint8_t> occupation = voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x, y, square_start.position.z));
                     if (occupation.has_value())
                     {
-                        filled_extruders.insert(occupation.value());
+                        filled_values.insert(occupation.value());
                         occupation_bits[occupation_bit_index] = occupation.value();
                         return;
                     }
                 }
 
-                occupation_bits[occupation_bit_index] = mesh_extruder_nr;
+                if (! is_hollow)
+                {
+                    filled_values.insert(ignore_value);
+                }
+                occupation_bits[occupation_bit_index] = ignore_value;
             };
 
-            add_occupied_extruder(x_plus1, y_plus1, x_plus1_valid && y_plus1_valid, 0);
-            add_occupied_extruder(square_start.position.x, y_plus1, y_plus1_valid, 1);
-            add_occupied_extruder(x_plus1, square_start.position.y, x_plus1_valid, 2);
-            add_occupied_extruder(square_start.position.x, square_start.position.y, true, 3);
+            add_occupied_value(x_plus1, y_plus1, x_plus1_valid && y_plus1_valid, 0);
+            add_occupied_value(square_start.position.x, y_plus1, y_plus1_valid, 1);
+            add_occupied_value(x_plus1, square_start.position.y, x_plus1_valid, 2);
+            add_occupied_value(square_start.position.x, square_start.position.y, true, 3);
 
-            if (filled_extruders.size() < 2)
+            if (filled_values.size() < 2)
             {
                 // Early-out, since this is not going to generate any segment
                 return;
             }
 
-            for (const uint8_t extruder : filled_extruders)
+            for (const uint8_t value : filled_values)
             {
-                if (extruder == mesh_extruder_nr)
+                if (value == ignore_value)
                 {
                     continue;
                 }
 
                 // Apply the marching squares base principle: calculate the index of the segments list to be added according to the occupations of the 4 positions
-                const size_t segments_index = (occupation_bits[0] == extruder ? 1 : 0) + ((occupation_bits[1] == extruder ? 1 : 0) << 1)
-                                            + ((occupation_bits[2] == extruder ? 1 : 0) << 2) + ((occupation_bits[3] == extruder ? 1 : 0) << 3);
+                const size_t segments_index = (occupation_bits[0] == value ? 1 : 0) + ((occupation_bits[1] == value ? 1 : 0) << 1) + ((occupation_bits[2] == value ? 1 : 0) << 2)
+                                            + ((occupation_bits[3] == value ? 1 : 0) << 3);
                 OpenLinesSet translated_segments = marching_segments[segments_index];
 
                 if (translated_segments.empty())
@@ -291,7 +288,7 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
 
                 // And finally, add the segments to the proper Z-plane and extruder
                 raw_contours.emplace_or_visit(
-                    std::make_pair(ContourKey{ .definition = { square_start.position.z, extruder } }, Contour{ .segments = translated_segments }),
+                    std::make_pair(ContourKey{ .definition = { square_start.position.z, value } }, Contour{ .segments = translated_segments }),
                     [&translated_segments](auto& plane_contour)
                     {
                         plane_contour.second.segments.push_back(translated_segments);
@@ -320,10 +317,10 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&simplifier, &voxel_grid, &meshes, &mutex](const auto& contour)
+        [&simplifier, &voxel_grid, &meshes, &mutex, &mesh_settings](const auto& contour)
         {
             const uint16_t z = contour.first.definition.z;
-            const uint8_t extruder = contour.first.definition.extruder;
+            const uint8_t value = contour.first.definition.value;
             const coord_t z_low = voxel_grid.toGlobalZ(z, false);
             const coord_t z_high = voxel_grid.toGlobalZ(z + 1, false);
 
@@ -333,16 +330,14 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
             for (const Polygon& simplified_polygon : simplified_polygons)
             {
                 const std::lock_guard lock(mutex);
-                const auto mesh_iterator = meshes.find(extruder);
+                const auto mesh_iterator = meshes.find(value);
                 if (mesh_iterator == meshes.end())
                 {
-                    Mesh mesh(Application::getInstance().current_slice_->scene.extruders.at(extruder).settings_);
-                    mesh.settings_.add("cutting_mesh", "true");
-                    mesh.settings_.add("extruder_nr", std::to_string(extruder));
-                    meshes.insert({ extruder, mesh });
+                    const Settings settings = mesh_settings.value_or(Application::getInstance().current_slice_->scene.extruders[value].settings_);
+                    meshes.insert({ value, Mesh(settings) });
                 }
 
-                Mesh& mesh = meshes[extruder];
+                Mesh& mesh = meshes[value];
                 for (auto iterator = simplified_polygon.beginSegments(); iterator != simplified_polygon.endSegments(); ++iterator)
                 {
                     const Point2LL& start = (*iterator).start;
@@ -353,12 +348,50 @@ std::vector<Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const ui
             }
         });
 
-    std::vector<Mesh> meshes_vec;
-    for (Mesh& mesh : meshes | ranges::views::values)
+    return meshes;
+}
+
+/*!
+ * Apply the proper settings to make the given meshes actual material mesh modifiers
+ * @param meshes The list of meshes, indexed by extruder to be used
+ * @return The meshes containing the proper settings that identify them as extruder modifier meshes
+ */
+std::vector<Mesh> applyMeshExtruders(std::map<uint8_t, Mesh>& meshes)
+{
+    std::vector<Mesh> output_meshes;
+    for (auto& [extruder_nr, mesh] : meshes)
     {
-        meshes_vec.push_back(std::move(mesh));
+        mesh.settings_.add("cutting_mesh", "true");
+        mesh.settings_.add("extruder_nr", std::to_string(extruder_nr));
+        output_meshes.push_back(std::move(mesh));
     }
-    return meshes_vec;
+
+    return output_meshes;
+}
+
+/*!
+ * Apply the proper settings to make the given meshes actual support mesh modifiers
+ * @param meshes The list of meshes, indexed by support value
+ * @return The meshes containing the proper settings that identify them as support modifier meshes
+ */
+std::vector<Mesh> applyMeshSupport(std::map<uint8_t, Mesh>& meshes)
+{
+    std::vector<Mesh> output_meshes;
+    for (auto& [support_value, mesh] : meshes)
+    {
+        if (support_value == 1)
+        {
+            mesh.settings_.add("force_support_overhang_mesh", "true");
+            output_meshes.push_back(std::move(mesh));
+        }
+        else if (support_value == 2)
+        {
+            mesh.settings_.add("anti_overhang_mesh", "true");
+            output_meshes.push_back(std::move(mesh));
+        }
+    }
+
+    return output_meshes;
 }
 
 /*!
@@ -457,7 +490,7 @@ boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>
  * @param voxel_grid The voxel grid to be filled
  * @param voxels_to_evaluate The voxels to be evaluated
  * @param texture_data The lookup containing the rasterized texture data
- * @param sliced_mesh The pre-sliced mesh matching the voxel grid
+ * @param sliced_mesh The pre-sliced mesh matching the voxel grid, or an empty list to skip the insideness check
  * @param depth_squared The maximum depth, squared
  * @param mesh_extruder_nr The main mesh extruder number
  */
@@ -477,7 +510,7 @@ void evaluateVoxels(
         {
             const Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
 
-            if (! isInside(voxel_grid, voxel_to_evaluate, sliced_mesh))
+            if (! sliced_mesh.empty() && ! isInside(voxel_grid, voxel_to_evaluate, sliced_mesh))
             {
                 voxel_grid.setOccupation(voxel_to_evaluate, mesh_extruder_nr);
             }
@@ -583,7 +616,7 @@ void propagateVoxels(
  * @param total_estimated_iterations The total number of iterations to be processed, for progress reporting
  * @return A list of modifier meshes to be added to the slicing process
  */
-std::vector<Mesh> makeModifierMeshes(
+std::vector<Mesh> makeMaterialModifierMeshes(
     const MeshGeneratorData& mesh_data,
     const std::shared_ptr<TextureDataProvider>& texture_data_provider,
     const size_t delta_iterations,
@@ -600,7 +633,26 @@ std::vector<Mesh> makeModifierMeshes(
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles, which will be used as spatial reference for the texture data
     VoxelGrid voxel_grid(bounding_box, mesh_data.resolution);
-    if (! makeVoxelGridFromTexture(mesh_data.mesh, texture_data_provider, voxel_grid, mesh_extruder_nr))
+
+    std::unordered_set<size_t> active_extruders;
+    for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
+    {
+        active_extruders.insert(extruder.extruder_nr_);
+    }
+
+    const boost::concurrent_flat_set<uint8_t> found_extruders
+        = makeVoxelGridFromTexture(mesh_data.mesh, texture_data_provider, "extruder", voxel_grid, mesh_extruder_nr, active_extruders);
+    bool texture_contains_multimaterial_data = true;
+    if (found_extruders.size() == 1)
+    {
+        // We have found only one extruder in the texture, so return true only if this extruder is not the mesh extruder, otherwise the rest is useless
+        found_extruders.visit_all(
+            [&texture_contains_multimaterial_data, &mesh_extruder_nr](const uint8_t extruder_nr)
+            {
+                texture_contains_multimaterial_data = extruder_nr != mesh_extruder_nr;
+            });
+    }
+    if (! texture_contains_multimaterial_data)
     {
         // Texture is filled with the main extruder, don't bother doing anything
         return {};
@@ -628,7 +680,7 @@ std::vector<Mesh> makeModifierMeshes(
     propagateVoxels(
         voxel_grid,
         previously_evaluated_voxels,
-        mesh_data.estimated_iterations,
+        mesh_data.estimated_material_iterations,
         sliced_mesh,
         texture_data,
         depth_squared,
@@ -636,7 +688,75 @@ std::vector<Mesh> makeModifierMeshes(
         delta_iterations,
         total_estimated_iterations);
 
-    return makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr);
+    constexpr std::optional<Settings> mesh_settings = std::nullopt;
+    constexpr bool is_hollow = true;
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, mesh_settings, is_hollow);
+    return applyMeshExtruders(meshes);
+}
+
+/*!
+ * Generate a modifier mesh for every part that has some user-painted texture data
+ * @param mesh The mesh to be processed
+ * @param mesh_bounding_box The pre-calculated bounding box of the mesh
+ * @param texture_data_provider The provider containing the texture painted data
+ * @return A list of modifier meshes to be added to the slicing process
+ */
+std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh_bounding_box, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+{
+    const Settings& settings = mesh.settings_;
+    const auto resolution = settings.get<coord_t>("support_paint_resolution");
+    constexpr uint8_t ignore_value = 0;
+    const std::unordered_set<size_t>& authorized_values{ 1, 2 };
+
+    // Create the voxel grid and initially fill it with the rasterized mesh triangles
+    VoxelGrid voxel_grid(mesh_bounding_box, resolution);
+    const boost::concurrent_flat_set<uint8_t> found_support_values = makeVoxelGridFromTexture(mesh, texture_data_provider, "support", voxel_grid, ignore_value, authorized_values);
+    if (found_support_values.empty() || (found_support_values.size() == 1 && found_support_values.contains(ignore_value)))
+    {
+        // Texture is filled with only automatic support, don't bother doing anything
+        return {};
+    }
+
+    // At this point, the voxel grid contains a 1-voxel-wide version of the textured mesh. In order to make proper modifier meshes that will cover the painted area, we will expand
+    // it by 1 voxel in all direction, so it will end up being 3-voxels wide
+
+    // Create the lookup structure that will help us expand only where necessary
+    const SpatialLookup texture_data = SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
+
+    // Extract the voxels have an actual support value. Others don't need to be expanded since they won't generate a mesh.
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> valued_voxels;
+    voxel_grid.visitOccupiedVoxels(
+        [&valued_voxels, &ignore_value](const auto& voxel)
+        {
+            if (voxel.second != ignore_value)
+            {
+                valued_voxels.insert(voxel.first);
+            }
+        });
+
+    // Now get all the voxels around the valued voxels that have no occupation yet
+    const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> outer_voxels = findVoxelsToEvaluate(voxel_grid, valued_voxels);
+
+    // Finally, evaluate all the voxels around and set their proper occupation
+    outer_voxels.visit_all(
+#ifdef __cpp_lib_execution
+        std::execution::par,
+#endif
+        [&voxel_grid, &texture_data, &ignore_value](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+        {
+            const Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
+
+            // Find the nearest neighbor
+            const std::optional<OccupiedPosition> nearest_occupation = texture_data.findClosestOccupation(position);
+            if (nearest_occupation.has_value() && nearest_occupation.value().occupation != ignore_value)
+            {
+                voxel_grid.setOccupation(voxel_to_evaluate, nearest_occupation.value().occupation);
+            }
+        });
+
+    constexpr bool is_hollow = false;
+    std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, ignore_value, mesh.settings_, is_hollow);
+    return applyMeshSupport(meshes);
 }
 
 /*!
@@ -650,7 +770,14 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
 
     for (const Mesh& mesh : meshgroup->meshes)
     {
-        if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("extruder"))
+        if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr)
+        {
+            continue;
+        }
+
+        const bool has_extruder_data = mesh.texture_data_mapping_->contains("extruder");
+        const bool has_support_data = mesh.texture_data_mapping_->contains("support");
+        if (! has_extruder_data && ! has_support_data)
         {
             continue;
         }
@@ -665,11 +792,15 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
             mesh_data.bounding_box.include(vertex.p_);
         }
 
-        // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
-        const double bounding_box_max_depth = std::max({ mesh_data.bounding_box.spanX() / 2.0, mesh_data.bounding_box.spanY() / 2.0, mesh_data.bounding_box.spanZ() / 2.0 });
-        const double estimated_min_depth = std::min(static_cast<double>(mesh_data.depth), bounding_box_max_depth);
-        mesh_data.estimated_iterations = estimated_min_depth / mesh_data.resolution;
-        spdlog::debug("Estimated {} iterations for {}", mesh_data.estimated_iterations, mesh.mesh_name_);
+        if (has_extruder_data)
+        {
+            // Make a rough estimation of the max number of iterations, by calculating how deep we may propagate inside the mesh
+            const double bounding_box_max_depth = std::max({ mesh_data.bounding_box.spanX() / 2.0, mesh_data.bounding_box.spanY() / 2.0, mesh_data.bounding_box.spanZ() / 2.0 });
+            const double estimated_min_depth = std::min(static_cast<double>(mesh_data.depth), bounding_box_max_depth);
+            mesh_data.estimated_material_iterations = estimated_min_depth / mesh_data.resolution;
+        }
+
+        spdlog::debug("Estimated {} iterations for {}", mesh_data.estimated_material_iterations, mesh.mesh_name_);
 
         result.push_back(mesh_data);
     }
@@ -677,7 +808,7 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
     return result;
 }
 
-void makeMaterialModifierMeshes(MeshGroup* meshgroup)
+void makePaintingModifierMeshes(MeshGroup* meshgroup)
 {
     const std::vector<MeshGeneratorData> mesh_generation_data = makeInitialMeshesGenerationData(meshgroup);
     size_t delta_iterations = 0;
@@ -686,7 +817,7 @@ void makeMaterialModifierMeshes(MeshGroup* meshgroup)
         0,
         [](const size_t total_iterations, const MeshGeneratorData& mesh_data)
         {
-            return total_iterations + mesh_data.estimated_iterations;
+            return total_iterations + mesh_data.estimated_material_iterations;
         });
 
     std::vector<Mesh> modifier_meshes;
@@ -694,16 +825,21 @@ void makeMaterialModifierMeshes(MeshGroup* meshgroup)
     {
         const Mesh& mesh = mesh_data.mesh;
         const spdlog::stopwatch timer;
-        spdlog::info("Start multi-material mesh generation for {}", mesh.mesh_name_);
+        spdlog::info("Start painting mesh-modifier generation for {}", mesh.mesh_name_);
 
         const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
-        for (const Mesh& modifier_mesh : makeModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations))
+        for (const Mesh& modifier_mesh : makeMaterialModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations))
         {
             modifier_meshes.push_back(std::move(modifier_mesh));
         }
 
-        delta_iterations += mesh_data.estimated_iterations;
-        spdlog::info("Multi-material mesh generation for {} took {} seconds", mesh.mesh_name_, timer.elapsed().count());
+        for (const Mesh& modifier_mesh : makeSupportModifierMeshes(mesh_data.mesh, mesh_data.bounding_box, texture_data_provider))
+        {
+            modifier_meshes.push_back(std::move(modifier_mesh));
+        }
+
+        delta_iterations += mesh_data.estimated_material_iterations;
+        spdlog::info("Painting mesh-modifier generation for {} took {} seconds", mesh.mesh_name_, timer.elapsed().count());
     }
 
     // Add meshes to group afterwards to avoid re-allocating the meshes in the vector
