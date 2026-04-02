@@ -129,6 +129,7 @@ public:
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
 
+    /*! \brief Calculates whether this extruder plan actually has at least one extrusion move */
     bool hasExtrusion() const;
 
 private:

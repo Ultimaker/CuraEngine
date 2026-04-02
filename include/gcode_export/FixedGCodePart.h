@@ -11,13 +11,16 @@
 namespace cura
 {
 
+/*! \brief Contains pieces of GCode that are fixed string */
 class FixedGCodePart : public GCodePart
 {
 public:
     explicit FixedGCodePart();
 
+    /*! \brief Gets the full piece of GCode to be exported */
     std::string str() const override;
 
+    /*! \brief Gets the actual stream in which the GCode parts can be stored */
     std::ostringstream& stream();
 
 private:

@@ -200,8 +200,8 @@ private:
     bool machine_heated_build_volume_; //!< does the machine have the ability to control/stabilize build-volume-temperature
     bool ppr_enable_; //!< if the print process reporting is enabled
 
-    std::vector<std::shared_ptr<GCodePart>> gcode_parts_;
-    std::shared_ptr<GcodeTemplateResolver> template_resolver_;
+    std::vector<std::shared_ptr<GCodePart>> gcode_parts_; //!< List of GCode pieces that will be exported at the end
+    std::shared_ptr<GcodeTemplateResolver> template_resolver_; //!< Object used to resolved the formulae of the dynamic GCode pieces
 
 protected:
     /*!
@@ -433,8 +433,15 @@ public:
      */
     void flushOutputStream();
 
+    /*! \brief Creates a new instance of fixed GCode part and sets it as the current container for fixed GCode parts. */
     void prepareNewFixedGCodePart();
 
+    /*!
+     * \brief Write a piece of resolvable GCode
+     * \param raw_text The unresolved piece of GCode to be written
+     * \param extruder_nr The contextual extruder number to be used when resolving this piece of GCode
+     * \param extra_settings Extra settings to be added when resolving this specific piece of GCode
+     */
     void writeResolvableGCode(
         const std::string& raw_text,
         const ResolvingExtruderContext& extruder_nr = DynamicExtruderContext::Global,
@@ -451,8 +458,19 @@ public:
      */
     double mm3ToE(double mm3) const;
 
+    /*!
+     * \brief Gets the calculated initial extruder number to be used when resolving the pieces of GCode
+     *        having a DynamicExtruderContext::Initial context
+     * \return The set initial extruder number, or nullopt if it has not been set yet
+     */
     std::optional<size_t> getInitialExtruderNr() const;
 
+    /*!
+     * \brief Sets the calculated initial extruder number to be used when resolving the pieces of GCode
+     *        having a DynamicExtruderContext::Initial context
+     * \param initial_extruder_nr The calculated initial extruder number
+     * \warning This method has to be called before calling prepareForResolving()
+     */
     void setInitialExtruderNr(const size_t initial_extruder_nr);
 
 private:
@@ -559,10 +577,10 @@ private:
     static PrintFeatureType
         sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
 
+    /*! \brief Resolves and sends all the pieces of GCode that have been created during slicing */
     void sendFinalGCode();
 
-    void sendEndOfPrintData(const PrintInformation& print_information) const;
-
+    /*! \brief Calculates the end-of-print data about material consumption */
     PrintInformation calculatePrintInformation() const;
 
 public:
@@ -634,13 +652,15 @@ public:
     void writeCode(const std::string& str);
 
     /*!
-     * Write code while temporarily ensuring absolute extrusion mode.
+     * Write a pice of resolvable GCode while temporarily ensuring absolute extrusion mode.
      * If relative extrusion mode is active, this will:
      * - Switch to absolute extrusion mode
      * - Write the provided code
      * - Restore relative extrusion mode
      *
-     * \param str The code string to write
+     * \param str The unresolved code string to write
+     * \param extruder_nr The contextual extruder number to be used when resolving this piece of GCode
+     * \param extra_settings Extra settings to be added when resolving this specific piece of GCode
      */
     void writeCodeWithAbsoluteExtrusion(
         const std::string& str,

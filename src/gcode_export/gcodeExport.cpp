@@ -1439,18 +1439,13 @@ void GCodeExport::sendFinalGCode()
         {
             return std::make_optional(gcode_parts_.at(gcode_part_index)->str());
         },
-        [communication](const std::optional<std::string>& gcode_part_str)
+        [&communication](const std::optional<std::string>& gcode_part_str)
         {
             if (! gcode_part_str->empty())
             {
                 communication->sendGCodePart(*gcode_part_str);
             }
         });
-}
-
-void GCodeExport::sendEndOfPrintData(const PrintInformation& print_information) const
-{
-    Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_information, template_resolver_->getInitialExtruderNr().value_or(0));
 }
 
 PrintInformation GCodeExport::calculatePrintInformation() const
@@ -2003,7 +1998,8 @@ void GCodeExport::finalize(const std::string& end_code)
     template_resolver_->prepareForResolving(extra_global_settings);
 
     sendFinalGCode();
-    sendEndOfPrintData(print_info);
+
+    Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_info, getInitialExtruderNr().value_or(0));
 }
 
 void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)

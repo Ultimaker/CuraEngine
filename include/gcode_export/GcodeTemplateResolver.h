@@ -33,31 +33,50 @@ class LocalEnvironment;
 namespace cura
 {
 
+/*!
+ *  \brief The GcodeTemplateResolver class allows setting proper variables and environments to resolve a piece of GCode
+ *         that can contain dynamic formulae.
+ */
 class GcodeTemplateResolver
 {
 public:
     explicit GcodeTemplateResolver() = default;
 
+    /*!
+     * \brief Gets the calculated initial extruder number to be used when resolving the pieces of GCode
+     *        having a DynamicExtruderContext::Initial context
+     * \return The set initial extruder number, or nullopt if it has not been set yet
+     */
+    std::optional<size_t> getInitialExtruderNr() const;
+
+    /*!
+     * \brief Sets the calculated initial extruder number to be used when resolving the pieces of GCode
+     *        having a DynamicExtruderContext::Initial context
+     * \param initial_extruder_nr The calculated initial extruder number
+     * \warning This method has to be called before calling prepareForResolving()
+     */
+    void setInitialExtruderNr(const size_t initial_extruder_nr);
+
+    /*!
+     * \brief Prepares for subsequent resolving by creating the proper shared environments
+     * \param extra_global_settings Some extra settings to be used in common for all the resolving operation
+     * \warning This method has to be called before any call to resolveGCodeTemplate()
+     */
     void prepareForResolving(const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_global_settings = {});
 
     /*!
      * Resolve a raw GCode template that can contains conditional code and complex formulas
      * @param input The raw GCode template text
-     * @param context_extruder_nr The default contextual extruder number, which should be the current extruder number when dealing when an extruder start/end GCode, and nullopt
-     * when dealing with the global machine start/end gcode
+     * @param context_extruder_nr The contextual extruder number when resolving this piece of GCode
      * @param extra_settings Extra settings to be used locally for the resolving, even though they don't exist as actual settings
-     * @return The fully resolved GCode template, or the raw template if an error occurred. Also, if the given input is empty, the result will also be fully empty. However, if it
-     *         has some content, the function ensures that the result contains and end-of-line at the end so that it can be inserted directly in a GCode without having to insert
-     * one.
+     * @return The fully resolved GCode template, or the raw template if an error occurred. Also, if the given input is empty,
+     *         the result will also be fully empty. However, if it has some content, the function ensures that the result contains
+     *         and end-of-line at the end so that it can be inserted directly in a GCode without having to insert one.
      */
     std::string resolveGCodeTemplate(
         const std::string& input,
         const ResolvingExtruderContext& context_extruder_nr = DynamicExtruderContext::Global,
         const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {}) const;
-
-    std::optional<size_t> getInitialExtruderNr() const;
-
-    void setInitialExtruderNr(const size_t initial_extruder_nr);
 
 private:
     /*! State-machine enum to track the conditional blocks states */

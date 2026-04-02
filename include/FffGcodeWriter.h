@@ -721,6 +721,11 @@ private:
      */
     size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
 
+    /*!
+     * \brief Update the first layer statistics variables given the initial layer plan
+     * \param layer_plan The layer plan at the very bottom of the print
+     * \note This method can be called multiple times in case of printing multiple models in one-at-a-time sequence
+     */
     void computeFirstLayerVariables(const LayerPlan* layer_plan);
 };
 

@@ -9,11 +9,13 @@
 namespace cura
 {
 
+/*! \brief Abstract class that is a container for pieces of GCode */
 class GCodePart
 {
 public:
     virtual ~GCodePart() = default;
 
+    /*! \brief Gets the full piece of GCode to be exported */
     virtual std::string str() const = 0;
 
 protected:

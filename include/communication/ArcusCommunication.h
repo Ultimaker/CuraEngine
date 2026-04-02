@@ -56,6 +56,7 @@ public:
      */
     void connect(const std::string& ip, const uint16_t port);
 
+    /* \brief Sends a piece of GCode that is ready to be exported */
     void sendGCodePart(const std::string& gcode_part) override;
 
     /*
@@ -134,8 +135,10 @@ public:
     void sendOptimizedLayerData() override;
 
     /*
-     * \brief Send an estimate of how long the print would take and how much
-     * material it would use.
+     * \brief Send an estimate of how long the print would take and how much material it would use.
+     * \param time_estimates The calculated time estimations, per extruder
+     * \param print_information The calculated materials consumptions, per extruder
+     * \param initial_extruder_nr The calculated initial extruder extruder
      */
     void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const override;
 

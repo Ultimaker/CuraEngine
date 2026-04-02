@@ -887,6 +887,10 @@ public:
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
 
+    /*!
+     * \brief Find the first actually extruding extruder for this layer
+     * \return The first extruder actually extruding, or nullopt if there is no extrusion in this layer
+     */
     std::optional<size_t> findInitialExtruderNr() const;
 
 private:
