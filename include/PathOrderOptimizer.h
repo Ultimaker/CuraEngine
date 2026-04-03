@@ -184,7 +184,7 @@ public:
         // Get the vertex data and store it in the paths.
         for (auto& path : paths_)
         {
-            path.converted_ = path.getVertexData();
+            path.converted_ = &path.getVertexData();
             vertices_to_paths_.emplace(path.vertices_, &path);
         }
 

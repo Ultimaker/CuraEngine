@@ -104,7 +104,7 @@ struct PathOrdering
      * for each different type that this class is used with. See the .cpp file
      * for examples and where to add a new specialization.
      */
-    const Polyline* getVertexData();
+    const Polyline& getVertexData();
 
 protected:
     /*!
