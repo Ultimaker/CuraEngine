@@ -32,7 +32,7 @@ struct PrintInformation
     std::optional<size_t> initial_extruder_nr;
     AABB initial_layer_bb;
 
-    void updateWithLayer(const SliceDataStorage& storage, const LayerPlan* layer_plan);
+    void updateWithLayer(const LayerPlan* layer_plan);
 };
 
 } // namespace cura
