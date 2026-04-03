@@ -132,6 +132,14 @@ public:
     /*! \brief Calculates whether this extruder plan actually has at least one extrusion move */
     bool hasExtrusion() const;
 
+    /*!
+     * \brief Calculate the total bounding box of extrusion moves
+     * \note This is not 100% accurate since at this point we don't know the start position of the extruder plan. So if the very first
+     *       move happens to be an axtrusion move and the start position is the outermost of the bounding box, it will not be accounted
+     *       for and the bounding box will be approximate.
+     */
+    AABB calculateExtrusionBoundingBox() const;
+
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
     bool is_initial_layer_{ false }; //!< Whether this extruder plan is printed on the very first layer (which might be raft)

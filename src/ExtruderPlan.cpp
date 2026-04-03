@@ -97,4 +97,29 @@ bool ExtruderPlan::hasExtrusion() const
         });
 }
 
+AABB ExtruderPlan::calculateExtrusionBoundingBox() const
+{
+    std::optional<Point2LL> current_position;
+    AABB bounding_box;
+
+    for (const GCodePath& gcode_path : paths_)
+    {
+        if (! gcode_path.isTravelPath())
+        {
+            if (current_position.has_value())
+            {
+                bounding_box.include(current_position.value());
+            }
+            for (const Point3LL& position : gcode_path.points)
+            {
+                bounding_box.include(position.toPoint2LL());
+            }
+        }
+
+        current_position = gcode_path.points.back().toPoint2LL();
+    }
+
+    return bounding_box;
+}
+
 } // namespace cura

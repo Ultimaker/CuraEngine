@@ -7,7 +7,7 @@
 #include "sliceDataStorage.h"
 
 
-void cura::PrintInformation::updateWithLayer(const SliceDataStorage& storage, const LayerPlan* layer_plan)
+void cura::PrintInformation::updateWithLayer(const LayerPlan* layer_plan)
 {
     if (! initial_extruder_nr.has_value())
     {
@@ -16,11 +16,6 @@ void cura::PrintInformation::updateWithLayer(const SliceDataStorage& storage, co
 
     if (layer_plan->getLayerNr() == 0)
     {
-        constexpr bool include_support = true;
-        constexpr bool include_prime_tower = true;
-        constexpr bool external_polys_only = true;
-        constexpr int extruder_nr = -1;
-        constexpr bool include_models = true;
-        initial_layer_bb.include(AABB(storage.getLayerOutlines(layer_plan->getLayerNr(), include_support, include_prime_tower, external_polys_only, extruder_nr, include_models)));
+        initial_layer_bb.include(layer_plan->calculateExtrusionBoundingBox());
     }
 }

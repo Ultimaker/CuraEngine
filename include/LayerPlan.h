@@ -893,6 +893,8 @@ public:
      */
     std::optional<size_t> findInitialExtruderNr() const;
 
+    AABB calculateExtrusionBoundingBox() const;
+
 private:
     /*!
      * \brief Compute the preferred or minimum combing boundary

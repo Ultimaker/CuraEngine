@@ -161,12 +161,12 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             return std::make_optional(processLayer(storage, layer_nr, total_layers));
         },
-        [this, total_layers, &storage](std::optional<ProcessLayerResult> result_opt)
+        [this, total_layers](std::optional<ProcessLayerResult> result_opt)
         {
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
             layer_plan_buffer.handle(*result.layer_plan, gcode);
-            print_info_.updateWithLayer(storage, result.layer_plan);
+            print_info_.updateWithLayer(result.layer_plan);
         });
 
     layer_plan_buffer.flush();
