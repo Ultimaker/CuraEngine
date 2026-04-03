@@ -93,7 +93,7 @@ void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) 
     // pass
 }
 
-void CommandLine::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const
+void CommandLine::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
 {
     double sum = ranges::accumulate(time_estimates, 0.0);
     spdlog::info("Total print time: {:3}", sum);

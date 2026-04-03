@@ -43,26 +43,11 @@ public:
     explicit GcodeTemplateResolver() = default;
 
     /*!
-     * \brief Gets the calculated initial extruder number to be used when resolving the pieces of GCode
-     *        having a DynamicExtruderContext::Initial context
-     * \return The set initial extruder number, or nullopt if it has not been set yet
-     */
-    std::optional<size_t> getInitialExtruderNr() const;
-
-    /*!
-     * \brief Sets the calculated initial extruder number to be used when resolving the pieces of GCode
-     *        having a DynamicExtruderContext::Initial context
-     * \param initial_extruder_nr The calculated initial extruder number
-     * \warning This method has to be called before calling prepareForResolving()
-     */
-    void setInitialExtruderNr(const size_t initial_extruder_nr);
-
-    /*!
      * \brief Prepares for subsequent resolving by creating the proper shared environments
      * \param extra_global_settings Some extra settings to be used in common for all the resolving operation
      * \warning This method has to be called before any call to resolveGCodeTemplate()
      */
-    void prepareForResolving(const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_global_settings = {});
+    void prepareForResolving(const size_t initial_extruder_nr, const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_global_settings = {});
 
     /*!
      * Resolve a raw GCode template that can contains conditional code and complex formulas
@@ -127,7 +112,7 @@ private:
         const std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::LocalEnvironment>>& environments);
 
 private:
-    std::optional<size_t> initial_extruder_nr_;
+    size_t initial_extruder_nr_{ 0 };
     std::shared_ptr<CuraFormulaeEngine::env::LocalEnvironment> global_environment_;
     std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::Environment>> environment_adapters_;
 };

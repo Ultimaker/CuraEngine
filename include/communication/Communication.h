@@ -115,9 +115,8 @@ public:
      * \brief Send an estimate of how long the print would take and how much material it would use.
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
-     * \param initial_extruder_nr The calculated initial extruder extruder
      */
-    virtual void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const = 0;
+    virtual void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const = 0;
 
     /* \brief Sends a piece of GCode that is ready to be exported */
     virtual void sendGCodePart(const std::string& gcode_part) = 0;

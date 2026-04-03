@@ -11,6 +11,7 @@
 #include "GCodePathConfig.h"
 #include "LayerPlanBuffer.h"
 #include "LinesOrderingMethod.h"
+#include "PrintInformation.h"
 #include "gcode_export/gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
@@ -77,6 +78,8 @@ private:
                                                                                        //!< and fan speeds. Configured for each extruder.
 
     std::string slice_uuid; //!< The UUID of the current slice.
+
+    PrintInformation print_info_; //!< Global print information calculated along slicing
 
 public:
     /*
@@ -720,13 +723,6 @@ private:
      * \return The first or last exruder used at the given index
      */
     size_t findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const;
-
-    /*!
-     * \brief Update the first layer statistics variables given the initial layer plan
-     * \param layer_plan The layer plan at the very bottom of the print
-     * \note This method can be called multiple times in case of printing multiple models in one-at-a-time sequence
-     */
-    void computeFirstLayerVariables(const LayerPlan* layer_plan);
 };
 
 } // namespace cura

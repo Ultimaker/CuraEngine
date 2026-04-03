@@ -161,16 +161,12 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         {
             return std::make_optional(processLayer(storage, layer_nr, total_layers));
         },
-        [this, total_layers](std::optional<ProcessLayerResult> result_opt)
+        [this, total_layers, &storage](std::optional<ProcessLayerResult> result_opt)
         {
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
             layer_plan_buffer.handle(*result.layer_plan, gcode);
-
-            if (result.layer_plan->getLayerNr() == 0)
-            {
-                computeFirstLayerVariables(result.layer_plan);
-            }
+            print_info_.updateWithLayer(storage, result.layer_plan);
         });
 
     layer_plan_buffer.flush();
@@ -2630,18 +2626,6 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
     }
 }
 
-void FffGcodeWriter::computeFirstLayerVariables(const LayerPlan* layer_plan)
-{
-    if (! gcode.getInitialExtruderNr().has_value())
-    {
-        const std::optional<size_t> initial_extruder_nr = layer_plan->findInitialExtruderNr();
-        if (initial_extruder_nr.has_value())
-        {
-            gcode.setInitialExtruderNr(initial_extruder_nr.value());
-        }
-    }
-}
-
 void FffGcodeWriter::processSpiralizedWall(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
@@ -4385,7 +4369,7 @@ void FffGcodeWriter::finalize()
     {
         gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
     }
-    gcode.finalize(machine_end_gcode);
+    gcode.finalize(machine_end_gcode, print_info_);
 
     // set extrusion mode back to "normal"
     gcode.resetExtrusionMode();

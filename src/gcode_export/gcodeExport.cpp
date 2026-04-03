@@ -506,16 +506,6 @@ double GCodeExport::mm3ToE(double mm3) const
     }
 }
 
-std::optional<size_t> GCodeExport::getInitialExtruderNr() const
-{
-    return template_resolver_->getInitialExtruderNr();
-}
-
-void GCodeExport::setInitialExtruderNr(const size_t initial_extruder_nr)
-{
-    template_resolver_->setInitialExtruderNr(initial_extruder_nr);
-}
-
 double GCodeExport::mmToE(double mm) const
 {
     if (is_volumetric_)
@@ -1448,13 +1438,13 @@ void GCodeExport::sendFinalGCode()
         });
 }
 
-PrintInformation GCodeExport::calculatePrintInformation() const
+std::vector<std::optional<ExtruderPrintInformation>> GCodeExport::calculateMaterialPrintInformation() const
 {
-    PrintInformation print_info;
+    std::vector<std::optional<ExtruderPrintInformation>> extruders_info;
 
     const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice_->scene.extruders;
     const size_t used_extruders = extruders.size();
-    print_info.resize(used_extruders);
+    extruders_info.resize(used_extruders);
 
     for (size_t extruder_nr = 0; extruder_nr < used_extruders; ++extruder_nr)
     {
@@ -1483,10 +1473,10 @@ PrintInformation GCodeExport::calculatePrintInformation() const
             extruder_info.filament_cost = extruder_info.filament_weight * filament_cost_per_weight;
         }
 
-        print_info[extruder_nr] = extruder_info;
+        extruders_info[extruder_nr] = extruder_info;
     }
 
-    return print_info;
+    return extruders_info;
 }
 
 void GCodeExport::startExtruder(const size_t new_extruder)
@@ -1951,7 +1941,7 @@ void GCodeExport::writeJerk(const Velocity& jerk)
     }
 }
 
-void GCodeExport::finalize(const std::string& end_code)
+void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_info)
 {
     writeFanCommand(0);
     writeResolvableGCode(end_code, DynamicExtruderContext::Initial);
@@ -1969,9 +1959,9 @@ void GCodeExport::finalize(const std::string& end_code)
     spdlog::info("Print time (hr|min|s): {} {} {}", print_hours, print_minutes, print_seconds);
     extra_global_settings.emplace("print_time", fmt::format("{:02d}:{:02d}:{:02d}", print_hours.count(), print_minutes.count(), print_seconds.count()));
 
-    const PrintInformation print_info = calculatePrintInformation();
-    spdlog::info("Filament (mm^3): {}", print_info[0].value_or(ExtruderPrintInformation()).filament_amount);
-    for (const auto& [extruder_nr, extruder_info] : print_info | ranges::views::enumerate | ranges::views::drop(1))
+    print_info.extruders_info = calculateMaterialPrintInformation();
+    spdlog::info("Filament (mm^3): {}", print_info.extruders_info[0].value_or(ExtruderPrintInformation()).filament_amount);
+    for (const auto& [extruder_nr, extruder_info] : print_info.extruders_info | ranges::views::enumerate | ranges::views::drop(1))
     {
         if (extruder_info.has_value())
         {
@@ -1979,11 +1969,11 @@ void GCodeExport::finalize(const std::string& end_code)
         }
     }
 
-    const size_t used_extruders = print_info.size();
+    const size_t used_extruders = print_info.extruders_info.size();
     std::vector<cfe::eval::Value> filaments_amounts(used_extruders);
     std::vector<cfe::eval::Value> filaments_weights(used_extruders);
     std::vector<cfe::eval::Value> filaments_costs(used_extruders);
-    for (const auto& [extruder_nr, extruder_info_opt] : print_info | ranges::views::enumerate)
+    for (const auto& [extruder_nr, extruder_info_opt] : print_info.extruders_info | ranges::views::enumerate)
     {
         const ExtruderPrintInformation extruder_info = extruder_info_opt.value_or(ExtruderPrintInformation());
         filaments_amounts[extruder_nr] = extruder_info.filament_length;
@@ -1995,11 +1985,19 @@ void GCodeExport::finalize(const std::string& end_code)
     extra_global_settings.emplace("filament_weight", filaments_weights);
     extra_global_settings.emplace("filament_cost", filaments_costs);
 
-    template_resolver_->prepareForResolving(extra_global_settings);
+    const AABB& initial_layer_bb = print_info.initial_layer_bb;
+    extra_global_settings.emplace("initial_layer_bb_min_x", INT2MM(initial_layer_bb.min_.X));
+    extra_global_settings.emplace("initial_layer_bb_max_x", INT2MM(initial_layer_bb.max_.X));
+    extra_global_settings.emplace("initial_layer_bb_min_y", INT2MM(initial_layer_bb.min_.Y));
+    extra_global_settings.emplace("initial_layer_bb_max_y", INT2MM(initial_layer_bb.max_.Y));
+    extra_global_settings.emplace("initial_layer_bb_width", INT2MM(initial_layer_bb.width()));
+    extra_global_settings.emplace("initial_layer_bb_height", INT2MM(initial_layer_bb.height()));
+
+    template_resolver_->prepareForResolving(print_info.initial_extruder_nr.value_or(0), extra_global_settings);
 
     sendFinalGCode();
 
-    Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_info, getInitialExtruderNr().value_or(0));
+    Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_info);
 }
 
 void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)
