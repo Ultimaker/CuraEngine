@@ -432,6 +432,7 @@ void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>&
             material_message->set_material_length(extruder_info->filament_length);
             material_message->set_material_weight(extruder_info->filament_weight);
             material_message->set_material_cost(extruder_info->filament_cost);
+            material_message->set_material_name(extruder_info->material_name);
         }
         else
         {
@@ -442,8 +443,8 @@ void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>&
             material_message->set_material_length(0.0);
             material_message->set_material_weight(0.0);
             material_message->set_material_cost(0.0);
+            material_message->set_material_name("");
         }
-        material_message->set_material_name(extruder_info->material_name);
     }
 
     private_data->socket->sendMessage(message);
