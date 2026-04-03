@@ -1993,6 +1993,13 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
     extra_global_settings.emplace("initial_layer_bb_width", INT2MM(initial_layer_bb.width()));
     extra_global_settings.emplace("initial_layer_bb_height", INT2MM(initial_layer_bb.height()));
 
+    std::vector<cfe::eval::Value> is_extruder_used(MAX_EXTRUDERS);
+    for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
+    {
+        is_extruder_used[extruder_nr] = (extruder_nr < used_extruders && print_info.extruders_info[extruder_nr].has_value());
+    }
+    extra_global_settings.emplace("is_extruder_used", is_extruder_used);
+
     template_resolver_->prepareForResolving(print_info.initial_extruder_nr.value_or(0), extra_global_settings);
 
     sendFinalGCode();
