@@ -3,6 +3,9 @@
 
 #include "ExtruderPlan.h"
 
+#include <range/v3/algorithm/any_of.hpp>
+
+
 namespace cura
 {
 ExtruderPlan::ExtruderPlan(
@@ -82,6 +85,16 @@ std::shared_ptr<const SliceMeshStorage> ExtruderPlan::findFirstPrintedMesh() con
     }
 
     return nullptr;
+}
+
+bool ExtruderPlan::hasExtrusion() const
+{
+    return ranges::any_of(
+        paths_,
+        [](const GCodePath& path)
+        {
+            return ! path.isTravelPath() && ! path.points.empty();
+        });
 }
 
 } // namespace cura

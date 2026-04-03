@@ -38,6 +38,7 @@ namespace cura
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
     : arguments_{ arguments }
     , last_shown_progress_{ 0 }
+    , output_stream_(&std::cout)
 {
     if (auto search_paths = spdlog::details::os::getenv("CURA_ENGINE_SEARCH_PATH"); ! search_paths.empty())
     {
@@ -45,13 +46,11 @@ CommandLine::CommandLine(const std::vector<std::string>& arguments)
     };
 }
 
-// These are not applicable to command line slicing.
-void CommandLine::beginGCode()
+void CommandLine::sendGCodePart(const std::string& gcode_part)
 {
+    *output_stream_ << gcode_part;
 }
-void CommandLine::flushGCode()
-{
-}
+
 void CommandLine::sendCurrentPosition(const Point3LL&)
 {
 }
@@ -94,17 +93,10 @@ void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) 
     // pass
 }
 
-void CommandLine::sendPrintTimeMaterialEstimates() const
+void CommandLine::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const
 {
-    std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
-    double sum = std::accumulate(time_estimates.begin(), time_estimates.end(), 0.0);
+    double sum = ranges::accumulate(time_estimates, 0.0);
     spdlog::info("Total print time: {:3}", sum);
-
-    sum = 0.0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
-    {
-        sum += FffProcessor::getInstance()->getTotalFilamentUsed(static_cast<int>(extruder_nr));
-    }
 }
 
 void CommandLine::sendProgress(double progress) const
@@ -307,9 +299,16 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    if (! FffProcessor::getInstance()->setTargetFile(argument.c_str()))
+
+                    output_file_ = std::make_shared<std::ofstream>();
+                    output_file_->open(argument);
+                    if (output_file_->is_open())
                     {
-                        spdlog::error("Failed to open {} for output.", argument.c_str());
+                        output_stream_ = output_file_.get();
+                    }
+                    else
+                    {
+                        spdlog::error("Failed to open {} for output.", argument);
                         exit(1);
                     }
                     break;
@@ -499,9 +498,6 @@ void CommandLine::sliceNext()
         exit(1);
     }
 #endif // DEBUG
-
-    // Finalize the processor. This adds the end g-code and reports statistics.
-    FffProcessor::getInstance()->finalize();
 }
 
 int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)

@@ -6,7 +6,7 @@
 
 #include "FanSpeedLayerTime.h"
 #include "RetractionConfig.h"
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 #include "geometry/Point2LL.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
@@ -128,6 +128,9 @@ public:
      * Gets the mesh being printed first on this plan
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+
+    /*! \brief Calculates whether this extruder plan actually has at least one extrusion move */
+    bool hasExtrusion() const;
 
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.

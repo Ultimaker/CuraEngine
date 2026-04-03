@@ -49,9 +49,7 @@ set(engine_SRCS # Except main.cpp.
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
         src/FffProcessor.cpp
-        src/gcodeExport.cpp
         src/GCodePathConfig.cpp
-        src/GcodeTemplateResolver.cpp
         src/infill.cpp
         src/InterlockingGenerator.cpp
         src/InsetOrderOptimizer.cpp
@@ -113,6 +111,11 @@ set(engine_SRCS # Except main.cpp.
         src/communication/CommandLine.cpp
         src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
+
+        src/gcode_export/gcodeExport.cpp
+        src/gcode_export/FixedGCodePart.cpp
+        src/gcode_export/ResolvedGCodePart.cpp
+        src/gcode_export/GcodeTemplateResolver.cpp
 
         src/infill/AbstractLinesInfill.cpp
         src/infill/ImageBasedDensityProvider.cpp

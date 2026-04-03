@@ -15,12 +15,13 @@ namespace cfe = CuraFormulaeEngine;
 namespace cura
 {
 
-SettingContainersEnvironmentAdapter::SettingContainersEnvironmentAdapter(const Settings& settings)
-    : settings_(settings)
+SettingContainersEnvironmentAdapter::SettingContainersEnvironmentAdapter(const Settings& settings, const cfe::env::Environment* shadow_environment)
+    : cfe::env::ChainableEnvironment(shadow_environment)
+    , settings_(settings)
 {
 }
 
-std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const std::string& setting_id) const
+std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::getImpl(const std::string& setting_id) const noexcept
 {
     constexpr bool parent_lookup = true;
     if (! settings_.has(setting_id, parent_lookup))
@@ -48,13 +49,13 @@ std::optional<cfe::eval::Value> SettingContainersEnvironmentAdapter::get(const s
     return eval_result.value();
 }
 
-bool SettingContainersEnvironmentAdapter::has(const std::string& key) const
+bool SettingContainersEnvironmentAdapter::hasImpl(const std::string& key) const noexcept
 {
     constexpr bool parent_lookup = true;
     return settings_.has(key, parent_lookup);
 }
 
-std::unordered_map<std::string, cfe::eval::Value> SettingContainersEnvironmentAdapter::getAll() const
+std::unordered_map<std::string, cfe::eval::Value> SettingContainersEnvironmentAdapter::getAllImpl() const noexcept
 {
     std::unordered_map<std::string, cfe::eval::Value> result;
     for (const std::string& key : settings_.getKeys())

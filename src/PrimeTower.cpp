@@ -14,7 +14,7 @@
 #include "LayerPlan.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 #include "infill.h"
 #include "raft.h"
 #include "sliceDataStorage.h"

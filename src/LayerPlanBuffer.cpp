@@ -12,7 +12,7 @@
 #include "LayerPlan.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 
 namespace cura
 {
@@ -54,7 +54,6 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     if (buffer_.size() > buffer_size_)
     {
         LayerPlan* ret = buffer_.front();
-        Application::getInstance().communication_->flushGCode();
         buffer_.pop_front();
         return ret;
     }
@@ -63,8 +62,6 @@ LayerPlan* LayerPlanBuffer::processBuffer()
 
 void LayerPlanBuffer::flush()
 {
-    Application::getInstance()
-        .communication_->flushGCode(); // If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
     if (buffer_.size() > 0)
     {
         insertTempCommands(); // insert preheat commands of the very last layer
@@ -72,7 +69,6 @@ void LayerPlanBuffer::flush()
     while (! buffer_.empty())
     {
         buffer_.front()->writeGCode(gcode_);
-        Application::getInstance().communication_->flushGCode();
         delete buffer_.front();
         buffer_.pop_front();
     }
