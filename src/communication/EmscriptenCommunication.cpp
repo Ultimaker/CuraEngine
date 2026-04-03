@@ -144,8 +144,7 @@ std::string EmscriptenCommunication::createEngineInfoMessage()
     return buffer.GetString();
 }
 
-void EmscriptenCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr)
-    const
+void EmscriptenCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
 {
     auto slice_info = createSliceInfoMessage(time_estimates, print_information);
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", slice_info_handler_, slice_info).c_str());

@@ -65,6 +65,7 @@ set(engine_SRCS # Except main.cpp.
         src/PathAdapter.cpp
         src/PathOrderMonotonic.cpp
         src/Preheat.cpp
+        src/PrintInformation.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
         src/PrimeTower/PrimeTowerInterleaved.cpp

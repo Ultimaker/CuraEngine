@@ -458,21 +458,6 @@ public:
      */
     double mm3ToE(double mm3) const;
 
-    /*!
-     * \brief Gets the calculated initial extruder number to be used when resolving the pieces of GCode
-     *        having a DynamicExtruderContext::Initial context
-     * \return The set initial extruder number, or nullopt if it has not been set yet
-     */
-    std::optional<size_t> getInitialExtruderNr() const;
-
-    /*!
-     * \brief Sets the calculated initial extruder number to be used when resolving the pieces of GCode
-     *        having a DynamicExtruderContext::Initial context
-     * \param initial_extruder_nr The calculated initial extruder number
-     * \warning This method has to be called before calling prepareForResolving()
-     */
-    void setInitialExtruderNr(const size_t initial_extruder_nr);
-
 private:
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -581,7 +566,7 @@ private:
     void sendFinalGCode();
 
     /*! \brief Calculates the end-of-print data about material consumption */
-    PrintInformation calculatePrintInformation() const;
+    std::vector<std::optional<ExtruderPrintInformation>> calculateMaterialPrintInformation() const;
 
 public:
     /*!
@@ -757,7 +742,7 @@ public:
      *
      * \param end_code The end gcode to be appended at the very end.
      */
-    void finalize(const std::string& end_code);
+    void finalize(const std::string& end_code, PrintInformation& print_info);
 
     /*!
      * Finish the extruder gcode: write extrude rend gcode.

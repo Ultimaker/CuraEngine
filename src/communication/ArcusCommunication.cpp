@@ -399,7 +399,7 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.slice_data.clear();
 }
 
-void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information, const size_t initial_extruder_nr) const
+void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
 {
     spdlog::debug("Sending print information.");
 
@@ -425,13 +425,14 @@ void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>&
         proto::MaterialEstimates* material_message = message->add_materialestimates();
         material_message->set_id(extruder_nr);
 
-        const std::optional<ExtruderPrintInformation>& extruder_info = print_information[extruder_nr];
+        const std::optional<ExtruderPrintInformation>& extruder_info = print_information.extruders_info[extruder_nr];
         if (extruder_info.has_value())
         {
             material_message->set_material_amount(extruder_info->filament_amount);
             material_message->set_material_length(extruder_info->filament_length);
             material_message->set_material_weight(extruder_info->filament_weight);
             material_message->set_material_cost(extruder_info->filament_cost);
+            material_message->set_material_name(extruder_info->material_name);
         }
         else
         {
@@ -442,14 +443,14 @@ void ArcusCommunication::sendPrintInformation(const std::vector<cura::Duration>&
             material_message->set_material_length(0.0);
             material_message->set_material_weight(0.0);
             material_message->set_material_cost(0.0);
+            material_message->set_material_name("");
         }
-        material_message->set_material_name(extruder_info->material_name);
     }
 
     private_data->socket->sendMessage(message);
 
     auto initial_extruder_message = std::make_shared<proto::InitialExtruder>();
-    initial_extruder_message->set_extruder_nr(initial_extruder_nr);
+    initial_extruder_message->set_extruder_nr(print_information.initial_extruder_nr.value_or(0));
     private_data->socket->sendMessage(initial_extruder_message);
 
     spdlog::debug("Done sending print information.");

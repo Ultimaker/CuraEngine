@@ -19,12 +19,14 @@ namespace cura
 {
 
 
-void GcodeTemplateResolver::prepareForResolving(const std::unordered_map<std::string, cfe::eval::Value>& extra_global_settings)
+void GcodeTemplateResolver::prepareForResolving(const size_t initial_extruder_nr, const std::unordered_map<std::string, cfe::eval::Value>& extra_global_settings)
 {
+    initial_extruder_nr_ = initial_extruder_nr;
+
     // Create an environment containing all the extra global settings
     global_environment_ = std::make_shared<cfe::env::LocalEnvironment>();
     global_environment_->add(extra_global_settings);
-    global_environment_->set("initial_extruder_nr", static_cast<int64_t>(initial_extruder_nr_.value_or(0)));
+    global_environment_->set("initial_extruder_nr", static_cast<int64_t>(initial_extruder_nr_));
 
     // Now create the global and extruder environment, each pointing towards the extra environment
     const Scene& scene = Application::getInstance().current_slice_->scene;
@@ -261,7 +263,7 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
             {
                 if (context_extruder_nr_value == DynamicExtruderContext::Initial)
                 {
-                    actual_extruder_nr = initial_extruder_nr_.value_or(0);
+                    actual_extruder_nr = initial_extruder_nr_;
                 }
                 // Otherwise actual_extruder_nr stays nullopt, which means use global context
             }
@@ -308,16 +310,6 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
     }
 
     return output;
-}
-
-std::optional<size_t> GcodeTemplateResolver::getInitialExtruderNr() const
-{
-    return initial_extruder_nr_;
-}
-
-void GcodeTemplateResolver::setInitialExtruderNr(size_t initial_extruder_nr)
-{
-    initial_extruder_nr_ = initial_extruder_nr;
 }
 
 } // namespace cura
