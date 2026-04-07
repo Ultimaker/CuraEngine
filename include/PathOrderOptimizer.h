@@ -7,6 +7,7 @@
 #include <numbers>
 #include <unordered_set>
 
+#include <range/v3/algorithm/max_element.hpp>
 #include <range/v3/algorithm/partition_copy.hpp>
 #include <range/v3/iterator/insert_iterators.hpp>
 #include <range/v3/view/addressof.hpp>
@@ -629,21 +630,17 @@ protected:
         return best_candidate;
     }
 
-    OrderablePath* findLongestPath(std::vector<OrderablePath*> candidate_paths)
+    OrderablePath* findLongestPath(const std::vector<OrderablePath*>& candidate_paths)
     {
-        OrderablePath* longest_path = nullptr;
-        coord_t longest_path_length;
-        for (OrderablePath* path : candidate_paths)
-        {
-            const coord_t path_length = path->converted_->length();
-            if (longest_path == nullptr || path_length > longest_path_length)
+        auto iterator = ranges::max_element(
+            candidate_paths,
+            {},
+            [](const OrderablePath* path)
             {
-                longest_path = path;
-                longest_path_length = path_length;
-            }
-        }
+                return path->converted_->length();
+            });
 
-        return longest_path;
+        return iterator == candidate_paths.end() ? nullptr : *iterator;
     }
 
     OrderablePath* findClosestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
