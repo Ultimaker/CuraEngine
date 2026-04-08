@@ -1993,6 +1993,16 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
     extra_global_settings.emplace("initial_layer_bb_width", INT2MM(initial_layer_bb.width()));
     extra_global_settings.emplace("initial_layer_bb_height", INT2MM(initial_layer_bb.height()));
 
+    extra_global_settings.emplace("total_bb_min_x", INT2MM(total_bounding_box_.min_.x_));
+    extra_global_settings.emplace("total_bb_max_x", INT2MM(total_bounding_box_.max_.x_));
+    extra_global_settings.emplace("total_bb_min_y", INT2MM(total_bounding_box_.min_.y_));
+    extra_global_settings.emplace("total_bb_max_y", INT2MM(total_bounding_box_.max_.y_));
+    extra_global_settings.emplace("total_bb_min_z", INT2MM(total_bounding_box_.min_.z_));
+    extra_global_settings.emplace("total_bb_max_z", INT2MM(total_bounding_box_.max_.z_));
+    extra_global_settings.emplace("total_bb_width", INT2MM(total_bounding_box_.spanX()));
+    extra_global_settings.emplace("total_bb_depth", INT2MM(total_bounding_box_.spanY()));
+    extra_global_settings.emplace("total_bb_height", INT2MM(total_bounding_box_.spanZ()));
+
     std::vector<cfe::eval::Value> is_extruder_used(MAX_EXTRUDERS);
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
