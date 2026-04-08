@@ -10,6 +10,7 @@
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
+#include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
 #include "LinesOrderingMethod.h"
 #include "gcodeExport.h"
