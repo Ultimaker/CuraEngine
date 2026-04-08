@@ -1891,6 +1891,9 @@ void FffGcodeWriter::addMeshPartToGCode(
 
     added_something |= endProcessInsets(insets_preprocess_result, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_added);
 
+    // clear overhang masks for any successive part on the layer
+    gcode_layer.setOverhangMasks({});
+
     if (! infill_before_walls)
     {
         added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
@@ -2896,8 +2899,8 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
         result.walls_optimizer->optimize();
     }
 
-    // clear overhang masks for any successive part on the layer
-    gcode_layer.setOverhangMasks({});
+    // // clear overhang masks for any successive part on the layer
+    // gcode_layer.setOverhangMasks({});
 
     return result;
 }
