@@ -73,49 +73,15 @@ WallToolPaths::WallToolPaths(
 
 const std::vector<VariableWidthLines>& WallToolPaths::generate()
 {
-    const coord_t allowed_distance = settings_.get<coord_t>("meshfix_maximum_deviation");
-
-    // Sometimes small slivers of polygons mess up the prepared_outline. By performing an open-close operation
-    // with half the minimum printable feature size or minimum line width, these slivers are removed, while still
-    // keeping enough information to not degrade the print quality;
-    // These features can't be printed anyhow. See PR CuraEngine#1811 for some screenshots
-    const coord_t open_close_distance
-        = settings_.get<bool>("fill_outline_gaps") ? settings_.get<coord_t>("min_feature_size") / 2 - 5 : settings_.get<coord_t>("min_wall_line_width") / 2 - 5;
-    const coord_t epsilon_offset = (allowed_distance / 2) - 1;
-    const auto transitioning_angle = settings_.get<AngleRadians>("wall_transition_angle");
-    constexpr coord_t discretization_step_size = MM2INT(0.8);
-
-    // Simplify outline for boost::voronoi consumption. Absolutely no self intersections or near-self intersections allowed:
-    // TODO: Open question: Does this indeed fix all (or all-but-one-in-a-million) cases for manifold but otherwise possibly complex polygons?
-    Shape prepared_outline = outline_.offset(-open_close_distance).offset(open_close_distance * 2).offset(-open_close_distance);
-    scripta::log("prepared_outline_0", prepared_outline, section_type_, layer_idx_);
-    prepared_outline.removeSmallAreas(small_area_length_ * small_area_length_, false);
-    prepared_outline = Simplify(settings_).polygon(prepared_outline);
-    if (settings_.get<bool>("meshfix_fluid_motion_enabled") && section_type_ != SectionType::SUPPORT)
-    {
-        // No need to smooth support walls
-        auto smoother = actions::smooth(settings_);
-        for (Polygon& polygon : prepared_outline)
-        {
-            polygon.setPoints(smoother(polygon.getPoints()));
-        }
-    }
-
-    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVerts();
-    prepared_outline.removeColinearEdges(AngleRadians(0.005));
-    // Removing collinear edges may introduce self intersections, so we need to fix them again
-    PolygonUtils::fixSelfIntersections(epsilon_offset, prepared_outline);
-    prepared_outline.removeDegenerateVerts();
-    prepared_outline = prepared_outline.unionPolygons();
-    prepared_outline = Simplify(settings_).polygon(prepared_outline);
-
-    if (prepared_outline.area() <= 0)
+    MendedShape prepared_outline(settings_, section_type_, outline_);
+    if (prepared_outline.getShape().area() <= 0)
     {
         assert(toolpaths_.empty());
         return toolpaths_;
     }
 
+    const auto transitioning_angle = settings_.get<AngleRadians>("wall_transition_angle");
+    constexpr coord_t discretization_step_size = MM2INT(0.8);
     const coord_t wall_transition_length = settings_.get<coord_t>("wall_transition_length");
 
     // When to split the middle wall into two:

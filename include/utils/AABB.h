@@ -116,6 +116,16 @@ public:
     [[nodiscard]] coord_t width() const;
 
     [[nodiscard]] coord_t height() const;
+
+
+    /**
+     * Calculates the Minimum Area Oriented Bounding Box for a given Shape (polygon).
+     * This follows the "Rotating Calipers" logic: the minimum area box must have
+     * one side collinear with an edge of the convex hull.
+     * * @param shape The input points (assumed to be the convex hull for optimal performance).
+     * @return A tuple containing the local AABB (extents) and the rotation angle.
+     */
+    static std::tuple<AABB, AngleRadians> minimumAreaOrientedBoundingBox(const Shape& shape);
 };
 
 } // namespace cura

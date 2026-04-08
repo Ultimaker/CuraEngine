@@ -374,7 +374,7 @@ void SkeletalTrapezoidation::computeSegmentCellRange(
 }
 
 SkeletalTrapezoidation::SkeletalTrapezoidation(
-    const Shape& polys,
+    const MendedShape& polys,
     const BeadingStrategy& beading_strategy,
     AngleRadians transitioning_angle,
     coord_t discretization_step_size,
@@ -393,8 +393,7 @@ SkeletalTrapezoidation::SkeletalTrapezoidation(
     , beading_strategy_(beading_strategy)
 {
     scripta::log("skeletal_trapezoidation_0", polys, section_type, layer_idx);
-
-    constructFromPolygons(polys.removeNearSelfIntersections());
+    constructFromPolygons(polys.getShape());
 }
 
 void SkeletalTrapezoidation::constructFromPolygons(const Shape& polys)
