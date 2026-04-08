@@ -24,7 +24,7 @@ void GcodeTemplateResolver::prepareForResolving(const size_t initial_extruder_nr
     initial_extruder_nr_ = initial_extruder_nr;
 
     // Create an environment containing all the extra global settings
-    global_environment_ = std::make_shared<cfe::env::LocalEnvironment>();
+    global_environment_ = std::make_shared<cfe::env::LocalEnvironment>(&CuraFormulaeEngine::env::std_env);
     global_environment_->add(extra_global_settings);
     global_environment_->set("initial_extruder_nr", static_cast<int64_t>(initial_extruder_nr_));
 
