@@ -1172,7 +1172,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     coord_t z;
-    bool include_helper_parts = true;  // NOTE/FIMXE: This will always be true, since the only place where it's set to false is (probably?) never executed. (See below.)
+    bool include_helper_parts = true; // NOTE/FIMXE: This will always be true, since the only place where it's set to false is (probably?) never executed. (See below.)
     if (layer_nr < 0)
     {
 #ifdef DEBUG

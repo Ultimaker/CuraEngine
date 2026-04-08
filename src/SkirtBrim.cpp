@@ -4,6 +4,7 @@
 #include "SkirtBrim.h"
 
 #include <numeric> // for std::accumulate
+
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
@@ -233,11 +234,14 @@ bool compShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& t
 float getThermalLength(const std::vector<Mesh>& meshes)
 {
     constexpr float min_length = 1250.0f;
-    return std::accumulate(meshes.begin(), meshes.end(), min_length,
+    return std::accumulate(
+        meshes.begin(),
+        meshes.end(),
+        min_length,
         [](const float& thermal_length, const Mesh& mesh)
         {
             constexpr float default_length = 200.0f;
-            const float res = default_length;  // TODO: make into setting! (depends on extruder of the mesh, which has the material)
+            const float res = default_length; // TODO: make into setting! (depends on extruder of the mesh, which has the material)
             return std::min(default_length, res);
         });
 }
@@ -245,16 +249,8 @@ float getThermalLength(const std::vector<Mesh>& meshes)
 float getMaxSpeed(const std::vector<Mesh>& meshes)
 {
     constexpr std::array<std::string_view, 10> speed_settings = {
-        "speed_infill",
-        "speed_wall_0",
-        "speed_wall_x",
-        "speed_wall_0_roofing",
-        "speed_wall_x_roofing",
-        "speed_wall_0_flooring",
-        "speed_wall_x_flooring",
-        "speed_roofing",
-        "speed_flooring",
-        "speed_topbottom",
+        "speed_infill",          "speed_wall_0",          "speed_wall_x",  "speed_wall_0_roofing", "speed_wall_x_roofing",
+        "speed_wall_0_flooring", "speed_wall_x_flooring", "speed_roofing", "speed_flooring",       "speed_topbottom",
         /* // and for support (TODO; handle this separately):
         "speed_support_infill",
         "speed_support_roof",
@@ -262,10 +258,16 @@ float getMaxSpeed(const std::vector<Mesh>& meshes)
          */
     };
 
-    const float res = std::accumulate(meshes.begin(), meshes.end(), -1.0f,
+    const float res = std::accumulate(
+        meshes.begin(),
+        meshes.end(),
+        -1.0f,
         [](const float& thermal_length, const Mesh& mesh)
         {
-            return std::accumulate(speed_settings.begin(), speed_settings.end(), -1.0f,
+            return std::accumulate(
+                speed_settings.begin(),
+                speed_settings.end(),
+                -1.0f,
                 [&mesh](const float& value, const std::string_view& setting_name)
                 {
                     return std::max(value, static_cast<float>(mesh.settings_.get<coord_t>(setting_name.data())));
@@ -291,8 +293,14 @@ coord_t SkirtBrim::estimateBrimNeeded(const Shape& shape)
     const float max_speed = getMaxSpeed(meshes);
 
     // Get height of the mesh-group.
-    const AABB3D aabb = std::accumulate(meshes.begin(), meshes.end(), AABB3D(),
-        [](const AABB3D& aabb, const Mesh& mesh) { return AABB3D(mesh.getAABB()).include(aabb); });
+    const AABB3D aabb = std::accumulate(
+        meshes.begin(),
+        meshes.end(),
+        AABB3D(),
+        [](const AABB3D& aabb, const Mesh& mesh)
+        {
+            return AABB3D(mesh.getAABB()).include(aabb);
+        });
     const float max_height = INT2MM(aabb.max_.z_ - aabb.min_.z_);
 
     // Calculate the second moment of the outline(s) of the first layer.
@@ -312,21 +320,15 @@ coord_t SkirtBrim::estimateBrimNeeded(const Shape& shape)
 
     // Calculate the result.
     constexpr float height_to_area_normalization = 1920.0f;
-    const float height_to_area = std::max(
-            max_height / second_moment.x_ * INT2MM(width_depth.y_),
-            max_height / second_moment.y_ * INT2MM(width_depth.x_)
-        ) * max_height / height_to_area_normalization;
+    const float height_to_area
+        = std::max(max_height / second_moment.x_ * INT2MM(width_depth.y_), max_height / second_moment.y_ * INT2MM(width_depth.x_)) * max_height / height_to_area_normalization;
     constexpr float thermal_lenght_gain = 8.0f;
     constexpr float thermal_height_saturation_mm = 30.0f;
     constexpr float brim_width_max_mm = 18.0f;
     constexpr float brim_width_footprint_mul_max = 1.5f;
     const float thermal_length_mult = thermal_length * brim_width_footprint_mul_max;
-    float res = thermal_length * thermal_lenght_gain / thermal_length_ref *
-        std::min(max_height, thermal_height_saturation_mm) / thermal_height_saturation_mm;
-    res = std::min(
-            std::min(std::max(height_to_area * max_speed, res), brim_width_max_mm),
-            thermal_length_mult
-        ) * adhesion_coefficient;
+    float res = thermal_length * thermal_lenght_gain / thermal_length_ref * std::min(max_height, thermal_height_saturation_mm) / thermal_height_saturation_mm;
+    res = std::min(std::min(std::max(height_to_area * max_speed, res), brim_width_max_mm), thermal_length_mult) * adhesion_coefficient;
 
     // Clamp, convert & return.
     constexpr float brim_width_min_check_mm = 5.0f;

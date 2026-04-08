@@ -126,7 +126,6 @@ public:
     void generate();
 
 private:
-
     /*!
      * TODO: Document.
      */
