@@ -43,6 +43,7 @@ class ExtruderPlan
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
     FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
     friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    friend class OverhangSpeedTest;
 #endif
 public:
     size_t extruder_nr_{ 0 }; //!< The extruder used for this paths in the current plan.
