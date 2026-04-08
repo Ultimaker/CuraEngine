@@ -1891,9 +1891,6 @@ void FffGcodeWriter::addMeshPartToGCode(
 
     added_something |= endProcessInsets(insets_preprocess_result, storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_added);
 
-    // clear overhang masks for any successive part on the layer
-    gcode_layer.setOverhangMasks({});
-
     if (! infill_before_walls)
     {
         added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
@@ -2780,7 +2777,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
                 }
             }
         }
-        gcode_layer.setOverhangMasks(overhang_masks);
+        result.overhang_masks = overhang_masks;
 
         // the seam overhang mask is set to the area of the current part's outline minus the region that is considered to be supported,
         // which will then be empty if everything is considered supported i.r.t. the angle
@@ -2847,7 +2844,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
     {
         // clear to disable use of bridging settings
         gcode_layer.setBridgeWallMask(Shape());
-        // clear to disable overhang detection
+        // clear to ensure no stale overhang masks from a previous part are applied
         gcode_layer.setOverhangMasks({});
         // clear to disable overhang detection
         gcode_layer.setSeamOverhangMask(Shape());
@@ -2961,7 +2958,10 @@ bool FffGcodeWriter::endProcessInsets(
             travel_retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         }
 
-        return preprocess_result.walls_optimizer->addToLayer(travel_retract_before_outer_wall);
+        gcode_layer.setOverhangMasks(preprocess_result.overhang_masks);
+        const bool added = preprocess_result.walls_optimizer->addToLayer(travel_retract_before_outer_wall);
+        gcode_layer.setOverhangMasks({});
+        return added;
     }
 
     return false;
