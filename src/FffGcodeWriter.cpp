@@ -3774,8 +3774,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 std::shared_ptr<LightningLayer> lightning_layer;
                 if (storage.support.lightning_generator)
                 {
-                    lightning_layer = std::make_shared<LightningLayer>(storage.support.lightning_generator->getTreesForLayer(
-                        std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())));
+                    lightning_layer = std::make_shared<LightningLayer>(storage.support.lightning_generator->getTreesForLayer(std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())));
                 }
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
