@@ -150,7 +150,7 @@ bool compSecondMoment(const Polygon& poly, Point2F& res)
     // FIXME: Make Point2D and/or have more operations in floating-point 2D points (missing; +, scalar-mult, etc.)
     res = Point2F(0., 0.);
 
-    if (poly.getPoints().size() < 3 || std::abs(poly.area()) < FLT_EPSILON)
+    if (poly.getPoints().size() < 3 || std::abs(poly.area()) < EPSILON)
     {
         return false;
     }
@@ -173,7 +173,7 @@ bool compCentroid(const Polygon& poly, Point2F& res)
     // This is very simular to the other one; consider writing a boilerplate wrapper with a function-argument.
     // (Maybe we can do both at the same time for a single polygon that way as well, that would also make the check happens once and possibly offset the overhead of functors.)
 
-    if (poly.getPoints().size() < 3 || std::abs(poly.area()) < FLT_EPSILON)
+    if (poly.getPoints().size() < 3 || std::abs(poly.area()) < EPSILON)
     {
         return false;
     }
@@ -228,7 +228,7 @@ bool compShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& t
     total_centroid.x_ /= area;
     total_centroid.y_ /= area;
 
-    return area > FLT_EPSILON;
+    return area > EPSILON;
 }
 
 float getThermalLength(const std::vector<Mesh>& meshes)
