@@ -142,81 +142,54 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Out
     return all_brim_offsets;
 }
 
-// FIXME?: Move to polygon?
-bool compSecondMoment(const Polygon& poly, Point2F& res)
+void computeOverSegments(const Polygon& poly, const std::function<void(const Point2F&, const Point2F&)>& func)
 {
-    // TOOD/FIXME: clockwise or counterclockwise <-> hole vs. outline; where to deal with it?
-
-    // FIXME: Make Point2D and/or have more operations in floating-point 2D points (missing; +, scalar-mult, etc.)
-    res = Point2F(0., 0.);
-
-    if (poly.getPoints().size() < 3 || std::abs(poly.area()) < EPSILON)
-    {
-        return false;
-    }
-
     for (auto it = poly.beginSegments(); it != poly.endSegments(); ++it)
     {
-        const auto& p1 = Point2F((*it).start.X, (*it).start.Y);
-        const auto& p2 = Point2F((*it).end.X, (*it).end.Y);
-        const float mul = (p1.x_ * p2.y_ - p1.y_ * p2.x_) / 12.0f;
-        res.x_ += (p1.y_ * p1.y_ + p1.y_ * p2.y_ + p2.y_ * p2.y_) * mul;
-        res.y_ += (p1.x_ * p1.x_ + p1.x_ * p2.x_ + p2.x_ * p2.x_) * mul;
+        const Point2F p1((*it).start.X, (*it).start.Y);
+        const Point2F p2((*it).end.X, (*it).end.Y);
+        func(p1, p2);
     }
-
-    return true;
-}
-
-// FIXME?: Move to polygon?
-bool compCentroid(const Polygon& poly, Point2F& res)
-{
-    // This is very simular to the other one; consider writing a boilerplate wrapper with a function-argument.
-    // (Maybe we can do both at the same time for a single polygon that way as well, that would also make the check happens once and possibly offset the overhead of functors.)
-
-    if (poly.getPoints().size() < 3 || std::abs(poly.area()) < EPSILON)
-    {
-        return false;
-    }
-
-    res = Point2F(0.0f, 0.0f);
-    float accumulated_area = 0.0f;
-
-    for (auto it = poly.beginSegments(); it != poly.endSegments(); ++it)
-    {
-        const auto& p1 = Point2F((*it).start.X, (*it).start.Y);
-        const auto& p2 = Point2F((*it).end.X, (*it).end.Y);
-        const float cross2d = (p1.x_ * p2.y_ - p1.y_ * p2.x_);
-        accumulated_area += cross2d;
-        res.x_ += (p1.x_ + p2.x_) * accumulated_area;
-        res.y_ += (p1.y_ + p2.y_) * accumulated_area;
-    }
-
-    accumulated_area *= 3.0f;
-    res.x_ /= accumulated_area;
-    res.y_ /= accumulated_area;
-    return true;
 }
 
 bool compShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& total_moment)
 {
+    Point2F centroid(0.0f, 0.0f);
+    float accumulated_area = 0.0f;
+    const auto func_centroid = [&centroid, &accumulated_area](const Point2F & p1, const Point2F& p2) {
+        const float cross2d = (p1.x_ * p2.y_ - p1.y_ * p2.x_);
+        accumulated_area += cross2d;
+        centroid.x_ += (p1.x_ + p2.x_) * accumulated_area;
+        centroid.y_ += (p1.y_ + p2.y_) * accumulated_area;
+    };
+    Point2F moment(0.0f, 0.0f);
+    const auto func_second_moment = [&moment](const Point2F& p1, const Point2F& p2) {
+        const float mul = (p1.x_ * p2.y_ - p1.y_ * p2.x_) / 12.0f;
+        moment.x_ += (p1.y_ * p1.y_ + p1.y_ * p2.y_ + p2.y_ * p2.y_) * mul;
+        moment.y_ += (p1.x_ * p1.x_ + p1.x_ * p2.x_ + p2.x_ * p2.x_) * mul;
+    };
+
     for (const auto& poly : polys)
     {
-        // Centroid:
-        Point2F centroid(0.0f, 0.0f);
-        if (! compCentroid(poly, centroid))
+        const auto area = poly.area();
+        if (poly.getPoints().size() < 3 || std::abs(area) < EPSILON)
         {
             continue;
         }
-        const auto area = poly.area();
+
+        // Centroid:
+        centroid = Point2F(0.0f, 0.0f);
+        accumulated_area = 0.0f;
+        computeOverSegments(poly, func_centroid);
+        accumulated_area *= 3.0f;
+        centroid.x_ /= accumulated_area;
+        centroid.y_ /= accumulated_area;
         total_centroid.x_ += centroid.x_ * area;
         total_centroid.y_ += centroid.y_ * area;
 
         // Moment:
-        Point2F moment(0.0f, 0.0f);
-        if (! compSecondMoment(poly, moment))
-        {
-            continue;
-        }
+        moment = Point2F(0.0f, 0.0f);
+        computeOverSegments(poly, func_second_moment);
         const float simple_or_hole = poly.orientation() ? -1.0f : 1.0f;
         total_moment.x_ += simple_or_hole * moment.x_;
         total_moment.y_ += simple_or_hole * moment.y_;
