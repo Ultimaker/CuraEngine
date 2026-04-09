@@ -156,14 +156,16 @@ bool compShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& t
 {
     Point2F centroid(0.0f, 0.0f);
     float accumulated_area = 0.0f;
-    const auto func_centroid = [&centroid, &accumulated_area](const Point2F & p1, const Point2F& p2) {
+    const auto func_centroid = [&centroid, &accumulated_area](const Point2F& p1, const Point2F& p2)
+    {
         const float cross2d = (p1.x_ * p2.y_ - p1.y_ * p2.x_);
         accumulated_area += cross2d;
         centroid.x_ += (p1.x_ + p2.x_) * accumulated_area;
         centroid.y_ += (p1.y_ + p2.y_) * accumulated_area;
     };
     Point2F moment(0.0f, 0.0f);
-    const auto func_second_moment = [&moment](const Point2F& p1, const Point2F& p2) {
+    const auto func_second_moment = [&moment](const Point2F& p1, const Point2F& p2)
+    {
         const float mul = (p1.x_ * p2.y_ - p1.y_ * p2.x_) / 12.0f;
         moment.x_ += (p1.y_ * p1.y_ + p1.y_ * p2.y_ + p2.y_ * p2.y_) * mul;
         moment.y_ += (p1.x_ * p1.x_ + p1.x_ * p2.x_ + p2.x_ * p2.x_) * mul;
