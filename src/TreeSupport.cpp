@@ -25,6 +25,7 @@
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
 #include "support.h" //For precomputeCrossInfillTree
+#include "utils/OBJ.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
@@ -2455,6 +2456,19 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         dur_drop,
         dur_filter,
         dur_finalize);
+}
+
+void TreeSupport::saveToObj(const std::vector<std::set<TreeSupportElement*>>& move_bounds, OBJ& obj) const
+{
+    for (const auto [layer_index, elements] : move_bounds | ranges::views::enumerate)
+    {
+        const coord_t z = layer_index * config.layer_height;
+        for (const TreeSupportElement* element : elements)
+        {
+            element->saveToObj(obj, z, config.layer_height);
+            obj.writeSphere(Point3D(Point3LL(element->result_on_layer_, z), 1.0), config.layer_height / 2.0, SVG::Color::RED);
+        }
+    }
 }
 
 } // namespace cura
