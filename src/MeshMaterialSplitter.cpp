@@ -55,7 +55,7 @@ union ContourKey
     struct
     {
         uint16_t z;
-        uint8_t value;
+        uint8_t feature_value; // Either extruder number of support preference
         uint8_t black_hole{ 0 }; // Don't place anything in there, or it would be lost forever (it exists only to properly set the 4th byte of the key)
     } definition;
 };
@@ -320,7 +320,7 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
         [&simplifier, &voxel_grid, &meshes, &mutex, &mesh_settings](const auto& contour)
         {
             const uint16_t z = contour.first.definition.z;
-            const uint8_t value = contour.first.definition.value;
+            const uint8_t feature_value = contour.first.definition.feature_value;
             const coord_t z_low = voxel_grid.toGlobalZ(z, false);
             const coord_t z_high = voxel_grid.toGlobalZ(z + 1, false);
 
@@ -330,14 +330,14 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, co
             for (const Polygon& simplified_polygon : simplified_polygons)
             {
                 const std::lock_guard lock(mutex);
-                const auto mesh_iterator = meshes.find(value);
+                const auto mesh_iterator = meshes.find(feature_value);
                 if (mesh_iterator == meshes.end())
                 {
-                    const Settings settings = mesh_settings.value_or(Application::getInstance().current_slice_->scene.extruders[value].settings_);
-                    meshes.insert({ value, Mesh(settings) });
+                    const Settings settings = mesh_settings.value_or(Application::getInstance().current_slice_->scene.extruders[feature_value].settings_);
+                    meshes.insert({ feature_value, Mesh(settings) });
                 }
 
-                Mesh& mesh = meshes[value];
+                Mesh& mesh = meshes[feature_value];
                 for (auto iterator = simplified_polygon.beginSegments(); iterator != simplified_polygon.endSegments(); ++iterator)
                 {
                     const Point2LL& start = (*iterator).start;
