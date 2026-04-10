@@ -13,6 +13,7 @@
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
+#include <range/v3/view/map.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
@@ -1937,11 +1938,28 @@ void TreeSupport::dropNonGraciousAreas(
                                            && ! elem->to_buildplate_; // If an element has no child, it connects to whatever is below as no support further down for it will exist.
             if (non_gracious_model_contact)
             {
+                std::vector<std::pair<LayerIndex, Shape>>& dropped_down_area = dropped_down_areas[idx];
                 Shape rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
-                for (LayerIndex counter = 1; rest_support.area() > 1 && counter < linear_data[idx].first; ++counter)
+                for (LayerIndex counter = 1; rest_support.area() > 1 && counter < linear_data[idx].first && ! rest_support.empty(); ++counter)
                 {
-                    rest_support = rest_support.difference(volumes_.getCollision(0, linear_data[idx].first - counter));
-                    dropped_down_areas[idx].emplace_back(linear_data[idx].first - counter, rest_support);
+                    const LayerIndex layer_index = linear_data[idx].first - counter;
+                    rest_support = rest_support.difference(volumes_.getCollision(0, layer_index));
+                    for (const Shape& layer_tree_polygon : layer_tree_polygons[layer_index] | ranges::views::values)
+                    {
+                        // Remove parts of the support that are absorbed by the actual trees
+                        rest_support = rest_support.difference(layer_tree_polygon.offset(-EPSILON));
+                    }
+                    dropped_down_area.emplace_back(layer_index, rest_support);
+                }
+
+                if (! rest_support.empty())
+                {
+                    // If there is some remainder after dropping the area to the bottom, that means it could not actually reach the model or another branch, so discard the piece
+                    rest_support = rest_support.offset(EPSILON);
+                    for (Shape& dropped_area_on_layer : dropped_down_area | ranges::views::values)
+                    {
+                        dropped_area_on_layer = dropped_area_on_layer.difference(rest_support);
+                    }
                 }
             }
         });
