@@ -62,6 +62,8 @@ class LayerPlan : public NoCopy
     friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
     friend class AntiOozeAmountsTest;
     FRIEND_TEST(AntiOozeAmountsTest, ComputeAntiOozeAmounts);
+    FRIEND_TEST(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet);
+    FRIEND_TEST(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary);
 #endif
 
 public:
