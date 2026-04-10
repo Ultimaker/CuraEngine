@@ -851,7 +851,7 @@ bool Settings::has(const std::string& key, const bool parent_lookup) const
     return false;
 }
 
-void Settings::setParent(Settings* new_parent)
+void Settings::setParent(const Settings* new_parent)
 {
     parent = new_parent;
 }
