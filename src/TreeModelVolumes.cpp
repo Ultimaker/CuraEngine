@@ -49,7 +49,6 @@ TreeModelVolumes::TreeModelVolumes(
     coord_t min_maximum_deviation = std::numeric_limits<coord_t>::max();
     coord_t min_maximum_area_deviation = std::numeric_limits<coord_t>::max();
 
-    support_rests_on_model_ = false;
     for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
         auto& mesh = *mesh_ptr;
