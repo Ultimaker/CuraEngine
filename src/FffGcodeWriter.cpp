@@ -1965,6 +1965,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
         const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || infill_pattern == EFillMethod::ZIG_ZAG;
         const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
         const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
+        const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("minimum_infill_line_length");
         Shape infill_polygons;
         OpenLinesSet infill_lines;
         std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
@@ -2027,7 +2028,9 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 SectionType::INFILL,
                 mesh.cross_fill_provider,
                 lightning_layer,
-                &mesh);
+                &mesh,
+                Shape(),
+                minimum_infill_line_length);
             if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
             {
                 infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
@@ -2143,6 +2146,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     const auto skin_support_density = mesh.settings.get<Ratio>("skin_support_density");
+    const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("minimum_infill_line_length");
     const coord_t skin_support_line_distance = skin_support_density > 0.0 ? (infill_line_width / skin_support_density) : 0;
     AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
     if (! mesh.infill_angles.empty())
@@ -2363,7 +2367,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
             SectionType::INFILL,
             mesh.cross_fill_provider,
             lightning_layer,
-            &mesh);
+            &mesh,
+            Shape(),
+            minimum_infill_line_length);
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
