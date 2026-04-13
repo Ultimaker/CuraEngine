@@ -688,7 +688,7 @@ std::vector<Mesh> makeMaterialModifierMeshes(
         delta_iterations,
         total_estimated_iterations);
 
-    constexpr std::optional<Settings> mesh_settings = std::nullopt;
+    const std::optional<Settings> mesh_settings = std::nullopt;
     constexpr bool is_hollow = true;
     std::map<uint8_t, Mesh> meshes = makeMeshesFromVoxelsGrid(voxel_grid, mesh_extruder_nr, mesh_settings, is_hollow);
     return applyMeshExtruders(meshes);
