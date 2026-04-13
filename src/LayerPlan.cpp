@@ -781,6 +781,75 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     }
 }
 
+void LayerPlan::addSkinExtrusion(
+    const Point3LL& p0,
+    const Point3LL& p1,
+    const Shape& mask,
+    const GCodePathConfig& skin_config,
+    const GCodePathConfig& default_config,
+    const Ratio& flow,
+    const Ratio& width_factor,
+    const bool spiralize,
+    const bool travel_to_z)
+{
+    // The line segment is wholly or partially in the skin area. The line is intersected
+    // with the skin area into line segments. Each line segment left in this intersection
+    // will be printed using the skin config, all removed segments will be printed using
+    // the default_config. Since the original line segment was straight we can simply print
+    // to the first and last point of the intersected line segments alternating between
+    // skin and default_config's.
+    OpenLinesSet line_polys;
+    line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
+    constexpr bool restitch = false; // only a single line doesn't need stitching
+    OpenLinesSet skin_line_segments = mask.intersection(line_polys, restitch);
+
+    // Create a set of the intersections points, ordered by distance to p0
+    auto order_points = [&p0](const Point2LL& point_left, const Point2LL& point_right) -> bool
+    {
+        return vSize2(point_left - p0) < vSize2(point_right - p0);
+    };
+    std::set<Point2LL, decltype(order_points)> intersections(order_points);
+
+    for (const OpenPolyline& line_poly : skin_line_segments)
+    {
+        intersections.insert(line_poly.front());
+        intersections.insert(line_poly.back());
+    }
+    bool inside_skin = ! intersections.empty() && (*intersections.begin() == p0);
+
+    intersections.insert(p1.toPoint2LL());
+
+    // Now loop through the intersections and apply the sub-segments
+    const coord_t segment_length = vSize(p1.toPoint2LL() - p0.toPoint2LL());
+    Point2LL current_position = p0.toPoint2LL();
+    const coord_t z_diff = p1.z_ - p0.z_;
+    for (const Point2LL& intersection : intersections)
+    {
+        if (intersection == p1 || vSize2(intersection - current_position) > EPSILON_SQUARED)
+        {
+            Point3LL target_position(intersection, p0.z_);
+            if (z_diff != 0)
+            {
+                const double factor = static_cast<double>(vSize(intersection - p0)) / segment_length;
+                target_position.z_ += lerp(0, z_diff, factor);
+            }
+            addExtrusionMove(
+                target_position,
+                inside_skin ? skin_config : default_config,
+                SpaceFillType::Polygons,
+                flow,
+                width_factor,
+                spiralize,
+                1.0_r,
+                GCodePathConfig::FAN_SPEED_DEFAULT,
+                travel_to_z);
+        }
+
+        inside_skin = ! inside_skin;
+        current_position = intersection;
+    }
+}
+
 template<class PathType>
 void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const Point2LL& last_path_position)
 {
@@ -1002,13 +1071,11 @@ void LayerPlan::addWallLine(
     double distance_to_bridge_start,
     const bool travel_to_z)
 {
-    constexpr coord_t min_line_len = 5; // we ignore lines less than 5um long
-    constexpr coord_t min_line_len_squared = square(min_line_len);
     constexpr double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     constexpr bool spiralize = false;
 
-    const coord_t min_bridge_line_len = std::max(min_line_len, settings.get<coord_t>("bridge_wall_min_length"));
+    const coord_t min_bridge_line_len = std::max(EPSILON, settings.get<coord_t>("bridge_wall_min_length"));
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
     Point3LL cur_point = p0;
@@ -1023,7 +1090,7 @@ void LayerPlan::addWallLine(
     {
         coord_t distance_to_line_end = (cur_point - line_end).vSize();
 
-        while (distance_to_line_end > min_line_len)
+        while (distance_to_line_end > EPSILON)
         {
             // if we are accelerating after a bridge line, the segment length is less than the whole line length
             Point3LL segment_end = (speed_factor == 1 || distance_to_line_end < acceleration_segment_len)
@@ -1054,7 +1121,7 @@ void LayerPlan::addWallLine(
                 const coord_t len = (cur_point - segment_end).vSize();
                 if (coast_dist > 0 && ((distance_to_bridge_start - len) <= coast_dist))
                 {
-                    if ((len - coast_dist) > min_line_len)
+                    if ((len - coast_dist) > EPSILON)
                     {
                         // segment is longer than coast distance so extrude using non-bridge config to start of coast
                         addExtrusionMove(
@@ -1125,79 +1192,9 @@ void LayerPlan::addWallLine(
         return PolygonUtils::polygonCollidesWithLineSegment(mask, p0.toPoint2LL(), p1.toPoint2LL()) || mask.inside(p1.toPoint2LL(), true);
     };
 
-    const auto add_skin_extrusion = [&](const Shape& mask, const GCodePathConfig& config) -> void
-    {
-        // The line segment is wholly or partially in the skin area. The line is intersected
-        // with the skin area into line segments. Each line segment left in this intersection
-        // will be printed using the skin config, all removed segments will be printed using
-        // the default_config. Since the original line segment was straight we can simply print
-        // to the first and last point of the intersected line segments alternating between
-        // skin and default_config's.
-        OpenLinesSet line_polys;
-        line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
-        constexpr bool restitch = false; // only a single line doesn't need stitching
-        auto skin_line_segments = mask.intersection(line_polys, restitch);
-
-        if (skin_line_segments.empty())
-        {
-            // skin_line_segments should never be empty since we already checked that the line segment
-            // intersects with the skin area. But if it is empty then just print the line segment
-            // using the default_config.
-            addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
-        }
-        else
-        {
-            // reorder all the line segments so all lines start at p0 and end at p1
-            for (auto& line_poly : skin_line_segments)
-            {
-                const Point2LL& line_p0 = line_poly.front();
-                const Point2LL& line_p1 = line_poly.back();
-                if (vSize2(line_p1 - p0) < vSize2(line_p0 - p0))
-                {
-                    std::reverse(line_poly.begin(), line_poly.end());
-                }
-            }
-            std::stable_sort(
-                skin_line_segments.begin(),
-                skin_line_segments.end(),
-                [&](auto& a, auto& b)
-                {
-                    return vSize2(a.front() - p0) < vSize2(b.front() - p0);
-                });
-
-            // add intersected line segments, alternating between roofing and default_config
-            for (const auto& line_poly : skin_line_segments)
-            {
-                // This is only relevant for the very fist iteration of the loop
-                // if the start of the line segment is not at minimum distance from p0
-                if (vSize2(line_poly.front() - p0) > min_line_len_squared)
-                {
-                    addExtrusionMove(
-                        line_poly.front(),
-                        default_config,
-                        SpaceFillType::Polygons,
-                        flow,
-                        width_factor,
-                        spiralize,
-                        1.0_r,
-                        GCodePathConfig::FAN_SPEED_DEFAULT,
-                        travel_to_z);
-                }
-
-                addExtrusionMove(line_poly.back(), config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
-            }
-
-            // if the last point is not yet at a minimum distance from p1 then add a move to p1
-            if (vSize2(skin_line_segments.back().back() - p1) > min_line_len_squared)
-            {
-                addExtrusionMove(p1, default_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
-            }
-        }
-    };
-
     if (use_skin_config(roofing_mask_, roofing_config))
     {
-        add_skin_extrusion(roofing_mask_, roofing_config);
+        addSkinExtrusion(p0, p1, roofing_mask_, roofing_config, default_config, flow, width_factor, spiralize, travel_to_z);
     }
     else if (bridge_wall_mask_.empty())
     {
@@ -1244,7 +1241,7 @@ void LayerPlan::addWallLine(
     }
     else if (use_skin_config(flooring_mask_, flooring_config))
     {
-        add_skin_extrusion(flooring_mask_, flooring_config);
+        addSkinExtrusion(p0, p1, flooring_mask_, flooring_config, default_config, flow, width_factor, spiralize, travel_to_z);
     }
     else
     {

@@ -465,6 +465,29 @@ public:
         const bool travel_to_z = true);
 
     /*!
+     * Adds an extrusion move that may go through a skin area
+     * @param p0 The segment start position
+     * @param p1 The segment target position
+     * @param mask The mask containing the skin area
+     * @param skin_config The configuration to be used when extruding inside the skin area
+     * @param default_config The configuration to be used when extruding outside the skin area
+     * @param flow The flow factor to be used to extruder
+     * @param width_factor The width factor to be used to extruder
+     * @param spiralize Whether we are extruding using spiralize mode
+     * @param travel_to_z Whether we should add a Z travel before starting the segment if necessary
+     */
+    void addSkinExtrusion(
+        const Point3LL& p0,
+        const Point3LL& p1,
+        const Shape& mask,
+        const GCodePathConfig& skin_config,
+        const GCodePathConfig& default_config,
+        const Ratio& flow,
+        const Ratio& width_factor,
+        const bool spiralize,
+        const bool travel_to_z);
+
+    /*!
      * Add polygon to the gcode starting at vertex \p startIdx
      * \param polygon The polygon
      * \param startIdx The index of the starting vertex of the \p polygon
