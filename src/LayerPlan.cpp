@@ -361,7 +361,7 @@ std::optional<std::pair<Point2LL, bool>> LayerPlan::getFirstTravelDestinationSta
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, const coord_t z_offset)
+GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retract, const coord_t z_offset)
 {
     const GCodePathConfig& travel_config = configs_storage_.travel_config_per_extruder[getExtruder()];
 
@@ -394,7 +394,9 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
         }
         forceNewPathStart(); // force a new travel path after this first bogus move
     }
-    else if (force_retract && last_planned_position_ && ! shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
+    else if (
+        force_retract == ForceRetract::RETRACTED && last_planned_position_
+        && ! shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
@@ -479,6 +481,11 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const bool force_retract, con
             // path while it is unretracting, avoiding possible blips.
             path->unretract_before_last_travel_move = path->retract && unretract_before_last_travel_move;
         }
+    }
+
+    if (force_retract == ForceRetract::NOT_RETRACTED)
+    {
+        path->retract = false;
     }
 
     // CURA-6675:
@@ -829,7 +836,7 @@ void LayerPlan::addPolygon(
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio& flow_ratio,
-    bool always_retract,
+    const ForceRetract force_retract,
     bool scarf_seam,
     bool smooth_speed)
 {
@@ -838,7 +845,7 @@ void LayerPlan::addPolygon(
     const PathAdapter path_adapter(polygon, config.getLineWidth());
 
     Point2LL p0 = polygon[start_idx];
-    addTravel(p0, always_retract, config.z_offset);
+    addTravel(p0, force_retract, config.z_offset);
 
     const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<Polygon>(
         path_adapter,
@@ -846,7 +853,7 @@ void LayerPlan::addPolygon(
         settings,
         config,
         flow_ratio,
-        always_retract,
+        force_retract,
         is_closed,
         backwards,
         is_candidate_small_feature,
@@ -889,7 +896,7 @@ void LayerPlan::addPolygonsByOptimizer(
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio flow_ratio,
-    bool always_retract,
+    const ForceRetract force_retract,
     bool reverse_order,
     const std::optional<Point2LL> start_near_location,
     bool scarf_seam,
@@ -935,7 +942,7 @@ void LayerPlan::addPolygonsByOptimizer(
         wall_0_wipe_dist,
         spiralize,
         flow_ratio,
-        always_retract,
+        force_retract,
         reverse_order,
         scarf_seam,
         smooth_speed);
@@ -947,14 +954,19 @@ void LayerPlan::addInfillPolygonsByOptimizer(
     const GCodePathConfig& config,
     const Settings& settings,
     const bool add_extra_inwards_move,
-    const std::optional<Point2LL>& near_start_location)
+    const std::optional<Point2LL>& near_start_location,
+    const bool reverse_print_direction)
 {
     if (polygons.empty())
     {
         return;
     }
 
-    PathOrderOptimizer<const Polygon*> orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()));
+    const ZSeamConfig seam_config = ZSeamConfig();
+    constexpr bool detect_loops = false;
+    constexpr Shape* combing_boundary = nullptr;
+    PathOrderOptimizer<const Polygon*>
+        orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), seam_config, detect_loops, combing_boundary, reverse_print_direction);
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
         orderOptimizer.addPolygon(&polygons[poly_idx]);
@@ -963,8 +975,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
 
     if (! add_extra_inwards_move)
     {
-        constexpr bool force_comb_retract = false;
-        addTravel(orderOptimizer.paths_[0].vertices_->at(orderOptimizer.paths_[0].start_vertex_), force_comb_retract);
+        addTravel(orderOptimizer.paths_[0].vertices_->at(orderOptimizer.paths_[0].start_vertex_));
         addPolygonsInGivenOrder(orderOptimizer.paths_, config, settings);
         return;
     }
@@ -1263,7 +1274,7 @@ void LayerPlan::addWall(
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
     double flow_ratio,
-    bool always_retract)
+    const ForceRetract force_retract)
 {
     // TODO: Deprecated in favor of ExtrusionJunction version below.
     if (wall.size() < 3)
@@ -1298,7 +1309,7 @@ void LayerPlan::addWall(
         bridge_config,
         wall_0_wipe_dist,
         flow_ratio,
-        always_retract,
+        force_retract,
         is_closed,
         is_reversed,
         is_linked_path);
@@ -1312,7 +1323,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const size_t max_index,
     const int direction,
     const GCodePathConfig& default_config,
-    const bool always_retract,
+    const ForceRetract force_retract,
     const bool is_small_feature,
     Ratio small_feature_speed_factor,
     const coord_t max_area_deviation,
@@ -1385,7 +1396,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
 
         if (first_line)
         {
-            addTravel(p0, always_retract);
+            addTravel(p0, force_retract);
             first_line = false;
         }
 
@@ -1491,7 +1502,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                         if (first_split)
                         {
                             // Manually add a Z-only travel move to set the nozzle at the height of the first point
-                            addTravel(p0, always_retract, split_origin.z_);
+                            addTravel(p0, force_retract, split_origin.z_);
                             first_split = false;
                         }
                     }
@@ -1776,7 +1787,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const Settings& settings,
     const GCodePathConfig& default_config,
     const double flow_ratio,
-    bool always_retract,
+    const ForceRetract force_retract,
     const bool is_closed,
     const bool is_reversed,
     const bool is_candidate_small_feature,
@@ -1834,7 +1845,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
             max_index,
             direction,
             default_config,
-            always_retract,
+            force_retract,
             is_small_feature,
             small_feature_speed_factor,
             max_area_deviation,
@@ -1878,7 +1889,7 @@ void LayerPlan::addWall(
     const GCodePathConfig& bridge_config,
     coord_t wall_0_wipe_dist,
     const double flow_ratio,
-    bool always_retract,
+    const ForceRetract force_retract,
     const bool is_closed,
     const bool is_reversed,
     const bool is_linked_path,
@@ -1900,7 +1911,7 @@ void LayerPlan::addWall(
         settings,
         default_config,
         flow_ratio,
-        always_retract,
+        force_retract,
         is_closed,
         is_reversed,
         wall.inset_idx_ == 0,
@@ -1952,7 +1963,7 @@ void LayerPlan::addWall(
     }
 }
 
-void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config, bool force_retract)
+void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config, const ForceRetract force_retract)
 {
     assert(! wall.empty() && "All empty walls should have been filtered at this stage");
     ExtrusionJunction junction{ *wall.begin() };
@@ -1978,7 +1989,7 @@ void LayerPlan::addWalls(
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
     double flow_ratio,
-    bool always_retract)
+    const ForceRetract force_retract)
 {
     // TODO: Deprecated in favor of ExtrusionJunction version below.
     PathOrderOptimizer<const Polygon*> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
@@ -1989,7 +2000,7 @@ void LayerPlan::addWalls(
     orderOptimizer.optimize();
     for (const PathOrdering<const Polygon*>& path : orderOptimizer.paths_)
     {
-        addWall(*path.vertices_, path.start_vertex_, settings, default_config, roofing_config, flooring_config, bridge_config, wall_0_wipe_dist, flow_ratio, always_retract);
+        addWall(*path.vertices_, path.start_vertex_, settings, default_config, roofing_config, flooring_config, bridge_config, wall_0_wipe_dist, flow_ratio, force_retract);
     }
 }
 
@@ -2409,7 +2420,7 @@ void LayerPlan::addLinesInGivenOrder(
         }
         else
         {
-            addTravel(start, false, config.z_offset);
+            addTravel(start, ForceRetract::AUTOMATIC, config.z_offset);
         }
 
         Point2LL p0 = start;
@@ -2490,13 +2501,13 @@ void LayerPlan::addPolygonsInGivenOrder(
     coord_t wall_0_wipe_dist,
     bool spiralize,
     const Ratio flow_ratio,
-    bool always_retract,
+    const ForceRetract force_retract,
     bool reverse_order,
     bool scarf_seam,
     bool smooth_speed)
 {
     const auto add_polygons
-        = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &always_retract, &scarf_seam, &smooth_speed](const auto& iterator_begin, const auto& iterator_end)
+        = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &force_retract, &scarf_seam, &smooth_speed](const auto& iterator_begin, const auto& iterator_end)
     {
         for (auto iterator = iterator_begin; iterator != iterator_end; ++iterator)
         {
@@ -2509,7 +2520,7 @@ void LayerPlan::addPolygonsInGivenOrder(
                 wall_0_wipe_dist,
                 spiralize,
                 flow_ratio,
-                always_retract,
+                force_retract,
                 scarf_seam,
                 smooth_speed);
         }
@@ -4156,7 +4167,7 @@ void LayerPlan::setFlooringMask(const Shape& shape)
 }
 
 template void LayerPlan::addLinesByOptimizer(
-    const OpenLinesSet& lines,
+    const LinesSet<OpenPolyline>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,

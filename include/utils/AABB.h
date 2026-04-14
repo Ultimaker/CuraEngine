@@ -6,12 +6,12 @@
 
 #include <initializer_list>
 
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 
 namespace cura
 {
 
+class OpenLinesSet;
 class PointsSet;
 class Polygon;
 class Shape;

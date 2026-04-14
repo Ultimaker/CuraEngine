@@ -3,6 +3,8 @@
 
 #include "LayerPlan.h" //The code under test.
 
+#include <algorithm>
+
 #include <gtest/gtest.h>
 
 #include "Application.h" //To provide settings for the layer plan.
@@ -570,6 +572,92 @@ TEST_P(AddTravelTest, NoUnretractBeforeLastTravelMoveIfNoPriorRetraction)
     {
         EXPECT_FALSE(result.unretract_before_last_travel_move) << "If no retraction has been issued, then there should also be no unretraction before the last travel move.";
     }
+}
+
+class OverhangSpeedTest : public LayerPlanTest
+{
+};
+
+/*!
+ * Verifies that addExtrusionMoveWithGradualOverhang applies the mask's reduced speed_factor
+ * when overhang masks are active on the LayerPlan.
+ *
+ * Regression guard: masks were previously cleared prematurely inside preProcessInsets()
+ * before endProcessInsets() drew the walls, causing speed_factor to always be 1.0.
+ */
+TEST_F(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet)
+{
+    // An empty supported_region means no point is ever "inside" it, so every move
+    // lands in the overhang zone and receives the reduced speed_ratio.
+    constexpr Ratio overhang_speed_ratio = 0.5_r;
+    layer_plan.setOverhangMasks({ LayerPlan::OverhangMask{ Shape{}, overhang_speed_ratio } });
+
+    const GCodePathConfig config{
+        .type = PrintFeatureType::OuterWall,
+        .line_width = MM2INT(0.4),
+        .layer_thickness = MM2INT(0.1),
+        .flow = 1.0_r,
+        .speed_derivatives = SpeedDerivatives{ Velocity{ 50.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
+    };
+
+    // SetUp() placed last_planned_position at (0,0). Move somewhere entirely in the overhang zone.
+    layer_plan.addExtrusionMoveWithGradualOverhang(Point3LL(MM2INT(10), 0, 0), config, SpaceFillType::Lines);
+
+    const auto& paths = layer_plan.extruder_plans_.back().paths_;
+    const bool any_reduced = std::any_of(
+        paths.begin(),
+        paths.end(),
+        [](const GCodePath& p)
+        {
+            return ! p.isTravelPath() && p.speed_factor < 1.0_r;
+        });
+
+    EXPECT_TRUE(any_reduced) << "Overhang speed_factor should be < 1.0 when masks are set";
+}
+
+/*!
+ * Verifies that a move crossing from the supported region into the overhang zone is
+ * split into two sub-paths: one at full speed and one at the reduced overhang speed.
+ */
+TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
+{
+    // masks[0]: 20x20 mm square centred at origin — points inside get speed_ratio = 1.0 (supported)
+    // masks[1]: the catch-all "infinite" region — points outside get speed_ratio = 0.5 (overhang)
+    Shape supported_region;
+    supported_region.emplace_back();
+    supported_region.back().emplace_back(-MM2INT(10), -MM2INT(10));
+    supported_region.back().emplace_back( MM2INT(10), -MM2INT(10));
+    supported_region.back().emplace_back( MM2INT(10),  MM2INT(10));
+    supported_region.back().emplace_back(-MM2INT(10),  MM2INT(10));
+
+    layer_plan.setOverhangMasks({
+        LayerPlan::OverhangMask{ supported_region, 1.0_r }, // region 0: inside square
+        LayerPlan::OverhangMask{ Shape{},          0.5_r }, // region 1: outside square (overhang)
+    });
+
+    const GCodePathConfig config{
+        .type = PrintFeatureType::OuterWall,
+        .line_width = MM2INT(0.4),
+        .layer_thickness = MM2INT(0.1),
+        .flow = 1.0_r,
+        .speed_derivatives = SpeedDerivatives{ Velocity{ 50.0 }, Acceleration{ 1000.0 }, Velocity{ 10.0 } },
+    };
+
+    // Start at (0,0) inside the square. Move to (50mm,0,0), crossing the boundary at x=10mm.
+    layer_plan.addExtrusionMoveWithGradualOverhang(Point3LL(MM2INT(50), 0, 0), config, SpaceFillType::Lines);
+
+    const auto& paths = layer_plan.extruder_plans_.back().paths_;
+    bool found_full_speed = false;
+    bool found_reduced_speed = false;
+    for (const GCodePath& path : paths)
+    {
+        if (path.isTravelPath()) continue;
+        if (path.speed_factor >= 1.0_r) found_full_speed = true;
+        if (path.speed_factor < 1.0_r)  found_reduced_speed = true;
+    }
+
+    EXPECT_TRUE(found_full_speed)    << "Segment inside supported region should have full speed";
+    EXPECT_TRUE(found_reduced_speed) << "Segment crossing into overhang should have reduced speed";
 }
 
 TEST(NozzleTempInsertTest, SortNozzleTempInsterts)

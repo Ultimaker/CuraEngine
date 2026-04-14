@@ -51,8 +51,9 @@ set(engine_SRCS # Except main.cpp.
         src/FffProcessor.cpp
         src/GCodePathConfig.cpp
         src/infill.cpp
-        src/InterlockingGenerator.cpp
+        src/InfillOrderOptimizer.cpp
         src/InsetOrderOptimizer.cpp
+        src/InterlockingGenerator.cpp
         src/layerPart.cpp
         src/LayerPlan.cpp
         src/LayerPlanBuffer.cpp
@@ -191,6 +192,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/RandomScoringCriterion.cpp
         src/utils/scoring/TextureScoringCriterion.cpp
 
+        src/geometry/OpenLinesSet.cpp
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
