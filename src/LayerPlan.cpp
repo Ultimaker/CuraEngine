@@ -56,7 +56,8 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     const Ratio flow,
     const Ratio width_factor,
     const bool spiralize,
-    const Ratio speed_factor)
+    const Ratio speed_factor,
+    const bool travel_to_z)
 {
     std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
     if (paths.size() > 0 && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
@@ -65,14 +66,18 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{ .z_offset = z_offset,
-                                  .config = config,
-                                  .mesh = current_mesh_,
-                                  .space_fill_type = space_fill_type,
-                                  .flow = flow,
-                                  .width_factor = width_factor,
-                                  .spiralize = spiralize,
-                                  .speed_factor = speed_factor });
+    paths.emplace_back(
+        GCodePath{
+            .z_offset = z_offset,
+            .config = config,
+            .mesh = current_mesh_,
+            .space_fill_type = space_fill_type,
+            .flow = flow,
+            .width_factor = width_factor,
+            .spiralize = spiralize,
+            .speed_factor = speed_factor,
+            .travel_to_z = travel_to_z,
+        });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -570,10 +575,9 @@ void LayerPlan::addExtrusionMove(
     const double fan_speed,
     const bool travel_to_z)
 {
-    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor);
+    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor, travel_to_z);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
-    path->travel_to_z = travel_to_z;
     if (! static_cast<bool>(first_extrusion_acc_jerk_))
     {
         first_extrusion_acc_jerk_ = std::make_pair(path->config.getAcceleration(), path->config.getJerk());
@@ -790,7 +794,7 @@ void LayerPlan::addSkinExtrusion(
     const Ratio& flow,
     const Ratio& width_factor,
     const bool spiralize,
-    const bool travel_to_z)
+    bool travel_to_z)
 {
     // The line segment is wholly or partially in the skin area. The line is intersected
     // with the skin area into line segments. Each line segment left in this intersection
@@ -815,7 +819,12 @@ void LayerPlan::addSkinExtrusion(
         intersections.insert(line_poly.front());
         intersections.insert(line_poly.back());
     }
-    bool inside_skin = ! intersections.empty() && (*intersections.begin() == p0);
+
+    bool inside_skin = ! intersections.empty() && (*intersections.begin() == p0.toPoint2LL());
+    if (inside_skin)
+    {
+        intersections.erase(intersections.begin());
+    }
 
     intersections.insert(p1.toPoint2LL());
 
@@ -843,6 +852,8 @@ void LayerPlan::addSkinExtrusion(
                 1.0_r,
                 GCodePathConfig::FAN_SPEED_DEFAULT,
                 travel_to_z);
+
+            travel_to_z = false; // Only travel to Z for the first sub-segment
         }
 
         inside_skin = ! inside_skin;
@@ -931,7 +942,8 @@ void LayerPlan::addPolygon(
             const Ratio& speed_factor,
             const Ratio& actual_flow_ratio,
             const Ratio& line_width_ratio,
-            const coord_t /*distance_to_bridge_start*/)
+            const coord_t /*distance_to_bridge_start*/,
+            const bool /*travel_to_z*/)
         {
             constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
             constexpr bool travel_to_z = false;
@@ -1508,6 +1520,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                     }
 
                     // now add the (sub-)segment
+                    const bool travel_to_z = wall_processed_distance == 0; // Travel to Z for first sub-segment, but only this one
                     func_add_segment(
                         wall,
                         point_index(actual_point_index - 1),
@@ -1518,7 +1531,8 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                         accelerate_speed_factor * decelerate_speed_factor,
                         flow_ratio,
                         line_width_ratio,
-                        distance_to_bridge_start.value_or(0));
+                        distance_to_bridge_start.value_or(0),
+                        travel_to_z);
 
                     wall_processed_distance = destination_position;
                     segment_processed_distance += length_to_process;
@@ -1904,7 +1918,8 @@ void LayerPlan::addWall(
             const Ratio& speed_factor,
             const Ratio& actual_flow_ratio,
             const Ratio& line_width_ratio,
-            const coord_t distance_to_bridge_start)
+            const coord_t distance_to_bridge_start,
+            const bool travel_to_z)
         {
             addWallLine(
                 wall,
@@ -1922,7 +1937,8 @@ void LayerPlan::addWall(
                 line_width_ratio,
                 non_bridge_line_volume,
                 speed_factor,
-                distance_to_bridge_start);
+                distance_to_bridge_start,
+                travel_to_z);
         });
 
     if (wall.size() >= 2)

@@ -188,6 +188,7 @@ private:
      * \param flow (optional) A ratio for the extrusion speed
      * \param spiralize Whether to gradually increase the z while printing. (Note that this path may be part of a sequence of spiralized paths, forming one polygon)
      * \param speed_factor (optional) a factor which the speed will be multiplied by.
+     * \param travel_to_z Indicates whether we should add a Z travel before the initial move of this path
      * \return A path with the given config which is now the last path in LayerPlan::paths
      */
     GCodePath* getLatestPathWithConfig(
@@ -197,7 +198,8 @@ private:
         const Ratio flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
         const bool spiralize = false,
-        const Ratio speed_factor = 1.0_r);
+        const Ratio speed_factor = 1.0_r,
+        const bool travel_to_z = true);
 
 public:
     /*!
@@ -1042,6 +1044,7 @@ private:
      * \param flow_ratio The flow ratio to be applied when extruding this specific segment (relative to nominal flow for the entire path)
      * \param line_width_ratio The line width ratio to be applied when extruding this specific segment (relative to nominal line width for the entire path)
      * \param distance_to_bridge_start The calculate distance to the next bridge start, which may be irrelevant in some cases
+     * \param travel_to_z Whether we should add a Z travel before starting the segment
      */
     template<class PathType>
     using AddExtrusionSegmentFunction = std::function<void(
@@ -1054,7 +1057,8 @@ private:
         const Ratio& speed_factor,
         const Ratio& flow_ratio,
         const Ratio& line_width_ratio,
-        const coord_t distance_to_bridge_start)>;
+        const coord_t distance_to_bridge_start,
+        const bool travel_to_z)>;
 
     /*!
      * \brief Add a wall to the gcode with optimized order, but split into pieces in order to facilitate the scarf seam and/or speed gradient.
