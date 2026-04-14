@@ -11,49 +11,49 @@ namespace cura
 {
 
 template<typename PathType>
-const PointsSet& PathOrdering<PathType>::getVertexData()
+const Polyline& PathOrdering<PathType>::getVertexData()
 {
     return *vertices_;
 }
 
 template<>
-const PointsSet& PathOrdering<const SkinPart*>::getVertexData()
+const Polyline& PathOrdering<const SkinPart*>::getVertexData()
 {
     return vertices_->outline.outerPolygon();
 }
 
 template<>
-const PointsSet& PathOrdering<const SliceLayerPart*>::getVertexData()
+const Polyline& PathOrdering<const SliceLayerPart*>::getVertexData()
 {
     return vertices_->outline.outerPolygon();
 }
 
 template<>
-const PointsSet& PathOrdering<SliceLayerPart*>::getVertexData()
+const Polyline& PathOrdering<SliceLayerPart*>::getVertexData()
 {
     return vertices_->outline.outerPolygon();
 }
 
 template<>
-const PointsSet& PathOrdering<const SupportInfillPart*>::getVertexData()
+const Polyline& PathOrdering<const SupportInfillPart*>::getVertexData()
 {
     return vertices_->outline_.outerPolygon();
 }
 template<>
-const PointsSet& PathOrdering<const ExtrusionLine*>::getVertexData()
+const Polyline& PathOrdering<const ExtrusionLine*>::getVertexData()
 {
-    if (! cached_vertices_)
+    if (! cached_vertices_.has_value())
     {
         cached_vertices_ = vertices_->toPolygon();
     }
     return *cached_vertices_;
 }
 
-template const PointsSet& PathOrdering<Polygon*>::getVertexData();
-template const PointsSet& PathOrdering<Polygon const*>::getVertexData();
-template const PointsSet& PathOrdering<const OpenPolyline*>::getVertexData();
-template const PointsSet& PathOrdering<OpenPolyline*>::getVertexData();
-template const PointsSet& PathOrdering<ClosedPolyline*>::getVertexData();
-template const PointsSet& PathOrdering<Polyline const*>::getVertexData();
+template const Polyline& PathOrdering<Polygon*>::getVertexData();
+template const Polyline& PathOrdering<Polygon const*>::getVertexData();
+template const Polyline& PathOrdering<const OpenPolyline*>::getVertexData();
+template const Polyline& PathOrdering<OpenPolyline*>::getVertexData();
+template const Polyline& PathOrdering<ClosedPolyline*>::getVertexData();
+template const Polyline& PathOrdering<Polyline const*>::getVertexData();
 
 } // namespace cura

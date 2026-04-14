@@ -6,7 +6,7 @@
 #include <algorithm>
 #include <cassert>
 
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"

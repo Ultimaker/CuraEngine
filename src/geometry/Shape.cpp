@@ -26,7 +26,7 @@
 #include <range/v3/view/sliding.hpp>
 
 #include "geometry/MixedLinesSet.h"
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/PartsView.h"
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
@@ -915,6 +915,11 @@ std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const 
     return result;
 }
 
+Shape Shape::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const
+{
+    return offset(outer_offset).difference(offset(-inner_offset));
+}
+
 void Shape::ensureManifold()
 {
     std::vector<Point2LL> duplicate_locations;
@@ -998,7 +1003,7 @@ void Shape::ensureManifold()
 }
 #endif
 
-template OpenLinesSet Shape::intersection(const OpenLinesSet& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 template OpenLinesSet Shape::intersection(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 
