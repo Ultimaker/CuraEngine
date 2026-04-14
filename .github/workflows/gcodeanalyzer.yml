@@ -103,45 +103,12 @@ jobs:
           pip install pandas
           pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
 
-      - name: Resolve package overrides
-        id: resolve_overrides
-        run: |
-          overrides="${{ needs.find-packages.outputs.package_overrides }}"
-
-          for pkg in cura_resources cura-formulae-engine; do
-            # Skip if this package is already covered by a ticket-specific override
-            if echo " $overrides " | grep -q " ${pkg}/"; then
-              continue
-            fi
-
-            # Read the required version from conandata.yml
-            version=$(export _PKG="$pkg"; python3 -c "import yaml,os;pkg=os.environ['_PKG'];d=yaml.safe_load(open('conandata.yml'));all_reqs=d.get('requirements',[])+d.get('requirements_cura_resources',[]);match=next((r for r in all_reqs if r.startswith(pkg+'/')),None);print(match.split('/')[1].split('@')[0] if match else '')")
-
-            if [[ -z "$version" ]]; then
-              continue
-            fi
-
-            # Fallback: find the latest published package for this version across all channels.
-            # No @user/channel filter so release packages (e.g. pkg/5.13.0 with no channel)
-            # are candidates alongside dev packages (@ultimaker/testing).
-            fallback=$(python3 Cura-workflows/runner_scripts/conan_package_finder.py \
-              --search-pattern "${pkg}/${version}*" \
-              --output-format github-actions 2>/dev/null \
-              | grep '^package_overrides=' | cut -d'=' -f2- || true)
-
-            if [[ -n "$fallback" ]]; then
-              overrides="${overrides:+$overrides }$fallback"
-            fi
-          done
-
-          echo "package_overrides=$overrides" >> $GITHUB_OUTPUT
-
       - name: Set package overrides
         id: set_overrides
-        if: steps.resolve_overrides.outputs.package_overrides != ''
+        if: needs.find-packages.outputs.package_overrides != ''
         uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
         with:
-          package_overrides: ${{ steps.resolve_overrides.outputs.package_overrides }}
+          package_overrides: ${{ needs.find-packages.outputs.package_overrides }}
 
       - name: Install dependencies and build CuraEngine
         run: conan build . -pr "${{ steps.set_overrides.outputs.profile || 'default' }}" -s build_type=Release --build=missing --update -g VirtualRunEnv -o "curaengine/*:with_cura_resources=True"
