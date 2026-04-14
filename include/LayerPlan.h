@@ -917,6 +917,9 @@ public:
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
 
+    /*! Indicates whether this layer plan is empty, i.e. it has no extruder plan or they are all empty */
+    const bool empty() const;
+
 private:
     /*!
      * \brief Compute the preferred or minimum combing boundary

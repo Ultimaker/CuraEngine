@@ -4077,6 +4077,16 @@ std::shared_ptr<const SliceMeshStorage> LayerPlan::findFirstPrintedMesh() const
     return nullptr;
 }
 
+const bool LayerPlan::empty() const
+{
+    return ranges::all_of(
+        extruder_plans_,
+        [](const ExtruderPlan& extruder_plan)
+        {
+            return extruder_plan.paths_.empty();
+        });
+}
+
 LayerIndex LayerPlan::getLayerNr() const
 {
     return layer_nr_;

@@ -199,20 +199,22 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, c
         if (acc_time >= time_before_extruder_plan_end)
         {
             constexpr bool wait = false;
-            extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                                 .extruder = extruder_nr,
-                                                                 .temperature = temp,
-                                                                 .wait = wait,
-                                                                 .time_after_path_start = acc_time - time_before_extruder_plan_end });
+            extruder_plan_before.insertCommand(
+                NozzleTempInsert{ .path_idx = path_idx,
+                                  .extruder = extruder_nr,
+                                  .temperature = temp,
+                                  .wait = wait,
+                                  .time_after_path_start = acc_time - time_before_extruder_plan_end });
             return;
         }
     }
     constexpr bool wait = false;
     constexpr size_t path_idx = 0;
-    extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                         .extruder = extruder_nr,
-                                                         .temperature = temp,
-                                                         .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
+    extruder_plan_before.insertCommand(
+        NozzleTempInsert{ .path_idx = path_idx,
+                          .extruder = extruder_nr,
+                          .temperature = temp,
+                          .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
 }
 
 Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -565,9 +567,8 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
 void LayerPlanBuffer::insertTempCommands()
 {
-    if (buffer_.back()->extruder_plans_.size() == 0 || (buffer_.back()->extruder_plans_.size() == 1 && buffer_.back()->extruder_plans_[0].paths_.size() == 0))
+    if (buffer_.back()->empty())
     { // disregard empty layer
-        buffer_.pop_back();
         return;
     }
 
