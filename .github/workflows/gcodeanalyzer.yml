@@ -115,13 +115,7 @@ jobs:
             fi
 
             # Read the required version from conandata.yml
-            version=$(python3 -c "
-import yaml
-d = yaml.safe_load(open('conandata.yml'))
-all_reqs = d.get('requirements', []) + d.get('requirements_cura_resources', [])
-match = next((r for r in all_reqs if r.startswith('${pkg}/')), None)
-print(match.split('/')[1].split('@')[0] if match else '')
-")
+            version=$(export _PKG="$pkg"; python3 -c "import yaml,os;pkg=os.environ['_PKG'];d=yaml.safe_load(open('conandata.yml'));all_reqs=d.get('requirements',[])+d.get('requirements_cura_resources',[]);match=next((r for r in all_reqs if r.startswith(pkg+'/')),None);print(match.split('/')[1].split('@')[0] if match else '')")
 
             if [[ -z "$version" ]]; then
               continue
@@ -169,7 +163,7 @@ print(match.split('/')[1].split('@')[0] if match else '')
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: CGcodeAnalyzer
+          name: GCodeAnalyzer
           output-file-path: output.json
           gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
           gh-pages-branch: main
