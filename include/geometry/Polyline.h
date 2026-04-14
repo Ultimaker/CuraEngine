@@ -4,7 +4,6 @@
 #ifndef GEOMETRY_POLYLINE_H
 #define GEOMETRY_POLYLINE_H
 
-#include "geometry/OpenLinesSet.h"
 #include "geometry/PointsSet.h"
 #include "geometry/SegmentIterator.h"
 
@@ -15,6 +14,7 @@ template<class LineType>
 class LinesSet;
 class AngleRadians;
 class OpenPolyline;
+class OpenLinesSet;
 
 /*!
  * \brief Base class for various types of polylines. A polyline is basically a set of points, but
