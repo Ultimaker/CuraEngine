@@ -137,7 +137,8 @@ MeshPathConfigs::MeshPathConfigs(const SliceMeshStorage& mesh, const coord_t lay
                       .flow = mesh.settings.get<Ratio>("roofing_material_flow") * (layer_nr == 0 ? mesh.settings.get<Ratio>("material_flow_layer_0") : Ratio{ 1.0 }),
                       .speed_derivatives = { .speed = mesh.settings.get<Velocity>("speed_roofing"),
                                              .acceleration = mesh.settings.get<Acceleration>("acceleration_roofing"),
-                                             .jerk = mesh.settings.get<Velocity>("jerk_roofing") } }
+                                             .jerk = mesh.settings.get<Velocity>("jerk_roofing") },
+                      .temperature_delta = mesh.settings.get<Temperature>("material_delta_temperature_roofing") }
     , flooring_config{ .type = PrintFeatureType::Skin,
                        .line_width = mesh.settings.get<coord_t>("flooring_line_width"),
                        .layer_thickness = layer_thickness,

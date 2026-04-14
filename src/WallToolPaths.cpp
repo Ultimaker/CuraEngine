@@ -91,7 +91,7 @@ WallToolPaths::WallToolPaths(
 
 const std::vector<VariableWidthLines>& WallToolPaths::generate()
 {
-    MendedShape prepared_outline(settings_, section_type_, outline_);
+    MendedShape prepared_outline(&settings_, section_type_, &outline_);
     if (prepared_outline.getShape().area() <= 0)
     {
         assert(toolpaths_.empty());
