@@ -1529,7 +1529,7 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
 void GCodeExport::writeCode(const std::string& str)
 {
     *output_stream_ << str;
-    if (str.empty() || str.back() != '\n')
+    if (! str.ends_with('\n'))
     {
         *output_stream_ << new_line_;
     }
