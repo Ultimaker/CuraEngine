@@ -42,6 +42,9 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
     {
         engine_info_handler_ = *ranges::next(engine_info_flag);
     }
+
+    auto engine_info = createEngineInfoMessage();
+    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
 }
 
 void EmscriptenCommunication::sendGCodePrefix(const std::string& prefix) const
@@ -54,7 +57,7 @@ void EmscriptenCommunication::sendProgress(double progress) const
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", progress_handler_, progress).c_str());
 }
 
-std::string EmscriptenCommunication::createSliceInfoMessage()
+std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information)
 {
     // Construct a string with rapidjson containing the slice information
     rapidjson::Document doc;
@@ -68,7 +71,6 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
 
     // Set the time estimates
     rapidjson::Value time_estimates_json(rapidjson::kObjectType);
-    auto time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
     for (const auto& [feature, duration_idx] :
          std::vector<std::tuple<std::string, PrintFeatureType>>{ { "infill", PrintFeatureType::Infill },
                                                                  { "skin", PrintFeatureType::Skin },
@@ -97,7 +99,8 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
-        const double value = FffProcessor::getInstance()->getTotalFilamentUsed(static_cast<int>(extruder_nr));
+        const std::optional<ExtruderPrintInformation>& extruder_info = print_information[extruder_nr];
+        const double value = extruder_info.has_value() ? extruder_info->filament_length : 0.0;
         spdlog::info("Extruder {} used {} [mm] of filament", extruder_nr, value);
         rapidjson::Value extruder_id(fmt::format("{}", extruder_nr).c_str(), allocator);
         rapidjson::Value extruder_material_estimate(value);
@@ -141,15 +144,9 @@ std::string EmscriptenCommunication::createEngineInfoMessage()
     return buffer.GetString();
 }
 
-void EmscriptenCommunication::beginGCode()
+void EmscriptenCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
 {
-    auto engine_info = createEngineInfoMessage();
-    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
-}
-void EmscriptenCommunication::sliceNext()
-{
-    CommandLine::sliceNext();
-    auto slice_info = createSliceInfoMessage();
+    auto slice_info = createSliceInfoMessage(time_estimates, print_information);
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", slice_info_handler_, slice_info).c_str());
 };
 
