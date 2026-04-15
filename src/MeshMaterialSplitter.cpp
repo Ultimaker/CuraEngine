@@ -708,8 +708,12 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh
     constexpr uint8_t ignore_value = 0;
     const std::unordered_set<size_t>& authorized_values{ 1, 2 };
 
+    // Give some more space around the mesh to expand the voxels grid
+    AABB3D expanded_bounding_box = mesh_bounding_box;
+    expanded_bounding_box.expand(resolution * 2);
+
     // Create the voxel grid and initially fill it with the rasterized mesh triangles
-    VoxelGrid voxel_grid(mesh_bounding_box, resolution);
+    VoxelGrid voxel_grid(expanded_bounding_box, resolution);
     const boost::concurrent_flat_set<uint8_t> found_support_values = makeVoxelGridFromTexture(mesh, texture_data_provider, "support", voxel_grid, ignore_value, authorized_values);
     if (found_support_values.empty() || (found_support_values.size() == 1 && found_support_values.contains(ignore_value)))
     {
