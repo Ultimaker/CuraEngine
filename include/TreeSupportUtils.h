@@ -108,6 +108,13 @@ public:
 
         const EFillMethod pattern = generate_support_supporting ? EFillMethod::GRID : roof ? config.roof_pattern : config.support_pattern;
 
+        if (pattern == EFillMethod::LIGHTNING)
+        {
+            // This can't be done for lightning infill since it requires the support to be generated first. Final result is good enough though,
+            // because it propagates to properly support the top area, compensating for the same feature of the tree support.
+            return {};
+        }
+
         const bool zig_zaggify_infill = roof ? pattern == EFillMethod::ZIG_ZAG : config.zig_zaggify_support;
         const bool connect_polygons = false;
         constexpr coord_t support_roof_overlap = 0;

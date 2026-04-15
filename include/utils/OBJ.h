@@ -20,7 +20,7 @@ class VoxelGrid;
 class OBJ : NoCopy
 {
 public:
-    OBJ(std::string filename, const double scale = 1.0);
+    OBJ(const std::string& filename, const double scale = 1.0);
 
     ~OBJ();
 
@@ -43,6 +43,10 @@ public:
     void write(const Mesh& mesh, const SVG::Color color = SVG::Color::BLACK);
 
     void write(const VoxelGrid& voxel_grid);
+
+    void write(const Polyline& polyline, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::BLACK);
+
+    void write(const Shape& shape, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::BLACK);
 
 private:
     struct Triangle

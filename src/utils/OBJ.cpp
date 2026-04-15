@@ -16,7 +16,7 @@
 namespace cura
 {
 
-OBJ::OBJ(std::string filename, const double scale)
+OBJ::OBJ(const std::string& filename, const double scale)
     : filename_(filename)
     , scale_(scale)
 {
@@ -157,12 +157,13 @@ void OBJ::writeTriangle(
 
 void OBJ::write(const Mesh& mesh, const SVG::Color color)
 {
+    constexpr double scale = 1.0;
     for (const MeshFace& face : mesh.faces_)
     {
         writeTriangle(
-            Point3D(mesh.vertices_[face.vertex_index_[0]].p_),
-            Point3D(mesh.vertices_[face.vertex_index_[1]].p_),
-            Point3D(mesh.vertices_[face.vertex_index_[2]].p_),
+            Point3D(mesh.vertices_[face.vertex_index_[0]].p_, scale),
+            Point3D(mesh.vertices_[face.vertex_index_[1]].p_, scale),
+            Point3D(mesh.vertices_[face.vertex_index_[2]].p_, scale),
             color,
             face.uv_coordinates_[0],
             face.uv_coordinates_[1],
@@ -181,6 +182,28 @@ void OBJ::write(const VoxelGrid& voxel_grid)
             std::lock_guard lock(mutex);
             writeSphere(voxel_grid.toGlobalCoordinates(voxel.first), radius, static_cast<SVG::Color>(voxel.second), 2, 4);
         });
+}
+
+void OBJ::write(const Polyline& polyline, const coord_t z, const coord_t height, const SVG::Color color)
+{
+    constexpr double scale = 1.0;
+    const Point3D extrusion(0.0, 0.0, height);
+    for (auto iterator = polyline.beginSegments(); iterator != polyline.endSegments(); ++iterator)
+    {
+        const Point3D start(Point3LL((*iterator).start, z), scale);
+        const Point3D end(Point3LL((*iterator).end, z), scale);
+
+        writeTriangle(start, end, end + extrusion, color);
+        writeTriangle(start, end + extrusion, start + extrusion, color);
+    }
+}
+
+void OBJ::write(const Shape& shape, const coord_t z, const coord_t height, const SVG::Color color)
+{
+    for (const Polygon& polygon : shape)
+    {
+        write(polygon, z, height, color);
+    }
 }
 
 Point3D OBJ::scalePosition(const Point3D& p) const
