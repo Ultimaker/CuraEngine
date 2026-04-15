@@ -44,35 +44,61 @@ namespace cura
 
 bool AreaSupport::handleSupportModifierMesh(SliceDataStorage& storage, const Settings& mesh_settings, const Slicer* slicer)
 {
-    if (! mesh_settings.get<bool>("anti_overhang_mesh") && ! mesh_settings.get<bool>("support_mesh"))
+    const bool is_anti_overhang_mesh = mesh_settings.get<bool>("anti_overhang_mesh");
+    const bool is_support_mesh = mesh_settings.get<bool>("support_mesh");
+    const bool is_force_support_overhang_mesh = mesh_settings.has("force_support_overhang_mesh") && mesh_settings.get<bool>("force_support_overhang_mesh");
+    if (! is_anti_overhang_mesh && ! is_support_mesh && ! is_force_support_overhang_mesh)
     {
         return false;
     }
-    enum ModifierType
+
+    enum class ModifierType
     {
         ANTI_OVERHANG,
         SUPPORT_DROP_DOWN,
-        SUPPORT_VANILLA
+        SUPPORT_VANILLA,
+        FORCE_OVERHANG,
     };
-    ModifierType modifier_type
-        = (mesh_settings.get<bool>("anti_overhang_mesh")) ? ANTI_OVERHANG : ((mesh_settings.get<bool>("support_mesh_drop_down")) ? SUPPORT_DROP_DOWN : SUPPORT_VANILLA);
-    for (LayerIndex layer_nr = 0; layer_nr < slicer->layers.size(); layer_nr++)
+
+    ModifierType modifier_type;
+    if (is_anti_overhang_mesh)
+    {
+        modifier_type = ModifierType::ANTI_OVERHANG;
+    }
+    else if (is_force_support_overhang_mesh)
+    {
+        modifier_type = ModifierType::FORCE_OVERHANG;
+    }
+    else if (mesh_settings.get<bool>("support_mesh_drop_down"))
+    {
+        modifier_type = ModifierType::SUPPORT_DROP_DOWN;
+    }
+    else
+    {
+        modifier_type = ModifierType::SUPPORT_VANILLA;
+    }
+
+    for (LayerIndex layer_nr = 0; layer_nr < slicer->layers.size(); ++layer_nr)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
         const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
         switch (modifier_type)
         {
-        case ANTI_OVERHANG:
+        case ModifierType::ANTI_OVERHANG:
             support_layer.anti_overhang.push_back(slicer_layer.polygons_);
             break;
-        case SUPPORT_DROP_DOWN:
+        case ModifierType::SUPPORT_DROP_DOWN:
             support_layer.support_mesh_drop_down.push_back(slicer_layer.polygons_);
             break;
-        case SUPPORT_VANILLA:
+        case ModifierType::SUPPORT_VANILLA:
             support_layer.support_mesh.push_back(slicer_layer.polygons_);
+            break;
+        case ModifierType::FORCE_OVERHANG:
+            support_layer.force_overhang.push_back(slicer_layer.polygons_);
             break;
         }
     }
+
     return true;
 }
 
@@ -597,7 +623,7 @@ void AreaSupport::generateOverhangAreas(SliceDataStorage& storage)
     for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (! mesh.isModelMesh())
         {
             continue;
         }
@@ -625,6 +651,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     {
         SupportLayer& support_layer = storage.support.supportLayers[layer_nr];
         support_layer.anti_overhang = support_layer.anti_overhang.unionPolygons();
+        support_layer.force_overhang = support_layer.force_overhang.unionPolygons();
         support_layer.support_mesh_drop_down = support_layer.support_mesh_drop_down.unionPolygons();
         support_layer.support_mesh = support_layer.support_mesh.unionPolygons();
     }
@@ -641,8 +668,8 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
     {
-        SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+        const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
+        if (! mesh.isModelMesh())
         {
             continue;
         }
@@ -689,7 +716,7 @@ void AreaSupport::generateSupportAreas(SliceDataStorage& storage)
     // handle support interface
     for (auto& mesh : storage.meshes)
     {
-        if (mesh->settings.get<bool>("infill_mesh") || mesh->settings.get<bool>("anti_overhang_mesh"))
+        if (! mesh->isModelMesh())
         {
             continue;
         }
@@ -720,7 +747,7 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
         for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
         {
             const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
-            if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+            if (! mesh.isModelMesh())
             {
                 continue;
             }
@@ -1490,6 +1517,11 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
         Shape merged_polygons = support_layer.anti_overhang.unionPolygons();
 
         basic_overhang = basic_overhang.difference(merged_polygons);
+    }
+
+    if (! support_layer.force_overhang.empty())
+    {
+        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang);
     }
 
     Shape overhang_extended = basic_overhang

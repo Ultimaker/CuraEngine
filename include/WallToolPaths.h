@@ -102,9 +102,9 @@ protected:
      *
      * Works on both toolpaths and inner contours simultaneously.
      *
-     * \param settings The settings as provided by the user
+     * \param stitch_distance The stitch distance to be used
      */
-    static void stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
+    static void stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const coord_t stitch_distance);
 
     /*!
      * Remove polylines shorter than half the smallest line width along that polyline, if that polyline isn't part of an outer wall.
@@ -128,8 +128,16 @@ private:
     bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
     coord_t min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
     coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
-    double small_area_length_; //<! The length of the small features which are to be filtered out, this is squared into a surface
-    coord_t transition_length_; //<! The transitioning length when the amount of extrusion lines changes
+    const AngleRadians wall_transition_angle_;
+    const coord_t wall_transition_length_;
+    const double min_even_wall_line_width_;
+    const double wall_line_width_0_;
+    const double min_odd_wall_line_width_;
+    const double wall_line_width_x_;
+    const int wall_distribution_count_;
+    const coord_t wall_transition_filter_distance_;
+    const coord_t wall_transition_filter_deviation_;
+    const coord_t stitch_distance_;
     bool toolpaths_generated_; //<! Are the toolpaths generated
     std::vector<VariableWidthLines> toolpaths_; //<! The generated toolpaths binned by inset_idx.
     Shape inner_contour_; //<! The inner contour of the generated toolpaths

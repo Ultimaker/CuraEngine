@@ -19,6 +19,7 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
+#include "GcodeTemplateResolver.h"
 #include "InfillOrderOptimizer.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
@@ -1182,8 +1183,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
         for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
         {
             const auto& mesh = *mesh_ptr;
-            if (layer_nr >= static_cast<int>(mesh.layers.size()) || mesh.settings.get<bool>("support_mesh") || mesh.settings.get<bool>("anti_overhang_mesh")
-                || mesh.settings.get<bool>("cutting_mesh") || mesh.settings.get<bool>("infill_mesh"))
+            if (layer_nr >= static_cast<int>(mesh.layers.size()) || mesh.settings.get<bool>("support_mesh") || ! mesh.isModelMesh())
             {
                 continue;
             }
@@ -1736,7 +1736,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
         return;
     }
 
-    if (mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh"))
+    if (! mesh.isPrinted() || mesh.settings.get<bool>("support_mesh"))
     {
         return;
     }
@@ -1806,7 +1806,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
         return;
     }
 
-    if (mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh"))
+    if (! mesh.isPrinted() || mesh.settings.get<bool>("support_mesh"))
     {
         return;
     }
@@ -1976,6 +1976,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
         const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || infill_pattern == EFillMethod::ZIG_ZAG;
         const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
         const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
+        const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("minimum_infill_line_length");
         Shape infill_polygons;
         OpenLinesSet infill_lines;
         std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
@@ -2039,7 +2040,8 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 mesh.cross_fill_provider,
                 lightning_layer,
                 &mesh,
-                Shape());
+                Shape(),
+                minimum_infill_line_length);
             if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
             {
                 infill_inner_contour = infill_inner_contour.unionPolygons(infill_comp.getInnerContour());
@@ -2162,6 +2164,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
     const coord_t overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     const auto skin_support_density = mesh.settings.get<Ratio>("skin_support_density");
+    const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("minimum_infill_line_length");
     const coord_t skin_support_line_distance = skin_support_density > 0.0 ? (infill_line_width / skin_support_density) : 0;
     AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
     if (! mesh.infill_angles.empty())
@@ -2383,7 +2386,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
             mesh.cross_fill_provider,
             lightning_layer,
             &mesh,
-            Shape());
+            Shape(),
+            minimum_infill_line_length);
         if (density_idx < last_idx)
         {
             const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
@@ -4245,7 +4249,7 @@ void FffGcodeWriter::finalize()
 
     if (! extruder_end_code.empty())
     {
-        gcode.writeCodeWithAbsoluteExtrusion(extruder_end_code.c_str());
+        gcode.finalizeExtruder(extruder_end_code);
     }
 
     if (mesh_group_settings.get<bool>("machine_heated_bed"))
@@ -4288,13 +4292,17 @@ void FffGcodeWriter::finalize()
         gcode.writeJerk(mesh_group_settings.get<Velocity>("machine_max_jerk_xy"));
     }
 
-    const auto end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
+    // Replace the setting tokens in start and end g-code.
+    // Use values from the first used extruder by default so we get the expected temperatures
+    auto machine_end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
+    auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
+    machine_end_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_end_gcode, initial_extruder_nr);
 
-    if (end_gcode.length() > 0 && mesh_group_settings.get<bool>("relative_extrusion"))
+    if (! machine_end_gcode.empty() && mesh_group_settings.get<bool>("relative_extrusion"))
     {
         gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
     }
-    gcode.finalize(end_gcode.c_str());
+    gcode.finalize(machine_end_gcode);
 
     // set extrusion mode back to "normal"
     gcode.resetExtrusionMode();

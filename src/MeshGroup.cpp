@@ -58,8 +58,7 @@ Point3LL MeshGroup::min() const
     Point3LL ret(std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh")
-            || mesh.settings_.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
+        if (! mesh.isModelMesh()) // Don't count pieces that are not printed.
         {
             continue;
         }
@@ -80,8 +79,7 @@ Point3LL MeshGroup::max() const
     Point3LL ret(std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min(), std::numeric_limits<int32_t>::min());
     for (const Mesh& mesh : meshes)
     {
-        if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh")
-            || mesh.settings_.get<bool>("anti_overhang_mesh")) // Don't count pieces that are not printed.
+        if (! mesh.isModelMesh()) // Don't count pieces that are not printed.
         {
             continue;
         }
