@@ -33,6 +33,8 @@ class LocalEnvironment;
 namespace cura
 {
 
+class FunctionsEnvironment;
+
 /*!
  *  \brief The GcodeTemplateResolver class allows setting proper variables and environments to resolve a piece of GCode
  *         that can contain dynamic formulae.
@@ -113,6 +115,7 @@ private:
 
 private:
     size_t initial_extruder_nr_{ 0 };
+    std::shared_ptr<FunctionsEnvironment> functions_environment_;
     std::shared_ptr<CuraFormulaeEngine::env::LocalEnvironment> global_environment_;
     std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::Environment>> environment_adapters_;
 };

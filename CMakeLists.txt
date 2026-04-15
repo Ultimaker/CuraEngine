@@ -118,6 +118,7 @@ set(engine_SRCS # Except main.cpp.
         src/gcode_export/FixedGCodePart.cpp
         src/gcode_export/ResolvedGCodePart.cpp
         src/gcode_export/GcodeTemplateResolver.cpp
+        src/gcode_export/FunctionsEnvironment.cpp
 
         src/infill/AbstractLinesInfill.cpp
         src/infill/ImageBasedDensityProvider.cpp

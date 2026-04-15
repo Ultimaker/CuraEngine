@@ -11,6 +11,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "gcode_export/FunctionsEnvironment.h"
 #include "settings/SettingContainersEnvironmentAdapter.h"
 
 namespace cfe = CuraFormulaeEngine;
@@ -23,8 +24,11 @@ void GcodeTemplateResolver::prepareForResolving(const size_t initial_extruder_nr
 {
     initial_extruder_nr_ = initial_extruder_nr;
 
+    // Create an environment containing the callable functions implementations
+    functions_environment_ = std::make_shared<FunctionsEnvironment>(&CuraFormulaeEngine::env::std_env);
+
     // Create an environment containing all the extra global settings
-    global_environment_ = std::make_shared<cfe::env::LocalEnvironment>(&CuraFormulaeEngine::env::std_env);
+    global_environment_ = std::make_shared<cfe::env::LocalEnvironment>(functions_environment_.get());
     global_environment_->add(extra_global_settings);
     global_environment_->set("initial_extruder_nr", static_cast<int64_t>(initial_extruder_nr_));
 
@@ -33,7 +37,9 @@ void GcodeTemplateResolver::prepareForResolving(const size_t initial_extruder_nr
     environment_adapters_[std::nullopt] = std::make_shared<SettingContainersEnvironmentAdapter>(scene.settings, global_environment_.get());
     for (auto [extruder_nr, extruder_train] : scene.extruders | ranges::views::enumerate)
     {
-        environment_adapters_[extruder_nr] = std::make_shared<SettingContainersEnvironmentAdapter>(extruder_train.settings_, global_environment_.get());
+        auto extruder_environment_adapter = std::make_shared<SettingContainersEnvironmentAdapter>(extruder_train.settings_, global_environment_.get());
+        environment_adapters_[extruder_nr] = extruder_environment_adapter;
+        functions_environment_->addExtruderAdapter(extruder_nr, extruder_environment_adapter);
     }
 }
 
