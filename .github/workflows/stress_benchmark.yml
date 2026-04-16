@@ -34,7 +34,17 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@main
     secrets: inherit
 
+  find-ticket-packages:
+    name: Extract ticket and find packages
+    uses: ultimaker/cura-workflows/.github/workflows/extract-ticket-and-find-packages.yml@main
+    secrets: inherit
+
   benchmark:
+    needs: [check_actor, find-ticket-packages]
+    if: >-
+      always() &&
+      needs.check_actor.outputs.proceed == 'true' &&
+      needs.find-ticket-packages.result == 'success'
     uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@main
     with:
       conan_extra_args: "-c tools.build:skip_test=False -o \"curaengine/*:enable_benchmarks=True\""
@@ -43,4 +53,5 @@ jobs:
       output_file_path: "benchmark_result.json"
       data_dir: "dev/stress_bench"
       tool: "customSmallerIsBetter"
+      package_overrides: ${{ needs.find-ticket-packages.outputs.package_overrides || '' }}
     secrets: inherit
