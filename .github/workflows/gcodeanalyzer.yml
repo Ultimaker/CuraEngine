@@ -94,9 +94,7 @@ jobs:
           profile: cura.jinja
 
       - name: Install dependencies and build CuraEngine
-        env:
-          CONAN_PROFILE: ${{ steps.set_overrides.outputs.profile || 'cura.jinja' }}
-        run: conan build . --profile "$CONAN_PROFILE" -s build_type=Release --build=missing --update -g VirtualRunEnv -o "curaengine/*:with_cura_resources=True"
+        run: conan build . --profile ${{ steps.set_overrides.outputs.profile || 'cura.jinja' }} -s build_type=Release --build=missing --update -g VirtualRunEnv -o "curaengine/*:with_cura_resources=True"
 
       - name: Collect STL-files, run CuraEngine, output GCode-files
         run: |
