@@ -402,7 +402,7 @@ private:
     /*!
      * \brief Does at least one mesh allow support to rest on a model.
      */
-    bool support_rests_on_model_;
+    bool support_rests_on_model_{ false };
 
     /*!
      * \brief The progress of the precalculate function for communicating it to the progress bar.
