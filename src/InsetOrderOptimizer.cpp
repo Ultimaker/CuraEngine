@@ -22,6 +22,7 @@
 
 #include "ExtruderTrain.h"
 #include "FffGcodeWriter.h"
+#include "ForceRetract.h"
 #include "LayerPlan.h"
 #include "utils/views/convert.h"
 #include "utils/views/dfs.h"
@@ -33,7 +34,6 @@ namespace cura
 {
 
 InsetOrderOptimizer::InsetOrderOptimizer(
-    const FffGcodeWriter& gcode_writer,
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const Settings& settings,
@@ -46,7 +46,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const GCodePathConfig& inset_X_flooring_config,
     const GCodePathConfig& inset_0_bridge_config,
     const GCodePathConfig& inset_X_bridge_config,
-    const bool retract_before_outer_wall,
     const coord_t wall_0_wipe_dist,
     const coord_t wall_x_wipe_dist,
     const size_t wall_0_extruder_nr,
@@ -58,9 +57,9 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     const bool scarf_seam,
     const bool smooth_speed,
     const Shape& overhang_areas,
-    const std::shared_ptr<TextureDataProvider>& texture_data_provider)
-    : gcode_writer_(gcode_writer)
-    , storage_(storage)
+    const std::shared_ptr<TextureDataProvider>& texture_data_provider,
+    const bool start_width_longest_wall)
+    : storage_(storage)
     , gcode_layer_(gcode_layer)
     , settings_(settings)
     , extruder_nr_(extruder_nr)
@@ -72,7 +71,6 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , inset_X_flooring_config_(inset_X_flooring_config)
     , inset_0_bridge_config_(inset_0_bridge_config)
     , inset_X_bridge_config_(inset_X_bridge_config)
-    , retract_before_outer_wall_(retract_before_outer_wall)
     , wall_0_wipe_dist_(wall_0_wipe_dist)
     , wall_x_wipe_dist_(wall_x_wipe_dist)
     , wall_0_extruder_nr_(wall_0_extruder_nr)
@@ -86,15 +84,15 @@ InsetOrderOptimizer::InsetOrderOptimizer(
     , smooth_speed_(smooth_speed)
     , overhang_areas_(overhang_areas)
     , texture_data_provider_(texture_data_provider)
+    , start_width_longest_wall_(start_width_longest_wall)
 {
 }
 
-bool InsetOrderOptimizer::addToLayer()
+void InsetOrderOptimizer::optimize()
 {
     // Settings & configs:
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
-    const auto inset_direction = settings_.get<InsetDirection>("inset_direction");
-    const auto alternate_walls = settings_.get<bool>("material_alternate_walls");
+    const auto inset_direction = settings_.get<InsetDirection>((layer_nr_ == 0) ? "initial_layer_inset_direction" : "inset_direction");
 
     const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
     const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
@@ -102,20 +100,17 @@ bool InsetOrderOptimizer::addToLayer()
 
     const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
     const bool use_shortest_for_inner_walls = outer_to_inner;
-    auto walls_to_be_added = getWallsToBeAdded(reverse, use_one_extruder);
+    walls_to_be_added_ = getWallsToBeAdded(reverse, use_one_extruder);
 
-    const auto order = pack_by_inset ? getInsetOrder(walls_to_be_added, outer_to_inner) : getRegionOrder(walls_to_be_added, outer_to_inner);
-
-    constexpr Ratio flow = 1.0_r;
-
-    bool added_something = false;
+    const std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order
+        = pack_by_inset ? getInsetOrder(walls_to_be_added_, outer_to_inner) : getRegionOrder(walls_to_be_added_, outer_to_inner);
 
     constexpr bool detect_loops = false;
     constexpr Shape* combing_boundary = nullptr;
     const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
-    PathOrderOptimizer<const ExtrusionLine*> order_optimizer(
+    path_optimizer_ = std::make_shared<PathOrderOptimizer<const ExtrusionLine*>>(
         gcode_layer_.getLastPlannedPositionOrStartingPosition(),
         z_seam_config_,
         detect_loops,
@@ -126,9 +121,10 @@ bool InsetOrderOptimizer::addToLayer()
         disallowed_areas_for_seams_,
         use_shortest_for_inner_walls,
         overhang_areas_,
-        texture_data_provider_);
+        texture_data_provider_,
+        start_width_longest_wall_);
 
-    for (auto& line : walls_to_be_added)
+    for (auto& line : walls_to_be_added_)
     {
         if (line.is_closed_)
         {
@@ -138,17 +134,44 @@ bool InsetOrderOptimizer::addToLayer()
                 // If the user indicated that we may deviate from the vertices for the seam, we can insert a seam point, if needed.
                 force_start = insertSeamPoint(line);
             }
-            order_optimizer.addPolygon(&line, force_start, line.is_outer_wall());
+            path_optimizer_->addPolygon(&line, force_start, line.is_outer_wall());
         }
         else
         {
-            order_optimizer.addPolyline(&line);
+            path_optimizer_->addPolyline(&line);
         }
     }
 
-    order_optimizer.optimize();
+    path_optimizer_->optimize();
+}
 
-    for (const PathOrdering<const ExtrusionLine*>& path : order_optimizer.paths_)
+bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before_outer_wall)
+{
+    if (path_optimizer_ == nullptr)
+    {
+        optimize();
+    }
+
+    const auto alternate_walls = settings_.get<bool>("material_alternate_walls");
+    constexpr Ratio flow = 1.0_r;
+    bool added_something = false;
+
+    ForceRetract force_retract = ForceRetract::AUTOMATIC;
+    switch (retract_before_outer_wall)
+    {
+    case RetractBeforeOuterWall::AUTOMATIC:
+        force_retract = ForceRetract::AUTOMATIC;
+        break;
+    case RetractBeforeOuterWall::RETRACTED:
+        force_retract = ForceRetract::RETRACTED;
+        break;
+    case RetractBeforeOuterWall::NOT_RETRACTED:
+    case RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL:
+        force_retract = ForceRetract::NOT_RETRACTED;
+        break;
+    }
+
+    for (const PathOrdering<const ExtrusionLine*>& path : path_optimizer_->paths_)
     {
         if (path.vertices_->empty())
         {
@@ -162,7 +185,7 @@ bool InsetOrderOptimizer::addToLayer()
         const GCodePathConfig& flooring_config = is_outer_wall ? inset_0_flooring_config_ : inset_X_flooring_config_;
         const GCodePathConfig& bridge_config = is_outer_wall ? inset_0_bridge_config_ : inset_X_bridge_config_;
         const coord_t wipe_dist = is_outer_wall && ! is_gap_filler ? wall_0_wipe_dist_ : wall_x_wipe_dist_;
-        const bool retract_before = is_outer_wall ? retract_before_outer_wall_ : false;
+        const ForceRetract retract_before = is_outer_wall ? force_retract : ForceRetract::AUTOMATIC;
         const bool scarf_seam = scarf_seam_ && is_outer_wall;
         const bool smooth_speed = smooth_speed_ && is_outer_wall;
 
@@ -190,7 +213,14 @@ bool InsetOrderOptimizer::addToLayer()
             scarf_seam,
             smooth_speed);
         added_something = true;
+
+        if (retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL)
+        {
+            // Only the first should be forced, the next ones use auto
+            force_retract = ForceRetract::AUTOMATIC;
+        }
     }
+
     return added_something;
 }
 
@@ -428,6 +458,19 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     return order;
 }
 
+std::optional<Point2LL> InsetOrderOptimizer::getStartPosition() const
+{
+    if (path_optimizer_ == nullptr || path_optimizer_->paths_.empty())
+    {
+        return std::nullopt;
+    }
+
+    PathOrdering<const ExtrusionLine*>& first_path = path_optimizer_->paths_.front();
+
+    const auto& vert_data = first_path.getVertexData();
+    return vert_data.at(first_path.start_vertex_);
+}
+
 InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
 {
     value_type order;
@@ -526,4 +569,5 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
     }
     return view | rv::join | rv::remove_if(rg::empty) | rg::to_vector;
 }
+
 } // namespace cura
