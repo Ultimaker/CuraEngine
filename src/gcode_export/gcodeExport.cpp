@@ -1,29 +1,35 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 
 #include <cassert>
+#include <chrono>
 #include <cmath>
 #include <cura-formulae-engine/parser/parser.h>
 #include <iomanip>
 #include <numbers>
 #include <regex>
 
+#include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To send layer view data.
 #include "ExtruderTrain.h"
-#include "GcodeTemplateResolver.h"
 #include "PrintFeature.h"
 #include "RetractionConfig.h"
 #include "Slice.h"
 #include "TravelAntiOozing.h"
 #include "WipeScriptConfig.h"
 #include "communication/Communication.h" //To send layer view data.
+#include "gcode_export/FixedGCodePart.h"
+#include "gcode_export/GcodeTemplateResolver.h"
+#include "gcode_export/ResolvedGCodePart.h"
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Date.h"
+#include "utils/ThreadPool.h"
+#include "utils/math.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble
 
 namespace cfe = CuraFormulaeEngine;
@@ -44,13 +50,11 @@ std::string transliterate(const std::string& text)
 }
 
 GCodeExport::GCodeExport()
-    : output_stream_(&std::cout)
-    , current_position_(0, 0, MM2INT(20))
+    : current_position_(0, 0, MM2INT(20))
     , layer_nr_(0)
     , relative_extrusion_(false)
+    , template_resolver_(std::make_shared<GcodeTemplateResolver>())
 {
-    *output_stream_ << std::fixed;
-
     current_e_value_ = 0;
     current_extruder_ = 0;
 
@@ -75,6 +79,8 @@ GCodeExport::GCodeExport()
     new_line_ = "\n";
 
     total_bounding_box_ = AABB3D();
+
+    prepareNewFixedGCodePart();
 }
 
 GCodeExport::~GCodeExport()
@@ -352,12 +358,7 @@ std::string GCodeExport::getFileHeader(
 void GCodeExport::setLayerNr(const LayerIndex& layer_nr)
 {
     layer_nr_ = layer_nr;
-}
-
-void GCodeExport::setOutputStream(std::ostream* stream)
-{
-    output_stream_ = stream;
-    *output_stream_ << std::fixed;
+    prepareNewFixedGCodePart(); // Now is a good time to switch to a new buffer
 }
 
 bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
@@ -439,7 +440,7 @@ coord_t GCodeExport::getPositionZ() const
     return current_position_.z_;
 }
 
-int GCodeExport::getExtruderNr() const
+size_t GCodeExport::getExtruderNr() const
 {
     return current_extruder_;
 }
@@ -529,22 +530,17 @@ double GCodeExport::eToMm3(double e, size_t extruder)
     }
 }
 
-double GCodeExport::getTotalFilamentUsed(size_t extruder_nr)
+double GCodeExport::getTotalFilamentUsed(size_t extruder_nr) const
 {
     if (extruder_nr == current_extruder_)
         return extruder_attr_[extruder_nr].total_filament_ + getCurrentExtrudedVolume();
     return extruder_attr_[extruder_nr].total_filament_;
 }
 
-std::vector<Duration> GCodeExport::getTotalPrintTimePerFeature()
-{
-    return total_print_times_;
-}
-
 double GCodeExport::getSumTotalPrintTimes()
 {
     double sum = 0.0;
-    for (double item : getTotalPrintTimePerFeature())
+    for (double item : total_print_times_)
     {
         sum += item;
     }
@@ -716,13 +712,11 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 
     // Replace the setting tokens in start and end g-code.
     // Use values from the first used extruder by default so we get the expected temperatures
-    auto machine_start_gcode = mesh_group_settings.get<std::string>("machine_start_gcode");
-    auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
-    machine_start_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_start_gcode, initial_extruder_nr);
+    const auto machine_start_gcode = mesh_group_settings.get<std::string>("machine_start_gcode");
 
-    if (! machine_start_gcode.empty() && mesh_group_settings.get<bool>("machine_start_gcode_first"))
+    if (mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {
-        writeRaw(machine_start_gcode);
+        writeResolvableGCode(machine_start_gcode, DynamicExtruderContext::Initial);
     }
 
     if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
@@ -736,9 +730,9 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         processInitialLayerTemperature(storage, start_extruder_nr);
     }
 
-    if (! machine_start_gcode.empty() && ! mesh_group_settings.get<bool>("machine_start_gcode_first"))
+    if (! mesh_group_settings.get<bool>("machine_start_gcode_first"))
     {
-        writeRaw(machine_start_gcode);
+        writeResolvableGCode(machine_start_gcode, DynamicExtruderContext::Initial);
     }
     writeExtrusionMode(false); // ensure absolute extrusion mode is set before the start gcode
 
@@ -1438,13 +1432,74 @@ PrintFeatureType
     return travel_move_type;
 }
 
+void GCodeExport::sendFinalGCode()
+{
+    std::shared_ptr<Communication> communication = Application::getInstance().communication_;
+
+    run_multiple_producers_ordered_consumer(
+        0,
+        gcode_parts_.size(),
+        [this](int gcode_part_index)
+        {
+            return std::make_optional(gcode_parts_.at(gcode_part_index)->str());
+        },
+        [&communication](const std::optional<std::string>& gcode_part_str)
+        {
+            if (! gcode_part_str->empty())
+            {
+                communication->sendGCodePart(*gcode_part_str);
+            }
+        });
+}
+
+std::vector<std::optional<ExtruderPrintInformation>> GCodeExport::calculateMaterialPrintInformation() const
+{
+    std::vector<std::optional<ExtruderPrintInformation>> extruders_info;
+
+    const std::vector<ExtruderTrain>& extruders = Application::getInstance().current_slice_->scene.extruders;
+    const size_t used_extruders = extruders.size();
+    extruders_info.resize(used_extruders);
+
+    for (size_t extruder_nr = 0; extruder_nr < used_extruders; ++extruder_nr)
+    {
+        if (! getExtruderIsUsed(extruder_nr))
+        {
+            continue;
+        }
+
+        ExtruderPrintInformation extruder_info;
+
+        const Settings& extruder_settings = extruders[extruder_nr].settings_;
+        const double material_radius = extruder_settings.get<double>("material_diameter") / 2;
+        const double material_density = extruder_settings.get<double>("material_density");
+        const double material_spool_weight = extruder_settings.get<double>("material_spool_weight");
+        const double material_spool_cost = extruder_settings.get<double>("material_spool_cost");
+
+        extruder_info.material_name = extruder_settings.get<std::string>("material_name");
+        extruder_info.filament_amount = getTotalFilamentUsed(extruder_nr);
+        extruder_info.filament_length = (extruder_info.filament_amount / (std::numbers::pi * square(material_radius))) / 1000;
+        extruder_info.filament_weight = extruder_info.filament_amount * material_density / 1000.0;
+
+        extruder_info.filament_cost = 0.0;
+        if (material_spool_weight > 0.0 && material_spool_cost > 0.0)
+        {
+            const double filament_cost_per_weight = material_spool_cost / material_spool_weight;
+            extruder_info.filament_cost = extruder_info.filament_weight * filament_cost_per_weight;
+        }
+
+        extruders_info[extruder_nr] = extruder_info;
+    }
+
+    return extruders_info;
+}
+
 void GCodeExport::startExtruder(const size_t new_extruder)
 {
     const std::unordered_map<std::string, cfe::eval::Value> extra_settings
         = { { "previous_extruder_nr", static_cast<int64_t>(current_extruder_) }, { "next_extruder_nr", static_cast<int64_t>(new_extruder) } };
     const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder].settings_;
-    const auto prestart_code = GcodeTemplateResolver::resolveGCodeTemplate(extruder_settings.get<std::string>("machine_extruder_prestart_code"), new_extruder, extra_settings);
-    const auto start_code = GcodeTemplateResolver::resolveGCodeTemplate(extruder_settings.get<std::string>("machine_extruder_start_code"), new_extruder, extra_settings);
+    const auto prestart_code = extruder_settings.get<std::string>("machine_extruder_prestart_code");
+    const auto start_code = extruder_settings.get<std::string>("machine_extruder_start_code");
     const auto start_code_duration = extruder_settings.get<Duration>("machine_extruder_start_code_duration");
     const auto extruder_change_duration = extruder_settings.get<Duration>("machine_extruder_change_duration");
 
@@ -1452,7 +1507,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     // to heat and run this so it's run before the change call. **Future note**
     if (! prestart_code.empty())
     {
-        writeCodeWithAbsoluteExtrusion(prestart_code);
+        writeCodeWithAbsoluteExtrusion(prestart_code, new_extruder, extra_settings);
     }
 
     extruder_attr_[new_extruder].is_used_ = true;
@@ -1479,7 +1534,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
 
     if (! start_code.empty())
     {
-        writeCodeWithAbsoluteExtrusion(start_code);
+        writeCodeWithAbsoluteExtrusion(start_code, new_extruder, extra_settings);
     }
 
     Application::getInstance().communication_->setExtruderForSend(Application::getInstance().current_slice_->scene.extruders[new_extruder]);
@@ -1513,11 +1568,11 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
 
     const std::unordered_map<std::string, cfe::eval::Value> extra_settings
         = { { "previous_extruder_nr", static_cast<int64_t>(current_extruder_) }, { "next_extruder_nr", static_cast<int64_t>(new_extruder) } };
-    const auto end_code = GcodeTemplateResolver::resolveGCodeTemplate(old_extruder_settings.get<std::string>("machine_extruder_end_code"), current_extruder_, extra_settings);
+    const auto end_code = old_extruder_settings.get<std::string>("machine_extruder_end_code");
 
     if (! end_code.empty())
     {
-        writeCodeWithAbsoluteExtrusion(end_code);
+        writeCodeWithAbsoluteExtrusion(end_code, current_extruder_, extra_settings);
     }
 
     const auto end_code_duration = old_extruder_settings.get<Duration>("machine_extruder_end_code_duration");
@@ -1531,14 +1586,17 @@ void GCodeExport::writeCode(const std::string& str)
     *output_stream_ << str << new_line_;
 }
 
-void GCodeExport::writeCodeWithAbsoluteExtrusion(const std::string& str)
+void GCodeExport::writeCodeWithAbsoluteExtrusion(
+    const std::string& str,
+    const ResolvingExtruderContext& extruder_nr,
+    const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings)
 {
     if (relative_extrusion_)
     {
         writeExtrusionMode(false); // ensure absolute extrusion mode is set before the gcode
     }
 
-    writeCode(str);
+    writeResolvableGCode(str, extruder_nr, extra_settings);
 
     if (relative_extrusion_)
     {
@@ -1897,32 +1955,113 @@ void GCodeExport::writeJerk(const Velocity& jerk)
     }
 }
 
-void GCodeExport::finalize(const std::string& endCode)
+void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_info)
 {
     writeFanCommand(0);
-    writeRaw(endCode);
-    int64_t print_time = getSumTotalPrintTimes();
-    int mat_0 = getTotalFilamentUsed(0);
-    spdlog::info("Print time (s): {}", print_time);
-    spdlog::info("Print time (hr|min|s): {}h {}m {}s", int(print_time / 60 / 60), int((print_time / 60) % 60), int(print_time % 60));
-    spdlog::info("Filament (mm^3): {}", mat_0);
-    for (int n = 1; n < MAX_EXTRUDERS; n++)
-        if (getTotalFilamentUsed(n) > 0)
-            spdlog::info("Filament {}: {}", n + 1, int(getTotalFilamentUsed(n)));
-    flushOutputStream();
+    writeResolvableGCode(end_code, DynamicExtruderContext::Initial);
+
+    std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> extra_global_settings;
+
+    std::chrono::seconds print_time(static_cast<int64_t>(getSumTotalPrintTimes()));
+    spdlog::info("Print time: {}", print_time);
+
+    auto print_hours = std::chrono::duration_cast<std::chrono::hours>(print_time);
+    print_time -= print_hours;
+    auto print_minutes = std::chrono::duration_cast<std::chrono::minutes>(print_time);
+    print_time -= print_minutes;
+    auto print_seconds = std::chrono::duration_cast<std::chrono::seconds>(print_time);
+    spdlog::info("Print time (hr|min|s): {} {} {}", print_hours, print_minutes, print_seconds);
+    extra_global_settings.emplace("print_time", fmt::format("{:02d}:{:02d}:{:02d}", print_hours.count(), print_minutes.count(), print_seconds.count()));
+
+    print_info.extruders_info = calculateMaterialPrintInformation();
+    spdlog::info("Filament (mm^3): {}", print_info.extruders_info[0].value_or(ExtruderPrintInformation()).filament_amount);
+    for (const auto& [extruder_nr, extruder_info] : print_info.extruders_info | ranges::views::enumerate | ranges::views::drop(1))
+    {
+        if (extruder_info.has_value())
+        {
+            spdlog::info("Filament {}: {}", extruder_nr + 1, static_cast<int>(extruder_info->filament_amount));
+        }
+    }
+
+    const size_t used_extruders = print_info.extruders_info.size();
+    std::vector<cfe::eval::Value> filaments_amounts(used_extruders);
+    std::vector<cfe::eval::Value> filaments_weights(used_extruders);
+    std::vector<cfe::eval::Value> filaments_costs(used_extruders);
+    for (const auto& [extruder_nr, extruder_info_opt] : print_info.extruders_info | ranges::views::enumerate)
+    {
+        const ExtruderPrintInformation extruder_info = extruder_info_opt.value_or(ExtruderPrintInformation());
+        filaments_amounts[extruder_nr] = extruder_info.filament_length;
+        filaments_weights[extruder_nr] = extruder_info.filament_weight;
+        filaments_costs[extruder_nr] = extruder_info.filament_cost;
+    }
+
+    extra_global_settings.emplace("filament_amount", filaments_amounts);
+    extra_global_settings.emplace("filament_weight", filaments_weights);
+    extra_global_settings.emplace("filament_cost", filaments_costs);
+
+    const AABB& initial_layer_bb = print_info.initial_layer_bb;
+    extra_global_settings.emplace("initial_layer_bb_min_x", INT2MM(initial_layer_bb.min_.X));
+    extra_global_settings.emplace("initial_layer_bb_max_x", INT2MM(initial_layer_bb.max_.X));
+    extra_global_settings.emplace("initial_layer_bb_min_y", INT2MM(initial_layer_bb.min_.Y));
+    extra_global_settings.emplace("initial_layer_bb_max_y", INT2MM(initial_layer_bb.max_.Y));
+    extra_global_settings.emplace("initial_layer_bb_width", INT2MM(initial_layer_bb.width()));
+    extra_global_settings.emplace("initial_layer_bb_height", INT2MM(initial_layer_bb.height()));
+
+    extra_global_settings.emplace("total_bb_min_x", INT2MM(total_bounding_box_.min_.x_));
+    extra_global_settings.emplace("total_bb_max_x", INT2MM(total_bounding_box_.max_.x_));
+    extra_global_settings.emplace("total_bb_min_y", INT2MM(total_bounding_box_.min_.y_));
+    extra_global_settings.emplace("total_bb_max_y", INT2MM(total_bounding_box_.max_.y_));
+    extra_global_settings.emplace("total_bb_min_z", INT2MM(total_bounding_box_.min_.z_));
+    extra_global_settings.emplace("total_bb_max_z", INT2MM(total_bounding_box_.max_.z_));
+    extra_global_settings.emplace("total_bb_width", INT2MM(total_bounding_box_.spanX()));
+    extra_global_settings.emplace("total_bb_depth", INT2MM(total_bounding_box_.spanY()));
+    extra_global_settings.emplace("total_bb_height", INT2MM(total_bounding_box_.spanZ()));
+
+    std::vector<cfe::eval::Value> is_extruder_used(MAX_EXTRUDERS);
+    for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
+    {
+        is_extruder_used[extruder_nr] = (extruder_nr < used_extruders && print_info.extruders_info[extruder_nr].has_value());
+    }
+    extra_global_settings.emplace("is_extruder_used", is_extruder_used);
+
+    template_resolver_->prepareForResolving(print_info.initial_extruder_nr.value_or(0), extra_global_settings);
+
+    sendFinalGCode();
+
+    Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_info);
 }
 
 void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)
 {
     const std::unordered_map<std::string, cfe::eval::Value> extra_settings
         = { { "previous_extruder_nr", static_cast<int64_t>(getExtruderNr()) }, { "next_extruder_nr", static_cast<int64_t>(-1) } };
-    const std::string resolved_end_code = GcodeTemplateResolver::resolveGCodeTemplate(extruder_end_code, getExtruderNr(), extra_settings);
-    writeCodeWithAbsoluteExtrusion(resolved_end_code);
+    writeCodeWithAbsoluteExtrusion(extruder_end_code, getExtruderNr(), extra_settings);
 }
 
 void GCodeExport::flushOutputStream()
 {
-    output_stream_->flush();
+    prepareNewFixedGCodePart();
+}
+
+void GCodeExport::prepareNewFixedGCodePart()
+{
+    auto fixed_gcode_part = std::make_shared<FixedGCodePart>();
+    gcode_parts_.push_back(fixed_gcode_part);
+    output_stream_ = &fixed_gcode_part->stream();
+}
+
+void GCodeExport::writeResolvableGCode(
+    const std::string& raw_text,
+    const ResolvingExtruderContext& extruder_nr,
+    const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings)
+{
+    if (raw_text.empty())
+    {
+        return;
+    }
+
+    gcode_parts_.push_back(std::make_shared<ResolvedGCodePart>(template_resolver_, raw_text, extruder_nr, extra_settings));
+    prepareNewFixedGCodePart();
 }
 
 double GCodeExport::getExtrudedVolumeAfterLastWipe(size_t extruder)
