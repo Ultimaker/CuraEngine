@@ -48,7 +48,7 @@ jobs:
   find-packages:
     name: Find ticket-specific packages
     needs: [extract-ticket]
-    if: always() && needs.extract-ticket.outputs.ticket != ''
+    if: needs.extract-ticket.outputs.ticket != ''
     uses: ultimaker/cura-workflows/.github/workflows/find-package-by-ticket.yml@main
     with:
       jira_ticket_number: ${{ needs.extract-ticket.outputs.ticket }}
