@@ -31,8 +31,36 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@main
     secrets: inherit
 
+  extract-ticket:
+    name: Extract Jira ticket from branch
+    runs-on: ubuntu-latest
+    if: github.ref_name != 'main'
+    outputs:
+      ticket: ${{ steps.extract.outputs.ticket }}
+    steps:
+      - name: Extract ticket number
+        id: extract
+        run: |
+          branch="${{ github.head_ref || github.ref_name }}"
+          ticket=$(echo "$branch" | grep -oP '^(CURA|PP|NP)-\d+' || echo "")
+          echo "ticket=$ticket" >> $GITHUB_OUTPUT
+
+  find-packages:
+    name: Find ticket-specific packages
+    needs: [extract-ticket]
+    if: needs.extract-ticket.outputs.ticket != ''
+    uses: ultimaker/cura-workflows/.github/workflows/find-package-by-ticket.yml@main
+    with:
+      jira_ticket_number: ${{ needs.extract-ticket.outputs.ticket }}
+    secrets: inherit
+
   gcodeanalyzer:
     name: Run GCodeAnalyzer on the engine
+    needs: [check_actor, find-packages]
+    if: >-
+      always() &&
+      needs.check_actor.outputs.proceed == 'true' &&
+      (needs.find-packages.result == 'success' || needs.find-packages.result == 'skipped')
     runs-on: ubuntu-latest
     steps:
       - name: Setup the build environment
@@ -40,11 +68,23 @@ jobs:
         with:
           install_system_dependencies: true
 
+      - name: Resolve GCodeAnalyzer branch
+        id: resolve_gca_branch
+        env:
+          GH_TOKEN: ${{ secrets.CURA_BENCHMARK_PAT }}
+        run: |
+          branch="${{ github.head_ref || github.ref_name }}"
+          if gh api "repos/Ultimaker/GCodeAnalyzer/branches/$branch" --silent 2>/dev/null; then
+            echo "ref=$branch" >> $GITHUB_OUTPUT
+          else
+            echo "ref=main" >> $GITHUB_OUTPUT
+          fi
+
       - name: Checkout GCodeAnalyzer
         uses: actions/checkout@v4
         with:
           repository: 'Ultimaker/GCodeAnalyzer'
-          ref: 'main'
+          ref: ${{ steps.resolve_gca_branch.outputs.ref }}
           path: 'GCodeAnalyzer'
           fetch-depth: 1
           token: ${{ secrets.CURA_BENCHMARK_PAT }}
@@ -63,8 +103,16 @@ jobs:
           pip install pandas
           pip install git+https://github.com/ultimaker/libcharon@CURA-9495_analyzer_requisites#egg=charon
 
+      - name: Set package overrides
+        id: set_overrides
+        if: needs.find-packages.outputs.package_overrides != ''
+        uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
+        with:
+          package_overrides: ${{ needs.find-packages.outputs.package_overrides }}
+          profile: cura.jinja
+
       - name: Install dependencies and build CuraEngine
-        run: conan build . -s build_type=Release --build=missing --update -g VirtualRunEnv -o "curaengine/*:with_cura_resources=True"
+        run: conan build . --profile ${{ steps.set_overrides.outputs.profile || 'cura.jinja' }} -s build_type=Release --build=missing --update -g VirtualRunEnv -o "curaengine/*:with_cura_resources=True"
 
       - name: Collect STL-files, run CuraEngine, output GCode-files
         run: |
@@ -76,138 +124,14 @@ jobs:
               ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j $CURA_RESOURCES/definitions/ultimaker_s3.def.json -l $file -o `basename $file .stl`.gcode ) 2> `basename $file .stl`.time
           done
 
-# TODO: Move this to GCodeAnalyzer
       - name: Run GCodeAnalyzer on generated GCode files
         id: gcode_out
-        shell: python
-        working-directory: GCodeAnalyzer
-        run: |
-          import sys
-          import os
-          import json
-          import re
-          from Charon.filetypes.GCodeFile import GCodeFile
-          
-          sys.path.append(".")
-          import GCodeAnalyzer
-          GCodeFile.SkipHeaderValidation = True
-          
-          folder_path = ".."
-          jzon = []
-          for filename in os.listdir(folder_path):
-              basename = os.path.basename(filename)
-              _base, ext = os.path.splitext(basename)
-              if ext.lower() != ".gcode":
-                  continue
-              infilename = os.path.join(folder_path, filename)
-              with open(infilename.rsplit(".", 1)[0] + ".time", "r") as f:
-                  content = f.read()
-                  match = re.search(r"^real\s+(\d+)m(\d+\.\d+)s", content, re.MULTILINE)
-                  if match:
-                      timer = float(match.group(1)) * 60 + float(match.group(2))
-                  else:
-                      timer = 0
-
-              frame = GCodeAnalyzer.DataFrame(infilename)
-          
-              line_lengths = frame.gc.extrusions['length'].describe()
-              all_lengths = frame.gc.travels['length'].describe()
-              extrusion_values = frame.gc.extrusions['E'].describe()
-              temperatures = frame['T_0_nozzle'].describe()
-              print_time = frame.time.max()
-              no_retractions = len(frame.gc.retractions)
-              total_travel_length = frame.gc.travels.length.sum()
-          
-              # microsegments violations
-              queue = 16
-              seg_sec = 80
-              violation_threshold = queue / seg_sec
-              microsegments_wall_skin = frame.gc.extrusions.duration[(frame.type == 'WALL-OUTER') | (frame.type == 'WALL-INNER') | (frame.type == 'SKIN')].rolling(queue).sum()
-              no_violations_wall_skin = microsegments_wall_skin[microsegments_wall_skin < violation_threshold].count()
-          
-              microsegments_infill = frame.gc.extrusions.duration[frame.type == 'FILL'].rolling(queue).sum()
-              no_violations_infill = microsegments_infill[microsegments_infill < violation_threshold].count()
-          
-              jzon += [
-                  {
-                      "name": f"Print time {basename}",
-                      "unit": "s",
-                      "value": print_time,
-                  },
-                  {
-                      "name": f"Microsegment violations in wall-skin {basename}",
-                      "unit": "-",
-                      "value": int(no_violations_wall_skin),
-                  },
-                  {
-                      "name": f"Microsegment violations in infill {basename}",
-                      "unit": "-",
-                      "value": int(no_violations_infill),
-                  },
-                  {
-                      "name": f"Number of retractions {basename}",
-                      "unit": "-",
-                      "value": no_retractions,
-                  },
-                  {
-                      "name": f"Total travel length {basename}",
-                      "unit": "mm",
-                      "value": total_travel_length,
-                  },
-                  {
-                      "name": f"Minimum Line Length {basename}",
-                      "unit": "mm",
-                      "value": line_lengths["min"],
-                  },
-                  {
-                      "name": f"Line Lengths 25 Percentile {basename}",
-                      "unit": "mm",
-                      "value": line_lengths["25%"],
-                  },
-                  {
-                      "name": f"Minimum All Distances {basename}",
-                      "unit": "mm",
-                      "value": all_lengths["min"],
-                  },
-                  {
-                      "name": f"All Distances 25 Percentile {basename}",
-                      "unit": "mm",
-                      "value": all_lengths["25%"],
-                  },
-                  {
-                      "name": f"Extrusion-Axis {basename}",
-                      "unit": "mm",
-                      "value": extrusion_values["min"],
-                  },
-                  {
-                      "name": f"Extrusion Lengths 25 Percentile {basename}",
-                      "unit": "mm",
-                      "value": extrusion_values["25%"],
-                  },
-                  {
-                      "name": f"Number Of Temperature Commands {basename}",
-                      "unit": "#",
-                      "value": temperatures["count"],
-                  },
-                  {
-                      "name": f"Mean Temperature {basename}",
-                      "unit": "Celcius",
-                      "value": temperatures["50%"],
-                  },
-                  {
-                      "name": f"Slicing time {basename}",
-                      "unit": "s",
-                      "value": timer,
-                  },
-              ]
-          
-          with open("../output.json", "w") as outfile:
-              outfile.write(json.dumps(jzon))
+        run: python3 GCodeAnalyzer/scripts/analyze_gcode.py --input-dir . --output-file output.json
 
       - name: Store benchmark result
         uses: benchmark-action/github-action-benchmark@v1
         with:
-          name: CGcodeAnalyzer
+          name: GCodeAnalyzer
           output-file-path: output.json
           gh-repository: github.com/Ultimaker/CuraEngineBenchmarks
           gh-pages-branch: main
