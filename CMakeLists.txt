@@ -87,6 +87,7 @@ set(engine_SRCS # Except main.cpp.
         src/TreeSupportTipGenerator.cpp
         src/TreeModelVolumes.cpp
         src/TreeSupport.cpp
+        src/TreeSupportElement.cpp
         src/WallsComputation.cpp
         src/WallToolPaths.cpp
 
