@@ -3512,11 +3512,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
-            cumulative_path_time = 0.; // reset to 0 for current path.
-            // Fire any inserts that are overdue (scheduled for a previous path that has already been written).
-            // Inserts scheduled for the current path are intentionally left pending; they will be fired at the
-            // correct time within the path by the insertTempOnTime callback below.
+            // Fire any inserts that became overdue during the previous path, using the total
+            // accumulated time from that path.
             extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
+            cumulative_path_time = 0.; // reset to 0 for current path.
 
             GCodePath& path = paths[path_idx];
 
