@@ -3518,7 +3518,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
-            extruder_plan.handleInserts(path_idx, gcode);
+            // Fire any inserts that became overdue during the previous path, using the total
+            // accumulated time from that path.
+            extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
             cumulative_path_time = 0.; // reset to 0 for current path.
 
             GCodePath& path = paths[path_idx];
