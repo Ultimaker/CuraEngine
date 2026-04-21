@@ -10,6 +10,7 @@
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
+#include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
 #include "LinesOrderingMethod.h"
 #include "gcodeExport.h"
@@ -166,6 +167,7 @@ private:
     {
         std::shared_ptr<InsetOrderOptimizer> walls_optimizer{}; // Contains the ready-to-add optimized insets
         bool spiralize{ false }; // Indicates whether this layer is a regular or a spiral layer
+        std::vector<LayerPlan::OverhangMask> overhang_masks{}; // Overhang speed masks to be applied only while drawing the walls
     };
 
     static const RoofingFlooringSettingsNames roofing_settings_names;

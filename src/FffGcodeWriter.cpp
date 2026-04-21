@@ -2777,7 +2777,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
                 }
             }
         }
-        gcode_layer.setOverhangMasks(overhang_masks);
+        result.overhang_masks = overhang_masks;
 
         // the seam overhang mask is set to the area of the current part's outline minus the region that is considered to be supported,
         // which will then be empty if everything is considered supported i.r.t. the angle
@@ -2844,7 +2844,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
     {
         // clear to disable use of bridging settings
         gcode_layer.setBridgeWallMask(Shape());
-        // clear to disable overhang detection
+        // clear to ensure no stale overhang masks from a previous part are applied
         gcode_layer.setOverhangMasks({});
         // clear to disable overhang detection
         gcode_layer.setSeamOverhangMask(Shape());
@@ -2895,9 +2895,6 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             end_infill_close_to_seam);
         result.walls_optimizer->optimize();
     }
-
-    // clear overhang masks for any successive part on the layer
-    gcode_layer.setOverhangMasks({});
 
     return result;
 }
@@ -2961,7 +2958,10 @@ bool FffGcodeWriter::endProcessInsets(
             travel_retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         }
 
-        return preprocess_result.walls_optimizer->addToLayer(travel_retract_before_outer_wall);
+        gcode_layer.setOverhangMasks(preprocess_result.overhang_masks);
+        const bool added = preprocess_result.walls_optimizer->addToLayer(travel_retract_before_outer_wall);
+        gcode_layer.setOverhangMasks({});
+        return added;
     }
 
     return false;
@@ -3774,7 +3774,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 std::shared_ptr<LightningLayer> lightning_layer;
                 if (storage.support.lightning_generator)
                 {
-                    lightning_layer = std::make_shared<LightningLayer>(storage.support.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
+                    lightning_layer = std::make_shared<LightningLayer>(storage.support.lightning_generator->getTreesForLayer(std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())));
                 }
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
