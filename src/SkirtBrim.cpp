@@ -209,9 +209,8 @@ bool compShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& t
 float getThermalLength(const std::vector<Mesh>& meshes)
 {
     constexpr float min_length = 1250.0f;
-    return std::accumulate(
-        meshes.begin(),
-        meshes.end(),
+    return ranges::accumulate(
+        meshes,
         min_length,
         [](const float& thermal_length, const Mesh& mesh)
         {
@@ -288,8 +287,8 @@ coord_t SkirtBrim::estimateBrimNeeded(const Shape& shape)
     second_moment.x_ = INT2MM2(INT2MM2(second_moment.x_));
     second_moment.y_ = INT2MM2(INT2MM2(second_moment.y_));
 
-    // Thermal lenght stuff.
-    const Point2F width_depth(aabb.max_.x_ - aabb.min_.x_, aabb.max_.y_ - aabb.min_.y_);
+    // Thermal length stuff.
+    const Point2F width_depth(aabb.spanX(), aabb.spanY();
     const float thermal_length = INT2MM(width_depth.vSize());
     const float thermal_length_ref = getThermalLength(meshes);
 
