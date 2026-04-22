@@ -40,7 +40,6 @@ jobs:
     name: Run GCodeAnalyzer on the engine
     needs: [check_actor, find-ticket-packages]
     if: >-
-      always() &&
       needs.check_actor.outputs.proceed == 'true' &&
       needs.find-ticket-packages.result == 'success'
     runs-on: ubuntu-latest

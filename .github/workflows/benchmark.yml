@@ -42,7 +42,6 @@ jobs:
   benchmark:
     needs: [check_actor, find-ticket-packages]
     if: >-
-      always() &&
       needs.check_actor.outputs.proceed == 'true' &&
       needs.find-ticket-packages.result == 'success'
     uses: ultimaker/cura-workflows/.github/workflows/benchmark.yml@main
