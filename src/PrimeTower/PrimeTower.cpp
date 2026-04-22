@@ -148,7 +148,7 @@ ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, co
     const coord_t nb_annuli = max_bridging_distance > 0.0 ? static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance)) : 0;
     const coord_t actual_radius_step = nb_annuli > 0 ? radius_delta / nb_annuli : 0;
 
-    if (nb_annuli == 0 || actual_radius_step <= line_width)
+    if (actual_radius_step <= line_width)
     {
         // Bridging distance is 0 or too small for a proper wheel pattern; use solid concentric circles instead.
         const coord_t nb_circles = radius_delta / line_width;
