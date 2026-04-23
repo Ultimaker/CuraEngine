@@ -152,7 +152,7 @@ void computeOverSegments(const Polygon& poly, const std::function<void(const Poi
     }
 }
 
-bool compShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& total_moment)
+bool computeBrimEstimateShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& total_moment)
 {
     Point2F centroid(0.0f, 0.0f);
     float accumulated_area = 0.0f;
@@ -183,6 +183,7 @@ bool compShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& t
         centroid = Point2F(0.0f, 0.0f);
         accumulated_area = 0.0f;
         computeOverSegments(poly, func_centroid);
+        assert(accumulated_area != 0.0f);
         accumulated_area *= 3.0f;
         centroid.x_ /= accumulated_area;
         centroid.y_ /= accumulated_area;
@@ -209,8 +210,9 @@ bool compShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& t
 float getThermalLength(const std::vector<Mesh>& meshes)
 {
     constexpr float min_length = 1250.0f;
-    return ranges::accumulate(
-        meshes,
+    return std::accumulate(
+        meshes.begin(),
+        meshes.end(),
         min_length,
         [](const float& thermal_length, const Mesh& mesh)
         {
@@ -273,24 +275,31 @@ coord_t SkirtBrim::estimateBrimNeeded(const Shape& shape)
         AABB3D(),
         [](const AABB3D& aabb, const Mesh& mesh)
         {
-            return AABB3D(mesh.getAABB()).include(aabb);
+            return mesh.getAABB().include(aabb);
         });
     const float max_height = INT2MM(aabb.max_.z_ - aabb.min_.z_);
 
     // Calculate the second moment of the outline(s) of the first layer.
     Point2F centroid(0.0f, 0.0f);
     Point2F second_moment(0.0f, 0.0f);
-    if (! compShapeProperties(shape, centroid, second_moment))
+    if (! computeBrimEstimateShapeProperties(shape, centroid, second_moment))
     {
         return 0.0f;
     }
     second_moment.x_ = INT2MM2(INT2MM2(second_moment.x_));
     second_moment.y_ = INT2MM2(INT2MM2(second_moment.y_));
 
+    constexpr float brim_width_max_mm = 18.0f;
+    if (second_moment.x_ == 0.0f || second_moment.y_ == 0.0f)
+    {
+        return brim_width_max_mm;
+    }
+
     // Thermal length stuff.
-    const Point2F width_depth(aabb.spanX(), aabb.spanY();
+    const Point2F width_depth(aabb.spanX(), aabb.spanY());
     const float thermal_length = INT2MM(width_depth.vSize());
     const float thermal_length_ref = getThermalLength(meshes);
+    assert(thermal_length_ref != 0.0f);
 
     // Calculate the result.
     constexpr float height_to_area_normalization = 1920.0f;
@@ -298,7 +307,6 @@ coord_t SkirtBrim::estimateBrimNeeded(const Shape& shape)
         = std::max(max_height / second_moment.x_ * INT2MM(width_depth.y_), max_height / second_moment.y_ * INT2MM(width_depth.x_)) * max_height / height_to_area_normalization;
     constexpr float thermal_lenght_gain = 8.0f;
     constexpr float thermal_height_saturation_mm = 30.0f;
-    constexpr float brim_width_max_mm = 18.0f;
     constexpr float brim_width_footprint_mul_max = 1.5f;
     const float thermal_length_mult = thermal_length * brim_width_footprint_mul_max;
     float res = thermal_length * thermal_lenght_gain / thermal_length_ref * std::min(max_height, thermal_height_saturation_mm) / thermal_height_saturation_mm;
