@@ -606,7 +606,7 @@ private:
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
-     * \param skin_part The skin part for which to create gcode
+     * \param skin_fill The shape of the skin for which to create gcode
      * \param[out] added_something Whether this function added anything to the layer plan
      */
     void processTopBottom(
@@ -615,7 +615,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SkinPart& skin_part,
+        const Shape& skin_fill,
         bool& added_something) const;
 
     /*!
