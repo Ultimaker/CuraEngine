@@ -127,6 +127,11 @@ public:
 
 private:
     /*!
+     * TODO: Document.
+     */
+    coord_t estimateBrimNeeded(const Shape& shape);
+
+    /*!
      * Plan the offsets which we will be going to perform and put them in the right order.
      *
      * In order for brims of different materials to grow toward the middle,

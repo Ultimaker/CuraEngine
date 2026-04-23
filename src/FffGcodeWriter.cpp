@@ -1166,7 +1166,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     coord_t z;
-    bool include_helper_parts = true;
+    bool include_helper_parts = true; // NOTE/FIMXE: This will always be true, since the only place where it's set to false is (probably?) never executed. (See below.)
     if (layer_nr < 0)
     {
 #ifdef DEBUG
@@ -1193,6 +1193,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             break;
         }
 
+        // FIXME?: When would this ever be executed? `layer < 0` is already checked for up top, and the only layers that _are_ < 0 are raft?
         if (layer_nr < 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
         {
             include_helper_parts = false;
