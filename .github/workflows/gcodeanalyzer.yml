@@ -31,36 +31,17 @@ jobs:
     uses: ultimaker/cura-workflows/.github/workflows/check-actor.yml@main
     secrets: inherit
 
-  extract-ticket:
-    name: Extract Jira ticket from branch
-    runs-on: ubuntu-latest
-    if: github.ref_name != 'main'
-    outputs:
-      ticket: ${{ steps.extract.outputs.ticket }}
-    steps:
-      - name: Extract ticket number
-        id: extract
-        run: |
-          branch="${{ github.head_ref || github.ref_name }}"
-          ticket=$(echo "$branch" | grep -oP '^(CURA|PP|NP)-\d+' || echo "")
-          echo "ticket=$ticket" >> $GITHUB_OUTPUT
-
-  find-packages:
-    name: Find ticket-specific packages
-    needs: [extract-ticket]
-    if: needs.extract-ticket.outputs.ticket != ''
-    uses: ultimaker/cura-workflows/.github/workflows/find-package-by-ticket.yml@main
-    with:
-      jira_ticket_number: ${{ needs.extract-ticket.outputs.ticket }}
+  find-ticket-packages:
+    name: Extract ticket and find packages
+    uses: ultimaker/cura-workflows/.github/workflows/extract-ticket-and-find-packages.yml@main
     secrets: inherit
 
   gcodeanalyzer:
     name: Run GCodeAnalyzer on the engine
-    needs: [check_actor, find-packages]
+    needs: [check_actor, find-ticket-packages]
     if: >-
-      always() &&
       needs.check_actor.outputs.proceed == 'true' &&
-      (needs.find-packages.result == 'success' || needs.find-packages.result == 'skipped')
+      needs.find-ticket-packages.result == 'success'
     runs-on: ubuntu-latest
     steps:
       - name: Setup the build environment
@@ -105,10 +86,10 @@ jobs:
 
       - name: Set package overrides
         id: set_overrides
-        if: needs.find-packages.outputs.package_overrides != ''
+        if: needs.find-ticket-packages.outputs.package_overrides != ''
         uses: ultimaker/cura-workflows/.github/actions/set-package-overrides@main
         with:
-          package_overrides: ${{ needs.find-packages.outputs.package_overrides }}
+          package_overrides: ${{ needs.find-ticket-packages.outputs.package_overrides }}
           profile: cura.jinja
 
       - name: Install dependencies and build CuraEngine
