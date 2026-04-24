@@ -138,16 +138,26 @@ std::tuple<ClosedLinesSet, coord_t> PrimeTower::generatePrimeToolpaths(const siz
 ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    const double max_bridging_distance = static_cast<double>(scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_max_bridging_distance"));
-    const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
+    const Settings& extruder_settings = scene.extruders[extruder_nr].settings_;
+    const coord_t line_width = extruder_settings.get<coord_t>("prime_tower_line_width");
+    const double max_bridging_distance = static_cast<double>(std::max(extruder_settings.get<coord_t>("prime_tower_max_bridging_distance"), line_width));
     const coord_t radius_delta = outer_radius - inner_radius;
     const coord_t semi_line_width = line_width / 2;
 
     ClosedLinesSet toolpaths;
-
     // Split annuli according to max bridging distance
     const coord_t nb_annuli = static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
-    if (nb_annuli > 0)
+    const coord_t nb_circles = radius_delta / line_width;
+
+    if (nb_circles <= nb_annuli)
+    {
+        // Bridging distance is too small for a proper wheel pattern; use solid concentric circles instead.
+        for (coord_t i = 0; i < nb_circles; ++i)
+        {
+            toolpaths.push_back(PolygonUtils::makeCircle(middle_, outer_radius - semi_line_width - i * line_width, circle_definition_));
+        }
+    }
+    else if (nb_annuli > 0)
     {
         const coord_t actual_radius_step = radius_delta / nb_annuli;
 
