@@ -44,6 +44,7 @@ public:
 
     /*!
      * \brief Prepares for subsequent resolving by creating the proper shared environments
+     * \param initial_extruder_nr The calculated initial extruder number
      * \param extra_global_settings Some extra settings to be used in common for all the resolving operation
      * \warning This method has to be called before any call to resolveGCodeTemplate()
      */

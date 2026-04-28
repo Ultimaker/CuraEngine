@@ -923,6 +923,7 @@ public:
      */
     std::optional<size_t> findInitialExtruderNr() const;
 
+    /*! Calculate the actual extrusion bounding box in this layer */
     AABB calculateExtrusionBoundingBox() const;
 
     /*! Indicates whether this layer plan is empty, i.e. it has no extruder plan or they are all empty */
