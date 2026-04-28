@@ -137,7 +137,7 @@ public:
     /*!
      * \brief Calculate the total bounding box of extrusion moves
      * \note This is not 100% accurate since at this point we don't know the start position of the extruder plan. So if the very first
-     *       move happens to be an axtrusion move and the start position is the outermost of the bounding box, it will not be accounted
+     *       move happens to be an extrusion move and the start position is the outermost of the bounding box, it will not be accounted
      *       for and the bounding box will be approximate.
      */
     AABB calculateExtrusionBoundingBox() const;
