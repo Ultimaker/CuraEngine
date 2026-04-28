@@ -99,7 +99,7 @@ std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cu
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
-        const std::optional<ExtruderPrintInformation>& extruder_info = print_information[extruder_nr];
+        const std::optional<ExtruderPrintInformation>& extruder_info = print_information.extruders_info[extruder_nr];
         const double value = extruder_info.has_value() ? extruder_info->filament_length : 0.0;
         spdlog::info("Extruder {} used {} [mm] of filament", extruder_nr, value);
         rapidjson::Value extruder_id(fmt::format("{}", extruder_nr).c_str(), allocator);
