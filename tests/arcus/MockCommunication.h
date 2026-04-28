@@ -35,7 +35,7 @@ public:
     MOCK_CONST_METHOD1(sendSliceUUID, void(const std::string& slice_uuid));
     MOCK_CONST_METHOD0(sendFinishedSlicing, void());
     MOCK_METHOD0(sliceNext, void());
-    MOCK_CONST_METHOD3(sendPrintInformation, void(const std::vector<cura::Duration>&, const PrintInformation&, const size_t));
+    MOCK_CONST_METHOD2(sendPrintInformation, void(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information));
     MOCK_METHOD1(sendGCodePart, void(const std::string&));
 };
 
