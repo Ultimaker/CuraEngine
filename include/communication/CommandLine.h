@@ -5,6 +5,8 @@
 #define COMMANDLINE_H
 
 #include <filesystem>
+#include <fstream>
+#include <memory>
 #include <optional>
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
