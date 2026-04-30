@@ -23,6 +23,8 @@ void GcodeTemplateResolver::prepareForResolving(const size_t initial_extruder_nr
 {
     initial_extruder_nr_ = initial_extruder_nr;
 
+    // For a graphic overview of the adapters links, see doc/formulae-env-adapters.drawio
+
     // Create an environment containing all the extra global settings
     global_environment_ = std::make_shared<cfe::env::LocalEnvironment>(&CuraFormulaeEngine::env::std_env);
     global_environment_->add(extra_global_settings);
