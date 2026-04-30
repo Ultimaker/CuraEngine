@@ -637,7 +637,7 @@ public:
     void writeCode(const std::string& str);
 
     /*!
-     * Write a pice of resolvable GCode while temporarily ensuring absolute extrusion mode.
+     * Write a piece of resolvable GCode while temporarily ensuring absolute extrusion mode.
      * If relative extrusion mode is active, this will:
      * - Switch to absolute extrusion mode
      * - Write the provided code
