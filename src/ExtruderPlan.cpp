@@ -104,6 +104,11 @@ AABB ExtruderPlan::calculateExtrusionBoundingBox() const
 
     for (const GCodePath& gcode_path : paths_)
     {
+        if (gcode_path.points.empty())
+        {
+            continue;
+        }
+
         if (! gcode_path.isTravelPath())
         {
             if (current_position.has_value())
