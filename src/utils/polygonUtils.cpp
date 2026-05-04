@@ -1518,18 +1518,38 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
-void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& assume_bigger, Shape& assume_smaller)
+void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow)
 {
-    if (assume_bigger.empty() || assume_smaller.empty())
+    if (source.empty() || destination.empty())
     {
         return;
     }
-    const auto result_smaller = assume_smaller // Of the (supposedly) smaller area,
-                                    .difference(assume_bigger.offset(max_dist)) // take the difference with an offset of the bigger area,
-                                    .offset(max_dist) // then 'inflate' any leftover pieces (so, ones that are certainly big enough),
-                                    .intersection(assume_smaller); // and lastly intersect with the original area, so we don't go outside those bounds.
-    assume_bigger = assume_bigger.unionPolygons(assume_smaller.difference(result_smaller).offset(EPSILON)); // Glue any 'not leftover' pieces to the (supposedly) bigger area.
-    assume_smaller = result_smaller;
+
+    // Make a morphological opening to keep only wide areas, and a difference to actually keep only the thin areas, which we are allowed to grow over
+    const Shape destination_wide_areas = destination.offset(-max_dist).offset(max_dist + EPSILON);
+    const Shape allow_grow_area = destination.difference(destination_wide_areas);
+    if (allow_grow_area.empty())
+    {
+        return;
+    }
+
+    // If necessary, remove the thin parts of the source to not allow them to grow (using the same principle as above)
+    const Shape source_grow_part = allow_thin_areas_grow ? source : source.intersection(source.offset(-max_dist).offset(max_dist + EPSILON));
+    if (source_grow_part.empty())
+    {
+        return;
+    }
+
+    // Now calculate the actual growing area, which is the intersection of the offset source with the allowed growing area
+    const Shape actual_grow_area = source_grow_part.offset(max_dist).intersection(allow_grow_area).offset(EPSILON);
+    if (actual_grow_area.empty())
+    {
+        return;
+    }
+
+    // Finally, append the growing area to the source and remove it from the destination
+    source = source.unionPolygons(actual_grow_area);
+    destination = destination.difference(actual_grow_area);
 }
 
 std::tuple<ClosedLinesSet, coord_t>

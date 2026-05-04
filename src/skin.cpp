@@ -332,6 +332,7 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
     const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
     const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
     const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
+    const coord_t decimate_roofing_flooring_distance = mesh_.settings.get<coord_t>("top_bottom_skin_merge_distance");
 
     constexpr coord_t epsilon = 5;
     const SliceDataStorage slice_data;
@@ -348,6 +349,27 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
         skin_part.roofing_fill = below_inside.difference(filled_area_above).offset(roofing_expansion).intersection(below_inside);
         skin_part.flooring_fill = above_inside.difference(filled_area_below);
         skin_part.skin_fill = skin_part.outline.difference(skin_part.roofing_fill).intersection(filled_area_below);
+
+        if (decimate_roofing_flooring_distance > 0)
+        {
+            // In order to avoid thin areas, we merge thin skin/roofing/flooring areas together, with the following precedence: flooring > roofing > skin.
+            // While roofing is likely visually more pleasing, the flooring settings are probably more important for structural integrity.
+            // Given the precedence, the ordering of the following operations matter, and also whether thin areas of the source are allowed to merge into the destination.
+            constexpr bool allow_thin_areas_grow = true;
+            constexpr bool dont_allow_thin_areas_grow = false;
+
+            // Flooring has precedence over the rest
+            PolygonUtils::mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.flooring_fill, skin_part.roofing_fill, allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.flooring_fill, skin_part.skin_fill, allow_thin_areas_grow);
+
+            // Roofing has precedence over skin
+            PolygonUtils::mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.roofing_fill, skin_part.skin_fill, allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.roofing_fill, skin_part.flooring_fill, dont_allow_thin_areas_grow);
+
+            // Skin has precedence over nothing
+            PolygonUtils::mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.skin_fill, skin_part.roofing_fill, dont_allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(decimate_roofing_flooring_distance, skin_part.skin_fill, skin_part.flooring_fill, dont_allow_thin_areas_grow);
+        }
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
         // Otherwise, adjacent skin_fill and roofing/flooring would have doubled offset areas. Since they both offset into each other.

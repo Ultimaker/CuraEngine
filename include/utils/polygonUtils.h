@@ -677,13 +677,14 @@ public:
     static Shape clipPolygonWithAABB(const Shape& src, const AABB& aabb);
 
     /*!
-     * Merges all parts of a smaller area with a bigger area whenever the smaller area is thinner (w.r.t. a given maximum width) than the larger one.
+     * Merges all parts of a destination area with a source area whenever the destination area is thin enough (w.r.t. a given maximum width).
      * This is done in-place as much as possible (hence no return value)!
      * \param max_dist The width below which an area is considered 'too thin'.
-     * \param assume_bigger The area which functions as the bigger area that is merged _to_. Will be altered!
-     * \param assume_smaller The area which functions as the smaller area that is merged _from_. Will be altered!
+     * \param[in, out] source The source area that is allowed to grow.
+     * \param[in, out] destination The destination area that the source is allowed to grow into.
+     * \param allow_thin_areas_grow Whether the thin areas of the source are allowed to grow.
      */
-    static void mergeThinOverlap(const coord_t max_dist, Shape& assume_bigger, Shape& assume_smaller);
+    static void mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow);
 
     /*!
      * Generate a few outset circles around a base, according to the given line width
