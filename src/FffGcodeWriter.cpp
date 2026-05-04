@@ -3182,6 +3182,11 @@ void FffGcodeWriter::processRoofingFlooring(
     const std::vector<AngleDegrees>& angles,
     bool& added_something) const
 {
+    if (fill.empty())
+    {
+        return;
+    }
+
     const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>(settings_names.extruder_nr).extruder_nr_;
     if (extruder_nr != skin_extruder_nr)
     {
