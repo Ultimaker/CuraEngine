@@ -3146,7 +3146,6 @@ bool FffGcodeWriter::processSkinPart(
     const SkinPart& skin_part) const
 {
     bool added_something = false;
-
     processRoofingFlooring(
         storage,
         gcode_layer,
