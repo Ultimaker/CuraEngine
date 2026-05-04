@@ -142,7 +142,6 @@ class CuraEngineConan(ConanFile):
         self.requires("spdlog/1.15.1")
         self.requires("fmt/11.1.3")
         self.requires("range-v3/0.12.0")
-        self.requires("zlib/1.3.1")
         self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
 
     def generate(self):
