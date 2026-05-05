@@ -740,6 +740,46 @@ CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::stri
 }
 
 template<>
+InfillStartEndPreference Settings::get<InfillStartEndPreference>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "end_close_to_seam")
+    {
+        return InfillStartEndPreference::END_CLOSE_TO_SEAM;
+    }
+    else if (value == "start_random")
+    {
+        return InfillStartEndPreference::START_RANDOM;
+    }
+    else // Default.
+    {
+        return InfillStartEndPreference::START_CLOSEST;
+    }
+}
+
+template<>
+RetractBeforeOuterWall Settings::get<RetractBeforeOuterWall>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "force_retracted")
+    {
+        return RetractBeforeOuterWall::RETRACTED;
+    }
+    else if (value == "force_not_retracted")
+    {
+        return RetractBeforeOuterWall::NOT_RETRACTED;
+    }
+    else if (value == "force_not_retracted_from_infill")
+    {
+        return RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL;
+    }
+    else // Default.
+    {
+        return RetractBeforeOuterWall::AUTOMATIC;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);
@@ -829,9 +869,26 @@ const std::string Settings::getAllSettingsString() const
     return sstream.str();
 }
 
-bool Settings::has(const std::string& key) const
+bool Settings::has(const std::string& key, const bool parent_lookup) const
 {
-    return settings.find(key) != settings.end();
+    const bool has_key = settings.contains(key);
+    if (has_key || ! parent_lookup)
+    {
+        return has_key;
+    }
+
+    const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice_->scene.limit_to_extruder;
+    if (limit_to_extruder.find(key) != limit_to_extruder.end())
+    {
+        return limit_to_extruder.at(key)->settings_.has(key, parent_lookup);
+    }
+
+    if (parent)
+    {
+        return parent->has(key, parent_lookup);
+    }
+
+    return false;
 }
 
 void Settings::setParent(Settings* new_parent)

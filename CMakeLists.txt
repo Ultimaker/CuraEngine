@@ -51,9 +51,11 @@ set(engine_SRCS # Except main.cpp.
         src/FffProcessor.cpp
         src/gcodeExport.cpp
         src/GCodePathConfig.cpp
+        src/GcodeTemplateResolver.cpp
         src/infill.cpp
-        src/InterlockingGenerator.cpp
+        src/InfillOrderOptimizer.cpp
         src/InsetOrderOptimizer.cpp
+        src/InterlockingGenerator.cpp
         src/layerPart.cpp
         src/LayerPlan.cpp
         src/LayerPlanBuffer.cpp
@@ -85,6 +87,7 @@ set(engine_SRCS # Except main.cpp.
         src/TreeSupportTipGenerator.cpp
         src/TreeModelVolumes.cpp
         src/TreeSupport.cpp
+        src/TreeSupportElement.cpp
         src/WallsComputation.cpp
         src/WallToolPaths.cpp
 
@@ -142,6 +145,7 @@ set(engine_SRCS # Except main.cpp.
         src/settings/FlowTempGraph.cpp
         src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
+        src/settings/SettingContainersEnvironmentAdapter.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
 
@@ -185,6 +189,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/RandomScoringCriterion.cpp
         src/utils/scoring/TextureScoringCriterion.cpp
 
+        src/geometry/OpenLinesSet.cpp
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
@@ -251,6 +256,8 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(PNG REQUIRED)
+find_package(cura-formulae-engine REQUIRED)
+
 if (NOT EMSCRIPTEN)
     find_package(TBB REQUIRED)
 endif ()
@@ -275,6 +282,7 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         PNG::PNG
+        cura-formulae-engine::cura-formulae-engine
         $<$<NOT:$<BOOL:${EMSCRIPTEN}>>:onetbb::onetbb>
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>

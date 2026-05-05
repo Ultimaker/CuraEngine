@@ -11,10 +11,8 @@
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
-#include "geometry/LinesSet.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
-#include "geometry/OpenPolyline.h"
 #include "geometry/Point2LL.h"
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
@@ -293,6 +291,7 @@ public:
 
     std::vector<SupportLayer> supportLayers;
     std::shared_ptr<SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+    std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     SupportStorage();
     ~SupportStorage();

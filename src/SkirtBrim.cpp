@@ -669,8 +669,6 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
 
 void SkirtBrim::generateSupportBrim()
 {
-    constexpr coord_t brim_area_minimum_hole_size_multiplier = 100;
-
     Scene& scene = Application::getInstance().current_slice_->scene;
     const ExtruderTrain& support_infill_extruder = scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr");
     const coord_t brim_line_width
@@ -705,6 +703,7 @@ void SkirtBrim::generateSupportBrim()
     const Shape brim_area = support_outline.difference(support_outline.offset(-brim_width));
     support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
 
+    const coord_t support_brim_minimum_hole_area = MM2_2INT(support_infill_extruder.settings_.get<size_t>("support_brim_minimum_hole_area"));
     coord_t offset_distance = brim_line_width / 2;
     for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
     {
@@ -716,7 +715,7 @@ void SkirtBrim::generateSupportBrim()
         for (size_t n = 0; n < brim_line.size(); n++)
         {
             const double area = brim_line[n].area();
-            if (area < 0 && area > -brim_line_width * brim_line_width * brim_area_minimum_hole_size_multiplier)
+            if (area < 0 && area > -support_brim_minimum_hole_area)
             {
                 brim_line.removeAt(n--);
             }

@@ -7,6 +7,7 @@
 #include <numbers>
 #include <unordered_set>
 
+#include <range/v3/algorithm/max_element.hpp>
 #include <range/v3/algorithm/partition_copy.hpp>
 #include <range/v3/iterator/insert_iterators.hpp>
 #include <range/v3/view/addressof.hpp>
@@ -99,6 +100,12 @@ public:
     static const std::unordered_multimap<Path, Path> no_order_requirements_;
 
     /*!
+     * When true and having multiple candidates for the starting path, prefer the longest one over the closest one. It will be set back to false
+     * after being used, so that it will apply only over the very first path.
+     */
+    bool prefer_longest_path_;
+
+    /*!
      * Construct a new optimizer.
      *
      * This doesn't actually optimize the order yet, so the ``paths`` field will
@@ -123,7 +130,8 @@ public:
         const Shape& disallowed_areas_for_seams = {},
         const bool use_shortest_for_inner_walls = false,
         const Shape& overhang_areas = Shape(),
-        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr)
+        const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr,
+        const bool prefer_longest_path_first = false)
         : start_point_(start_point)
         , seam_config_(seam_config)
         , combing_boundary_((combing_boundary != nullptr && ! combing_boundary->empty()) ? combing_boundary : nullptr)
@@ -135,6 +143,7 @@ public:
         , use_shortest_for_inner_walls_(use_shortest_for_inner_walls)
         , overhang_areas_(overhang_areas)
         , texture_data_provider_(texture_data_provider)
+        , prefer_longest_path_(prefer_longest_path_first)
     {
     }
 
@@ -381,7 +390,7 @@ protected:
                 }
             }
 
-            auto best_candidate = findClosestPath(current_position, available_candidates);
+            auto best_candidate = findBestPath(current_position, available_candidates);
 
             auto best_path = best_candidate;
             optimized_order.push_back(*best_path);
@@ -456,7 +465,7 @@ protected:
             auto local_current_position = current_position;
             while (! candidates.empty())
             {
-                Path best_candidate = findClosestPathVertices(local_current_position, candidates);
+                Path best_candidate = findBestPathVertices(local_current_position, candidates);
 
                 candidates.erase(best_candidate);
                 order.push_back(best_candidate);
@@ -526,7 +535,7 @@ protected:
                 // Add all inner walls
                 while (! roots.empty())
                 {
-                    Path root = findClosestPathVertices(current_position, roots);
+                    Path root = findBestPathVertices(current_position, roots);
                     roots.erase(root);
                     actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
                 }
@@ -534,7 +543,7 @@ protected:
                 // Add all outer walls
                 while (! outer_walls.empty())
                 {
-                    Path wall = findClosestPathVertices(current_position, outer_walls);
+                    Path wall = findBestPathVertices(current_position, outer_walls);
                     outer_walls.erase(wall);
                     handle_node(wall, nullptr);
                 }
@@ -548,7 +557,7 @@ protected:
                 std::unordered_set<Path> root_neighbours;
                 while (! outer_walls.empty())
                 {
-                    Path outer_wall = findClosestPathVertices(current_position, outer_walls);
+                    Path outer_wall = findBestPathVertices(current_position, outer_walls);
                     outer_walls.erase(outer_wall);
 
                     handle_node(outer_wall, nullptr);
@@ -562,7 +571,7 @@ protected:
                 // Add all inner walls
                 while (! root_neighbours.empty())
                 {
-                    Path root_neighbour = findClosestPathVertices(current_position, root_neighbours);
+                    Path root_neighbour = findBestPathVertices(current_position, root_neighbours);
                     root_neighbours.erase(root_neighbour);
                     actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
                 }
@@ -572,7 +581,7 @@ protected:
         {
             while (! roots.empty())
             {
-                Path root = findClosestPathVertices(current_position, roots);
+                Path root = findBestPathVertices(current_position, roots);
                 roots.erase(root);
 
                 actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
@@ -600,23 +609,44 @@ protected:
         return reversed;
     }
 
-    Path findClosestPathVertices(Point2LL start_position, std::unordered_set<Path> candidate_paths)
+    Path findBestPathVertices(const Point2LL& start_position, const std::unordered_set<Path>& candidate_paths)
     {
-        std::vector<OrderablePath*> candidate_orderable_paths;
+        std::vector<OrderablePath*> orderable_paths;
+        orderable_paths.reserve(candidate_paths.size());
 
         for (auto& path : candidate_paths)
         {
-            candidate_orderable_paths.push_back(vertices_to_paths_.at(path));
+            orderable_paths.push_back(vertices_to_paths_.at(path));
         }
 
-        OrderablePath* best_candidate = findClosestPath(start_position, candidate_orderable_paths);
+        OrderablePath* best_candidate = findBestPath(start_position, orderable_paths);
         return best_candidate->vertices_;
     }
 
-    OrderablePath* findClosestPath(Point2LL start_position, std::vector<OrderablePath*> candidate_paths)
+    OrderablePath* findBestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
+    {
+        OrderablePath* best_candidate = prefer_longest_path_ ? findLongestPath(candidate_paths) : findClosestPath(start_position, candidate_paths);
+        prefer_longest_path_ = false;
+        return best_candidate;
+    }
+
+    OrderablePath* findLongestPath(const std::vector<OrderablePath*>& candidate_paths)
+    {
+        auto iterator = ranges::max_element(
+            candidate_paths,
+            {},
+            [](const OrderablePath* path)
+            {
+                return path->converted_->length();
+            });
+
+        return iterator == candidate_paths.end() ? nullptr : *iterator;
+    }
+
+    OrderablePath* findClosestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
     {
         coord_t best_distance2 = std::numeric_limits<coord_t>::max();
-        OrderablePath* best_candidate = 0;
+        OrderablePath* best_candidate = nullptr;
 
         for (OrderablePath* path : candidate_paths)
         {

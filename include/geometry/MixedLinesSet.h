@@ -7,15 +7,16 @@
 #include <memory>
 
 #include "geometry/ClosedLinesSet.h"
-#include "geometry/OpenLinesSet.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
 
-class Polyline;
 class ClosedPolyline;
+class OpenLinesSet;
+class OpenPolyline;
 class Polygon;
+class Polyline;
 class Shape;
 
 using PolylinePtr = std::shared_ptr<Polyline>;

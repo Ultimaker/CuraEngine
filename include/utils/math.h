@@ -138,9 +138,16 @@ template<utils::floating_point T>
 
 /*! \brief Check if a value is very close to 0 */
 template<utils::floating_point T>
-[[nodiscard]] bool is_zero(T value)
+[[nodiscard]] bool is_zero(T value, T epsilon = std::numeric_limits<T>::epsilon() * 100.0)
 {
-    return std::abs(value) < (std::numeric_limits<T>::epsilon() * 100.0);
+    return std::abs(value) < epsilon;
+}
+
+/*! \brief Check if two values are very close to each other */
+template<utils::floating_point T>
+[[nodiscard]] bool fuzzy_equal(T value1, T value2, T epsilon = std::numeric_limits<T>::epsilon() * 100.0)
+{
+    return std::abs(value1 - value2) <= epsilon;
 }
 
 /*!

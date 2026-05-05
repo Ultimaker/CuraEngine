@@ -290,6 +290,27 @@ enum class CoolDuringExtruderSwitch
 };
 
 /*!
+ * How to select the starting position of the infill
+ */
+enum class InfillStartEndPreference
+{
+    START_CLOSEST, // Just start at the vertex that is the closest to current position
+    START_RANDOM, // Pick a random line to start at
+    END_CLOSE_TO_SEAM // End close to the next wall seam, and split an infill line to provide a proper position if required
+};
+
+/*!
+ * Whether to force a retracted or unretracted travel move when going to an outer wall
+ */
+enum class RetractBeforeOuterWall
+{
+    AUTOMATIC, // Let retraction be calculated automatically for the travel move
+    RETRACTED, // Force travel move to be retracted
+    NOT_RETRACTED, // Force travel move not to be retracted
+    NOT_RETRACTED_FROM_INFILL, // Force the first travel move coming from an infill area not to be retracted, others will be use automatic
+};
+
+/*!
  * Convenience binary operator to allow testing brim location easily, like (actual_location & BrimLocation::OUTSIDE)
  */
 [[maybe_unused]] static int operator&(BrimLocation location1, BrimLocation location2)

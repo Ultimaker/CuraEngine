@@ -19,7 +19,7 @@ class Mesh;
 class OBJ : NoCopy
 {
 public:
-    OBJ(std::string filename, const double scale = 1.0);
+    OBJ(const std::string& filename, const double scale = 1.0);
 
     ~OBJ();
 
@@ -39,7 +39,11 @@ public:
         const std::optional<Point2F>& uv1 = std::nullopt,
         const std::optional<Point2F>& uv2 = std::nullopt);
 
-    void writeMesh(const Mesh& mesh, const SVG::Color color = SVG::Color::BLACK);
+    void write(const Mesh& mesh, const SVG::Color color = SVG::Color::BLACK);
+
+    void write(const Polyline& polyline, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::BLACK);
+
+    void write(const Shape& shape, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::BLACK);
 
 private:
     struct Triangle
