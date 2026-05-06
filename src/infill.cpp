@@ -187,14 +187,14 @@ void Infill::generate(
             zig_zaggify_ = false;
         }
 
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, minimum_line_length);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, layer_idx, cross_fill_provider, lightning_trees, mesh, minimum_line_length);
 
         zig_zaggify_ = zig_zaggify_real;
         multiplyInfill(generated_result_polygons, generated_result_lines);
     }
     else
     {
-        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, cross_fill_provider, lightning_trees, mesh, minimum_line_length);
+        _generate(toolpaths, generated_result_polygons, generated_result_lines, settings, layer_idx, cross_fill_provider, lightning_trees, mesh, minimum_line_length);
     }
 
     //_generate may clear() the generated_result_lines, but this is an output variable that may contain data before we start.
@@ -255,6 +255,7 @@ void Infill::_generate(
     Shape& result_polygons,
     OpenLinesSet& result_lines,
     const Settings& settings,
+    const int layer_idx,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
@@ -266,7 +267,7 @@ void Infill::_generate(
         Shape island_polygons;
         OpenLinesSet island_lines;
 
-        generateForIsland(island, island_toolpaths, island_polygons, island_lines, settings, cross_fill_provider, lightning_trees, mesh);
+        generateForIsland(island, island_toolpaths, island_polygons, island_lines, settings, layer_idx, cross_fill_provider, lightning_trees, mesh);
 
         if (minimum_line_length == 0 || includeLines(island_toolpaths, island_polygons, island_lines, minimum_line_length))
         {
@@ -284,6 +285,7 @@ void Infill::generateForIsland(
     Shape& result_polygons,
     OpenLinesSet& result_lines,
     const Settings& settings,
+    const int layer_idx,
     const std::shared_ptr<SierpinskiFillProvider>& cross_fill_provider,
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh)
@@ -320,7 +322,7 @@ void Infill::generateForIsland(
         generateTrihexagonInfill(outline, result_lines, crossings_on_line);
         break;
     case EFillMethod::CONCENTRIC:
-        generateConcentricInfill(outline, toolpaths, settings);
+        generateConcentricInfill(outline, toolpaths, settings, layer_idx);
         break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(outline, result_lines, line_distance_, fill_angle_, crossings_on_line);
@@ -388,7 +390,7 @@ void Infill::generateForIsland(
     if (! skip_line_stitching_
         && (zig_zaggify_ || pattern_ == EFillMethod::CROSS || pattern_ == EFillMethod::CROSS_3D || pattern_ == EFillMethod::CUBICSUBDIV || pattern_ == EFillMethod::GYROID
             || pattern_ == EFillMethod::HONEYCOMB || pattern_ == EFillMethod::OCTAGON || pattern_ == EFillMethod::ZIG_ZAG))
-    { // don't stich for non-zig-zagged line infill types
+    { // don't stitch for non-zig-zagged line infill types
         OpenLinesSet stitched_lines;
         OpenPolylineStitcher::stitch(result_lines, stitched_lines, result_polygons, infill_line_width_);
         result_lines = std::move(stitched_lines);
@@ -485,7 +487,7 @@ void Infill::generateLightningInfill(const Shape& outline, const std::shared_ptr
     result_lines.push_back(trees->convertToLines(outline, infill_line_width_));
 }
 
-void Infill::generateConcentricInfill(const Shape& outline, std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
+void Infill::generateConcentricInfill(const Shape& outline, std::vector<VariableWidthLines>& toolpaths, const Settings& settings, const int layer_idx)
 {
     const coord_t min_area = infill_line_width_ * infill_line_width_;
 
@@ -504,8 +506,7 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
 
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, settings, 0, SectionType::CONCENTRIC_INFILL); // FIXME: @jellespijker pass
-                                                                                                                                                      // the correct layer
+        WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL);
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 

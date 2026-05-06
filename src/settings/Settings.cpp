@@ -740,6 +740,46 @@ CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::stri
 }
 
 template<>
+InfillStartEndPreference Settings::get<InfillStartEndPreference>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "end_close_to_seam")
+    {
+        return InfillStartEndPreference::END_CLOSE_TO_SEAM;
+    }
+    else if (value == "start_random")
+    {
+        return InfillStartEndPreference::START_RANDOM;
+    }
+    else // Default.
+    {
+        return InfillStartEndPreference::START_CLOSEST;
+    }
+}
+
+template<>
+RetractBeforeOuterWall Settings::get<RetractBeforeOuterWall>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "force_retracted")
+    {
+        return RetractBeforeOuterWall::RETRACTED;
+    }
+    else if (value == "force_not_retracted")
+    {
+        return RetractBeforeOuterWall::NOT_RETRACTED;
+    }
+    else if (value == "force_not_retracted_from_infill")
+    {
+        return RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL;
+    }
+    else // Default.
+    {
+        return RetractBeforeOuterWall::AUTOMATIC;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);
