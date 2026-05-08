@@ -8,6 +8,7 @@
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <cura-formulae-engine/eval.h>
 #include <optional>
 #include <sstream> // for stream.str()
 #include <stdio.h>
@@ -25,11 +26,6 @@
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
 #include "utils/string.h"
-
-namespace CuraFormulaeEngine::eval
-{
-struct Value;
-}
 
 namespace cura
 {

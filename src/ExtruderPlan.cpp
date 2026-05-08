@@ -5,6 +5,8 @@
 
 #include <range/v3/algorithm/any_of.hpp>
 
+#include "gcode_export/gcodeExport.h"
+
 
 namespace cura
 {

@@ -6,7 +6,6 @@
 
 #include "FanSpeedLayerTime.h"
 #include "RetractionConfig.h"
-#include "gcode_export/gcodeExport.h"
 #include "geometry/Point2LL.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
@@ -27,6 +26,7 @@ namespace cura
 {
 class LayerPlanBuffer;
 class LayerPlan;
+class GCodeExport;
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
  *
