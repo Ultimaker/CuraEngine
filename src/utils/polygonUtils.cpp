@@ -1525,16 +1525,15 @@ void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape
         return;
     }
 
-    // Make a morphological opening to keep only wide areas, and a difference to actually keep only the thin areas, which we are allowed to grow over
-    const Shape destination_wide_areas = destination.offset(-max_dist).offset(max_dist + EPSILON);
-    const Shape allow_grow_area = destination.difference(destination_wide_areas);
+    // Get the thin areas of the destination, which we are allowed to grow over
+    const Shape allow_grow_area = getThinAreas(destination, max_dist);
     if (allow_grow_area.empty())
     {
         return;
     }
 
-    // If necessary, remove the thin parts of the source to not allow them to grow (using the same principle as above)
-    const Shape source_grow_part = allow_thin_areas_grow ? source : source.intersection(source.offset(-max_dist).offset(max_dist + EPSILON));
+    // If necessary, remove the thin parts of the source to not allow them to grow
+    const Shape source_grow_part = allow_thin_areas_grow ? source : getWideAreas(source, max_dist);
     if (source_grow_part.empty())
     {
         return;
@@ -1550,6 +1549,23 @@ void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape
     // Finally, append the growing area to the source and remove it from the destination
     source = source.unionPolygons(actual_grow_area);
     destination = destination.difference(actual_grow_area);
+}
+
+Shape PolygonUtils::getThinAreas(const Shape& shape, const coord_t max_width)
+{
+    // Extract the wide areas, then do a difference to actually keep only the thin areas
+    return shape.difference(getRawWideAreas(shape, max_width, EPSILON));
+}
+
+Shape PolygonUtils::getWideAreas(const Shape& shape, const coord_t min_width)
+{
+    // Extract the raw wide areas, then do an intersection to keep them inside the original shape
+    return shape.intersection(getRawWideAreas(shape, min_width, EPSILON));
+}
+
+Shape PolygonUtils::getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen)
+{
+    return shape.offset(-min_width / 2).offset(min_width / 2 + extra_widen);
 }
 
 std::tuple<ClosedLinesSet, coord_t>

@@ -687,6 +687,22 @@ public:
     static void mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow);
 
     /*!
+     * Extract the thin parts of a shape
+     * @param shape The shape we want the thin parts extracted from
+     * @param max_width The maximum width of the parts to be kept
+     * @return The parts of the shape that are thinner than the given maximum.
+     */
+    static Shape getThinAreas(const Shape& shape, const coord_t max_width);
+
+    /*!
+     * Extract the wide parts of a shape
+     * @param shape The shape we want the wide parts extracted from
+     * @param min_width The minimum width of the parts to be kept
+     * @return The parts of the shape that are wider than the given minimum.
+     */
+    static Shape getWideAreas(const Shape& shape, const coord_t min_width);
+
+    /*!
      * Generate a few outset circles around a base, according to the given line width
      *
      * \param center The center of the outset
@@ -722,6 +738,15 @@ private:
      * \return The point on the polygon closest to \p from
      */
     static ClosestPointPolygon _moveInside2(const ClosestPointPolygon& closest_polygon_point, const int distance, Point2LL& from, const int64_t max_dist2);
+
+    /*!
+     * Extract the wide parts of a shape
+     * @param shape The shape we want the wide parts extracted from
+     * @param min_width The minimum width of the parts to be kept
+     * @param extra_widen An extra widening value to be applied (since we end-up by an offset anyway)
+     * @return The parts of the shape that are wider than the given minimum. Note that the returned shape may go beyond the original one.
+     */
+    static Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen = EPSILON);
 };
 
 } // namespace cura
