@@ -18,6 +18,7 @@
 #include "geometry/Point2D.h"
 #include "geometry/PointMatrix.h"
 #include "infill/GyroidInfill.h"
+#include "infill/FibonacciSpiralInfill.h"
 #include "infill/ImageBasedDensityProvider.h"
 #include "infill/LightningGenerator.h"
 #include "infill/NoZigZagConnectorProcessor.h"
@@ -357,6 +358,9 @@ void Infill::generateForIsland(
     case EFillMethod::OCTAGON:
         generateOctagonInfill(outline, result_lines, result_polygons);
         break;
+    case EFillMethod::FIBONACCI_SPIRAL:
+        generateFibonacciSpiralInfill(outline, result_lines);
+        break;
     case EFillMethod::PLUGIN:
     {
 #ifdef ENABLE_PLUGINS // FIXME: I don't like this conditional block outside of the plugin scope.
@@ -475,6 +479,18 @@ void Infill::generateOctagonInfill(const Shape& outline, OpenLinesSet& result_po
 {
     RegularNGonalInfill(RegularNGonalInfill::RegularNGonType::Octagon)
         .generateInfill(result_polylines, result_polygons, zig_zaggify_, line_distance_, outline, z_, infill_line_width_, fill_angle_);
+}
+
+void Infill::generateFibonacciSpiralInfill(const Shape& outline, OpenLinesSet& result_lines)
+{
+    // Each closed island in `outline` gets its own independent inward spiral.
+    // Splitting is already done by _generate()/generateForIsland(), but we call
+    // splitIntoParts() defensively in case of compound shapes.
+    for (const Shape& island : outline.splitIntoParts())
+    {
+        const OpenLinesSet island_lines = FibonacciSpiralInfill::generate(island, line_distance_, z_, perimeter_start_ratio_);
+        result_lines.push_back(island_lines);
+    }
 }
 
 void Infill::generateLightningInfill(const Shape& outline, const std::shared_ptr<LightningLayer>& trees, OpenLinesSet& result_lines)

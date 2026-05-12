@@ -10,6 +10,7 @@
 
 #include "geometry/LinesSet.h"
 #include "geometry/Point2LL.h"
+#include "infill/FibonacciSpiralInfill.h"
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
 #include "settings/EnumSettings.h" //For infill types.
@@ -58,6 +59,7 @@ class Infill
     size_t zag_skip_count_{}; //!< (ZigZag) To skip one zag in every N if skip some zags is enabled
     coord_t pocket_size_{}; //!< The size of the pockets at the intersections of the fractal in the cross 3d pattern
     bool mirror_offset_{}; //!< Indication in which offset direction the extra infill lines are made
+    double perimeter_start_ratio_{ 0.75 }; //!< (FibonacciSpiral) Fraction [0,1] of island perimeter to walk before beginning the inward spiral.
 
     static constexpr auto one_over_sqrt_2 = 1.0 / std::numbers::sqrt2;
 
@@ -162,7 +164,8 @@ public:
         bool use_endpieces,
         bool skip_some_zags,
         size_t zag_skip_count,
-        coord_t pocket_size) noexcept
+        coord_t pocket_size,
+        double perimeter_start_ratio = 0.75) noexcept
         : pattern_{ pattern }
         , zig_zaggify_{ zig_zaggify }
         , connect_polygons_{ connect_polygons }
@@ -187,6 +190,7 @@ public:
         , zag_skip_count_{ zag_skip_count }
         , pocket_size_{ pocket_size }
         , mirror_offset_{ zig_zaggify }
+        , perimeter_start_ratio_{ perimeter_start_ratio }
     {
     }
 
@@ -437,6 +441,14 @@ private:
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect lines in a circle.
      */
     void generateOctagonInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons);
+
+    /*!
+     * Generate Fibonacci spiral infill (inward Archimedean spiral seeded from the shape perimeter).
+     * Designed for tree support; each closed island gets an independent spiral.
+     * \param outline      The island outline to fill.
+     * \param result_lines The output polyline set.
+     */
+    void generateFibonacciSpiralInfill(const Shape& outline, OpenLinesSet& result_lines);
 
     /*!
      * Generate lightning fill aka minfill aka 'Ribbed Support Vault Infill', see Tricard,Claux,Lefebvre/'Ribbed Support Vaults for 3D Printing of Hollowed Objects'

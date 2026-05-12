@@ -130,6 +130,7 @@ public:
         const bool skip_some_zags = roof ? false : config.skip_some_zags;
         const size_t zag_skip_count = roof ? 0 : config.zag_skip_count;
         constexpr coord_t pocket_size = 0;
+        const double perimeter_start_ratio = config.fibonacci_spiral_start_ratio;
         std::vector<AngleDegrees> angles = roof ? config.support_roof_angles : config.support_infill_angles;
         std::vector<VariableWidthLines> toolpaths;
 
@@ -160,7 +161,8 @@ public:
             use_endpieces,
             skip_some_zags,
             zag_skip_count,
-            pocket_size);
+            pocket_size,
+            perimeter_start_ratio);
 
         Shape areas;
         OpenLinesSet lines;

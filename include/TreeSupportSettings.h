@@ -78,6 +78,7 @@ struct TreeSupportSettings
         skip_some_zags(mesh_group_settings.get<bool>("support_skip_some_zags"))
         , zag_skip_count(mesh_group_settings.get<size_t>("support_zag_skip_count"))
         , connect_zigzags(mesh_group_settings.get<bool>("support_connect_zigzags"))
+        , fibonacci_spiral_start_ratio(mesh_group_settings.get<double>("support_fibonacci_spiral_start_ratio"))
         , settings(mesh_group_settings)
         , min_feature_size(mesh_group_settings.get<coord_t>("min_feature_size"))
         , min_wall_line_width(settings.get<coord_t>("min_wall_line_width"))
@@ -357,6 +358,12 @@ public:
      * \brief Only relevant for zigzag pattern. Only required to calculate infill patterns.
      */
     bool connect_zigzags;
+
+    /*!
+     * \brief Fraction [0,1] of the support island perimeter to walk before the inward
+     *        Fibonacci spiral begins. Only used when support_pattern == FIBONACCI_SPIRAL.
+     */
+    double fibonacci_spiral_start_ratio{ 0.75 };
 
     /*!
      * \brief How overlaps of an interface area with a support area should be handled.

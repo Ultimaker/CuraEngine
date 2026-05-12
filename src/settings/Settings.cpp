@@ -444,6 +444,8 @@ EFillMethod Settings::get<EFillMethod>(const std::string& key) const
         return EFillMethod::HONEYCOMB;
     case "octagon"_sw:
         return EFillMethod::OCTAGON;
+    case "fibonacci_spiral"_sw:
+        return EFillMethod::FIBONACCI_SPIRAL;
     case "plugin"_sw:
         return EFillMethod::PLUGIN;
     default:

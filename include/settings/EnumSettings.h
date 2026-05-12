@@ -29,6 +29,7 @@ enum class EFillMethod
     LIGHTNING,
     HONEYCOMB,
     OCTAGON,
+    FIBONACCI_SPIRAL, //!< Archimedean inward spiral seeded from the shape perimeter; used primarily for tree support.
     NONE, // NOTE: Should remain second last! Before PLUGIN (Might be used in testing to enumerate the enum.)
     PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
 };
