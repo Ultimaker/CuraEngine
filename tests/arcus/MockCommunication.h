@@ -31,12 +31,12 @@ public:
     MOCK_METHOD1(setLayerForSend, void(const LayerIndex::value_type& layer_nr));
     MOCK_METHOD0(sendOptimizedLayerData, void());
     MOCK_CONST_METHOD0(sendPrintTimeMaterialEstimates, void());
-    MOCK_METHOD0(beginGCode, void());
-    MOCK_METHOD0(flushGCode, void());
     MOCK_CONST_METHOD1(sendGCodePrefix, void(const std::string& prefix));
     MOCK_CONST_METHOD1(sendSliceUUID, void(const std::string& slice_uuid));
     MOCK_CONST_METHOD0(sendFinishedSlicing, void());
     MOCK_METHOD0(sliceNext, void());
+    MOCK_CONST_METHOD2(sendPrintInformation, void(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information));
+    MOCK_METHOD1(sendGCodePart, void(const std::string&));
 };
 
 } // namespace cura
