@@ -339,6 +339,97 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
     part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
 }
 
+// No "xx_layer_count" as this is done per layer.
+const std::unordered_map<std::string, std::string> roof_setting_floats{
+    { "line_width", "roofing_line_width" },
+    { "wall_0_material_flow", "wall_0_material_flow_roofing" },
+    { "wall_x_material_flow", "wall_x_material_flow_roofing" },
+    { "skin_material_flow", "roofing_material_flow" },
+    { "speed_wall_0", "speed_wall_0_roofing" },
+    { "speed_wall_x", "speed_wall_x_roofing" },
+    { "speed_topbottom", "speed_roofing" },
+    { "acceleration_wall_0", "acceleration_wall_0_roofing" },
+    { "acceleration_wall_x", "acceleration_wall_x_roofing" },
+    { "acceleration_topbottom", "acceleration_roofing" },
+    { "jerk_wall_0", "jerk_wall_0_roofing" },
+    { "jerk_wall_x", "jerk_wall_x_roofing" },
+    { "jerk_topbottom", "jerk_roofing" },
+};
+const std::unordered_map<std::string, std::string> roof_setting_others{
+    { "extruder_nr", "roofing_extruder_nr" },
+    { "top_bottom_pattern", "roofing_pattern" },
+    { "skin_monotonic", "roofing_monotonic" },
+    { "skin_angles", "roofing_angles" },
+};
+
+// NOTE: These settings don't have 'flooring' equivalents (yet?). An empty set is fed into the function in case of flooring.
+//       ("roofing_expansion" is missing here, as it has no bearing on wether we should merge or not)
+const std::vector<std::string> roof_settings_zero_default{ "material_delta_temperature_roofing" };
+
+// No "xx_layer_count" as this is done per layer.
+const std::unordered_map<std::string, std::string> floor_setting_floats{
+    { "line_width", "flooring_line_width" },
+    { "wall_0_material_flow", "wall_0_material_flow_flooring" },
+    { "wall_x_material_flow", "wall_x_material_flow_flooring" },
+    { "skin_material_flow", "flooring_material_flow" },
+    { "speed_wall_0", "speed_wall_0_flooring" },
+    { "speed_wall_x", "speed_wall_x_flooring" },
+    { "speed_topbottom", "speed_flooring" },
+    { "acceleration_wall_0", "acceleration_wall_0_flooring" },
+    { "acceleration_wall_x", "acceleration_wall_x_flooring" },
+    { "acceleration_topbottom", "acceleration_flooring" },
+    { "jerk_wall_0", "jerk_wall_0_flooring" },
+    { "jerk_wall_x", "jerk_wall_x_flooring" },
+    { "jerk_topbottom", "jerk_flooring" },
+};
+const std::unordered_map<std::string, std::string> floor_setting_others{
+    { "extruder_nr", "flooring_extruder_nr" },
+    { "top_bottom_pattern", "flooring_pattern" },
+    { "skin_monotonic", "flooring_monotonic" },
+    { "skin_angles", "flooring_angles" },
+};
+
+bool roofFloorSettingsEqual(
+    const Settings& settings,
+    const std::unordered_map<std::string, std::string>& setting_float_names,
+    const std::unordered_map<std::string, std::string>& setting_other_names,
+    const std::vector<std::string> settings_zero_default
+)
+{
+    const bool equal_floats =
+        std::ranges::all_of(setting_float_names,
+            [&settings](const auto& kvp) { return settings.get<double>(kvp.first) == settings.get<double>(kvp.second); });
+    if (! equal_floats)
+    {
+        return false;
+    }
+
+    const bool all_zeros =
+        std::ranges::all_of(settings_zero_default,
+            [&settings](const auto& name) { return settings.get<double>(name) == 0.0; });
+    if (! all_zeros)
+    {
+        return false;
+    }
+
+    constexpr auto extruder_nr = "extruder_nr";
+    constexpr auto top_bottom_pattern = "top_bottom_pattern";
+    constexpr auto skin_monotonic = "skin_monotonic";
+    constexpr auto skin_angles = "skin_angles";
+    if (
+        ( settings.get<int>(setting_other_names.at(extruder_nr)) > 0 &&
+          settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr)) ||
+        settings.get<EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<EFillMethod>(top_bottom_pattern) ||
+        settings.get<bool>(setting_other_names.at(skin_monotonic)) != settings.get<bool>(skin_monotonic) ||
+        ! std::ranges::equal(settings.get<std::vector<double>>(setting_other_names.at(skin_angles)), settings.get<std::vector<double>>(skin_angles))
+    )
+    {
+        return false;
+    }
+
+    return true;
+}
+
 /*
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
@@ -348,9 +439,9 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
 void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& part)
 {
     const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
-    const bool has_roofing = roofing_layer_count > 0;
+    const bool has_roofing = roofing_layer_count > 0 && ! roofFloorSettingsEqual(mesh_.settings, roof_setting_floats, roof_setting_others, roof_settings_zero_default);
     const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
-    const bool has_flooring = flooring_layer_count > 0;
+    const bool has_flooring = flooring_layer_count > 0 && ! roofFloorSettingsEqual(mesh_.settings, floor_setting_floats, floor_setting_others, {});
     const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
     const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
 
