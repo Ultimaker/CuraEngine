@@ -393,20 +393,25 @@ bool roofFloorSettingsEqual(
     const Settings& settings,
     const std::unordered_map<std::string, std::string>& setting_float_names,
     const std::unordered_map<std::string, std::string>& setting_other_names,
-    const std::vector<std::string> settings_zero_default
-)
+    const std::vector<std::string> settings_zero_default)
 {
-    const bool equal_floats =
-        std::ranges::all_of(setting_float_names,
-            [&settings](const auto& kvp) { return settings.get<double>(kvp.first) == settings.get<double>(kvp.second); });
+    const bool equal_floats = std::ranges::all_of(
+        setting_float_names,
+        [&settings](const auto& kvp)
+        {
+            return settings.get<double>(kvp.first) == settings.get<double>(kvp.second);
+        });
     if (! equal_floats)
     {
         return false;
     }
 
-    const bool all_zeros =
-        std::ranges::all_of(settings_zero_default,
-            [&settings](const auto& name) { return settings.get<double>(name) == 0.0; });
+    const bool all_zeros = std::ranges::all_of(
+        settings_zero_default,
+        [&settings](const auto& name)
+        {
+            return settings.get<double>(name) == 0.0;
+        });
     if (! all_zeros)
     {
         return false;
@@ -416,13 +421,10 @@ bool roofFloorSettingsEqual(
     constexpr auto top_bottom_pattern = "top_bottom_pattern";
     constexpr auto skin_monotonic = "skin_monotonic";
     constexpr auto skin_angles = "skin_angles";
-    if (
-        ( settings.get<int>(setting_other_names.at(extruder_nr)) > 0 &&
-          settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr)) ||
-        settings.get<EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<EFillMethod>(top_bottom_pattern) ||
-        settings.get<bool>(setting_other_names.at(skin_monotonic)) != settings.get<bool>(skin_monotonic) ||
-        ! std::ranges::equal(settings.get<std::vector<double>>(setting_other_names.at(skin_angles)), settings.get<std::vector<double>>(skin_angles))
-    )
+    if ((settings.get<int>(setting_other_names.at(extruder_nr)) > 0 && settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr))
+        || settings.get<EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<EFillMethod>(top_bottom_pattern)
+        || settings.get<bool>(setting_other_names.at(skin_monotonic)) != settings.get<bool>(skin_monotonic)
+        || ! std::ranges::equal(settings.get<std::vector<double>>(setting_other_names.at(skin_angles)), settings.get<std::vector<double>>(skin_angles)))
     {
         return false;
     }
