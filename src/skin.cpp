@@ -366,7 +366,7 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
         if (has_roofing)
         {
             const Shape below_inside = skin_part.outline.intersection(filled_area_below);
-            skin_part.roofing_fill = below_inside.difference(filled_area_above).intersection(below_inside);
+            skin_part.roofing_fill = below_inside.difference(filled_area_above);
         }
 
         if (has_flooring)
