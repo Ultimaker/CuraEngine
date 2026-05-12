@@ -17,11 +17,7 @@
 namespace cura
 {
 
-OpenLinesSet FibonacciSpiralInfill::generate(
-    const Shape& outline,
-    const coord_t line_distance,
-    const coord_t z,
-    const double perimeter_start_ratio)
+OpenLinesSet FibonacciSpiralInfill::generate(const Shape& outline, const coord_t line_distance, const coord_t z, const double perimeter_start_ratio)
 {
     OpenLinesSet result;
 
@@ -103,9 +99,7 @@ OpenLinesSet FibonacciSpiralInfill::generate(
             if (walked + seg_len >= target_dist)
             {
                 const double t = (target_dist - walked) / std::max(seg_len, 1.0);
-                entry_point = Point2LL(
-                    static_cast<coord_t>(a.X + t * dx),
-                    static_cast<coord_t>(a.Y + t * dy));
+                entry_point = Point2LL(static_cast<coord_t>(a.X + t * dx), static_cast<coord_t>(a.Y + t * dy));
                 found_entry = true;
                 break;
             }
@@ -117,9 +111,7 @@ OpenLinesSet FibonacciSpiralInfill::generate(
         }
 
         // Angle from center to entry point.
-        double start_angle = std::atan2(
-            static_cast<double>(entry_point.Y - center.Y),
-            static_cast<double>(entry_point.X - center.X));
+        double start_angle = std::atan2(static_cast<double>(entry_point.Y - center.Y), static_cast<double>(entry_point.X - center.X));
 
         // Z-based angular shift: one full revolution per `line_distance` of Z travel.
         // This simulates a 3-D helix cross-section — each layer starts at a different
@@ -142,8 +134,8 @@ OpenLinesSet FibonacciSpiralInfill::generate(
         // but we clamp to a sensible range [π/180, π/18] (1°–10°).
         const double step_angle = std::clamp(
             static_cast<double>(line_distance) / (8.0 * r_max),
-            std::numbers::pi / 180.0,    // min 1°
-            std::numbers::pi / 18.0);    // max 10°
+            std::numbers::pi / 180.0, // min 1°
+            std::numbers::pi / 18.0); // max 10°
 
         OpenPolyline spiral;
         double theta = 0.0; // angle advance from start_angle

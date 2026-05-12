@@ -54,11 +54,7 @@ public:
      *                               starting the inward spiral.  Default 0.75.
      * \return                    An OpenLinesSet containing the clipped spiral polyline(s).
      */
-    [[nodiscard]] static OpenLinesSet generate(
-        const Shape& outline,
-        coord_t line_distance,
-        coord_t z,
-        double perimeter_start_ratio = 0.75);
+    [[nodiscard]] static OpenLinesSet generate(const Shape& outline, coord_t line_distance, coord_t z, double perimeter_start_ratio = 0.75);
 
 private:
     FibonacciSpiralInfill() = delete;
