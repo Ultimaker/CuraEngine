@@ -9,7 +9,7 @@
 #include "InsetOrderOptimizer.h"
 #include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 #include "geometry/LinesSet.h"
 #include "geometry/MendedShape.h"
 #include "geometry/Polygon.h"
@@ -916,6 +916,15 @@ public:
      * Gets the mesh being printed first on this layer
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+
+    /*!
+     * \brief Find the first actually extruding extruder for this layer
+     * \return The first extruder actually extruding, or nullopt if there is no extrusion in this layer
+     */
+    std::optional<size_t> findInitialExtruderNr() const;
+
+    /*! Calculate the actual extrusion bounding box in this layer */
+    AABB calculateExtrusionBoundingBox() const;
 
     /*! Indicates whether this layer plan is empty, i.e. it has no extruder plan or they are all empty */
     const bool empty() const;

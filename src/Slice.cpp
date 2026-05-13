@@ -9,6 +9,7 @@
 #endif
 
 #include "ExtruderTrain.h"
+#include "FffProcessor.h"
 
 namespace cura
 {
@@ -36,6 +37,9 @@ void Slice::compute()
         }
         scene.processMeshGroup(*mesh_group);
     }
+
+    // Finalize the processor. This adds the end g-code and reports statistics.
+    FffProcessor::getInstance()->finalize();
 }
 
 void Slice::reset()
