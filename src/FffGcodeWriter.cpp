@@ -4,6 +4,7 @@
 #include "FffGcodeWriter.h"
 
 #include <algorithm>
+#include <cura-formulae-engine/eval.h>
 #include <limits> // numeric_limits
 #include <list>
 #include <memory>
@@ -19,7 +20,6 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
-#include "GcodeTemplateResolver.h"
 #include "InfillOrderOptimizer.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
@@ -58,37 +58,6 @@ FffGcodeWriter::FffGcodeWriter()
     }
 }
 
-void FffGcodeWriter::setTargetStream(std::ostream* stream)
-{
-    gcode.setOutputStream(stream);
-}
-
-bool FffGcodeWriter::getExtruderActualUse(int extruder_nr)
-{
-    return gcode.getExtruderIsUsed(extruder_nr);
-}
-
-double FffGcodeWriter::getTotalFilamentUsed(int extruder_nr)
-{
-    return gcode.getTotalFilamentUsed(extruder_nr);
-}
-
-std::vector<Duration> FffGcodeWriter::getTotalPrintTimePerFeature()
-{
-    return gcode.getTotalPrintTimePerFeature();
-}
-
-bool FffGcodeWriter::setTargetFile(const char* filename)
-{
-    output_file.open(filename);
-    if (output_file.is_open())
-    {
-        gcode.setOutputStream(&output_file);
-        return true;
-    }
-    return false;
-}
-
 void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     const size_t start_extruder_nr = getStartExtruder(storage);
@@ -101,8 +70,6 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         gcode.resetTotalPrintTimeAndFilament();
         gcode.setInitialAndBuildVolumeTemps(start_extruder_nr);
     }
-
-    Application::getInstance().communication_->beginGCode();
 
     setConfigFanSpeedLayerTime();
 
@@ -200,6 +167,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
             const ProcessLayerResult& result = result_opt.value();
             Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
             layer_plan_buffer.handle(*result.layer_plan, gcode);
+            print_info_.updateWithLayer(result.layer_plan);
         });
 
     layer_plan_buffer.flush();
@@ -4295,15 +4263,13 @@ void FffGcodeWriter::finalize()
 
     // Replace the setting tokens in start and end g-code.
     // Use values from the first used extruder by default so we get the expected temperatures
-    auto machine_end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
-    auto initial_extruder_nr = Application::getInstance().current_slice_->scene.settings.get<int>("initial_extruder_nr");
-    machine_end_gcode = GcodeTemplateResolver::resolveGCodeTemplate(machine_end_gcode, initial_extruder_nr);
+    const auto machine_end_gcode = mesh_group_settings.get<std::string>("machine_end_gcode");
 
     if (! machine_end_gcode.empty() && mesh_group_settings.get<bool>("relative_extrusion"))
     {
         gcode.writeExtrusionMode(false); // ensure absolute extrusion mode is set before the end gcode
     }
-    gcode.finalize(machine_end_gcode);
+    gcode.finalize(machine_end_gcode, print_info_);
 
     // set extrusion mode back to "normal"
     gcode.resetExtrusionMode();

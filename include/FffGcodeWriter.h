@@ -4,7 +4,6 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
-#include <fstream>
 #include <optional>
 
 #include "ExtruderUse.h"
@@ -13,7 +12,8 @@
 #include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
 #include "LinesOrderingMethod.h"
-#include "gcodeExport.h"
+#include "PrintInformation.h"
+#include "gcode_export/gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
@@ -61,11 +61,6 @@ private:
      */
     GCodeExport gcode;
 
-    /*!
-     * The gcode file to write to when using CuraEngine as command line tool.
-     */
-    std::ofstream output_file;
-
     //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
     LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
 
@@ -86,6 +81,8 @@ private:
 
     std::string slice_uuid; //!< The UUID of the current slice.
 
+    PrintInformation print_info_; //!< Global print information calculated along slicing
+
 public:
     /*
      * \brief Construct a g-code writer.
@@ -94,49 +91,6 @@ public:
      * it's ready for writing.
      */
     FffGcodeWriter();
-
-    /*!
-     * Set the target to write gcode to: to a file.
-     *
-     * Used when CuraEngine is used as command line tool.
-     *
-     * \param filename The filename of the file to which to write the gcode.
-     */
-    bool setTargetFile(const char* filename);
-
-    /*!
-     * Set the target to write gcode to: an output stream.
-     *
-     * Used when CuraEngine is NOT used as command line tool.
-     *
-     * \param stream The stream to write gcode to.
-     */
-    void setTargetStream(std::ostream* stream);
-
-    /*!
-     * Wether or not the extruder is actually used in the print, regardless of enablement.
-     *
-     * \param extruder_nr The extruder number for which to get the useage
-     * \return actual use y/n boolean
-     */
-    bool getExtruderActualUse(int extruder_nr);
-
-    /*!
-     * Get the total extruded volume for a specific extruder in mm^3
-     *
-     * Retractions and unretractions don't contribute to this.
-     *
-     * \param extruder_nr The extruder number for which to get the total netto extruded volume
-     * \return total filament printed in mm^3
-     */
-    double getTotalFilamentUsed(int extruder_nr);
-
-    /*!
-     * Get the total estimated print time in seconds for each feature
-     *
-     * \return total print time in seconds for each feature
-     */
-    std::vector<Duration> getTotalPrintTimePerFeature();
 
     /*!
      * Write all the gcode for the current meshgroup.
