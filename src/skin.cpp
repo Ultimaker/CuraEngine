@@ -401,7 +401,7 @@ bool roofFloorSettingsEqual(
         setting_float_names,
         [&settings](const auto& kvp)
         {
-            return settings.get<double>(kvp.first) == settings.get<double>(kvp.second);
+            return std::abs(settings.get<double>(kvp.second) - settings.get<double>(kvp.first)) < std::numeric_limits<double>::epsilon();
         });
     if (! equal_floats)
     {
@@ -423,10 +423,11 @@ bool roofFloorSettingsEqual(
     constexpr auto top_bottom_pattern = "top_bottom_pattern";
     constexpr auto skin_monotonic = "skin_monotonic";
     constexpr auto skin_angles = "skin_angles";
-    if ((settings.get<int>(setting_other_names.at(extruder_nr)) > 0 && settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr))
+    if ((settings.get<int>(setting_other_names.at(extruder_nr)) >= 0 && settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr))
         || settings.get<EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<EFillMethod>(top_bottom_pattern)
         || settings.get<bool>(setting_other_names.at(skin_monotonic)) != settings.get<bool>(skin_monotonic)
-        || ! ranges::equal(settings.get<std::vector<double>>(setting_other_names.at(skin_angles)), settings.get<std::vector<double>>(skin_angles)))
+        || ! ranges::equal(settings.get<std::vector<double>>(setting_other_names.at(skin_angles)), settings.get<std::vector<double>>(skin_angles),
+            [](const double& a, const double& b) { return std::abs(b - a) < std::numeric_limits<double>::epsilon(); } ))
     {
         return false;
     }
