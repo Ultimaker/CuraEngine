@@ -426,8 +426,13 @@ bool roofFloorSettingsEqual(
     if ((settings.get<int>(setting_other_names.at(extruder_nr)) >= 0 && settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr))
         || settings.get<EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<EFillMethod>(top_bottom_pattern)
         || settings.get<bool>(setting_other_names.at(skin_monotonic)) != settings.get<bool>(skin_monotonic)
-        || ! ranges::equal(settings.get<std::vector<double>>(setting_other_names.at(skin_angles)), settings.get<std::vector<double>>(skin_angles),
-            [](const double& a, const double& b) { return std::abs(b - a) < std::numeric_limits<double>::epsilon(); } ))
+        || ! ranges::equal(
+            settings.get<std::vector<double>>(setting_other_names.at(skin_angles)),
+            settings.get<std::vector<double>>(skin_angles),
+            [](const double& a, const double& b)
+            {
+                return std::abs(b - a) < std::numeric_limits<double>::epsilon();
+            }))
     {
         return false;
     }
