@@ -5,6 +5,8 @@
 
 #include <cmath> // std::ceil
 
+#include <range/v3/algorithm/all_of.hpp>
+#include <range/v3/algorithm/equal.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
@@ -395,7 +397,7 @@ bool roofFloorSettingsEqual(
     const std::unordered_map<std::string, std::string>& setting_other_names,
     const std::vector<std::string> settings_zero_default)
 {
-    const bool equal_floats = std::ranges::all_of(
+    const bool equal_floats = ranges::all_of(
         setting_float_names,
         [&settings](const auto& kvp)
         {
@@ -406,7 +408,7 @@ bool roofFloorSettingsEqual(
         return false;
     }
 
-    const bool all_zeros = std::ranges::all_of(
+    const bool all_zeros = ranges::all_of(
         settings_zero_default,
         [&settings](const auto& name)
         {
@@ -424,7 +426,7 @@ bool roofFloorSettingsEqual(
     if ((settings.get<int>(setting_other_names.at(extruder_nr)) > 0 && settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr))
         || settings.get<EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<EFillMethod>(top_bottom_pattern)
         || settings.get<bool>(setting_other_names.at(skin_monotonic)) != settings.get<bool>(skin_monotonic)
-        || ! std::ranges::equal(settings.get<std::vector<double>>(setting_other_names.at(skin_angles)), settings.get<std::vector<double>>(skin_angles)))
+        || ! ranges::equal(settings.get<std::vector<double>>(setting_other_names.at(skin_angles)), settings.get<std::vector<double>>(skin_angles)))
     {
         return false;
     }
