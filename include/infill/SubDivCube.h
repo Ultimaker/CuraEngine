@@ -4,7 +4,6 @@
 #ifndef INFILL_SUBDIVCUBE_H
 #define INFILL_SUBDIVCUBE_H
 
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 #include "geometry/Point3LL.h"
 #include "geometry/Point3Matrix.h"
@@ -15,6 +14,7 @@
 namespace cura
 {
 
+class OpenLinesSet;
 class Polygon;
 class SliceMeshStorage;
 

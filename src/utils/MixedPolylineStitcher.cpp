@@ -4,7 +4,7 @@
 #include "utils/MixedPolylineStitcher.h"
 
 #include "geometry/MixedLinesSet.h"
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 

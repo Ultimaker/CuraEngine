@@ -12,7 +12,7 @@
 #include "LayerPlan.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 
 namespace cura
 {
@@ -54,7 +54,6 @@ LayerPlan* LayerPlanBuffer::processBuffer()
     if (buffer_.size() > buffer_size_)
     {
         LayerPlan* ret = buffer_.front();
-        Application::getInstance().communication_->flushGCode();
         buffer_.pop_front();
         return ret;
     }
@@ -63,8 +62,6 @@ LayerPlan* LayerPlanBuffer::processBuffer()
 
 void LayerPlanBuffer::flush()
 {
-    Application::getInstance()
-        .communication_->flushGCode(); // If there was still g-code in a layer, flush that as a separate layer. Don't want to group them together accidentally.
     if (buffer_.size() > 0)
     {
         insertTempCommands(); // insert preheat commands of the very last layer
@@ -72,7 +69,6 @@ void LayerPlanBuffer::flush()
     while (! buffer_.empty())
     {
         buffer_.front()->writeGCode(gcode_);
-        Application::getInstance().communication_->flushGCode();
         delete buffer_.front();
         buffer_.pop_front();
     }
@@ -140,23 +136,23 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_layer->extruder_plans_.back().extruder_nr_].settings_;
         prev_layer->setIsInside(new_layer_destination_state->second);
 
-        const bool travel_retract_before_outer_wall = mesh_group_settings.get<bool>("travel_retract_before_outer_wall");
+        const bool travel_retract_before_outer_wall = mesh_group_settings.get<RetractBeforeOuterWall>("travel_retract_before_outer_wall") == RetractBeforeOuterWall::RETRACTED;
         const bool retract_at_layer_change = extruder_settings.get<bool>("retract_at_layer_change");
         bool next_mesh_retract_before_outer_wall = false;
         std::shared_ptr<const SliceMeshStorage> first_printed_mesh = newest_layer->findFirstPrintedMesh();
         if (! retract_at_layer_change && first_printed_mesh && travel_retract_before_outer_wall)
         {
-            // Check whether we are moving toving towards an outer wall and it should be retracted
+            // Check whether we are moving towards an outer wall and it should be retracted
             const Settings& mesh_settings = first_printed_mesh->settings;
             const InsetDirection inset_direction = mesh_settings.get<InsetDirection>("inset_direction");
             const size_t wall_line_count = mesh_settings.get<size_t>("wall_line_count");
 
             next_mesh_retract_before_outer_wall = inset_direction == InsetDirection::OUTSIDE_IN || wall_line_count == 1;
         }
-        const bool force_retract = retract_at_layer_change || next_mesh_retract_before_outer_wall;
+        const ForceRetract force_retract = (retract_at_layer_change || next_mesh_retract_before_outer_wall) ? ForceRetract::RETRACTED : ForceRetract::AUTOMATIC;
         prev_layer->final_travel_z_ = newest_layer->z_;
         GCodePath& path = prev_layer->addTravel(first_location_new_layer, force_retract);
-        if (force_retract && ! path.retract)
+        if (force_retract == ForceRetract::RETRACTED && ! path.retract)
         {
             // addTravel() won't use retraction if the travel distance is less than retraction minimum travel setting
             // so to avoid blobs when moving to the new layer height, which can occur if the z-axis speed is very slow,
@@ -375,6 +371,27 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
     }
 }
 
+void LayerPlanBuffer::insertInLayerTempCommands(ExtruderPlan& extruder_plan)
+{
+    const double normal_temperature = extruder_plan.extrusion_temperature_.value_or(extruder_plan.required_start_temperature_);
+    double actual_temperature = normal_temperature;
+    for (const auto [index, path] : extruder_plan.paths_ | ranges::views::enumerate)
+    {
+        if (path.isTravelPath())
+        {
+            continue;
+        }
+
+        const Temperature path_temperature = normal_temperature + path.config.temperature_delta;
+        if (! fuzzy_equal(path_temperature.value, actual_temperature, 0.1))
+        {
+            constexpr bool wait = false;
+            extruder_plan.insertCommand({ index, extruder_plan.extruder_nr_, path_temperature, wait });
+            actual_temperature = path_temperature;
+        }
+    }
+}
+
 void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
 {
     if (! extruder_plan.extrusion_temperature_)
@@ -544,9 +561,8 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
 
 void LayerPlanBuffer::insertTempCommands()
 {
-    if (buffer_.back()->extruder_plans_.size() == 0 || (buffer_.back()->extruder_plans_.size() == 1 && buffer_.back()->extruder_plans_[0].paths_.size() == 0))
+    if (buffer_.back()->empty())
     { // disregard empty layer
-        buffer_.pop_back();
         return;
     }
 
@@ -632,6 +648,11 @@ void LayerPlanBuffer::insertTempCommands()
         }
 
         insertTempCommands(extruder_plans, overall_extruder_plan_idx);
+    }
+
+    for (ExtruderPlan& extruder_plan : layer_plan.extruder_plans_)
+    {
+        insertInLayerTempCommands(extruder_plan);
     }
 }
 

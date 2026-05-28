@@ -14,6 +14,7 @@
 namespace cura
 {
 class SliceMeshStorage;
+class SupportStorage;
 
 /*!
  * Generates the Lightning Infill pattern.
@@ -46,6 +47,16 @@ public:
     LightningGenerator(const SliceMeshStorage& mesh);
 
     /*!
+     * Create a generator to fill support with lightning infill
+     *
+     * This generator will pre-compute things in preparation of generating
+     * Lightning Infill for the infill areas in the support. The support infill areas must
+     * already be calculated at this point.
+     * @param support The support to generate infill for
+     */
+    LightningGenerator(const SupportStorage& support);
+
+    /*!
      * Get a tree of paths generated for a certain layer of the mesh.
      *
      * This tree represents the paths that must be traced to print the infill.
@@ -58,6 +69,27 @@ public:
 
 protected:
     /*!
+     * Generate the lightning infill for the given areas with the given settings
+     * @param layer_thickness The actual layer thickness
+     * @param line_width The extrusion line width
+     * @param wall_line_count The number of external walls in the infill areas
+     * @param line_distance The base "line distance", which represents the density of the infill
+     * @param overhang_angle The angle at which we consider overhanging areas
+     * @param prune_angle The angle of the generated lines overhang
+     * @param straightening_angle The angle threshold for straightening the lines
+     * @param areas_per_layer For each layer, the infill aras to be filled
+     */
+    void generate(
+        const coord_t layer_thickness,
+        const coord_t line_width,
+        const coord_t wall_line_count,
+        const coord_t line_distance,
+        const AngleRadians& overhang_angle,
+        const AngleRadians& prune_angle,
+        const AngleRadians& straightening_angle,
+        const std::vector<Shape>& areas_per_layer);
+
+    /*!
      * Calculate the overhangs above the infill areas that need to be supported
      * by infill.
      *
@@ -65,12 +97,12 @@ protected:
      * only when support is generated. For this pattern, we also need to
      * generate overhang areas for the inside of the model.
      */
-    void generateInitialInternalOverhangs(const SliceMeshStorage& mesh);
+    void generateInitialInternalOverhangs(const coord_t infill_line_width, const coord_t infill_wall_line_count, const std::vector<Shape>& areas_per_layer);
 
     /*!
      * Calculate the tree structure of all layers.
      */
-    void generateTrees(const SliceMeshStorage& mesh);
+    void generateTrees(const coord_t infill_line_width, const coord_t infill_wall_line_count, const std::vector<Shape>& areas_per_layer);
 
     /*!
      * How far each piece of infill can support skin in the layer above.

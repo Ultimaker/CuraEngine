@@ -53,11 +53,7 @@ template<class LineType>
 template<class OtherLineType>
 void LinesSet<LineType>::push_back(LinesSet<OtherLineType>&& lines_set)
 {
-    reserve(size() + lines_set.size());
-    for (OtherLineType& line : lines_set)
-    {
-        emplace_back(std::move(line));
-    }
+    lines_.insert(lines_.end(), std::make_move_iterator(lines_set.begin()), std::make_move_iterator(lines_set.end()));
 }
 
 template<class LineType>
@@ -71,12 +67,6 @@ size_t LinesSet<LineType>::pointCount() const
         {
             return total + line.size();
         });
-}
-
-template<>
-void OpenLinesSet::addSegment(const Point2LL& from, const Point2LL& to)
-{
-    lines_.emplace_back(std::initializer_list<Point2LL>{ from, to });
 }
 
 template<class LineType>
@@ -128,12 +118,6 @@ coord_t LinesSet<LineType>::length() const
         {
             return total += line.length();
         });
-}
-
-template<class LineType>
-Shape LinesSet<LineType>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const
-{
-    return offset(outer_offset).difference(offset(-inner_offset));
 }
 
 template<class LineType>
@@ -210,7 +194,7 @@ Shape LinesSet<Polygon>::offset(coord_t distance, ClipperLib::JoinType join_type
 }
 
 template<>
-Shape OpenLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
+Shape LinesSet<OpenPolyline>::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (empty() || distance == 0)
     {
@@ -225,30 +209,6 @@ Shape OpenLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, dou
     clipper.Execute(result_paths, static_cast<double>(distance));
 
     return Shape{ std::move(result_paths) };
-}
-
-template<>
-[[nodiscard]] OpenLinesSet OpenLinesSet::difference(const Shape& other) const
-{
-    if (empty())
-    {
-        return {};
-    }
-    if (other.empty())
-    {
-        return *this;
-    }
-
-    ClipperLib::PolyTree ret;
-    ClipperLib::Clipper clipper(clipper_init);
-    addPaths(clipper, ClipperLib::ptSubject);
-    other.addPaths(clipper, ClipperLib::ptClip);
-    clipper.Execute(ClipperLib::ctDifference, ret);
-
-    ClipperLib::Paths result_paths;
-    ClipperLib::OpenPathsFromPolyTree(ret, result_paths);
-
-    return OpenLinesSet(std::move(result_paths));
 }
 
 template<class LineType>
@@ -353,28 +313,26 @@ void LinesSet<LineType>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib
     }
 }
 
-template size_t OpenLinesSet::pointCount() const;
-template void OpenLinesSet::removeAt(size_t index);
-template void OpenLinesSet::splitIntoSegments(OpenLinesSet& result) const;
-template OpenLinesSet OpenLinesSet::splitIntoSegments() const;
-template coord_t OpenLinesSet::length() const;
-template Shape OpenLinesSet::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
-template void OpenLinesSet::translate(const Point2LL& delta);
-template void OpenLinesSet::applyMatrix(const PointMatrix& matrix);
-template void OpenLinesSet::applyMatrix(const Point3Matrix& matrix);
-template void OpenLinesSet::removeDegenerateVerts();
-template void OpenLinesSet::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
-template void OpenLinesSet::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void OpenLinesSet::push_back(const OpenPolyline& line, CheckNonEmptyParam checkNonEmpty);
-template void OpenLinesSet::push_back(OpenPolyline&& line, CheckNonEmptyParam checkNonEmpty);
-template void OpenLinesSet::push_back(OpenLinesSet&& lines_set);
+template size_t LinesSet<OpenPolyline>::pointCount() const;
+template void LinesSet<OpenPolyline>::removeAt(size_t index);
+template void LinesSet<OpenPolyline>::splitIntoSegments(OpenLinesSet& result) const;
+template OpenLinesSet LinesSet<OpenPolyline>::splitIntoSegments() const;
+template coord_t LinesSet<OpenPolyline>::length() const;
+template void LinesSet<OpenPolyline>::translate(const Point2LL& delta);
+template void LinesSet<OpenPolyline>::applyMatrix(const PointMatrix& matrix);
+template void LinesSet<OpenPolyline>::applyMatrix(const Point3Matrix& matrix);
+template void LinesSet<OpenPolyline>::removeDegenerateVerts();
+template void LinesSet<OpenPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+template void LinesSet<OpenPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
+template void LinesSet<OpenPolyline>::push_back(const OpenPolyline& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<OpenPolyline>::push_back(OpenPolyline&& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<OpenPolyline>::push_back(LinesSet<OpenPolyline>&& lines_set);
 
 template size_t ClosedLinesSet::pointCount() const;
 template void ClosedLinesSet::removeAt(size_t index);
 template void ClosedLinesSet::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet ClosedLinesSet::splitIntoSegments() const;
 template coord_t ClosedLinesSet::length() const;
-template Shape ClosedLinesSet::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void ClosedLinesSet::translate(const Point2LL& delta);
 template void ClosedLinesSet::applyMatrix(const PointMatrix& matrix);
 template void ClosedLinesSet::applyMatrix(const Point3Matrix& matrix);
@@ -391,7 +349,6 @@ template void LinesSet<Polygon>::removeAt(size_t index);
 template void LinesSet<Polygon>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<Polygon>::splitIntoSegments() const;
 template coord_t LinesSet<Polygon>::length() const;
-template Shape LinesSet<Polygon>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<Polygon>::translate(const Point2LL& delta);
 template void LinesSet<Polygon>::applyMatrix(const PointMatrix& matrix);
 template void LinesSet<Polygon>::applyMatrix(const Point3Matrix& matrix);

@@ -6,7 +6,7 @@
 #include <fmt/format.h>
 #include <range/v3/view/enumerate.hpp>
 
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"
 #include "utils/AABB.h"

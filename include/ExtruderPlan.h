@@ -6,7 +6,6 @@
 
 #include "FanSpeedLayerTime.h"
 #include "RetractionConfig.h"
-#include "gcodeExport.h"
 #include "geometry/Point2LL.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
@@ -27,6 +26,7 @@ namespace cura
 {
 class LayerPlanBuffer;
 class LayerPlan;
+class GCodeExport;
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
  *
@@ -43,6 +43,8 @@ class ExtruderPlan
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
     FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
     friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    FRIEND_TEST(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet);
+    FRIEND_TEST(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary);
 #endif
 public:
     size_t extruder_nr_{ 0 }; //!< The extruder used for this paths in the current plan.
@@ -128,6 +130,17 @@ public:
      * Gets the mesh being printed first on this plan
      */
     std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+
+    /*! \brief Calculates whether this extruder plan actually has at least one extrusion move */
+    bool hasExtrusion() const;
+
+    /*!
+     * \brief Calculate the total bounding box of extrusion moves
+     * \note This is not 100% accurate since at this point we don't know the start position of the extruder plan. So if the very first
+     *       move happens to be an extrusion move and the start position is the outermost of the bounding box, it will not be accounted
+     *       for and the bounding box will be approximate.
+     */
+    AABB calculateExtrusionBoundingBox() const;
 
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.

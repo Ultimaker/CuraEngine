@@ -49,12 +49,11 @@ set(engine_SRCS # Except main.cpp.
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
         src/FffProcessor.cpp
-        src/gcodeExport.cpp
         src/GCodePathConfig.cpp
-        src/GcodeTemplateResolver.cpp
         src/infill.cpp
-        src/InterlockingGenerator.cpp
+        src/InfillOrderOptimizer.cpp
         src/InsetOrderOptimizer.cpp
+        src/InterlockingGenerator.cpp
         src/layerPart.cpp
         src/LayerPlan.cpp
         src/LayerPlanBuffer.cpp
@@ -67,6 +66,7 @@ set(engine_SRCS # Except main.cpp.
         src/PathAdapter.cpp
         src/PathOrderMonotonic.cpp
         src/Preheat.cpp
+        src/PrintInformation.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
         src/PrimeTower/PrimeTowerInterleaved.cpp
@@ -86,6 +86,7 @@ set(engine_SRCS # Except main.cpp.
         src/TreeSupportTipGenerator.cpp
         src/TreeModelVolumes.cpp
         src/TreeSupport.cpp
+        src/TreeSupportElement.cpp
         src/WallsComputation.cpp
         src/WallToolPaths.cpp
 
@@ -113,6 +114,11 @@ set(engine_SRCS # Except main.cpp.
         src/communication/CommandLine.cpp
         src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
+
+        src/gcode_export/gcodeExport.cpp
+        src/gcode_export/FixedGCodePart.cpp
+        src/gcode_export/ResolvedGCodePart.cpp
+        src/gcode_export/GcodeTemplateResolver.cpp
 
         src/infill/AbstractLinesInfill.cpp
         src/infill/ImageBasedDensityProvider.cpp
@@ -187,6 +193,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/RandomScoringCriterion.cpp
         src/utils/scoring/TextureScoringCriterion.cpp
 
+        src/geometry/OpenLinesSet.cpp
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
