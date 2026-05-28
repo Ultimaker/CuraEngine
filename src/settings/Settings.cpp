@@ -462,6 +462,8 @@ EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
         return EPlatformAdhesion::SKIRT;
     case "brim"_sw:
         return EPlatformAdhesion::BRIM;
+    case "autobrim"_sw:
+        return EPlatformAdhesion::AUTOBRIM;
     case "raft"_sw:
         return EPlatformAdhesion::RAFT;
     case "none"_sw:
