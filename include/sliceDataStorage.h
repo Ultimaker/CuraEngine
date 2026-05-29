@@ -184,6 +184,12 @@ public:
      */
     Shape bottom_surface;
 
+    size_t outer_wall_count{ 0 };
+    size_t extra_wall_count_infill{ 0 };
+    size_t extra_wall_count_skin{ 0 };
+    size_t extra_wall_count_flooring{ 0 };
+    size_t extra_wall_count_roofing{ 0 };
+
     /*!
      * Get the all outlines of all layer parts in this layer.
      *

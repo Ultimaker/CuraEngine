@@ -114,7 +114,6 @@ private:
         std::string extruder_nr;
         std::string pattern;
         std::string monotonic;
-        std::string wall_count;
     };
 
     /*! Helper structure to pre-process then later add the optimized insets */
@@ -330,6 +329,7 @@ private:
     void addMeshLayerToGCode(
         const SliceDataStorage& storage,
         const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         LayerPlan& gcode_layer) const;
@@ -349,6 +349,7 @@ private:
     void addMeshPartToGCode(
         const SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         SliceLayerPart& part,
@@ -370,6 +371,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
@@ -394,6 +396,7 @@ private:
     bool processMultiLayerInfill(
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
@@ -420,6 +423,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
@@ -497,6 +501,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part) const;
@@ -526,6 +531,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SkinPart& skin_part) const;
@@ -547,6 +553,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const RoofingFlooringSettingsNames& settings_names,
+        const size_t wall_line_count,
         const Shape& fill,
         const GCodePathConfig& config,
         const std::vector<AngleDegrees>& angles,
@@ -568,6 +575,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const Shape& skin_fill,

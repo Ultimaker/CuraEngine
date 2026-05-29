@@ -44,10 +44,8 @@
 namespace cura
 {
 
-const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names
-    = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic", "wall_line_count_roofing" };
-const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names
-    = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic", "wall_line_count_flooring" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic" };
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
@@ -1262,6 +1260,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             {
                 const std::shared_ptr<SliceMeshStorage>& mesh = storage.meshes[mesh_idx];
                 const MeshPathConfigs& mesh_config = gcode_layer.configs_storage_.mesh_configs[mesh_idx];
+                const SliceLayer& slice_layer = mesh->layers[layer_nr];
                 if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
                            == mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ // mesh surface mode should always only be printed with the outer wall extruder!
@@ -1271,7 +1270,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
                 }
                 else
                 {
-                    addMeshLayerToGCode(storage, mesh, extruder_nr, mesh_config, gcode_layer);
+                    addMeshLayerToGCode(storage, mesh, slice_layer, extruder_nr, mesh_config, gcode_layer);
                 }
                 time_keeper.registerTime(fmt::format("Mesh {}", mesh->mesh_name));
             }
@@ -1767,6 +1766,7 @@ void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, c
 void FffGcodeWriter::addMeshLayerToGCode(
     const SliceDataStorage& storage,
     const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+    const SliceLayer& slice_layer,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
@@ -1814,7 +1814,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
 
     for (const PathOrdering<SliceLayerPart*>& path : part_order_optimizer.paths_)
     {
-        addMeshPartToGCode(storage, mesh, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
+        addMeshPartToGCode(storage, mesh, slice_layer, extruder_nr, mesh_config, *path.vertices_, gcode_layer);
     }
 
     const std::string extruder_identifier = (mesh.settings.get<size_t>("roofing_layer_count") > 0) ? "roofing_extruder_nr" : "top_bottom_extruder_nr";
@@ -1832,6 +1832,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
 void FffGcodeWriter::addMeshPartToGCode(
     const SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
+    const SliceLayer& slice_layer,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     SliceLayerPart& part,
@@ -1856,7 +1857,7 @@ void FffGcodeWriter::addMeshPartToGCode(
             near_end_location = insets_preprocess_result.walls_optimizer->getStartPosition();
         }
 
-        infill_added = processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, near_end_location);
+        infill_added = processInfill(storage, gcode_layer, mesh, slice_layer, extruder_nr, mesh_config, part, near_end_location);
         added_something = added_something | infill_added;
     }
 
@@ -1864,10 +1865,10 @@ void FffGcodeWriter::addMeshPartToGCode(
 
     if (! infill_before_walls)
     {
-        added_something = added_something | processInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+        added_something = added_something | processInfill(storage, gcode_layer, mesh, slice_layer, extruder_nr, mesh_config, part);
     }
 
-    added_something = added_something | processSkin(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
+    added_something = added_something | processSkin(storage, gcode_layer, mesh, slice_layer, extruder_nr, mesh_config, part);
 
     // After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
     if (added_something && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))))
@@ -1887,6 +1888,7 @@ bool FffGcodeWriter::processInfill(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
+    const SliceLayer& slice_layer,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
@@ -1900,15 +1902,34 @@ bool FffGcodeWriter::processInfill(
     const coord_t infill_start_move_inwards_length = mesh.settings.get<coord_t>("infill_start_move_inwards_length");
     const coord_t infill_end_move_inwards_length = mesh.settings.get<coord_t>("infill_end_move_inwards_length");
 
-    const bool added_something
-        = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length, near_end_location)
-        | processSingleLayerInfill(storage, gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length, near_end_location);
+    const bool added_something = processMultiLayerInfill(
+                                     gcode_layer,
+                                     mesh,
+                                     slice_layer,
+                                     extruder_nr,
+                                     mesh_config,
+                                     part,
+                                     infill_start_move_inwards_length,
+                                     infill_end_move_inwards_length,
+                                     near_end_location)
+                               | processSingleLayerInfill(
+                                     storage,
+                                     gcode_layer,
+                                     mesh,
+                                     slice_layer,
+                                     extruder_nr,
+                                     mesh_config,
+                                     part,
+                                     infill_start_move_inwards_length,
+                                     infill_end_move_inwards_length,
+                                     near_end_location);
     return added_something;
 }
 
 bool FffGcodeWriter::processMultiLayerInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
+    const SliceLayer& slice_layer,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
@@ -2098,6 +2119,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
+    const SliceLayer& slice_layer,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
@@ -2129,7 +2151,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
     const auto infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     const auto infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
-    const auto wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
+    const auto wall_line_count = slice_layer.extra_wall_count_infill;
     const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
     const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
     const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
@@ -2170,7 +2192,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
     if (! infill_below_skin.empty())
     {
-        const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
+        const auto infill_wall_line_count = mesh.layers[gcode_layer.getLayerNr()].extra_wall_count_infill;
         const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
         const Shape infill_contour = part.infill_area.offset(-(infill_line_width / 2) + infill_overlap + infill_wall_offset);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
@@ -2979,6 +3001,7 @@ bool FffGcodeWriter::processSkin(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
+    const SliceLayer& slice_layer,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
@@ -3007,7 +3030,7 @@ bool FffGcodeWriter::processSkin(
     {
         const SkinPart& skin_part = *path.vertices_;
 
-        added_something = added_something | processSkinPart(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part);
+        added_something = added_something | processSkinPart(storage, gcode_layer, mesh, slice_layer, extruder_nr, mesh_config, skin_part);
     }
 
     return added_something;
@@ -3017,6 +3040,7 @@ bool FffGcodeWriter::processSkinPart(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
+    const SliceLayer& slice_layer,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part) const
@@ -3028,6 +3052,7 @@ bool FffGcodeWriter::processSkinPart(
         mesh,
         extruder_nr,
         roofing_settings_names,
+        slice_layer.extra_wall_count_roofing,
         skin_part.roofing_fill,
         mesh_config.roofing_config,
         mesh.roofing_angles,
@@ -3038,11 +3063,12 @@ bool FffGcodeWriter::processSkinPart(
         mesh,
         extruder_nr,
         flooring_settings_names,
+        slice_layer.extra_wall_count_flooring,
         skin_part.flooring_fill,
         mesh_config.flooring_config,
         mesh.flooring_angles,
         added_something);
-    processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part.skin_fill, added_something);
+    processTopBottom(storage, gcode_layer, mesh, slice_layer, extruder_nr, mesh_config, skin_part.skin_fill, added_something);
     return added_something;
 }
 
@@ -3052,6 +3078,7 @@ void FffGcodeWriter::processRoofingFlooring(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const RoofingFlooringSettingsNames& settings_names,
+    const size_t wall_line_count,
     const Shape& fill,
     const GCodePathConfig& config,
     const std::vector<AngleDegrees>& angles,
@@ -3078,7 +3105,6 @@ void FffGcodeWriter::processRoofingFlooring(
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     const LinesOrderingMethod ordering = mesh.settings.get<bool>(settings_names.monotonic) ? LinesOrderingMethod::Monotonic : LinesOrderingMethod::Basic;
-    const size_t wall_line_count = mesh.settings.get<size_t>(settings_names.wall_count);
     constexpr bool is_roofing_flooring = true;
     processSkinPrintFeature(
         storage,
@@ -3101,6 +3127,7 @@ void FffGcodeWriter::processTopBottom(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
+    const SliceLayer& slice_layer,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
     const Shape& skin_fill,
@@ -3279,7 +3306,6 @@ void FffGcodeWriter::processTopBottom(
     }
 
     constexpr bool is_roofing_flooring = false;
-    const size_t wall_line_count = mesh.settings.get<size_t>(gcode_layer.isInitialLayer() ? "wall_line_count_layer_0" : "wall_line_count_inside_skin");
     processSkinPrintFeature(
         storage,
         gcode_layer,
@@ -3292,7 +3318,7 @@ void FffGcodeWriter::processTopBottom(
         skin_overlap,
         skin_density,
         ordering,
-        wall_line_count,
+        slice_layer.extra_wall_count_skin,
         is_roofing_flooring,
         added_something,
         fan_speed,
@@ -3341,7 +3367,6 @@ void FffGcodeWriter::processSkinPrintFeature(
         = forced_small_area_width.value_or((small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<coord_t>("small_skin_width") : line_width / 4);
     const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
     const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
-    const size_t extra_wall_count = static_cast<size_t>(std::max(0, static_cast<int>(wall_line_count) - mesh.settings.get<int>("wall_line_count")));
 
     Infill infill_comp(
         pattern,
@@ -3357,7 +3382,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         extra_infill_shift,
         max_resolution,
         max_deviation,
-        extra_wall_count,
+        wall_line_count,
         small_area_width,
         infill_origin,
         skip_line_stitching,

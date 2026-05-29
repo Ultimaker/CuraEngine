@@ -15,6 +15,7 @@ namespace cura
 {
 class SliceMeshStorage;
 class SupportStorage;
+class SliceLayer;
 
 /*!
  * Generates the Lightning Infill pattern.
@@ -68,6 +69,21 @@ public:
     const LightningLayer& getTreesForLayer(const size_t& layer_id) const;
 
 protected:
+    struct WallLineCount : std::variant<size_t, const std::vector<SliceLayer>*>
+    {
+        WallLineCount(const size_t fixed_count)
+            : std::variant<size_t, const std::vector<SliceLayer>*>(fixed_count)
+        {
+        }
+
+        WallLineCount(const std::vector<SliceLayer>* variable_count)
+            : std::variant<size_t, const std::vector<SliceLayer>*>(variable_count)
+        {
+        }
+
+        size_t getCountAt(const size_t layer_nr) const;
+    };
+
     /*!
      * Generate the lightning infill for the given areas with the given settings
      * @param layer_thickness The actual layer thickness
@@ -82,7 +98,7 @@ protected:
     void generate(
         const coord_t layer_thickness,
         const coord_t line_width,
-        const coord_t wall_line_count,
+        const WallLineCount& wall_line_count,
         const coord_t line_distance,
         const AngleRadians& overhang_angle,
         const AngleRadians& prune_angle,
@@ -97,12 +113,12 @@ protected:
      * only when support is generated. For this pattern, we also need to
      * generate overhang areas for the inside of the model.
      */
-    void generateInitialInternalOverhangs(const coord_t infill_line_width, const coord_t infill_wall_line_count, const std::vector<Shape>& areas_per_layer);
+    void generateInitialInternalOverhangs(const coord_t infill_line_width, const WallLineCount& infill_wall_line_count, const std::vector<Shape>& areas_per_layer);
 
     /*!
      * Calculate the tree structure of all layers.
      */
-    void generateTrees(const coord_t infill_line_width, const coord_t infill_wall_line_count, const std::vector<Shape>& areas_per_layer);
+    void generateTrees(const coord_t infill_line_width, const WallLineCount& infill_wall_line_count, const std::vector<Shape>& areas_per_layer);
 
     /*!
      * How far each piece of infill can support skin in the layer above.
