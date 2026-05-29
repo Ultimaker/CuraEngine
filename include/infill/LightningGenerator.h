@@ -69,6 +69,7 @@ public:
     const LightningLayer& getTreesForLayer(const size_t& layer_id) const;
 
 protected:
+    /*! Helper structure to get the infill wall line count either from a fixed value or depending on the layer */
     struct WallLineCount : std::variant<size_t, const std::vector<SliceLayer>*>
     {
         WallLineCount(const size_t fixed_count)
