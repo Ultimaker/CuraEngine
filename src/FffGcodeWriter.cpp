@@ -44,8 +44,10 @@
 namespace cura
 {
 
-const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic" };
-const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names
+    = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic", "wall_line_count_roofing" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names
+    = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic", "wall_line_count_flooring" };
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
@@ -2879,7 +2881,7 @@ bool FffGcodeWriter::endProcessInsets(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const MeshPathConfigs& mesh_config,
-    SliceLayerPart& part,
+    const SliceLayerPart& part,
     const bool infill_added) const
 {
     if (preprocess_result.spiralize)
@@ -3076,6 +3078,7 @@ void FffGcodeWriter::processRoofingFlooring(
     const Ratio skin_density = 1.0;
     const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
     const LinesOrderingMethod ordering = mesh.settings.get<bool>(settings_names.monotonic) ? LinesOrderingMethod::Monotonic : LinesOrderingMethod::Basic;
+    const size_t wall_line_count = mesh.settings.get<size_t>(settings_names.wall_count);
     constexpr bool is_roofing_flooring = true;
     processSkinPrintFeature(
         storage,
@@ -3089,6 +3092,7 @@ void FffGcodeWriter::processRoofingFlooring(
         skin_overlap,
         skin_density,
         ordering,
+        wall_line_count,
         is_roofing_flooring,
         added_something);
 }
@@ -3275,6 +3279,7 @@ void FffGcodeWriter::processTopBottom(
     }
 
     constexpr bool is_roofing_flooring = false;
+    const size_t wall_line_count = mesh.settings.get<size_t>(gcode_layer.isInitialLayer() ? "wall_line_count_layer_0" : "wall_line_count_inside_skin");
     processSkinPrintFeature(
         storage,
         gcode_layer,
@@ -3287,6 +3292,7 @@ void FffGcodeWriter::processTopBottom(
         skin_overlap,
         skin_density,
         ordering,
+        wall_line_count,
         is_roofing_flooring,
         added_something,
         fan_speed,
@@ -3305,6 +3311,7 @@ void FffGcodeWriter::processSkinPrintFeature(
     const coord_t skin_overlap,
     const Ratio skin_density,
     const LinesOrderingMethod ordering,
+    const size_t wall_line_count,
     const bool is_roofing_flooring,
     bool& added_something,
     double fan_speed,
@@ -3316,7 +3323,6 @@ void FffGcodeWriter::processSkinPrintFeature(
 
     constexpr int infill_multiplier = 1;
     constexpr int extra_infill_shift = 0;
-    const size_t wall_line_count = mesh.settings.get<size_t>("skin_outline_count");
     const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
     coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
@@ -3335,6 +3341,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         = forced_small_area_width.value_or((small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<coord_t>("small_skin_width") : line_width / 4);
     const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
     const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
+    const size_t extra_wall_count = static_cast<size_t>(std::max(0, static_cast<int>(wall_line_count) - mesh.settings.get<int>("wall_line_count")));
 
     Infill infill_comp(
         pattern,
@@ -3350,7 +3357,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         extra_infill_shift,
         max_resolution,
         max_deviation,
-        wall_line_count,
+        extra_wall_count,
         small_area_width,
         infill_origin,
         skip_line_stitching,

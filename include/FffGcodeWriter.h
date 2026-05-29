@@ -114,6 +114,7 @@ private:
         std::string extruder_nr;
         std::string pattern;
         std::string monotonic;
+        std::string wall_count;
     };
 
     /*! Helper structure to pre-process then later add the optimized insets */
@@ -466,7 +467,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        SliceLayerPart& part,
+        const SliceLayerPart& part,
         const bool infill_added) const;
 
     /*!
@@ -604,6 +605,7 @@ private:
         const coord_t skin_overlap,
         const Ratio skin_density,
         const LinesOrderingMethod ordering,
+        const size_t wall_line_count,
         const bool is_roofing_flooring,
         bool& added_something,
         double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
