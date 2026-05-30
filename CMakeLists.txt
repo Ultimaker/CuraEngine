@@ -327,7 +327,6 @@ if (EMSCRIPTEN)
             "SHELL:-sMODULARIZE=1"
             "SHELL:-sSINGLE_FILE=1"
             "SHELL:-sENVIRONMENT=web,worker,node"
-            "SHELL:-sUSE_ES6_IMPORT_META=1"
             "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
             "SHELL:-sWASM_BIGINT=1"
             "SHELL:-sSTACK_SIZE=196608"
