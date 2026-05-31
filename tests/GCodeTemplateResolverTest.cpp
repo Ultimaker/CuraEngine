@@ -16,6 +16,7 @@ struct GCodeTemplateTestCase
     cura::ResolvingExtruderContext context;
     std::string expected_output;
     std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> extra_settings{};
+    size_t initial_extruder_nr{ 0 };
 };
 
 class GCodeTemplateResolverTest : public ::testing::TestWithParam<GCodeTemplateTestCase>
@@ -45,7 +46,7 @@ TEST_P(GCodeTemplateResolverTest, ResolveTemplate)
     const auto& param = GetParam();
 
     cura::GcodeTemplateResolver resolver;
-    resolver.prepareForResolving(0);
+    resolver.prepareForResolving(param.initial_extruder_nr);
     std::string result = resolver.resolveGCodeTemplate(param.input, param.context, param.extra_settings);
     EXPECT_EQ(result, param.expected_output);
 }
@@ -98,6 +99,26 @@ INSTANTIATE_TEST_SUITE_P(
                                "{endif}",
                                static_cast<size_t>(1),
                                "C100\n" },
+        // Conditional expression with extruder specified by initial extruder nr (0)
+        GCodeTemplateTestCase{ "{if material_temperature > 200, initial_extruder_nr}\n"
+                               "I10\n"
+                               "{else}\n"
+                               "I20\n"
+                               "{endif}",
+                               cura::DynamicExtruderContext::Global,
+                               "I20\n",
+                               {},
+                               0 },
+        // Conditional expression with extruder specified by initial extruder (1)
+        GCodeTemplateTestCase{ "{if material_temperature > 200, initial_extruder_nr}\n"
+                               "I100\n"
+                               "{else}\n"
+                               "I200\n"
+                               "{endif}",
+                               cura::DynamicExtruderContext::Global,
+                               "I100\n",
+                               {},
+                               1 },
         // Conditional expression with extruder index specified by setting
         GCodeTemplateTestCase{ "{if material_temperature > 200, initial_extruder_nr}\n"
                                "G1000\n"
@@ -250,6 +271,10 @@ INSTANTIATE_TEST_SUITE_P(
                                "S2000\n" },
         // Multiple replaces on single line
         GCodeTemplateTestCase{ "BT={bed_temperature} IE={initial_extruder_nr}", cura::DynamicExtruderContext::Global, "BT=50 IE=0\n" },
+        // Use initial extruder nr as variable (0)
+        GCodeTemplateTestCase{ "IE0={initial_extruder_nr}", cura::DynamicExtruderContext::Global, "IE0=0\n", {}, 0 },
+        // Use initial extruder nr as variable (1)
+        GCodeTemplateTestCase{ "IE1={initial_extruder_nr}", cura::DynamicExtruderContext::Global, "IE1=1\n", {}, 1 },
         // Multiple extruder replaces on single line
         GCodeTemplateTestCase{ "MT0={material_temperature, 0} MT1={material_temperature, 1}", cura::DynamicExtruderContext::Global, "MT0=190.5 MT1=210\n" },
         // Extra settings
