@@ -32,6 +32,11 @@ struct PrintInformation
     std::optional<size_t> initial_extruder_nr;
     AABB initial_layer_bb;
 
+    /*!
+     * Update the print information with the given processed layer
+     * @param layer_plan The layer plan that has been fully processed
+     * @note This method should be called once for all processed layer plans, in processing order
+     */
     void updateWithLayer(const LayerPlan* layer_plan);
 };
 

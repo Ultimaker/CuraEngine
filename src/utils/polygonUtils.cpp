@@ -1518,6 +1518,56 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
+void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow)
+{
+    if (source.empty() || destination.empty())
+    {
+        return;
+    }
+
+    // Get the thin areas of the destination, which we are allowed to grow over
+    const Shape allow_grow_area = getThinAreas(destination, max_dist);
+    if (allow_grow_area.empty())
+    {
+        return;
+    }
+
+    // If necessary, remove the thin parts of the source to not allow them to grow
+    const Shape source_grow_part = allow_thin_areas_grow ? source : getWideAreas(source, max_dist);
+    if (source_grow_part.empty())
+    {
+        return;
+    }
+
+    // Now calculate the actual growing area, which is the intersection of the offset source with the allowed growing area
+    const Shape actual_grow_area = source_grow_part.offset(max_dist).intersection(allow_grow_area).offset(EPSILON);
+    if (actual_grow_area.empty())
+    {
+        return;
+    }
+
+    // Finally, append the growing area to the source and remove it from the destination
+    source = source.unionPolygons(actual_grow_area);
+    destination = destination.difference(actual_grow_area);
+}
+
+Shape PolygonUtils::getThinAreas(const Shape& shape, const coord_t max_width)
+{
+    // Extract the wide areas, then do a difference to actually keep only the thin areas
+    return shape.difference(getRawWideAreas(shape, max_width, EPSILON));
+}
+
+Shape PolygonUtils::getWideAreas(const Shape& shape, const coord_t min_width)
+{
+    // Extract the raw wide areas, then do an intersection to keep them inside the original shape
+    return shape.intersection(getRawWideAreas(shape, min_width, EPSILON));
+}
+
+Shape PolygonUtils::getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen)
+{
+    return shape.offset(-min_width / 2).offset(min_width / 2 + extra_widen);
+}
+
 std::tuple<ClosedLinesSet, coord_t>
     PolygonUtils::generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, coord_t line_width, const size_t circle_definition)
 {

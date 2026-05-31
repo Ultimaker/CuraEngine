@@ -24,6 +24,8 @@ void GcodeTemplateResolver::prepareForResolving(const size_t initial_extruder_nr
 {
     initial_extruder_nr_ = initial_extruder_nr;
 
+    // For a graphic overview of the adapters links, see doc/formulae-env-adapters.drawio
+
     // Create an environment containing the callable functions implementations
     functions_environment_ = std::make_shared<FunctionsEnvironment>(&CuraFormulaeEngine::env::std_env);
 

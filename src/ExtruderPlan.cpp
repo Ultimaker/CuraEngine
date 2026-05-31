@@ -5,6 +5,8 @@
 
 #include <range/v3/algorithm/any_of.hpp>
 
+#include "gcode_export/gcodeExport.h"
+
 
 namespace cura
 {
@@ -104,6 +106,11 @@ AABB ExtruderPlan::calculateExtrusionBoundingBox() const
 
     for (const GCodePath& gcode_path : paths_)
     {
+        if (gcode_path.points.empty())
+        {
+            continue;
+        }
+
         if (! gcode_path.isTravelPath())
         {
             if (current_position.has_value())
