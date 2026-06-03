@@ -62,7 +62,7 @@ jobs:
           fi
 
       - name: Checkout GCodeAnalyzer
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: 'Ultimaker/GCodeAnalyzer'
           ref: ${{ steps.resolve_gca_branch.outputs.ref }}
@@ -71,7 +71,7 @@ jobs:
           token: ${{ secrets.CURA_BENCHMARK_PAT }}
 
       - name: Checkout Test Models
-        uses: actions/checkout@v4
+        uses: actions/checkout@v6
         with:
           repository: 'Ultimaker/NightlyTestModels'
           ref: 'main'
