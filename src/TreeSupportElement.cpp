@@ -233,7 +233,7 @@ void TreeSupportElement::saveToObj(OBJ& obj, const coord_t z, const coord_t laye
 {
     if (area_)
     {
-        obj.write(*area_, z, layer_height, SVG::Color::BLUE);
+        obj.write(*area_, z, layer_height, to_model_gracious_ ? SVG::Color::BLUE : SVG::Color::RED);
     }
 }
 

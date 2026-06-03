@@ -14,20 +14,21 @@ class Settings;
 /*!
  * Adapter class used to expose the engine settings stack to the formulae engine resolving system
  */
-class SettingContainersEnvironmentAdapter : public CuraFormulaeEngine::env::Environment
+class SettingContainersEnvironmentAdapter : public CuraFormulaeEngine::env::ChainableEnvironment
 {
 public:
     /*!
      * Base constructor
      * @param settings The settings to be used as the base contextual stack
      */
-    explicit SettingContainersEnvironmentAdapter(const Settings& settings);
+    explicit SettingContainersEnvironmentAdapter(const Settings& settings, const CuraFormulaeEngine::env::Environment* shadow_environment = nullptr);
 
-    [[nodiscard]] std::optional<CuraFormulaeEngine::eval::Value> get(const std::string& setting_id) const override;
+protected:
+    [[nodiscard]] std::optional<CuraFormulaeEngine::eval::Value> getImpl(const std::string& setting_id) const noexcept override;
 
-    [[nodiscard]] bool has(const std::string& key) const override;
+    [[nodiscard]] bool hasImpl(const std::string& key) const noexcept override;
 
-    [[nodiscard]] std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> getAll() const override;
+    [[nodiscard]] std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> getAllImpl() const noexcept override;
 
 private:
     const Settings& settings_;
