@@ -1509,7 +1509,7 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
         outlines_below = outlines_below.unionPolygons(outlines_below_);
     }
 
-    Shape basic_overhang = outlines.difference(outlines_below);
+    Shape basic_overhang = mesh.settings.get<bool>("support_enable") ? outlines.difference(outlines_below) : Shape{};
 
     const SupportLayer& support_layer = storage.support.supportLayers[layer_idx];
     if (! support_layer.anti_overhang.empty())
