@@ -19,13 +19,13 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
+#include "Slice.h" // Technically needed to get 'has paint-on support' from the Application.
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
 #include "infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
-#include "Slice.h" // Technically needed to get 'has paint-on support' from the Application.
 #include "support.h" //For precomputeCrossInfillTree
 #include "utils/OBJ.h"
 #include "utils/Simplify.h"
@@ -59,7 +59,8 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
     {
         SliceMeshStorage& mesh = *mesh_ptr;
         const bool non_supportable_mesh = ! mesh.isModelMesh() || mesh.settings.get<bool>("support_mesh");
-        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint) || non_supportable_mesh)
+        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint)
+            || non_supportable_mesh)
         {
             continue;
         }
