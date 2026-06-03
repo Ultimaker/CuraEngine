@@ -792,7 +792,8 @@ void AreaSupport::precomputeCrossInfillTree(SliceDataStorage& storage)
 
 void AreaSupport::generateOverhangAreasForMesh(SliceDataStorage& storage, SliceMeshStorage& mesh)
 {
-    if (! mesh.settings.get<bool>("support_enable") && ! mesh.settings.get<bool>("support_mesh"))
+    const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_support_paint;
+    if (! (mesh.settings.get<bool>("support_enable") || mesh.settings.get<bool>("support_mesh") || mesh_group_support_paint))
     {
         return;
     }
@@ -1021,7 +1022,8 @@ void AreaSupport::generateSupportAreasForMesh(
     const ESupportStructure support_structure = mesh.settings.get<ESupportStructure>("support_structure");
     const bool is_support_mesh_place_holder
         = mesh.settings.get<bool>("support_mesh"); // whether this mesh has empty SliceMeshStorage and this function is now called to only generate support for all support meshes
-    if ((! mesh.settings.get<bool>("support_enable") || support_structure != ESupportStructure::NORMAL) && ! is_support_mesh_place_holder)
+    const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_support_paint;
+    if ((! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint) || support_structure != ESupportStructure::NORMAL) && ! is_support_mesh_place_holder)
     {
         return;
     }
@@ -1041,7 +1043,7 @@ void AreaSupport::generateSupportAreasForMesh(
         return;
     }
 
-    if ((! mesh.settings.get<bool>("support_mesh"))
+    if ((! (mesh.settings.get<bool>("support_mesh") || mesh_group_support_paint))
         && ranges::all_of(
             mesh.overhang_areas,
             [](const Shape& overhang_area)

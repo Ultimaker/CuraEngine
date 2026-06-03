@@ -35,6 +35,7 @@ public:
 
     std::vector<Mesh> meshes;
     Settings settings;
+    bool has_support_paint = false;
 
     Point3LL min() const; //! minimal corner of bounding box
     Point3LL max() const; //! maximal corner of bounding box

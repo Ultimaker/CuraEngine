@@ -6,6 +6,7 @@
 
 #include <boost/unordered/concurrent_flat_map.hpp>
 #include <boost/unordered/concurrent_flat_set.hpp>
+#include <range/v3/algorithm/move.hpp>
 #include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/map.hpp>
 #include <spdlog/spdlog.h>
@@ -832,25 +833,18 @@ void makePaintingModifierMeshes(MeshGroup* meshgroup)
         spdlog::info("Start painting mesh-modifier generation for {}", mesh.mesh_name_);
 
         const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
-        for (const Mesh& modifier_mesh : makeMaterialModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations))
-        {
-            modifier_meshes.push_back(std::move(modifier_mesh));
-        }
-
-        for (const Mesh& modifier_mesh : makeSupportModifierMeshes(mesh_data.mesh, mesh_data.bounding_box, texture_data_provider))
-        {
-            modifier_meshes.push_back(std::move(modifier_mesh));
-        }
+        const auto material_mod_meshes{ makeMaterialModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations) };
+        const auto support_mod_meshes{ makeSupportModifierMeshes(mesh_data.mesh, mesh_data.bounding_box, texture_data_provider) };
+        meshgroup->has_support_paint |= ! support_mod_meshes.empty();
+        ranges::move(material_mod_meshes, std::back_inserter(modifier_meshes));
+        ranges::move(support_mod_meshes, std::back_inserter(modifier_meshes));
 
         delta_iterations += mesh_data.estimated_material_iterations;
         spdlog::info("Painting mesh-modifier generation for {} took {} seconds", mesh.mesh_name_, timer.elapsed().count());
     }
 
     // Add meshes to group afterwards to avoid re-allocating the meshes in the vector
-    for (Mesh& modifier_mesh : modifier_meshes)
-    {
-        meshgroup->meshes.push_back(std::move(modifier_mesh));
-    }
+    ranges::move(modifier_meshes, std::back_inserter(meshgroup->meshes));
 }
 
 } // namespace cura::MeshMaterialSplitter

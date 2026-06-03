@@ -427,7 +427,8 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
         ret[extruder_nr] = false;
     }
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
+    const Settings& mesh_group_settings = mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
     if (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM)
     {
@@ -465,7 +466,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     // support is presupposed to be present...
     for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
     {
-        if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh"))
+        if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh") || mesh_group->has_support_paint)
         {
             ret[mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_] = true;
             ret[mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_] = true;
