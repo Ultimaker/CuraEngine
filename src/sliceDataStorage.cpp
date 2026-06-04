@@ -169,8 +169,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
         return false;
     }
     const SliceLayer& layer = layers[layer_nr];
-    if (settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr
-        && (settings.get<size_t>("wall_line_count") > 0 || settings.get<size_t>("skin_outline_count") > 0))
+    if (settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr && settings.get<size_t>("wall_line_count") > 0)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
