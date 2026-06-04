@@ -835,7 +835,7 @@ void makePaintingModifierMeshes(MeshGroup* meshgroup)
         const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
         const auto material_mod_meshes{ makeMaterialModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations) };
         const auto support_mod_meshes{ makeSupportModifierMeshes(mesh_data.mesh, mesh_data.bounding_box, texture_data_provider) };
-        meshgroup->has_support_paint |= ! support_mod_meshes.empty();
+        meshgroup->has_painted_support |= ! support_mod_meshes.empty();
         ranges::move(material_mod_meshes, std::back_inserter(modifier_meshes));
         ranges::move(support_mod_meshes, std::back_inserter(modifier_meshes));
 

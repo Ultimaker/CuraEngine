@@ -406,7 +406,7 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage) const
     }
     else // No adhesion.
     {
-        if ((mesh_group_settings.get<bool>("support_enable") || mesh_group->has_support_paint) && mesh_group_settings.get<bool>("support_brim_enable"))
+        if ((mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support) && mesh_group_settings.get<bool>("support_brim_enable"))
         {
             start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_;
         }
@@ -2602,7 +2602,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
 
         const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
         const Settings& mesh_group_settings = mesh_group->settings;
-        if (mesh_group_settings.get<bool>("support_enable") || mesh_group->has_support_paint)
+        if (mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support)
         {
             const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
             const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
@@ -3140,7 +3140,7 @@ void FffGcodeWriter::processTopBottom(
     int support_layer_nr = -1;
     const SupportLayer* support_layer = nullptr;
 
-    if (mesh_group_settings.get<bool>("support_enable") || mesh_group->has_support_paint)
+    if (mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support)
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");

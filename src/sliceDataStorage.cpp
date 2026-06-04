@@ -466,7 +466,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     // support is presupposed to be present...
     for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
     {
-        if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh") || mesh_group->has_support_paint)
+        if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh") || mesh_group->has_painted_support)
         {
             ret[mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_] = true;
             ret[mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_] = true;

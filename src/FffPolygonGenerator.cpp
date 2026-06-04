@@ -392,7 +392,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     const Settings& mesh_group_settings = mesh_group->settings;
-    const bool mesh_group_support_paint = mesh_group->has_support_paint;
+    const bool mesh_group_support_paint = mesh_group->has_painted_support;
 
     // we need to remove empty layers after we have processed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)

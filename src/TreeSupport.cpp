@@ -51,7 +51,7 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
                                                              || mesh.settings.get<coord_t>("min_feature_size") < (FUDGE_LENGTH * 2);
     }
 
-    const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_support_paint;
+    const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_painted_support;
 
     // Group all meshes that can be processed together. NOTE this is different from mesh-groups!
     // Only one setting object is needed per group, as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
