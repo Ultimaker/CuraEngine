@@ -49,7 +49,6 @@ set(engine_SRCS # Except main.cpp.
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
         src/FffProcessor.cpp
-        src/gcodeExport.cpp
         src/GCodePathConfig.cpp
         src/infill.cpp
         src/InfillOrderOptimizer.cpp
@@ -67,6 +66,7 @@ set(engine_SRCS # Except main.cpp.
         src/PathAdapter.cpp
         src/PathOrderMonotonic.cpp
         src/Preheat.cpp
+        src/PrintInformation.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
         src/PrimeTower/PrimeTowerInterleaved.cpp
@@ -115,6 +115,11 @@ set(engine_SRCS # Except main.cpp.
         src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
 
+        src/gcode_export/gcodeExport.cpp
+        src/gcode_export/FixedGCodePart.cpp
+        src/gcode_export/ResolvedGCodePart.cpp
+        src/gcode_export/GcodeTemplateResolver.cpp
+
         src/infill/AbstractLinesInfill.cpp
         src/infill/ImageBasedDensityProvider.cpp
         src/infill/NoZigZagConnectorProcessor.cpp
@@ -144,6 +149,7 @@ set(engine_SRCS # Except main.cpp.
         src/settings/FlowTempGraph.cpp
         src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
+        src/settings/SettingContainersEnvironmentAdapter.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
 
@@ -254,6 +260,8 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(PNG REQUIRED)
+find_package(cura-formulae-engine REQUIRED)
+
 if (NOT EMSCRIPTEN)
     find_package(TBB REQUIRED)
 endif ()
@@ -278,6 +286,7 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         PNG::PNG
+        cura-formulae-engine::cura-formulae-engine
         $<$<NOT:$<BOOL:${EMSCRIPTEN}>>:onetbb::onetbb>
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>

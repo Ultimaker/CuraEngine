@@ -575,7 +575,7 @@ Shape TreeModelVolumes::extractOutlineFromMesh(const SliceMeshStorage& mesh, Lay
     constexpr bool external_polys_only = false;
     Shape total;
 
-    if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+    if (! mesh.isModelMesh())
     {
         return Shape();
     }
@@ -901,15 +901,17 @@ void TreeModelVolumes::calculateCollisionAvoidance(const std::deque<RadiusLayerP
 // defined by the collision when offsetting to fast.
 Shape TreeModelVolumes::safeOffset(const Shape& me, coord_t distance, ClipperLib::JoinType jt, coord_t max_safe_step_distance, const Shape& collision) const
 {
-    const size_t steps = std::abs(distance / std::max(min_offset_per_step_, std::abs(max_safe_step_distance)));
-    assert(distance * max_safe_step_distance >= 0);
+    assert(distance * max_safe_step_distance >= 0); // Make sure they are the same sign (or one of them is null)
+    const uint8_t offset_sign = sign(distance);
+    const coord_t step_distance = offset_sign * std::max(min_offset_per_step_, std::abs(max_safe_step_distance));
+    const size_t steps = std::abs(distance / step_distance);
     Shape ret = me;
 
     for (size_t i = 0; i < steps; ++i)
     {
-        ret = ret.offset(max_safe_step_distance, jt).unionPolygons(collision);
+        ret = ret.offset(step_distance, jt).unionPolygons(collision);
     }
-    ret = ret.offset(distance % max_safe_step_distance, jt);
+    ret = ret.offset(distance % step_distance, jt);
 
     return ret.unionPolygons(collision);
 }

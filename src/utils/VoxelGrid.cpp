@@ -7,7 +7,6 @@
 #include <spdlog/spdlog.h>
 
 #include "utils/AABB3D.h"
-#include "utils/OBJ.h"
 #include "utils/PlanarPolygon3LL.h"
 #include "utils/Segment3LL.h"
 
@@ -208,20 +207,6 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const Tri
     }
 
     return traversed_voxels;
-}
-
-void VoxelGrid::saveToObj(const std::string& filename, const double scale) const
-{
-    OBJ obj(filename, scale);
-    const double radius = std::min({ resolution_.x_, resolution_.y_, resolution_.z_ }) / 4.0;
-    std::mutex mutex;
-
-    visitOccupiedVoxels(
-        [this, &mutex, &obj, &radius](const auto& voxel)
-        {
-            std::lock_guard lock(mutex);
-            obj.writeSphere(toGlobalCoordinates(voxel.first), radius, static_cast<SVG::Color>(voxel.second), 2, 4);
-        });
 }
 
 } // namespace cura

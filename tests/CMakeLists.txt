@@ -10,6 +10,7 @@ set(TESTS_SRC_BASE
         ExtruderPlanTest
         FffGcodeWriterTest
         GCodeExportTest
+        GCodeTemplateResolverTest
         InfillTest
         LayerPlanTest
         PathOrderOptimizerTest
