@@ -33,14 +33,10 @@ void ExtruderPlan::handleInserts(const size_t path_idx, GCodeExport& gcode, cons
     while (! inserts_.empty())
     {
         const NozzleTempInsert& insert = inserts_.front();
-        if (insert.path_idx > path_idx)
+        const bool in_future_path = insert.path_idx > path_idx;
+        const bool in_current_path_at_future_time = insert.path_idx == path_idx && insert.time_after_path_start > cumulative_path_time;
+        if (in_future_path || in_current_path_at_future_time)
         {
-            // Insert is scheduled for a future path; nothing more to do for now.
-            break;
-        }
-        if (insert.path_idx == path_idx && insert.time_after_path_start > cumulative_path_time)
-        {
-            // Insert is scheduled for this path, but the required time within the path has not been reached yet.
             break;
         }
         // Either the insert is overdue (insert.path_idx < path_idx) and must be fired immediately,
