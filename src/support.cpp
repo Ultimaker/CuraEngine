@@ -162,100 +162,104 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
     const auto base_inside_height = settings.get<coord_t>("support_inside_base_height");
     const auto base_inside_curve_magnitude = settings.get<double>("support_inside_base_curve_magnitude");
 
-    bool has_base_outside = base_outside_width > 0 && base_outside_height > layer_height;
-    bool has_base_inside = base_inside_width > 0 && base_inside_height > layer_height && support_line_distance == 0;
+    const bool has_base_outside = base_outside_width > 0 && base_outside_height > layer_height;
+    const LayerIndex max_outside_layer = has_base_outside ? base_outside_height / layer_height : 0;
+    const bool has_base_inside = base_inside_width > 0 && base_inside_height > layer_height && support_line_distance == 0;
+    const LayerIndex max_inside_layer = has_base_inside ? base_inside_height / layer_height : 0;
     const LayerIndex first_base_layer = adhesion_type == EPlatformAdhesion::BRIM ? 1 : 0;
+    std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
+    const LayerIndex last_base_layer = std::min(static_cast<size_t>(std::max(max_outside_layer, max_inside_layer)), support_layers.size());
 
     // Generate the base extra lines
-    std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-    for (LayerIndex layer_nr = first_base_layer; layer_nr < support_layers.size() && (has_base_inside || has_base_outside); ++layer_nr)
-    {
-        const coord_t layer_z = layer_nr * layer_height;
-        has_base_outside = has_base_outside && (layer_z < base_outside_height);
-        has_base_inside = has_base_inside && (layer_z < base_inside_height);
-
-        Shape forbidden_areas;
-        SupportLayer& support_layer = support_layers.at(layer_nr);
-        Shape layer_support_shape;
-        for (const SupportInfillPart& part : support_layer.support_infill_parts)
+    parallel_for(
+        first_base_layer,
+        last_base_layer,
+        [&](const LayerIndex layer_nr)
         {
-            if (part.use_fractional_config_)
-            {
-                forbidden_areas.push_back(part.outline_);
-            }
-            else
-            {
-                layer_support_shape.push_back(part.outline_);
-            }
-        }
+            const coord_t layer_z = layer_nr * layer_height;
 
-        if (layer_support_shape.empty())
-        {
-            continue;
-        }
-
-        if (has_base_outside)
-        {
-            // Add the models as forbidden areas, offsetted with the XY distance
+            Shape forbidden_areas;
+            SupportLayer& support_layer = support_layers.at(layer_nr);
+            Shape layer_support_shape;
+            for (const SupportInfillPart& part : support_layer.support_infill_parts)
             {
-                constexpr bool include_support = false;
-                constexpr bool include_prime_tower = false;
-                forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower).offset(support_xy_distance));
-            }
-
-            // Add the prime tower as forbidden area
-            {
-                constexpr bool include_support = false;
-                constexpr bool include_prime_tower = true;
-                constexpr bool external_polys_only = false;
-                constexpr int extruder_nr = -1;
-                constexpr bool include_models = false;
-                forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models));
-            }
-
-            const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_outside_width, base_outside_height, base_outside_curve_magnitude, layer_z);
-            std::vector<Shape> base_outsets = PolygonUtils::generateOutset(layer_support_shape, base_extra_width, support_line_width);
-            ClosedLinesSet closed_base_outset;
-
-            for (Shape& base_outset : base_outsets)
-            {
-                closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
-                for (Polygon& base_outset_polygon : base_outset)
+                if (part.use_fractional_config_)
                 {
-                    closed_base_outset.push_back(ClosedPolyline(std::move(base_outset_polygon)));
+                    forbidden_areas.push_back(part.outline_);
+                }
+                else
+                {
+                    layer_support_shape.push_back(part.outline_);
                 }
             }
 
-            MixedLinesSet base_lines = closed_base_outset.difference(forbidden_areas).intersection(storage.getMachineBorder());
-            if (! base_lines.empty())
+            if (layer_support_shape.empty())
             {
-                support_layer.base.push_back(std::move(base_lines));
+                return;
+            }
 
-                for (SupportInfillPart& part : support_layer.support_infill_parts)
+            if (layer_nr < max_outside_layer)
+            {
+                // Add the models as forbidden areas, offsetted with the XY distance
                 {
-                    if (! part.use_fractional_config_)
+                    constexpr bool include_support = false;
+                    constexpr bool include_prime_tower = false;
+                    forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower).offset(support_xy_distance));
+                }
+
+                // Add the prime tower as forbidden area
+                {
+                    constexpr bool include_support = false;
+                    constexpr bool include_prime_tower = true;
+                    constexpr bool external_polys_only = false;
+                    constexpr int extruder_nr = -1;
+                    constexpr bool include_models = false;
+                    forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models));
+                }
+
+                const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_outside_width, base_outside_height, base_outside_curve_magnitude, layer_z);
+                std::vector<Shape> base_outsets = PolygonUtils::generateOutset(layer_support_shape, base_extra_width, support_line_width);
+                ClosedLinesSet closed_base_outset;
+
+                for (Shape& base_outset : base_outsets)
+                {
+                    closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
+                    for (Polygon& base_outset_polygon : base_outset)
                     {
-                        part.base_outline_ = part.outline_.offset(base_extra_width);
+                        closed_base_outset.push_back(ClosedPolyline(std::move(base_outset_polygon)));
+                    }
+                }
+
+                MixedLinesSet base_lines = closed_base_outset.difference(forbidden_areas).intersection(storage.getMachineBorder());
+                if (! base_lines.empty())
+                {
+                    support_layer.base.push_back(std::move(base_lines));
+
+                    for (SupportInfillPart& part : support_layer.support_infill_parts)
+                    {
+                        if (! part.use_fractional_config_)
+                        {
+                            part.base_outline_ = part.outline_.offset(base_extra_width);
+                        }
                     }
                 }
             }
-        }
 
-        if (has_base_inside)
-        {
-            const Shape support_inside_area = layer_support_shape.offset(-support_wall_count * support_line_width);
-            const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_inside_width, base_inside_height, base_inside_curve_magnitude, layer_z);
-            std::vector<Shape> base_insets = PolygonUtils::generateInset(layer_support_shape, base_extra_width, support_line_width);
-            for (Shape& base_inset : base_insets)
+            if (layer_nr < max_inside_layer)
             {
-                support_layer.base.reserve(support_layer.base.size() + base_insets.size());
-                for (Polygon& base_inset_polygon : base_inset)
+                const Shape support_inside_area = layer_support_shape.offset(-support_wall_count * support_line_width);
+                const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_inside_width, base_inside_height, base_inside_curve_magnitude, layer_z);
+                std::vector<Shape> base_insets = PolygonUtils::generateInset(layer_support_shape, base_extra_width, support_line_width);
+                for (Shape& base_inset : base_insets)
                 {
-                    support_layer.base.push_back(ClosedPolyline(std::move(base_inset_polygon)));
+                    support_layer.base.reserve(support_layer.base.size() + base_insets.size());
+                    for (Polygon& base_inset_polygon : base_inset)
+                    {
+                        support_layer.base.push_back(ClosedPolyline(std::move(base_inset_polygon)));
+                    }
                 }
             }
-        }
-    }
+        });
 } // namespace cura
 
 void AreaSupport::generateGradualSupport(SliceDataStorage& storage)

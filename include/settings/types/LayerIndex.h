@@ -203,6 +203,11 @@ constexpr auto format_as(LayerIndex index)
     return index.value;
 }
 
+constexpr LayerIndex distance(const LayerIndex& lhs, const LayerIndex& rhs)
+{
+    return rhs - lhs;
+}
+
 } // namespace cura
 
 namespace std
