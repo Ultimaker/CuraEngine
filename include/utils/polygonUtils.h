@@ -13,11 +13,12 @@
 #include "PolygonsPointIndex.h"
 #include "SparseLineGrid.h"
 #include "SparsePointGridInclusive.h"
-#include "geometry/ClosedLinesSet.h"
 #include "geometry/Polygon.h"
 
 namespace cura
 {
+
+class ClosedLinesSet;
 
 /*!
  * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
@@ -726,6 +727,10 @@ public:
      */
     static ClosedLinesSet generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
+    static std::vector<Shape> generateOutset(const Shape& shape, const coord_t width, const coord_t line_width);
+
+    static std::vector<Shape> generateInset(const Shape& shape, const coord_t width, const coord_t line_width);
+
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already
@@ -747,6 +752,8 @@ private:
      * @return The parts of the shape that are wider than the given minimum. Note that the returned shape may go beyond the original one.
      */
     static Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen = EPSILON);
+
+    static std::vector<Shape> generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width, const coord_t direction);
 };
 
 } // namespace cura

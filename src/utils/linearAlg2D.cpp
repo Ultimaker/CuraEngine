@@ -360,4 +360,10 @@ std::optional<coord_t> LinearAlg2D::segmentHorizontalLineIntersection(const Poin
     return lineHorizontalLineIntersection(p1, p2, line_y);
 }
 
+coord_t LinearAlg2D::getSlopedWidth(const coord_t base_width, const coord_t base_height, const double slope_magnitude, const coord_t actual_height)
+{
+    const double factor = std::pow((1.0 - static_cast<double>(actual_height) / static_cast<double>(base_height)), slope_magnitude);
+    return std::llrint(static_cast<double>(base_width) * factor);
+}
+
 } // namespace cura

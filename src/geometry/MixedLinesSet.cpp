@@ -5,6 +5,7 @@
 
 #include <numeric>
 
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
@@ -12,6 +13,47 @@
 
 namespace cura
 {
+
+MixedLinesSet::MixedLinesSet(const ClosedLinesSet& lines)
+{
+    push_back(lines);
+}
+
+MixedLinesSet::MixedLinesSet(ClipperLib::PolyTree&& tree)
+{
+    ClipperLib::Paths polylines;
+    ClipperLib::OpenPathsFromPolyTree(tree, polylines); // Open with clipperlib means non-surface (polyline)
+    constexpr bool polyline_explicitely_closed = true;
+    for (ClipperLib::Path& path : polylines)
+    {
+        if (path.empty())
+        {
+            continue;
+        }
+
+        if (path.front() == path.back())
+        {
+            push_back(ClosedPolyline(std::move(path), polyline_explicitely_closed));
+        }
+        else
+        {
+            push_back(OpenPolyline(std::move(path)));
+        }
+    }
+
+    ClipperLib::Paths polygons;
+    ClipperLib::ClosedPathsFromPolyTree(tree, polygons); // Closed with clipperlib means surface (polygon)
+    constexpr bool polygon_explicitely_closed = false;
+    for (ClipperLib::Path& path : polygons)
+    {
+        if (path.empty())
+        {
+            continue;
+        }
+
+        push_back(Polygon(std::move(path), polygon_explicitely_closed));
+    }
+}
 
 Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
@@ -74,9 +116,32 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
     return Shape{ std::move(result) };
 }
 
+MixedLinesSet MixedLinesSet::intersection(const Shape& shape) const
+{
+    if (empty() || shape.empty())
+    {
+        return {};
+    }
+
+    ClipperLib::PolyTree ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    for (const PolylinePtr& line : (*this))
+    {
+        line->addPath(clipper, ClipperLib::ptSubject);
+    }
+    shape.addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctIntersection, ret);
+    return MixedLinesSet(std::move(ret));
+}
+
 void MixedLinesSet::push_back(const OpenPolyline& line)
 {
     std::vector<PolylinePtr>::push_back(std::make_shared<OpenPolyline>(line));
+}
+
+void MixedLinesSet::push_back(const ClosedPolyline& line)
+{
+    std::vector<PolylinePtr>::push_back(std::make_shared<ClosedPolyline>(line));
 }
 
 void MixedLinesSet::push_back(OpenPolyline&& line)
@@ -128,6 +193,15 @@ void MixedLinesSet::push_back(ClosedLinesSet&& lines_set)
     for (ClosedPolyline& line : lines_set)
     {
         push_back(std::move(line));
+    }
+}
+
+void MixedLinesSet::push_back(const ClosedLinesSet& lines_set)
+{
+    reserve(size() + lines_set.size());
+    for (const ClosedPolyline& line : lines_set)
+    {
+        push_back(line);
     }
 }
 

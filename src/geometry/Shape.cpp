@@ -170,7 +170,7 @@ Shape Shape::difference(const Polygon& other) const
     ClipperLib::Paths ret;
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
-    addPath(clipper, other, ClipperLib::ptClip);
+    other.addPath(clipper, ClipperLib::ptClip);
     clipper.Execute(ClipperLib::ctDifference, ret);
     return Shape(std::move(ret));
 }
@@ -200,7 +200,7 @@ Shape Shape::unionPolygons(const Polygon& polygon, ClipperLib::PolyFillType fill
     ClipperLib::Paths ret;
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
-    addPath(clipper, polygon, ClipperLib::ptSubject);
+    polygon.addPath(clipper, ClipperLib::ptSubject);
     clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
     return Shape{ std::move(ret) };
 }
@@ -1004,7 +1004,7 @@ void Shape::ensureManifold()
 #endif
 
 template OpenLinesSet Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
-template OpenLinesSet Shape::intersection(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 
 } // namespace cura

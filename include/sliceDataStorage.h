@@ -11,6 +11,7 @@
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
@@ -220,6 +221,7 @@ public:
     Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Shape anti_overhang; //!< Areas where no overhang should be detected.
     Shape force_overhang; //!< Areas where overhang should be forced.
+    MixedLinesSet base; //!< Extra lines to be printed around for sturdiness.
 
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.

@@ -6,13 +6,13 @@
 
 #include <memory>
 
-#include "geometry/ClosedLinesSet.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
 
 class ClosedPolyline;
+class ClosedLinesSet;
 class OpenLinesSet;
 class OpenPolyline;
 class Polygon;
@@ -22,6 +22,9 @@ class Shape;
 using PolylinePtr = std::shared_ptr<Polyline>;
 using OpenPolylinePtr = std::shared_ptr<OpenPolyline>;
 
+template<class LineType>
+class LinesSet;
+
 /*!
  * \brief Convenience definition for a container that can hold any type of polyline.
  * \sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#mixedlinesset
@@ -29,6 +32,12 @@ using OpenPolylinePtr = std::shared_ptr<OpenPolyline>;
 class MixedLinesSet : public std::vector<PolylinePtr>
 {
 public:
+    MixedLinesSet() = default;
+
+    MixedLinesSet(const ClosedLinesSet& lines);
+
+    MixedLinesSet(ClipperLib::PolyTree&& tree);
+
     /*!
      * \brief Computes the offset of all the polylines contained in the set. The polylines may
      *        be of different types, and polylines are polygons are treated differently.
@@ -39,8 +48,13 @@ public:
      */
     [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
+    MixedLinesSet intersection(const Shape& shape) const;
+
     /*! @brief Adds a copy of the given polyline to the set */
     void push_back(const OpenPolyline& line);
+
+    /*! @brief Adds a copy of the given polyline to the set */
+    void push_back(const ClosedPolyline& line);
 
     /*! @brief Adds a copy of the given polyline to the set */
     void push_back(const Polygon& line);
@@ -67,6 +81,9 @@ public:
 
     /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(OpenLinesSet&& lines_set);
+
+    /*! @brief Adds a copy of all the polylines contained in the set */
+    void push_back(const ClosedLinesSet& lines_set);
 
     /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(ClosedLinesSet&& lines_set);

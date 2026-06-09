@@ -429,6 +429,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     // handle helpers
     storage.initializePrimeTower();
 
+    AreaSupport::generateSupportBase(storage);
+
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
 
