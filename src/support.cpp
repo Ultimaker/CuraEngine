@@ -119,15 +119,15 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
     const coord_t support_line_width = infill_extruder.settings_.get<coord_t>("support_line_width");
 
     // The wall line count is used for calculating insets, and we generate support infill patterns within the insets
-    const size_t wall_line_count = infill_extruder.settings_.get<size_t>("support_wall_count");
+    const auto wall_thickness = infill_extruder.settings_.get<coord_t>("support_wall_thickness");
 
     // Generate separate support islands
     for (LayerIndex layer_nr = 0; layer_nr < total_layer_count - 1; ++layer_nr)
     {
-        unsigned int wall_line_count_this_layer = wall_line_count;
+        unsigned int wall_thickness_this_layer = wall_thickness;
         if (layer_nr == 0 && (support_pattern == EFillMethod::LINES || support_pattern == EFillMethod::ZIG_ZAG))
         { // The first layer will be printed with a grid pattern
-            wall_line_count_this_layer++;
+            wall_thickness_this_layer += support_line_width;
         }
 
         const Shape& global_support_areas = global_support_areas_per_layer[layer_nr];
@@ -147,7 +147,7 @@ void AreaSupport::splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage
         // tower will remove themselves from the support, so the outlines of the parts can be changed.
         const coord_t layer_height = infill_extruder.settings_.get<coord_t>("layer_height");
         storage.support.supportLayers[layer_nr]
-            .fillInfillParts(layer_nr, global_support_areas_per_layer, layer_height, storage.meshes, support_line_width_here, wall_line_count_this_layer);
+            .fillInfillParts(layer_nr, global_support_areas_per_layer, layer_height, storage.meshes, support_line_width_here, wall_thickness_this_layer);
     }
 }
 
@@ -251,7 +251,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
             const Shape infill_area = Infill::generateWallToolPaths(
                 support_infill_part.wall_toolpaths_,
                 original_area,
-                support_infill_part.inset_count_to_generate_,
+                support_infill_part.inset_width_to_generate_,
                 wall_width,
                 infill_extruder.settings_,
                 layer_nr,
@@ -455,7 +455,7 @@ void AreaSupport::cleanup(SliceDataStorage& storage)
         {
             SupportInfillPart& part = layer.support_infill_parts[part_idx];
             bool can_be_removed = true;
-            if (part.inset_count_to_generate_ > 0)
+            if (part.inset_width_to_generate_ > 0)
             {
                 can_be_removed = false;
             }

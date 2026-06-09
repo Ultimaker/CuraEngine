@@ -68,7 +68,7 @@ struct TreeSupportSettings
         , support_roof_line_width(mesh_group_settings.get<coord_t>("support_roof_line_width"))
         , support_line_distance(mesh_group_settings.get<coord_t>("support_line_distance"))
         , support_bottom_offset(mesh_group_settings.get<coord_t>("support_bottom_offset"))
-        , support_wall_count(mesh_group_settings.get<int>("support_wall_count"))
+        , support_wall_thickness(mesh_group_settings.get<coord_t>("support_wall_thickness"))
         , support_roof_wall_count(mesh_group_settings.get<int>("support_roof_wall_count"))
         , zig_zaggify_support(mesh_group_settings.get<bool>("zig_zaggify_support"))
         , maximum_deviation(mesh_group_settings.get<coord_t>("meshfix_maximum_deviation"))
@@ -315,7 +315,7 @@ public:
     /*!
      * \brief Amount of walls the support area will have.
      */
-    int support_wall_count;
+    coord_t support_wall_thickness;
 
     /*!
      * \brief Amount of walls the support roof area will have.
@@ -402,7 +402,7 @@ public:
             && support_line_width == other.support_line_width && support_overrides == other.support_overrides && support_line_distance == other.support_line_distance
             && support_roof_line_width == other.support_roof_line_width
             && // can not be set on a per-mesh basis currently, so code to enable processing different roof line width in the same iteration seems useless.
-               support_bottom_offset == other.support_bottom_offset && support_wall_count == other.support_wall_count && support_pattern == other.support_pattern
+               support_bottom_offset == other.support_bottom_offset && support_wall_thickness == other.support_wall_thickness && support_pattern == other.support_pattern
             && roof_pattern == other.roof_pattern
             && // can not be set on a per-mesh basis currently, so code to enable processing different roof patterns in the same iteration seems useless.
                support_roof_angles == other.support_roof_angles && support_infill_angles == other.support_infill_angles
