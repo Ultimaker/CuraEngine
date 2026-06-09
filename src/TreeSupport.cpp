@@ -1970,7 +1970,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
 
-    const coord_t closing_dist = config.support_line_width * config.support_wall_count;
+    const coord_t closing_dist = config.support_wall_thickness;
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
@@ -2226,15 +2226,16 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
                     Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              support_layer_storage[layer_idx],
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              true)
-                                                              .offset(config.support_line_width / 2));
+                    tree_lines = tree_lines.unionPolygons(
+                        TreeSupportUtils::generateSupportInfillLines(
+                            support_layer_storage[layer_idx],
+                            config,
+                            false,
+                            layer_idx,
+                            config.support_line_distance,
+                            storage.support.cross_fill_provider,
+                            true)
+                            .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
@@ -2282,7 +2283,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
 
             storage.support.supportLayers[layer_idx]
-                .fillInfillParts(support_layer_storage[layer_idx], config.support_line_width, config.support_wall_count, false, convert_every_part);
+                .fillInfillParts(support_layer_storage[layer_idx], config.support_line_width, config.support_wall_thickness, false, convert_every_part);
 
 
             // This only works because fractional support is always just projected upwards regular support or skin.
@@ -2298,7 +2299,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 fractional_support = support_layer_storage_fractional[layer_idx];
             }
 
-            storage.support.supportLayers[layer_idx].fillInfillParts(fractional_support, config.support_line_width, config.support_wall_count, true, convert_every_part);
+            storage.support.supportLayers[layer_idx].fillInfillParts(fractional_support, config.support_line_width, config.support_wall_thickness, true, convert_every_part);
 
 
             for (FakeRoofArea& fake_roof : fake_roof_areas[layer_idx])

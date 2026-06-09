@@ -72,7 +72,7 @@ protected:
      * Generate the lightning infill for the given areas with the given settings
      * @param layer_thickness The actual layer thickness
      * @param line_width The extrusion line width
-     * @param wall_line_count The number of external walls in the infill areas
+     * @param wall_thickness The thickness of external walls in the infill areas
      * @param line_distance The base "line distance", which represents the density of the infill
      * @param overhang_angle The angle at which we consider overhanging areas
      * @param prune_angle The angle of the generated lines overhang
@@ -82,7 +82,7 @@ protected:
     void generate(
         const coord_t layer_thickness,
         const coord_t line_width,
-        const coord_t wall_line_count,
+        const coord_t wall_thickness,
         const coord_t line_distance,
         const AngleRadians& overhang_angle,
         const AngleRadians& prune_angle,
@@ -97,12 +97,12 @@ protected:
      * only when support is generated. For this pattern, we also need to
      * generate overhang areas for the inside of the model.
      */
-    void generateInitialInternalOverhangs(const coord_t infill_line_width, const coord_t infill_wall_line_count, const std::vector<Shape>& areas_per_layer);
+    void generateInitialInternalOverhangs(const coord_t infill_wall_thickness, const std::vector<Shape>& areas_per_layer);
 
     /*!
      * Calculate the tree structure of all layers.
      */
-    void generateTrees(const coord_t infill_line_width, const coord_t infill_wall_line_count, const std::vector<Shape>& areas_per_layer);
+    void generateTrees(const coord_t infill_wall_thickness, const std::vector<Shape>& areas_per_layer);
 
     /*!
      * How far each piece of infill can support skin in the layer above.

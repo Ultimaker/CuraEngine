@@ -235,7 +235,7 @@ public:
      * \param area The support polygon to fill up with infill parts.
      * \param support_fill_per_layer The support polygons to fill up with infill parts.
      * \param support_line_width Line width of the support extrusions.
-     * \param wall_line_count Wall-line count around the fill.
+     * \param wall_thickness Wall-line thickness around the fill.
      * \param use_fractional_config (optional, default to false) If the area should be added as fractional support.
      * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
@@ -243,14 +243,14 @@ public:
     void fillInfillParts(
         const Shape& area,
         const coord_t support_line_width,
-        const coord_t wall_line_count,
+        const coord_t wall_thickness,
         const bool use_fractional_config = false,
         const bool unionAll = false,
         const coord_t custom_line_distance = 0)
     {
         for (const SingleShape& island_outline : area.splitIntoParts(unionAll))
         {
-            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance);
+            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_thickness, custom_line_distance);
         }
     }
 
@@ -262,7 +262,7 @@ public:
      * \param infill_layer_height The layer height of the support-fill.
      * \param meshes The model meshes to be supported, needed here to handle fractional support layer height.
      * \param support_line_width Line width of the support extrusions.
-     * \param wall_line_count Wall-line count around the fill.
+     * \param wall_thickness Wall-line thickness around the fill.
      * \param grow_layer_above (optional, default to 0) In cases where support shrinks per layer up, an appropriate offset may be nescesary.
      * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
@@ -273,7 +273,7 @@ public:
         const coord_t infill_layer_height,
         const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
         const coord_t support_line_width,
-        const coord_t wall_line_count,
+        const coord_t wall_thickness,
         const coord_t grow_layer_above = 0,
         const bool unionAll = false,
         const coord_t custom_line_distance = 0);

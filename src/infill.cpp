@@ -61,17 +61,19 @@ namespace cura
 Shape Infill::generateWallToolPaths(
     std::vector<VariableWidthLines>& toolpaths,
     const Shape& outer_contour,
-    const size_t wall_line_count,
+    const coord_t wall_thickness,
     const coord_t line_width,
     const Settings& settings,
     int layer_idx,
     SectionType section_type)
 {
     Shape inner_contour;
-    if (wall_line_count > 0)
+    if (wall_thickness > 0)
     {
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(outer_contour, line_width, wall_line_count, wall_0_inset, settings, layer_idx, section_type);
+        const size_t walls_count = std::llrint(static_cast<double>(wall_thickness) / line_width);
+        const coord_t actual_line_width = wall_thickness / walls_count;
+        WallToolPaths wall_toolpaths(outer_contour, actual_line_width, walls_count, wall_0_inset, settings, layer_idx, section_type);
         wall_toolpaths.pushToolPaths(toolpaths);
         inner_contour = wall_toolpaths.getInnerContour();
     }
@@ -100,7 +102,7 @@ void Infill::generate(
         return;
     }
 
-    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_line_count_, infill_line_width_, settings, layer_idx, section_type);
+    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_thickness_, infill_line_width_, settings, layer_idx, section_type);
     scripta::log("infill_inner_contour_0", inner_contour_, section_type, layer_idx);
 
     inner_contour_ = inner_contour_.offset(infill_overlap_);

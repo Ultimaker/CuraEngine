@@ -3610,7 +3610,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         infill_density_multiplier = infill_extruder.settings_.get<size_t>("support_infill_density_multiplier_initial_layer");
     }
 
-    const size_t wall_line_count = infill_extruder.settings_.get<size_t>("support_wall_count");
+    const size_t wall_thickness = infill_extruder.settings_.get<size_t>("support_wall_thickness");
     const coord_t max_resolution = infill_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
     const coord_t max_deviation = infill_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
     coord_t default_support_line_width = infill_extruder.settings_.get<coord_t>("support_line_width");
@@ -3660,7 +3660,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         const auto& configs = part.use_fractional_config_ ? gcode_layer.configs_storage_.support_fractional_infill_config : gcode_layer.configs_storage_.support_infill_config;
 
         // always process the wall overlap if walls are generated
-        const int current_support_infill_overlap = (part.inset_count_to_generate_ > 0) ? default_support_infill_overlap : 0;
+        const int current_support_infill_overlap = (part.inset_width_to_generate_ > 0) ? default_support_infill_overlap : 0;
 
         // The support infill walls were generated separately, first. Always add them, regardless of how many densities we have.
         std::vector<VariableWidthLines> wall_toolpaths = part.wall_toolpaths_;
@@ -3768,7 +3768,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     area,
                     support_line_width,
                     support_line_distance_here,
-                    current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_line_count * support_line_width),
+                    current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_thickness),
                     infill_multiplier,
                     support_infill_angle,
                     gcode_layer.z_ + configs[combine_idx].z_offset,
@@ -3871,7 +3871,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             // If we're printing with a support wall, that support wall generates gap filling as well.
             // If not, the pattern may still generate gap filling (if it's connected infill or zigzag). We still want to print those.
-            if (wall_line_count == 0 || ! wall_toolpaths_here.empty())
+            if (wall_thickness == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = configs[0];
                 constexpr coord_t wipe_dist = 0;
