@@ -152,6 +152,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
     const auto support_line_distance = settings.get<coord_t>("support_line_distance");
     const auto support_xy_distance = settings.get<coord_t>("support_xy_distance");
     const auto adhesion_type = settings.get<EPlatformAdhesion>("adhesion_type");
+    const auto support_wall_count = settings.get<size_t>("support_wall_count");
 
     const auto base_outside_width = settings.get<coord_t>("support_base_outside_width");
     const auto base_outside_height = settings.get<coord_t>("support_outside_base_height");
@@ -193,46 +194,64 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
             continue;
         }
 
-        // Add the models as forbidden areas, offsetted with the XY distance
+        if (has_base_outside)
         {
-            constexpr bool include_support = false;
-            constexpr bool include_prime_tower = false;
-            forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower).offset(support_xy_distance));
-        }
-
-        // Add the prime tower as forbidden area
-        {
-            constexpr bool include_support = false;
-            constexpr bool include_prime_tower = true;
-            constexpr bool external_polys_only = false;
-            constexpr int extruder_nr = -1;
-            constexpr bool include_models = false;
-            forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models));
-        }
-
-        const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_outside_width, base_outside_height, base_outside_curve_magnitude, layer_z);
-        std::vector<Shape> base_outsets = PolygonUtils::generateOutset(layer_support_shape, base_extra_width, support_line_width);
-        ClosedLinesSet closed_base_outset;
-
-        for (Shape& base_outset : base_outsets)
-        {
-            closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
-            for (Polygon& base_outset_polygon : base_outset)
+            // Add the models as forbidden areas, offsetted with the XY distance
             {
-                closed_base_outset.push_back(ClosedPolyline(std::move(base_outset_polygon)));
+                constexpr bool include_support = false;
+                constexpr bool include_prime_tower = false;
+                forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower).offset(support_xy_distance));
+            }
+
+            // Add the prime tower as forbidden area
+            {
+                constexpr bool include_support = false;
+                constexpr bool include_prime_tower = true;
+                constexpr bool external_polys_only = false;
+                constexpr int extruder_nr = -1;
+                constexpr bool include_models = false;
+                forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models));
+            }
+
+            const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_outside_width, base_outside_height, base_outside_curve_magnitude, layer_z);
+            std::vector<Shape> base_outsets = PolygonUtils::generateOutset(layer_support_shape, base_extra_width, support_line_width);
+            ClosedLinesSet closed_base_outset;
+
+            for (Shape& base_outset : base_outsets)
+            {
+                closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
+                for (Polygon& base_outset_polygon : base_outset)
+                {
+                    closed_base_outset.push_back(ClosedPolyline(std::move(base_outset_polygon)));
+                }
+            }
+
+            MixedLinesSet base_lines = closed_base_outset.difference(forbidden_areas).intersection(storage.getMachineBorder());
+            if (! base_lines.empty())
+            {
+                support_layer.base.push_back(std::move(base_lines));
+
+                for (SupportInfillPart& part : support_layer.support_infill_parts)
+                {
+                    if (! part.use_fractional_config_)
+                    {
+                        part.base_outline_ = part.outline_.offset(base_extra_width);
+                    }
+                }
             }
         }
 
-        MixedLinesSet base_lines = closed_base_outset.difference(forbidden_areas).intersection(storage.getMachineBorder());
-        if (! base_lines.empty())
+        if (has_base_inside)
         {
-            support_layer.base = base_lines;
-
-            for (SupportInfillPart& part : support_layer.support_infill_parts)
+            const Shape support_inside_area = layer_support_shape.offset(-support_wall_count * support_line_width);
+            const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_inside_width, base_inside_height, base_inside_curve_magnitude, layer_z);
+            std::vector<Shape> base_insets = PolygonUtils::generateInset(layer_support_shape, base_extra_width, support_line_width);
+            for (Shape& base_inset : base_insets)
             {
-                if (! part.use_fractional_config_)
+                support_layer.base.reserve(support_layer.base.size() + base_insets.size());
+                for (Polygon& base_inset_polygon : base_inset)
                 {
-                    part.base_outline_ = part.outline_.offset(base_extra_width);
+                    support_layer.base.push_back(ClosedPolyline(std::move(base_inset_polygon)));
                 }
             }
         }
@@ -649,9 +668,10 @@ Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLay
             break;
         case EPlatformAdhesion::RAFT:
         {
-            adhesion_size = std::max({ mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
+            adhesion_size = std::max(
+                { mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
+                  mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
+                  mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
             break;
         }
         case EPlatformAdhesion::NONE:
@@ -956,22 +976,24 @@ Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& stora
     if (layer_idx_below != layer_idx)
     {
         const auto layer_below = simplify.polygon(storage.layers[layer_idx_below].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
-            .support_distance = support_distance_bot,
-            .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
-            .layer_delta = layer_below,
-        });
+        z_distances_layer_deltas.emplace_back(
+            z_delta_poly_t{
+                .support_distance = support_distance_bot,
+                .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
+                .layer_delta = layer_below,
+            });
     }
 
     const LayerIndex layer_idx_above{ std::min(LayerIndex{ layer_idx + layer_index_offset }, LayerIndex{ storage.layers.size() - 1 }) };
     if (layer_idx_above != layer_idx)
     {
         const auto layer_above = simplify.polygon(storage.layers[layer_idx_above].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
-            .support_distance = support_distance_top,
-            .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
-            .layer_delta = layer_above,
-        });
+        z_distances_layer_deltas.emplace_back(
+            z_delta_poly_t{
+                .support_distance = support_distance_top,
+                .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
+                .layer_delta = layer_above,
+            });
     }
 
     // Initialize the offset_dist_at_point map with all the points in the current layer.
