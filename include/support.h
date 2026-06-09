@@ -68,6 +68,8 @@ public:
      */
     static void generateSupportInfillFeatures(SliceDataStorage& storage);
 
+    static void generateSupportBase(SliceDataStorage& storage);
+
 private:
     /*!
      * Splits the global support areas into separete SupportInfillParts.

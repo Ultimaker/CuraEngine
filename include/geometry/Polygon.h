@@ -74,6 +74,8 @@ public:
 
     ~Polygon() override = default;
 
+    void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const final;
+
     Polygon& operator=(const Polygon& other) = default;
 
     Polygon& operator=(Polygon&& other) noexcept = default;

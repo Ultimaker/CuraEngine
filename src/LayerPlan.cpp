@@ -26,6 +26,7 @@
 #include "arachne/SkeletalTrapezoidationGraph.h"
 #include "bridge/bridge.h"
 #include "communication/Communication.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/conversions/Point2D_Point2LL.h"
 #include "gradual_flow/Processor.h"
@@ -4192,7 +4193,7 @@ template void LayerPlan::addLinesByOptimizer(
     const MendedShape& extra_inwards_move_contour);
 
 template void LayerPlan::addLinesByOptimizer(
-    const ClosedLinesSet& lines,
+    const LinesSet<ClosedPolyline>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,

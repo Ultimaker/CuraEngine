@@ -3577,6 +3577,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                                                : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_;
     const ExtruderTrain& infill_extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 
+    gcode_layer.addLinesByOptimizer(support_layer.base, gcode_layer.configs_storage_.support_infill_config[0], SpaceFillType::PolyLines);
+
     coord_t default_support_line_distance = infill_extruder.settings_.get<coord_t>("support_line_distance");
 
     // To improve adhesion for the "support initial layer" the first layer might have different properties

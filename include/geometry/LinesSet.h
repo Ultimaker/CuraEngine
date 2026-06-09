@@ -264,13 +264,6 @@ public:
     void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const;
 
     /*!
-     * \brief Utility method to add a line to a ClipperLib::Clipper object
-     * \note This method needs to be public but you shouldn't need to use it from outside
-     */
-    template<class OtherLineLine>
-    void addPath(ClipperLib::Clipper& clipper, const OtherLineLine& line, ClipperLib::PolyType poly_typ) const;
-
-    /*!
      * \brief Utility method to add all the lines to a ClipperLib::ClipperOffset object
      * \note This method needs to be public but you shouldn't need to use it from outside
      */
