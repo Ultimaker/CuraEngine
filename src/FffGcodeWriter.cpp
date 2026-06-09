@@ -1969,6 +1969,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
             constexpr bool skip_some_zags = false;
             constexpr size_t zag_skip_count = 0;
             const bool fill_gaps = density_idx == 0; // Only fill gaps for the lowest density.
+            const double infill_fibonacci_spiral_start_ratio = mesh.settings.get<double>("infill_fibonacci_spiral_start_ratio");
 
             std::shared_ptr<LightningLayer> lightning_layer = nullptr;
             if (mesh.lightning_generator)
@@ -1998,7 +1999,8 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                mesh.settings.get<coord_t>("cross_infill_pocket_size"));
+                mesh.settings.get<coord_t>("cross_infill_pocket_size"),
+                infill_fibonacci_spiral_start_ratio);
             infill_comp.generate(
                 infill_paths,
                 infill_polygons,
@@ -2182,6 +2184,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     const bool use_endpieces = part.infill_area_per_combine_per_density.size() == 1; // Only use endpieces when not using gradual infill, since they will then overlap.
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
+    const double infill_fibonacci_spiral_start_ratio = mesh.settings.get<double>("infill_fibonacci_spiral_start_ratio");
     Shape infill_inner_contour;
 
     for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
@@ -2344,7 +2347,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
             use_endpieces,
             skip_some_zags,
             zag_skip_count,
-            pocket_size);
+            pocket_size,
+            infill_fibonacci_spiral_start_ratio);
         infill_comp.generate(
             wall_tool_paths.back(),
             infill_polygons,
@@ -3324,6 +3328,7 @@ void FffGcodeWriter::processSkinPrintFeature(
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
     constexpr coord_t pocket_size = 0;
+    const double skin_fibonacci_spiral_start_ratio = mesh.settings.get<double>("skin_fibonacci_spiral_start_ratio");
     const bool small_areas_on_surface = mesh.settings.get<bool>("small_skin_on_surface");
     const coord_t line_width = config.getLineWidth();
     const coord_t small_area_width
@@ -3354,7 +3359,8 @@ void FffGcodeWriter::processSkinPrintFeature(
         use_endpieces,
         skip_some_zags,
         zag_skip_count,
-        pocket_size);
+        pocket_size,
+        skin_fibonacci_spiral_start_ratio);
     infill_comp.generate(
         skin_paths,
         skin_polygons,
