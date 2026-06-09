@@ -4,6 +4,7 @@
 #ifndef SUPPORT_INFILL_PART_H
 #define SUPPORT_INFILL_PART_H
 
+#include <optional>
 #include <vector>
 
 #include "geometry/Polygon.h"
@@ -27,6 +28,7 @@ class SupportInfillPart
 {
 public:
     SingleShape outline_; //!< The outline of the support infill area
+    std::optional<Shape> base_outline_;
     AABB outline_boundary_box_; //!< The boundary box for the infill area
     coord_t support_line_width_; //!< The support line width
     int inset_count_to_generate_; //!< The number of insets need to be generated from the outline. This is not the actual insets that will be generated.

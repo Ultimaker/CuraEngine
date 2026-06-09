@@ -29,6 +29,7 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
+#include "raft.h"
 #include "settings/EnumSettings.h" //For EFillMethod.
 #include "settings/types/Angle.h" //To compute overhang distance from the angle.
 #include "settings/types/Ratio.h"
@@ -148,76 +149,95 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
 
     const auto layer_height = settings.get<coord_t>("layer_height");
     const auto support_line_width = settings.get<coord_t>("support_line_width");
-    const auto base_width = settings.get<coord_t>("support_base_outside_width");
-    const auto base_height = settings.get<coord_t>("support_outside_base_height");
-    const auto base_curve_magnitude = settings.get<double>("support_outside_base_curve_magnitude");
+    const auto support_line_distance = settings.get<coord_t>("support_line_distance");
     const auto support_xy_distance = settings.get<coord_t>("support_xy_distance");
-    const auto adhesion_type = settings.get<std::string>("adhesion_type");
+    const auto adhesion_type = settings.get<EPlatformAdhesion>("adhesion_type");
+
+    const auto base_outside_width = settings.get<coord_t>("support_base_outside_width");
+    const auto base_outside_height = settings.get<coord_t>("support_outside_base_height");
+    const auto base_outside_curve_magnitude = settings.get<double>("support_outside_base_curve_magnitude");
+
+    const auto base_inside_width = settings.get<coord_t>("support_base_inside_width");
+    const auto base_inside_height = settings.get<coord_t>("support_inside_base_height");
+    const auto base_inside_curve_magnitude = settings.get<double>("support_inside_base_curve_magnitude");
+
+    bool has_base_outside = base_outside_width > 0 && base_outside_height > layer_height;
+    bool has_base_inside = base_inside_width > 0 && base_inside_height > layer_height && support_line_distance == 0;
+    const LayerIndex first_base_layer = adhesion_type == EPlatformAdhesion::BRIM ? 1 : 0;
 
     // Generate the base extra lines
-    if (base_width > 0 && base_height > layer_height)
+    std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
+    for (LayerIndex layer_nr = first_base_layer; layer_nr < support_layers.size() && (has_base_inside || has_base_outside); ++layer_nr)
     {
-        std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-        LayerIndex layer_nr = 0;
-        for (coord_t z = layer_height; z < base_height; z += layer_height)
+        const coord_t layer_z = layer_nr * layer_height;
+        has_base_outside = has_base_outside && (layer_z < base_outside_height);
+        has_base_inside = has_base_inside && (layer_z < base_inside_height);
+
+        Shape forbidden_areas;
+        SupportLayer& support_layer = support_layers.at(layer_nr);
+        Shape layer_support_shape;
+        for (const SupportInfillPart& part : support_layer.support_infill_parts)
         {
-            layer_nr++;
-            if (layer_nr >= support_layers.size())
+            if (part.use_fractional_config_)
             {
-                return;
+                forbidden_areas.push_back(part.outline_);
             }
-
-
-            SupportLayer& support_layer = support_layers.at(layer_nr);
-            Shape layer_support_shape;
-            for (const SupportInfillPart& part : support_layer.support_infill_parts)
+            else
             {
-                if (part.use_fractional_config_)
-                {
-                    continue;
-                }
-
                 layer_support_shape.push_back(part.outline_);
             }
+        }
 
-            if (layer_support_shape.empty())
+        if (layer_support_shape.empty())
+        {
+            continue;
+        }
+
+        // Add the models as forbidden areas, offsetted with the XY distance
+        {
+            constexpr bool include_support = false;
+            constexpr bool include_prime_tower = false;
+            forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower).offset(support_xy_distance));
+        }
+
+        // Add the prime tower as forbidden area
+        {
+            constexpr bool include_support = false;
+            constexpr bool include_prime_tower = true;
+            constexpr bool external_polys_only = false;
+            constexpr int extruder_nr = -1;
+            constexpr bool include_models = false;
+            forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models));
+        }
+
+        const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_outside_width, base_outside_height, base_outside_curve_magnitude, layer_z);
+        std::vector<Shape> base_outsets = PolygonUtils::generateOutset(layer_support_shape, base_extra_width, support_line_width);
+        ClosedLinesSet closed_base_outset;
+
+        for (Shape& base_outset : base_outsets)
+        {
+            closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
+            for (Polygon& base_outset_polygon : base_outset)
             {
-                continue;
+                closed_base_outset.push_back(ClosedPolyline(std::move(base_outset_polygon)));
             }
+        }
 
-            Shape forbidden_areas;
+        MixedLinesSet base_lines = closed_base_outset.difference(forbidden_areas).intersection(storage.getMachineBorder());
+        if (! base_lines.empty())
+        {
+            support_layer.base = base_lines;
+
+            for (SupportInfillPart& part : support_layer.support_infill_parts)
             {
-                constexpr bool include_support = false;
-                constexpr bool include_prime_tower = false;
-                forbidden_areas = storage.getLayerOutlines(layer_nr, include_support, include_prime_tower).offset(support_xy_distance);
-            }
-
-            {
-                constexpr bool include_support = false;
-                constexpr bool include_prime_tower = true;
-                constexpr bool external_polys_only = false;
-                constexpr int extruder_nr = -1;
-                constexpr bool include_models = false;
-                forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models));
-            }
-
-            const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_width, base_height, base_curve_magnitude, z);
-            std::vector<Shape> base_outsets = PolygonUtils::generateOutset(layer_support_shape, base_extra_width, support_line_width);
-            ClosedLinesSet closed_base_outset;
-
-            for (Shape& base_outset : base_outsets)
-            {
-                closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
-                for (Polygon& base_outset_polygon : base_outset)
+                if (! part.use_fractional_config_)
                 {
-                    closed_base_outset.push_back(ClosedPolyline(std::move(base_outset_polygon)));
+                    part.base_outline_ = part.outline_.offset(base_extra_width);
                 }
             }
-
-            support_layer.base = closed_base_outset.difference(forbidden_areas).intersection(storage.getMachineBorder());
         }
     }
-}
+} // namespace cura
 
 void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 {

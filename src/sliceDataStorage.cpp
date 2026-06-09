@@ -383,7 +383,7 @@ Shape SliceDataStorage::getLayerOutlines(
             {
                 for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
                 {
-                    total.push_back(support_infill_part.outline_);
+                    total.push_back(support_infill_part.base_outline_.value_or(support_infill_part.outline_));
                 }
                 total.push_back(support_layer.support_bottom);
                 total.push_back(support_layer.support_roof);
