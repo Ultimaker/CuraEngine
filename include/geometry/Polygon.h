@@ -76,6 +76,9 @@ public:
 
     void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const final;
 
+    void addPath(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType joint_type, ClipperLib::EndType end_type) const final;
+
+
     Polygon& operator=(const Polygon& other) = default;
 
     Polygon& operator=(Polygon&& other) noexcept = default;

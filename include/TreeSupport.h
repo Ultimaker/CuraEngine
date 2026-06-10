@@ -304,6 +304,9 @@ private:
         std::vector<Shape>& support_layer_storage_fractional,
         SliceDataStorage& storage);
 
+    static double
+        calculateLayerOverlap(const std::vector<Shape>& support_layer_storage, const SingleShape& support_part, const LayerIndex index_other_layer, const coord_t line_width);
+
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.
      *

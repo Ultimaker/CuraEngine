@@ -40,6 +40,11 @@ void ClosedPolyline::addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType 
     }
 }
 
+void ClosedPolyline::addPath(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType joint_type, ClipperLib::EndType /*end_type*/) const
+{
+    clipper.AddPath(getPoints(), joint_type, ClipperLib::etClosedLine);
+}
+
 bool ClosedPolyline::inside(const Point2LL& p, bool border_result) const
 {
     int res = ClipperLib::PointInPolygon(p, getPoints());

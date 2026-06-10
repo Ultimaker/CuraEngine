@@ -107,6 +107,8 @@ public:
 
     void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const override;
 
+    void addPath(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType joint_type, ClipperLib::EndType end_type) const override;
+
     ClosedPolyline& operator=(const ClosedPolyline& other) = default;
 
     ClosedPolyline& operator=(ClosedPolyline&& other) = default;

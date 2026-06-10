@@ -69,6 +69,7 @@ struct TreeSupportSettings
         , support_line_distance(mesh_group_settings.get<coord_t>("support_line_distance"))
         , support_bottom_offset(mesh_group_settings.get<coord_t>("support_bottom_offset"))
         , support_wall_thickness(mesh_group_settings.get<coord_t>("support_wall_thickness"))
+        , support_enlarged_wall_thickness(mesh_group_settings.get<coord_t>("support_enlarged_wall_thickness"))
         , support_roof_wall_count(mesh_group_settings.get<int>("support_roof_wall_count"))
         , zig_zaggify_support(mesh_group_settings.get<bool>("zig_zaggify_support"))
         , maximum_deviation(mesh_group_settings.get<coord_t>("meshfix_maximum_deviation"))
@@ -313,9 +314,14 @@ public:
     coord_t support_bottom_offset;
 
     /*!
-     * \brief Amount of walls the support area will have.
+     * \brief Thickness of walls the support area will have.
      */
     coord_t support_wall_thickness;
+
+    /*!
+     * \brief Thickness of walls when inter-layer adhesion is not good enough.
+     */
+    coord_t support_enlarged_wall_thickness;
 
     /*!
      * \brief Amount of walls the support roof area will have.

@@ -2281,9 +2281,23 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         {
             constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
 
-            storage.support.supportLayers[layer_idx]
-                .fillInfillParts(support_layer_storage[layer_idx], config.support_line_width, config.support_wall_thickness, false, convert_every_part);
+            for (const SingleShape& support_part : support_layer_storage[layer_idx].splitIntoParts())
+            {
+                coord_t wall_thickness;
+                if (config.support_enlarged_wall_thickness == config.support_wall_thickness)
+                {
+                    wall_thickness = config.support_wall_thickness;
+                }
+                else
+                {
+                    const double coverage_below = calculateLayerOverlap(support_layer_storage, support_part, layer_idx - 1, config.support_line_width);
+                    const double coverage_above = calculateLayerOverlap(support_layer_storage, support_part, layer_idx + 1, config.support_line_width);
+                    const double worst_coverage = std::min(coverage_below, coverage_above);
+                    wall_thickness = lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, worst_coverage);
+                }
 
+                storage.support.supportLayers[layer_idx].fillInfillParts(support_part, config.support_line_width, wall_thickness, false, convert_every_part);
+            }
 
             // This only works because fractional support is always just projected upwards regular support or skin.
             // Also technically violates skin height, but there is no good way to prevent that.
@@ -2322,6 +2336,39 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 }
             }
         });
+}
+
+double TreeSupport::calculateLayerOverlap(
+    const std::vector<Shape>& support_layer_storage,
+    const SingleShape& support_part,
+    const LayerIndex index_other_layer,
+    const coord_t line_width)
+{
+    if (support_part.empty() || index_other_layer < 0 || index_other_layer >= support_layer_storage.size())
+    {
+        return 1.0;
+    }
+
+    Shape covered_surface_part;
+    for (const Polygon& part_polygon : support_part)
+    {
+        covered_surface_part.push_back(static_cast<ClosedPolyline>(part_polygon).offset(line_width / 2));
+    }
+
+    const Shape& shape_other = support_layer_storage[index_other_layer];
+    Shape covered_surface_other;
+    for (const Polygon& other_polygon : shape_other)
+    {
+        covered_surface_other.push_back(static_cast<ClosedPolyline>(other_polygon).offset(line_width / 2));
+    }
+
+    const Shape overlap = covered_surface_part.intersection(covered_surface_other);
+
+    SVG svg("/tmp/coverage.svg", AABB(support_part), 0.01);
+    svg.write(covered_surface_part, { .surface = { SVG::Color::BLUE } });
+    svg.write(covered_surface_other, { .surface = { SVG::Color::GREEN, 0.5 } });
+
+    return overlap.area() / covered_surface_part.area();
 }
 
 void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)

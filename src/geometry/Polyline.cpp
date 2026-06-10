@@ -10,6 +10,7 @@
 #include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
+#include "geometry/Shape.h"
 #include "settings/types/Angle.h"
 #include "utils/linearAlg2D.h"
 
@@ -172,6 +173,21 @@ OpenLinesSet Polyline::splitIntoSegments() const
     OpenLinesSet result;
     splitIntoSegments(result);
     return result;
+}
+
+Shape Polyline::offset(const coord_t width, const ClipperLib::JoinType join_type, const ClipperLib::EndType end_type, const double miter_limit) const
+{
+    if (empty() || width == 0)
+    {
+        return {};
+    }
+
+    ClipperLib::Paths ret;
+    ClipperLib::ClipperOffset clipper(miter_limit, 10.0);
+    addPath(clipper, join_type, end_type);
+    clipper.MiterLimit = miter_limit;
+    clipper.Execute(ret, static_cast<double>(width));
+    return Shape{ std::move(ret) };
 }
 
 } // namespace cura

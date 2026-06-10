@@ -19,6 +19,11 @@ void Polygon::addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_ty
     clipper.AddPath(getPoints(), poly_typ, true);
 }
 
+void Polygon::addPath(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType joint_type, ClipperLib::EndType /*end_type*/) const
+{
+    clipper.AddPath(getPoints(), joint_type, ClipperLib::etClosedPolygon);
+}
+
 Shape Polygon::intersection(const Polygon& other) const
 {
     ClipperLib::Paths ret_paths;

@@ -15,6 +15,7 @@ class LinesSet;
 class AngleRadians;
 class OpenPolyline;
 class OpenLinesSet;
+class Shape;
 
 /*!
  * \brief Base class for various types of polylines. A polyline is basically a set of points, but
@@ -88,6 +89,8 @@ public:
     [[nodiscard]] virtual bool isValid() const = 0;
 
     virtual void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const = 0;
+
+    virtual void addPath(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType joint_type, ClipperLib::EndType end_type) const = 0;
 
     Polyline& operator=(const Polyline& other) = default;
 
@@ -178,6 +181,12 @@ public:
      removed
      */
     void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
+
+    virtual Shape offset(
+        const coord_t width,
+        const ClipperLib::JoinType join_type = ClipperLib::jtMiter,
+        const ClipperLib::EndType end_type = ClipperLib::etOpenRound,
+        const double miter_limit = 1.2) const;
 };
 
 } // namespace cura
