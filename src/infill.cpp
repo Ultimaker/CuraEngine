@@ -520,79 +520,133 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
 void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& result_lines)
 {
     const coord_t min_area = infill_line_width_ * infill_line_width_;
+    Simplify simplifier(max_resolution_, max_deviation_, 0);
 
-    // Collect all concentric rings by successive inward offsets.
-    // The first ring is at the same position as in generateConcentricInfill.
-    std::vector<Polygon> rings;
-    Shape current_inset = outline.offset(infill_line_width_ - line_distance_);
+    // Collect rings depth-layer by depth-layer using the exact same offset sequence
+    // as generateConcentricInfill: offset(infill_line_width_ - line_distance_) per step,
+    // then offset(-infill_line_width_) to advance to the inner contour.
+    // Every polygon in the inset shape is kept as its own ring (outer boundary rings
+    // AND inner boundary rings that wrap around holes), so no ring component is lost.
+    std::vector<std::vector<Polygon>> layers;
 
-    while (! current_inset.empty() && current_inset.area() >= static_cast<double>(min_area))
+    Shape current_inset = outline;
+    while (true)
     {
-        // Pick the polygon with the largest area as the representative ring for this step.
-        size_t best_idx = 0;
-        double max_area = 0.0;
-        for (size_t i = 0; i < current_inset.size(); ++i)
-        {
-            const double a = std::abs(current_inset[i].area());
-            if (a > max_area)
-            {
-                max_area = a;
-                best_idx = i;
-            }
-        }
-        rings.push_back(current_inset[best_idx]);
+        current_inset = current_inset.offset(infill_line_width_ - line_distance_);
+        current_inset = simplifier.polygon(current_inset);
 
-        // Advance inward by one line_distance_ for the next ring.
-        current_inset = current_inset.offset(-line_distance_);
+        std::vector<Polygon> layer;
+        for (const Polygon& poly : current_inset)
+            if (std::abs(poly.area()) >= static_cast<double>(min_area))
+                layer.push_back(poly);
+
+        if (layer.empty())
+            break;
+
+        layers.push_back(std::move(layer));
+
+        // Advance inward by one line width (mirrors WallToolPaths::getInnerContour())
+        current_inset = current_inset.offset(-infill_line_width_);
     }
 
-    if (rings.empty())
-    {
+    if (layers.empty())
         return;
+
+    auto centroid_of = [](const Polygon& poly) -> Point2LL
+    {
+        if (poly.empty())
+            return { 0, 0 };
+        Point2LL sum{ 0, 0 };
+        for (const Point2LL& p : poly)
+            sum += p;
+        return sum / static_cast<coord_t>(poly.size());
+    };
+
+    // Build chains: seed one chain per polygon at depth 0, then extend each chain
+    // to the next depth via nearest-centroid matching (unclaimed rings only).
+    // This keeps outer-boundary chains and hole-boundary chains separate because
+    // their centroids are at different spatial positions.
+    std::vector<std::vector<std::pair<int, int>>> chains; // chains[i] = [(layer, poly_idx), ...]
+    std::vector<std::vector<bool>> claimed(layers.size());
+    for (size_t li = 0; li < layers.size(); ++li)
+        claimed[li].assign(layers[li].size(), false);
+
+    for (int ri = 0; ri < static_cast<int>(layers[0].size()); ++ri)
+    {
+        chains.push_back({ { 0, ri } });
+        claimed[0][ri] = true;
     }
 
-    // Stitch all rings into a single continuous spiral open polyline.
-    // For each ring we find the vertex closest to the end of the path so far,
-    // walk around the ring once, and return to that vertex to provide a clean
-    // handoff to the next (inner) ring.
-    OpenPolyline spiral;
-
-    for (const Polygon& ring : rings)
+    for (size_t li = 0; li + 1 < layers.size(); ++li)
     {
-        if (ring.empty())
+        for (auto& chain : chains)
         {
-            continue;
-        }
-
-        // Find the vertex on this ring that is closest to the current end of the spiral.
-        size_t start_idx = 0;
-        if (! spiral.empty())
-        {
-            const Point2LL last = spiral.back();
-            coord_t best_dist_sq = std::numeric_limits<coord_t>::max();
-            for (size_t j = 0; j < ring.size(); ++j)
+            if (chain.back().first != static_cast<int>(li))
+                continue;
+            const Point2LL parent_c = centroid_of(layers[li][chain.back().second]);
+            int best_ri = -1;
+            coord_t best_d = std::numeric_limits<coord_t>::max();
+            for (int ri = 0; ri < static_cast<int>(layers[li + 1].size()); ++ri)
             {
-                const coord_t d = vSize2(ring[j] - last);
-                if (d < best_dist_sq)
+                if (claimed[li + 1][ri])
+                    continue;
+                const coord_t d = vSize2(centroid_of(layers[li + 1][ri]) - parent_c);
+                if (d < best_d)
                 {
-                    best_dist_sq = d;
-                    start_idx = j;
+                    best_d = d;
+                    best_ri = ri;
                 }
             }
+            if (best_ri >= 0)
+            {
+                chain.push_back({ static_cast<int>(li + 1), best_ri });
+                claimed[li + 1][best_ri] = true;
+            }
         }
-
-        // Traverse the ring once, then close back to start_idx so the next ring
-        // can connect at the nearest point without a long jump.
-        for (size_t j = 0; j < ring.size(); ++j)
+        // Any unclaimed polygon at li+1 is a new region that appeared — seed a new chain
+        for (int ri = 0; ri < static_cast<int>(layers[li + 1].size()); ++ri)
         {
-            spiral.push_back(ring[(start_idx + j) % ring.size()]);
+            if (!claimed[li + 1][ri])
+            {
+                chains.push_back({ { static_cast<int>(li + 1), ri } });
+                claimed[li + 1][ri] = true;
+            }
         }
-        spiral.push_back(ring[start_idx]); // return to start vertex before transitioning inward
     }
 
-    if (! spiral.empty())
+    // Stitch each chain into one continuous open spiral polyline.
+    // For each successive ring, start from the vertex nearest the current path end
+    // and traverse the ring once, returning to that vertex before stepping inward.
+    for (const auto& chain : chains)
     {
-        result_lines.push_back(spiral);
+        OpenPolyline spiral;
+        for (const auto& [li, ri] : chain)
+        {
+            const Polygon& ring = layers[li][ri];
+            if (ring.empty())
+                continue;
+
+            size_t start_v = 0;
+            if (!spiral.empty())
+            {
+                const Point2LL last = spiral.back();
+                coord_t best_d = std::numeric_limits<coord_t>::max();
+                for (size_t j = 0; j < ring.size(); ++j)
+                {
+                    const coord_t d = vSize2(ring[j] - last);
+                    if (d < best_d)
+                    {
+                        best_d = d;
+                        start_v = j;
+                    }
+                }
+            }
+
+            for (size_t j = 0; j <= ring.size(); ++j)
+                spiral.push_back(ring[(start_v + j) % ring.size()]);
+        }
+        if (!spiral.empty())
+            result_lines.push_back(std::move(spiral));
     }
 }
 
