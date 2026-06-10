@@ -152,6 +152,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
     const auto support_line_distance = settings.get<coord_t>("support_line_distance");
     const auto support_xy_distance = settings.get<coord_t>("support_xy_distance");
     const auto adhesion_type = settings.get<EPlatformAdhesion>("adhesion_type");
+    const auto support_brim_enable = settings.get<bool>("support_brim_enable");
     const auto support_wall_thickness = settings.get<coord_t>("support_wall_thickness");
 
     const auto base_outside_width = settings.get<coord_t>("support_base_outside_width");
@@ -162,13 +163,26 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
     const auto base_inside_height = settings.get<coord_t>("support_inside_base_height");
     const auto base_inside_curve_magnitude = settings.get<double>("support_inside_base_curve_magnitude");
 
-    const bool has_base_outside = base_outside_width > 0 && base_outside_height > layer_height;
-    const LayerIndex max_outside_layer = has_base_outside ? base_outside_height / layer_height : 0;
-    const bool has_base_inside = base_inside_width > 0 && base_inside_height > layer_height && support_line_distance == 0;
-    const LayerIndex max_inside_layer = has_base_inside ? base_inside_height / layer_height : 0;
-    const LayerIndex first_base_layer = adhesion_type == EPlatformAdhesion::BRIM ? 1 : 0;
+    const bool has_base_outside = base_outside_width > 0 && base_outside_height > 0;
+    const LayerIndex min_outside_layer = adhesion_type == EPlatformAdhesion::BRIM ? 1 : 0;
+    const LayerIndex max_outside_layer = base_outside_height / layer_height;
+
+    const bool has_base_inside = base_inside_width > 0 && base_inside_height > 0 && support_line_distance == 0 && support_brim_enable;
+    const LayerIndex min_inside_layer = 1; // Layer 0 is always processed by actual brim
+    const LayerIndex max_inside_layer = base_inside_height / layer_height;
+
+    if (! has_base_outside && ! has_base_inside)
+    {
+        return;
+    }
+
+    const bool has_both_bases = has_base_outside && has_base_inside;
+
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
-    const LayerIndex last_base_layer = std::min(static_cast<size_t>(std::max(max_outside_layer, max_inside_layer)), support_layers.size());
+    const LayerIndex first_base_layer = has_both_bases ? std::min(min_outside_layer, min_inside_layer) : (has_base_outside ? min_outside_layer : min_inside_layer);
+    const LayerIndex last_base_layer = std::min(
+        static_cast<size_t>(has_both_bases ? std::max(max_outside_layer, max_inside_layer) : (has_base_outside ? max_outside_layer : max_inside_layer)),
+        support_layers.size());
 
     // Generate the base extra lines
     parallel_for(
@@ -198,7 +212,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 return;
             }
 
-            if (layer_nr < max_outside_layer)
+            if (has_base_outside && layer_nr >= min_outside_layer && layer_nr < max_outside_layer)
             {
                 // Add the models as forbidden areas, offsetted with the XY distance
                 {
@@ -245,11 +259,11 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 }
             }
 
-            if (layer_nr < max_inside_layer)
+            if (has_base_inside && layer_nr >= min_inside_layer && layer_nr < max_inside_layer)
             {
                 const Shape support_inside_area = layer_support_shape.offset(-support_wall_thickness);
                 const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_inside_width, base_inside_height, base_inside_curve_magnitude, layer_z);
-                std::vector<Shape> base_insets = PolygonUtils::generateInset(layer_support_shape, base_extra_width, support_line_width);
+                std::vector<Shape> base_insets = PolygonUtils::generateInset(support_inside_area, base_extra_width, support_line_width);
                 for (Shape& base_inset : base_insets)
                 {
                     support_layer.base.reserve(support_layer.base.size() + base_insets.size());
@@ -260,7 +274,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 }
             }
         });
-} // namespace cura
+}
 
 void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 {
@@ -672,9 +686,10 @@ Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLay
             break;
         case EPlatformAdhesion::RAFT:
         {
-            adhesion_size = std::max({ mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
+            adhesion_size = std::max(
+                { mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
+                  mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
+                  mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
             break;
         }
         case EPlatformAdhesion::NONE:
@@ -979,22 +994,24 @@ Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& stora
     if (layer_idx_below != layer_idx)
     {
         const auto layer_below = simplify.polygon(storage.layers[layer_idx_below].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
-            .support_distance = support_distance_bot,
-            .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
-            .layer_delta = layer_below,
-        });
+        z_distances_layer_deltas.emplace_back(
+            z_delta_poly_t{
+                .support_distance = support_distance_bot,
+                .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
+                .layer_delta = layer_below,
+            });
     }
 
     const LayerIndex layer_idx_above{ std::min(LayerIndex{ layer_idx + layer_index_offset }, LayerIndex{ storage.layers.size() - 1 }) };
     if (layer_idx_above != layer_idx)
     {
         const auto layer_above = simplify.polygon(storage.layers[layer_idx_above].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
-            .support_distance = support_distance_top,
-            .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
-            .layer_delta = layer_above,
-        });
+        z_distances_layer_deltas.emplace_back(
+            z_delta_poly_t{
+                .support_distance = support_distance_top,
+                .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
+                .layer_delta = layer_above,
+            });
     }
 
     // Initialize the offset_dist_at_point map with all the points in the current layer.
