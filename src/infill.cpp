@@ -606,7 +606,7 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
         // Any unclaimed polygon at li+1 is a new region that appeared — seed a new chain
         for (int ri = 0; ri < static_cast<int>(layers[li + 1].size()); ++ri)
         {
-            if (!claimed[li + 1][ri])
+            if (! claimed[li + 1][ri])
             {
                 chains.push_back({ { static_cast<int>(li + 1), ri } });
                 claimed[li + 1][ri] = true;
@@ -627,7 +627,7 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
                 continue;
 
             size_t start_v = 0;
-            if (!spiral.empty())
+            if (! spiral.empty())
             {
                 const Point2LL last = spiral.back();
                 coord_t best_d = std::numeric_limits<coord_t>::max();
@@ -645,7 +645,7 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
             for (size_t j = 0; j <= ring.size(); ++j)
                 spiral.push_back(ring[(start_v + j) % ring.size()]);
         }
-        if (!spiral.empty())
+        if (! spiral.empty())
             result_lines.push_back(std::move(spiral));
     }
 }
