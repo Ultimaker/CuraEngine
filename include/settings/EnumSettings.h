@@ -22,6 +22,7 @@ enum class EFillMethod
     TRIANGLES,
     TRIHEXAGON,
     CONCENTRIC,
+    CONCENTRIC_SPIRAL,
     ZIG_ZAG,
     CROSS,
     CROSS_3D,

@@ -79,9 +79,9 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         // Align the edge of the ironing line with the edge of the outer wall
         ironing_inset -= ironing_flow * line_width / 2;
     }
-    else if (pattern == EFillMethod::CONCENTRIC)
+    else if (pattern == EFillMethod::CONCENTRIC || pattern == EFillMethod::CONCENTRIC_SPIRAL)
     {
-        // Counteract the outline_offset increase that takes place when using the infill generator to generate ironing with the concentric pattern
+        // Counteract the outline_offset increase that takes place when using the infill generator to generate ironing with the concentric/spiral pattern
         ironing_inset += line_spacing - line_width / 2;
         // Align the edge of the ironing line with the edge of the outer wall
         ironing_inset -= ironing_flow * line_width / 2;

@@ -455,6 +455,14 @@ private:
     void generateConcentricInfill(const Shape& outline, std::vector<VariableWidthLines>& toolpaths, const Settings& settings, const int layer_idx);
 
     /*!
+     * Generate a continuous spiral concentric infill pattern.
+     * Similar to concentric, but stitches all rings into a single continuous open polyline
+     * by connecting consecutive rings at their closest points.
+     * \param[out] result_lines The resulting spiral polyline
+     */
+    void generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& result_lines);
+
+    /*!
      * Generate a rectangular grid of infill lines
      * \param[out] result (output) The resulting lines
      */

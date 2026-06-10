@@ -273,6 +273,7 @@ AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned 
         break;
     case EFillMethod::GYROID:
     case EFillMethod::CONCENTRIC:
+    case EFillMethod::CONCENTRIC_SPIRAL:
     case EFillMethod::LIGHTNING:
     case EFillMethod::PLUGIN:
     case EFillMethod::NONE:

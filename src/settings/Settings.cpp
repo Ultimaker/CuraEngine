@@ -430,6 +430,8 @@ EFillMethod Settings::get<EFillMethod>(const std::string& key) const
         return EFillMethod::TRIHEXAGON;
     case "concentric"_sw:
         return EFillMethod::CONCENTRIC;
+    case "concentric_spiral"_sw:
+        return EFillMethod::CONCENTRIC_SPIRAL;
     case "zigzag"_sw:
         return EFillMethod::ZIG_ZAG;
     case "cross"_sw:

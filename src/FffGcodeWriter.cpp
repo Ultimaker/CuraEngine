@@ -509,9 +509,9 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
         std::vector<AngleDegrees> angles = extruder.settings_.get<std::vector<AngleDegrees>>(interface_angles_setting);
         if (angles.empty())
         {
-            if (pattern == EFillMethod::CONCENTRIC)
+            if (pattern == EFillMethod::CONCENTRIC || pattern == EFillMethod::CONCENTRIC_SPIRAL)
             {
-                angles.push_back(0); // Concentric has no rotation.
+                angles.push_back(0); // Concentric/spiral has no rotation.
             }
             else if (pattern == EFillMethod::TRIANGLES)
             {

@@ -109,7 +109,7 @@ void Infill::generate(
     // is split into a small region that will be filled with walls and the normal region
     // that will be filled with the pattern. This split of regions is not needed if the
     // infill pattern is concentric or if the small_area_width is zero.
-    if (pattern_ != EFillMethod::CONCENTRIC && small_area_width_ > 0)
+    if (pattern_ != EFillMethod::CONCENTRIC && pattern_ != EFillMethod::CONCENTRIC_SPIRAL && small_area_width_ > 0)
     {
         const auto too_small_length = INT2MM(static_cast<double>(infill_line_width_) / 2.0);
 
@@ -324,6 +324,9 @@ void Infill::generateForIsland(
     case EFillMethod::CONCENTRIC:
         generateConcentricInfill(outline, toolpaths, settings, layer_idx);
         break;
+    case EFillMethod::CONCENTRIC_SPIRAL:
+        generateSpiralConcentricInfill(outline, result_lines);
+        break;
     case EFillMethod::ZIG_ZAG:
         generateZigZagInfill(outline, result_lines, line_distance_, fill_angle_, crossings_on_line);
         break;
@@ -511,6 +514,85 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 
         current_inset = wall_toolpaths.getInnerContour();
+    }
+}
+
+void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& result_lines)
+{
+    const coord_t min_area = infill_line_width_ * infill_line_width_;
+
+    // Collect all concentric rings by successive inward offsets.
+    // The first ring is at the same position as in generateConcentricInfill.
+    std::vector<Polygon> rings;
+    Shape current_inset = outline.offset(infill_line_width_ - line_distance_);
+
+    while (! current_inset.empty() && current_inset.area() >= static_cast<double>(min_area))
+    {
+        // Pick the polygon with the largest area as the representative ring for this step.
+        size_t best_idx = 0;
+        double max_area = 0.0;
+        for (size_t i = 0; i < current_inset.size(); ++i)
+        {
+            const double a = std::abs(current_inset[i].area());
+            if (a > max_area)
+            {
+                max_area = a;
+                best_idx = i;
+            }
+        }
+        rings.push_back(current_inset[best_idx]);
+
+        // Advance inward by one line_distance_ for the next ring.
+        current_inset = current_inset.offset(-line_distance_);
+    }
+
+    if (rings.empty())
+    {
+        return;
+    }
+
+    // Stitch all rings into a single continuous spiral open polyline.
+    // For each ring we find the vertex closest to the end of the path so far,
+    // walk around the ring once, and return to that vertex to provide a clean
+    // handoff to the next (inner) ring.
+    OpenPolyline spiral;
+
+    for (const Polygon& ring : rings)
+    {
+        if (ring.empty())
+        {
+            continue;
+        }
+
+        // Find the vertex on this ring that is closest to the current end of the spiral.
+        size_t start_idx = 0;
+        if (! spiral.empty())
+        {
+            const Point2LL last = spiral.back();
+            coord_t best_dist_sq = std::numeric_limits<coord_t>::max();
+            for (size_t j = 0; j < ring.size(); ++j)
+            {
+                const coord_t d = vSize2(ring[j] - last);
+                if (d < best_dist_sq)
+                {
+                    best_dist_sq = d;
+                    start_idx = j;
+                }
+            }
+        }
+
+        // Traverse the ring once, then close back to start_idx so the next ring
+        // can connect at the nearest point without a long jump.
+        for (size_t j = 0; j < ring.size(); ++j)
+        {
+            spiral.push_back(ring[(start_idx + j) % ring.size()]);
+        }
+        spiral.push_back(ring[start_idx]); // return to start vertex before transitioning inward
+    }
+
+    if (! spiral.empty())
+    {
+        result_lines.push_back(spiral);
     }
 }
 
