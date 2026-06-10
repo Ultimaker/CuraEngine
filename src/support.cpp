@@ -153,7 +153,6 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
     const auto support_xy_distance = settings.get<coord_t>("support_xy_distance");
     const auto adhesion_type = settings.get<EPlatformAdhesion>("adhesion_type");
     const auto support_brim_enable = settings.get<bool>("support_brim_enable");
-    const auto support_wall_thickness = settings.get<coord_t>("support_wall_thickness");
 
     const auto base_outside_width = settings.get<coord_t>("support_base_outside_width");
     const auto base_outside_height = settings.get<coord_t>("support_outside_base_height");
@@ -194,7 +193,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
 
             Shape forbidden_areas;
             SupportLayer& support_layer = support_layers.at(layer_nr);
-            Shape layer_support_shape;
+            std::vector<const SupportInfillPart*> parts_to_process;
             for (const SupportInfillPart& part : support_layer.support_infill_parts)
             {
                 if (part.use_fractional_config_)
@@ -203,11 +202,11 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 }
                 else
                 {
-                    layer_support_shape.push_back(part.outline_);
+                    parts_to_process.push_back(&part);
                 }
             }
 
-            if (layer_support_shape.empty())
+            if (parts_to_process.empty())
             {
                 return;
             }
@@ -231,8 +230,14 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                     forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models));
                 }
 
+                Shape all_parts;
+                for (const SupportInfillPart* part_to_process : parts_to_process)
+                {
+                    all_parts.push_back(part_to_process->outline_);
+                }
+
                 const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_outside_width, base_outside_height, base_outside_curve_magnitude, layer_z);
-                std::vector<Shape> base_outsets = PolygonUtils::generateOutset(layer_support_shape, base_extra_width, support_line_width);
+                std::vector<Shape> base_outsets = PolygonUtils::generateOutset(all_parts, base_extra_width, support_line_width);
                 ClosedLinesSet closed_base_outset;
 
                 for (Shape& base_outset : base_outsets)
@@ -261,15 +266,18 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
 
             if (has_base_inside && layer_nr >= min_inside_layer && layer_nr < max_inside_layer)
             {
-                const Shape support_inside_area = layer_support_shape.offset(-support_wall_thickness);
                 const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_inside_width, base_inside_height, base_inside_curve_magnitude, layer_z);
-                std::vector<Shape> base_insets = PolygonUtils::generateInset(support_inside_area, base_extra_width, support_line_width);
-                for (Shape& base_inset : base_insets)
+                for (const SupportInfillPart* part_to_process : parts_to_process)
                 {
-                    support_layer.base.reserve(support_layer.base.size() + base_insets.size());
-                    for (Polygon& base_inset_polygon : base_inset)
+                    const Shape support_inside_area = part_to_process->outline_.offset(-part_to_process->inset_width_to_generate_);
+                    std::vector<Shape> base_insets = PolygonUtils::generateInset(support_inside_area, base_extra_width, support_line_width);
+                    for (Shape& base_inset : base_insets)
                     {
-                        support_layer.base.push_back(ClosedPolyline(std::move(base_inset_polygon)));
+                        support_layer.base.reserve(support_layer.base.size() + base_insets.size());
+                        for (Polygon& base_inset_polygon : base_inset)
+                        {
+                            support_layer.base.push_back(ClosedPolyline(std::move(base_inset_polygon)));
+                        }
                     }
                 }
             }
