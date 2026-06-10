@@ -96,6 +96,16 @@ public:
 
 
 private:
+    struct SupportPart
+    {
+        SingleShape shape;
+        Shape coverage;
+        AABB bounding_box;
+        double coverage_area;
+        Ratio overlap_below{ 0.0 };
+        Ratio overlap_above{ 0.0 };
+    };
+
     /*!
      * \brief Precalculates all avoidances, that could be required.
      *
@@ -304,8 +314,7 @@ private:
         std::vector<Shape>& support_layer_storage_fractional,
         SliceDataStorage& storage);
 
-    static double
-        calculateLayerOverlap(const std::vector<Shape>& support_layer_storage, const SingleShape& support_part, const LayerIndex index_other_layer, const coord_t line_width);
+    static std::vector<std::vector<SupportPart>> makeSupportParts(const std::vector<Shape>& support_layer_storage, const coord_t line_width);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.

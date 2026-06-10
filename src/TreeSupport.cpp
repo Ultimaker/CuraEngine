@@ -2274,6 +2274,8 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             }
         });
 
+    const std::vector<std::vector<SupportPart>> support_parts = makeSupportParts(support_layer_storage, config.support_line_width);
+
     cura::parallel_for<coord_t>(
         0,
         support_layer_storage.size(),
@@ -2281,7 +2283,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         {
             constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
 
-            for (const SingleShape& support_part : support_layer_storage[layer_idx].splitIntoParts())
+            for (const SupportPart& support_part : support_parts[layer_idx])
             {
                 coord_t wall_thickness;
                 if (config.support_enlarged_wall_thickness == config.support_wall_thickness)
@@ -2290,13 +2292,11 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 }
                 else
                 {
-                    const double coverage_below = calculateLayerOverlap(support_layer_storage, support_part, layer_idx - 1, config.support_line_width);
-                    const double coverage_above = calculateLayerOverlap(support_layer_storage, support_part, layer_idx + 1, config.support_line_width);
-                    const double worst_coverage = std::min(coverage_below, coverage_above);
-                    wall_thickness = lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, worst_coverage);
+                    const Ratio worst_overlap = std::min(support_part.overlap_below, support_part.overlap_above);
+                    wall_thickness = lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, worst_overlap.value);
                 }
 
-                storage.support.supportLayers[layer_idx].fillInfillParts(support_part, config.support_line_width, wall_thickness, false, convert_every_part);
+                storage.support.supportLayers[layer_idx].fillInfillParts(support_part.shape, config.support_line_width, wall_thickness, false, convert_every_part);
             }
 
             // This only works because fractional support is always just projected upwards regular support or skin.
@@ -2338,37 +2338,59 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         });
 }
 
-double TreeSupport::calculateLayerOverlap(
-    const std::vector<Shape>& support_layer_storage,
-    const SingleShape& support_part,
-    const LayerIndex index_other_layer,
-    const coord_t line_width)
+std::vector<std::vector<TreeSupport::SupportPart>> TreeSupport::makeSupportParts(const std::vector<Shape>& support_layer_storage, const coord_t line_width)
 {
-    if (support_part.empty() || index_other_layer < 0 || index_other_layer >= support_layer_storage.size())
-    {
-        return 1.0;
-    }
+    std::vector<std::vector<SupportPart>> support_parts(support_layer_storage.size());
 
-    Shape covered_surface_part;
-    for (const Polygon& part_polygon : support_part)
-    {
-        covered_surface_part.push_back(static_cast<ClosedPolyline>(part_polygon).offset(line_width / 2));
-    }
+    // First create the part for each actual independent part, and generate their covered areas
+    cura::parallel_for<coord_t>(
+        0,
+        support_layer_storage.size(),
+        [&support_layer_storage, &support_parts, &line_width](const LayerIndex layer_idx)
+        {
+            std::vector<SupportPart>& layer_coverages = support_parts[layer_idx];
+            for (SingleShape& layer_part : support_layer_storage[layer_idx].splitIntoParts())
+            {
+                SupportPart support_part;
+                for (const Polygon& polygon : layer_part)
+                {
+                    support_part.coverage.push_back(static_cast<ClosedPolyline>(polygon).offset(line_width / 2));
+                }
+                support_part.bounding_box = AABB(support_part.coverage);
+                support_part.coverage_area = support_part.coverage.area();
+                support_part.shape = std::move(layer_part);
 
-    const Shape& shape_other = support_layer_storage[index_other_layer];
-    Shape covered_surface_other;
-    for (const Polygon& other_polygon : shape_other)
-    {
-        covered_surface_other.push_back(static_cast<ClosedPolyline>(other_polygon).offset(line_width / 2));
-    }
+                layer_coverages.push_back(std::move(support_part));
+            }
+        });
 
-    const Shape overlap = covered_surface_part.intersection(covered_surface_other);
+    // Now we have all the covered areas, evaluate all the inter-layer intersections and set the coverage ratios accordingly
+    cura::parallel_for<coord_t>(
+        0,
+        support_layer_storage.size() - 1,
+        [&support_parts](const LayerIndex layer_idx)
+        {
+            for (SupportPart& part : support_parts[layer_idx])
+            {
+                std::vector<SupportPart>& parts_at_layer_above = support_parts[layer_idx + 1];
+                for (SupportPart& part_above : parts_at_layer_above)
+                {
+                    if (part_above.bounding_box.hit(part.bounding_box))
+                    {
+                        const double overlap_area = part_above.coverage.intersection(part.coverage).area();
+                        part.overlap_above += overlap_area / part.coverage_area;
+                        part_above.overlap_below += overlap_area / part_above.coverage_area;
+                    }
+                }
 
-    SVG svg("/tmp/coverage.svg", AABB(support_part), 0.01);
-    svg.write(covered_surface_part, { .surface = { SVG::Color::BLUE } });
-    svg.write(covered_surface_other, { .surface = { SVG::Color::GREEN, 0.5 } });
+                if (layer_idx == 0)
+                {
+                    part.overlap_below = 1.0;
+                }
+            }
+        });
 
-    return overlap.area() / covered_surface_part.area();
+    return support_parts;
 }
 
 void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
