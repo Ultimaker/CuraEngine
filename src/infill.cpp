@@ -564,8 +564,7 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
 
     // Build chains: seed one chain per polygon at depth 0, then extend each chain
     // to the next depth via nearest-centroid matching (unclaimed rings only).
-    // This keeps outer-boundary chains and hole-boundary chains separate because
-    // their centroids are at different spatial positions.
+    // Use int64_t for squared distances to avoid coord_t (int32) overflow.
     std::vector<std::vector<std::pair<int, int>>> chains; // chains[i] = [(layer, poly_idx), ...]
     std::vector<std::vector<bool>> claimed(layers.size());
     for (size_t li = 0; li < layers.size(); ++li)
@@ -585,12 +584,12 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
                 continue;
             const Point2LL parent_c = centroid_of(layers[li][chain.back().second]);
             int best_ri = -1;
-            coord_t best_d = std::numeric_limits<coord_t>::max();
+            int64_t best_d = std::numeric_limits<int64_t>::max();
             for (int ri = 0; ri < static_cast<int>(layers[li + 1].size()); ++ri)
             {
                 if (claimed[li + 1][ri])
                     continue;
-                const coord_t d = vSize2(centroid_of(layers[li + 1][ri]) - parent_c);
+                const int64_t d = vSize2(centroid_of(layers[li + 1][ri]) - parent_c);
                 if (d < best_d)
                 {
                     best_d = d;
@@ -614,9 +613,16 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
         }
     }
 
-    // Stitch each chain into one continuous open spiral polyline.
-    // For each successive ring, start from the vertex nearest the current path end
-    // and traverse the ring once, returning to that vertex before stepping inward.
+    // Maximum squared distance allowed for an inward step between two consecutive rings.
+    // Adjacent rings are exactly line_distance_ apart; allow 3x for corners / complex geometry.
+    // Any step larger than this crosses a region boundary and must be a travel move, not extrusion.
+    const int64_t max_step_sq = static_cast<int64_t>(line_distance_) * line_distance_ * 9;
+
+    // Stitch each chain into spiral open polylines.
+    // Traverse each ring without closing it (j < ring.size(), not <=) so the path flows
+    // continuously into the next ring. When the nearest vertex on the next ring is too far
+    // away (the chain has crossed into a separate topological region), finalize the current
+    // spiral and start a new one — those transitions become travel moves, not extrusion lines.
     for (const auto& chain : chains)
     {
         OpenPolyline spiral;
@@ -630,19 +636,27 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
             if (! spiral.empty())
             {
                 const Point2LL last = spiral.back();
-                coord_t best_d = std::numeric_limits<coord_t>::max();
+                int64_t best_d = std::numeric_limits<int64_t>::max();
                 for (size_t j = 0; j < ring.size(); ++j)
                 {
-                    const coord_t d = vSize2(ring[j] - last);
+                    const int64_t d = vSize2(ring[j] - last);
                     if (d < best_d)
                     {
                         best_d = d;
                         start_v = j;
                     }
                 }
+                // Step is too long — it would cross a region boundary as an extrusion line.
+                // Close off the current spiral and begin a fresh one for this ring.
+                if (best_d > max_step_sq)
+                {
+                    result_lines.push_back(std::move(spiral));
+                    spiral = OpenPolyline();
+                    start_v = 0;
+                }
             }
 
-            for (size_t j = 0; j <= ring.size(); ++j)
+            for (size_t j = 0; j < ring.size(); ++j)
                 spiral.push_back(ring[(start_v + j) % ring.size()]);
         }
         if (! spiral.empty())
