@@ -4,6 +4,7 @@
 #ifndef CURAENGINE_WALLTOOLPATHS_H
 #define CURAENGINE_WALLTOOLPATHS_H
 
+#include "WallToolPathGenerator.h"
 #include "geometry/Polygon.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
@@ -29,7 +30,8 @@ public:
         const coord_t wall_0_inset,
         const Settings& settings,
         const int layer_idx,
-        SectionType section_type);
+        SectionType section_type,
+        WallToolPathGenerator generator = WallToolPathGenerator::Arachne);
 
     /*!
      * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
@@ -119,6 +121,11 @@ protected:
     static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
 private:
+    void generateArachne();
+
+    void generateNaiveInset();
+
+private:
     const Shape& outline_; //<! A reference to the outline polygon that is the designated area
     coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
     coord_t bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
@@ -144,6 +151,7 @@ private:
     const Settings& settings_;
     int layer_idx_;
     SectionType section_type_;
+    const WallToolPathGenerator generator_{ WallToolPathGenerator::Arachne };
 };
 } // namespace cura
 
