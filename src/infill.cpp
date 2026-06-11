@@ -626,6 +626,9 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
     for (const auto& chain : chains)
     {
         OpenPolyline spiral;
+        Point2LL prev_ring_start{ 0, 0 };
+        bool has_prev_ring = false;
+
         for (const auto& [li, ri] : chain)
         {
             const Polygon& ring = layers[li][ri];
@@ -633,13 +636,15 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
                 continue;
 
             size_t start_v = 0;
-            if (! spiral.empty())
+            if (has_prev_ring)
             {
-                const Point2LL last = spiral.back();
+                // Find the vertex on this ring closest to where the previous ring started.
+                // That keeps the transition point at the same angular position each step
+                // so the spiral doesn't skip/drift around the ring.
                 int64_t best_d = std::numeric_limits<int64_t>::max();
                 for (size_t j = 0; j < ring.size(); ++j)
                 {
-                    const int64_t d = vSize2(ring[j] - last);
+                    const int64_t d = vSize2(ring[j] - prev_ring_start);
                     if (d < best_d)
                     {
                         best_d = d;
@@ -655,6 +660,10 @@ void Infill::generateSpiralConcentricInfill(const Shape& outline, OpenLinesSet& 
                     start_v = 0;
                 }
             }
+
+            // Record this ring's start point so the next ring transitions from the same position.
+            prev_ring_start = ring[start_v];
+            has_prev_ring = true;
 
             for (size_t j = 0; j < ring.size(); ++j)
                 spiral.push_back(ring[(start_v + j) % ring.size()]);
