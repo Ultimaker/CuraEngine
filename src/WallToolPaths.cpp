@@ -319,7 +319,9 @@ void WallToolPaths::generateNaiveInset()
     if (inset_count_ > 0)
     {
         walls.push_back(outline_.offset(-wall_line_width_0_ / 2));
+        inner_contour_ = outline_.offset(-(wall_line_width_0_ + (inset_count_ - 1) * wall_line_width_x_));
     }
+
     for (size_t wall_index = 1; wall_index < inset_count_; ++wall_index)
     {
         walls.push_back(outline_.offset(-(wall_line_width_0_ + (wall_index - 1) * wall_line_width_x_ + wall_line_width_x_ / 2)));
