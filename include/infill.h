@@ -8,6 +8,7 @@
 
 #include <range/v3/range/concepts.hpp>
 
+#include "WallToolPathGenerator.h"
 #include "geometry/LinesSet.h"
 #include "geometry/Point2LL.h"
 #include "infill/LightningGenerator.h"
@@ -201,6 +202,7 @@ public:
      * \param mesh A mesh for which to generate infill (should only be used for non-helper-mesh objects).
      * \param[in] cross_fill_provider The cross fractal subdivision decision functor
      * \param minimum_line_length The per-island minimum total length for the generated lines
+     * \param wall_generator The generator to use for outer "walls"
      */
     void generate(
         std::vector<VariableWidthLines>& toolpaths,
@@ -213,7 +215,8 @@ public:
         const std::shared_ptr<LightningLayer>& lightning_layer = nullptr,
         const SliceMeshStorage* mesh = nullptr,
         const Shape& prevent_small_exposed_to_air = Shape(),
-        const coord_t minimum_line_length = 0);
+        const coord_t minimum_line_length = 0,
+        WallToolPathGenerator wall_generator = WallToolPathGenerator::Arachne);
 
     coord_t getLineDistance() const
     {
@@ -229,6 +232,7 @@ public:
      * \param wall_thickness [in] The thickness of walls that needs to be generated
      * \param line_width [in] The optimum wall line width of the walls
      * \param settings [in] A settings storage to use for generating variable-width walls.
+     * \param generator The generator to use for outer "walls"
      * \return The inner contour of the wall toolpaths
      */
     static Shape generateWallToolPaths(
@@ -238,7 +242,8 @@ public:
         const coord_t line_width,
         const Settings& settings,
         int layer_idx,
-        SectionType section_type);
+        SectionType section_type,
+        WallToolPathGenerator generator = WallToolPathGenerator::Arachne);
 
     /*!
      * Get the inner infill contour

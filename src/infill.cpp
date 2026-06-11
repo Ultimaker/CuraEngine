@@ -65,17 +65,21 @@ Shape Infill::generateWallToolPaths(
     const coord_t line_width,
     const Settings& settings,
     int layer_idx,
-    SectionType section_type)
+    SectionType section_type,
+    WallToolPathGenerator generator)
 {
     Shape inner_contour;
     if (wall_thickness > 0)
     {
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
         const size_t walls_count = std::llrint(static_cast<double>(wall_thickness) / line_width);
-        const coord_t actual_line_width = wall_thickness / walls_count;
-        WallToolPaths wall_toolpaths(outer_contour, actual_line_width, walls_count, wall_0_inset, settings, layer_idx, section_type);
-        wall_toolpaths.pushToolPaths(toolpaths);
-        inner_contour = wall_toolpaths.getInnerContour();
+        if (walls_count > 0)
+        {
+            const coord_t actual_line_width = wall_thickness / walls_count;
+            WallToolPaths wall_toolpaths(outer_contour, actual_line_width, walls_count, wall_0_inset, settings, layer_idx, section_type, generator);
+            wall_toolpaths.pushToolPaths(toolpaths);
+            inner_contour = wall_toolpaths.getInnerContour();
+        }
     }
     else
     {
@@ -95,14 +99,15 @@ void Infill::generate(
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
     const Shape& prevent_small_exposed_to_air,
-    const coord_t minimum_line_length)
+    const coord_t minimum_line_length,
+    WallToolPathGenerator wall_generator)
 {
     if (outer_contour_.empty())
     {
         return;
     }
 
-    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_thickness_, infill_line_width_, settings, layer_idx, section_type);
+    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_thickness_, infill_line_width_, settings, layer_idx, section_type, wall_generator);
     scripta::log("infill_inner_contour_0", inner_contour_, section_type, layer_idx);
 
     inner_contour_ = inner_contour_.offset(infill_overlap_);

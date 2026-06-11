@@ -377,7 +377,8 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
                 wall_width,
                 infill_extruder.settings_,
                 layer_nr,
-                SectionType::SUPPORT);
+                SectionType::SUPPORT,
+                WallToolPathGenerator::NaiveInset);
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box_;
 
             // calculate density areas for this island
