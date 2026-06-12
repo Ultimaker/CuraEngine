@@ -19,6 +19,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
+#include "Slice.h" // Technically needed to get 'has paint-on support' from the Application.
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
 #include "infill.h"
@@ -50,13 +51,16 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
                                                              || mesh.settings.get<coord_t>("min_feature_size") < (FUDGE_LENGTH * 2);
     }
 
+    const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_painted_support;
+
     // Group all meshes that can be processed together. NOTE this is different from mesh-groups!
     // Only one setting object is needed per group, as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
     for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
         SliceMeshStorage& mesh = *mesh_ptr;
-        const bool non_supportable_mesh = mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh");
-        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! mesh.settings.get<bool>("support_enable") || non_supportable_mesh)
+        const bool non_supportable_mesh = ! mesh.isModelMesh() || mesh.settings.get<bool>("support_mesh");
+        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint)
+            || non_supportable_mesh)
         {
             continue;
         }
