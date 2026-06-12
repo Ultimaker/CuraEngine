@@ -165,7 +165,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         [this, total_layers](std::optional<ProcessLayerResult> result_opt)
         {
             const ProcessLayerResult& result = result_opt.value();
-            Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.total_elapsed_time, result.stages_times);
+            Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.time_keeper);
             layer_plan_buffer.handle(*result.layer_plan, gcode);
             print_info_.updateWithLayer(result.layer_plan);
         });
@@ -1129,7 +1129,6 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 {
     spdlog::debug("GcodeWriter processing layer {} of {}", layer_nr, total_layers);
     TimeKeeper time_keeper;
-    spdlog::stopwatch timer_total;
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
@@ -1284,7 +1283,9 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     gcode_layer.applyBackPressureCompensation();
     time_keeper.registerTime("Back pressure comp.");
 
-    return { &gcode_layer, timer_total.elapsed().count(), time_keeper.getRegisteredTimes() };
+    time_keeper.end();
+
+    return { &gcode_layer, time_keeper };
 }
 
 bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataStorage& storage, const size_t extruder_nr) const

@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <range/v3/view/enumerate.hpp>
 #include <scripta/logger.h>
@@ -549,7 +550,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
             }
 
             meshgroup->meshes.push_back(mesh);
-            spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
+            spdlog::info("loading '{}' took {}", filename, std::chrono::duration<double>(load_timer.restart()));
             return true;
         }
         spdlog::warn("loading STL '{}' failed", filename);
@@ -562,7 +563,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Mat
         if (loadMeshOBJ(&mesh, filename, transformation)) // Load it! If successful...
         {
             meshgroup->meshes.push_back(mesh);
-            spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
+            spdlog::info("loading '{}' took {}", filename, std::chrono::duration<double>(load_timer.restart()));
             return true;
         }
         spdlog::warn("loading OBJ '{}' failed", filename);

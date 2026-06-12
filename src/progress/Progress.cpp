@@ -7,7 +7,7 @@
 #include <cassert>
 #include <optional>
 
-#include <range/v3/view/enumerate.hpp>
+#include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get the communication channel to send progress through.
@@ -49,7 +49,7 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
     {
         if (static_cast<int>(stage) > 0)
         {
-            spdlog::info("Progress: {} accomplished in {:03.3f}s", names.at(static_cast<size_t>(stage) - 1), time_keeper->restart());
+            spdlog::info("Progress: {} processed in {}", names.at(static_cast<size_t>(stage) - 1), std::chrono::duration<double>(time_keeper->restart()));
         }
         else
         {
@@ -63,9 +63,9 @@ void Progress::messageProgressStage(Progress::Stage stage, TimeKeeper* time_keep
     }
 }
 
-void Progress::messageProgressLayer(LayerIndex layer_nr, size_t total_layers, double total_time, const TimeKeeper::RegisteredTimes& stages, double skip_threshold)
+void Progress::messageProgressLayer(const LayerIndex layer_nr, const size_t total_layers, const TimeKeeper& time_keeper, const std::chrono::milliseconds skip_threshold)
 {
-    if (total_time < skip_threshold)
+    if (time_keeper.getTotalDuration() < skip_threshold)
     {
         if (! first_skipped_layer)
         {
@@ -82,25 +82,7 @@ void Progress::messageProgressLayer(LayerIndex layer_nr, size_t total_layers, do
 
         messageProgress(Stage::EXPORT, std::max(layer_nr.value, LayerIndex::value_type(0)) + 1, total_layers);
 
-        spdlog::info("┌ Layer export [{}] accomplished in {:03.3f}s", layer_nr, total_time);
-
-        size_t padding = 0;
-        auto iterator_max_size = std::max_element(
-            stages.begin(),
-            stages.end(),
-            [](const TimeKeeper::RegisteredTime& time1, const TimeKeeper::RegisteredTime& time2)
-            {
-                return time1.stage.size() < time2.stage.size();
-            });
-        if (iterator_max_size != stages.end())
-        {
-            padding = iterator_max_size->stage.size();
-
-            for (const auto& [index, time] : stages | ranges::views::enumerate)
-            {
-                spdlog::info("{}── {}:{} {:03.3f}s", index < stages.size() - 1 ? "├" : "└", time.stage, std::string(padding - time.stage.size(), ' '), time.duration);
-            }
-        }
+        time_keeper.logRegisteredTimes(fmt::format("Layer export [{}]", layer_nr));
     }
 }
 

@@ -91,12 +91,11 @@ public:
      *
      * \param layer_nr The processed layer number
      * \param total_layers The total number of layers to be processed
-     * \param total_time The total layer processing time, in seconds
-     * \param stage The detailed stages time reporting for this layer
+     * \param time_keeper The time keeper containing the detailed stages time reporting for this layer
      * \param skip_threshold The time threshold under which we consider that the full layer time reporting should be skipped
      *                       because it is not relevant
      */
-    static void messageProgressLayer(LayerIndex layer_nr, size_t total_layers, double total_time, const TimeKeeper::RegisteredTimes& stages, double skip_threshold = 0.1);
+    static void messageProgressLayer(const LayerIndex layer_nr, const size_t total_layers, const TimeKeeper& time_keeper, const std::chrono::milliseconds skip_threshold = 100ms);
 };
 
 
