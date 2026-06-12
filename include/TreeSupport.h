@@ -285,7 +285,7 @@ private:
      */
     void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
 
-    void smoothBranchSkeletons(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
+    void smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*>>& layer_tree_polygons);
 
     /*!
      * \brief Drop down areas that do rest non-gracefully on the model to ensure the branch actually rests on something.

@@ -11,6 +11,7 @@
 #include <string>
 #include <thread>
 
+#include <boost/unordered/concurrent_flat_map.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
@@ -1341,7 +1342,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
 
             if (new_area->area() < 1)
             {
-                spdlog::error("Insert Error of Influence area on layer {}. Origin of {} areas. Was to bp {}", layer_idx - 1, elem.parents_.size(), elem.to_buildplate_);
+                spdlog::error("Insert Error of Influence area on layer {}. Origin of {} areas. Was to bp {}", layer_idx - 1, elem.getParents().size(), elem.to_buildplate_);
             }
         }
 
@@ -1373,7 +1374,7 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)
         return;
     }
 
-    for (TreeSupportElement* next_elem : elem->parents_)
+    for (TreeSupportElement* next_elem : elem->getParents())
     {
         if (next_elem->result_on_layer_
             != Point2LL(-1, -1)) // If the value was set somewhere else it it kept. This happens when a branch tries not to move after being unable to create a roof.
@@ -1426,9 +1427,9 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
                 valid_place_area = check_valid_place_area;
             }
             checked.emplace_back(check);
-            if (check->parents_.size() == 1)
+            if (check->getParents().size() == 1)
             {
-                check = check->parents_[0];
+                check = check->getParents().front();
             }
             else
             {
@@ -1590,7 +1591,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
                     }
                     remove.emplace(elem); // We dont need to remove yet the parents as they will have a lower dtt and also no result_on_layer set.
                     removed = true;
-                    for (TreeSupportElement* parent : elem->parents_)
+                    for (TreeSupportElement* parent : elem->getParents())
                     {
                         // When the roof was not able to generate downwards enough, the top elements may have not moved, and have result_on_layer already set. As this branch needs
                         // to be removed => all parents result_on_layer have to be invalidated.
@@ -1667,7 +1668,7 @@ void TreeSupport::generateBranchAreas(
                     Point2LL movement = (child_elem->result_on_layer_ - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, radius);
                 }
-                for (TreeSupportElement* parent : elem->parents_)
+                for (TreeSupportElement* parent : elem->getParents())
                 {
                     Point2LL movement = (parent->result_on_layer_ - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, std::max(config.getRadius(parent), config.support_line_width));
@@ -1693,7 +1694,7 @@ void TreeSupport::generateBranchAreas(
                     // Visualization: https://jsfiddle.net/0zvcq39L/2/
                     // Ovalizes the circle to an ellipse, that contains both old center and new target position.
                     double used_scale = (movement.second + offset) / (1.0 * config.branch_radius);
-                    Point2LL center_position = elem->result_on_layer_ + movement.first / 2;
+                    Point2LL center_position = elem->result_on_layer_ + movement.first / static_cast<coord_t>(2);
                     const double moveX = movement.first.X / (used_scale * config.branch_radius);
                     const double moveY = movement.first.Y / (used_scale * config.branch_radius);
                     const double vsize_inv = 0.5 / (0.01 + std::sqrt(moveX * moveX + moveY * moveY));
@@ -1805,7 +1806,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
 
                 coord_t max_outer_wall_distance = 0;
                 bool do_something = false;
-                for (TreeSupportElement* parent : data_pair.first->parents_)
+                for (TreeSupportElement* parent : data_pair.first->getParents())
                 {
                     if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                     {
@@ -1820,7 +1821,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                 if (do_something)
                 {
                     Shape max_allowed_area = data_pair.second.offset(max_outer_wall_distance);
-                    for (TreeSupportElement* parent : data_pair.first->parents_)
+                    for (TreeSupportElement* parent : data_pair.first->getParents())
                     {
                         if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                         {
@@ -1863,9 +1864,9 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                 std::pair<TreeSupportElement*, Shape> data_pair = processing[processing_idx];
                 bool do_something = false;
                 Shape max_allowed_area;
-                for (size_t idx = 0; idx < data_pair.first->parents_.size(); idx++)
+                for (size_t idx = 0; idx < data_pair.first->getParents().size(); idx++)
                 {
-                    TreeSupportElement* parent = data_pair.first->parents_[idx];
+                    TreeSupportElement* parent = data_pair.first->getParents()[idx];
                     const coord_t max_outer_line_increase = max_radius_change_per_layer;
                     Shape result = layer_tree_polygons[layer_idx + 1][parent].offset(max_outer_line_increase);
                     const Point2LL direction = data_pair.first->result_on_layer_ - parent->result_on_layer_;
@@ -1906,8 +1907,55 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
 }
 
-void TreeSupport::smoothBranchSkeletons(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons)
+void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*>>& layer_tree_polygons)
 {
+    const size_t smooth_window = config.support_tree_smooth_layers;
+    boost::concurrent_flat_map<TreeSupportElement*, Point2LL> smoothed_positions;
+
+    // TODO: This can definitely be optimized by caching the parents chains and sums of points, but for now performance is more than decent so leaving as is.
+    // If the feature is validated after the spike, then we should definitely do it.
+    cura::parallel_for<size_t>(
+        0,
+        layer_tree_polygons.size(),
+        [&layer_tree_polygons, &smooth_window, &smoothed_positions](size_t layer_index)
+        {
+            for (TreeSupportElement* element : layer_tree_polygons[layer_index])
+            {
+                std::vector<TreeSupportElement*> parents = element->getParents();
+                size_t actual_smooth_window = 1;
+                while (! parents.empty() && actual_smooth_window < smooth_window)
+                {
+                    std::vector<TreeSupportElement*> grand_parents;
+                    for (TreeSupportElement* parent : parents)
+                    {
+                        grand_parents.insert(grand_parents.end(), parent->getParents().begin(), parent->getParents().end());
+                    }
+                    parents = std::move(grand_parents);
+                    ++actual_smooth_window;
+                }
+
+                TreeSupportElement* child = element->getChild();
+                Point2LL interlayer_position_sum = element->result_on_layer_;
+                size_t added_layers = 1;
+                while (child && added_layers < actual_smooth_window)
+                {
+                    interlayer_position_sum += child->result_on_layer_;
+                    child = child->getChild();
+                    ++added_layers;
+                }
+
+                smoothed_positions.emplace(element, interlayer_position_sum / static_cast<coord_t>(added_layers));
+            }
+        });
+
+    smoothed_positions.visit_all(
+#ifdef __cpp_lib_execution
+        std::execution::par,
+#endif
+        [](auto& element)
+        {
+            element.first->result_on_layer_ = element.second;
+        });
 }
 
 void TreeSupport::dropNonGraciousAreas(
@@ -2404,7 +2452,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
                 continue;
             }
 
-            for (TreeSupportElement* par : elem->parents_)
+            for (TreeSupportElement* par : elem->getParents())
             {
                 if (par->result_on_layer_ == Point2LL(-1, -1))
                 {
@@ -2415,10 +2463,12 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             linear_data.emplace_back(layer_idx, elem);
         }
     }
-
     // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
     std::vector<std::unordered_map<TreeSupportElement*, Shape>> layer_tree_polygons(move_bounds.size());
     time_keeper.registerTime("drawArea::init");
+
+    smoothBranchSkeletons(move_bounds);
+    time_keeper.registerTime("drawAreas::smoothBranchSkeletons");
 
     // Generate the circles that will be the branches.
     generateBranchAreas(linear_data, layer_tree_polygons, inverse_tree_order);
@@ -2428,9 +2478,6 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     // caught and smoothed out.
     smoothBranchAreas(layer_tree_polygons);
     time_keeper.registerTime("drawAreas::smoothBranchAreas");
-
-    smoothBranchSkeletons(layer_tree_polygons);
-    time_keeper.registerTime("drawAreas::smoothBranchSkeletons");
 
     // Drop down all trees that connect non gracefully with the model.
     std::vector<std::vector<std::pair<LayerIndex, Shape>>> dropped_down_areas(linear_data.size());
@@ -2483,7 +2530,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         {
             for (std::pair<TreeSupportElement*, Shape> data_pair : layer_tree_polygons[layer_idx])
             {
-                if (data_pair.first->parents_.empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size()
+                if (data_pair.first->getParents().empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size()
                     && config.z_distance_top % config.layer_height > 0)
                 {
                     if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)

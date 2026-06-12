@@ -83,6 +83,7 @@ struct TreeSupportSettings
         , min_feature_size(mesh_group_settings.get<coord_t>("min_feature_size"))
         , min_wall_line_width(settings.get<coord_t>("min_wall_line_width"))
         , fill_outline_gaps(settings.get<bool>("fill_outline_gaps"))
+        , support_tree_smooth_layers(settings.get<size_t>("support_tree_smooth_layers"))
         , simplifier(Simplify(mesh_group_settings))
     {
         layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
@@ -389,6 +390,8 @@ public:
      */
     bool fill_outline_gaps;
 
+    size_t support_tree_smooth_layers;
+
     /*!
      * \brief Simplifier to simplify polygons.
      */
@@ -418,7 +421,7 @@ public:
             && zag_skip_count == other.zag_skip_count && connect_zigzags == other.connect_zigzags && interface_preference == other.interface_preference
             && min_feature_size == other.min_feature_size && // interface_preference should be identical to ensure the tree will correctly interact with the roof.
                support_rest_preference == other.support_rest_preference && max_radius == other.max_radius && min_wall_line_width == other.min_wall_line_width
-            && fill_outline_gaps == other.fill_outline_gaps &&
+            && fill_outline_gaps == other.fill_outline_gaps && support_tree_smooth_layers == other.support_tree_smooth_layers &&
                // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for
                // interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
                (interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT || interface_preference == InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE

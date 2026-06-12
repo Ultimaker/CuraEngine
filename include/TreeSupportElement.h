@@ -43,8 +43,9 @@ struct AreaIncreaseSettings
     bool operator==(const AreaIncreaseSettings& other) const = default;
 };
 
-struct TreeSupportElement
+class TreeSupportElement
 {
+public:
     TreeSupportElement(
         coord_t distance_to_top,
         size_t target_height,
@@ -104,7 +105,17 @@ struct TreeSupportElement
         return other.target_position_.X == target_position_.X ? other.target_position_.Y < target_position_.Y : other.target_position_.X < target_position_.X;
     }
 
-    void AddParents(const std::vector<TreeSupportElement*>& adding);
+    const std::vector<TreeSupportElement*>& getParents() const
+    {
+        return parents_;
+    }
+
+    void addParents(const std::vector<TreeSupportElement*>& new_parents);
+
+    TreeSupportElement* getChild() const
+    {
+        return child_;
+    }
 
     void RecreateInfluenceLimitArea();
 
@@ -155,11 +166,6 @@ struct TreeSupportElement
      */
 
     bool to_buildplate_;
-
-    /*!
-     * \brief All elements in the layer above the current one that are supported by this element
-     */
-    std::vector<TreeSupportElement*> parents_;
 
     /*!
      * \brief The amount of layers this element is below the topmost layer of this branch.
@@ -250,6 +256,14 @@ struct TreeSupportElement
      * \brief Additional locations that the tip should reach
      */
     std::vector<Point2LL> additional_ovalization_targets_;
+
+private:
+    /*!
+     * \brief All elements in the layer above the current one that are supported by this element
+     */
+    std::vector<TreeSupportElement*> parents_;
+
+    TreeSupportElement* child_{ nullptr };
 };
 
 } // namespace cura

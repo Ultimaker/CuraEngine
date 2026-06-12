@@ -75,7 +75,7 @@ TreeSupportElement::TreeSupportElement(const TreeSupportElement& elem, Shape* ne
     , influence_area_limit_range_(elem.influence_area_limit_range_)
     , influence_area_limit_area_(elem.influence_area_limit_area_)
 {
-    parents_.insert(parents_.begin(), elem.parents_.begin(), elem.parents_.end());
+    addParents(elem.parents_);
 }
 
 TreeSupportElement::TreeSupportElement(TreeSupportElement* element_above)
@@ -104,7 +104,7 @@ TreeSupportElement::TreeSupportElement(TreeSupportElement* element_above)
     , influence_area_limit_range_(element_above->influence_area_limit_range_)
     , influence_area_limit_area_(element_above->influence_area_limit_area_)
 {
-    parents_ = { element_above };
+    addParents({ element_above });
 }
 
 TreeSupportElement::TreeSupportElement(
@@ -144,8 +144,8 @@ TreeSupportElement::TreeSupportElement(
     to_buildplate_ = first.to_buildplate_ && second.to_buildplate_;
     to_model_gracious_ = first.to_model_gracious_ && second.to_model_gracious_; // valid as we do not merge non-gracious with gracious
 
-    AddParents(first.parents_);
-    AddParents(second.parents_);
+    addParents(first.parents_);
+    addParents(second.parents_);
 
     buildplate_radius_increases_ = 0;
     if (diameter_scale_bp_radius > 0)
@@ -178,11 +178,12 @@ TreeSupportElement::TreeSupportElement(
     }
 }
 
-void TreeSupportElement::AddParents(const std::vector<TreeSupportElement*>& adding)
+void TreeSupportElement::addParents(const std::vector<TreeSupportElement*>& new_parents)
 {
-    for (TreeSupportElement* ptr : adding)
+    parents_.insert(parents_.begin(), new_parents.begin(), new_parents.end());
+    for (TreeSupportElement* parent : new_parents)
     {
-        parents_.emplace_back(ptr);
+        parent->child_ = this;
     }
 }
 
