@@ -10,6 +10,8 @@
 
 #include <spdlog/stopwatch.h>
 
+using namespace std::chrono_literals;
+
 namespace cura
 {
 
@@ -19,27 +21,34 @@ public:
     struct RegisteredTime
     {
         std::string stage;
-        double duration;
+        std::chrono::milliseconds duration;
     };
 
     using RegisteredTimes = std::vector<RegisteredTime>;
 
 private:
     spdlog::stopwatch watch;
-    double start_time;
+    spdlog::stopwatch watch_total;
     RegisteredTimes registered_times;
+    std::chrono::milliseconds total_duration;
 
 public:
     TimeKeeper();
 
-    double restart();
+    std::chrono::milliseconds restart();
 
-    void registerTime(const std::string& stage, double threshold = 0.01);
+    void registerTime(const std::string& stage, std::chrono::milliseconds threshold = 10ms);
 
     const RegisteredTimes& getRegisteredTimes() const
     {
         return registered_times;
     }
+
+    void end();
+
+    std::chrono::milliseconds getTotalDuration() const;
+
+    void logRegisteredTimes(const std::string& global_desc) const;
 };
 
 } // namespace cura
