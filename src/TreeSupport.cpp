@@ -3,6 +3,7 @@
 
 #include "TreeSupport.h"
 
+#include <absl/time/time.h>
 #include <chrono>
 #include <fstream>
 #include <optional>
@@ -124,7 +125,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
         spdlog::info("Processing support tree mesh group {} of {} containing {} meshes.", counter + 1, grouped_meshes.size(), grouped_meshes[counter].second.size());
         std::vector<Shape> exclude(storage.support.supportLayers.size());
-        auto t_start = std::chrono::high_resolution_clock::now();
+        TimeKeeper time_keeper;
 
         // get all already existing support areas and exclude them
         cura::parallel_for<coord_t>(
@@ -157,13 +158,13 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             exclude);
 
         // ### Precalculate avoidances, collision etc.
-        const LayerIndex max_required_layer = precalculate(storage, processing.second);
+        const LayerIndex max_required_layer = precalculate(storage, processing.second, time_keeper);
         if (max_required_layer < 0)
         {
             spdlog::info("Support tree mesh group {} does not have any overhang. Skipping tree support generation for this support tree mesh group.", counter + 1);
             continue; // If there is no overhang to support, skip these meshes
         }
-        const auto t_precalc = std::chrono::high_resolution_clock::now();
+        time_keeper.registerTime("Calculate Avoidance");
 
         // ### Place tips of the support tree
         for (size_t mesh_idx : processing.second)
@@ -171,36 +172,21 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             generateInitialAreas(*storage.meshes[mesh_idx], move_bounds, storage);
         }
         const auto t_gen = std::chrono::high_resolution_clock::now();
+        time_keeper.registerTime("Create inital influence areas");
 
         // ### Propagate the influence areas downwards.
-        createLayerPathing(move_bounds);
-        const auto t_path = std::chrono::high_resolution_clock::now();
+        createLayerPathing(move_bounds, time_keeper);
+        time_keeper.registerTime("Create influence area");
 
         // ### Set a point in each influence area
         createNodesFromArea(move_bounds);
-        const auto t_place = std::chrono::high_resolution_clock::now();
+        time_keeper.registerTime("Place Points in InfluenceAreas");
 
         // ### draw these points as circles
-        drawAreas(move_bounds, storage);
+        drawAreas(move_bounds, storage, time_keeper);
 
-        const auto t_draw = std::chrono::high_resolution_clock::now();
-        const auto dur_pre_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_precalc - t_start).count();
-        const auto dur_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_gen - t_precalc).count();
-        const auto dur_path = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_path - t_gen).count();
-        const auto dur_place = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_place - t_path).count();
-        const auto dur_draw = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_place).count();
-        const auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
-        spdlog::info(
-            "Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\n"
-            "Calculating Avoidance: {} ms Creating inital influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
-            "support {} ms",
-            dur_total,
-            dur_pre_gen,
-            dur_gen,
-            dur_path,
-            dur_place,
-            dur_draw);
-
+        time_keeper.end();
+        time_keeper.logRegisteredTimes("Tree support generation");
 
         for (auto& layer : move_bounds)
         {
@@ -215,7 +201,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes)
+LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, TimeKeeper& time_keeper)
 {
     // Calculate top most layer that is relevant for support.
     LayerIndex max_layer = -1;
@@ -249,7 +235,7 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
     // ### The actual precalculation happens in TreeModelVolumes.
     if (max_layer >= 0)
     {
-        volumes_.precalculate(max_layer);
+        volumes_.precalculate(max_layer, time_keeper);
     }
     return max_layer;
 }
@@ -1280,16 +1266,13 @@ void TreeSupport::increaseAreas(
         });
 }
 
-void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds)
+void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, TimeKeeper& time_keeper)
 {
     const double data_size_inverse = 1 / double(move_bounds.size());
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES;
 
     auto dur_inc = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
     auto dur_merge = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
-
-    const auto dur_inc_recent = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
-    const auto dur_merge_recent = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
 
     LayerIndex last_merge = move_bounds.size();
     bool new_element = false;
@@ -1376,7 +1359,8 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     }
 
-    spdlog::info("Time spent with creating influence areas' subtasks: Increasing areas {} ms merging areas: {} ms", dur_inc.count() / 1000000, dur_merge.count() / 1000000);
+    time_keeper.registerTime("Creating influence areas: increase", 10ms, std::chrono::duration_cast<std::chrono::milliseconds>(dur_inc));
+    time_keeper.registerTime("Creating influence areas: merge", 10ms, std::chrono::duration_cast<std::chrono::milliseconds>(dur_merge));
 }
 
 void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)
@@ -1922,6 +1906,10 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
     Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
 }
 
+void TreeSupport::smoothBranchSkeletons(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons)
+{
+}
+
 void TreeSupport::dropNonGraciousAreas(
     std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
     const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
@@ -2226,15 +2214,16 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
                     Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              support_layer_storage[layer_idx],
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              true)
-                                                              .offset(config.support_line_width / 2));
+                    tree_lines = tree_lines.unionPolygons(
+                        TreeSupportUtils::generateSupportInfillLines(
+                            support_layer_storage[layer_idx],
+                            config,
+                            false,
+                            layer_idx,
+                            config.support_line_distance,
+                            storage.support.cross_fill_provider,
+                            true)
+                            .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
@@ -2393,7 +2382,7 @@ std::vector<std::vector<TreeSupport::SupportPart>> TreeSupport::makeSupportParts
     return support_parts;
 }
 
-void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     std::vector<Shape> support_layer_storage(move_bounds.size());
     std::vector<Shape> support_layer_storage_fractional(move_bounds.size());
@@ -2428,19 +2417,21 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         }
     }
 
-
     // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
     std::vector<std::unordered_map<TreeSupportElement*, Shape>> layer_tree_polygons(move_bounds.size());
-    const auto t_start = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("drawArea::init");
 
     // Generate the circles that will be the branches.
     generateBranchAreas(linear_data, layer_tree_polygons, inverse_tree_order);
-    const auto t_generate = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("drawAreas::generateBranchAreas");
 
     // In some edge-cases a branch may go through a hole, where the regular radius does not fit. This can result in an apparent jump in branch radius. As such this cases need to be
     // caught and smoothed out.
     smoothBranchAreas(layer_tree_polygons);
-    const auto t_smooth = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("drawAreas::smoothBranchAreas");
+
+    smoothBranchSkeletons(layer_tree_polygons);
+    time_keeper.registerTime("drawAreas::smoothBranchSkeletons");
 
     // Drop down all trees that connect non gracefully with the model.
     std::vector<std::vector<std::pair<LayerIndex, Shape>>> dropped_down_areas(linear_data.size());
@@ -2525,24 +2516,10 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     }
 
     filterFloatingLines(support_layer_storage);
-    const auto t_filter = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("drawAreas::filterFloatingLines");
 
     finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, support_layer_storage_fractional, storage);
-    const auto t_end = std::chrono::high_resolution_clock::now();
-
-    const auto dur_gen_tips = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_generate - t_start).count();
-    const auto dur_smooth = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_smooth - t_generate).count();
-    const auto dur_drop = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_drop - t_smooth).count();
-    const auto dur_filter = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_filter - t_drop).count();
-    const auto dur_finalize = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_filter).count();
-    spdlog::info(
-        "Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms filterFloatingLines: {} ms "
-        "finalizeInterfaceAndSupportAreas {} ms",
-        dur_gen_tips,
-        dur_smooth,
-        dur_drop,
-        dur_filter,
-        dur_finalize);
+    time_keeper.registerTime("drawAreas::finalizeInterfaceAndSupportAreas");
 }
 
 void TreeSupport::saveToObj(const std::vector<std::set<TreeSupportElement*>>& move_bounds, OBJ& obj) const

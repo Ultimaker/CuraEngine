@@ -21,12 +21,13 @@ std::chrono::milliseconds TimeKeeper::restart()
     return ret;
 }
 
-void TimeKeeper::registerTime(const std::string& stage, std::chrono::milliseconds threshold)
+void TimeKeeper::registerTime(const std::string& stage, const std::chrono::milliseconds threshold, const std::optional<std::chrono::milliseconds> duration)
 {
-    std::chrono::milliseconds duration = restart();
-    if (duration >= threshold)
+    const std::chrono::milliseconds measured_duration = restart();
+    const std::chrono::milliseconds actual_duration = duration.value_or(measured_duration);
+    if (actual_duration >= threshold)
     {
-        registered_times.emplace_back(RegisteredTime{ stage, duration });
+        registered_times.emplace_back(RegisteredTime{ stage, actual_duration });
     }
 }
 

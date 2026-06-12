@@ -37,7 +37,7 @@ public:
 
     std::chrono::milliseconds restart();
 
-    void registerTime(const std::string& stage, std::chrono::milliseconds threshold = 10ms);
+    void registerTime(const std::string& stage, const std::chrono::milliseconds threshold = 10ms, const std::optional<std::chrono::milliseconds> duration = std::nullopt);
 
     const RegisteredTimes& getRegisteredTimes() const
     {

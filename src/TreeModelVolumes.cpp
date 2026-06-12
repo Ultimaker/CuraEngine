@@ -169,9 +169,8 @@ TreeModelVolumes::TreeModelVolumes(
     simplifier_ = Simplify(min_maximum_resolution, min_maximum_deviation, min_maximum_area_deviation);
 }
 
-void TreeModelVolumes::precalculate(coord_t max_layer)
+void TreeModelVolumes::precalculate(coord_t max_layer, TimeKeeper& time_keeper)
 {
-    const auto t_start = std::chrono::high_resolution_clock::now();
     precalculated_ = true;
 
     // Get the config corresponding to one mesh that is in the current group. Which one has to be irrelevant.
@@ -264,15 +263,13 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
 
     // ### Calculate collisions without holes, build from regular collision
     calculateCollisionHolefree(relevant_hole_collision_radiis);
-
-    const auto t_coll = std::chrono::high_resolution_clock::now();
-    auto t_acc = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("Pre-calculate collision");
 
 
     if (max_layer_idx_without_blocker_ < max_layer && support_rests_on_model_)
     {
         calculateAccumulatedPlaceable0(max_layer);
-        t_acc = std::chrono::high_resolution_clock::now();
+        time_keeper.registerTime("Pre-calculate avoidance");
     }
 
     // ### Calculate the relevant avoidances in parallel as far as possible
@@ -302,30 +299,16 @@ void TreeModelVolumes::precalculate(coord_t max_layer)
         }
         // FIXME: When nowait (parellel-for) is implemented, ensure here the following is calculated: calculateWallRestrictions.
     }
-    const auto t_avo = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("Pre-calculate accumulated Placeables");
 
-    auto t_colAvo = std::chrono::high_resolution_clock::now();
     if (max_layer_idx_without_blocker_ < max_layer && support_rests_on_model_)
     {
         // FIXME: When nowait (parellel-for) is implemented, ensure here the following is calculated: calculateAccumulatedPlaceable0.
         calculateCollisionAvoidance(relevant_avoidance_radiis);
-        t_colAvo = std::chrono::high_resolution_clock::now();
+        time_keeper.registerTime("Pre-calculate collision-avoidance");
     }
 
     precalculation_finished_ = true;
-    const auto dur_col = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_coll - t_start).count();
-    const auto dur_acc = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_acc - t_coll).count();
-    const auto dur_avo = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_avo - t_acc).count();
-    const auto dur_col_avo = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_colAvo - t_avo).count();
-
-
-    spdlog::info(
-        "Pre-calculating collision took {} ms. Pre-calculating avoidance took {} ms. Pre-calculating accumulated Placeables with radius 0 took {} ms. Pre-calculating "
-        "collision-avoidance took {} ms. ",
-        dur_col,
-        dur_avo,
-        dur_acc,
-        dur_col_avo);
 }
 
 const Shape& TreeModelVolumes::getCollision(coord_t radius, LayerIndex layer_idx, bool min_xy_dist)
