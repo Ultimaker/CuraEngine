@@ -415,12 +415,6 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     TreeSupport tree_support_generator(storage);
     tree_support_generator.generateSupportAreas(storage);
 
-    // Pre-compute lightning fill
-    if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::LIGHTNING)
-    {
-        storage.support.lightning_generator = std::make_shared<LightningGenerator>(storage.support);
-    }
-
     computePrintHeightStatistics(storage);
 
     // handle helpers
@@ -452,6 +446,12 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     spdlog::debug("Processing gradual support");
     // generate gradual support
     AreaSupport::generateSupportInfillFeatures(storage);
+
+    // Pre-compute lightning fill
+    if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::LIGHTNING)
+    {
+        storage.support.lightning_generator = std::make_shared<LightningGenerator>(storage.support);
+    }
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(

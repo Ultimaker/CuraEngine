@@ -103,6 +103,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         break;
     }
 
+    toolpaths_generated_ = true;
     return toolpaths_;
 }
 
@@ -298,7 +299,6 @@ void WallToolPaths::generateArachne()
                 return l.front().inset_idx_ < r.front().inset_idx_;
             })
         && "WallToolPaths should be sorted from the outer 0th to inner_walls");
-    toolpaths_generated_ = true;
     scripta::log(
         "toolpaths_5",
         toolpaths_,

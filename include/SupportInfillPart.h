@@ -24,11 +24,11 @@ namespace cura
  * Because support is handled as a whole in the engine, that is, we have a global support areas instead of support areas for each mesh.
  * With this data structure, we can keep track of which gradual support infill areas belongs to which support area, so we can print them together.
  */
-class SupportInfillPart
+struct SupportInfillPart
 {
-public:
     SingleShape outline_; //!< The outline of the support infill area
-    std::optional<Shape> base_outline_;
+    std::optional<Shape> base_outside_contour_; //!< Outline contour including the outer base
+    std::optional<Shape> base_inside_contour_; //!< If an inside base is generated, contains the inner contour
     AABB outline_boundary_box_; //!< The boundary box for the infill area
     coord_t support_line_width_; //!< The support line width
     coord_t inset_width_to_generate_; //!< The width of insets need to be generated from the outline. This is not the actual insets that will be generated.
@@ -40,15 +40,7 @@ public:
     bool use_fractional_config_; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
 
     SupportInfillPart(const SingleShape& outline, coord_t support_line_width, bool use_fractional_config, coord_t inset_width_to_generate = 0, coord_t custom_line_distance = 0);
-
-    const Shape& getInfillArea() const;
 };
-
-inline const Shape& SupportInfillPart::getInfillArea() const
-{
-    // if there is no wall, we use the original outline as the infill area
-    return outline_;
-}
 
 } // namespace cura
 

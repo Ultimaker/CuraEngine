@@ -383,12 +383,12 @@ std::optional<AngleDegrees> bridgeAngle(
         {
             for (const SupportInfillPart& support_part : support_layer->support_infill_parts)
             {
-                AABB support_part_bb(support_part.getInfillArea());
+                AABB support_part_bb(support_part.outline_);
                 if (boundary_box.hit(support_part_bb))
                 {
-                    prev_layer_outline.push_back(support_part.getInfillArea()); // not intersected with skin
+                    prev_layer_outline.push_back(support_part.outline_); // not intersected with skin
 
-                    Shape supported_skin(skin_outline.intersection(support_part.getInfillArea()));
+                    Shape supported_skin(skin_outline.intersection(support_part.outline_));
                     if (! supported_skin.empty())
                     {
                         supported_regions.push_back(supported_skin);

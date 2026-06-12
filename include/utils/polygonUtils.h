@@ -94,6 +94,12 @@ typedef SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator> Loc
 class PolygonUtils
 {
 public:
+    struct InsetOutset
+    {
+        std::vector<Shape> walls;
+        coord_t final_contour_offset{ 0 };
+    };
+
     static const std::function<int(Point2LL)> no_penalty_function; //!< Function always returning zero
 
     /*!
@@ -727,9 +733,9 @@ public:
      */
     static ClosedLinesSet generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
-    static std::vector<Shape> generateOutset(const Shape& shape, const coord_t width, const coord_t line_width);
+    static InsetOutset generateOutset(const Shape& shape, const coord_t width, const coord_t line_width);
 
-    static std::vector<Shape> generateInset(const Shape& shape, const coord_t width, const coord_t line_width);
+    static InsetOutset generateInset(const Shape& shape, const coord_t width, const coord_t line_width);
 
 private:
     /*!
@@ -753,7 +759,7 @@ private:
      */
     static Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen = EPSILON);
 
-    static std::vector<Shape> generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width, const coord_t direction);
+    static InsetOutset generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width, const coord_t direction);
 };
 
 } // namespace cura

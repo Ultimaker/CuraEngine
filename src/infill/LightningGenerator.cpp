@@ -81,7 +81,7 @@ LightningGenerator::LightningGenerator(const SupportStorage& support)
         Shape supper_area_here;
         for (const SupportInfillPart& part : support_layer.support_infill_parts)
         {
-            supper_area_here.push_back(part.outline_);
+            supper_area_here.push_back(part.infill_area_per_combine_per_density_.front().front());
         }
 
         areas_per_layer.push_back(supper_area_here);

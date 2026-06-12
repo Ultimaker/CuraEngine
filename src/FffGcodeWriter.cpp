@@ -2623,10 +2623,10 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
                 {
                     for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
                     {
-                        AABB support_part_bb(support_part.getInfillArea());
+                        AABB support_part_bb(support_part.outline_);
                         if (boundaryBox.hit(support_part_bb))
                         {
-                            outlines_below.push_back(support_part.getInfillArea());
+                            outlines_below.push_back(support_part.outline_);
                         }
                     }
                 }
@@ -3241,10 +3241,10 @@ void FffGcodeWriter::processTopBottom(
         {
             for (auto support_part : support_layer->support_infill_parts)
             {
-                AABB support_part_bb(support_part.getInfillArea());
+                AABB support_part_bb(support_part.outline_);
                 if (skin_bb.hit(support_part_bb))
                 {
-                    supported = ! skin_fill.intersection(support_part.getInfillArea()).empty();
+                    supported = ! skin_fill.intersection(support_part.outline_).empty();
 
                     if (supported)
                     {
