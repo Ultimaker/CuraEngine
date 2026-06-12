@@ -78,9 +78,11 @@ public:
      *
      * \param path_idx The index into ExtruderPlan::paths which is currently being consider for temperature command insertion
      * \param gcode The gcode exporter to which to write the temperature command.
-     * \param cumulative_path_time The time spend on this path up to this point.
+     * \param cumulative_path_time The time spent on this path up to this point. Inserts whose path_idx is strictly less
+     *        than the current path_idx are considered overdue and will be fired unconditionally. Inserts whose path_idx
+     *        equals the current path_idx are fired only once cumulative_path_time reaches their time_after_path_start.
      */
-    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time = std::numeric_limits<double>::infinity());
+    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time);
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
