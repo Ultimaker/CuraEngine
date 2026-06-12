@@ -35,8 +35,17 @@ void ExtruderPlan::insertCommand(NozzleTempInsert&& insert)
 
 void ExtruderPlan::handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time)
 {
-    while (! inserts_.empty() && path_idx >= inserts_.front().path_idx && inserts_.front().time_after_path_start < cumulative_path_time)
-    { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+    while (! inserts_.empty())
+    {
+        const NozzleTempInsert& insert = inserts_.front();
+        const bool in_future_path = insert.path_idx > path_idx;
+        const bool in_current_path_at_future_time = insert.path_idx == path_idx && insert.time_after_path_start > cumulative_path_time;
+        if (in_future_path || in_current_path_at_future_time)
+        {
+            break;
+        }
+        // Either the insert is overdue (insert.path_idx < path_idx) and must be fired immediately,
+        // or it is exactly on time (insert.path_idx == path_idx and time threshold reached).
         inserts_.front().write(gcode);
         inserts_.pop_front();
     }
