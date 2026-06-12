@@ -391,7 +391,7 @@ Shape SliceDataStorage::getLayerOutlines(
                 {
                     if (include_support_base)
                     {
-                        total.push_back(support_infill_part.base_outline_.value_or(support_infill_part.outline_));
+                        total.push_back(support_infill_part.base_outside_contour_.value_or(support_infill_part.outline_));
                     }
                     else
                     {

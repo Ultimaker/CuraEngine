@@ -678,8 +678,8 @@ void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape&
 {
     const coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<size_t>("support_brim_minimum_hole_area"));
 
-    std::vector<Shape> base_insets = PolygonUtils::generateInset(support_outline, width, line_width);
-    for (Shape& base_inset : base_insets)
+    PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInset(support_outline, width, line_width);
+    for (Shape& base_inset : base_insets.walls)
     {
         // Remove small inner brim holes. Holes have a negative area, remove anything smaller than multiplier x extrusion "area"
         base_inset.erase(
@@ -701,10 +701,10 @@ void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape&
 
 void SkirtBrim::generateSupportOutsideBrim(const Shape& support_outline, const size_t width, const size_t line_width, const Shape exclusion_area)
 {
-    std::vector<Shape> base_outsets = PolygonUtils::generateOutset(support_outline, width, line_width);
+    PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateOutset(support_outline, width, line_width);
 
     ClosedLinesSet closed_base_outset;
-    for (Shape& base_outset : base_outsets)
+    for (Shape& base_outset : base_outsets.walls)
     {
         closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
         for (Polygon& base_outset_polygon : base_outset)

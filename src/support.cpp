@@ -175,7 +175,6 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
 
     const auto layer_height = settings.get<coord_t>("layer_height");
     const auto support_line_width = settings.get<coord_t>("support_line_width");
-    const auto support_line_distance = settings.get<coord_t>("support_line_distance");
     const auto support_xy_distance = settings.get<coord_t>("support_xy_distance");
     const auto adhesion_type = settings.get<EPlatformAdhesion>("adhesion_type");
     const auto support_wall_count = settings.get<size_t>("support_wall_count");
@@ -190,11 +189,12 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
     const auto base_inside_height = settings.get<coord_t>("support_inside_base_height");
     const auto base_inside_curve_magnitude = settings.get<double>("support_inside_base_curve_magnitude");
 
-    const bool has_base_inside = support_inner_brim_enable && base_inside_width > 0 && base_inside_height >= layer_height && support_line_distance == 0;
+    const bool has_base_inside = support_inner_brim_enable && base_inside_width > 0 && base_inside_height >= layer_height;
     const LayerIndex max_inside_layer = has_base_inside ? base_inside_height / layer_height : 0;
     const bool has_base_outside = support_outer_brim_enable && base_outside_width > 0 && base_outside_height >= layer_height;
     const LayerIndex max_outside_layer = has_base_outside ? base_outside_height / layer_height : 0;
     const LayerIndex first_base_layer = 0;
+
     std::vector<SupportLayer>& support_layers = storage.support.supportLayers;
     const LayerIndex last_base_layer = std::min(static_cast<size_t>(std::max(max_outside_layer, max_inside_layer)), support_layers.size());
 
@@ -208,8 +208,8 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
 
             Shape forbidden_areas;
             SupportLayer& support_layer = support_layers.at(layer_nr);
-            Shape layer_support_shape;
-            for (const SupportInfillPart& part : support_layer.support_infill_parts)
+            std::vector<SupportInfillPart*> parts_to_process;
+            for (SupportInfillPart& part : support_layer.support_infill_parts)
             {
                 if (part.use_fractional_config_)
                 {
@@ -217,11 +217,11 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 }
                 else
                 {
-                    layer_support_shape.push_back(part.outline_);
+                    parts_to_process.push_back(&part);
                 }
             }
 
-            if (layer_support_shape.empty())
+            if (parts_to_process.empty())
             {
                 return;
             }
@@ -231,7 +231,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
             {
                 if (! part.use_fractional_config_)
                 {
-                    part.base_outline_ = part.outline_.offset(base_extra_width);
+                    part.base_outside_contour_ = part.outline_.offset(base_extra_width);
                 }
             }
 
@@ -241,7 +241,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 return;
             }
 
-            if (layer_nr < max_outside_layer)
+            if (has_base_outside && layer_nr < max_outside_layer)
             {
                 // Add the models as forbidden areas, offsetted with the XY distance
                 {
@@ -260,10 +260,17 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                     forbidden_areas.push_back(storage.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models));
                 }
 
-                std::vector<Shape> base_outsets = PolygonUtils::generateOutset(layer_support_shape, base_extra_width, support_line_width);
+                Shape all_parts;
+                for (const SupportInfillPart* part_to_process : parts_to_process)
+                {
+                    all_parts.push_back(part_to_process->outline_);
+                }
+
+                const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_outside_width, base_outside_height, base_outside_curve_magnitude, layer_z);
+                PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateOutset(all_parts, base_extra_width, support_line_width);
                 ClosedLinesSet closed_base_outset;
 
-                for (Shape& base_outset : base_outsets)
+                for (Shape& base_outset : base_outsets.walls)
                 {
                     closed_base_outset.reserve(closed_base_outset.size() + base_outset.size());
                     for (Polygon& base_outset_polygon : base_outset)
@@ -279,17 +286,22 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 }
             }
 
-            if (layer_nr < max_inside_layer)
+            if (has_base_inside && layer_nr < max_inside_layer)
             {
-                const Shape support_inside_area = layer_support_shape.offset(-support_wall_count * support_line_width);
+                // const Shape support_inside_area = layer_support_shape.offset(-support_wall_count * support_line_width);
                 const coord_t base_extra_width = LinearAlg2D::getSlopedWidth(base_inside_width, base_inside_height, base_inside_curve_magnitude, layer_z);
-                std::vector<Shape> base_insets = PolygonUtils::generateInset(layer_support_shape, base_extra_width, support_line_width);
-                for (Shape& base_inset : base_insets)
+                for (SupportInfillPart* part_to_process : parts_to_process)
                 {
-                    support_layer.base.reserve(support_layer.base.size() + base_insets.size());
-                    for (Polygon& base_inset_polygon : base_inset)
+                    const Shape support_inside_area = part_to_process->outline_.offset(-part_to_process->inset_count_to_generate_ * part_to_process->support_line_width_);
+                    PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInset(support_inside_area, base_extra_width, support_line_width);
+                    part_to_process->base_inside_contour_ = support_inside_area.offset(base_insets.final_contour_offset);
+                    for (Shape& base_inset : base_insets.walls)
                     {
-                        support_layer.base.push_back(ClosedPolyline(std::move(base_inset_polygon)));
+                        support_layer.base.reserve(support_layer.base.size() + base_insets.walls.size());
+                        for (Polygon& base_inset_polygon : base_inset)
+                        {
+                            support_layer.base.push_back(ClosedPolyline(std::move(base_inset_polygon)));
+                        }
                     }
                 }
             }
@@ -376,13 +388,14 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
         {
             SupportInfillPart& support_infill_part = support_infill_parts[part_idx];
 
-            Shape original_area = support_infill_part.getInfillArea();
+            Shape original_area = support_infill_part.outline_;
             if (original_area.empty())
             {
                 continue;
             }
+
             // NOTE: This both generates the walls _and_ returns the _actual_ infill area (the one _without_ walls) for use in the rest of the method.
-            const Shape infill_area = Infill::generateWallToolPaths(
+            const Shape wall_inside_area = Infill::generateWallToolPaths(
                 support_infill_part.wall_toolpaths_,
                 original_area,
                 support_infill_part.inset_count_to_generate_,
@@ -394,6 +407,7 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
             const AABB& this_part_boundary_box = support_infill_part.outline_boundary_box_;
 
             // calculate density areas for this island
+            const Shape infill_area = support_infill_part.base_inside_contour_.value_or(wall_inside_area);
             Shape less_dense_support = infill_area; // one step less dense with each density_step
             Shape sum_more_dense; // NOTE: Only used for zig-zag or connected fills.
             for (unsigned int density_step = 0; density_step < max_density_steps; ++density_step)
@@ -525,7 +539,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
 
             for (SupportInfillPart& part : layer.support_infill_parts)
             {
-                if (part.getInfillArea().empty())
+                if (part.outline_.empty())
                 {
                     continue;
                 }
@@ -540,7 +554,7 @@ void AreaSupport::combineSupportInfillLayers(SliceDataStorage& storage)
                             continue;
                         }
 
-                        Shape intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.getInfillArea()).offset(-200).offset(200);
+                        Shape intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.outline_).offset(-200).offset(200);
                         if (intersection.size() <= 0)
                         {
                             continue;
