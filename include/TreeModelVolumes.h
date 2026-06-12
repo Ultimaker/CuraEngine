@@ -25,6 +25,7 @@ class SliceDataStorage;
 class SliceMeshStorage;
 class LayerIndex;
 class Settings;
+class TimeKeeper;
 
 /*!
  * \brief Lazily generates tree guidance volumes.
@@ -56,7 +57,7 @@ public:
      * Not calling this will cause the class to lazily calculate avoidances and collisions as needed, which will be a lot slower on systems with more then one or two cores!
      *
      */
-    void precalculate(coord_t max_layer);
+    void precalculate(coord_t max_layer, TimeKeeper& time_keeper);
 
     /*!
      * \brief Provides the areas that have to be avoided by the tree's branches to prevent collision with the model on this layer.
