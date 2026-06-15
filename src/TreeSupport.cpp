@@ -1921,20 +1921,8 @@ void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*
         {
             for (TreeSupportElement* element : layer_tree_polygons[layer_index])
             {
-                std::vector<TreeSupportElement*> parents = element->getParents();
-                size_t actual_smooth_window = 1;
-                while (! parents.empty() && actual_smooth_window < smooth_window)
-                {
-                    std::vector<TreeSupportElement*> grand_parents;
-                    for (TreeSupportElement* parent : parents)
-                    {
-                        grand_parents.insert(grand_parents.end(), parent->getParents().begin(), parent->getParents().end());
-                    }
-                    parents = std::move(grand_parents);
-                    ++actual_smooth_window;
-                }
-
-                TreeSupportElement* child = element->getChild();
+                const size_t actual_smooth_window = std::min(smooth_window, element->distance_to_top_);
+                const TreeSupportElement* child = element->getChild();
                 Point2LL interlayer_position_sum = element->result_on_layer_;
                 size_t added_layers = 1;
                 while (child && added_layers < actual_smooth_window)
