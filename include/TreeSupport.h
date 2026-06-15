@@ -317,7 +317,7 @@ private:
         std::vector<Shape>& support_layer_storage_fractional,
         SliceDataStorage& storage);
 
-    static std::vector<std::vector<SupportPart>> makeSupportParts(const std::vector<Shape>& support_layer_storage, const coord_t line_width);
+    std::vector<std::vector<SupportPart>> makeSupportParts(const std::vector<Shape>& support_layer_storage, const coord_t line_width) const;
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas and applies some post processing.

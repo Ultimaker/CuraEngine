@@ -2375,7 +2375,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         });
 }
 
-std::vector<std::vector<TreeSupport::SupportPart>> TreeSupport::makeSupportParts(const std::vector<Shape>& support_layer_storage, const coord_t line_width)
+std::vector<std::vector<TreeSupport::SupportPart>> TreeSupport::makeSupportParts(const std::vector<Shape>& support_layer_storage, const coord_t line_width) const
 {
     std::vector<std::vector<SupportPart>> support_parts(support_layer_storage.size());
 
@@ -2402,30 +2402,33 @@ std::vector<std::vector<TreeSupport::SupportPart>> TreeSupport::makeSupportParts
         });
 
     // Now we have all the covered areas, evaluate all the inter-layer intersections and set the coverage ratios accordingly
-    cura::parallel_for<coord_t>(
-        0,
-        support_layer_storage.size() - 1,
-        [&support_parts](const LayerIndex layer_idx)
-        {
-            for (SupportPart& part : support_parts[layer_idx])
+    if (config.support_enlarged_wall_thickness != config.support_wall_thickness)
+    {
+        cura::parallel_for<coord_t>(
+            0,
+            support_layer_storage.size() - 1,
+            [&support_parts](const LayerIndex layer_idx)
             {
-                std::vector<SupportPart>& parts_at_layer_above = support_parts[layer_idx + 1];
-                for (SupportPart& part_above : parts_at_layer_above)
+                for (SupportPart& part : support_parts[layer_idx])
                 {
-                    if (part_above.bounding_box.hit(part.bounding_box))
+                    std::vector<SupportPart>& parts_at_layer_above = support_parts[layer_idx + 1];
+                    for (SupportPart& part_above : parts_at_layer_above)
                     {
-                        const double overlap_area = part_above.coverage.intersection(part.coverage).area();
-                        part.overlap_above += overlap_area / part.coverage_area;
-                        part_above.overlap_below += overlap_area / part_above.coverage_area;
+                        if (part_above.bounding_box.hit(part.bounding_box))
+                        {
+                            const double overlap_area = part_above.coverage.intersection(part.coverage).area();
+                            part.overlap_above += overlap_area / part.coverage_area;
+                            part_above.overlap_below += overlap_area / part_above.coverage_area;
+                        }
+                    }
+
+                    if (layer_idx == 0)
+                    {
+                        part.overlap_below = 1.0;
                     }
                 }
-
-                if (layer_idx == 0)
-                {
-                    part.overlap_below = 1.0;
-                }
-            }
-        });
+            });
+    }
 
     return support_parts;
 }
