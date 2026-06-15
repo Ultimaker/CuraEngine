@@ -753,8 +753,7 @@ void SkirtBrim::generateSupportBrim()
             constexpr bool include_support = false;
             constexpr bool include_prime_tower = false;
             constexpr bool external_polys_only = false;
-            model_collision = storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only)
-                                  .offset(brim_line_width / 2, ClipperLib::jtRound);
+            model_collision = storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only).offset(brim_line_width / 2, ClipperLib::jtRound);
         }
 
         size_t line_count = base_line_count;
