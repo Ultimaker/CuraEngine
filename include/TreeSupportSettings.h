@@ -85,6 +85,7 @@ struct TreeSupportSettings
         , fill_outline_gaps(settings.get<bool>("fill_outline_gaps"))
         , support_tree_smooth_layers(settings.get<size_t>("support_tree_smooth_layers"))
         , support_minimum_overlap_area(MM2_2DBL(settings.get<size_t>("support_minimum_overlap_area")))
+        , support_minimum_enlargement_area(MM2_2DBL(settings.get<size_t>("support_minimum_enlargement_area")))
         , simplifier(Simplify(mesh_group_settings))
     {
         layer_start_bp_radius = (bp_radius - branch_radius) / (branch_radius * diameter_scale_bp_radius);
@@ -395,6 +396,8 @@ public:
 
     double support_minimum_overlap_area;
 
+    double support_minimum_enlargement_area;
+
     /*!
      * \brief Simplifier to simplify polygons.
      */
@@ -425,7 +428,7 @@ public:
             && min_feature_size == other.min_feature_size && // interface_preference should be identical to ensure the tree will correctly interact with the roof.
                support_rest_preference == other.support_rest_preference && max_radius == other.max_radius && min_wall_line_width == other.min_wall_line_width
             && fill_outline_gaps == other.fill_outline_gaps && support_tree_smooth_layers == other.support_tree_smooth_layers
-            && support_minimum_overlap_area == other.support_minimum_overlap_area
+            && support_minimum_overlap_area == other.support_minimum_overlap_area && support_minimum_enlargement_area == other.support_minimum_enlargement_area
             && // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for
                // interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
                (interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT || interface_preference == InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE

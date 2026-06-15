@@ -2318,8 +2318,14 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 {
                     const double overlap_threshold = config.support_minimum_overlap_area;
                     const double worst_overlap = std::min(support_part.overlap_below_area, support_part.overlap_above_area);
-                    const Ratio thickness_ratio = std::min(worst_overlap, overlap_threshold) / overlap_threshold;
-                    wall_thickness = lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, thickness_ratio.value);
+                    const Ratio overlap_thickness_ratio = std::min(worst_overlap, overlap_threshold) / overlap_threshold;
+
+                    const double area_threshold = config.support_minimum_enlargement_area;
+                    const double part_area = support_part.shape.area();
+                    const Ratio area_thickness_ratio = area_threshold > 0 ? (std::min(area_threshold, part_area) / area_threshold) : 1.0;
+
+                    const double combined_ratio = std::lerp(1.0, overlap_thickness_ratio, area_thickness_ratio);
+                    wall_thickness = lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, combined_ratio);
                 }
 
                 storage.support.supportLayers[layer_idx].fillInfillParts(support_part.shape, config.support_line_width, wall_thickness, false, convert_every_part);
@@ -2455,14 +2461,14 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             linear_data.emplace_back(layer_idx, elem);
         }
     }
-    // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
-    std::vector<std::unordered_map<TreeSupportElement*, Shape>> layer_tree_polygons(move_bounds.size());
     time_keeper.registerTime("drawArea::init");
 
     smoothBranchSkeletons(move_bounds);
     time_keeper.registerTime("drawAreas::smoothBranchSkeletons");
 
     // Generate the circles that will be the branches.
+    // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
+    std::vector<std::unordered_map<TreeSupportElement*, Shape>> layer_tree_polygons(move_bounds.size());
     generateBranchAreas(linear_data, layer_tree_polygons, inverse_tree_order);
     time_keeper.registerTime("drawAreas::generateBranchAreas");
 
