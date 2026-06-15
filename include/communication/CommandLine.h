@@ -5,6 +5,8 @@
 #define COMMANDLINE_H
 
 #include <filesystem>
+#include <fstream>
+#include <memory>
 #include <optional>
 #include <rapidjson/document.h> //Loading JSON documents to get settings from them.
 #include <string> //To store the command line arguments.
@@ -36,16 +38,8 @@ public:
      */
     CommandLine(const std::vector<std::string>& arguments);
 
-    /*
-     * \brief Indicate that we're beginning to send g-code.
-     * This does nothing to the command line.
-     */
-    void beginGCode() override;
-
-    /*
-     * \brief Flush all g-code still in the stream into cout.
-     */
-    void flushGCode() override;
+    /* \brief Sends a piece of GCode that is ready to be exported */
+    void sendGCodePart(const std::string& gcode_part) override;
 
     /*
      * \brief Indicates that for command line output we need to send the g-code
@@ -110,10 +104,11 @@ public:
     void sendOptimizedLayerData() override;
 
     /*
-     * \brief Show an estimate of how long the print would take and how much
-     * material it would use.
+     * \brief Send an estimate of how long the print would take and how much material it would use.
+     * \param time_estimates The calculated time estimations, per extruder
+     * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintTimeMaterialEstimates() const override;
+    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Show an update of our slicing progress.
@@ -156,6 +151,9 @@ private:
      * The last progress update that we output to stdcerr.
      */
     unsigned int last_shown_progress_;
+
+    std::shared_ptr<std::ofstream> output_file_;
+    std::ostream* output_stream_;
 
     /*
      * \brief Load a JSON file and store the settings inside it.
