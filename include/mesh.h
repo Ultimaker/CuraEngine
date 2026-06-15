@@ -139,8 +139,9 @@ public:
     std::shared_ptr<Image> texture_;
     std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 
-    Mesh(Settings& parent);
-    Mesh();
+    Mesh(const Settings& parent);
+    Mesh(Settings&& parent);
+    Mesh() = default;
 
     /*!
      *
@@ -188,24 +189,17 @@ public:
     void transform(const Matrix4x3D& transformation);
 
     /*!
-     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
-     * etc.)
-     * \return True if it's a mesh that gets printed.
+     * Gets whether this is a printable mesh (not a modifier mesh). This includes infill meshes, because they do get printed. Cutting meshes are not considered as printable though,
+     * because they are early converted into regular meshes and should not be considered in subsequent algorithms.
      */
     bool isPrinted() const;
 
-    /*!
-     * Certain mesh types can interlock with each other. The interlock property provides
-     * if this mesh can be used for interlocking with other meshes (for example support
-     * blockers should not have an interlocking interface).
-     *
-     * \return True if an interface of the mesh could be interlocking with another mesh
-     */
-    bool canInterlock() const;
+    /*! Gets whether this is a regular model mesh (not a modifier or infill mesh) */
+    bool isModelMesh() const;
 
 private:
-    mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
-    mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
+    mutable bool has_disconnected_faces{ false }; //!< Whether it has been logged that this mesh contains disconnected faces
+    mutable bool has_overlapping_faces{ false }; //!< Whether it has been logged that this mesh contains overlapping faces
     int findIndexOfVertex(const Point3LL& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
 
     /*!

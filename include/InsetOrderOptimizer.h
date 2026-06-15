@@ -172,15 +172,6 @@ private:
      * \return A vector of ExtrusionLines with walls that should be printed
      */
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
-
-    /*!
-     * Appends constraints to the walls ordering so that for the first processed inset, we will start with the longest wall. The first printed wall can have a better seam
-     * quality in some conditions, and the longest one is likely to be the most visible.
-     * @param walls The walls to be ordered
-     * @param[in, out] order The order to which the constraints should be appended
-     * @param outer_to_inner Indicates of the outer walls are printed first (or the inner walls first)
-     */
-    static void addFirstWallOrder(const std::vector<ExtrusionLine>& walls, std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*>& order, const bool outer_to_inner);
 };
 } // namespace cura
 

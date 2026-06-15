@@ -13,11 +13,13 @@
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
+#include <range/v3/view/map.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
+#include "Slice.h" // Technically needed to get 'has paint-on support' from the Application.
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
 #include "infill.h"
@@ -25,6 +27,7 @@
 #include "progress/Progress.h"
 #include "settings/EnumSettings.h"
 #include "support.h" //For precomputeCrossInfillTree
+#include "utils/OBJ.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
@@ -48,13 +51,16 @@ TreeSupport::TreeSupport(const SliceDataStorage& storage)
                                                              || mesh.settings.get<coord_t>("min_feature_size") < (FUDGE_LENGTH * 2);
     }
 
+    const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_painted_support;
+
     // Group all meshes that can be processed together. NOTE this is different from mesh-groups!
     // Only one setting object is needed per group, as different settings in the same group may only occur in the tip, which uses the original settings objects from the meshes.
     for (auto [mesh_idx, mesh_ptr] : storage.meshes | ranges::views::enumerate)
     {
         SliceMeshStorage& mesh = *mesh_ptr;
-        const bool non_supportable_mesh = mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh");
-        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! mesh.settings.get<bool>("support_enable") || non_supportable_mesh)
+        const bool non_supportable_mesh = ! mesh.isModelMesh() || mesh.settings.get<bool>("support_mesh");
+        if (mesh.settings.get<ESupportStructure>("support_structure") != ESupportStructure::TREE || ! (mesh.settings.get<bool>("support_enable") || mesh_group_support_paint)
+            || non_supportable_mesh)
         {
             continue;
         }
@@ -1936,11 +1942,28 @@ void TreeSupport::dropNonGraciousAreas(
                                            && ! elem->to_buildplate_; // If an element has no child, it connects to whatever is below as no support further down for it will exist.
             if (non_gracious_model_contact)
             {
+                std::vector<std::pair<LayerIndex, Shape>>& dropped_down_area = dropped_down_areas[idx];
                 Shape rest_support = layer_tree_polygons[linear_data[idx].first][elem].intersection(volumes_.getAccumulatedPlaceable0(linear_data[idx].first));
-                for (LayerIndex counter = 1; rest_support.area() > 1 && counter < linear_data[idx].first; ++counter)
+                for (LayerIndex counter = 1; rest_support.area() > 1 && counter < linear_data[idx].first && ! rest_support.empty(); ++counter)
                 {
-                    rest_support = rest_support.difference(volumes_.getCollision(0, linear_data[idx].first - counter));
-                    dropped_down_areas[idx].emplace_back(linear_data[idx].first - counter, rest_support);
+                    const LayerIndex layer_index = linear_data[idx].first - counter;
+                    rest_support = rest_support.difference(volumes_.getCollision(0, layer_index));
+                    for (const Shape& layer_tree_polygon : layer_tree_polygons[layer_index] | ranges::views::values)
+                    {
+                        // Remove parts of the support that are absorbed by the actual trees
+                        rest_support = rest_support.difference(layer_tree_polygon.offset(-EPSILON));
+                    }
+                    dropped_down_area.emplace_back(layer_index, rest_support);
+                }
+
+                if (! rest_support.empty())
+                {
+                    // If there is some remainder after dropping the area to the bottom, that means it could not actually reach the model or another branch, so discard the piece
+                    rest_support = rest_support.offset(EPSILON);
+                    for (Shape& dropped_area_on_layer : dropped_down_area | ranges::views::values)
+                    {
+                        dropped_area_on_layer = dropped_area_on_layer.difference(rest_support);
+                    }
                 }
             }
         });
@@ -2455,6 +2478,19 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         dur_drop,
         dur_filter,
         dur_finalize);
+}
+
+void TreeSupport::saveToObj(const std::vector<std::set<TreeSupportElement*>>& move_bounds, OBJ& obj) const
+{
+    for (const auto [layer_index, elements] : move_bounds | ranges::views::enumerate)
+    {
+        const coord_t z = layer_index * config.layer_height;
+        for (const TreeSupportElement* element : elements)
+        {
+            element->saveToObj(obj, z, config.layer_height);
+            obj.writeSphere(Point3D(Point3LL(element->result_on_layer_, z), 1.0), config.layer_height / 2.0, SVG::Color::RED);
+        }
+    }
 }
 
 } // namespace cura
