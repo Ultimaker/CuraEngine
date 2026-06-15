@@ -1948,7 +1948,7 @@ void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*
                     ++added_layers;
                 }
 
-                smoothed_positions.emplace(element, interlayer_position_sum / static_cast<coord_t>(added_layers));
+                smoothed_positions.emplace(element, interlayer_position_sum / added_layers);
             }
         });
 
