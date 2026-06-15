@@ -22,8 +22,8 @@ public:
     MockSocket();
 
     // These functions are overridden to be no-op.
-    void connect(const std::string& address, int port) override;
-    void listen(const std::string& address, int port) override;
+    void connect(const std::string& address, uint16_t port) override;
+    void listen(const std::string& address, uint16_t port) override;
     void close() override;
     void reset() override;
 

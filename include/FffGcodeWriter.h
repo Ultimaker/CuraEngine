@@ -4,15 +4,16 @@
 #ifndef GCODE_WRITER_H
 #define GCODE_WRITER_H
 
-#include <fstream>
 #include <optional>
 
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTime.h"
 #include "GCodePathConfig.h"
+#include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
 #include "LinesOrderingMethod.h"
-#include "gcodeExport.h"
+#include "PrintInformation.h"
+#include "gcode_export/gcodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
 #include "utils/gettime.h"
@@ -28,6 +29,7 @@ class SliceMeshStorage;
 class SliceLayer;
 class SliceLayerPart;
 struct MeshPathConfigs;
+class InsetOrderOptimizer;
 
 /*!
  * Secondary stage in Fused Filament Fabrication processing: The generated polygons are used in the gcode generation.
@@ -59,11 +61,6 @@ private:
      */
     GCodeExport gcode;
 
-    /*!
-     * The gcode file to write to when using CuraEngine as command line tool.
-     */
-    std::ofstream output_file;
-
     //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
     LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
 
@@ -84,6 +81,8 @@ private:
 
     std::string slice_uuid; //!< The UUID of the current slice.
 
+    PrintInformation print_info_; //!< Global print information calculated along slicing
+
 public:
     /*
      * \brief Construct a g-code writer.
@@ -92,49 +91,6 @@ public:
      * it's ready for writing.
      */
     FffGcodeWriter();
-
-    /*!
-     * Set the target to write gcode to: to a file.
-     *
-     * Used when CuraEngine is used as command line tool.
-     *
-     * \param filename The filename of the file to which to write the gcode.
-     */
-    bool setTargetFile(const char* filename);
-
-    /*!
-     * Set the target to write gcode to: an output stream.
-     *
-     * Used when CuraEngine is NOT used as command line tool.
-     *
-     * \param stream The stream to write gcode to.
-     */
-    void setTargetStream(std::ostream* stream);
-
-    /*!
-     * Wether or not the extruder is actually used in the print, regardless of enablement.
-     *
-     * \param extruder_nr The extruder number for which to get the useage
-     * \return actual use y/n boolean
-     */
-    bool getExtruderActualUse(int extruder_nr);
-
-    /*!
-     * Get the total extruded volume for a specific extruder in mm^3
-     *
-     * Retractions and unretractions don't contribute to this.
-     *
-     * \param extruder_nr The extruder number for which to get the total netto extruded volume
-     * \return total filament printed in mm^3
-     */
-    double getTotalFilamentUsed(int extruder_nr);
-
-    /*!
-     * Get the total estimated print time in seconds for each feature
-     *
-     * \return total print time in seconds for each feature
-     */
-    std::vector<Duration> getTotalPrintTimePerFeature();
 
     /*!
      * Write all the gcode for the current meshgroup.
@@ -158,6 +114,14 @@ private:
         std::string extruder_nr;
         std::string pattern;
         std::string monotonic;
+    };
+
+    /*! Helper structure to pre-process then later add the optimized insets */
+    struct InsetsPreprocessResult
+    {
+        std::shared_ptr<InsetOrderOptimizer> walls_optimizer{}; // Contains the ready-to-add optimized insets
+        bool spiralize{ false }; // Indicates whether this layer is a regular or a spiral layer
+        std::vector<LayerPlan::OverhangMask> overhang_masks{}; // Overhang speed masks to be applied only while drawing the walls
     };
 
     static const RoofingFlooringSettingsNames roofing_settings_names;
@@ -398,6 +362,7 @@ private:
      * mesh which should be printed with this extruder.
      * \param mesh_config the line config with which to print a print feature.
      * \param part The part for which to create gcode.
+     * \param near_end_location The location where the infill should preferably end close to
      * \return Whether this function added anything to the layer plan.
      */
     bool processInfill(
@@ -406,7 +371,8 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SliceLayerPart& part) const;
+        const SliceLayerPart& part,
+        const std::optional<Point2LL>& near_end_location = std::nullopt) const;
 
     /*!
      * \brief Add thicker (multiple layers) sparse infill for a given part in a
@@ -420,6 +386,8 @@ private:
      * \param part The part for which to create gcode.
      * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
      * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
+     * \param near_end_location The location where the infill should preferably end close to
+     * \param split_near_end_location If true, the infill open polyline that passes closer to the near_end_location will be split to provide a proper start/end position
      * \return Whether this function added anything to the layer plan.
      */
     bool processMultiLayerInfill(
@@ -429,7 +397,9 @@ private:
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
         const coord_t start_move_inwards_length = 0,
-        const coord_t end_move_inwards_length = 0) const;
+        const coord_t end_move_inwards_length = 0,
+        const std::optional<Point2LL>& near_end_location = std::nullopt,
+        const bool split_near_end_location = false) const;
 
     /*!
      * \brief Add normal sparse infill for a given part in a layer.
@@ -441,6 +411,8 @@ private:
      * \param part The part for which to create gcode.
      * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
      * \param end_move_inwards_length The length of the extra inwards moves to be added at the end of each infill line
+     * \param near_end_location The location where the infill should preferably end close to
+     * \param split_near_end_location If true, the infill open polyline that passes closer to the near_end_location will be split to provide a proper start/end position
      * \return Whether this function added anything to the layer plan.
      */
     bool processSingleLayerInfill(
@@ -451,25 +423,51 @@ private:
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
         const coord_t start_move_inwards_length = 0,
-        const coord_t end_move_inwards_length = 0) const;
+        const coord_t end_move_inwards_length = 0,
+        const std::optional<Point2LL>& near_end_location = std::nullopt,
+        const bool split_near_end_location = false) const;
 
     /*!
-     * Generate the insets for the walls of a given layer part.
+     * Generate the insets for the walls of a given layer part, without inserting them to the layer plan
      * \param[in] storage where the slice data is stored.
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
-     * \param mesh_config the line config with which to print a print feature
+     * \param mesh_config The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param part The part for which to create gcode
-     * \return Whether this function added anything to the layer plan
+     * \param end_infill_close_to_seam Indicates whether the infill will end close to the seam, in which case we can slightly adjust the insets ordering
+     * \return The content to be later inserted
      */
-    bool processInsets(
+    InsetsPreprocessResult preProcessInsets(
         const SliceDataStorage& storage,
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        SliceLayerPart& part) const;
+        SliceLayerPart& part,
+        const bool end_infill_close_to_seam) const;
+
+    /*!
+     * Inserts the previously processed insets
+     * @param preprocess_result The pre-processed insets to be added
+     * @param storage storage where the slice data is stored.
+     * @param gcode_layer The initial planning of the gcode of the layer.
+     * @param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * @param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
+     * @param mesh_config The extruder for which to print all features of the mesh which should be printed with this extruder
+     * @param part The part for which to create gcode
+     * @param infill_added Indicates whether infill was added just before
+     * @return Whether this function added anything to the layer plan
+     */
+    bool endProcessInsets(
+        InsetsPreprocessResult& preprocess_result,
+        const SliceDataStorage& storage,
+        LayerPlan& gcode_layer,
+        const SliceMeshStorage& mesh,
+        const size_t extruder_nr,
+        const MeshPathConfigs& mesh_config,
+        SliceLayerPart& part,
+        const bool infill_added) const;
 
     /*!
      * Generate the a spiralized wall for a given layer part.
@@ -562,7 +560,7 @@ private:
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
-     * \param skin_part The skin part for which to create gcode
+     * \param skin_fill The shape of the skin for which to create gcode
      * \param[out] added_something Whether this function added anything to the layer plan
      */
     void processTopBottom(
@@ -571,7 +569,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        const SkinPart& skin_part,
+        const Shape& skin_fill,
         bool& added_something) const;
 
     /*!

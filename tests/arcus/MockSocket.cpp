@@ -8,10 +8,10 @@ namespace cura
 
 MockSocket::MockSocket() = default;
 
-void MockSocket::connect(const std::string& address, int port)
+void MockSocket::connect(const std::string& address, uint16_t port)
 { /* Do nothing. */
 }
-void MockSocket::listen(const std::string& address, int port)
+void MockSocket::listen(const std::string& address, uint16_t port)
 { /* Do nothing. */
 }
 void MockSocket::close()

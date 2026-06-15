@@ -21,6 +21,7 @@ class Point2D;
 class MixedLinesSet;
 class SkeletalTrapezoidationGraph;
 class STHalfEdge;
+class STHalfEdgeNode;
 
 class SVG : NoCopy
 {
@@ -144,6 +145,10 @@ public:
 
         ~LineAttributes() override = default;
 
+        static LineAttributes hidden()
+        {
+            return LineAttributes(ColorObject(), 0.0);
+        }
         bool isDisplayed() const override
         {
             return ElementAttributes::isDisplayed() && width > 0.0;
@@ -157,6 +162,14 @@ public:
         double font_size{ 10 };
 
         VerticesAttributes() = default;
+
+        VerticesAttributes(const ColorObject& color, const double radius, const bool write_coords, const double font_size)
+            : ElementAttributes(color)
+            , radius(radius)
+            , write_coords(write_coords)
+            , font_size(font_size)
+        {
+        }
 
         VerticesAttributes(const ColorObject& color, const double radius)
             : ElementAttributes(color)
@@ -183,6 +196,11 @@ public:
 
         ~VerticesAttributes() override = default;
 
+        static VerticesAttributes hidden()
+        {
+            return VerticesAttributes(SVG::ColorObject(), 0.0);
+        }
+
         bool isDisplayed() const override
         {
             return ElementAttributes::isDisplayed() && (radius > 0.0 || (write_coords && font_size > 0.0));
@@ -194,6 +212,33 @@ public:
         SurfaceAttributes surface{ ColorObject() };
         LineAttributes line{ ColorObject(), 0.0 };
         VerticesAttributes vertices{ ColorObject(), 0.0 };
+    };
+
+    struct DiagramVisualAttributes : VisualAttributes
+    {
+        bool edges_arrows{ true };
+
+        DiagramVisualAttributes(const VisualAttributes& visual_attributes, const bool edges_arrows = true)
+            : VisualAttributes(visual_attributes)
+            , edges_arrows(edges_arrows)
+        {
+        }
+    };
+
+    struct STVisualAttributes : DiagramVisualAttributes
+    {
+        VerticesAttributes beads_count;
+        VerticesAttributes junctions;
+
+        STVisualAttributes(
+            const DiagramVisualAttributes& diagram_attributes,
+            const VerticesAttributes& beads_count = VerticesAttributes::hidden(),
+            const VerticesAttributes& junctions = VerticesAttributes::hidden())
+            : DiagramVisualAttributes(diagram_attributes)
+            , beads_count(beads_count)
+            , junctions(junctions)
+        {
+        }
     };
 
 private:
@@ -260,18 +305,18 @@ public:
 
     void write(const std::string& text, const Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush = true) const;
 
-    void write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const STHalfEdge& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
-
-    template<typename T>
-    void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const STHalfEdge& edge, const STVisualAttributes& visual_attributes, const bool flush = true, const std::set<const STHalfEdgeNode*>& drawn_nodes = {}) const;
 
     template<typename T>
-    void write(const boost::polygon::voronoi_edge<T>& edge, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
 
     template<typename T>
-    void write(const boost::polygon::voronoi_cell<T>& cell, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const boost::polygon::voronoi_edge<T>& edge, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
+
+    template<typename T>
+    void write(const boost::polygon::voronoi_cell<T>& cell, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
 
     void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
 
@@ -284,10 +329,10 @@ public:
      * The paths are drawn with the correct line width, as given in the paths,
      * but there is a multiplicative factor to adjust the width with.
      * \param paths The paths to draw.
-     * \param color The color to draw the paths with.
-     * \param width_factor A multiplicative factor on the line widths.
+     * \param visual_attributes The visual appearance of the paths.
+     * \param flush Whether the output file should be flushed after writing.
      */
-    void writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color = Color::BLACK, const double width_factor = 1.0) const;
+    void write(const std::vector<VariableWidthLines>& paths, const SurfaceAttributes& visual_attributes, const bool flush = true) const;
 
     /*!
      * Draw variable-width lines into the image.
@@ -295,10 +340,10 @@ public:
      * The lines are drawn with the correct line width, as given in the lines,
      * but there is a multiplicative factor to adjust the width with.
      * \param lines The lines to draw.
-     * \param color The color to draw the lines with.
-     * \param width_factor A multiplicative factor on the line widths.
+     * \param visual_attributes The visual appearance of the lines.
+     * \param flush Whether the output file should be flushed after writing.
      */
-    void writeLines(const VariableWidthLines& lines, const ColorObject color = Color::BLACK, const double width_factor = 1.0) const;
+    void write(const VariableWidthLines& lines, const SurfaceAttributes& visual_attributes, const bool flush = true) const;
 
     /*!
      * Draw a variable-width line into the image.
@@ -306,10 +351,25 @@ public:
      * The line is drawn with the correct line width, as given in the junctions,
      * but there is a multiplicative factor to adjust the width with.
      * \param line The line to draw.
-     * \param color The color to draw the line with.
-     * \param width_factor A multiplicative factor on the line width.
+     * \param visual_attributes The visual appearance of the lines.
+     * \param flush Whether the output file should be flushed after writing.
      */
-    void writeLine(const ExtrusionLine& line, const ColorObject color = Color::BLACK, const double width_factor = 1.0, const bool flush = true) const;
+    void write(const ExtrusionLine& line, const SurfaceAttributes& visual_attributes, const bool flush = true) const;
+
+    /*!
+     * Write the visual attributes of a surface to the output file as attributes of the current tag
+     * @param visual_attributes The surface attributes to be written
+     * @param fill_rule The polygon fill rule to be used
+     * @warning This function write the attributes without leaving empty space around. It is the duty of the caller to set proper spaces (or not).
+     */
+    void write(const SurfaceAttributes& visual_attributes, const FillRule fill_rule = FillRule::None) const;
+
+    /*!
+     * Write the visual attributes of a line to the output file as attributes of the current tag
+     * @param visual_attributes The line attributes to be written
+     * @warning This function write the attributes without leaving empty space around. It is the duty of the caller to set proper spaces (or not).
+     */
+    void write(const LineAttributes& visual_attributes) const;
 
     /*!
      * Draws a grid across the image and writes down coordinates.

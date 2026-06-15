@@ -28,7 +28,7 @@ private:
      * \brief Creates a message containing slice information.
      * \return A string containing the slice information message.
      */
-    [[nodiscard]] static std::string createSliceInfoMessage();
+    [[nodiscard]] static std::string createSliceInfoMessage(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information);
     [[nodiscard]] static std::string createEngineInfoMessage();
 
 
@@ -50,15 +50,12 @@ public:
      */
     void sendGCodePrefix(const std::string& prefix) const override;
 
-    /**
-     * \brief Indicate that we're beginning to send g-code.
+    /*
+     * \brief Send an estimate of how long the print would take and how much material it would use.
+     * \param time_estimates The calculated time estimations, per extruder
+     * \param print_information The calculated materials consumptions, per extruder
      */
-    void beginGCode() override;
-
-    /**
-     * \brief Initiates the slicing of the next item.
-     */
-    void sliceNext() override;
+    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     bool isSequential() const override
     {

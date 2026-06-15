@@ -4,7 +4,6 @@
 #ifndef INFILL_ABSTRACTLINESINFILL_H
 #define INFILL_ABSTRACTLINESINFILL_H
 
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
@@ -13,6 +12,7 @@ namespace cura
 
 class AABB;
 class AngleDegrees;
+class OpenLinesSet;
 class Shape;
 
 /*!

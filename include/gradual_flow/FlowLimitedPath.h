@@ -67,7 +67,8 @@ struct FlowLimitedPath
      */
     double extrusionVolumePerMm() const // um^3/um
     {
-        return original_gcode_path_data->flow * original_gcode_path_data->config.line_width * original_gcode_path_data->config.layer_thickness * original_gcode_path_data->flow;
+        return original_gcode_path_data->flow * original_gcode_path_data->config.line_width * original_gcode_path_data->config.layer_thickness
+             * original_gcode_path_data->config.getFlowRatio();
     }
 
     /*
@@ -291,7 +292,7 @@ struct FlowLimitedPath
             output_path.points.push_back(point);
         }
 
-        output_path.config.speed_derivatives.speed = speed * 1e-3;
+        output_path.config.speed_derivatives.speed = (speed / 1e3) / output_path.speed_factor;
 
         return output_path;
     }

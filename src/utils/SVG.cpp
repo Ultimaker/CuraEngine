@@ -277,12 +277,11 @@ void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_
             {
                 if (first_path)
                 {
+                    fprintf(out_, "<path ");
+                    write(visual_attributes.surface, fill_rule);
                     fprintf(
                         out_,
-                        R"(<path fill="%s" fill-opacity="%f" fill-rule="%s" stroke="%s" stroke-width="%f" stroke-dasharray="%s" stroke-opacity="%f" stroke-linecap="round" d=")",
-                        toString(visual_attributes.surface.color).c_str(),
-                        visual_attributes.surface.alpha,
-                        toString(fill_rule).c_str(),
+                        R"( stroke="%s" stroke-width="%f" stroke-dasharray="%s" stroke-opacity="%f" stroke-linecap="round" d=")",
                         toString(visual_attributes.line.color).c_str(),
                         visual_attributes.line.width,
                         toString(visual_attributes.line.dash_array).c_str(),
@@ -407,14 +406,14 @@ void SVG::write(const std::string& text, const Point2LL& p, const VerticesAttrib
         "<text x=\"%f\" y=\"%f\" style=\"font-size: %fpx;\" fill=\"%s\">%s</text>\n",
         transformed_point.x(),
         transformed_point.y(),
-        vertices_attributes.font_size,
+        vertices_attributes.font_size * scale_,
         toString(vertices_attributes.color).c_str(),
         text.c_str());
 
     handleFlush(flush);
 }
 
-void SVG::write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush) const
 {
     const size_t start_edges_count = ranges::accumulate(
         graph.edges_,
@@ -424,6 +423,9 @@ void SVG::write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes
             return total + (edge.prev_ == nullptr ? 1 : 0);
         });
 
+    std::set<const STHalfEdge*> drawn_edges;
+    std::set<const STHalfEdgeNode*> drawn_nodes;
+
     for (const auto& [index, edge] : graph.edges_ | ranges::views::enumerate)
     {
         if (edge.prev_ != nullptr)
@@ -431,7 +433,7 @@ void SVG::write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes
             continue;
         }
 
-        VisualAttributes loop_visual_attributes = visual_attributes;
+        STVisualAttributes loop_visual_attributes = visual_attributes;
         if (loop_visual_attributes.line.isRainbow())
         {
             loop_visual_attributes.line.color = makeRainbowColor(index, start_edges_count);
@@ -440,7 +442,30 @@ void SVG::write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes
         const STHalfEdge* current_edge = &edge;
         while (current_edge != nullptr)
         {
-            write(*current_edge, loop_visual_attributes, false);
+            if (! drawn_edges.contains(current_edge))
+            {
+                write(*current_edge, loop_visual_attributes, false, drawn_nodes);
+
+                STVisualAttributes twin_visual_attributes = loop_visual_attributes;
+                twin_visual_attributes.line = LineAttributes::hidden();
+                if (current_edge->twin_)
+                {
+                    write(*current_edge->twin_, twin_visual_attributes, false, drawn_nodes);
+                }
+
+                if (! visual_attributes.edges_arrows)
+                {
+                    drawn_edges.emplace(current_edge);
+                    drawn_edges.emplace(current_edge->twin_);
+                }
+
+                if (visual_attributes.beads_count.isDisplayed())
+                {
+                    drawn_nodes.emplace(current_edge->from_);
+                    drawn_nodes.emplace(current_edge->to_);
+                }
+            }
+
             current_edge = current_edge->next_;
         }
     }
@@ -448,8 +473,35 @@ void SVG::write(const SkeletalTrapezoidationGraph& graph, const VisualAttributes
     handleFlush(flush);
 }
 
-void SVG::write(const STHalfEdge& edge, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const STHalfEdge& edge, const STVisualAttributes& visual_attributes, const bool flush, const std::set<const STHalfEdgeNode*>& drawn_nodes) const
 {
+    if (visual_attributes.beads_count.isDisplayed())
+    {
+        if (! drawn_nodes.contains(edge.from_))
+        {
+            write(std::to_string(edge.from_->data_.bead_count_), edge.from_->p_, visual_attributes.beads_count, false);
+        }
+        if (! drawn_nodes.contains(edge.to_))
+        {
+            write(std::to_string(edge.to_->data_.bead_count_), edge.to_->p_, visual_attributes.beads_count, false);
+        }
+    }
+
+    if (visual_attributes.junctions.isDisplayed() && edge.data_.hasExtrusionJunctions())
+    {
+        std::shared_ptr<LineJunctions> junctions = edge.data_.getExtrusionJunctions();
+        for (const ExtrusionJunction& junction : *junctions)
+        {
+            write(junction.p_, visual_attributes.junctions);
+        }
+    }
+
+    if (! visual_attributes.edges_arrows)
+    {
+        write(edge.from_->p_, edge.to_->p_, visual_attributes, flush);
+        return;
+    }
+
     const std::optional<Point2D> direction = toPoint2D(Point2LL(edge.to_->p_ - edge.from_->p_)).vNormalized();
     if (! direction.has_value())
     {
@@ -471,23 +523,27 @@ void SVG::write(const STHalfEdge& edge, const VisualAttributes& visual_attribute
     write(edge_half_arrow, visual_attributes, flush);
 }
 
-void SVG::writePaths(const std::vector<VariableWidthLines>& paths, const ColorObject color, const double width_factor) const
+void SVG::write(const std::vector<VariableWidthLines>& paths, const SurfaceAttributes& visual_attributes, const bool flush) const
 {
     for (const VariableWidthLines& lines : paths)
     {
-        writeLines(lines, color, width_factor);
+        write(lines, visual_attributes, false);
     }
+
+    handleFlush(flush);
 }
 
-void SVG::writeLines(const VariableWidthLines& lines, const ColorObject color, const double width_factor) const
+void SVG::write(const VariableWidthLines& lines, const SurfaceAttributes& visual_attributes, const bool flush) const
 {
     for (const ExtrusionLine& line : lines)
     {
-        writeLine(line, color, width_factor);
+        write(line, visual_attributes, false);
     }
+
+    handleFlush(flush);
 }
 
-void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const double width_factor, const bool flush) const
+void SVG::write(const ExtrusionLine& line, const SurfaceAttributes& visual_attributes, const bool flush) const
 {
     constexpr double minimum_line_width = 10; // Always have some width, otherwise some lines become completely invisible.
     if (line.junctions_.empty()) // Only draw lines that have at least 2 junctions, otherwise they are degenerate.
@@ -503,17 +559,16 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
         const Point2LL direction_vector = end_vertex.p_ - start_vertex.p_;
         const Point2LL direction_left = turn90CCW(direction_vector);
         const Point2LL direction_right = -direction_left; // Opposite of left.
-        const Point2D start_left
-            = transformF(start_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) * width_factor))));
-        const Point2D start_right
-            = transformF(start_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) * width_factor))));
-        const Point2D end_left = transformF(end_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
-        const Point2D end_right = transformF(end_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) * width_factor))));
+        const Point2D start_left = transformF(start_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D start_right = transformF(start_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D end_left = transformF(end_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
+        const Point2D end_right = transformF(end_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
 
+        fprintf(out_, "<polygon ");
+        write(visual_attributes);
         fprintf(
             out_,
-            "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f\" />\n",
-            toString(color).c_str(),
+            " points=\"%f,%f %f,%f %f,%f %f,%f\" />\n",
             static_cast<double>(start_left.x()),
             static_cast<double>(start_left.y()),
             static_cast<double>(start_right.x()),
@@ -526,10 +581,23 @@ void SVG::writeLine(const ExtrusionLine& line, const ColorObject color, const do
         start_vertex = end_vertex; // For the next line segment.
     }
 
-    if (flush)
-    {
-        fflush(out_);
-    }
+    handleFlush(flush);
+}
+
+void SVG::write(const SurfaceAttributes& visual_attributes, const FillRule fill_rule) const
+{
+    fprintf(out_, R"(fill="%s" fill-opacity="%f" fill-rule="%s")", toString(visual_attributes.color).c_str(), visual_attributes.alpha, toString(fill_rule).c_str());
+}
+
+void SVG::write(const LineAttributes& visual_attributes) const
+{
+    fprintf(
+        out_,
+        R"(stroke="%s" stroke-width="%f" stroke-dasharray="%s" stroke-opacity="%f" stroke-linecap="round")",
+        toString(visual_attributes.color).c_str(),
+        visual_attributes.width,
+        toString(visual_attributes.dash_array).c_str(),
+        visual_attributes.alpha);
 }
 
 void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& visual_attributes, const bool flush) const
@@ -565,7 +633,7 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& v
 }
 
 template<>
-void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>& edge, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>& edge, const DiagramVisualAttributes& visual_attributes, const bool flush) const
 {
     if (edge.is_infinite())
     {
@@ -593,7 +661,7 @@ void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>
 }
 
 template<>
-void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>& cell, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>& cell, const DiagramVisualAttributes& visual_attributes, const bool flush) const
 {
     const VoronoiUtils::vd_t::edge_type* start_edge = cell.incident_edge();
     if (! start_edge)
@@ -636,11 +704,11 @@ void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>
 }
 
 template<>
-void SVG::write(const VoronoiUtils::vd_t& voronoi_diagram, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const VoronoiUtils::vd_t& voronoi_diagram, const DiagramVisualAttributes& visual_attributes, const bool flush) const
 {
     for (const auto& [index, cell] : voronoi_diagram.cells() | ranges::views::enumerate)
     {
-        VisualAttributes cell_visual_attributes = visual_attributes;
+        DiagramVisualAttributes cell_visual_attributes = visual_attributes;
         if (cell_visual_attributes.line.isRainbow())
         {
             cell_visual_attributes.line.color = makeRainbowColor(index, voronoi_diagram.cells().size());

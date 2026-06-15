@@ -90,20 +90,18 @@ public:
     }
 };
 
-TEST_F(ArcusCommunicationTest, FlushGCodeTest)
+TEST_F(ArcusCommunicationTest, SendGCodePartTest)
 {
     // Before there is g-code, no messages should be sent if we were to flush.
-    ac->flushGCode();
     ASSERT_TRUE(socket->sent_messages.empty());
 
     // Input some 'g-code' to flush.
     // Multi-line to see flushing behaviour.
     const std::string test_gcode = "This Fibonacci joke is as bad as the last two you heard combined.\n"
                                    "It's pretty cool how the Chinese made a language entirely out of tattoos.";
-    ac->private_data->gcode_output_stream.write(test_gcode.c_str(), test_gcode.size());
 
     // Call the function we're testing. This time it should give us a message.
-    ac->flushGCode();
+    ac->sendGCodePart(test_gcode);
 
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
     const proto::GCodeLayer* message = dynamic_cast<proto::GCodeLayer*>(socket->sent_messages.back().get());
@@ -128,7 +126,6 @@ TEST_F(ArcusCommunicationTest, SendGCodePrefix)
     const std::string& encoded_prefix = convertTobase64(prefix);
 
     ac->sendGCodePrefix(encoded_prefix);
-    ac->flushGCode();
     EXPECT_GT(socket->sent_messages.size(), 0);
     bool found_prefix = false;
     for (const auto& message : socket->sent_messages)

@@ -3,7 +3,7 @@
 
 #include "infill/RegularNGonalInfill.h"
 
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/Shape.h"
 #include "geometry/conversions/Point2D_Point2LL.h"
 #include "utils/AABB.h"

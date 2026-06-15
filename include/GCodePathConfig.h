@@ -4,9 +4,12 @@
 #ifndef G_CODE_PATH_CONFIG_H
 #define G_CODE_PATH_CONFIG_H
 
+#include <optional>
+
 #include "PrintFeature.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/types/Ratio.h"
+#include "settings/types/Temperature.h"
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
 
@@ -29,6 +32,7 @@ struct GCodePathConfig
     bool is_bridge_path{ false }; //!< whether current config is used when bridging
     double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
+    Temperature temperature_delta;
 
     [[nodiscard]] constexpr bool operator==(const GCodePathConfig& other) const noexcept = default;
     [[nodiscard]] constexpr auto operator<=>(const GCodePathConfig& other) const = default;
@@ -66,6 +70,8 @@ struct GCodePathConfig
     [[nodiscard]] coord_t getLayerThickness() const noexcept;
 
     [[nodiscard]] PrintFeatureType getPrintFeatureType() const noexcept;
+
+    [[nodiscard]] const Temperature& getTemperatureDelta() const noexcept;
 
 private:
     [[nodiscard]] double calculateExtrusion() const noexcept;

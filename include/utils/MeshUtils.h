@@ -9,7 +9,7 @@
 #include <vector>
 
 #include "geometry/Triangle2F.h"
-#include "geometry/Triangle3D.h"
+#include "geometry/Triangle3LL.h"
 
 namespace cura
 {
@@ -20,7 +20,7 @@ class Mesh;
 namespace MeshUtils
 {
 
-std::optional<Point3D> getBarycentricCoordinates(const Point3D& point, const Triangle3D& triangle);
+std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Triangle3LL& triangle);
 
 Point2F getUVCoordinates(const Point3D& barycentric_coordinates, const Triangle2F& uv_coordinates);
 

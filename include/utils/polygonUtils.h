@@ -677,6 +677,32 @@ public:
     static Shape clipPolygonWithAABB(const Shape& src, const AABB& aabb);
 
     /*!
+     * Merges all parts of a destination area with a source area whenever the destination area is thin enough (w.r.t. a given maximum width).
+     * This is done in-place as much as possible (hence no return value)!
+     * \param max_dist The width below which an area is considered 'too thin'.
+     * \param[in, out] source The source area that is allowed to grow.
+     * \param[in, out] destination The destination area that the source is allowed to grow into.
+     * \param allow_thin_areas_grow Whether the thin areas of the source are allowed to grow.
+     */
+    static void mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow);
+
+    /*!
+     * Extract the thin parts of a shape
+     * @param shape The shape we want the thin parts extracted from
+     * @param max_width The maximum width of the parts to be kept
+     * @return The parts of the shape that are thinner than the given maximum.
+     */
+    static Shape getThinAreas(const Shape& shape, const coord_t max_width);
+
+    /*!
+     * Extract the wide parts of a shape
+     * @param shape The shape we want the wide parts extracted from
+     * @param min_width The minimum width of the parts to be kept
+     * @return The parts of the shape that are wider than the given minimum.
+     */
+    static Shape getWideAreas(const Shape& shape, const coord_t min_width);
+
+    /*!
      * Generate a few outset circles around a base, according to the given line width
      *
      * \param center The center of the outset
@@ -712,6 +738,15 @@ private:
      * \return The point on the polygon closest to \p from
      */
     static ClosestPointPolygon _moveInside2(const ClosestPointPolygon& closest_polygon_point, const int distance, Point2LL& from, const int64_t max_dist2);
+
+    /*!
+     * Extract the wide parts of a shape
+     * @param shape The shape we want the wide parts extracted from
+     * @param min_width The minimum width of the parts to be kept
+     * @param extra_widen An extra widening value to be applied (since we end-up by an offset anyway)
+     * @return The parts of the shape that are wider than the given minimum. Note that the returned shape may go beyond the original one.
+     */
+    static Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen = EPSILON);
 };
 
 } // namespace cura

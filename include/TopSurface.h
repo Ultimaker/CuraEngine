@@ -10,11 +10,9 @@
 namespace cura
 {
 
-class FffGcodeWriter;
 class LayerPlan;
 class SliceDataStorage;
 class SliceMeshStorage;
-class SliceDataStorage;
 
 class TopSurface
 {
@@ -50,9 +48,8 @@ public:
      * \param line_config The configuration of the ironing lines to use. Note
      * that the flow might still get adjusted by the ironing settings.
      * \param[out] layer The output g-code layer to put the resulting lines in.
-     * \param gcode_writer The gcode writer for processing extra steps to write into the layer
      */
-    bool ironing(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer, const FffGcodeWriter& gcode_writer) const;
+    bool ironing(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const GCodePathConfig& line_config, LayerPlan& layer) const;
 
 public:
     /*!

@@ -23,17 +23,13 @@ static inline uint32_t pointHash(const Point3LL& p)
          ^ (((p.z_ + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(Settings& parent)
+Mesh::Mesh(const Settings& parent)
     : settings_(parent)
-    , has_disconnected_faces(false)
-    , has_overlapping_faces(false)
 {
 }
 
-Mesh::Mesh()
-    : settings_()
-    , has_disconnected_faces(false)
-    , has_overlapping_faces(false)
+Mesh::Mesh(Settings&& parent)
+    : settings_(std::move(parent))
 {
 }
 
@@ -121,12 +117,13 @@ void Mesh::transform(const Matrix4x3D& transformation)
 
 bool Mesh::isPrinted() const
 {
-    return ! settings_.get<bool>("infill_mesh") && ! settings_.get<bool>("cutting_mesh") && ! settings_.get<bool>("anti_overhang_mesh");
+    return ! settings_.get<bool>("cutting_mesh") && ! settings_.get<bool>("anti_overhang_mesh")
+        && (! settings_.has("force_support_overhang_mesh") || ! settings_.get<bool>("force_support_overhang_mesh"));
 }
 
-bool Mesh::canInterlock() const
+bool Mesh::isModelMesh() const
 {
-    return ! settings_.get<bool>("infill_mesh") && ! settings_.get<bool>("anti_overhang_mesh");
+    return isPrinted() && ! settings_.get<bool>("infill_mesh");
 }
 
 int Mesh::findIndexOfVertex(const Point3LL& v)
