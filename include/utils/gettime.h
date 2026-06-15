@@ -5,6 +5,7 @@
 #define GETTIME_H
 
 #include <chrono>
+#include <optional>
 #include <string>
 #include <vector>
 
