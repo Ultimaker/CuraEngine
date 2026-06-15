@@ -795,7 +795,7 @@ void SkirtBrim::generateSupportBrim()
                 line_count++;
             }
             if (brim_line_empty)
-            {// the fist layer of support is fully filled with brim
+            { // the fist layer of support is fully filled with brim
                 break;
             }
         }
