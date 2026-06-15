@@ -717,6 +717,7 @@ void SkirtBrim::generateSupportBrim()
 
             Shape brim_line = support_outline.offset(offset_distance, ClipperLib::jtRound);
 
+            // Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then multiplier x extrusion "area"
             for (size_t n = 0; n < brim_line.size(); n++)
             {
                 const double area = brim_line[n].area();
@@ -728,13 +729,14 @@ void SkirtBrim::generateSupportBrim()
 
             const bool brim_line_empty = brim_line.empty(); // Store before moving
             storage_.support_brim.push_back(std::move(brim_line));
+            // In case of adhesion::NONE length of support brim is only the length of the brims formed for the support
             const coord_t length = (adhesion_type_ == EPlatformAdhesion::NONE) ? skirt_brim_length : skirt_brim_length + storage_.support_brim.length();
-            if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length)
+            if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) // Make brim or skirt have more lines when total length is too small.
             {
                 line_count++;
             }
             if (brim_line_empty)
-            {
+            { // the first layer of support is fully filled with brim
                 break;
             }
         }
@@ -758,6 +760,7 @@ void SkirtBrim::generateSupportBrim()
 
         size_t line_count = base_line_count;
         coord_t offset_distance = -brim_line_width / 2;
+        // Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then multiplier x extrusion "area"
         for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
         {
             offset_distance += brim_line_width;
@@ -783,15 +786,16 @@ void SkirtBrim::generateSupportBrim()
                 }
             }
 
-            const bool brim_line_empty = brim_line.empty();
+            const bool brim_line_empty = brim_line.empty(); // Store before moving
             storage_.support_brim.push_back(std::move(brim_line));
+            // In case of adhesion::NONE length of support brim is only the length of the brims formed for the support
             const coord_t length = (adhesion_type_ == EPlatformAdhesion::NONE) ? skirt_brim_length : skirt_brim_length + storage_.support_brim.length();
-            if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length)
+            if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) // Make brim or skirt have more lines when total length is too small.
             {
                 line_count++;
             }
             if (brim_line_empty)
-            {
+            {// the fist layer of support is fully filled with brim
                 break;
             }
         }
