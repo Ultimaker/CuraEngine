@@ -2329,8 +2329,10 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 }
                 else
                 {
-                    const Ratio worst_overlap = std::min(support_part.overlap_below, support_part.overlap_above);
-                    wall_thickness = lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, worst_overlap.value);
+                    const double overlap_threshold = config.support_minimum_overlap_area;
+                    const double worst_overlap = std::min(support_part.overlap_below_area, support_part.overlap_above_area);
+                    const Ratio thickness_ratio = std::min(worst_overlap, overlap_threshold) / overlap_threshold;
+                    wall_thickness = lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, thickness_ratio.value);
                 }
 
                 storage.support.supportLayers[layer_idx].fillInfillParts(support_part.shape, config.support_line_width, wall_thickness, false, convert_every_part);
@@ -2394,7 +2396,6 @@ std::vector<std::vector<TreeSupport::SupportPart>> TreeSupport::makeSupportParts
                     support_part.coverage.push_back(static_cast<ClosedPolyline>(polygon).offset(line_width / 2));
                 }
                 support_part.bounding_box = AABB(support_part.coverage);
-                support_part.coverage_area = support_part.coverage.area();
                 support_part.shape = std::move(layer_part);
 
                 layer_coverages.push_back(std::move(support_part));
@@ -2417,14 +2418,14 @@ std::vector<std::vector<TreeSupport::SupportPart>> TreeSupport::makeSupportParts
                         if (part_above.bounding_box.hit(part.bounding_box))
                         {
                             const double overlap_area = part_above.coverage.intersection(part.coverage).area();
-                            part.overlap_above += overlap_area / part.coverage_area;
-                            part_above.overlap_below += overlap_area / part_above.coverage_area;
+                            part.overlap_above_area += overlap_area;
+                            part_above.overlap_below_area += overlap_area;
                         }
                     }
 
                     if (layer_idx == 0)
                     {
-                        part.overlap_below = 1.0;
+                        part.overlap_below_area = std::numeric_limits<double>::max();
                     }
                 }
             });

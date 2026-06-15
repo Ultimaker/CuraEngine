@@ -102,9 +102,8 @@ private:
         SingleShape shape;
         Shape coverage;
         AABB bounding_box;
-        double coverage_area;
-        Ratio overlap_below{ 0.0 };
-        Ratio overlap_above{ 0.0 };
+        double overlap_below_area{ 0.0 };
+        double overlap_above_area{ 0.0 };
     };
 
     /*!

@@ -29,6 +29,7 @@ static constexpr coord_t operator""_mu(unsigned long long i)
 #define INT2MM2(n) (static_cast<double>(n) / 1000000.0)
 #define MM2INT(n) (static_cast<coord_t>((n) * 1000 + 0.5 * (((n) > 0) - ((n) < 0))))
 #define MM2_2INT(n) (static_cast<coord_t>((n) * 1000000 + 0.5 * (((n) > 0) - ((n) < 0))))
+#define MM2_2DBL(n) ((n) * 1000000)
 #define MM3_2INT(n) (static_cast<coord_t>((n) * 1000000000 + 0.5 * (((n) > 0) - ((n) < 0))))
 
 #define INT2MICRON(n) ((n) / 1)
