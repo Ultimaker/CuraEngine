@@ -158,6 +158,21 @@ void SkirtBrim::generate()
         covered_area = covered_area.approxConvexHull();
     }
 
+    // Exclude areas already covered by support brim (generated before this function)
+    if (! storage_.support_brim.empty())
+    {
+        const Settings& support_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+        const ExtruderTrain& support_infill_extruder = support_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
+        const coord_t support_brim_line_width
+            = support_infill_extruder.settings_.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
+        const Shape support_brim_covered = storage_.support_brim.offset(support_brim_line_width / 2, ClipperLib::jtRound);
+        covered_area = covered_area.unionPolygons(support_brim_covered);
+        for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
+        {
+            allowed_areas_per_extruder[extruder_nr] = allowed_areas_per_extruder[extruder_nr].difference(support_brim_covered);
+        }
+    }
+
     std::vector<coord_t> total_length = generatePrimaryBrim(all_brim_offsets, covered_area, allowed_areas_per_extruder);
 
     // ooze/draft shield brim
