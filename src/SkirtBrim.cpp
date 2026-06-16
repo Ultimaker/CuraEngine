@@ -165,7 +165,13 @@ void SkirtBrim::generate()
         const ExtruderTrain& support_infill_extruder = support_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
         const coord_t support_brim_line_width
             = support_infill_extruder.settings_.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
-        const Shape support_brim_covered = storage_.support_brim.offset(support_brim_line_width / 2, ClipperLib::jtRound);
+        coord_t clearance = support_brim_line_width; // default: one line of clearance for brim adhesion
+        if (adhesion_type_ == EPlatformAdhesion::SKIRT)
+        {
+            const int skirt_extruder_nr = skirt_brim_extruder_nr_ >= 0 ? skirt_brim_extruder_nr_ : static_cast<int>(first_used_extruder_nr_);
+            clearance = extruders_configs_[skirt_extruder_nr].line_count_ * extruder_count_ * support_brim_line_width * 2;
+        }
+        const Shape support_brim_covered = storage_.support_brim.offset(support_brim_line_width / 2 + clearance, ClipperLib::jtRound);
         covered_area = covered_area.unionPolygons(support_brim_covered);
         for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
         {
