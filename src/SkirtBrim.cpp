@@ -676,7 +676,7 @@ void SkirtBrim::generateSupportBrim()
     const size_t base_line_count = support_infill_extruder.settings_.get<size_t>("support_brim_line_count");
     const coord_t minimal_length = support_infill_extruder.settings_.get<coord_t>("skirt_brim_minimal_length");
     const BrimLocation location = support_infill_extruder.settings_.get<BrimLocation>("support_brim_location");
-    if (! storage_.support.generated || base_line_count <= 0 || storage_.support.supportLayers.empty())
+    if (! storage_.support.generated || base_line_count == 0 || storage_.support.supportLayers.empty())
     {
         return;
     }
@@ -703,21 +703,26 @@ void SkirtBrim::generateSupportBrim()
 
     const coord_t support_brim_minimum_hole_area = MM2_2INT(support_infill_extruder.settings_.get<size_t>("support_brim_minimum_hole_area"));
 
-    if (location & BrimLocation::INSIDE)
+    // Shared brim generation loop used for both INSIDE (inward offsets) and OUTSIDE (outward offsets).
+    // offset_step is negative for INSIDE and positive for OUTSIDE; the initial offset_distance is derived
+    // so that the first iteration lands at half a line-width from the reference outline.
+    // exclusion_area contains any regions that must be subtracted from each candidate brim ring before use.
+    auto generate_brim_loop = [&](const coord_t offset_step, const Shape& exclusion_area)
     {
-        const coord_t inside_brim_width = brim_line_width * base_line_count;
-        const Shape brim_area = support_outline.difference(support_outline.offset(-inside_brim_width));
-        support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
-
         size_t line_count = base_line_count;
-        coord_t offset_distance = brim_line_width / 2;
+        coord_t offset_distance = -offset_step / 2;
+        // Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller than multiplier x extrusion "area"
         for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
         {
-            offset_distance -= brim_line_width;
+            offset_distance += offset_step;
 
             Shape brim_line = support_outline.offset(offset_distance, ClipperLib::jtRound);
 
-            // Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then multiplier x extrusion "area"
+            if (! exclusion_area.empty())
+            {
+                brim_line = brim_line.difference(exclusion_area);
+            }
+
             for (size_t n = 0; n < brim_line.size(); n++)
             {
                 const double area = brim_line[n].area();
@@ -730,7 +735,7 @@ void SkirtBrim::generateSupportBrim()
             const bool brim_line_empty = brim_line.empty(); // Store before moving
             storage_.support_brim.push_back(std::move(brim_line));
             // In case of adhesion::NONE length of support brim is only the length of the brims formed for the support
-            const coord_t length = (adhesion_type_ == EPlatformAdhesion::NONE) ? skirt_brim_length : skirt_brim_length + storage_.support_brim.length();
+            const coord_t length = (adhesion_type_ == EPlatformAdhesion::NONE) ? storage_.support_brim.length() : skirt_brim_length + storage_.support_brim.length();
             if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) // Make brim or skirt have more lines when total length is too small.
             {
                 line_count++;
@@ -740,65 +745,34 @@ void SkirtBrim::generateSupportBrim()
                 break;
             }
         }
+    };
+
+    if (location & BrimLocation::INSIDE)
+    {
+        const coord_t inside_brim_width = brim_line_width * base_line_count;
+        const Shape brim_area = support_outline.difference(support_outline.offset(-inside_brim_width));
+        support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
+
+        generate_brim_loop(-brim_line_width, Shape{});
     }
 
     if (location & BrimLocation::OUTSIDE)
     {
-        Shape existing_brim_coverage;
+        // Build the exclusion area: existing model brim coverage and model collision (at least 1 line-width gap)
+        Shape outside_exclusion_area;
         for (const MixedLinesSet& brim_lines : storage_.skirt_brim[support_infill_extruder.extruder_nr_])
         {
-            existing_brim_coverage = existing_brim_coverage.unionPolygons(brim_lines.offset(brim_line_width / 2));
+            outside_exclusion_area = outside_exclusion_area.unionPolygons(brim_lines.offset(brim_line_width / 2));
         }
-
-        Shape model_collision;
         {
             constexpr bool include_support = false;
             constexpr bool include_prime_tower = false;
             constexpr bool external_polys_only = false;
-            model_collision = storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only).offset(brim_line_width * 1.5, ClipperLib::jtRound);
+            outside_exclusion_area = outside_exclusion_area.unionPolygons(
+                storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only).offset(brim_line_width * 3 / 2, ClipperLib::jtRound));
         }
 
-        size_t line_count = base_line_count;
-        coord_t offset_distance = -brim_line_width / 2;
-        // Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller then multiplier x extrusion "area"
-        for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
-        {
-            offset_distance += brim_line_width;
-
-            Shape brim_line = support_outline.offset(offset_distance, ClipperLib::jtRound);
-
-            if (! existing_brim_coverage.empty() && ! brim_line.intersection(existing_brim_coverage).empty())
-            {
-                brim_line = brim_line.difference(existing_brim_coverage);
-            }
-
-            if (! model_collision.empty())
-            {
-                brim_line = brim_line.difference(model_collision);
-            }
-
-            for (size_t n = 0; n < brim_line.size(); n++)
-            {
-                const double area = brim_line[n].area();
-                if (area < 0 && area > -support_brim_minimum_hole_area)
-                {
-                    brim_line.removeAt(n--);
-                }
-            }
-
-            const bool brim_line_empty = brim_line.empty(); // Store before moving
-            storage_.support_brim.push_back(std::move(brim_line));
-            // In case of adhesion::NONE length of support brim is only the length of the brims formed for the support
-            const coord_t length = (adhesion_type_ == EPlatformAdhesion::NONE) ? skirt_brim_length : skirt_brim_length + storage_.support_brim.length();
-            if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) // Make brim or skirt have more lines when total length is too small.
-            {
-                line_count++;
-            }
-            if (brim_line_empty)
-            { // the fist layer of support is fully filled with brim
-                break;
-            }
-        }
+        generate_brim_loop(brim_line_width, outside_exclusion_area);
     }
 }
 
