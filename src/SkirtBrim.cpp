@@ -749,8 +749,7 @@ void SkirtBrim::generateSupportBrim()
         {
             if (! storage_.skirt_brim[extruder_nr].empty())
             {
-                outside_exclusion_area = outside_exclusion_area.unionPolygons(
-                    storage_.skirt_brim[extruder_nr].front().offset(brim_line_width * 3 / 2, ClipperLib::jtRound));
+                outside_exclusion_area = outside_exclusion_area.unionPolygons(storage_.skirt_brim[extruder_nr].front().offset(brim_line_width * 3 / 2, ClipperLib::jtRound));
             }
         }
         {
