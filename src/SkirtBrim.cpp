@@ -698,8 +698,8 @@ void SkirtBrim::generateSupportBrim()
     {
         size_t line_count = base_line_count;
         coord_t offset_distance = -offset_step / 2;
-        // Remove small inner skirt and brim holes. Holes have a negative area, remove anything smaller than multiplier x extrusion "area"
-        for (size_t skirt_brim_number = 0; skirt_brim_number < line_count; skirt_brim_number++)
+        // Remove small inner brim holes. Holes have a negative area, remove anything smaller than multiplier x extrusion "area"
+        for (size_t brim_line_number = 0; brim_line_number < line_count; brim_line_number++)
         {
             offset_distance += offset_step;
 
