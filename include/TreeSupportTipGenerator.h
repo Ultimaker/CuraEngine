@@ -40,7 +40,7 @@ public:
     void generateTips(
         SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
-        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
         std::vector<Shape>& additional_support_areas,
         std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas);
 
@@ -141,7 +141,7 @@ private:
      * \param skip_ovalisation[in] Whether the tip may be ovalized when drawn later.
      */
     void addPointAsInfluenceArea(
-        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
         std::pair<Point2LL, LineStatus> p,
         size_t dtt,
         LayerIndex insert_layer,
@@ -161,7 +161,7 @@ private:
      * \param dont_move_until[in] Until which dtt the branch should not move if possible.
      */
     void addLinesAsInfluenceAreas(
-        std::vector<std::set<TreeSupportElement*>>& move_bounds,
+        std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
         std::vector<TreeSupportTipGenerator::LineInformation> lines,
         size_t roof_tip_layers,
         LayerIndex insert_layer_idx,
@@ -175,7 +175,7 @@ private:
      * \param storage[in] Background storage, required for adding roofs.
      * \param additional_support_areas[in] Areas that should have been roofs, but are now support, as they would not generate any lines as roof.
      */
-    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, std::vector<Shape>& additional_support_areas);
+    void removeUselessAddedPoints(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, std::vector<Shape>& additional_support_areas);
 
     /*!
      * \brief Contains config settings to avoid loading them in every function. This was done to improve readability of the code.
