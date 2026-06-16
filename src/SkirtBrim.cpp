@@ -739,26 +739,13 @@ void SkirtBrim::generateSupportBrim()
 
     if (location & BrimLocation::OUTSIDE)
     {
-        // Build the exclusion area: existing skirt/brim coverage and model collision.
-        // Skirt lines are stored inner-to-outer (index 0 = innermost). The support brim growing outward will
-        // collide with the innermost ring first, so only that ring defines the exclusion boundary.
-        // Using the outermost ring would anchor the margin to the wrong side of the skirt.
-        // All extruders' brim lines occupy physical space, so all must be excluded.
-        Shape outside_exclusion_area;
-        for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
-        {
-            if (! storage_.skirt_brim[extruder_nr].empty())
-            {
-                outside_exclusion_area = outside_exclusion_area.unionPolygons(storage_.skirt_brim[extruder_nr].front().offset(brim_line_width * 3 / 2, ClipperLib::jtRound));
-            }
-        }
-        {
-            constexpr bool include_support = false;
-            constexpr bool include_prime_tower = false;
-            constexpr bool external_polys_only = false;
-            outside_exclusion_area = outside_exclusion_area.unionPolygons(
-                storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only).offset(brim_line_width * 3 / 2, ClipperLib::jtRound));
-        }
+        // Build the exclusion area: model collision only. The build plate adhesion brim/skirt is generated after
+        // the support brim, so storage_.skirt_brim is still empty at this point.
+        constexpr bool include_support = false;
+        constexpr bool include_prime_tower = false;
+        constexpr bool external_polys_only = false;
+        const Shape outside_exclusion_area
+            = storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only).offset(brim_line_width * 3 / 2, ClipperLib::jtRound);
 
         generate_brim_loop(brim_line_width, outside_exclusion_area);
     }
