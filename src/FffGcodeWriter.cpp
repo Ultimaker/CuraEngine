@@ -3533,7 +3533,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
                                                                         : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_;
 
     const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
-    if (support_layer.support_bottom.empty() && support_layer.support_roof.empty() && support_layer.support_infill_parts.empty())
+    if (support_layer.support_bottom.empty() && support_layer.support_roof.empty() && support_layer.support_infill_parts.empty() && support_layer.base.empty())
     {
         return support_added;
     }
@@ -3568,7 +3568,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     const SupportLayer& support_layer
         = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())]; // account for negative layer numbers for raft filler layers
 
-    if (gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer || support_layer.support_infill_parts.empty())
+    if (gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer)
     {
         return added_something;
     }
@@ -3578,7 +3578,16 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                                                : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_;
     const ExtruderTrain& infill_extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 
-    gcode_layer.addLinesByOptimizer(support_layer.base, gcode_layer.configs_storage_.support_infill_config[0], SpaceFillType::PolyLines);
+    if (! support_layer.base.empty())
+    {
+        gcode_layer.addLinesByOptimizer(support_layer.base, gcode_layer.configs_storage_.support_infill_config[0], SpaceFillType::PolyLines);
+        added_something = true;
+    }
+
+    if (support_layer.support_infill_parts.empty())
+    {
+        return added_something;
+    }
 
     coord_t default_support_line_distance = infill_extruder.settings_.get<coord_t>("support_line_distance");
 
