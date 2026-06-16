@@ -49,36 +49,35 @@ TreeSupportElement::TreeSupportElement(
     RecreateInfluenceLimitArea();
 }
 
-TreeSupportElement::TreeSupportElement(const TreeSupportElement& elem, Shape* newArea)
+TreeSupportElement::TreeSupportElement(const TreeSupportElement::Ptr& elem, Shape* newArea)
     : // copy constructor with possibility to set a new area
-    target_height_(elem.target_height_)
-    , target_position_(elem.target_position_)
-    , next_position_(elem.next_position_)
-    , next_height_(elem.next_height_)
-    , effective_radius_height_(elem.effective_radius_height_)
-    , to_buildplate_(elem.to_buildplate_)
-    , distance_to_top_(elem.distance_to_top_)
-    , area_(newArea != nullptr ? newArea : elem.area_)
-    , result_on_layer_(elem.result_on_layer_)
-    , increased_to_model_radius_(elem.increased_to_model_radius_)
-    , to_model_gracious_(elem.to_model_gracious_)
-    , buildplate_radius_increases_(elem.buildplate_radius_increases_)
-    , use_min_xy_dist_(elem.use_min_xy_dist_)
-    , supports_roof_(elem.supports_roof_)
-    , dont_move_until_(elem.dont_move_until_)
-    , can_use_safe_radius_(elem.can_use_safe_radius_)
-    , last_area_increase_(elem.last_area_increase_)
-    , missing_roof_layers_(elem.missing_roof_layers_)
-    , skip_ovalisation_(elem.skip_ovalisation_)
-    , all_tips_(elem.all_tips_)
-    , influence_area_limit_active_(elem.influence_area_limit_active_)
-    , influence_area_limit_range_(elem.influence_area_limit_range_)
-    , influence_area_limit_area_(elem.influence_area_limit_area_)
+    target_height_(elem->target_height_)
+    , target_position_(elem->target_position_)
+    , next_position_(elem->next_position_)
+    , next_height_(elem->next_height_)
+    , effective_radius_height_(elem->effective_radius_height_)
+    , to_buildplate_(elem->to_buildplate_)
+    , distance_to_top_(elem->distance_to_top_)
+    , area_(newArea != nullptr ? newArea : elem->area_)
+    , result_on_layer_(elem->result_on_layer_)
+    , increased_to_model_radius_(elem->increased_to_model_radius_)
+    , to_model_gracious_(elem->to_model_gracious_)
+    , buildplate_radius_increases_(elem->buildplate_radius_increases_)
+    , use_min_xy_dist_(elem->use_min_xy_dist_)
+    , supports_roof_(elem->supports_roof_)
+    , dont_move_until_(elem->dont_move_until_)
+    , can_use_safe_radius_(elem->can_use_safe_radius_)
+    , last_area_increase_(elem->last_area_increase_)
+    , missing_roof_layers_(elem->missing_roof_layers_)
+    , skip_ovalisation_(elem->skip_ovalisation_)
+    , all_tips_(elem->all_tips_)
+    , influence_area_limit_active_(elem->influence_area_limit_active_)
+    , influence_area_limit_range_(elem->influence_area_limit_range_)
+    , influence_area_limit_area_(elem->influence_area_limit_area_)
 {
-    addParents(elem.parents_);
 }
 
-TreeSupportElement::TreeSupportElement(TreeSupportElement* element_above)
+TreeSupportElement::TreeSupportElement(const TreeSupportElement::Ptr& element_above)
     : target_height_(element_above->target_height_)
     , target_position_(element_above->target_position_)
     , next_position_(element_above->next_position_)
@@ -104,12 +103,11 @@ TreeSupportElement::TreeSupportElement(TreeSupportElement* element_above)
     , influence_area_limit_range_(element_above->influence_area_limit_range_)
     , influence_area_limit_area_(element_above->influence_area_limit_area_)
 {
-    addParents({ element_above });
 }
 
 TreeSupportElement::TreeSupportElement(
-    const TreeSupportElement& first,
-    const TreeSupportElement& second,
+    const TreeSupportElement::Ptr& first,
+    const TreeSupportElement::Ptr& second,
     size_t next_height,
     Point2LL next_position,
     coord_t increased_to_model_radius,
@@ -121,37 +119,36 @@ TreeSupportElement::TreeSupportElement(
     , next_height_(next_height)
     , area_(nullptr)
     , increased_to_model_radius_(increased_to_model_radius)
-    , use_min_xy_dist_(first.use_min_xy_dist_ || second.use_min_xy_dist_)
-    , supports_roof_(first.supports_roof_ || second.supports_roof_)
-    , dont_move_until_(std::max(first.dont_move_until_, second.dont_move_until_))
-    , can_use_safe_radius_(first.can_use_safe_radius_ || second.can_use_safe_radius_)
-    , missing_roof_layers_(std::min(first.missing_roof_layers_, second.missing_roof_layers_))
+    , use_min_xy_dist_(first->use_min_xy_dist_ || second->use_min_xy_dist_)
+    , supports_roof_(first->supports_roof_ || second->supports_roof_)
+    , dont_move_until_(std::max(first->dont_move_until_, second->dont_move_until_))
+    , can_use_safe_radius_(first->can_use_safe_radius_ || second->can_use_safe_radius_)
+    , missing_roof_layers_(std::min(first->missing_roof_layers_, second->missing_roof_layers_))
     , skip_ovalisation_(false)
 {
-    if (first.target_height_ > second.target_height_)
+    if (first->target_height_ > second->target_height_)
     {
-        target_height_ = first.target_height_;
-        target_position_ = first.target_position_;
+        target_height_ = first->target_height_;
+        target_position_ = first->target_position_;
     }
     else
     {
-        target_height_ = second.target_height_;
-        target_position_ = second.target_position_;
+        target_height_ = second->target_height_;
+        target_position_ = second->target_position_;
     }
-    effective_radius_height_ = std::max(first.effective_radius_height_, second.effective_radius_height_);
-    distance_to_top_ = std::max(first.distance_to_top_, second.distance_to_top_);
+    effective_radius_height_ = std::max(first->effective_radius_height_, second->effective_radius_height_);
+    distance_to_top_ = std::max(first->distance_to_top_, second->distance_to_top_);
 
-    to_buildplate_ = first.to_buildplate_ && second.to_buildplate_;
-    to_model_gracious_ = first.to_model_gracious_ && second.to_model_gracious_; // valid as we do not merge non-gracious with gracious
-
-    addParents(first.parents_);
-    addParents(second.parents_);
+    to_buildplate_ = first->to_buildplate_ && second->to_buildplate_;
+    to_model_gracious_ = first->to_model_gracious_ && second->to_model_gracious_; // valid as we do not merge non-gracious with gracious
 
     buildplate_radius_increases_ = 0;
     if (diameter_scale_bp_radius > 0)
     {
         const coord_t foot_increase_radius = std::abs(
-            std::max(getRadius(second.effective_radius_height_, second.buildplate_radius_increases_), getRadius(first.effective_radius_height_, first.buildplate_radius_increases_))
+            std::max(
+                getRadius(second->effective_radius_height_, second->buildplate_radius_increases_),
+                getRadius(first->effective_radius_height_, first->buildplate_radius_increases_))
             - getRadius(effective_radius_height_, buildplate_radius_increases_));
         // 'buildplate_radius_increases' has to be recalculated, as when a smaller tree with a larger buildplate_radius_increases merge with a larger branch,
         //   the buildplate_radius_increases may have to be lower as otherwise the radius suddenly increases. This results often in a non integer value.
@@ -160,30 +157,30 @@ TreeSupportElement::TreeSupportElement(
 
     // set last settings to the best out of both parents. If this is wrong, it will only cause a small performance penalty instead of weird behavior.
     last_area_increase_ = AreaIncreaseSettings(
-        std::min(first.last_area_increase_.type_, second.last_area_increase_.type_),
-        std::min(first.last_area_increase_.increase_speed_, second.last_area_increase_.increase_speed_),
-        first.last_area_increase_.increase_radius_ || second.last_area_increase_.increase_radius_,
-        first.last_area_increase_.no_error_ || second.last_area_increase_.no_error_,
-        first.last_area_increase_.use_min_distance_ && second.last_area_increase_.use_min_distance_,
-        first.last_area_increase_.move_ || second.last_area_increase_.move_);
+        std::min(first->last_area_increase_.type_, second->last_area_increase_.type_),
+        std::min(first->last_area_increase_.increase_speed_, second->last_area_increase_.increase_speed_),
+        first->last_area_increase_.increase_radius_ || second->last_area_increase_.increase_radius_,
+        first->last_area_increase_.no_error_ || second->last_area_increase_.no_error_,
+        first->last_area_increase_.use_min_distance_ && second->last_area_increase_.use_min_distance_,
+        first->last_area_increase_.move_ || second->last_area_increase_.move_);
 
-    all_tips_ = first.all_tips_;
-    all_tips_.insert(all_tips_.end(), second.all_tips_.begin(), second.all_tips_.end());
-    influence_area_limit_range_ = std::max(first.influence_area_limit_range_, second.influence_area_limit_range_);
-    influence_area_limit_active_ = first.influence_area_limit_active_ || second.influence_area_limit_active_;
+    all_tips_ = first->all_tips_;
+    all_tips_.insert(all_tips_.end(), second->all_tips_.begin(), second->all_tips_.end());
+    influence_area_limit_range_ = std::max(first->influence_area_limit_range_, second->influence_area_limit_range_);
+    influence_area_limit_active_ = first->influence_area_limit_active_ || second->influence_area_limit_active_;
     RecreateInfluenceLimitArea();
-    if (first.to_buildplate_ != second.to_buildplate_)
+    if (first->to_buildplate_ != second->to_buildplate_)
     {
         setToBuildplateForAllParents(to_buildplate_);
     }
 }
 
-void TreeSupportElement::addParents(const std::vector<TreeSupportElement*>& new_parents)
+void TreeSupportElement::addParents(const std::vector<TreeSupportElement::Ptr>& new_parents)
 {
     parents_.insert(parents_.begin(), new_parents.begin(), new_parents.end());
-    for (TreeSupportElement* parent : new_parents)
+    for (const TreeSupportElement::Ptr& parent : new_parents)
     {
-        parent->child_ = this;
+        parent->child_ = shared_from_this();
     }
 }
 
@@ -216,11 +213,11 @@ void TreeSupportElement::setToBuildplateForAllParents(bool new_value)
 {
     to_buildplate_ = new_value;
     to_model_gracious_ |= new_value;
-    std::vector<TreeSupportElement*> grandparents{ parents_ };
+    std::vector<TreeSupportElement::Ptr> grandparents{ parents_ };
     while (! grandparents.empty())
     {
-        std::vector<TreeSupportElement*> next_parents;
-        for (TreeSupportElement* grandparent : grandparents)
+        std::vector<TreeSupportElement::Ptr> next_parents;
+        for (TreeSupportElement::Ptr grandparent : grandparents)
         {
             next_parents.insert(next_parents.end(), grandparent->parents_.begin(), grandparent->parents_.end());
             grandparent->to_buildplate_ = new_value;
@@ -236,6 +233,46 @@ void TreeSupportElement::saveToObj(OBJ& obj, const coord_t z, const coord_t laye
     {
         obj.write(*area_, z, layer_height, to_model_gracious_ ? SVG::Color::BLUE : SVG::Color::RED);
     }
+}
+
+TreeSupportElement::Ptr TreeSupportElement::makeFromElementAbove(const TreeSupportElement::Ptr& element_above)
+{
+    std::shared_ptr<TreeSupportElement> element(new TreeSupportElement(element_above));
+    element->addParents({ element_above });
+    return element;
+}
+
+TreeSupportElement::Ptr TreeSupportElement::makeCopy(const TreeSupportElement::Ptr& elem, Shape* newArea)
+{
+    std::shared_ptr<TreeSupportElement> element(new TreeSupportElement(elem, newArea));
+    element->addParents(elem->getParents());
+    return element;
+}
+
+TreeSupportElement::Ptr TreeSupportElement::makeMerged(
+    const TreeSupportElement::Ptr& first,
+    const TreeSupportElement::Ptr& second,
+    size_t next_height,
+    Point2LL next_position,
+    coord_t increased_to_model_radius,
+    const std::function<coord_t(size_t, double)>& getRadius,
+    double diameter_scale_bp_radius,
+    coord_t branch_radius,
+    double diameter_angle_scale_factor)
+{
+    std::shared_ptr<TreeSupportElement> element(new TreeSupportElement(
+        first,
+        second,
+        next_height,
+        next_position,
+        increased_to_model_radius,
+        getRadius,
+        diameter_scale_bp_radius,
+        branch_radius,
+        diameter_angle_scale_factor));
+    element->addParents(first->getParents());
+    element->addParents(second->getParents());
+    return element;
 }
 
 } // namespace cura

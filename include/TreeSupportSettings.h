@@ -449,10 +449,11 @@ public:
      * \brief Get the Distance to top regarding the real radius this part will have. This is different from distance_to_top, which is can be used to calculate the top most layer of
      * the branch. \param elem[in] The SupportElement one wants to know the effectiveDTT \return The Effective DTT.
      */
-    [[nodiscard]] inline size_t getEffectiveDTT(const TreeSupportElement& elem) const
+    [[nodiscard]] inline size_t getEffectiveDTT(const TreeSupportElement::Ptr& elem) const
     {
-        return elem.effective_radius_height_ < increase_radius_until_dtt ? (elem.distance_to_top_ < increase_radius_until_dtt ? elem.distance_to_top_ : increase_radius_until_dtt)
-                                                                         : elem.effective_radius_height_;
+        return elem->effective_radius_height_ < increase_radius_until_dtt
+                 ? (elem->distance_to_top_ < increase_radius_until_dtt ? elem->distance_to_top_ : increase_radius_until_dtt)
+                 : elem->effective_radius_height_;
     }
 
     /*!
@@ -477,9 +478,9 @@ public:
      * \param elem[in] The Element.
      * \return The radius the element has.
      */
-    [[nodiscard]] inline coord_t getRadius(const TreeSupportElement& elem) const
+    [[nodiscard]] inline coord_t getRadius(const TreeSupportElement::Ptr& elem) const
     {
-        return getRadius(getEffectiveDTT(elem), (elem.isResultOnLayerSet() || ! support_rests_on_model) && elem.to_buildplate_ ? elem.buildplate_radius_increases_ : 0);
+        return getRadius(getEffectiveDTT(elem), (elem->isResultOnLayerSet() || ! support_rests_on_model) && elem->to_buildplate_ ? elem->buildplate_radius_increases_ : 0);
     }
 
     /*!
@@ -487,9 +488,9 @@ public:
      * \param elem[in] The Element.
      * \return The collision radius the element has.
      */
-    [[nodiscard]] inline coord_t getCollisionRadius(const TreeSupportElement& elem) const
+    [[nodiscard]] inline coord_t getCollisionRadius(const TreeSupportElement::Ptr& elem) const
     {
-        return getRadius(elem.effective_radius_height_, elem.buildplate_radius_increases_);
+        return getRadius(elem->effective_radius_height_, elem->buildplate_radius_increases_);
     }
 
     /*!

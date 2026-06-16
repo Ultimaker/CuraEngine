@@ -45,8 +45,8 @@ constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
 constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
 constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
 
-using PropertyAreasUnordered = std::unordered_map<TreeSupportElement, Shape>;
-using PropertyAreas = std::map<TreeSupportElement, Shape>;
+using PropertyAreasUnordered = std::unordered_map<TreeSupportElement::Ptr, Shape>;
+using PropertyAreas = std::map<TreeSupportElement::Ptr, Shape>;
 
 struct FakeRoofArea
 {
@@ -125,7 +125,7 @@ private:
      * \param move_bounds[out] Storage for the influence areas.
      * \param storage[in] Background storage, required for adding roofs.
      */
-    void generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
+    void generateInitialAreas(const SliceMeshStorage& mesh, std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage);
 
 
     /*!
@@ -145,15 +145,15 @@ private:
      * of avoidance) \param erase[out] Elements that should be deleted from the above dictionaries. \param layer_idx[in] The Index of the current Layer.
      */
     void mergeHelper(
-        std::map<TreeSupportElement, AABB>& reduced_aabb,
-        std::map<TreeSupportElement, AABB>& input_aabb,
+        std::map<TreeSupportElement::Ptr, AABB>& reduced_aabb,
+        std::map<TreeSupportElement::Ptr, AABB>& input_aabb,
         const PropertyAreasUnordered& to_bp_areas,
         const PropertyAreas& to_model_areas,
         const PropertyAreas& influence_areas,
         PropertyAreasUnordered& insert_bp_areas,
         PropertyAreasUnordered& insert_model_areas,
         PropertyAreasUnordered& insert_influence,
-        std::vector<TreeSupportElement>& erase,
+        std::vector<TreeSupportElement::Ptr>& erase,
         const LayerIndex layer_idx);
 
     /*!
@@ -193,10 +193,10 @@ private:
      * called on this layer. This information is required as some calculation can be avoided if they are not required for merging. \return A valid support element for the next
      * layer regarding the calculated influence areas. Empty if no influence are can be created using the supplied influence area and settings.
      */
-    std::optional<TreeSupportElement> increaseSingleArea(
+    TreeSupportElement::Ptr increaseSingleArea(
         AreaIncreaseSettings settings,
         LayerIndex layer_idx,
-        TreeSupportElement* parent,
+        TreeSupportElement::Ptr parent,
         const Shape& relevant_offset,
         Shape& to_bp_data,
         Shape& to_model_data,
@@ -227,8 +227,8 @@ private:
         PropertyAreasUnordered& to_bp_areas,
         PropertyAreas& to_model_areas,
         PropertyAreas& influence_areas,
-        std::vector<TreeSupportElement*>& bypass_merge_areas,
-        const std::vector<TreeSupportElement*>& last_layer,
+        std::vector<TreeSupportElement::Ptr>& bypass_merge_areas,
+        const std::vector<TreeSupportElement::Ptr>& last_layer,
         const LayerIndex layer_idx,
         const bool mergelayer);
 
@@ -237,7 +237,7 @@ private:
      *
      * \param move_bounds[in,out] All currently existing influence areas
      */
-    void createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, TimeKeeper& time_keeper);
+    void createLayerPathing(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, TimeKeeper& time_keeper);
 
 
     /*!
@@ -245,7 +245,7 @@ private:
      *
      * \param elem[in] The SupportElements, which parent's position should be determined.
      */
-    void setPointsOnAreas(const TreeSupportElement* elem);
+    void setPointsOnAreas(const TreeSupportElement::Ptr elem);
 
     /*!
      * \brief Get the best point to connect to the model and set the result_on_layer of the relevant SupportElement accordingly.
@@ -255,14 +255,14 @@ private:
      * \param layer_idx[in] The current layer.
      * \return Should elem be deleted.
      */
-    bool setToModelContact(std::vector<std::set<TreeSupportElement*>>& move_bounds, TreeSupportElement* first_elem, const LayerIndex layer_idx);
+    bool setToModelContact(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, TreeSupportElement::Ptr first_elem, const LayerIndex layer_idx);
 
     /*!
      * \brief Set the result_on_layer point for all influence areas
      *
      * \param move_bounds[in,out] All currently existing influence areas
      */
-    void createNodesFromArea(std::vector<std::set<TreeSupportElement*>>& move_bounds);
+    void createNodesFromArea(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds);
 
     /*!
      * \brief Draws circles around result_on_layer points of the influence areas
@@ -273,18 +273,18 @@ private:
      * corresponding branch area in layer_tree_polygons. \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
     void generateBranchAreas(
-        std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
-        std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
-        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
+        std::vector<std::pair<LayerIndex, TreeSupportElement::Ptr>>& linear_data,
+        std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>>& layer_tree_polygons,
+        const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order);
 
     /*!
      * \brief Applies some smoothing to the outer wall, intended to smooth out sudden jumps as they can happen when a branch moves though a hole.
      *
      * \param layer_tree_polygons[in,out] Resulting branch areas with the layerindex they appear on.
      */
-    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
+    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>>& layer_tree_polygons);
 
-    void smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*>>& layer_tree_polygons);
+    void smoothBranchSkeletons(std::vector<std::set<TreeSupportElement::Ptr>>& layer_tree_polygons);
 
     /*!
      * \brief Drop down areas that do rest non-gracefully on the model to ensure the branch actually rests on something.
@@ -295,10 +295,10 @@ private:
      * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
     void dropNonGraciousAreas(
-        std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons,
-        const std::vector<std::pair<LayerIndex, TreeSupportElement*>>& linear_data,
+        std::vector<std::unordered_map<TreeSupportElement::Ptr, Shape>>& layer_tree_polygons,
+        const std::vector<std::pair<LayerIndex, TreeSupportElement::Ptr>>& linear_data,
         std::vector<std::vector<std::pair<LayerIndex, Shape>>>& dropped_down_areas,
-        const std::map<TreeSupportElement*, TreeSupportElement*>& inverse_tree_order);
+        const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order);
 
 
     void filterFloatingLines(std::vector<Shape>& support_layer_storage);
@@ -324,13 +324,13 @@ private:
      * \param move_bounds[in] All currently existing influence areas
      * \param storage[in,out] The storage where the support should be stored.
      */
-    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, TimeKeeper& time_keeper);
+    void drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, TimeKeeper& time_keeper);
 
     /*!
      * Saves the influence areas and the resulting positions of all the given elements to a 3D object
      * @para move_bounds The elements to be saved, sorted per layer
      */
-    void saveToObj(const std::vector<std::set<TreeSupportElement*>>& move_bounds, OBJ& obj) const;
+    void saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, OBJ& obj) const;
 
     /*!
      * \brief Settings with the indexes of meshes that use these settings.
