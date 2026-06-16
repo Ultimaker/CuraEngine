@@ -743,10 +743,15 @@ void SkirtBrim::generateSupportBrim()
         // Skirt lines are stored inner-to-outer (index 0 = innermost). The support brim growing outward will
         // collide with the innermost ring first, so only that ring defines the exclusion boundary.
         // Using the outermost ring would anchor the margin to the wrong side of the skirt.
+        // All extruders' brim lines occupy physical space, so all must be excluded.
         Shape outside_exclusion_area;
-        if (! storage_.skirt_brim[support_infill_extruder.extruder_nr_].empty())
+        for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
         {
-            outside_exclusion_area = storage_.skirt_brim[support_infill_extruder.extruder_nr_].front().offset(brim_line_width * 3 / 2, ClipperLib::jtRound);
+            if (! storage_.skirt_brim[extruder_nr].empty())
+            {
+                outside_exclusion_area = outside_exclusion_area.unionPolygons(
+                    storage_.skirt_brim[extruder_nr].front().offset(brim_line_width * 3 / 2, ClipperLib::jtRound));
+            }
         }
         {
             constexpr bool include_support = false;
