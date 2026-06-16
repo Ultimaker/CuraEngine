@@ -674,23 +674,10 @@ void SkirtBrim::generateSupportBrim()
     const coord_t brim_line_width
         = support_infill_extruder.settings_.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
     const size_t base_line_count = support_infill_extruder.settings_.get<size_t>("support_brim_line_count");
-    const coord_t minimal_length = support_infill_extruder.settings_.get<coord_t>("skirt_brim_minimal_length");
     const BrimLocation location = support_infill_extruder.settings_.get<BrimLocation>("support_brim_location");
     if (! storage_.support.generated || base_line_count == 0 || storage_.support.supportLayers.empty())
     {
         return;
-    }
-
-    coord_t skirt_brim_length = 0;
-
-    if (storage_.skirt_brim[support_infill_extruder.extruder_nr_].empty())
-    {
-        storage_.skirt_brim[support_infill_extruder.extruder_nr_].emplace_back();
-    }
-
-    for (const MixedLinesSet& brim_line : storage_.skirt_brim[support_infill_extruder.extruder_nr_])
-    {
-        skirt_brim_length += brim_line.length();
     }
 
     SupportLayer& support_layer = storage_.support.supportLayers[0];
@@ -732,16 +719,10 @@ void SkirtBrim::generateSupportBrim()
                 }
             }
 
-            const bool brim_line_empty = brim_line.empty(); // Store before moving
+            const bool brim_line_empty = brim_line.empty() || brim_line.length() == 0; // Store before moving
             storage_.support_brim.push_back(std::move(brim_line));
-            // In case of adhesion::NONE length of support brim is only the length of the brims formed for the support
-            const coord_t length = (adhesion_type_ == EPlatformAdhesion::NONE) ? storage_.support_brim.length() : skirt_brim_length + storage_.support_brim.length();
-            if (skirt_brim_number + 1 >= line_count && length > 0 && length < minimal_length) // Make brim or skirt have more lines when total length is too small.
-            {
-                line_count++;
-            }
             if (brim_line_empty)
-            { // the first layer of support is fully filled with brim
+            { // the support layer is fully covered; no more area available for brim
                 break;
             }
         }
@@ -758,11 +739,14 @@ void SkirtBrim::generateSupportBrim()
 
     if (location & BrimLocation::OUTSIDE)
     {
-        // Build the exclusion area: existing model brim coverage and model collision (at least 1 line-width gap)
+        // Build the exclusion area: existing skirt/brim coverage and model collision.
+        // Skirt lines are stored inner-to-outer (index 0 = innermost). The support brim growing outward will
+        // collide with the innermost ring first, so only that ring defines the exclusion boundary.
+        // Using the outermost ring would anchor the margin to the wrong side of the skirt.
         Shape outside_exclusion_area;
-        for (const MixedLinesSet& brim_lines : storage_.skirt_brim[support_infill_extruder.extruder_nr_])
+        if (! storage_.skirt_brim[support_infill_extruder.extruder_nr_].empty())
         {
-            outside_exclusion_area = outside_exclusion_area.unionPolygons(brim_lines.offset(brim_line_width / 2));
+            outside_exclusion_area = storage_.skirt_brim[support_infill_extruder.extruder_nr_].front().offset(brim_line_width * 3 / 2, ClipperLib::jtRound);
         }
         {
             constexpr bool include_support = false;
