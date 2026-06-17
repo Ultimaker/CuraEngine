@@ -8,8 +8,10 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
+#include "infill.h"
 #include "settings/EnumSettings.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
@@ -158,20 +160,15 @@ void SkirtBrim::generate()
         covered_area = covered_area.approxConvexHull();
     }
 
-    // Exclude areas already covered by support brim (generated before this function)
+    // Exclude areas already covered by support brim
     if (! storage_.support_brim.empty())
     {
         const Settings& support_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
         const ExtruderTrain& support_infill_extruder = support_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
         const coord_t support_brim_line_width
             = support_infill_extruder.settings_.get<coord_t>("skirt_brim_line_width") * support_infill_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
-        coord_t clearance = support_brim_line_width; // default: one line of clearance for brim adhesion
-        if (adhesion_type_ == EPlatformAdhesion::SKIRT)
-        {
-            const int skirt_extruder_nr = skirt_brim_extruder_nr_ >= 0 ? skirt_brim_extruder_nr_ : static_cast<int>(first_used_extruder_nr_);
-            clearance = extruders_configs_[skirt_extruder_nr].line_count_ * extruder_count_ * support_brim_line_width * 2;
-        }
-        const Shape support_brim_covered = storage_.support_brim.offset(support_brim_line_width / 2 + clearance, ClipperLib::jtRound);
+
+        const Shape support_brim_covered = storage_.support_brim.offset(support_brim_line_width * 3 / 2, ClipperLib::jtRound);
         covered_area = covered_area.unionPolygons(support_brim_covered);
         for (size_t extruder_nr = 0; extruder_nr < extruder_count_; extruder_nr++)
         {
@@ -375,6 +372,15 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
         // so in some cases with a large skirt gap and small models and small shield distance
         // the skirt lines can cross the shield lines.
         // This shouldn't be a big problem, since the skirt lines are far away from the model.
+
+        if (! storage_.support_brim.empty())
+        {
+            for (const Shape& brim_ring : storage_.support_brim)
+            {
+                first_layer_outline.gapped = first_layer_outline.gapped.unionPolygons(brim_ring);
+            }
+        }
+
         first_layer_outline.gapped = first_layer_outline.gapped.approxConvexHull();
     }
     else
@@ -711,41 +717,52 @@ void SkirtBrim::generateSupportBrim()
 
     const coord_t support_brim_minimum_hole_area = MM2_2INT(support_infill_extruder.settings_.get<size_t>("support_brim_minimum_hole_area"));
 
-    // Shared brim generation loop used for both INSIDE (inward offsets) and OUTSIDE (outward offsets).
-    // offset_step is negative for INSIDE and positive for OUTSIDE; the initial offset_distance is derived
-    // so that the first iteration lands at half a line-width from the reference outline.
-    // exclusion_area contains any regions that must be subtracted from each candidate brim ring before use.
-    auto generate_brim_loop = [&](const coord_t offset_step, const Shape& exclusion_area)
+    const Settings& support_settings = support_infill_extruder.settings_;
+    const coord_t max_resolution = support_settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = support_settings.get<coord_t>("meshfix_maximum_deviation");
+
+    // Generates the single outermost brim ring and, when line_count > 1, fills the interior
+    // area with a zigzag pattern. Both INSIDE and OUTSIDE use this; the difference is the
+    // ring_offset and fill_area computed per case.
+    auto generate_outermost_ring_and_fill = [&](const coord_t ring_offset, const Shape& fill_area, const Shape& exclusion_area)
     {
-        size_t line_count = base_line_count;
-        coord_t offset_distance = -offset_step / 2;
-        // Remove small inner brim holes. Holes have a negative area, remove anything smaller than multiplier x extrusion "area"
-        for (size_t brim_line_number = 0; brim_line_number < line_count; brim_line_number++)
+        Shape outermost_ring = support_outline.offset(ring_offset, ClipperLib::jtRound);
+        if (! exclusion_area.empty())
         {
-            offset_distance += offset_step;
-
-            Shape brim_line = support_outline.offset(offset_distance, ClipperLib::jtRound);
-
-            if (! exclusion_area.empty())
+            outermost_ring = outermost_ring.difference(exclusion_area);
+        }
+        for (size_t n = 0; n < outermost_ring.size(); n++)
+        {
+            const double area = outermost_ring[n].area();
+            if (area < 0 && area > -support_brim_minimum_hole_area)
             {
-                brim_line = brim_line.difference(exclusion_area);
+                outermost_ring.removeAt(n--);
             }
+        }
+        if (! outermost_ring.empty())
+        {
+            storage_.support_brim.push_back(outermost_ring);
+        }
 
-            for (size_t n = 0; n < brim_line.size(); n++)
-            {
-                const double area = brim_line[n].area();
-                if (area < 0 && area > -support_brim_minimum_hole_area)
-                {
-                    brim_line.removeAt(n--);
-                }
-            }
-
-            const bool brim_line_empty = brim_line.empty() || brim_line.length() == 0; // Store before moving
-            storage_.support_brim.push_back(std::move(brim_line));
-            if (brim_line_empty)
-            { // the support layer is fully covered; no more area available for brim
-                break;
-            }
+        if (base_line_count > 1 && ! fill_area.empty())
+        {
+            std::vector<VariableWidthLines> fill_toolpaths;
+            Shape fill_polygons;
+            Infill infill_generator(
+                EFillMethod::ZIG_ZAG,
+                /*zig_zaggify=*/true,
+                /*connect_polygons=*/false,
+                fill_area,
+                brim_line_width,
+                brim_line_width,
+                /*infill_overlap=*/0,
+                /*infill_multiplier=*/1,
+                /*fill_angle=*/45.0,
+                /*z=*/0,
+                /*shift=*/0,
+                max_resolution,
+                max_deviation);
+            infill_generator.generate(fill_toolpaths, fill_polygons, storage_.support_brim_fill, support_settings, /*layer_idx=*/0);
         }
     };
 
@@ -755,20 +772,29 @@ void SkirtBrim::generateSupportBrim()
         const Shape brim_area = support_outline.difference(support_outline.offset(-inside_brim_width));
         support_layer.excludeAreasFromSupportInfillAreas(brim_area, AABB(brim_area));
 
-        generate_brim_loop(-brim_line_width, Shape{});
+        // Outermost ring sits at the support boundary edge; interior is filled with zigzag.
+        const coord_t ring_offset = -brim_line_width / 2;
+        const Shape fill_area = support_outline.offset(-brim_line_width, ClipperLib::jtRound);
+        generate_outermost_ring_and_fill(ring_offset, fill_area, Shape{});
     }
 
     if (location & BrimLocation::OUTSIDE)
     {
-        // Build the exclusion area: model collision only. The build plate adhesion brim/skirt is generated after
-        // the support brim, so storage_.skirt_brim is still empty at this point.
+        // Exclusion area: model collision only. skirt_brim is still empty at this point.
         constexpr bool include_support = false;
         constexpr bool include_prime_tower = false;
         constexpr bool external_polys_only = false;
         const Shape outside_exclusion_area
             = storage_.getLayerOutlines(0, include_support, include_prime_tower, external_polys_only).offset(brim_line_width * 3 / 2, ClipperLib::jtRound);
 
-        generate_brim_loop(brim_line_width, outside_exclusion_area);
+        // Outermost ring is the farthest from the support boundary; annular area inside it is filled with zigzag.
+        const coord_t ring_offset = static_cast<coord_t>(2 * base_line_count - 1) * brim_line_width / 2;
+        Shape fill_area = support_outline.offset(static_cast<coord_t>((base_line_count - 1) * brim_line_width), ClipperLib::jtRound).difference(support_outline);
+        if (! outside_exclusion_area.empty())
+        {
+            fill_area = fill_area.difference(outside_exclusion_area);
+        }
+        generate_outermost_ring_and_fill(ring_offset, fill_area, outside_exclusion_area);
     }
 }
 
