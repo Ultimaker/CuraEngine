@@ -197,8 +197,8 @@ Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
             {
                 const auto& mesh = *mesh_ptr;
                 const SliceLayer& layer = mesh.layers[static_cast<size_t>(layer_nr_)];
-                // don't process infill_mesh or anti_overhang_mesh
-                if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+                // don't process non printable meshes
+                if (! mesh.isModelMesh())
                 {
                     continue;
                 }
@@ -3519,7 +3519,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
-            extruder_plan.handleInserts(path_idx, gcode);
+            // Fire any inserts that became overdue during the previous path, using the total
+            // accumulated time from that path.
+            extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
             cumulative_path_time = 0.; // reset to 0 for current path.
 
             GCodePath& path = paths[path_idx];

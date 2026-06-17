@@ -68,7 +68,8 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
     // When spiralizing, generate the spiral insets using simple offsets instead of generating toolpaths
     if (spiralize)
     {
-        const bool recompute_outline_based_on_outer_wall = settings_.get<bool>("support_enable") && ! settings_.get<bool>("fill_outline_gaps");
+        const bool mesh_group_support_paint = Application::getInstance().current_slice_->scene.current_mesh_group->has_painted_support;
+        const bool recompute_outline_based_on_outer_wall = (settings_.get<bool>("support_enable") || mesh_group_support_paint) && ! settings_.get<bool>("fill_outline_gaps");
 
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
         if (layer_nr_ <= static_cast<LayerIndex>(settings_.get<size_t>("initial_bottom_layers")))
