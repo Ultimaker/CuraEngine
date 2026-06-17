@@ -13,12 +13,12 @@
 #include "geometry/Shape.h"
 #include "infill.h"
 #include "settings/EnumSettings.h"
-#include "utils/section_type.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "support.h"
 #include "utils/MixedPolylineStitcher.h"
 #include "utils/Simplify.h"
+#include "utils/section_type.h"
 
 namespace cura
 {
