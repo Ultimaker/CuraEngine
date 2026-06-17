@@ -13,6 +13,7 @@
 #include "geometry/Shape.h"
 #include "infill.h"
 #include "settings/EnumSettings.h"
+#include "utils/section_type.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "support.h"
@@ -375,10 +376,7 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
 
         if (! storage_.support_brim.empty())
         {
-            for (const Shape& brim_ring : storage_.support_brim)
-            {
-                first_layer_outline.gapped = first_layer_outline.gapped.unionPolygons(brim_ring);
-            }
+            first_layer_outline.gapped = first_layer_outline.gapped.unionPolygons(storage_.support_brim.offset(0));
         }
 
         first_layer_outline.gapped = first_layer_outline.gapped.approxConvexHull();
@@ -741,7 +739,7 @@ void SkirtBrim::generateSupportBrim()
         }
         if (! outermost_ring.empty())
         {
-            storage_.support_brim.push_back(outermost_ring);
+            storage_.support_brim.push_back(std::move(outermost_ring));
         }
 
         if (base_line_count > 1 && ! fill_area.empty())
@@ -762,7 +760,7 @@ void SkirtBrim::generateSupportBrim()
                 /*shift=*/0,
                 max_resolution,
                 max_deviation);
-            infill_generator.generate(fill_toolpaths, fill_polygons, storage_.support_brim_fill, support_settings, /*layer_idx=*/0);
+            infill_generator.generate(fill_toolpaths, fill_polygons, storage_.support_brim_fill, support_settings, /*layer_idx=*/0, SectionType::ADHESION);
         }
     };
 
