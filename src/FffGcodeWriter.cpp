@@ -1477,21 +1477,6 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             fan_speed,
             reverse_print_direction,
             order_requirements = {});
-        if (! storage.support_brim_fill.empty())
-        {
-            total_line_count += storage.support_brim_fill.size();
-            gcode_layer.addLinesByOptimizer(
-                storage.support_brim_fill,
-                gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
-                SpaceFillType::PolyLines,
-                enable_travel_optimization,
-                wipe_dist,
-                flow_ratio,
-                start_close_to,
-                fan_speed,
-                reverse_print_direction,
-                order_requirements = {});
-        }
     }
 }
 

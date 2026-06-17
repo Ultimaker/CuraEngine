@@ -383,7 +383,6 @@ public:
 
     std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
     ClosedLinesSet support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
-    OpenLinesSet support_brim_fill; //!< zigzag fill lines inside the outermost support brim ring.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
     Shape raft_base_outline;
