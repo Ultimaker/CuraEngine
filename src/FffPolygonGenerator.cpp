@@ -1075,14 +1075,14 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
     }
 
     SkirtBrim skirt_brim(storage);
-    if (adhesion_type != EPlatformAdhesion::NONE)
-    {
-        skirt_brim.generate();
-    }
-
     if (mesh_group_settings.get<bool>("support_brim_enable"))
     {
         skirt_brim.generateSupportBrim();
+    }
+
+    if (adhesion_type != EPlatformAdhesion::NONE)
+    {
+        skirt_brim.generate();
     }
 }
 
