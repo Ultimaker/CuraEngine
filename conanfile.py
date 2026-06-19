@@ -141,8 +141,8 @@ class CuraEngineConan(ConanFile):
         self.requires("boost/1.88.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
-        self.requires("spdlog/1.15.1")
-        self.requires("fmt/11.1.3")
+        self.requires("spdlog/1.17.0")
+        self.requires("fmt/12.1.0")
         self.requires("range-v3/0.12.0")
         self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
 
