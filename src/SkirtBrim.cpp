@@ -3,6 +3,8 @@
 
 #include "SkirtBrim.h"
 
+#include <numeric> // for std::accumulate
+
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
@@ -140,8 +142,198 @@ std::vector<SkirtBrim::Offset> SkirtBrim::generateBrimOffsetPlan(std::vector<Out
     return all_brim_offsets;
 }
 
+void computeOverSegments(const Polygon& poly, const std::function<void(const Point2F&, const Point2F&)>& func)
+{
+    for (auto it = poly.beginSegments(); it != poly.endSegments(); ++it)
+    {
+        const Point2F p1((*it).start.X, (*it).start.Y);
+        const Point2F p2((*it).end.X, (*it).end.Y);
+        func(p1, p2);
+    }
+}
+
+bool computeBrimEstimateShapeProperties(const Shape& polys, Point2F& total_centroid, Point2F& total_moment)
+{
+    Point2F centroid(0.0f, 0.0f);
+    float accumulated_area = 0.0f;
+    const auto func_centroid = [&centroid, &accumulated_area](const Point2F& p1, const Point2F& p2)
+    {
+        const float cross2d = (p1.x_ * p2.y_ - p1.y_ * p2.x_);
+        accumulated_area += cross2d;
+        centroid.x_ += (p1.x_ + p2.x_) * accumulated_area;
+        centroid.y_ += (p1.y_ + p2.y_) * accumulated_area;
+    };
+    Point2F moment(0.0f, 0.0f);
+    const auto func_second_moment = [&moment](const Point2F& p1, const Point2F& p2)
+    {
+        const float mul = (p1.x_ * p2.y_ - p1.y_ * p2.x_) / 12.0f;
+        moment.x_ += (p1.y_ * p1.y_ + p1.y_ * p2.y_ + p2.y_ * p2.y_) * mul;
+        moment.y_ += (p1.x_ * p1.x_ + p1.x_ * p2.x_ + p2.x_ * p2.x_) * mul;
+    };
+
+    for (const auto& poly : polys)
+    {
+        const auto area = poly.area();
+        if (poly.getPoints().size() < 3 || std::abs(area) < EPSILON)
+        {
+            continue;
+        }
+
+        // Centroid:
+        centroid = Point2F(0.0f, 0.0f);
+        accumulated_area = 0.0f;
+        computeOverSegments(poly, func_centroid);
+        assert(accumulated_area != 0.0f);
+        accumulated_area *= 3.0f;
+        centroid.x_ /= accumulated_area;
+        centroid.y_ /= accumulated_area;
+        total_centroid.x_ += centroid.x_ * area;
+        total_centroid.y_ += centroid.y_ * area;
+
+        // Moment:
+        moment = Point2F(0.0f, 0.0f);
+        computeOverSegments(poly, func_second_moment);
+        const float simple_or_hole = poly.orientation() ? -1.0f : 1.0f;
+        total_moment.x_ += simple_or_hole * moment.x_;
+        total_moment.y_ += simple_or_hole * moment.y_;
+    }
+
+    total_moment.x_ -= total_centroid.y_ * total_centroid.y_;
+    total_moment.y_ -= total_centroid.x_ * total_centroid.x_;
+    const auto area = polys.area();
+    total_centroid.x_ /= area;
+    total_centroid.y_ /= area;
+
+    return area > EPSILON;
+}
+
+float getThermalLength(const std::vector<Mesh>& meshes)
+{
+    constexpr float min_length = 1250.0f;
+    return std::accumulate(
+        meshes.begin(),
+        meshes.end(),
+        min_length,
+        [](const float& thermal_length, const Mesh& mesh)
+        {
+            constexpr float default_length = 200.0f;
+            const float res = default_length; // TODO: make into setting! (depends on extruder of the mesh, which has the material)
+            return std::min(default_length, res);
+        });
+}
+
+float getMaxSpeed(const std::vector<Mesh>& meshes)
+{
+    constexpr std::array<std::string_view, 10> speed_settings = {
+        "speed_infill",          "speed_wall_0",          "speed_wall_x",  "speed_wall_0_roofing", "speed_wall_x_roofing",
+        "speed_wall_0_flooring", "speed_wall_x_flooring", "speed_roofing", "speed_flooring",       "speed_topbottom",
+        /* // and for support (TODO; handle this separately):
+        "speed_support_infill",
+        "speed_support_roof",
+        "speed_support_bottom",
+         */
+    };
+
+    const float res = std::accumulate(
+        meshes.begin(),
+        meshes.end(),
+        -1.0f,
+        [](const float& thermal_length, const Mesh& mesh)
+        {
+            return std::accumulate(
+                speed_settings.begin(),
+                speed_settings.end(),
+                -1.0f,
+                [&mesh](const float& value, const std::string_view& setting_name)
+                {
+                    return std::max(value, static_cast<float>(mesh.settings_.get<coord_t>(setting_name.data())));
+                });
+        });
+
+    constexpr float default_speed = 250.0f;
+    return res < 0.0f ? default_speed : res;
+}
+
+coord_t SkirtBrim::estimateBrimNeeded(const Shape& shape)
+{
+    /* NOTE: Brim-size estimation is largely copied from 'OrcaSlicer/src/libslic3r/Model.cpp' at the moment.
+     *   Their code claims to take the delta-temperature into account, but the deltaT parameter is never used.
+     *   Also the function is called with an extruder-temp, but the comment (+ the delta name) says it's a difference.
+     *   So (besides a heavy rewrite to put it all into our code) that was left out.
+     */
+
+    const auto& meshes = Application::getInstance().current_slice_->scene.current_mesh_group->meshes;
+
+    // Get adhesion, etc. from settings.
+    const float adhesion_coefficient = 1.0f; // TODO: Get from settings.
+    const float max_speed = getMaxSpeed(meshes);
+
+    // Get height of the mesh-group.
+    const AABB3D aabb = std::accumulate(
+        meshes.begin(),
+        meshes.end(),
+        AABB3D(),
+        [](const AABB3D& aabb, const Mesh& mesh)
+        {
+            return mesh.getAABB().include(aabb);
+        });
+    const float max_height = INT2MM(aabb.max_.z_ - aabb.min_.z_);
+
+    // Calculate the second moment of the outline(s) of the first layer.
+    Point2F centroid(0.0f, 0.0f);
+    Point2F second_moment(0.0f, 0.0f);
+    if (! computeBrimEstimateShapeProperties(shape, centroid, second_moment))
+    {
+        return 0.0f;
+    }
+    second_moment.x_ = INT2MM2(INT2MM2(second_moment.x_));
+    second_moment.y_ = INT2MM2(INT2MM2(second_moment.y_));
+
+    constexpr float brim_width_max_mm = 18.0f;
+    if (second_moment.x_ == 0.0f || second_moment.y_ == 0.0f)
+    {
+        return brim_width_max_mm;
+    }
+
+    // Thermal length stuff.
+    const Point2F width_depth(aabb.spanX(), aabb.spanY());
+    const float thermal_length = INT2MM(width_depth.vSize());
+    const float thermal_length_ref = getThermalLength(meshes);
+    assert(thermal_length_ref != 0.0f);
+
+    // Calculate the result.
+    constexpr float height_to_area_normalization = 1920.0f;
+    const float height_to_area
+        = std::max(max_height / second_moment.x_ * INT2MM(width_depth.y_), max_height / second_moment.y_ * INT2MM(width_depth.x_)) * max_height / height_to_area_normalization;
+    constexpr float thermal_lenght_gain = 8.0f;
+    constexpr float thermal_height_saturation_mm = 30.0f;
+    constexpr float brim_width_footprint_mul_max = 1.5f;
+    const float thermal_length_mult = thermal_length * brim_width_footprint_mul_max;
+    float res = thermal_length * thermal_lenght_gain / thermal_length_ref * std::min(max_height, thermal_height_saturation_mm) / thermal_height_saturation_mm;
+    res = std::min(std::min(std::max(height_to_area * max_speed, res), brim_width_max_mm), thermal_length_mult) * adhesion_coefficient;
+
+    // Clamp, convert & return.
+    constexpr float brim_width_min_check_mm = 5.0f;
+    return MM2INT(res < std::min(brim_width_min_check_mm, thermal_length_mult) ? 0 : std::min(brim_width_max_mm, res));
+}
+
 void SkirtBrim::generate()
 {
+    // TODO: multiple layers? helper structures? etc.?
+    constexpr bool include_support = false;
+    constexpr bool include_prime_tower = false;
+    coord_t estimated_brim_width = 0;
+    if (adhesion_type_ == EPlatformAdhesion::AUTOBRIM)
+    {
+        estimated_brim_width = estimateBrimNeeded(storage_.getLayerOutlines(0, include_support, include_prime_tower));
+
+        std::fprintf(stderr, "ESTIMATED BRIM WIDTH (MICRON) %d\n", estimated_brim_width);
+
+        // TODO: plus/minus the gap, then divide by line-width
+    }
+    // TODO: handle estimated brim-width w.r.t. extruder-line counts? -> probably just ignore what's filled in? or do the ratios need to match
+    // TODO: handle the estimation per mesh?
+
     std::vector<Outline> starting_outlines(extruder_count_);
     std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
     std::vector<Shape> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines);

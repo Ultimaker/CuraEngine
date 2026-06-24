@@ -40,6 +40,7 @@ enum class EPlatformAdhesion
 {
     SKIRT,
     BRIM,
+    AUTOBRIM,
     RAFT,
     NONE,
     PLUGIN,
