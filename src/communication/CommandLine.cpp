@@ -279,9 +279,9 @@ void CommandLine::sliceNext()
 
                     const auto transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
-                    if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings_))
+                    if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument, transformation, last_extruder->settings_))
                     {
-                        spdlog::error("Failed to load model: {}. (error number {})", argument, errno);
+                        spdlog::error("Failed to load model: {} (error number {})", argument, errno);
                         exit(1);
                     }
                     else
@@ -440,9 +440,9 @@ void CommandLine::sliceNext()
                         const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
                         const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
 
-                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name.c_str(), transformation, slice->scene.extruders[extruder_nr].settings_))
+                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name, transformation, slice->scene.extruders[extruder_nr].settings_))
                         {
-                            spdlog::error("Failed to load model: {}. (error number {})", model_name, errno);
+                            spdlog::error("Failed to load model: {} (error number {})", model_name, errno);
                             exit(1);
                         }
                     }

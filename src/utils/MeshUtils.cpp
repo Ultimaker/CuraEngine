@@ -222,7 +222,7 @@ bool loadTextureFromPngData(const std::vector<unsigned char>& texture_data, Mesh
     return false;
 }
 
-bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
+bool loadTextureFromFile(Mesh& mesh, const std::filesystem::path& texture_filename)
 {
     if (! std::filesystem::exists(texture_filename))
     {
@@ -233,7 +233,7 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
     std::ifstream file(texture_filename, std::ios::binary | std::ios::ate);
     if (! file.is_open())
     {
-        spdlog::warn("Failed to open texture file: {}", texture_filename);
+        spdlog::warn("Failed to open texture file: {}", texture_filename.string());
         return false;
     }
 
@@ -243,7 +243,7 @@ bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename)
     std::vector<unsigned char> file_data(file_size);
     if (! file.read(reinterpret_cast<char*>(file_data.data()), file_size))
     {
-        spdlog::warn("Failed to read texture file: {}", texture_filename);
+        spdlog::warn("Failed to read texture file: {}", texture_filename.string());
         return false;
     }
 

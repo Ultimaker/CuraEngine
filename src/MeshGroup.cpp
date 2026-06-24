@@ -15,6 +15,7 @@
 #include <string.h>
 
 #include <fmt/format.h>
+#include <range/v3/algorithm/transform.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
@@ -27,6 +28,9 @@
 #include "utils/gettime.h"
 #include "utils/section_type.h"
 #include "utils/string.h"
+
+
+namespace fs = std::filesystem;
 
 namespace cura
 {
@@ -143,9 +147,9 @@ void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
     }
 }
 
-bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
+bool loadMeshSTL_ascii(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
 {
-    FILE* f = fopen(filename, "rt");
+    FILE* f = fopen(filename.c_str(), "rt");
     char buffer[1024];
     Point3F vertex;
     int n = 0;
@@ -176,9 +180,9 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matri
     return true;
 }
 
-bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates = nullptr)
+bool loadMeshSTL_binary(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates = nullptr)
 {
-    FILE* f = fopen(filename, "rb");
+    FILE* f = fopen(filename.c_str(), "rb");
 
     fseek(f, 0L, SEEK_END);
     long long file_size = ftell(f); // The file size is the position of the cursor after seeking to the end.
@@ -244,9 +248,9 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matr
     return true;
 }
 
-bool loadMeshSTL(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
+bool loadMeshSTL(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
 {
-    FILE* f = fopen(filename, "rb");
+    FILE* f = fopen(filename.c_str(), "rb");
     if (f == nullptr)
     {
         return false;
@@ -301,12 +305,12 @@ bool loadMeshSTL(Mesh* mesh, const char* filename, const Matrix4x3D& matrix)
     return loadMeshSTL_binary(mesh, filename, matrix);
 }
 
-bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matrix)
+bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
 {
     std::ifstream file(filename);
     if (! file.is_open())
     {
-        spdlog::error("Could not open OBJ file: {}", filename);
+        spdlog::error("Could not open OBJ file: {}", filename.string());
         return false;
     }
 
@@ -419,7 +423,7 @@ bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matr
  */
 bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point2F>& uv_coordinates)
 {
-    if (! std::filesystem::exists(uv_filename))
+    if (! fs::exists(uv_filename))
     {
         return false; // File doesn't exist, not an error
     }
@@ -455,9 +459,9 @@ bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point
 }
 
 
-bool loadMeshSTL_with_uv(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>& uv_coordinates)
+bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix, const std::vector<Point2F>& uv_coordinates)
 {
-    FILE* f = fopen(filename, "rb");
+    FILE* f = fopen(filename.c_str(), "rb");
     if (f == nullptr)
     {
         return false;
@@ -497,78 +501,91 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const char* filename, const Matrix4x3D& mat
     if (stringcasecompare(buffer, "solid") == 0)
     {
         // ASCII STL with UV coordinates not currently supported
-        spdlog::warn("ASCII STL with UV coordinates not supported, use binary STL: {}", filename);
+        spdlog::warn("ASCII STL with UV coordinates not supported, use binary STL: {}", filename.string());
         return false;
     }
     return loadMeshSTL_binary(mesh, filename, matrix, &uv_coordinates);
 }
 
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const Matrix4x3D& transformation, Settings& object_parent_settings)
 {
     TimeKeeper load_timer;
 
-    const char* ext = strrchr(filename, '.');
-    if (ext && (strcmp(ext, ".stl") == 0 || strcmp(ext, ".STL") == 0))
+    Mesh mesh(object_parent_settings);
+    bool load_success = false;
+    bool has_uv = false;
+
+    const fs::path base_filename = filename.stem();
+    std::string extension = filename.extension().string();
+    extension = extension.substr(1, extension.size()); // Remove the initial '.'
+    ranges::transform(extension, extension.begin(), static_cast<int (*)(int)>(std::tolower)); // To lowercase
+
+    if (extension == "stl")
     {
-        Mesh mesh(object_parent_settings);
         // Check for corresponding UV and PNG files
-        std::string filename_str(filename);
-        std::string base_filename = filename_str.substr(0, filename_str.find_last_of('.'));
-        std::string uv_filename = base_filename + ".uv";
-        std::string texture_filename = base_filename + ".png";
+        const fs::path uv_filename = fs::path(base_filename).replace_extension("uv");
 
         std::vector<Point2F> uv_coordinates;
-        bool has_uv = loadUVCoordinatesFromFile(uv_filename, uv_coordinates);
+        has_uv = loadUVCoordinatesFromFile(uv_filename, uv_coordinates);
 
-        bool load_success = false;
         if (has_uv)
         {
-            spdlog::info("Loading STL with UV coordinates from: {}", uv_filename);
+            spdlog::info("Loading STL with UV coordinates from: {}", uv_filename.string());
             load_success = loadMeshSTL_with_uv(&mesh, filename, transformation, uv_coordinates);
         }
         else
         {
             load_success = loadMeshSTL(&mesh, filename, transformation);
         }
-        if (load_success) // Load it! If successful...
+
+        if (! load_success)
+        {
+            spdlog::warn("loading STL '{}' failed", filename.string());
+        }
+    }
+    else if (extension == "obj")
+    {
+        if (loadMeshOBJ(&mesh, filename, transformation)) // Load it! If successful...
+        {
+            load_success = true;
+            has_uv = true;
+        }
+        else
+        {
+            spdlog::warn("loading OBJ '{}' failed", filename.string());
+        }
+    }
+    else
+    {
+        spdlog::warn("Unable to recognize the extension of the file. Currently only STL and OBJ are supported.");
+    }
+
+    if (load_success)
+    {
+        if (has_uv)
         {
             // Try to load the PNG texture if it exists
-            if (std::filesystem::exists(texture_filename))
+            const fs::path texture_filename = fs::path(filename).replace_extension("png");
+            if (fs::exists(texture_filename))
             {
-                spdlog::info("Found texture file: {}", texture_filename);
                 if (MeshUtils::loadTextureFromFile(mesh, texture_filename))
                 {
-                    spdlog::info("Successfully loaded texture from: {}", texture_filename);
+                    spdlog::info("Successfully loaded texture from: {}", texture_filename.string());
                 }
                 else
                 {
-                    spdlog::warn("Failed to load texture from: {}", texture_filename);
+                    spdlog::warn("Failed to load texture from: {}", texture_filename.string());
                 }
             }
-
-            meshgroup->meshes.push_back(mesh);
-            spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
-            return true;
         }
-        spdlog::warn("loading STL '{}' failed", filename);
-        return false;
+
+        spdlog::info("loading '{}' took {:03.3f} seconds", filename.string(), load_timer.restart());
+
+        mesh.mesh_name_ = base_filename.string();
+        meshgroup->meshes.push_back(mesh);
     }
 
-    if (ext && (strcmp(ext, ".obj") == 0 || strcmp(ext, ".OBJ") == 0))
-    {
-        Mesh mesh(object_parent_settings);
-        if (loadMeshOBJ(&mesh, filename, transformation)) // Load it! If successful...
-        {
-            meshgroup->meshes.push_back(mesh);
-            spdlog::info("loading '{}' took {:03.3f} seconds", filename, load_timer.restart());
-            return true;
-        }
-        spdlog::warn("loading OBJ '{}' failed", filename);
-        return false;
-    }
-
-    spdlog::warn("Unable to recognize the extension of the file. Currently only .stl and .STL are supported.");
-    return false;
+    return load_success;
 }
 
 } // namespace cura

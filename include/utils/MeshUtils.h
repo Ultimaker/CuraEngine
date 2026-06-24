@@ -4,6 +4,7 @@
 #ifndef UTILS_MESH_UTILS_H
 #define UTILS_MESH_UTILS_H
 
+#include <filesystem>
 #include <optional>
 #include <string>
 #include <vector>
@@ -44,7 +45,7 @@ bool loadTextureFromPngData(const std::vector<unsigned char>& texture_data, Mesh
  * @param texture_filename The path to the PNG texture file
  * @return true if the texture was loaded successfully, false otherwise
  */
-bool loadTextureFromFile(Mesh& mesh, const std::string& texture_filename);
+bool loadTextureFromFile(Mesh& mesh, const std::filesystem::path& texture_filename);
 
 /*!
  * Load texture data from PNG data provided as a string and attach it to a mesh.
