@@ -4122,6 +4122,11 @@ LayerIndex LayerPlan::getLayerNr() const
     return layer_nr_;
 }
 
+bool LayerPlan::isInitialLayer() const
+{
+    return is_initial_layer_;
+}
+
 Point2LL LayerPlan::getLastPlannedPositionOrStartingPosition() const
 {
     return last_planned_position_.value_or(layer_start_pos_per_extruder_[getExtruder()]).toPoint2LL();

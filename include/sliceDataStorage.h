@@ -184,6 +184,12 @@ public:
      */
     Shape bottom_surface;
 
+    size_t outer_wall_count{ 0 }; //!< The number of walls printed on the outer contour of the model, common to all areas
+    size_t extra_wall_count_infill{ 0 }; //!< The extra number of walls printed around infill areas
+    size_t extra_wall_count_skin{ 0 }; //!< The extra number of walls printed around skin areas
+    size_t extra_wall_count_flooring{ 0 }; //!< The extra number of walls printed around flooring areas
+    size_t extra_wall_count_roofing{ 0 }; //!< The extra number of walls printed around roofing areas
+
     /*!
      * Get the all outlines of all layer parts in this layer.
      *

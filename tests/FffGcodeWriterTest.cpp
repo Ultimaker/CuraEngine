@@ -124,8 +124,9 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     part.infill_area_per_combine_per_density = { { outer_square } };
     part.infill_area = outer_square;
 
-    mesh_storage.layers[101].parts.emplace_back();
-    SliceLayerPart& top_part = mesh_storage.layers[101].parts.back();
+    SliceLayer& layer = mesh_storage.layers[101];
+    layer.parts.emplace_back();
+    SliceLayerPart& top_part = layer.parts.back();
     top_part.skin_parts.emplace_back();
     top_part.skin_parts[0].outline.push_back(inner_square);
 
@@ -135,7 +136,7 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     //  We're expecting the sparse infill on layer 100 to have
     //  some lines to support the corners of the layer above.
     //  But we arent wanting the whole area densely supported.
-    fff_gcode_writer.processSingleLayerInfill(*storage, gcode_layer, mesh_storage, extruder_nr, mesh_config, part);
+    fff_gcode_writer.processSingleLayerInfill(*storage, gcode_layer, mesh_storage, layer, extruder_nr, mesh_config, part);
 
     /*   Useful code if you're debugging this test.   Also add this test as a friend in GCodeExport.h
     GCodeExport gcode_export;

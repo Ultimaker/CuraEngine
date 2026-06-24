@@ -28,13 +28,22 @@
 
 using namespace cura;
 
+size_t LightningGenerator::WallLineCount::getCountAt(const size_t layer_nr) const
+{
+    if (std::holds_alternative<size_t>(*this))
+    {
+        return std::get<size_t>(*this);
+    }
+
+    return std::get<const std::vector<SliceLayer>*>(*this)->at(layer_nr).extra_wall_count_infill;
+}
+
 LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
 {
     const auto infill_extruder = mesh.settings.get<ExtruderTrain&>("infill_extruder_nr");
     const auto layer_thickness = infill_extruder.settings_.get<coord_t>(
         "layer_height"); // Note: There's not going to be a layer below the first one, so the 'initial layer height' doesn't have to be taken into account.
     const auto infill_line_width = infill_extruder.settings_.get<coord_t>("infill_line_width");
-    const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
     const auto line_distance = infill_extruder.settings_.get<coord_t>("infill_line_distance");
     const auto overhang_angle = infill_extruder.settings_.get<AngleRadians>("lightning_infill_overhang_angle");
     const auto prune_angle = infill_extruder.settings_.get<AngleRadians>("lightning_infill_prune_angle");
@@ -53,7 +62,7 @@ LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
         areas_per_layer.push_back(infill_area_here);
     }
 
-    generate(layer_thickness, infill_line_width, infill_wall_line_count, line_distance, overhang_angle, prune_angle, straightening_angle, areas_per_layer);
+    generate(layer_thickness, infill_line_width, &mesh.layers, line_distance, overhang_angle, prune_angle, straightening_angle, areas_per_layer);
 }
 
 LightningGenerator::LightningGenerator(const SupportStorage& support)
@@ -68,7 +77,7 @@ LightningGenerator::LightningGenerator(const SupportStorage& support)
     const Settings& extruder_settings = support_extruder.settings_;
     const auto layer_thickness = extruder_settings.get<coord_t>("support_infill_sparse_thickness");
     const auto infill_line_width = extruder_settings.get<coord_t>("support_line_width");
-    const auto infill_wall_line_count = static_cast<coord_t>(settings.get<size_t>("support_wall_count"));
+    const auto infill_wall_line_count = settings.get<size_t>("support_wall_count");
     const auto line_distance = extruder_settings.get<coord_t>("support_line_distance");
     const auto overhang_angle = extruder_settings.get<AngleRadians>("support_lightning_overhang_angle");
     const auto prune_angle = extruder_settings.get<AngleRadians>("support_lightning_prune_angle");
@@ -90,15 +99,15 @@ LightningGenerator::LightningGenerator(const SupportStorage& support)
     generate(layer_thickness, infill_line_width, infill_wall_line_count, line_distance, overhang_angle, prune_angle, straightening_angle, areas_per_layer);
 }
 
-void LightningGenerator::generateInitialInternalOverhangs(const coord_t infill_line_width, const coord_t infill_wall_line_count, const std::vector<Shape>& shape_per_layer)
+void LightningGenerator::generateInitialInternalOverhangs(const coord_t infill_line_width, const WallLineCount& infill_wall_line_count, const std::vector<Shape>& shape_per_layer)
 {
     overhang_per_layer.resize(shape_per_layer.size());
-    const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
 
     Shape infill_area_above;
     // Iterate from top to bottom, to subtract the overhang areas above from the overhang areas on the layer below, to get only overhang in the top layer where it is overhanging.
     for (const auto& [layer_nr, layer_shape] : shape_per_layer | ranges::views::enumerate | ranges::views::reverse)
     {
+        const coord_t infill_wall_offset = -static_cast<coord_t>(infill_wall_line_count.getCountAt(layer_nr)) * infill_line_width;
         Shape infill_area_here = layer_shape.offset(infill_wall_offset);
 
         // Remove the part of the infill area that is already supported by the walls.
@@ -118,7 +127,7 @@ const LightningLayer& LightningGenerator::getTreesForLayer(const size_t& layer_i
 void LightningGenerator::generate(
     const coord_t layer_thickness,
     const coord_t line_width,
-    const coord_t wall_line_count,
+    const WallLineCount& wall_line_count,
     const coord_t line_distance,
     const AngleRadians& overhang_angle,
     const AngleRadians& prune_angle,
@@ -134,10 +143,9 @@ void LightningGenerator::generate(
     generateTrees(line_width, wall_line_count, shape_per_layer);
 }
 
-void LightningGenerator::generateTrees(const coord_t infill_line_width, const coord_t infill_wall_line_count, const std::vector<Shape>& shape_per_layer)
+void LightningGenerator::generateTrees(const coord_t infill_line_width, const WallLineCount& infill_wall_line_count, const std::vector<Shape>& shape_per_layer)
 {
     lightning_layers.resize(shape_per_layer.size());
-    const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
 
     std::vector<Shape> infill_outlines;
     infill_outlines.insert(infill_outlines.end(), shape_per_layer.size(), Shape());
@@ -145,6 +153,7 @@ void LightningGenerator::generateTrees(const coord_t infill_line_width, const co
     // For-each layer from top to bottom:
     for (const auto& [layer_nr, layer_shape] : shape_per_layer | ranges::views::enumerate | ranges::views::reverse)
     {
+        const coord_t infill_wall_offset = -static_cast<coord_t>(infill_wall_line_count.getCountAt(layer_nr)) * infill_line_width;
         infill_outlines[layer_nr].push_back(layer_shape.offset(infill_wall_offset));
     }
 
