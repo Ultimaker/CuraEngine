@@ -349,6 +349,7 @@ std::string GCodeExport::getFileHeader(
         prefix << ";MAXY:" << INT2MM(total_bounding_box_.max_.y_) << new_line_;
         prefix << ";MAXZ:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
+        prefix << ";Generated with Cura_SteamEngine " << CURA_ENGINE_VERSION << new_line_;
     }
 
     return prefix.str();
@@ -707,8 +708,6 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         std::string prefix = getFileHeader(storage.getExtrudersUsed());
         writeLine(prefix);
     }
-
-    writeComment("Generated with Cura_SteamEngine " CURA_ENGINE_VERSION);
 
     // Replace the setting tokens in start and end g-code.
     // Use values from the first used extruder by default so we get the expected temperatures
