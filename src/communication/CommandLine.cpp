@@ -81,16 +81,6 @@ bool CommandLine::hasSlice() const
     return ! arguments_.empty();
 }
 
-bool CommandLine::isSequential() const
-{
-    return true; // We have to receive the g-code in sequential order. Start g-code before the rest and so on.
-}
-
-void CommandLine::sendGCodePrefix(const std::string&) const
-{
-    // TODO: Right now this is done directly in the g-code writer. For consistency it should be moved here?
-}
-
 void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) const
 {
     // pass

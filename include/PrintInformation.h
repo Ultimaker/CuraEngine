@@ -24,6 +24,7 @@ struct ExtruderPrintInformation
     float filament_weight{}; // Filament weight in grams
     float filament_cost{}; // Filament cost (unspecified currency)
     std::string material_name; // Material full name
+    std::string material_guid; // Material guid
 };
 
 struct PrintInformation

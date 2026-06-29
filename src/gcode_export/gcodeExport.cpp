@@ -213,19 +213,18 @@ std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
     }
 }
 
-std::string GCodeExport::getFileHeader(
-    const std::vector<bool>& extruder_is_used,
-    const Duration* print_time,
-    const std::vector<double>& filament_used,
-    const std::vector<std::string>& mat_ids)
+std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used, const std::vector<double>& filament_used, const std::vector<std::string>& mat_ids)
 {
     std::ostringstream prefix;
 
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
+    const Duration print_time = getSumTotalPrintTimes();
+
     switch (flavor_)
     {
     case EGCodeFlavor::GRIFFIN:
     case EGCodeFlavor::CHEETAH:
+    {
         prefix << ";START_OF_HEADER" << new_line_;
         prefix << ";HEADER_VERSION:0.1" << new_line_;
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
@@ -260,11 +259,7 @@ std::string GCodeExport::getFileHeader(
             prefix << ";BUILD_VOLUME.TEMPERATURE:" << build_volume_temperature_ << new_line_;
         }
 
-        if (print_time)
-        {
-            prefix << ";PRINT.TIME:" << static_cast<int>(*print_time) << new_line_;
-        }
-
+        prefix << ";PRINT.TIME:" << static_cast<int>(print_time) << new_line_;
         prefix << ";PRINT.GROUPS:" << Application::getInstance().current_slice_->scene.mesh_groups.size() << new_line_;
 
         if (total_bounding_box_.min_.x_ > total_bounding_box_.max_.x_) // We haven't encountered any movement (yet). This probably means we're command-line slicing.
@@ -304,9 +299,10 @@ std::string GCodeExport::getFileHeader(
         }
         prefix << ";END_OF_HEADER" << new_line_;
         break;
+    }
     default:
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
-        prefix << ";TIME:" << ((print_time) ? static_cast<int>(*print_time) : 6666) << new_line_;
+        prefix << ";TIME:" << static_cast<int>(print_time) << new_line_;
         if (flavor_ == EGCodeFlavor::ULTIGCODE)
         {
             prefix << ";MATERIAL:" << ((filament_used.size() >= 1) ? static_cast<int>(filament_used[0]) : 6666) << new_line_;
@@ -700,13 +696,6 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 {
     bool should_prime_extruder = true;
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-
-    if (Application::getInstance().communication_->isSequential()) // If we must output the g-code sequentially, we must already place the g-code header here even if we don't know
-                                                                   // the exact time/material usages yet.
-    {
-        std::string prefix = getFileHeader(storage.getExtrudersUsed());
-        writeLine(prefix);
-    }
 
     writeComment("Generated with Cura_SteamEngine " CURA_ENGINE_VERSION);
 
@@ -1476,6 +1465,7 @@ std::vector<std::optional<ExtruderPrintInformation>> GCodeExport::calculateMater
         const double material_spool_cost = extruder_settings.get<double>("material_spool_cost");
 
         extruder_info.material_name = extruder_settings.get<std::string>("material_name");
+        extruder_info.material_guid = extruder_settings.get<std::string>("material_guid");
         extruder_info.filament_amount = getTotalFilamentUsed(extruder_nr);
         extruder_info.filament_length = (extruder_info.filament_amount / (std::numbers::pi * square(material_radius))) / 1000;
         extruder_info.filament_weight = extruder_info.filament_amount * material_density / 1000.0;
@@ -1988,15 +1978,19 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
     }
 
     const size_t used_extruders = print_info.extruders_info.size();
+    std::vector<double> filaments_volumes(used_extruders);
     std::vector<cfe::eval::Value> filaments_amounts(used_extruders);
     std::vector<cfe::eval::Value> filaments_weights(used_extruders);
     std::vector<cfe::eval::Value> filaments_costs(used_extruders);
+    std::vector<std::string> materials_ids(used_extruders);
     for (const auto& [extruder_nr, extruder_info_opt] : print_info.extruders_info | ranges::views::enumerate)
     {
         const ExtruderPrintInformation extruder_info = extruder_info_opt.value_or(ExtruderPrintInformation());
+        filaments_volumes[extruder_nr] = extruder_info.filament_amount;
         filaments_amounts[extruder_nr] = extruder_info.filament_length;
         filaments_weights[extruder_nr] = extruder_info.filament_weight;
         filaments_costs[extruder_nr] = extruder_info.filament_cost;
+        materials_ids[extruder_nr] = extruder_info.material_guid;
     }
 
     extra_global_settings.emplace("filament_amount", filaments_amounts);
@@ -2021,18 +2015,25 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
     extra_global_settings.emplace("total_bb_depth", INT2MM(total_bounding_box_.spanY()));
     extra_global_settings.emplace("total_bb_height", INT2MM(total_bounding_box_.spanZ()));
 
-    std::vector<cfe::eval::Value> is_extruder_used(MAX_EXTRUDERS);
+    std::vector<cfe::eval::Value> is_extruder_used(MAX_EXTRUDERS); // To be used by the formula engine
+    std::vector<bool> is_extruder_used_bool(MAX_EXTRUDERS); // To be used for the header creation
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
-        is_extruder_used[extruder_nr] = (extruder_nr < used_extruders && print_info.extruders_info[extruder_nr].has_value());
+        const bool is_this_extruder_used = extruder_nr < used_extruders && print_info.extruders_info[extruder_nr].has_value();
+        is_extruder_used_bool[extruder_nr] = is_this_extruder_used;
+        is_extruder_used[extruder_nr] = is_this_extruder_used;
     }
     extra_global_settings.emplace("is_extruder_used", is_extruder_used);
 
     template_resolver_->prepareForResolving(print_info.initial_extruder_nr.value_or(0), extra_global_settings);
 
+    std::shared_ptr<Communication> communication = Application::getInstance().communication_;
+
+    communication->sendGCodePart(getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids));
+
     sendFinalGCode();
 
-    Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_info);
+    communication->sendPrintInformation(total_print_times_, print_info);
 }
 
 void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)

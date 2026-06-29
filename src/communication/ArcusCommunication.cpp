@@ -288,7 +288,6 @@ void ArcusCommunication::connect(const std::string& ip, const uint16_t port)
     private_data->socket->registerMessageType(&cura::proto::GCodeLayer::default_instance());
     private_data->socket->registerMessageType(&cura::proto::PrintTimeMaterialEstimates::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SettingList::default_instance());
-    private_data->socket->registerMessageType(&cura::proto::GCodePrefix::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SlicingFinished::default_instance());
     private_data->socket->registerMessageType(&cura::proto::SettingExtruder::default_instance());
 
@@ -325,11 +324,6 @@ void ArcusCommunication::sendGCodePart(const std::string& gcode_part)
     private_data->socket->sendMessage(message);
 }
 
-bool ArcusCommunication::isSequential() const
-{
-    return false; // We don't necessarily need to send the start g-code before the rest. We can send it afterwards when we have more accurate print statistics.
-}
-
 bool ArcusCommunication::hasSlice() const
 {
     return private_data->socket->getState() != Arcus::SocketState::Closed && private_data->socket->getState() != Arcus::SocketState::Error
@@ -339,14 +333,6 @@ bool ArcusCommunication::hasSlice() const
 void ArcusCommunication::sendCurrentPosition(const Point3LL& position)
 {
     path_compiler->setCurrentPosition(position);
-}
-
-void ArcusCommunication::sendGCodePrefix(const std::string& prefix) const
-{
-    std::shared_ptr<proto::GCodePrefix> message = std::make_shared<proto::GCodePrefix>();
-    std::string message_str = prefix;
-    message->set_data(slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(message_str));
-    private_data->socket->sendMessage(message);
 }
 
 void ArcusCommunication::sendSliceUUID(const std::string& slice_uuid) const
