@@ -318,8 +318,9 @@ bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
     std::vector<Point2F> uv_coordinates;
     std::string line;
     std::regex main_regex(R"((v|vt|f)\s+(.*))");
-    std::regex vertex_regex(R"(([-+]?[0-9]*\.?[0-9]+)\s+([-+]?[0-9]*\.?[0-9]+)\s+([-+]?[0-9]*\.?[0-9]+))");
-    std::regex uv_regex(R"(([-+]?\d*\.?\d+)\s+([-+]?\d*\.?\d+)\s+(?:[-+]?\d*\.?\d+))");
+    const std::string floating_number_pattern = R"(([-+]?(?:\d+\.?\d*|\.\d+)(?:[eE][-+]?\d+)?))";
+    std::regex vertex_regex(floating_number_pattern + R"(\s+)" + floating_number_pattern + R"(\s+)" + floating_number_pattern);
+    std::regex uv_regex(floating_number_pattern + R"(\s+)" + floating_number_pattern);
     std::regex face_indices_regex(R"((\d+)(?:\/(\d*))?(?:\/(?:\d*))?)");
 
     auto get_uv_coordinates = [&uv_coordinates](std::optional<size_t> uv_index) -> std::optional<Point2F>
