@@ -482,7 +482,7 @@ void InfillOrderOptimizer::addSkinSupportLinesToLayer(
     const bool enable_travel_optimization,
     const Ratio& flow_ratio) const
 {
-    const auto skin_support_fan_speed = settings.get<double>("skin_support_fan_speed");
+    const auto skin_support_fan_speed = settings.get<bool>("cool_fan_enabled") ? settings.get<double>("skin_support_fan_speed") : GCodePathConfig::FAN_SPEED_DEFAULT;
     constexpr SpaceFillType skin_support_space_fill_type = SpaceFillType::Lines;
     constexpr coord_t skin_support_wipe_dist = 0;
     const auto skin_support_interlace_lines = settings.get<bool>("skin_support_interlace_lines");
