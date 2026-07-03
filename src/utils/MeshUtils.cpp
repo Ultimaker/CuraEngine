@@ -247,7 +247,7 @@ bool loadTextureFromFile(Mesh& mesh, const std::filesystem::path& texture_filena
         return false;
     }
 
-    return loadTextureFromPngData(file_data, mesh, texture_filename, true);
+    return loadTextureFromPngData(file_data, mesh, texture_filename.string(), true);
 }
 
 void loadTextureFromString(const std::string& texture_str, Mesh& mesh)
