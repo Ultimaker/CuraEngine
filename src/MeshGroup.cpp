@@ -420,7 +420,7 @@ bool loadMeshOBJ(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
  * @param uv_coordinates Vector to store the loaded UV coordinates
  * @return true if UV coordinates were loaded successfully, false otherwise
  */
-bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point2F>& uv_coordinates)
+bool loadUVCoordinatesFromFile(const fs::path& uv_filename, std::vector<Point2F>& uv_coordinates)
 {
     if (! fs::exists(uv_filename))
     {
@@ -430,7 +430,7 @@ bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point
     std::ifstream file(uv_filename, std::ios::binary);
     if (! file.is_open())
     {
-        spdlog::warn("Failed to open UV file: {}", uv_filename);
+        spdlog::warn("Failed to open UV file: {}", uv_filename.string());
         return false;
     }
 
@@ -438,10 +438,9 @@ bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point
     uint32_t vertex_count;
     if (! file.read(reinterpret_cast<char*>(&vertex_count), sizeof(uint32_t)))
     {
-        spdlog::warn("Failed to read vertex count from UV file: {}", uv_filename);
+        spdlog::warn("Failed to read vertex count from UV file: {}", uv_filename.string());
         return false;
     }
-
 
     // Read UV coordinates (2 floats per vertex)
     uv_coordinates.resize(vertex_count);
@@ -449,11 +448,11 @@ bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point
 
     if (! file.read(reinterpret_cast<char*>(uv_coordinates.data()), uv_data_size))
     {
-        spdlog::warn("Failed to read UV coordinates from file: {}", uv_filename);
+        spdlog::warn("Failed to read UV coordinates from file: {}", uv_filename.string());
         return false;
     }
 
-    spdlog::info("Loaded {} UV coordinates from: {}", vertex_count, uv_filename);
+    spdlog::info("Loaded {} UV coordinates from: {}", vertex_count, uv_filename.string());
     return true;
 }
 
