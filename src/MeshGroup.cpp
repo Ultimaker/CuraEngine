@@ -147,7 +147,7 @@ void MeshGroup::scaleFromBottom(const Ratio factor_xy, const Ratio factor_z)
 
 bool loadMeshSTL_ascii(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
 {
-    FILE* f = fopen(static_cast<const char*>(filename.c_str()), "rt");
+    FILE* f = fopen(filename.string().c_str(), "rt");
     char buffer[1024];
     Point3F vertex;
     int n = 0;
@@ -180,7 +180,7 @@ bool loadMeshSTL_ascii(Mesh* mesh, const fs::path& filename, const Matrix4x3D& m
 
 bool loadMeshSTL_binary(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates = nullptr)
 {
-    FILE* f = fopen(static_cast<const char*>(filename.c_str()), "rb");
+    FILE* f = fopen(filename.string().c_str(), "rb");
 
     fseek(f, 0L, SEEK_END);
     long long file_size = ftell(f); // The file size is the position of the cursor after seeking to the end.
@@ -248,7 +248,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const fs::path& filename, const Matrix4x3D& 
 
 bool loadMeshSTL(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix)
 {
-    FILE* f = fopen(static_cast<const char*>(filename.c_str()), "rb");
+    FILE* f = fopen(filename.string().c_str(), "rb");
     if (f == nullptr)
     {
         return false;
@@ -460,7 +460,7 @@ bool loadUVCoordinatesFromFile(const std::string& uv_filename, std::vector<Point
 
 bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const Matrix4x3D& matrix, const std::vector<Point2F>& uv_coordinates)
 {
-    FILE* f = fopen(static_cast<const char*>(filename.c_str()), "rb");
+    FILE* f = fopen(filename.string().c_str(), "rb");
     if (f == nullptr)
     {
         return false;
