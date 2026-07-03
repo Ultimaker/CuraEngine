@@ -99,7 +99,7 @@ jobs:
         run: |
           source build/Release/generators/conanrun.sh
           echo $CURA_RESOURCES
-          ls $CURA_RESOURCES
+          ls ${CURA_RESOURCES:1}
           for file in `ls NightlyTestModels/*.stl`;
           do
               ( time ./build/Release/CuraEngine slice --force-read-parent --force-read-nondefault -v -p -j ${CURA_RESOURCES:1}/definitions/ultimaker_s3.def.json -l $file -o `basename $file .stl`.gcode ) 2> `basename $file .stl`.time
