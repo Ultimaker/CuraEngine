@@ -467,7 +467,7 @@ bool loadMeshSTL_with_uv(Mesh* mesh, const fs::path& filename, const Matrix4x3D&
     }
 
     // assign filename to mesh_name
-    mesh->mesh_name_ = filename;
+    mesh->mesh_name_ = filename.string();
 
     // Skip any whitespace at the beginning of the file.
     unsigned long long num_whitespace = 0; // Number of whitespace characters.
