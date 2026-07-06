@@ -245,7 +245,7 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
     std::string output;
     GcodeConditionState condition_state = GcodeConditionState::OutsideCondition;
 
-    static const boost::regex expression_regex(R"({\s*(?<condition>if|else|elif|endif)?\s*(?<expression>[^{}]*?)\s*(?:,\s*(?<extruder_nr>[^{},]*))?\s*}(?<end_of_line>\n?))");
+    static const boost::regex expression_regex(R"({\s*(?<condition>if|else|elif|endif)?\s*(?<expression>[^{}]*?)\s*(?:,\s*(?<extruder_nr>[^{},'"]+))?\s*}(?<end_of_line>\n?))");
 
     // Create local environment containing the context-specific extra settings, and are chained to the extruder and global environment
     std::map<std::optional<size_t>, std::shared_ptr<cfe::env::LocalEnvironment>> local_environments;
