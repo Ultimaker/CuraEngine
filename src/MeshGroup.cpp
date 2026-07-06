@@ -3,6 +3,8 @@
 
 #include "MeshGroup.h"
 
+#include <array>
+#include <cstring>
 #include <filesystem>
 #include <fstream>
 #include <limits>
@@ -179,30 +181,53 @@ bool loadMeshSTL_ascii(Mesh* mesh, const char* filename, const Matrix4x3D& matri
 bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matrix, const std::vector<Point2F>* uv_coordinates = nullptr)
 {
     FILE* f = fopen(filename, "rb");
+    if (f == nullptr)
+    {
+        return false;
+    }
 
     fseek(f, 0L, SEEK_END);
-    long long file_size = ftell(f); // The file size is the position of the cursor after seeking to the end.
+    const long long file_size = ftell(f); // Cursor position at EOF == file size, or -1 on error.
     rewind(f); // Seek back to start.
-    size_t face_count = (file_size - 80 - sizeof(uint32_t)) / 50; // Subtract the size of the header. Every face uses exactly 50 bytes.
 
-    char buffer[80];
+    // A binary STL is an 80-byte header, a uint32 triangle count, then exactly 50 bytes per triangle.
+    // Reject files too small to even hold the header (or for which ftell() returned -1) before the size
+    // arithmetic, so the unsigned face-count computation below cannot underflow into a huge value and
+    // drive a wild reserve()/read loop.
+    constexpr long long header_size = 80 + static_cast<long long>(sizeof(uint32_t));
+    constexpr size_t bytes_per_face = 50; // Normal (3 floats) + 3 vertices (9 floats) + 2-byte attribute.
+    if (file_size < header_size)
+    {
+        fclose(f);
+        return false;
+    }
+    const size_t face_count = static_cast<size_t>(file_size - header_size) / bytes_per_face;
+
+    std::array<char, 80> header;
     // Skip the header
-    if (fread(buffer, 80, 1, f) != 1)
+    if (fread(header.data(), header.size(), 1, f) != 1)
     {
         fclose(f);
         return false;
     }
 
-    uint32_t reported_face_count;
-    // Read the face count. We'll use it as a sort of redundancy code to check for file corruption.
-    if (fread(&reported_face_count, sizeof(uint32_t), 1, f) != 1)
+    uint32_t reported_face_count = 0;
+    // Read the header's triangle count and cross-check it against the size-derived count to surface
+    // corrupt or malformed files. We keep parsing the size-derived count (some exporters append trailing
+    // data), so a mismatch only warns rather than rejecting the file.
+    if (fread(&reported_face_count, sizeof(reported_face_count), 1, f) != 1)
     {
         fclose(f);
         return false;
     }
     if (reported_face_count != face_count)
     {
-        spdlog::warn("Face count reported by file ({}) is not equal to actual face count ({}). File could be corrupt!", reported_face_count, face_count);
+        const uint64_t expected_size = static_cast<uint64_t>(header_size) + static_cast<uint64_t>(reported_face_count) * bytes_per_face;
+        spdlog::warn(
+            "STL triangle count in header ({}) is inconsistent with the file size (header implies {} bytes, file is {} bytes). File could be corrupt!",
+            reported_face_count,
+            expected_size,
+            file_size);
     }
 
     // For each face read:
@@ -214,16 +239,22 @@ bool loadMeshSTL_binary(Mesh* mesh, const char* filename, const Matrix4x3D& matr
     size_t vertex_index = 0;
     for (size_t i = 0; i < face_count; i++)
     {
-        if (fread(buffer, 50, 1, f) != 1)
+        std::array<std::byte, bytes_per_face> face_record;
+        if (fread(face_record.data(), face_record.size(), 1, f) != 1)
         {
             fclose(f);
             return false;
         }
-        float* v = reinterpret_cast<float*>(buffer) + 3;
+        // Decode the 12 little-endian floats with memcpy instead of aliasing a float* over the byte
+        // buffer, removing pointer-alignment and strict-aliasing assumptions while preserving the
+        // existing layout: floats 3..11 (bytes 12..47) are the three vertices; floats 0..2 are the
+        // discarded normal.
+        std::array<float, 12> floats;
+        std::memcpy(floats.data(), face_record.data(), sizeof(floats));
 
-        Point3LL v0 = matrix.apply(Point3F(v[0], v[1], v[2]).toPoint3d());
-        Point3LL v1 = matrix.apply(Point3F(v[3], v[4], v[5]).toPoint3d());
-        Point3LL v2 = matrix.apply(Point3F(v[6], v[7], v[8]).toPoint3d());
+        Point3LL v0 = matrix.apply(Point3F(floats[3], floats[4], floats[5]).toPoint3d());
+        Point3LL v1 = matrix.apply(Point3F(floats[6], floats[7], floats[8]).toPoint3d());
+        Point3LL v2 = matrix.apply(Point3F(floats[9], floats[10], floats[11]).toPoint3d());
 
         // Handle UV coordinates if provided
         if (uv_coordinates && vertex_index + 2 < uv_coordinates->size())

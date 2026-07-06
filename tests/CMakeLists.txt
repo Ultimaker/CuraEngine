@@ -13,6 +13,7 @@ set(TESTS_SRC_BASE
         GCodeTemplateResolverTest
         InfillTest
         LayerPlanTest
+        MeshGroupTest
         PathOrderOptimizerTest
         PathOrderMonotonicTest
         TimeEstimateCalculatorTest
