@@ -337,7 +337,7 @@ void WallToolPaths::generateNaiveInset()
                 continue;
             }
 
-            ExtrusionLine extrusion_line;
+            ExtrusionLine extrusion_line(inset_index);
             for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
             {
                 if (iterator == polygon.beginSegments())

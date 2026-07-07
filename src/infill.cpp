@@ -102,11 +102,7 @@ void Infill::generate(
         return;
     }
 
-<<<<<<< HEAD
-    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_line_count_, infill_line_width_, settings, layer_idx, section_type);
-=======
-    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_thickness_, infill_line_width_, settings, layer_idx, section_type, wall_generator);
->>>>>>> 76920cbcb (Don't use arachne to generate the support walls)
+    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_line_count_, infill_line_width_, settings, layer_idx, section_type, wall_generator);
     scripta::log("infill_inner_contour_0", inner_contour_, section_type, layer_idx);
 
     inner_contour_ = inner_contour_.offset(infill_overlap_);
