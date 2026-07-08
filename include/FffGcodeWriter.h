@@ -322,6 +322,7 @@ private:
      *
      * \param[in] storage where the slice data is stored.
      * \param mesh_ptr The mesh to add to the layer plan \p gcode_layer.
+     * \param slice_layer The layer currently being processed
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param gcode_layer The initial planning of the gcode of the layer.
@@ -329,6 +330,7 @@ private:
     void addMeshLayerToGCode(
         const SliceDataStorage& storage,
         const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         LayerPlan& gcode_layer) const;
@@ -340,6 +342,7 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param storage Storage to get global settings from.
      * \param mesh The mesh to add to the layer plan \p gcode_layer.
+     * \param slice_layer The layer currently being processed
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param part The part to add
@@ -348,6 +351,7 @@ private:
     void addMeshPartToGCode(
         const SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         SliceLayerPart& part,
@@ -358,6 +362,7 @@ private:
      *
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
+     * \param slice_layer The layer currently being processed
      * \param extruder_nr The extruder for which to print all features of the
      * mesh which should be printed with this extruder.
      * \param mesh_config the line config with which to print a print feature.
@@ -369,6 +374,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
@@ -381,7 +387,8 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param extruder_nr The extruder for which to print all features of the
-     * mesh which should be printed with this extruder.
+     * \param mesh which should be printed with this extruder.
+     * \param slice_layer The layer currently being processed
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
      * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
@@ -393,6 +400,7 @@ private:
     bool processMultiLayerInfill(
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
@@ -406,7 +414,8 @@ private:
      * \param gcodeLayer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      * \param extruder_nr The extruder for which to print all features of the
-     * mesh which should be printed with this extruder
+     * \param mesh which should be printed with this extruder
+     * \param slice_layer The layer currently being processed
      * \param mesh_config The line config with which to print a print feature.
      * \param part The part for which to create gcode.
      * \param start_move_inwards_length The length of the extra inwards moves to be added at the start of each infill line
@@ -419,6 +428,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
@@ -466,7 +476,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
-        SliceLayerPart& part,
+        const SliceLayerPart& part,
         const bool infill_added) const;
 
     /*!
@@ -487,6 +497,7 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
+     * \param slice_layer The layer currently being processed
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param part The part for which to create gcode
@@ -496,6 +507,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SliceLayerPart& part) const;
@@ -516,6 +528,7 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
+     * \param slice_layer The layer currently being processed
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_part The skin part for which to create gcode
@@ -525,6 +538,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const SkinPart& skin_part) const;
@@ -546,6 +560,7 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const RoofingFlooringSettingsNames& settings_names,
+        const size_t wall_line_count,
         const Shape& fill,
         const GCodePathConfig& config,
         const std::vector<AngleDegrees>& angles,
@@ -558,6 +573,7 @@ private:
      * \param[in] storage where the slice data is stored.
      * \param gcode_layer The initial planning of the gcode of the layer.
      * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
+     * \param slice_layer The layer currently being processed
      * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
      * \param mesh_config the line config with which to print a print feature
      * \param skin_fill The shape of the skin for which to create gcode
@@ -567,6 +583,7 @@ private:
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
+        const SliceLayer& slice_layer,
         const size_t extruder_nr,
         const MeshPathConfigs& mesh_config,
         const Shape& skin_fill,
@@ -604,6 +621,7 @@ private:
         const coord_t skin_overlap,
         const Ratio skin_density,
         const LinesOrderingMethod ordering,
+        const size_t wall_line_count,
         const bool is_roofing_flooring,
         bool& added_something,
         double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,

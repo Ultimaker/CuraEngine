@@ -743,6 +743,36 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
 void FffPolygonGenerator::processWalls(SliceMeshStorage& mesh, size_t layer_nr)
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
+
+    const bool first_layer = layer_nr == 0;
+    layer->outer_wall_count = mesh.settings.get<size_t>(first_layer ? "wall_line_count_layer_0" : "wall_line_count");
+
+    const bool spiralize = mesh.settings.get<bool>("magic_spiralize");
+    const size_t alternate = ((layer_nr % 2) + 2) % 2;
+    if (spiralize && layer_nr < LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))
+        && alternate == 1) // Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
+    {
+        layer->outer_wall_count += 5;
+    }
+    if (mesh.settings.get<bool>("alternate_extra_perimeter"))
+    {
+        layer->outer_wall_count += alternate;
+    }
+
+    if (! first_layer)
+    {
+        const size_t wall_line_count_inside_skin = mesh.settings.get<size_t>("wall_line_count_inside_skin");
+        const size_t wall_line_count_roofing = mesh.settings.get<size_t>("wall_line_count_roofing");
+        const size_t wall_line_count_flooring = mesh.settings.get<size_t>("wall_line_count_flooring");
+        const size_t infill_wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
+
+        layer->outer_wall_count = std::min({ layer->outer_wall_count, wall_line_count_inside_skin, wall_line_count_roofing, wall_line_count_flooring, infill_wall_line_count });
+        layer->extra_wall_count_infill = infill_wall_line_count - layer->outer_wall_count;
+        layer->extra_wall_count_skin = wall_line_count_inside_skin - layer->outer_wall_count;
+        layer->extra_wall_count_flooring = wall_line_count_flooring - layer->outer_wall_count;
+        layer->extra_wall_count_roofing = wall_line_count_roofing - layer->outer_wall_count;
+    }
+
     WallsComputation walls_computation(mesh.settings, layer_nr);
     walls_computation.generateWalls(layer, SectionType::WALL);
 }

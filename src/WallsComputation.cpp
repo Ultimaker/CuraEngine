@@ -35,29 +35,18 @@ WallsComputation::WallsComputation(const Settings& settings, const LayerIndex la
  *
  * generateWalls only reads and writes data for the current layer
  */
-void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_type)
+void WallsComputation::generateWalls(const SliceLayer* layer, SliceLayerPart* part, SectionType section_type)
 {
-    size_t wall_count = settings_.get<size_t>("wall_line_count");
-    if (wall_count == 0) // Early out if no walls are to be generated
+    if (layer->outer_wall_count == 0) // Early out if no walls are to be generated
     {
         part->print_outline = part->outline;
         part->inner_area = part->outline;
         return;
     }
 
-    const bool spiralize = settings_.get<bool>("magic_spiralize");
-    const size_t alternate = ((layer_nr_ % 2) + 2) % 2;
-    if (spiralize && layer_nr_ < LayerIndex(settings_.get<size_t>("initial_bottom_layers"))
-        && alternate == 1) // Add extra insets every 2 layers when spiralizing. This makes bottoms of cups watertight.
-    {
-        wall_count += 5;
-    }
-    if (settings_.get<bool>("alternate_extra_perimeter"))
-    {
-        wall_count += alternate;
-    }
-
     const bool first_layer = layer_nr_ == 0;
+    const bool spiralize = settings_.get<bool>("magic_spiralize");
+
     const Ratio line_width_0_factor = first_layer ? settings_.get<ExtruderTrain&>("wall_0_extruder_nr").settings_.get<Ratio>("initial_layer_line_width_factor") : 1.0_r;
     const coord_t line_width_0 = settings_.get<coord_t>("wall_line_width_0") * line_width_0_factor;
     const coord_t wall_0_inset = settings_.get<coord_t>("wall_0_inset");
@@ -74,14 +63,14 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
         if (layer_nr_ <= static_cast<LayerIndex>(settings_.get<size_t>("initial_bottom_layers")))
         {
-            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings_, layer_nr_, section_type);
+            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, layer->outer_wall_count, wall_0_inset, settings_, layer_nr_, section_type);
             part->wall_toolpaths = wall_tool_paths.getToolPaths();
             part->inner_area = wall_tool_paths.getInnerContour();
         }
     }
     else
     {
-        WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings_, layer_nr_, section_type);
+        WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, layer->outer_wall_count, wall_0_inset, settings_, layer_nr_, section_type);
         part->wall_toolpaths = wall_tool_paths.getToolPaths();
         part->inner_area = wall_tool_paths.getInnerContour();
     }
@@ -100,7 +89,7 @@ void WallsComputation::generateWalls(SliceLayer* layer, SectionType section)
 {
     for (SliceLayerPart& part : layer->parts)
     {
-        generateWalls(&part, section);
+        generateWalls(layer, &part, section);
     }
 
     // Remove the parts which did not generate a wall. As these parts are too small to print,

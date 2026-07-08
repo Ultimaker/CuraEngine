@@ -257,6 +257,8 @@ public:
 
     LayerIndex getLayerNr() const;
 
+    bool isInitialLayer() const;
+
     /*!
      * Get the last planned position, or if no position has been planned yet, the user specified layer start position.
      *

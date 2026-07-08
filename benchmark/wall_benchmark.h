@@ -68,7 +68,6 @@ public:
         settings.add("min_feature_size", "0");
         settings.add("wall_0_extruder_nr", "0");
         settings.add("wall_0_inset", "0");
-        settings.add("wall_line_count", "2");
         settings.add("wall_line_width_0", "0.4");
         settings.add("wall_line_width_x", "0.4");
         settings.add("min_even_wall_line_width", "0.34");
@@ -82,6 +81,7 @@ public:
         settings.add("wall_line_count", std::to_string(state.range(0)));
         outer_to_inner = false;
         layer.parts.emplace_back();
+        layer.outer_wall_count = state.range(0);
 
         SliceLayerPart& part = layer.parts.back();
         part.outline.push_back(ff_holes);
@@ -128,7 +128,6 @@ public:
         settings.add("min_feature_size", "0");
         settings.add("wall_0_extruder_nr", "0");
         settings.add("wall_0_inset", "0");
-        settings.add("wall_line_count", "2");
         settings.add("wall_line_width_0", "0.4");
         settings.add("wall_line_width_x", "0.4");
         settings.add("min_even_wall_line_width", "0.34");
@@ -142,6 +141,7 @@ public:
         settings.add("wall_line_count", std::to_string(state.range(0)));
         outer_to_inner = false;
         layer.parts.emplace_back();
+        layer.outer_wall_count = state.range(0);
 
         SliceLayerPart& part = layer.parts.back();
         part.outline.push_back(shape.front());

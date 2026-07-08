@@ -85,7 +85,6 @@ public:
         settings.add("min_feature_size", "0");
         settings.add("wall_0_extruder_nr", "0");
         settings.add("wall_0_inset", "0");
-        settings.add("wall_line_count", "2");
         settings.add("wall_line_width_0", "0.4");
         settings.add("wall_line_width_x", "0.4");
         settings.add("min_even_wall_line_width", "0.34");
@@ -104,9 +103,11 @@ public:
  */
 TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
 {
+    settings.add("wall_line_count", "2");
     auto layers = std::vector<SlicerLayer>(200, SlicerLayer{});
     scripta::setAll(layers);
     SliceLayer layer;
+    layer.outer_wall_count = 2;
     layer.parts.emplace_back();
     SliceLayerPart& part = layer.parts.back();
     part.outline.push_back(square_shape);
@@ -131,6 +132,7 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
     settings.add("wall_line_count", "0");
     SliceLayer layer;
     layer.parts.emplace_back();
+    layer.outer_wall_count = 0;
     SliceLayerPart& part = layer.parts.back();
     part.outline.push_back(square_shape);
 
@@ -152,6 +154,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     settings.add("wall_line_count", "5");
     SliceLayer layer;
     layer.parts.emplace_back();
+    layer.outer_wall_count = 5;
     SliceLayerPart& part = layer.parts.back();
     part.outline.push_back(ff_holes);
 

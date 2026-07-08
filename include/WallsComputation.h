@@ -57,7 +57,7 @@ private:
      *
      * \param part The part for which to generate the insets.
      */
-    void generateWalls(SliceLayerPart* part, SectionType section);
+    void generateWalls(const SliceLayer* layer, SliceLayerPart* part, SectionType section);
 
     /*!
      * Generates the outer inset / perimeter used in spiralize mode for a single layer part. The spiral inset is
