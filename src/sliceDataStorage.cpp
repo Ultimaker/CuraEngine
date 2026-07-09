@@ -305,7 +305,8 @@ Shape SliceDataStorage::getLayerOutlines(
     const bool include_prime_tower,
     const bool external_polys_only,
     const int extruder_nr,
-    const bool include_models) const
+    const bool include_models,
+    const bool include_support_base) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
@@ -388,7 +389,14 @@ Shape SliceDataStorage::getLayerOutlines(
             {
                 for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
                 {
-                    total.push_back(support_infill_part.base_outline_.value_or(support_infill_part.outline_));
+                    if (include_support_base)
+                    {
+                        total.push_back(support_infill_part.base_outline_.value_or(support_infill_part.outline_));
+                    }
+                    else
+                    {
+                        total.push_back(support_infill_part.outline_);
+                    }
                 }
                 total.push_back(support_layer.support_bottom);
                 total.push_back(support_layer.support_roof);

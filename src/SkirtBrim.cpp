@@ -152,7 +152,11 @@ void SkirtBrim::generate()
     Shape covered_area = storage_.getLayerOutlines(
         0,
         /*include_support*/ true,
-        /*include_prime_tower*/ adhesion_type_ == EPlatformAdhesion::SKIRT);
+        /*include_prime_tower*/ adhesion_type_ == EPlatformAdhesion::SKIRT,
+        /*external_polys_only*/ false,
+        /*extruder_nr*/ -1,
+        /*include_models*/ true,
+        /*include_support_base*/ false);
     if (adhesion_type_ == EPlatformAdhesion::SKIRT)
     {
         covered_area = covered_area.approxConvexHull();
@@ -594,8 +598,9 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
                     constexpr bool include_support = true;
                     constexpr bool include_prime_tower = true;
                     constexpr bool include_model = false;
+                    constexpr bool include_support_base = false;
                     extruder_outlines.supports_outlines
-                        = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_model);
+                        = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_model, include_support_base);
                 }
             }
         }
@@ -634,7 +639,7 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
                     if ((other_extruder_nr == extruder_nr || extruder_nr == skirt_brim_extruder_nr_)
                         && ((covered_area > 0 && extruder_config.outside_polys_) || (covered_area < 0 && extruder_config.inside_polys_)))
                     {
-                        // This is an area we are gonna intentionnally print brim in, use the actual gap
+                        // This is an area we are gonna intentionally print brim in, use the actual gap
                         offset += extruder_config.gap_ - 50; // Lower margin a bit to avoid discarding legitimate lines
                     }
                     else
