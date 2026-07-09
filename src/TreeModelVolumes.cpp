@@ -395,9 +395,10 @@ const Shape& TreeModelVolumes::getAccumulatedPlaceable0(LayerIndex layer_idx)
 {
     {
         std::lock_guard<std::mutex> critical_section_support_max_layer_nr(*critical_accumulated_placeables_cache_radius_0_);
-        if (accumulated_placeables_cache_radius_0_.count(layer_idx))
+        auto iterator = accumulated_placeables_cache_radius_0_.find(layer_idx);
+        if (iterator != accumulated_placeables_cache_radius_0_.end())
         {
-            return accumulated_placeables_cache_radius_0_[layer_idx];
+            return iterator->second;
         }
     }
     calculateAccumulatedPlaceable0(layer_idx);
@@ -804,18 +805,26 @@ void TreeModelVolumes::calculateAccumulatedPlaceable0(const LayerIndex max_layer
 {
     LayerIndex start_layer = -1;
 
-    // the placeable on model areas do not exist on layer 0, as there can not be model below it. As such it may be possible that layer 1 is available, but layer 0 does not exist.
+    if (max_layer <= 0)
+    {
+        // the placeable on model areas do not exist on layer 0, as there can not be model below it. As such it may be possible that layer 1 is available, but layer 0 does not
+        // exist.
+        std::lock_guard<std::mutex> critical_section_support_max_layer_nr(*critical_accumulated_placeables_cache_radius_0_);
+        accumulated_placeables_cache_radius_0_[max_layer] = Shape();
+        return;
+    }
+
     {
         std::lock_guard<std::mutex> critical_section(*critical_accumulated_placeables_cache_radius_0_);
-        while (accumulated_placeables_cache_radius_0_.count(start_layer + 1))
+        while (accumulated_placeables_cache_radius_0_.contains(start_layer + 1))
         {
-            start_layer++;
+            ++start_layer;
         }
         start_layer = std::max(LayerIndex{ start_layer + 1 }, LayerIndex{ 1 });
     }
     if (start_layer > max_layer)
     {
-        spdlog::debug("Requested calculation for value already calculated ?");
+        spdlog::warn("Requested calculation for value already calculated ?");
         return;
     }
     Shape accumulated_placeable_0
