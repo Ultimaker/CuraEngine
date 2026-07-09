@@ -32,6 +32,7 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
+#include "utils/CuraViz.h"
 
 namespace cura
 {
@@ -59,6 +60,8 @@ int main(int argc, char** argv)
 #endif
     std::cerr << std::boolalpha;
 
+    cura::CuraViz::send(cura::Point2LL(0, 0));
+    cura::CuraViz::send(cura::Point2LL(300000, 400000));
 
 // Want to set the sentry URL? Use '-c user.sentry:url=<url> -o curaengine/*:enable_sentry=True' with conan install
 #ifdef SENTRY_URL
