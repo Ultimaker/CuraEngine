@@ -6,12 +6,19 @@
 #include <spdlog/spdlog.h>
 #ifdef ENABLE_CURAVIZ
 
+#include <cura_viz/message.pb.h>
+#include <cura_viz/point2ll.pb.h>
+#include <cura_viz/polyline2ll.pb.h>
+#include <cura_viz/printer.pb.h>
+#include <cura_viz/step.pb.h>
+
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/map.hpp>
+
 #include "Application.h"
 #include "Slice.h"
-#include "cura_viz/message.pb.h"
-#include "cura_viz/point2ll.pb.h"
-#include "cura_viz/printer.pb.h"
-#include "cura_viz/step.pb.h"
+#include "geometry/Polygon.h"
+#include "geometry/Shape.h"
 #include "settings/Settings.h"
 
 namespace cura
@@ -108,6 +115,73 @@ void CuraViz::send(const Point2LL& point, const std::string& name, const std::st
     cura_viz::Point2LL* point_message = geometric_data->mutable_point2ll();
     point_message->set_x(point.X);
     point_message->set_y(point.Y);
+
+    getInstance()->send(message);
+}
+
+void CuraViz::send(const Shape& shape, const std::string& name, const std::string& step_name)
+{
+    cura_viz::Message message;
+
+    cura_viz::Step* step = message.mutable_step();
+    step->set_name(step_name);
+
+    cura_viz::GeometricElement* geometric_element = step->add_elements();
+    geometric_element->set_name(name);
+
+    cura_viz::GeometricData* geometric_data = geometric_element->mutable_data();
+
+    cura_viz::LinesSet2LL* lines_set_message = geometric_data->mutable_lines_set2ll();
+
+    for (const Polygon& polygon : shape)
+    {
+        cura_viz::Polyline2LL* polygon_message = lines_set_message->add_lines();
+        polygon_message->set_surface(true);
+
+        for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
+        {
+            cura_viz::Segment2LL* segment_message = polygon_message->add_segments();
+            segment_message->mutable_start()->set_x((*iterator).start.X);
+            segment_message->mutable_start()->set_y((*iterator).start.Y);
+            segment_message->mutable_end()->set_x((*iterator).end.X);
+            segment_message->mutable_end()->set_y((*iterator).end.Y);
+        }
+    }
+
+    getInstance()->send(message);
+}
+
+void CuraViz::send(const std::vector<Shape>& shapes, const std::string& name, const std::string& step_name)
+{
+    cura_viz::Message message;
+
+    cura_viz::Step* step = message.mutable_step();
+    step->set_name(step_name);
+
+    for (const auto& [shape_index, shape] : shapes | ranges::views::enumerate)
+    {
+        cura_viz::GeometricElement* geometric_element = step->add_elements();
+        geometric_element->set_name(fmt::format("{}_{}", name, shape_index));
+
+        cura_viz::GeometricData* geometric_data = geometric_element->mutable_data();
+
+        cura_viz::LinesSet2LL* lines_set_message = geometric_data->mutable_lines_set2ll();
+
+        for (const Polygon& polygon : shape)
+        {
+            cura_viz::Polyline2LL* polygon_message = lines_set_message->add_lines();
+            polygon_message->set_surface(true);
+
+            for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
+            {
+                cura_viz::Segment2LL* segment_message = polygon_message->add_segments();
+                segment_message->mutable_start()->set_x((*iterator).start.X);
+                segment_message->mutable_start()->set_y((*iterator).start.Y);
+                segment_message->mutable_end()->set_x((*iterator).end.X);
+                segment_message->mutable_end()->set_y((*iterator).end.Y);
+            }
+        }
+    }
 
     getInstance()->send(message);
 }

@@ -17,10 +17,16 @@ class Message;
 namespace cura
 {
 
+class Shape;
+
 class CuraViz
 {
 public:
     static void send(const Point2LL& point, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const Shape& shape, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const std::vector<Shape>& shapes, const std::string& name = "", const std::string& step_name = "");
 
 private:
     CuraViz();
