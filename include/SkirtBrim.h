@@ -220,6 +220,10 @@ private:
      */
     std::vector<Shape> generateAllowedAreas(const std::vector<Outline>& starting_outlines) const;
 
+    void generateSupportInsideBrim(const Settings& settings, const Shape& support_outline, const size_t width, const size_t line_width);
+
+    void generateSupportOutsideBrim(const Shape& support_outline, const size_t width, const size_t line_width, const Shape exclusion_area);
+
 public:
     /*!
      * Generate the brim which is printed from the outlines of the support inward.

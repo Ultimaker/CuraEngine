@@ -1221,11 +1221,15 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     {
         // process the skirt or the brim of the starting extruder.
         auto extruder_nr = gcode_layer.getExtruder();
-        if (storage.skirt_brim[extruder_nr].size() > 0)
+        if (! storage.skirt_brim[extruder_nr].empty())
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr, layer_nr);
-            time_keeper.registerTime("Skirt/brim");
         }
+        if (! storage.support_brim.empty())
+        {
+            processSupportBrim(storage, gcode_layer, extruder_nr, layer_nr);
+        }
+        time_keeper.registerTime("Skirt/brim");
 
         // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
         processOozeShield(storage, gcode_layer);
@@ -1304,7 +1308,7 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     return need_prime_blob;
 }
 
-void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr, LayerIndex layer_nr) const
+void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr) const
 {
     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
     const int skirt_height = train.settings_.get<int>("skirt_height");
@@ -1437,11 +1441,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
     assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
 
-    const bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
-    const coord_t wipe_dist = 0u;
-    const Ratio flow_ratio = 1.0;
-    const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-    const bool reverse_print_direction = false;
+    constexpr bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
+    constexpr coord_t wipe_dist = 0u;
+    constexpr Ratio flow_ratio = 1.0;
+    constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    constexpr bool reverse_print_direction = false;
 
     if (! all_brim_lines.empty())
     {
@@ -1457,27 +1461,36 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             reverse_print_direction,
             layer_nr == 0 ? order_requirements : PathOrderOptimizer<const Polyline*>::no_order_requirements_);
     }
+}
 
-
+void FffGcodeWriter::processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr)
+{
     // Add the support brim after the skirt_brim to gcode_layer
     // Support brim is only added in layer 0
     // For support brim we don't care about the order, because support doesn't need to be accurate.
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if ((layer_nr == 0) && (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_))
+    if (layer_nr > 0 || (extruder_nr != mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_))
     {
-        total_line_count += storage.support_brim.size();
-        gcode_layer.addLinesByOptimizer(
-            storage.support_brim,
-            gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
-            SpaceFillType::PolyLines,
-            enable_travel_optimization,
-            wipe_dist,
-            flow_ratio,
-            start_close_to,
-            fan_speed,
-            reverse_print_direction,
-            order_requirements = {});
+        return;
     }
+
+    constexpr bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
+    constexpr coord_t wipe_dist = 0u;
+    constexpr Ratio flow_ratio = 1.0;
+    constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    constexpr bool reverse_print_direction = false;
+    const Point2LL start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
+
+    gcode_layer.addLinesByOptimizer(
+        storage.support_brim,
+        gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
+        SpaceFillType::PolyLines,
+        enable_travel_optimization,
+        wipe_dist,
+        flow_ratio,
+        start_close_to,
+        fan_speed,
+        reverse_print_direction);
 }
 
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
@@ -4189,6 +4202,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         if (! gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr, gcode_layer.getLayerNr());
+            processSupportBrim(storage, gcode_layer, extruder_nr, gcode_layer.getLayerNr());
         }
     }
 

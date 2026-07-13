@@ -384,7 +384,7 @@ public:
     SupportStorage support;
 
     std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    ClosedLinesSet support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
+    MixedLinesSet support_brim; //!< brim lines for support, inside and outside. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
     Shape raft_base_outline;
@@ -422,6 +422,7 @@ public:
      * \param include_models Whether to include the models in the outline
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
+     * \param include_support_base (optional) include the support base (implies include_support). If false, only the raw support outline is returned.
      */
     Shape getLayerOutlines(
         const LayerIndex layer_nr,
@@ -429,7 +430,8 @@ public:
         const bool include_prime_tower,
         const bool external_polys_only = false,
         const int extruder_nr = -1,
-        const bool include_models = true) const;
+        const bool include_models = true,
+        const bool include_support_base = true) const;
 
     /*!
      * Get the axis-aligned bounding-box of the complete model (all meshes).

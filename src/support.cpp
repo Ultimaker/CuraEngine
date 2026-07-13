@@ -177,7 +177,6 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
     const auto support_line_width = settings.get<coord_t>("support_line_width");
     const auto support_line_distance = settings.get<coord_t>("support_line_distance");
     const auto support_xy_distance = settings.get<coord_t>("support_xy_distance");
-    const auto adhesion_type = settings.get<EPlatformAdhesion>("adhesion_type");
     const auto support_wall_count = settings.get<size_t>("support_wall_count");
 
     const auto base_outside_width = settings.get<coord_t>("support_base_outside_width");
