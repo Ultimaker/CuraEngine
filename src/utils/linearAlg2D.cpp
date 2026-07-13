@@ -362,6 +362,11 @@ std::optional<coord_t> LinearAlg2D::segmentHorizontalLineIntersection(const Poin
 
 coord_t LinearAlg2D::getSlopedWidth(const coord_t base_width, const coord_t base_height, const double slope_magnitude, const coord_t actual_height)
 {
+    if (base_width == 0 || base_height == 0)
+    {
+        return 0;
+    }
+
     const double factor = std::pow((1.0 - static_cast<double>(actual_height) / static_cast<double>(base_height)), slope_magnitude);
     return std::llrint(static_cast<double>(base_width) * factor);
 }
