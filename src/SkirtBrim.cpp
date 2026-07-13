@@ -148,7 +148,7 @@ void SkirtBrim::generate()
     std::vector<Offset> all_brim_offsets = generateBrimOffsetPlan(starting_outlines);
     std::vector<Shape> allowed_areas_per_extruder = generateAllowedAreas(starting_outlines);
 
-    // Apply 'approximate convex hull' if the adhesion is skirt _after_ any skirt but also prime-tower-brim adhesion.
+    // Apply 'make convex hull' if the adhesion is skirt _after_ any skirt but also prime-tower-brim adhesion.
     // Otherwise, the now expanded convex hull covered areas will mess with that brim. Fortunately this does not mess
     // with the other area calculation above, since they are either itself a simple/convex shape or relevant for brim.
     Shape covered_area = storage_.getLayerOutlines(
@@ -161,7 +161,7 @@ void SkirtBrim::generate()
         /*include_support_base*/ false);
     if (adhesion_type_ == EPlatformAdhesion::SKIRT)
     {
-        covered_area = covered_area.approxConvexHull();
+        covered_area.makeConvex();
     }
 
     std::vector<coord_t> total_length = generatePrimaryBrim(all_brim_offsets, covered_area, allowed_areas_per_extruder);
@@ -247,7 +247,7 @@ coord_t SkirtBrim::generateOffset(const Offset& offset, Shape& covered_area, std
 
     if (std::holds_alternative<Outline*>(offset.reference_outline_or_index_))
     {
-        Outline* reference_outline = std::get<Outline*>(offset.reference_outline_or_index_);
+        const Outline* reference_outline = std::get<Outline*>(offset.reference_outline_or_index_);
         for (const auto& [shape, offset_value] :
              { std::make_tuple(reference_outline->gapped, offset.offset_value_gapped_), std::make_tuple(reference_outline->touching, offset.offset_value_touching_) })
         {
@@ -360,7 +360,7 @@ SkirtBrim::Outline SkirtBrim::getFirstLayerOutline(const int extruder_nr /* = -1
         // so in some cases with a large skirt gap and small models and small shield distance
         // the skirt lines can cross the shield lines.
         // This shouldn't be a big problem, since the skirt lines are far away from the model.
-        first_layer_outline.gapped = first_layer_outline.gapped.approxConvexHull();
+        first_layer_outline.gapped.makeConvex();
     }
     else
     { // add brim underneath support by removing support where there's brim around the model

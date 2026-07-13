@@ -66,26 +66,6 @@ void Shape::emplace_back(ClipperLib::Path&& path, bool explicitely_closed)
     static_cast<LinesSet<Polygon>*>(this)->emplace_back(std::move(path), explicitely_closed);
 }
 
-Shape Shape::approxConvexHull(int extra_outset) const
-{
-    constexpr int overshoot = MM2INT(100); // 10cm (hard-coded value).
-
-    Shape convex_hull;
-    // Perform the offset for each polygon one at a time.
-    // This is necessary because the polygons may overlap, in which case the offset could end up in an infinite loop.
-    // See http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/_Body.htm
-    for (const Polygon& polygon : (*this))
-    {
-        ClipperLib::Paths offset_result;
-        ClipperLib::ClipperOffset offsetter(1.2, 10.0);
-        offsetter.AddPath(polygon.getPoints(), ClipperLib::jtRound, ClipperLib::etClosedPolygon);
-        offsetter.Execute(offset_result, overshoot);
-        convex_hull.emplace_back(std::move(offset_result));
-    }
-
-    return convex_hull.unionPolygons().offset(-overshoot + extra_outset, ClipperLib::jtRound);
-}
-
 void Shape::makeConvex()
 {
     // early out if there is nothing to do

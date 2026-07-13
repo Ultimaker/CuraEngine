@@ -17,6 +17,7 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "geometry/MixedLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 #include "settings/Settings.h"
@@ -173,6 +174,73 @@ void CuraViz::send(const std::vector<Shape>& shapes, const std::string& name, co
             polygon_message->set_surface(true);
 
             for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
+            {
+                cura_viz::Segment2LL* segment_message = polygon_message->add_segments();
+                segment_message->mutable_start()->set_x((*iterator).start.X);
+                segment_message->mutable_start()->set_y((*iterator).start.Y);
+                segment_message->mutable_end()->set_x((*iterator).end.X);
+                segment_message->mutable_end()->set_y((*iterator).end.Y);
+            }
+        }
+    }
+
+    getInstance()->send(message);
+}
+
+void CuraViz::send(const MixedLinesSet& lines_set, const std::string& name, const std::string& step_name)
+{
+    cura_viz::Message message;
+
+    cura_viz::Step* step = message.mutable_step();
+    step->set_name(step_name);
+
+    cura_viz::GeometricElement* geometric_element = step->add_elements();
+    geometric_element->set_name(name);
+
+    cura_viz::GeometricData* geometric_data = geometric_element->mutable_data();
+
+    cura_viz::LinesSet2LL* lines_set_message = geometric_data->mutable_lines_set2ll();
+
+    for (const PolylinePtr& line : lines_set)
+    {
+        cura_viz::Polyline2LL* polyline_message = lines_set_message->add_lines();
+        polyline_message->set_surface(false);
+
+        for (auto iterator = line->beginSegments(); iterator != line->endSegments(); ++iterator)
+        {
+            cura_viz::Segment2LL* segment_message = polyline_message->add_segments();
+            segment_message->mutable_start()->set_x((*iterator).start.X);
+            segment_message->mutable_start()->set_y((*iterator).start.Y);
+            segment_message->mutable_end()->set_x((*iterator).end.X);
+            segment_message->mutable_end()->set_y((*iterator).end.Y);
+        }
+    }
+
+    getInstance()->send(message);
+}
+
+void CuraViz::send(const std::vector<MixedLinesSet>& lines_sets, const std::string& name, const std::string& step_name)
+{
+    cura_viz::Message message;
+
+    cura_viz::Step* step = message.mutable_step();
+    step->set_name(step_name);
+
+    for (const auto& [lines_set_index, lines_set] : lines_sets | ranges::views::enumerate)
+    {
+        cura_viz::GeometricElement* geometric_element = step->add_elements();
+        geometric_element->set_name(fmt::format("{}_{}", name, lines_set_index));
+
+        cura_viz::GeometricData* geometric_data = geometric_element->mutable_data();
+
+        cura_viz::LinesSet2LL* lines_set_message = geometric_data->mutable_lines_set2ll();
+
+        for (const PolylinePtr& polyline : lines_set)
+        {
+            cura_viz::Polyline2LL* polygon_message = lines_set_message->add_lines();
+            polygon_message->set_surface(false);
+
+            for (auto iterator = polyline->beginSegments(); iterator != polyline->endSegments(); ++iterator)
             {
                 cura_viz::Segment2LL* segment_message = polygon_message->add_segments();
                 segment_message->mutable_start()->set_x((*iterator).start.X);

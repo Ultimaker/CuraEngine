@@ -17,6 +17,7 @@ class Message;
 namespace cura
 {
 
+class MixedLinesSet;
 class Shape;
 
 class CuraViz
@@ -27,6 +28,10 @@ public:
     static void send(const Shape& shape, const std::string& name = "", const std::string& step_name = "");
 
     static void send(const std::vector<Shape>& shapes, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const MixedLinesSet& lines, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const std::vector<MixedLinesSet>& polylines, const std::string& name = "", const std::string& step_name = "");
 
 private:
     CuraViz();
