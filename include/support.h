@@ -68,6 +68,10 @@ public:
      */
     static void generateSupportInfillFeatures(SliceDataStorage& storage);
 
+    /*!
+     * Generate the extra lines to be printed around the support to form a base and make it sturdier
+     * @param storage data storage containing the input layer outline data and containing the output support storage per layer
+     */
     static void generateSupportBase(SliceDataStorage& storage);
 
 private:

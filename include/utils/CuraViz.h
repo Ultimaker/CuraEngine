@@ -23,6 +23,32 @@ class MixedLinesSet;
 class Shape;
 class Polyline;
 
+/*!
+ * Interface to send internal CuraEngine data to an external visualization tool. All the public methods are static and can be used directly, without
+ * having to care about any kind of initialization or even multi-threading context. Just do something like:
+ *
+ * Shape outer_contour;
+ * std::vector<MixedLinesSet> final_print_lines;
+ * ....
+ * ....
+ * CuraViz::send(outer_contour, "contour");
+ * CuraViz::send(final_print_lines, "final_lines");
+ *
+ * Geometric objects (or sequence of objects) can be named using the "name" argument of each function. The "step_name" can be used to differentiate a same logical object that
+ * has changed over time, or to mention that multiple objects have been added in a batch:
+ *
+ * Shape outer_contour;
+ * CuraViz::send(outer_contour, "contour", "start");
+ *
+ * outer_contour = outer_contour.offset(100);
+ * CuraViz::send(outer_contour, "contour", "enlargement");
+ *
+ * Shape disallowed_areas = makeDisallowedAreas();
+ * outer_contour = outer_contour.difference(disallowed_areas);
+ * CuraViz::send(outer_contour, "contour", "remove_disallowed");
+ * CuraViz::send(disallowed_areas, "disallowed", "remove_disallowed");
+ *
+ */
 class CuraViz
 {
 public:
@@ -37,7 +63,7 @@ public:
     static void send(const std::vector<MixedLinesSet>& lines_sets, const std::string& name = "", const std::string& step_name = "");
 
 private:
-    /*! Convenience class that stores the actual message and handles its actual sending and destruction when appropriate */
+    /*! Convenience class that stores the message and handles its actual sending and destruction when appropriate */
     class MessageToSend
     {
     public:

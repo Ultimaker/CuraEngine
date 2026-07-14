@@ -229,6 +229,14 @@ private:
      */
     void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr) const;
 
+    /*!
+     * Add the support brim to the layer plan
+     *
+     * \param storage where the slice data is stored.
+     * \param gcode_layer The initial planning of the g-code of the layer.
+     * \param extruder_nr The extruder train for which to process the brim.
+     * \param layer_nr The index of the layer to write the gcode of.
+     */
     static void processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr);
 
     /*!

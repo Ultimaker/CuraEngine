@@ -699,7 +699,7 @@ void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape&
     }
 }
 
-void SkirtBrim::generateSupportOutsideBrim(const Shape& support_outline, const size_t width, const size_t line_width, const Shape exclusion_area)
+void SkirtBrim::generateSupportOutsideBrim(const Shape& support_outline, const size_t width, const size_t line_width, const Shape& exclusion_area)
 {
     PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateOutset(support_outline, width, line_width);
 

@@ -94,6 +94,7 @@ typedef SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator> Loc
 class PolygonUtils
 {
 public:
+    /*! Helper structure to return both the generated walls and the width of the final contour, when generating insets/outsets  */
     struct InsetOutset
     {
         std::vector<Shape> walls;
@@ -733,8 +734,22 @@ public:
      */
     static ClosedLinesSet generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
+    /*!
+     * Generates a series of outsetting walls around a given shape
+     * @param shape The shape to be wrapped
+     * @param width The maximum width to be reached, actual result may be thinner but never larger
+     * @param line_width The line width to be used to print each outset line
+     * @return The generated outset lines and the actual width of the outermost contour
+     */
     static InsetOutset generateOutset(const Shape& shape, const coord_t width, const coord_t line_width);
 
+    /*!
+     * Generates a series of insetting walls inside a given shape
+     * @param shape The shape to be filled
+     * @param width The maximum width to be reached, actual result may be thinner but never larger
+     * @param line_width The line width to be used to print each inset line
+     * @return The generated inset lines and the actual width of the innermost contour
+     */
     static InsetOutset generateInset(const Shape& shape, const coord_t width, const coord_t line_width);
 
 private:
@@ -759,6 +774,14 @@ private:
      */
     static Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen = EPSILON);
 
+    /*!
+     * Generates a series of insetting/outsetting walls given a contour shape
+     * @param shape The initial contour to be offsetted
+     * @param width The maximum width to be reached, actual result may be thinner but never larger
+     * @param line_width The line width to be used to print each line
+     * @param direction The direction, which should be either 1 for outsets or -1 for insets. Other values will generate an incorrect result.
+     * @return The generated lines and the actual width of the last contour
+     */
     static InsetOutset generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width, const coord_t direction);
 };
 

@@ -13,8 +13,8 @@ namespace cura
 class MixedLinesSet;
 
 /*!
- * \brief Convenience definition for a container that can hold only closed polylines. This makes it
- *        explicit what the lines actually represent.
+ * \brief Container that can hold only closed polylines. This makes it explicit what the lines actually represent and adds some processing functions that can only be applied
+ *        to closes polylines.
  */
 class ClosedLinesSet : public LinesSet<ClosedPolyline>
 {

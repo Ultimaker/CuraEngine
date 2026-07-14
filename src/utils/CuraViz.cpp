@@ -48,7 +48,14 @@ CuraViz::CuraViz()
         return;
     }
 
-    const Settings& global_settings = Application::getInstance().current_slice_->scene.settings;
+    const std::shared_ptr<Slice> current_slice = Application::getInstance().current_slice_;
+    if (! current_slice)
+    {
+        spdlog::warn("CuraViz could not send build plate dimensions since slice has not been initialized yet");
+        return;
+    }
+
+    const Settings& global_settings = current_slice->scene.settings;
     Point2LL machine_max(global_settings.get<coord_t>("machine_width"), global_settings.get<coord_t>("machine_depth"));
     Point2LL machine_min(0, 0);
     if (global_settings.get<bool>("machine_center_is_zero"))
@@ -103,9 +110,7 @@ CuraViz* CuraViz::getInstance()
 
 void CuraViz::setup(const Shape& shape, cura_viz::GeometricElement* element)
 {
-    cura_viz::GeometricData* geometric_data = element->mutable_data();
-    cura_viz::LinesSet2LL* lines_set_message = geometric_data->mutable_lines_set2ll();
-
+    cura_viz::LinesSet2LL* lines_set_message = element->mutable_data()->mutable_lines_set2ll();
     for (const Polygon& polygon : shape)
     {
         setup(polygon, lines_set_message->add_lines());
@@ -114,9 +119,7 @@ void CuraViz::setup(const Shape& shape, cura_viz::GeometricElement* element)
 
 void CuraViz::setup(const MixedLinesSet& lines, cura_viz::GeometricElement* element)
 {
-    cura_viz::GeometricData* geometric_data = element->mutable_data();
-    cura_viz::LinesSet2LL* lines_set_message = geometric_data->mutable_lines_set2ll();
-
+    cura_viz::LinesSet2LL* lines_set_message = element->mutable_data()->mutable_lines_set2ll();
     for (const PolylinePtr& line : lines)
     {
         setup(*line, lines_set_message->add_lines());
@@ -125,9 +128,7 @@ void CuraViz::setup(const MixedLinesSet& lines, cura_viz::GeometricElement* elem
 
 void CuraViz::setup(const Point2LL& point, cura_viz::GeometricElement* element)
 {
-    cura_viz::GeometricData* geometric_data = element->mutable_data();
-    cura_viz::Point2LL* point_message = geometric_data->mutable_point2ll();
-
+    cura_viz::Point2LL* point_message = element->mutable_data()->mutable_point2ll();
     point_message->set_x(point.X);
     point_message->set_y(point.Y);
 }

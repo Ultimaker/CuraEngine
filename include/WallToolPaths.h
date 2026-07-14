@@ -121,8 +121,10 @@ protected:
     static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
 private:
+    /*! Generates the toolpaths using the Arachne engine, which produces extrusions paths with variable line width */
     void generateArachne();
 
+    /*! Generates the toolpaths using a naive inset, which produces extrusions paths with a fixed line width */
     void generateNaiveInset();
 
 private:
