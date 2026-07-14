@@ -50,6 +50,8 @@ public:
 
     MixedLinesSet intersection(const Shape& shape) const;
 
+    MixedLinesSet difference(const Shape& shape) const;
+
     /*! @brief Adds a copy of the given polyline to the set */
     void push_back(const OpenPolyline& line);
 

@@ -278,7 +278,11 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                     }
                 }
 
-                MixedLinesSet base_lines = closed_base_outset.difference(forbidden_areas).intersection(storage.getMachineBorder());
+
+                MixedLinesSet base_lines = closed_base_outset.difference(forbidden_areas)
+                                               .difference(support_layer.support_roof)
+                                               .difference(support_layer.support_bottom)
+                                               .intersection(storage.getMachineBorder());
                 if (! base_lines.empty())
                 {
                     support_layer.base.push_back(std::move(base_lines));

@@ -134,6 +134,28 @@ MixedLinesSet MixedLinesSet::intersection(const Shape& shape) const
     return MixedLinesSet(std::move(ret));
 }
 
+MixedLinesSet MixedLinesSet::difference(const Shape& shape) const
+{
+    if (empty())
+    {
+        return {};
+    }
+    if (shape.empty())
+    {
+        return *this;
+    }
+
+    ClipperLib::PolyTree ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    for (const PolylinePtr& line : (*this))
+    {
+        line->addPath(clipper, ClipperLib::ptSubject);
+    }
+    shape.addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctDifference, ret);
+    return MixedLinesSet(std::move(ret));
+}
+
 void MixedLinesSet::push_back(const OpenPolyline& line)
 {
     std::vector<PolylinePtr>::push_back(std::make_shared<OpenPolyline>(line));
