@@ -731,7 +731,7 @@ void SkirtBrim::generateSupportBrim()
     const auto layer_height = settings.get<coord_t>("layer_height");
     const auto base_outside_width = settings.get<coord_t>("support_base_outside_width");
     const auto base_outside_height = settings.get<coord_t>("support_outside_base_height");
-    const auto support_outer_brim_enable = settings.get<coord_t>("support_outer_brim_enable");
+    const auto support_outer_brim_enable = settings.get<bool>("support_outer_brim_enable");
     const bool has_base_outside = support_outer_brim_enable && base_outside_width > 0 && base_outside_height >= layer_height;
     const size_t outside_brim_line_count = (adhesion_type_ != EPlatformAdhesion::BRIM && has_base_outside) ? base_outside_width / brim_line_width : 0;
 
