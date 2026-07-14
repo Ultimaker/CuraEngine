@@ -177,14 +177,13 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
     const auto support_line_width = settings.get<coord_t>("support_line_width");
     const auto support_xy_distance = settings.get<coord_t>("support_xy_distance");
     const auto adhesion_type = settings.get<EPlatformAdhesion>("adhesion_type");
-    const auto support_wall_count = settings.get<size_t>("support_wall_count");
 
-    const auto support_outer_brim_enable = settings.get<coord_t>("support_outer_brim_enable");
+    const auto support_outer_brim_enable = settings.get<bool>("support_outer_brim_enable");
     const auto base_outside_width = settings.get<coord_t>("support_base_outside_width");
     const auto base_outside_height = settings.get<coord_t>("support_outside_base_height");
     const auto base_outside_curve_magnitude = settings.get<double>("support_outside_base_curve_magnitude");
 
-    const auto support_inner_brim_enable = settings.get<coord_t>("support_brim_enable");
+    const auto support_inner_brim_enable = settings.get<bool>("support_brim_enable");
     const auto base_inside_width = settings.get<coord_t>("support_base_inside_width");
     const auto base_inside_height = settings.get<coord_t>("support_inside_base_height");
     const auto base_inside_curve_magnitude = settings.get<double>("support_inside_base_curve_magnitude");
