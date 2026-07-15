@@ -96,11 +96,8 @@ OBJ::~OBJ()
         out_material << "newmtl " << materialName(color) << "\n";
 
         SVG::RgbColor color_rgb = SVG::toRgb(color);
-        out_material << "Kd "
-            << static_cast<float>(color_rgb.r) / 256.f << " "
-            << static_cast<float>(color_rgb.g) / 256.f << " "
-            << static_cast<float>(color_rgb.b) / 256.f << "\n"
-            << "\n"; // Extra newline between materials.
+        out_material << "Kd " << static_cast<float>(color_rgb.r) / 256.f << " " << static_cast<float>(color_rgb.g) / 256.f << " " << static_cast<float>(color_rgb.b) / 256.f << "\n"
+                     << "\n"; // Extra newline between materials.
     }
 }
 

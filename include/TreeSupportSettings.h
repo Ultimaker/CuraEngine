@@ -436,9 +436,8 @@ public:
             && zag_skip_count == other.zag_skip_count && connect_zigzags == other.connect_zigzags && interface_preference == other.interface_preference
             && min_feature_size == other.min_feature_size && // interface_preference should be identical to ensure the tree will correctly interact with the roof.
                support_rest_preference == other.support_rest_preference && max_radius == other.max_radius && min_wall_line_width == other.min_wall_line_width
-            && fill_outline_gaps == other.fill_outline_gaps
-            && support_line_width_bottom_layers == other.support_line_width_bottom_layers && support_line_width_top_layers == other.support_line_width_top_layers
-            && support_line_width_layer_smooth == other.support_line_width_layer_smooth &&
+            && fill_outline_gaps == other.fill_outline_gaps && support_line_width_bottom_layers == other.support_line_width_bottom_layers
+            && support_line_width_top_layers == other.support_line_width_top_layers && support_line_width_layer_smooth == other.support_line_width_layer_smooth &&
                // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for
                // interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
                (interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT || interface_preference == InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE

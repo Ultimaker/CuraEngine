@@ -2232,16 +2232,15 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
                     Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(
-                        TreeSupportUtils::generateSupportInfillLines(
-                            support_layer_storage[layer_idx],
-                            config,
-                            false,
-                            layer_idx,
-                            config.support_line_distance,
-                            storage.support.cross_fill_provider,
-                            true)
-                            .offset(config.support_line_width / 2));
+                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
+                                                              support_layer_storage[layer_idx],
+                                                              config,
+                                                              false,
+                                                              layer_idx,
+                                                              config.support_line_distance,
+                                                              storage.support.cross_fill_provider,
+                                                              true)
+                                                              .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
@@ -2295,24 +2294,18 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 const AABB aabb(support_part);
                 const coord_t search_radius = EPSILON + std::max(aabb.width(), aabb.height()) / 2;
                 const auto located_data = center_locator->getNearby(aabb.getMiddle(), search_radius);
-                const std::pair<float, float> total_area_width =
-                    std::accumulate(
-                        located_data.begin(),
-                        located_data.end(),
-                        std::make_pair(0.f, 0.f),
-                        [&support_part](const auto& res, const auto& elem) {
-                              return
-                                  support_part.inside(elem.point) ?
-                                  std::make_pair( (elem.val.first * elem.val.second) + res.first, elem.val.second + res.second ) :
-                                  res;
+                const std::pair<float, float> total_area_width = std::accumulate(
+                    located_data.begin(),
+                    located_data.end(),
+                    std::make_pair(0.f, 0.f),
+                    [&support_part](const auto& res, const auto& elem)
+                    {
+                        return support_part.inside(elem.point) ? std::make_pair((elem.val.first * elem.val.second) + res.first, elem.val.second + res.second) : res;
                     });
 
                 const auto wall_thickness = std::max(
                     config.support_wall_thickness,
-                    std::min(
-                        config.support_enlarged_wall_thickness,
-                        static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second)
-                    )));
+                    std::min(config.support_enlarged_wall_thickness, static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second))));
                 storage.support.supportLayers[layer_idx].fillInfillParts(support_part, config.support_line_width, wall_thickness, false, convert_every_part);
             }
 
@@ -2428,18 +2421,15 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
 
             for (const auto& elem : move_bounds[layer_idx])
             {
-                const float lerp_mul = static_cast<float>(std::min(config.support_line_width_layer_smooth, std::max(
-                        config.support_line_width_bottom_layers - static_cast<coord_t>(layer_idx),
-                        config.support_line_width_top_layers - static_cast<coord_t>(elem->distance_to_top_)
-                    ))) / config.support_line_width_layer_smooth;
-                const coord_t nominal_wall_width = std::lerp(
-                    config.support_enlarged_wall_thickness,
-                    config.support_wall_thickness,
-                    std::max(0.f, std::min(1.f, lerp_mul)));
+                const float lerp_mul = static_cast<float>(std::min(
+                                           config.support_line_width_layer_smooth,
+                                           std::max(
+                                               config.support_line_width_bottom_layers - static_cast<coord_t>(layer_idx),
+                                               config.support_line_width_top_layers - static_cast<coord_t>(elem->distance_to_top_))))
+                                     / config.support_line_width_layer_smooth;
+                const coord_t nominal_wall_width = std::lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, std::max(0.f, std::min(1.f, lerp_mul)));
 
-                const auto center =
-                    (elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0) ?
-                    elem->result_on_layer_ : elem->target_position_;
+                const auto center = (elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0) ? elem->result_on_layer_ : elem->target_position_;
                 center_locator->insert(center, { nominal_wall_width, elem->area_->area() });
             }
         });

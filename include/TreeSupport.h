@@ -4,6 +4,8 @@
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
 
+#include <utility> // For std::pair
+
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportElement.h"
@@ -16,8 +18,6 @@
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
 #include "utils/SparsePointGridInclusive.h"
-
-#include <utility> // For std::pair
 
 namespace cura
 {
