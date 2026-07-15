@@ -2428,15 +2428,10 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
 
             for (const auto& elem : move_bounds[layer_idx])
             {
-                // TODO: Remove magic numbers, replace with sensible values.
-                constexpr auto max_layers_to_tip = 40LL;
-                constexpr auto max_layers_to_trunk = 40LL;
-                constexpr auto smooth_layers = 15LL;
-
-                const float lerp_mul = static_cast<float>(std::min(smooth_layers, std::max(
-                        max_layers_to_trunk - static_cast<coord_t>(layer_idx),
-                        max_layers_to_tip - static_cast<coord_t>(elem->distance_to_top_)
-                    ))) / smooth_layers;
+                const float lerp_mul = static_cast<float>(std::min(config.support_line_width_layer_smooth, std::max(
+                        config.support_line_width_bottom_layers - static_cast<coord_t>(layer_idx),
+                        config.support_line_width_top_layers - static_cast<coord_t>(elem->distance_to_top_)
+                    ))) / config.support_line_width_layer_smooth;
                 const coord_t nominal_wall_width = std::lerp(
                     config.support_enlarged_wall_thickness,
                     config.support_wall_thickness,
