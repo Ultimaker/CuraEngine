@@ -2301,11 +2301,18 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                         located_data.end(),
                         std::make_pair(0.f, 0.f),
                         [&support_part](const auto& res, const auto& elem) {
-                              return support_part.inside(elem.point) ? std::make_pair( (elem.val.first * elem.val.second) + res.first, elem.val.second + res.second ) : res;
+                              return
+                                  support_part.inside(elem.point) ?
+                                  std::make_pair( (elem.val.first * elem.val.second) + res.first, elem.val.second + res.second ) :
+                                  res;
                     });
 
-                const auto wall_thickness = std::max(config.support_wall_thickness,
-                    std::min(config.support_enlarged_wall_thickness, static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second))));
+                const auto wall_thickness = std::max(
+                    config.support_wall_thickness,
+                    std::min(
+                        config.support_enlarged_wall_thickness,
+                        static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second)
+                    )));
                 storage.support.supportLayers[layer_idx].fillInfillParts(support_part, config.support_line_width, wall_thickness, false, convert_every_part);
             }
 
@@ -2383,28 +2390,6 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         }
     }
 
-    CenterGrid center_locator_per_layer(move_bounds.size());
-    cura::parallel_for<size_t>(
-        0,
-        center_locator_per_layer.size(),
-        [&](const size_t layer_idx)
-        {
-            center_locator_per_layer[layer_idx] = std::make_unique<SparsePointGridInclusive<std::pair<coord_t, float>>>(config.branch_radius * 2 + EPSILON);
-            auto* center_locator = center_locator_per_layer[layer_idx].get();
-
-            for (const auto& elem : move_bounds[layer_idx])
-            {
-                // TODO: Remove magic numbers, replace with sensible values.
-                const coord_t nominal_wall_width
-                    = elem->distance_to_top_ < 20 ?
-                        config.support_wall_thickness :
-                        (layer_idx < 10 ? config.support_wall_thickness : config.support_enlarged_wall_thickness);
-                const auto center = elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0 ? elem->result_on_layer_ : elem->target_position_;
-                center_locator->insert(center, { nominal_wall_width, elem->area_->area() });
-            }
-        }
-    );
-
     // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
     std::vector<std::unordered_map<TreeSupportElement*, Shape>> layer_tree_polygons(move_bounds.size());
     const auto t_start = std::chrono::high_resolution_clock::now();
@@ -2431,6 +2416,38 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             support_layer_storage[pair.first].push_back(pair.second);
         }
     }
+
+    CenterGrid center_locator_per_layer(move_bounds.size());
+    cura::parallel_for<size_t>(
+        0,
+        center_locator_per_layer.size(),
+        [&](const size_t layer_idx)
+        {
+            center_locator_per_layer[layer_idx] = std::make_unique<SparsePointGridInclusive<std::pair<coord_t, float>>>(config.branch_radius * 2 + EPSILON);
+            auto* center_locator = center_locator_per_layer[layer_idx].get();
+
+            for (const auto& elem : move_bounds[layer_idx])
+            {
+                // TODO: Remove magic numbers, replace with sensible values.
+                constexpr auto max_layers_to_tip = 40LL;
+                constexpr auto max_layers_to_trunk = 40LL;
+                constexpr auto smooth_layers = 15LL;
+
+                const float lerp_mul = static_cast<float>(std::min(smooth_layers, std::max(
+                        max_layers_to_trunk - static_cast<coord_t>(layer_idx),
+                        max_layers_to_tip - static_cast<coord_t>(elem->distance_to_top_)
+                    ))) / smooth_layers;
+                const coord_t nominal_wall_width = std::lerp(
+                    config.support_enlarged_wall_thickness,
+                    config.support_wall_thickness,
+                    std::max(0.f, std::min(1.f, lerp_mul)));
+
+                const auto center =
+                    (elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0) ?
+                    elem->result_on_layer_ : elem->target_position_;
+                center_locator->insert(center, { nominal_wall_width, elem->area_->area() });
+            }
+        });
 
     // ensure all branch areas added as roof actually cause a roofline to generate. Else disable turning the branch to roof going down
     cura::parallel_for<size_t>(
