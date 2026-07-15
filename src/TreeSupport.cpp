@@ -2396,10 +2396,11 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             {
                 // TODO: Remove magic numbers, replace with sensible values.
                 const coord_t nominal_wall_width
-                    = elem->distance_to_top_ < 10 ?
+                    = elem->distance_to_top_ < 20 ?
                         config.support_wall_thickness :
                         (layer_idx < 10 ? config.support_wall_thickness : config.support_enlarged_wall_thickness);
-                center_locator->insert(elem->target_position_, { nominal_wall_width, elem->area_->area() });
+                const auto center = elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0 ? elem->result_on_layer_ : elem->target_position_;
+                center_locator->insert(center, { nominal_wall_width, elem->area_->area() });
             }
         }
     );
