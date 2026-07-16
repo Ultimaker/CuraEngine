@@ -2290,10 +2290,13 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             const auto* center_locator = center_locator_per_layer[layer_idx].get();
             for (const SingleShape& support_part : support_layer_storage[layer_idx].splitIntoParts())
             {
+                // For each point L (actually) inside the connected support part, retrieve the wall-width and area that the branch representing point L would have at that point.
                 SparsePointGridInclusive<coord_t>::Elem nearest;
                 const AABB aabb(support_part);
                 const coord_t search_radius = EPSILON + std::max(aabb.width(), aabb.height()) / 2;
                 const auto located_data = center_locator->getNearby(aabb.getMiddle(), search_radius);
+
+                // Take the weighted average of the wall-widths and areas of all points inside the support part, where the area is weighted by the area of the branch at that point.
                 const std::pair<float, float> total_area_width = std::accumulate(
                     located_data.begin(),
                     located_data.end(),
@@ -2302,10 +2305,10 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                     {
                         return support_part.inside(elem.point) ? std::make_pair((elem.val.first * elem.val.second) + res.first, elem.val.second + res.second) : res;
                     });
+                const auto weighted_average = static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second));
 
-                const auto wall_thickness = std::max(
-                    config.support_wall_thickness,
-                    std::min(config.support_enlarged_wall_thickness, static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second))));
+                // Calmp wall-thickness to configured values, and draw the support part with the calculated wall-thickness.
+                const auto wall_thickness = std::clamp(weighted_average, config.support_wall_thickness, config.support_enlarged_wall_thickness);
                 storage.support.supportLayers[layer_idx].fillInfillParts(support_part, config.support_line_width, wall_thickness, false, convert_every_part);
             }
 
@@ -2422,11 +2425,11 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             for (const auto& elem : move_bounds[layer_idx])
             {
                 const float lerp_mul = static_cast<float>(std::min(
-                                           config.support_line_width_layer_smooth,
+                                           config.support_wall_thickness_layer_smooth,
                                            std::max(
-                                               config.support_line_width_bottom_layers - static_cast<coord_t>(layer_idx),
-                                               config.support_line_width_top_layers - static_cast<coord_t>(elem->distance_to_top_))))
-                                     / config.support_line_width_layer_smooth;
+                                               config.support_wall_thickness_bottom_layers - static_cast<coord_t>(layer_idx),
+                                               config.support_wall_thickness_top_layers - static_cast<coord_t>(elem->distance_to_top_))))
+                                     / config.support_wall_thickness_layer_smooth;
                 const coord_t nominal_wall_width = std::lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, std::clamp(lerp_mul, 0.f, 1.f));
 
                 const auto center = (elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0) ? elem->result_on_layer_ : elem->target_position_;

@@ -4,7 +4,7 @@
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
 
-#include <utility> // For std::pair
+#include <utility>
 
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
