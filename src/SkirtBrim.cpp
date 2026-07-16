@@ -151,14 +151,14 @@ void SkirtBrim::generate()
     // Apply 'make convex hull' if the adhesion is skirt _after_ any skirt but also prime-tower-brim adhesion.
     // Otherwise, the now expanded convex hull covered areas will mess with that brim. Fortunately this does not mess
     // with the other area calculation above, since they are either itself a simple/convex shape or relevant for brim.
-    Shape covered_area = storage_.getLayerOutlines(
-        0,
-        /*include_support*/ true,
-        /*include_prime_tower*/ adhesion_type_ == EPlatformAdhesion::SKIRT,
-        /*external_polys_only*/ false,
-        /*extruder_nr*/ -1,
-        /*include_models*/ true,
-        /*include_support_base*/ false);
+    constexpr LayerIndex layer_nr = 0;
+    constexpr bool include_support = true;
+    const bool include_prime_tower = adhesion_type_ == EPlatformAdhesion::SKIRT;
+    constexpr bool external_polys_only = false;
+    constexpr coord_t extruder_nr = -1;
+    constexpr bool include_models = true;
+    constexpr bool include_support_base = false;
+    Shape covered_area = storage_.getLayerOutlines(layer_nr, include_support, include_prime_tower, external_polys_only, extruder_nr, include_models, include_support_base);
     if (adhesion_type_ == EPlatformAdhesion::SKIRT)
     {
         covered_area.makeConvex();
