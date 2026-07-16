@@ -40,8 +40,6 @@ struct SupportInfillPart
     bool use_fractional_config_; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
 
     SupportInfillPart(const SingleShape& outline, coord_t support_line_width, bool use_fractional_config, int inset_count_to_generate = 0, coord_t custom_line_distance = 0);
-
-    const Shape& getInfillArea() const;
 };
 
 } // namespace cura
