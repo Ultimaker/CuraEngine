@@ -422,7 +422,7 @@ public:
      * \param include_models Whether to include the models in the outline
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
-     * \param include_support_base (optional) include the support base (implies include_support). If false, only the raw support outline is returned.
+     * \param include_support_base (optional) include the support base (requires include_support). If false, only the raw support outline is returned.
      */
     Shape getLayerOutlines(
         const LayerIndex layer_nr,
