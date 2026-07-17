@@ -2027,13 +2027,30 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
 
     template_resolver_->prepareForResolving(print_info.initial_extruder_nr.value_or(0), extra_global_settings);
 
-    std::shared_ptr<Communication> communication = Application::getInstance().communication_;
+    {
+        // Prepend the header to the first gcode part, so that they become a single unsplittable part
+        const std::string header = getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids);
 
-    communication->sendGCodePart(getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids));
+        // Since the gcode is stored in a stream, we cannot prepend data to it, so create a new part with the assembled strings
+        auto header_part = std::make_shared<FixedGCodePart>();
+        header_part->stream() << header;
+
+        std::shared_ptr<GCodePart> first_gcode_part = gcode_parts_.front();
+        if (const auto fixed_first_gcode_part = std::dynamic_pointer_cast<FixedGCodePart>(first_gcode_part))
+        {
+            header_part->stream() << fixed_first_gcode_part->str();
+            gcode_parts_.front() = header_part;
+        }
+        else
+        {
+            // First GCode part is a resolvable part, which should not happen, but in case it does, just prepend the header as a fixed part
+            gcode_parts_.insert(gcode_parts_.begin(), header_part);
+        }
+    }
 
     sendFinalGCode();
 
-    communication->sendPrintInformation(total_print_times_, print_info);
+    Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_info);
 }
 
 void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)
