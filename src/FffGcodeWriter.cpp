@@ -2595,7 +2595,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
                 }
             }
         }
-        Shape non_support_outlines_below = outlines_below;
+        const Shape& non_support_outlines_below = outlines_below;
 
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
 
