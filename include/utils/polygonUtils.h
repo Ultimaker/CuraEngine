@@ -737,7 +737,8 @@ public:
     /*!
      * Generates a series of outsetting walls around a given shape
      * @param shape The shape to be wrapped
-     * @param width The maximum width to be reached, actual result may be thinner but never larger. When a positive width is given, the result will be an outset, when a negative width is given, the result will be an inset.
+     * @param width The maximum width to be reached, actual result may be thinner but never larger. When a positive width is given, the result will be an outset, when a negative
+     * width is given, the result will be an inset.
      * @param line_width The line width to be used to print each outset line
      * @return The generated outset lines and the actual width of the outermost contour
      */
@@ -764,7 +765,6 @@ private:
      * @return The parts of the shape that are wider than the given minimum. Note that the returned shape may go beyond the original one.
      */
     static Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen = EPSILON);
-
 };
 
 } // namespace cura
