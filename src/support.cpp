@@ -269,7 +269,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                     all_parts.push_back(part_to_process->outline_);
                 }
 
-                PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateOutset(all_parts, base_outside_extra_width, support_line_width);
+                PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateInsetOutset(all_parts, base_outside_extra_width, support_line_width);
                 ClosedLinesSet closed_base_outset;
 
                 for (Shape& base_outset : base_outsets.walls)
@@ -296,7 +296,7 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 for (SupportInfillPart* part_to_process : parts_to_process)
                 {
                     const Shape support_inside_area = part_to_process->outline_.offset(-part_to_process->inset_count_to_generate_ * part_to_process->support_line_width_);
-                    PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInset(support_inside_area, base_inside_extra_width, support_line_width);
+                    PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInsetOutset(support_inside_area, -base_inside_extra_width, support_line_width);
                     part_to_process->base_inside_contour_ = support_inside_area.offset(base_insets.final_contour_offset);
                     for (Shape& base_inset : base_insets.walls)
                     {

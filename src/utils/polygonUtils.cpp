@@ -1600,24 +1600,16 @@ ClosedLinesSet PolygonUtils::generateCircularInset(const Point2LL& center, const
     return inset;
 }
 
-PolygonUtils::InsetOutset PolygonUtils::generateOutset(const Shape& shape, const coord_t width, const coord_t line_width)
-{
-    return generateInsetOutset(shape, width, line_width, 1);
-}
-
-PolygonUtils::InsetOutset PolygonUtils::generateInset(const Shape& shape, const coord_t width, const coord_t line_width)
-{
-    return generateInsetOutset(shape, width, line_width, -1);
-}
-
-PolygonUtils::InsetOutset PolygonUtils::generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width, const coord_t direction)
+PolygonUtils::InsetOutset PolygonUtils::generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width)
 {
     InsetOutset result;
     Shape current_outset = shape;
     const coord_t semi_line_width = line_width / 2;
     coord_t offset = semi_line_width;
 
-    while ((offset + semi_line_width <= width) && ! current_outset.empty())
+    const coord_t direction = (width > 0) ? 1 : -1;
+
+    while ((offset + semi_line_width <= width * direction) && ! current_outset.empty())
     {
         current_outset = shape.offset(offset * direction);
         result.walls.push_back(current_outset);

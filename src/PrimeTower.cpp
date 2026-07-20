@@ -168,7 +168,7 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
                 }
                 extra_radius = line_width * extra_rings;
                 outer_poly_base_.push_back(outer_poly_.offset(extra_radius));
-                base_extra_moves_[extruder_nr].push_back(PolygonUtils::generateOutset(outer_poly_, extra_rings, line_width));
+                base_extra_moves_[extruder_nr].push_back(PolygonUtils::generateInsetOutset(outer_poly_, extra_rings, line_width));
             }
         }
 
@@ -182,7 +182,7 @@ void PrimeTower::generatePaths_denseInfill(std::vector<coord_t>& cumulative_inse
         if (extruder_nr == extruder_order_.back() || method == PrimeTowerMethod::INTERLEAVED)
         {
             const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
-            Shape pattern = PolygonUtils::generateInset(outer_poly_, line_width, cumulative_inset);
+            Shape pattern = PolygonUtils::generateInsetOutset(outer_poly_, -line_width, cumulative_inset);
             if (! pattern.empty())
             {
                 inset_extra_moves_[extruder_nr].push_back(pattern);
