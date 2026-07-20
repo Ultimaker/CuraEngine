@@ -4,6 +4,8 @@
 #ifndef MESH_GROUP_H
 #define MESH_GROUP_H
 
+#include <filesystem>
+
 #include "mesh.h"
 #include "utils/NoCopy.h"
 
@@ -63,7 +65,7 @@ public:
  * \param object_parent_settings (optional) The parent settings object of the new mesh. Defaults to \p meshgroup if none is given.
  * \return whether the file could be loaded
  */
-bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const char* filename, const Matrix4x3D& transformation, Settings& object_parent_settings);
+bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const std::filesystem::path& filename, const Matrix4x3D& transformation, Settings& object_parent_settings);
 
 bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matrix);
 
