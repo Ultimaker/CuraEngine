@@ -21,7 +21,6 @@ class EmscriptenCommunication : public CommandLine
 {
 private:
     std::string progress_handler_; ///< Handler for progress messages.
-    std::string gcode_header_handler_; ///< Handler for getting the GCode handler.
     std::string slice_info_handler_; ///< Handler for slice information messages.
     std::string engine_info_handler_; ///< Handler for curaengine info : version and hash.
     /**
@@ -45,22 +44,12 @@ public:
      */
     void sendProgress(double progress) const override;
 
-    /**
-     * \brief Sends GcodeHeader
-     */
-    void sendGCodePrefix(const std::string& prefix) const override;
-
     /*
      * \brief Send an estimate of how long the print would take and how much material it would use.
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
     void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
-
-    bool isSequential() const override
-    {
-        return false;
-    }
 };
 
 } // namespace cura

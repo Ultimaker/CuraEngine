@@ -60,14 +60,6 @@ public:
     void sendGCodePart(const std::string& gcode_part) override;
 
     /*
-     * \brief Indicates that for Arcus we don't need to send the g-code from
-     * start to finish.
-     *
-     * We can send the start g-code out of order if we want.
-     */
-    bool isSequential() const override;
-
-    /*
      * \brief Test if there are any more slices in the queue.
      */
     bool hasSlice() const override;
@@ -87,12 +79,6 @@ public:
      * or otherwise) should be sent any more regarding the last slice job.
      */
     void sendFinishedSlicing() const override;
-
-    /*
-     * \brief Send the starting g-code separately so that it may be processed by
-     * the front-end for its replacement variables.
-     */
-    void sendGCodePrefix(const std::string& prefix) const override;
 
     /*
      * \brief Send the uuid of the generated slice so that it may be processed by

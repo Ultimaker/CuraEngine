@@ -103,17 +103,19 @@ TEST_F(GCodeExportTest, CommentSimple)
 
 TEST_F(GCodeExportTest, CommentMultiLine)
 {
-    gcode.writeComment("If you catch a chinchilla in Chile\n"
-                       "And cut off its beard, willy-nilly\n"
-                       "You can honestly say\n"
-                       "You made on that day\n"
-                       "A Chilean chinchilla's chin chilly");
+    gcode.writeComment(
+        "If you catch a chinchilla in Chile\n"
+        "And cut off its beard, willy-nilly\n"
+        "You can honestly say\n"
+        "You made on that day\n"
+        "A Chilean chinchilla's chin chilly");
     EXPECT_EQ(
-        std::string(";If you catch a chinchilla in Chile\n"
-                    ";And cut off its beard, willy-nilly\n"
-                    ";You can honestly say\n"
-                    ";You made on that day\n"
-                    ";A Chilean chinchilla's chin chilly\n"),
+        std::string(
+            ";If you catch a chinchilla in Chile\n"
+            ";And cut off its beard, willy-nilly\n"
+            ";You can honestly say\n"
+            ";You made on that day\n"
+            ";A Chilean chinchilla's chin chilly\n"),
         output().str())
         << "Each line must be preceded by a semicolon.";
 }
@@ -124,9 +126,10 @@ TEST_F(GCodeExportTest, CommentMultiple)
     gcode.writeComment("Very very frightening me");
     gcode.writeComment(" - Galileo (1638)");
     EXPECT_EQ(
-        std::string(";Thunderbolt and lightning\n"
-                    ";Very very frightening me\n"
-                    "; - Galileo (1638)\n"),
+        std::string(
+            ";Thunderbolt and lightning\n"
+            ";Very very frightening me\n"
+            "; - Galileo (1638)\n"),
         output().str())
         << "Semicolon before each line, and newline in between.";
 }
@@ -281,6 +284,8 @@ TEST_P(GriffinHeaderTest, HeaderGriffinFormat)
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";BUILD_PLATE.INITIAL_TEMPERATURE:"), token.substr(0, 33)); // Actual temperature doesn't matter in this test.
     std::getline(result, token, '\n');
+    EXPECT_EQ(std::string(";PRINT.TIME:0"), token);
+    std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";PRINT.GROUPS:0"), token);
     std::getline(result, token, '\n');
     EXPECT_EQ(std::string(";PRINT.SIZE.MIN.X:"), token.substr(0, 18)); // Actual bounds don't matter in this test.
@@ -310,7 +315,6 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
     gcode.flavor_ = EGCodeFlavor::ULTIGCODE;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
-    constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
     for (size_t extruder_index = 0; extruder_index < num_extruders; extruder_index++)
     {
@@ -320,11 +324,11 @@ TEST_F(GCodeExportTest, HeaderUltiGCode)
     }
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
-    std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
+    std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
     EXPECT_EQ(
         result,
-        ";FLAVOR:UltiGCode\n;TIME:1337\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
+        ";FLAVOR:UltiGCode\n;TIME:0\n;MATERIAL:100\n;MATERIAL2:200\n;NOZZLE_DIAMETER:0.4\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;"
         "MAXY:1\n;MAXZ:1\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n");
 }
 
@@ -336,15 +340,14 @@ TEST_F(GCodeExportTest, HeaderRepRap)
     gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
-    constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
-    std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
+    std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
     EXPECT_EQ(
         result,
-        ";FLAVOR:RepRap\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+        ";FLAVOR:RepRap\n;TIME:0\n;Filament used: 0.02m, 0.05m\n;Layer height: "
         "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n");
 }
 
@@ -356,15 +359,14 @@ TEST_F(GCodeExportTest, HeaderMarlin)
     gcode.extruder_attr_[1].filament_area_ = 4.0;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
-    constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
-    std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
+    std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
     EXPECT_EQ(
         result,
-        ";FLAVOR:Marlin\n;TIME:1337\n;Filament used: 0.02m, 0.05m\n;Layer height: "
+        ";FLAVOR:Marlin\n;TIME:0\n;Filament used: 0.02m, 0.05m\n;Layer height: "
         "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n");
 }
 
@@ -374,15 +376,14 @@ TEST_F(GCodeExportTest, HeaderMarlinVolumetric)
     gcode.flavor_ = EGCodeFlavor::MARLIN_VOLUMATRIC;
     constexpr size_t num_extruders = 2;
     const std::vector<bool> extruder_is_used(num_extruders, true);
-    constexpr Duration print_time = 1337;
     const std::vector<double> filament_used = { 100, 200 };
     gcode.total_bounding_box_ = AABB3D(Point3LL(0, 0, 0), Point3LL(1000, 1000, 1000));
 
-    std::string result = gcode.getFileHeader(extruder_is_used, &print_time, filament_used);
+    std::string result = gcode.getFileHeader(extruder_is_used, filament_used);
 
     EXPECT_EQ(
         result,
-        ";FLAVOR:Marlin(Volumetric)\n;TIME:1337\n;Filament used: 100mm3, 200mm3\n;Layer height: "
+        ";FLAVOR:Marlin(Volumetric)\n;TIME:0\n;Filament used: 100mm3, 200mm3\n;Layer height: "
         "0.123\n;MINX:0\n;MINY:0\n;MINZ:0\n;MAXX:1\n;MAXY:1\n;MAXZ:1\n;TARGET_MACHINE.NAME:Your favourite 3D printer\n");
 }
 

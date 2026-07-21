@@ -32,6 +32,9 @@
 #include "utils/format/filesystem_path.h"
 #include "utils/views/split_paths.h"
 
+
+namespace fs = std::filesystem;
+
 namespace cura
 {
 
@@ -76,16 +79,6 @@ void CommandLine::setLayerForSend(const LayerIndex::value_type&)
 bool CommandLine::hasSlice() const
 {
     return ! arguments_.empty();
-}
-
-bool CommandLine::isSequential() const
-{
-    return true; // We have to receive the g-code in sequential order. Start g-code before the rest and so on.
-}
-
-void CommandLine::sendGCodePrefix(const std::string&) const
-{
-    // TODO: Right now this is done directly in the g-code writer. For consistency it should be moved here?
 }
 
 void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) const
@@ -279,9 +272,9 @@ void CommandLine::sliceNext()
 
                     const auto transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
-                    if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings_))
+                    if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument, transformation, last_extruder->settings_))
                     {
-                        spdlog::error("Failed to load model: {}. (error number {})", argument, errno);
+                        spdlog::error("Failed to load model: {} (error number {})", argument, errno);
                         exit(1);
                     }
                     else
@@ -371,7 +364,9 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    const auto settings = readResolvedJsonValues(std::filesystem::path{ argument });
+                    const fs::path settings_path(argument);
+                    const fs::path settings_folder(settings_path.parent_path());
+                    const auto settings = readResolvedJsonValues(settings_path);
 
                     if (! settings.has_value())
                     {
@@ -381,7 +376,6 @@ void CommandLine::sliceNext()
 
                     constexpr std::string_view global_identifier = "global";
                     constexpr std::string_view extruder_identifier = "extruder.";
-                    constexpr std::string_view model_identifier = "model.";
                     constexpr std::string_view limit_to_extruder_identifier = "limit_to_extruder";
 
                     // Split the settings into global, extruder and model settings. This is needed since the order in which the settings are applied is important.
@@ -440,9 +434,13 @@ void CommandLine::sliceNext()
                         const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
                         const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
 
-                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name.c_str(), transformation, slice->scene.extruders[extruder_nr].settings_))
+                        if (! loadMeshIntoMeshGroup(
+                                &slice->scene.mesh_groups[mesh_group_index],
+                                settings_folder / model_name,
+                                transformation,
+                                slice->scene.extruders[extruder_nr].settings_))
                         {
-                            spdlog::error("Failed to load model: {}. (error number {})", model_name, errno);
+                            spdlog::error("Failed to load model: {} (error number {})", model_name, errno);
                             exit(1);
                         }
                     }
