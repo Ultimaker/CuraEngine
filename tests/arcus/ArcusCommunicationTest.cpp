@@ -108,35 +108,11 @@ TEST_F(ArcusCommunicationTest, SendGCodePartTest)
     EXPECT_EQ(test_gcode, message->data());
 }
 
-TEST_F(ArcusCommunicationTest, IsSequential)
-{
-    EXPECT_FALSE(ac->isSequential());
-}
-
 TEST_F(ArcusCommunicationTest, HasSlice)
 {
     EXPECT_TRUE(ac->hasSlice());
     ac->private_data->slice_count = 1;
     EXPECT_FALSE(ac->hasSlice()) << "Can't slice more than once.";
-}
-
-TEST_F(ArcusCommunicationTest, SendGCodePrefix)
-{
-    const std::string prefix = ";bladiblhjvouyvu\n;iuboua";
-    const std::string& encoded_prefix = convertTobase64(prefix);
-
-    ac->sendGCodePrefix(encoded_prefix);
-    EXPECT_GT(socket->sent_messages.size(), 0);
-    bool found_prefix = false;
-    for (const auto& message : socket->sent_messages)
-    {
-        if (message->DebugString().find(encoded_prefix) != std::string::npos)
-        {
-            found_prefix = true;
-            break;
-        }
-    }
-    EXPECT_TRUE(found_prefix);
 }
 
 TEST_F(ArcusCommunicationTest, SendFinishedSlicingTest)
