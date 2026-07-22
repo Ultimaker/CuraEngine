@@ -2749,7 +2749,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
                 for (const auto& regions : merged_regions)
                 {
                     const SpeedRegion& last_region = *ranges::prev(regions.end());
-                    constexpr bool not_full = false; // Do not take support into account for the seam overhang.
+                    constexpr bool not_full = false; // Do not take support into account for the wall overhang.
                     overhang_masks.push_back(LayerPlan::OverhangMask{
                         get_supported_region(last_region.overhang_angle, not_full),
                         last_region.speed_factor,
