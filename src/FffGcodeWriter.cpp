@@ -2749,11 +2749,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
                 for (const auto& regions : merged_regions)
                 {
                     const SpeedRegion& last_region = *ranges::prev(regions.end());
-                    constexpr bool not_full = false; // Do not take support into account for the wall overhang.
-                    overhang_masks.push_back(LayerPlan::OverhangMask{
-                        get_supported_region(last_region.overhang_angle, not_full),
-                        last_region.speed_factor,
-                    });
+                    overhang_masks.push_back(LayerPlan::OverhangMask{ get_supported_region(last_region.overhang_angle), last_region.speed_factor });
                 }
             }
         }
@@ -2764,8 +2760,8 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
         const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
         if (seam_overhang_angle < 90.0)
         {
-            constexpr bool full = true; // Do not take support into account for the seam overhang.
-            const Shape supported_region_seam = get_supported_region(seam_overhang_angle, full);
+            constexpr bool not_full = false; // Do not take support into account for the seam overhang.
+            const Shape supported_region_seam = get_supported_region(seam_overhang_angle, not_full);
             gcode_layer.setSeamOverhangMask(part_print_region.difference(supported_region_seam).offset(10));
         }
         else
