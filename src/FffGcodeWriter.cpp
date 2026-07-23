@@ -2685,7 +2685,6 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
         }
 
         const Shape model_supported_region = non_support_outlines_below.offset(-half_outer_wall_width);
-        const Shape part_print_region = part.outline.offset(-half_outer_wall_width);
 
         const auto get_supported_region = [&model_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
         {
