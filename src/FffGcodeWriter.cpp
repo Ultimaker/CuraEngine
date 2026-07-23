@@ -2684,7 +2684,9 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             gcode_layer.setBridgeWallMask(Shape());
         }
 
-        const Shape model_supported_region = non_support_outlines_below.offset(-half_outer_wall_width);
+        Shape model_supported_region = non_support_outlines_below.offset(-half_outer_wall_width);
+        // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+        model_supported_region = model_supported_region.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
         const auto get_supported_region = [&model_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
         {
