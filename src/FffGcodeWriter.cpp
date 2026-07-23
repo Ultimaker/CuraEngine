@@ -2684,11 +2684,10 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             gcode_layer.setBridgeWallMask(Shape());
         }
 
-        const Shape fully_supported_region = outlines_below.offset(-half_outer_wall_width);
         const Shape model_supported_region = non_support_outlines_below.offset(-half_outer_wall_width);
         const Shape part_print_region = part.outline.offset(-half_outer_wall_width);
 
-        const auto get_supported_region = [&fully_supported_region, &model_supported_region, &layer_height](const AngleDegrees& overhang_angle, bool full = true) -> Shape
+        const auto get_supported_region = [&model_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
         {
             // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
             // the supported region is made up of those areas that really are supported by (either) the model (or support, if 'full') on the layer below
@@ -2697,7 +2696,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             if (overhang_angle < 90.0)
             {
                 const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
-                return (full ? fully_supported_region : model_supported_region).offset(overhang_width + 10);
+                return model_supported_region.offset(overhang_width + 10);
             }
 
             return Shape();
@@ -2760,9 +2759,10 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
         const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
         if (seam_overhang_angle < 90.0)
         {
-            constexpr bool not_full = false; // Do not take support into account for the seam overhang.
-            const Shape supported_region_seam = get_supported_region(seam_overhang_angle, not_full);
-            gcode_layer.setSeamOverhangMask(part_print_region.difference(supported_region_seam).offset(10));
+            const auto seam_overhang_mask = 
+                storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+                .difference(get_supported_region(seam_overhang_angle));
+            gcode_layer.setSeamOverhangMask(seam_overhang_mask);
         }
         else
         {
