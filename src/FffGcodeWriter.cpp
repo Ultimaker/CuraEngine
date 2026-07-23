@@ -2691,7 +2691,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
         const auto get_supported_region = [&model_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
         {
             // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
-            // the supported region is made up of those areas that really are supported by (either) the model (or support, if 'full') on the layer below
+            // the supported region is made up of those areas that are supported by the model on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
             if (overhang_angle < 90.0)
