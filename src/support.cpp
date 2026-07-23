@@ -263,6 +263,8 @@ void AreaSupport::generateSupportBase(SliceDataStorage& storage)
                 forbidden_areas.push_back(support_layer.support_roof);
                 forbidden_areas.push_back(support_layer.support_bottom);
 
+                forbidden_areas = forbidden_areas.unionPolygons();
+
                 Shape all_parts;
                 for (const SupportInfillPart* part_to_process : parts_to_process)
                 {
