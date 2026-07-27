@@ -2247,10 +2247,12 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             }
             else
             {
-                const auto it = ranges::find_if(local_maxima_points, [&](const LocalMaximaPoint& local_maxima_point)
-                {
-                    return vSize2(local_maxima_point.p_ - node.p_) < 10 * 10;
-                });
+                const auto it = ranges::find_if(
+                    local_maxima_points,
+                    [&](const LocalMaximaPoint& local_maxima_point)
+                    {
+                        return vSize2(local_maxima_point.p_ - node.p_) < 10 * 10;
+                    });
 
                 if (it != local_maxima_points.end())
                 {
