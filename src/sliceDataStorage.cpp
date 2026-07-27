@@ -792,7 +792,8 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polyg
         for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
         {
             const SingleShape& smaller_island = smaller_support_islands[support_island_idx];
-            support_infill_parts.emplace_back(smaller_island, support_infill_part.support_line_width_, support_infill_part.inset_count_to_generate_);
+            support_infill_parts
+                .emplace_back(smaller_island, support_infill_part.support_line_width_, support_infill_part.use_fractional_config_, support_infill_part.inset_width_to_generate_);
         }
     }
 
@@ -819,7 +820,7 @@ void SupportLayer::fillInfillParts(
     const coord_t infill_layer_height,
     const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
     const coord_t support_line_width,
-    const coord_t wall_line_count,
+    const coord_t wall_thickness,
     const coord_t grow_layer_above /*has default 0*/,
     const bool unionAll /*has default false*/,
     const coord_t custom_line_distance /*has default 0*/)
@@ -845,7 +846,7 @@ void SupportLayer::fillInfillParts(
     {
         for (const SingleShape& island_outline : support_areas.splitIntoParts(unionAll))
         {
-            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance);
+            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_thickness, custom_line_distance);
         }
         use_fractional_config = false;
     }

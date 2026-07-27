@@ -1148,7 +1148,7 @@ void TreeSupportTipGenerator::generateTips(
             // Sometimes roofs could be empty as the pattern does not generate lines if the area is narrow enough.
             // If there is a roof could have zero lines in its area (as it has no wall), rand a support area would very likely be printed (because there are walls for the support
             // areas), replace non printable roofs with support
-            if (! use_fake_roof_ && config_.support_wall_count > 0 && config_.support_roof_wall_count == 0)
+            if (! use_fake_roof_ && config_.support_wall_thickness > 0 && config_.support_roof_wall_count == 0)
             {
                 for (auto roof_area : support_roof_drawn_[layer_idx].unionPolygons(roof_tips_drawn_[layer_idx]).splitIntoParts())
                 {
