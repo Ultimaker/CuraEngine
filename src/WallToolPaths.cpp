@@ -36,17 +36,9 @@ WallToolPaths::WallToolPaths(
     , inset_count_(inset_count)
     , wall_0_inset_(wall_0_inset)
     , print_thin_walls_(settings.get<bool>("fill_outline_gaps"))
-    , min_feature_size_(nominal_bead_width / 4)
-    , min_bead_width_(std::min(min_even_wall_line_width_, min_odd_wall_line_width_))
-    , wall_transition_angle_(AngleDegrees(10))
-    , wall_transition_length_(nominal_bead_width)
-    , min_even_wall_line_width_(std::llrint(nominal_bead_width * 0.85))
-    , wall_line_width_0_(nominal_bead_width)
-    , min_odd_wall_line_width_(min_even_wall_line_width_)
-    , wall_line_width_x_(nominal_bead_width)
-    , wall_distribution_count_(1)
-    , wall_transition_filter_distance_(MM2INT(100))
-    , wall_transition_filter_deviation_(nominal_bead_width / 4)
+    , min_feature_size_(settings.get<coord_t>("min_feature_size"))
+    , min_bead_width_(settings.get<coord_t>("min_bead_width"))
+    , small_area_length_(INT2MM(static_cast<double>(nominal_bead_width) / 2))
     , stitch_distance_(nominal_bead_width - 1)
     , toolpaths_generated_(false)
     , settings_(settings)
@@ -72,15 +64,7 @@ WallToolPaths::WallToolPaths(
     , print_thin_walls_(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size_(settings.get<coord_t>("min_feature_size"))
     , min_bead_width_(settings.get<coord_t>("min_bead_width"))
-    , wall_transition_angle_(settings.get<AngleRadians>("wall_transition_angle"))
-    , wall_transition_length_(settings.get<coord_t>("wall_transition_length"))
-    , min_even_wall_line_width_(settings.get<double>("min_even_wall_line_width"))
-    , wall_line_width_0_(settings.get<double>("wall_line_width_0"))
-    , min_odd_wall_line_width_(settings.get<double>("min_odd_wall_line_width"))
-    , wall_line_width_x_(settings.get<double>("wall_line_width_x"))
-    , wall_distribution_count_(settings.get<int>("wall_distribution_count"))
-    , wall_transition_filter_distance_(settings.get<coord_t>("wall_transition_filter_distance"))
-    , wall_transition_filter_deviation_(settings.get<coord_t>("wall_transition_filter_deviation"))
+    , small_area_length_(INT2MM(static_cast<double>(bead_width_0) / 2))
     , stitch_distance_(settings.get<coord_t>("wall_line_width_x") - 1) // In 0-width contours, junctions can cause up to 1-line-width gaps. Don't stitch more than 1 line width.
     , toolpaths_generated_(false)
     , settings_(settings)
@@ -99,20 +83,27 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
     }
 
 
+    const auto transitioning_angle = settings_.get<AngleRadians>("wall_transition_angle");
     constexpr coord_t discretization_step_size = MM2INT(0.8);
+    const coord_t wall_transition_length = settings_.get<coord_t>("wall_transition_length");
 
     // When to split the middle wall into two:
-    const Ratio wall_split_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * (2.0 * min_even_wall_line_width_ - wall_line_width_0_) / wall_line_width_0_)) / 100.0;
+    const double min_even_wall_line_width = settings_.get<double>("min_even_wall_line_width");
+    const double wall_line_width_0 = settings_.get<double>("wall_line_width_0");
+    const Ratio wall_split_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * (2.0 * min_even_wall_line_width - wall_line_width_0) / wall_line_width_0)) / 100.0;
 
     // When to add a new middle in between the innermost two walls:
-    const Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width_ / wall_line_width_x_)) / 100.0;
+    const double min_odd_wall_line_width = settings_.get<double>("min_odd_wall_line_width");
+    const double wall_line_width_x = settings_.get<double>("wall_line_width_x");
+    const Ratio wall_add_middle_threshold = std::max(1.0, std::min(99.0, 100.0 * min_odd_wall_line_width / wall_line_width_x)) / 100.0;
 
+    const int wall_distribution_count = settings_.get<int>("wall_distribution_count");
     const size_t max_bead_count = (inset_count_ < std::numeric_limits<size_t>::max() / 2) ? 2 * inset_count_ : std::numeric_limits<size_t>::max();
     const auto beading_strat = BeadingStrategyFactory::makeStrategy(
         bead_width_0_,
         bead_width_x_,
-        wall_transition_length_,
-        wall_transition_angle_,
+        wall_transition_length,
+        transitioning_angle,
         print_thin_walls_,
         min_bead_width_,
         min_feature_size_,
@@ -120,15 +111,17 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         wall_add_middle_threshold,
         max_bead_count,
         wall_0_inset_,
-        wall_distribution_count_);
+        wall_distribution_count);
+    const auto transition_filter_dist = settings_.get<coord_t>("wall_transition_filter_distance");
+    const auto allowed_filter_deviation = settings_.get<coord_t>("wall_transition_filter_deviation");
     SkeletalTrapezoidation wall_maker(
         prepared_outline,
         *beading_strat,
         beading_strat->getTransitioningAngle(),
         discretization_step_size,
-        wall_transition_filter_distance_,
-        wall_transition_filter_deviation_,
-        wall_transition_length_,
+        transition_filter_dist,
+        allowed_filter_deviation,
+        wall_transition_length,
         layer_idx_,
         section_type_);
     wall_maker.generateToolpaths(toolpaths_);
