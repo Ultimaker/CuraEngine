@@ -20,6 +20,7 @@ public:
      * \param nominal_bead_width The nominal bead width used in the generation of the toolpaths
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
+     * \param wall_x_inset How far to inset the inner walls, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
      */
     WallToolPaths(
@@ -27,6 +28,7 @@ public:
         const coord_t nominal_bead_width,
         const size_t inset_count,
         const coord_t wall_0_inset,
+        const coord_t wall_x_inset,
         const Settings& settings,
         const int layer_idx,
         SectionType section_type);
@@ -38,6 +40,7 @@ public:
      * \param bead_width_x The bead width of the inner walls used in the generation of the toolpaths
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
+     * \param wall_x_inset How far to inset the inner walls, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
      */
     WallToolPaths(
@@ -46,6 +49,7 @@ public:
         const coord_t bead_width_x,
         const size_t inset_count,
         const coord_t wall_0_inset,
+        const coord_t wall_x_inset,
         const Settings& settings,
         const int layer_idx,
         SectionType section_type);
@@ -125,6 +129,7 @@ private:
                            // this is the same as bead_width_0
     size_t inset_count_; //<! The maximum number of walls to generate
     coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
+    coord_t wall_x_inset_; //<! How far to inset the inner walls
     bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
     coord_t min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
     coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy

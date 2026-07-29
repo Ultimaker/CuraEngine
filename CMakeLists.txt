@@ -102,6 +102,7 @@ set(engine_SRCS # Except main.cpp.
         src/BeadingStrategy/RedistributeBeadingStrategy.cpp
         src/BeadingStrategy/WideningBeadingStrategy.cpp
         src/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
+        src/BeadingStrategy/InnerWallInsetBeadingStrategy.cpp
 
         src/bridge/bridge.cpp
         src/bridge/ExpansionRange.cpp
