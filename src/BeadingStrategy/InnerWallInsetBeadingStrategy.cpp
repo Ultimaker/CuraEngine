@@ -3,9 +3,9 @@
 
 #include "BeadingStrategy/InnerWallInsetBeadingStrategy.h"
 
-#include <range/v3/view/drop.hpp>
-
 #include <algorithm>
+
+#include <range/v3/view/drop.hpp>
 
 namespace cura
 {

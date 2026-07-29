@@ -8,9 +8,9 @@
 #include <spdlog/spdlog.h>
 
 #include "BeadingStrategy/DistributedBeadingStrategy.h"
+#include "BeadingStrategy/InnerWallInsetBeadingStrategy.h"
 #include "BeadingStrategy/LimitedBeadingStrategy.h"
 #include "BeadingStrategy/OuterWallInsetBeadingStrategy.h"
-#include "BeadingStrategy/InnerWallInsetBeadingStrategy.h"
 #include "BeadingStrategy/RedistributeBeadingStrategy.h"
 #include "BeadingStrategy/WideningBeadingStrategy.h"
 
