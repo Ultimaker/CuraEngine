@@ -25,6 +25,21 @@ bool ClosedPolyline::isValid() const
     return size() >= (explicitly_closed_ ? 4 : 3);
 }
 
+void ClosedPolyline::addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const
+{
+    if (! isExplicitlyClosed())
+    {
+        // Non-surface closed polylines are to be given explicitly closed to clipper, so make it closed
+        ClipperLib::Path closed_path = getPoints();
+        closed_path.push_back(getPoints().front());
+        clipper.AddPath(closed_path, poly_typ, false);
+    }
+    else
+    {
+        clipper.AddPath(getPoints(), poly_typ, false);
+    }
+}
+
 bool ClosedPolyline::inside(const Point2LL& p, bool border_result) const
 {
     int res = ClipperLib::PointInPolygon(p, getPoints());

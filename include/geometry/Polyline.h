@@ -87,6 +87,8 @@ public:
      */
     [[nodiscard]] virtual bool isValid() const = 0;
 
+    virtual void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const = 0;
+
     Polyline& operator=(const Polyline& other) = default;
 
     Polyline& operator=(Polyline&& other) = default;

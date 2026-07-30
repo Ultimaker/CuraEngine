@@ -4,18 +4,42 @@
 #ifndef GEOMETRY_CLOSED_LINES_SET_H
 #define GEOMETRY_CLOSED_LINES_SET_H
 
+#include "geometry/ClosedPolyline.h"
+#include "geometry/LinesSet.h"
+
 namespace cura
 {
 
-template<class LineType>
-class LinesSet;
-class ClosedPolyline;
+class MixedLinesSet;
 
 /*!
- * \brief Convenience definition for a container that can hold only closed polylines. This makes it
- *        explicit what the lines actually represent.
+ * \brief Container that can hold only closed polylines. This makes it explicit what the lines actually represent and adds some processing functions that can only be applied
+ *        to closes polylines.
  */
-using ClosedLinesSet = LinesSet<ClosedPolyline>;
+class ClosedLinesSet : public LinesSet<ClosedPolyline>
+{
+public:
+    ClosedLinesSet() = default;
+
+    ClosedLinesSet(LinesSet<ClosedPolyline>&& other)
+        : LinesSet(std::move(other))
+    {
+    }
+
+    explicit ClosedLinesSet(const std::initializer_list<ClosedPolyline>& initializer)
+        : LinesSet(initializer)
+    {
+    }
+
+    explicit ClosedLinesSet(const ClosedPolyline& line)
+        : LinesSet(line)
+    {
+    }
+
+    [[nodiscard]] MixedLinesSet intersection(const Shape& shape) const;
+
+    [[nodiscard]] MixedLinesSet difference(const Shape& shape) const;
+};
 
 } // namespace cura
 

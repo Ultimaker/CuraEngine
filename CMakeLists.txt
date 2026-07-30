@@ -18,8 +18,9 @@ option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 option(ENABLE_THREADING "Enable threading support" ON)
+option(ENABLE_CURAVIZ "Build with CuraViz toolbox" ON)
 
-if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS})
+if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ})
     find_package(protobuf REQUIRED)
 endif ()
 
@@ -36,6 +37,11 @@ message(STATUS "Building with Arcus: ${ENABLE_ARCUS}")
 if (${ENABLE_ARCUS})
     find_package(arcus REQUIRED)
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
+endif ()
+
+message(STATUS "Building with CuraViz: ${ENABLE_CURAVIZ}")
+if (${ENABLE_CURAVIZ})
+    find_package(curaviz_grpc_definitions REQUIRED)
 endif ()
 
 ### Compiling CuraEngine ###
@@ -157,6 +163,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/AABB3D.cpp
         src/utils/channel.cpp
         src/utils/Segment3LL.cpp
+        src/utils/CuraViz.cpp
         src/utils/Date.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
@@ -193,6 +200,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/RandomScoringCriterion.cpp
         src/utils/scoring/TextureScoringCriterion.cpp
 
+        src/geometry/ClosedLinesSet.cpp
         src/geometry/OpenLinesSet.cpp
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
@@ -228,6 +236,7 @@ target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         $<$<BOOL:${ENABLE_PLUGINS}>:ENABLE_PLUGINS>
+        $<$<BOOL:${ENABLE_CURAVIZ}>:ENABLE_CURAVIZ>
         $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
         $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
@@ -290,6 +299,7 @@ target_link_libraries(_CuraEngine
         $<$<NOT:$<BOOL:${EMSCRIPTEN}>>:onetbb::onetbb>
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+        $<$<TARGET_EXISTS:curaviz_grpc_definitions::curaviz_grpc_definitions>:curaviz_grpc_definitions::curaviz_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
         $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
         $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>
