@@ -1270,7 +1270,7 @@ void AreaSupport::generateSupportAreasForMesh(
             conical_support_offset = boundedTan(-conical_support_angle) * layer_thickness;
         }
         const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
-        for (LayerIndex layer_idx = 1; layer_idx < storage.support.supportLayers.size(); layer_idx++)
+        for (LayerIndex layer_idx = 1; layer_idx < LayerIndex(storage.support.supportLayers.size()); layer_idx++)
         {
             const Shape& layer = support_areas[layer_idx];
 
