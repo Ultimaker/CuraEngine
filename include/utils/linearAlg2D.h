@@ -433,6 +433,16 @@ public:
      * \param vec_len The lenght of the resultant vector. It's not wise to set this to 1, since we do tend to do integer math here.
      */
     static Point2LL getBisectorVector(const Point2LL& intersect, const Point2LL& a, const Point2LL& b, const coord_t vec_len);
+
+    /*!
+     * Gets the actual extra width to be applied when using a sloped base like for the prime tower of the supports
+     * @param base_width The maximum width of the base
+     * @param base_height The total height of the base
+     * @param slope_magnitude The magnitude of the base slope, which will determine the shape and thus the amount of material
+     * @param actual_height The height of the currently layer being processed
+     * @return The extra width to be applied around the element to make the base
+     */
+    static coord_t getSlopedWidth(const coord_t base_width, const coord_t base_height, const double slope_magnitude, const coord_t actual_height);
 };
 
 

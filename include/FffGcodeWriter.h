@@ -222,12 +222,22 @@ private:
      * calling it for multiple layers results in the skirt/brim being printed on multiple layers.
      *
      * \param storage where the slice data is stored.
-     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param gcode_layer The initial planning of the g-code of the layer.
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr, LayerIndex layer_nr) const;
+    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr) const;
+
+    /*!
+     * Add the support brim to the layer plan
+     *
+     * \param storage where the slice data is stored.
+     * \param gcode_layer The initial planning of the g-code of the layer.
+     * \param extruder_nr The extruder train for which to process the brim.
+     * \param layer_nr The index of the layer to write the gcode of.
+     */
+    static void processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr);
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.

@@ -13,11 +13,12 @@
 #include "PolygonsPointIndex.h"
 #include "SparseLineGrid.h"
 #include "SparsePointGridInclusive.h"
-#include "geometry/ClosedLinesSet.h"
 #include "geometry/Polygon.h"
 
 namespace cura
 {
+
+class ClosedLinesSet;
 
 /*!
  * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
@@ -93,6 +94,13 @@ typedef SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator> Loc
 class PolygonUtils
 {
 public:
+    /*! Helper structure to return both the generated walls and the width of the final contour, when generating insets/outsets  */
+    struct InsetOutset
+    {
+        std::vector<Shape> walls;
+        coord_t final_contour_offset{ 0 };
+    };
+
     static const std::function<int(Point2LL)> no_penalty_function; //!< Function always returning zero
 
     /*!
@@ -725,6 +733,16 @@ public:
      * \return The generated inset circles
      */
     static ClosedLinesSet generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
+
+    /*!
+     * Generates a series of outsetting walls around a given shape
+     * @param shape The shape to be wrapped
+     * @param width The maximum width to be reached, actual result may be thinner but never larger. When a positive width is given, the result will be an outset, when a negative
+     * width is given, the result will be an inset.
+     * @param line_width The line width to be used to print each outset line
+     * @return The generated outset lines and the actual width of the outermost contour
+     */
+    static InsetOutset generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width);
 
 private:
     /*!
