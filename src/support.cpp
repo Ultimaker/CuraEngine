@@ -1425,7 +1425,7 @@ void AreaSupport::moveUpFromModel(
         to_be_removed = stair_removal.unionPolygons(bottom_outline);
         if (layer_idx % bottom_stair_step_layer_count == 0)
         { // update stairs for next step
-            const Shape supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, no_support, no_prime_tower);
+            const Shape supporting_bottom = storage.getLayerOutlines(LayerIndex(bottom_layer_nr) - 1, no_support, no_prime_tower);
             const Shape allowed_step_width = supporting_bottom.offset(support_bottom_stair_step_width).intersection(sloped_areas);
 
             const int64_t step_bottom_layer_nr = static_cast<int64_t>(bottom_layer_nr) - static_cast<int64_t>(bottom_stair_step_layer_count) + 1;
