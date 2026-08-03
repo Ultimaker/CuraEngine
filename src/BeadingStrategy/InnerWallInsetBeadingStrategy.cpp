@@ -9,10 +9,10 @@
 
 namespace cura
 {
-InnerWallInsetBeadingStrategy::InnerWallInsetBeadingStrategy(coord_t outer_wall_offset, BeadingStrategyPtr parent)
+InnerWallInsetBeadingStrategy::InnerWallInsetBeadingStrategy(coord_t inner_wall_offset, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)
     , parent_(std::move(parent))
-    , inner_wall_offset_(outer_wall_offset)
+    , inner_wall_offset_(inner_wall_offset)
 {
     name_ = "InnerWallInsetBeadingStrategy";
 }

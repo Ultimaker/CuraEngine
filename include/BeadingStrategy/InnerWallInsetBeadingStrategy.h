@@ -9,7 +9,7 @@
 namespace cura
 {
 /*
- * This is a meta strategy that allows for the outer wall to be inset towards the inside of the model.
+ * This is a meta strategy that allows for the inner wall to be inset towards the inside of the model.
  */
 class InnerWallInsetBeadingStrategy : public BeadingStrategy
 {

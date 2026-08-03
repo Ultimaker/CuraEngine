@@ -509,8 +509,8 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
         }
 
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
-        constexpr coord_t wall_0_inset = 0; // Don't apply any inner/outer wall inset for these. That's just for the outer wall.
-        constexpr coord_t wall_x_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
+        constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
+        constexpr coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the inner wall.
         WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, wall_x_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL);
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
