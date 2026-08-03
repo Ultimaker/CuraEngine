@@ -136,12 +136,12 @@ private:
     coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
     bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
     coord_t min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
-    coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     const AngleRadians wall_transition_angle_;
     const coord_t wall_transition_length_;
     const double min_even_wall_line_width_;
     const double wall_line_width_0_;
     const double min_odd_wall_line_width_;
+    coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     const double wall_line_width_x_;
     const int wall_distribution_count_;
     const coord_t wall_transition_filter_distance_;
