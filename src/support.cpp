@@ -1453,7 +1453,7 @@ void AreaSupport::generateSupportAreasForMesh(
             conical_support_offset = boundedTan(-conical_support_angle) * layer_thickness;
         }
         const bool conical_support = infill_settings.get<bool>("support_conical_enabled") && conical_support_angle != 0;
-        for (LayerIndex layer_idx = 1; layer_idx < storage.support.supportLayers.size(); layer_idx++)
+        for (LayerIndex layer_idx = 1; layer_idx < LayerIndex(storage.support.supportLayers.size()); layer_idx++)
         {
             const Shape& layer = support_areas[layer_idx];
 
@@ -1608,7 +1608,7 @@ void AreaSupport::moveUpFromModel(
         to_be_removed = stair_removal.unionPolygons(bottom_outline);
         if (layer_idx % bottom_stair_step_layer_count == 0)
         { // update stairs for next step
-            const Shape supporting_bottom = storage.getLayerOutlines(bottom_layer_nr - 1, no_support, no_prime_tower);
+            const Shape supporting_bottom = storage.getLayerOutlines(LayerIndex(bottom_layer_nr) - 1, no_support, no_prime_tower);
             const Shape allowed_step_width = supporting_bottom.offset(support_bottom_stair_step_width).intersection(sloped_areas);
 
             const int64_t step_bottom_layer_nr = static_cast<int64_t>(bottom_layer_nr) - static_cast<int64_t>(bottom_stair_step_layer_count) + 1;
