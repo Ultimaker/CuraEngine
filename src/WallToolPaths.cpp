@@ -27,6 +27,7 @@ WallToolPaths::WallToolPaths(
     const coord_t nominal_bead_width,
     const size_t inset_count,
     const coord_t wall_0_inset,
+    const coord_t wall_x_inset,
     const Settings& settings,
     const int layer_idx,
     SectionType section_type,
@@ -36,6 +37,7 @@ WallToolPaths::WallToolPaths(
     , bead_width_x_(nominal_bead_width)
     , inset_count_(inset_count)
     , wall_0_inset_(wall_0_inset)
+    , wall_x_inset_(wall_x_inset)
     , print_thin_walls_(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size_(nominal_bead_width / 4)
     , wall_transition_angle_(AngleDegrees(10))
@@ -63,6 +65,7 @@ WallToolPaths::WallToolPaths(
     const coord_t bead_width_x,
     const size_t inset_count,
     const coord_t wall_0_inset,
+    const coord_t wall_x_inset,
     const Settings& settings,
     const int layer_idx,
     SectionType section_type)
@@ -71,6 +74,7 @@ WallToolPaths::WallToolPaths(
     , bead_width_x_(bead_width_x)
     , inset_count_(inset_count)
     , wall_0_inset_(wall_0_inset)
+    , wall_x_inset_(wall_x_inset)
     , print_thin_walls_(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size_(settings.get<coord_t>("min_feature_size"))
     , min_bead_width_(settings.get<coord_t>("min_bead_width"))
@@ -218,6 +222,7 @@ void WallToolPaths::generateArachne()
         wall_add_middle_threshold,
         max_bead_count,
         wall_0_inset_,
+        wall_x_inset_,
         wall_distribution_count_);
     SkeletalTrapezoidation wall_maker(
         prepared_outline,
