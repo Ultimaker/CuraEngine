@@ -2264,7 +2264,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         }
     }
 
-    if (combined_local_maxima_point.length_ < (combined_local_maxima_point.width_ * 2L))
+    if (combined_local_maxima_point.acc_ > 0 && combined_local_maxima_point.length_ < (combined_local_maxima_point.width_ * 2L))
     {
         addCircleToToolpath(combined_local_maxima_point.p_, combined_local_maxima_point.width_, 0);
     }
