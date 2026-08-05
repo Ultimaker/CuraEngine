@@ -2215,7 +2215,13 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         coord_t length_;
 
         // NOTE: Empty constructor; `acc_` is set to 0, so that it can be used as a neutral element in the `+=` operator.
-        LocalMaximaPoint() : p_(0, 0), width_(0), acc_(0), length_(0) {}
+        LocalMaximaPoint()
+            : p_(0, 0)
+            , width_(0)
+            , acc_(0)
+            , length_(0)
+        {
+        }
 
         LocalMaximaPoint(const Point2LL& p, coord_t width)
             : p_(p)
