@@ -2212,11 +2212,22 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         Point2LL p_;
         coord_t width_;
         size_t acc_;
+        coord_t length_;
+
+        // NOTE: Empty constructor; `acc_` is set to 0, so that it can be used as a neutral element in the `+=` operator.
+        LocalMaximaPoint()
+            : p_(0, 0)
+            , width_(0)
+            , acc_(0)
+            , length_(0)
+        {
+        }
 
         LocalMaximaPoint(const Point2LL& p, coord_t width)
             : p_(p)
             , width_(width)
             , acc_(1)
+            , length_(0)
         {
         }
 
@@ -2225,19 +2236,20 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             p_ = (p_ * acc_ + other.p_ * other.acc_) / (acc_ + other.acc_);
             width_ = (width_ * acc_ + other.width_ * other.acc_) / (acc_ + other.acc_);
             acc_ += other.acc_;
+            length_ += other.length_ + (acc_ >= 1 && other.acc_ >= 1) ? vSize(p_ - other.p_) : 0L;
         }
     };
 
-    std::vector<LocalMaximaPoint> local_maxima_points;
+    LocalMaximaPoint combined_local_maxima_point;
 
     for (const auto& node : graph_.nodes_)
     {
-        if (! node.data_.hasBeading())
+        if (! (node.data_.hasBeading() && node.isLocalMaximum(true)))
         {
             continue;
         }
         const Beading& beading = node.data_.getBeading()->beading_;
-        if (beading.bead_widths.size() % 2 == 1 && node.isLocalMaximum(true))
+        if (beading.bead_widths.size() % 2 == 1)
         {
             const size_t inset_index = beading.bead_widths.size() / 2;
             const coord_t width = beading.bead_widths[inset_index];
@@ -2247,28 +2259,14 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             }
             else
             {
-                const auto it = ranges::find_if(
-                    local_maxima_points,
-                    [&](const LocalMaximaPoint& local_maxima_point)
-                    {
-                        return vSize2(local_maxima_point.p_ - node.p_) < 10 * 10;
-                    });
-
-                if (it != local_maxima_points.end())
-                {
-                    *it += (LocalMaximaPoint(node.p_, width));
-                }
-                else
-                {
-                    local_maxima_points.emplace_back(node.p_, width);
-                }
+                combined_local_maxima_point += LocalMaximaPoint(node.p_, width);
             }
         }
     }
 
-    for (const auto& local_maxima_point : local_maxima_points)
+    if (combined_local_maxima_point.acc_ > 0 && combined_local_maxima_point.length_ < (combined_local_maxima_point.width_ * 2L))
     {
-        addCircleToToolpath(local_maxima_point.p_, local_maxima_point.width_, 0);
+        addCircleToToolpath(combined_local_maxima_point.p_, combined_local_maxima_point.width_, 0);
     }
 }
 //
