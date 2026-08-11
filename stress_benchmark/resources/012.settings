@@ -334,6 +334,7 @@ mold_roof_height=0.5
 support_bottom_line_width=0.6
 support_extruder_nr=0
 wall_0_inset=0
+wall_x_inset=0
 relative_extrusion=False
 support_conical_min_width=10
 support_structure=normal

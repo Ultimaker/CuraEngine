@@ -8,6 +8,7 @@
 #include <spdlog/spdlog.h>
 
 #include "BeadingStrategy/DistributedBeadingStrategy.h"
+#include "BeadingStrategy/InnerWallInsetBeadingStrategy.h"
 #include "BeadingStrategy/LimitedBeadingStrategy.h"
 #include "BeadingStrategy/OuterWallInsetBeadingStrategy.h"
 #include "BeadingStrategy/RedistributeBeadingStrategy.h"
@@ -28,6 +29,7 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(
     const Ratio wall_add_middle_threshold,
     const coord_t max_bead_count,
     const coord_t outer_wall_offset,
+    const coord_t inner_wall_offset,
     const int inward_distributed_center_wall_count,
     const Ratio minimum_variable_line_ratio)
 {
@@ -52,6 +54,11 @@ BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(
     {
         spdlog::debug("Applying the OuterWallOffset meta-strategy with offset = {}", outer_wall_offset);
         ret = make_unique<OuterWallInsetBeadingStrategy>(outer_wall_offset, std::move(ret));
+    }
+    if (inner_wall_offset != 0)
+    {
+        spdlog::debug("Applying the InnerWallOffset meta-strategy with offset = {}", inner_wall_offset);
+        ret = make_unique<InnerWallInsetBeadingStrategy>(inner_wall_offset, std::move(ret));
     }
 
     // Apply the LimitedBeadingStrategy last, since that adds a 0-width marker wall which other beading strategies shouldn't touch.
