@@ -33,6 +33,7 @@ class CuraEngineConan(ConanFile):
         "enable_plugins": [True, False],
         "enable_remote_plugins": [True, False],
         "with_cura_resources": [True, False],
+        "with_curaviz": [True, False],
     }
     default_options = {
         "enable_arcus": True,
@@ -41,6 +42,7 @@ class CuraEngineConan(ConanFile):
         "enable_plugins": True,
         "enable_remote_plugins": False,
         "with_cura_resources": False,
+        "with_curaviz": False
     }
 
     @property
@@ -89,7 +91,7 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         super().configure()
 
-        if self.options.enable_arcus or self.options.enable_plugins:
+        if self.options.enable_arcus or self.options.enable_plugins or self.options.with_curaviz:
             self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
@@ -140,6 +142,9 @@ class CuraEngineConan(ConanFile):
         if self.options.with_cura_resources:
             for req in self.conan_data["requirements_cura_resources"]:
                 self.requires(req)
+        if self.options.with_curaviz:
+            for req in self.conan_data["requirements_curaviz"]:
+                self.requires(req)
         self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.88.0")
         self.requires("rapidjson/cci.20230929")
@@ -171,6 +176,7 @@ class CuraEngineConan(ConanFile):
             tc.variables["ENABLE_REMOTE_PLUGINS"] = self.options.enable_remote_plugins
         else:
             tc.variables["ENABLE_PLUGINS"] = self.options.enable_plugins
+        tc.variables["ENABLE_CURAVIZ"] = self.options.with_curaviz
         self.setup_cmake_toolchain_sentry(tc)
         tc.generate()
 

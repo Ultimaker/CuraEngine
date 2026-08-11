@@ -10,6 +10,8 @@ namespace cura
 {
 
 class OpenPolyline;
+class MixedLinesSet;
+class Shape;
 
 /*! @brief This describes a polyline which forms a closed path.
  *  @sa https://github.com/Ultimaker/CuraEngine/wiki/Geometric-Base-Types#closedpolyline
@@ -53,7 +55,11 @@ public:
     ClosedPolyline(const ClosedPolyline& other) = default;
 
     /*! \brief Constructor that takes ownership of the inner points list from the given polyline */
-    ClosedPolyline(ClosedPolyline&& other) = default;
+    ClosedPolyline(ClosedPolyline&& other) noexcept
+        : Polyline{ std::move(other) }
+        , explicitly_closed_(other.explicitly_closed_)
+    {
+    }
 
     /*!
      * \brief Constructor with a points initializer list, provided for convenience
@@ -98,6 +104,8 @@ public:
 
     /*! @see Polyline::isValid() */
     [[nodiscard]] bool isValid() const override;
+
+    void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const override;
 
     ClosedPolyline& operator=(const ClosedPolyline& other) = default;
 

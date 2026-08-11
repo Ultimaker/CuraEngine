@@ -418,16 +418,12 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     TreeSupport tree_support_generator(storage);
     tree_support_generator.generateSupportAreas(storage);
 
-    // Pre-compute lightning fill
-    if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::LIGHTNING)
-    {
-        storage.support.lightning_generator = std::make_shared<LightningGenerator>(storage.support);
-    }
-
     computePrintHeightStatistics(storage);
 
     // handle helpers
     storage.initializePrimeTower();
+
+    AreaSupport::generateSupportBase(storage);
 
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
@@ -453,6 +449,12 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     spdlog::debug("Processing gradual support");
     // generate gradual support
     AreaSupport::generateSupportInfillFeatures(storage);
+
+    // Pre-compute lightning fill
+    if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::LIGHTNING)
+    {
+        storage.support.lightning_generator = std::make_shared<LightningGenerator>(storage.support);
+    }
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(
@@ -1034,8 +1036,9 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower));
     }
 
+    draft_shield.makeConvex();
     const coord_t draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
-    storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
+    storage.draft_protection_shield = draft_shield.offset(draft_shield_dist);
 
     // Extra offset has rounded joints, so simplify again.
     coord_t maximum_resolution = 0; // Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
@@ -1080,10 +1083,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         skirt_brim.generate();
     }
 
-    if (mesh_group_settings.get<bool>("support_brim_enable"))
-    {
-        skirt_brim.generateSupportBrim();
-    }
+    skirt_brim.generateSupportBrim();
 }
 
 

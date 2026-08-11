@@ -4,6 +4,7 @@
 #ifndef CURAENGINE_WALLTOOLPATHS_H
 #define CURAENGINE_WALLTOOLPATHS_H
 
+#include "WallToolPathGenerator.h"
 #include "geometry/Polygon.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
@@ -20,6 +21,7 @@ public:
      * \param nominal_bead_width The nominal bead width used in the generation of the toolpaths
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
+     * \param wall_x_inset How far to inset the inner walls, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
      */
     WallToolPaths(
@@ -27,9 +29,11 @@ public:
         const coord_t nominal_bead_width,
         const size_t inset_count,
         const coord_t wall_0_inset,
+        const coord_t wall_x_inset,
         const Settings& settings,
         const int layer_idx,
-        SectionType section_type);
+        SectionType section_type,
+        WallToolPathGenerator generator = WallToolPathGenerator::Arachne);
 
     /*!
      * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
@@ -38,6 +42,7 @@ public:
      * \param bead_width_x The bead width of the inner walls used in the generation of the toolpaths
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
+     * \param wall_x_inset How far to inset the inner walls, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
      */
     WallToolPaths(
@@ -46,6 +51,7 @@ public:
         const coord_t bead_width_x,
         const size_t inset_count,
         const coord_t wall_0_inset,
+        const coord_t wall_x_inset,
         const Settings& settings,
         const int layer_idx,
         SectionType section_type);
@@ -119,20 +125,28 @@ protected:
     static void simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings);
 
 private:
+    /*! Generates the toolpaths using the Arachne engine, which produces extrusions paths with variable line width */
+    void generateArachne();
+
+    /*! Generates the toolpaths using a naive inset, which produces extrusions paths with a fixed line width */
+    void generateNaiveInset();
+
+private:
     const Shape& outline_; //<! A reference to the outline polygon that is the designated area
     coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
     coord_t bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
                            // this is the same as bead_width_0
     size_t inset_count_; //<! The maximum number of walls to generate
     coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
+    coord_t wall_x_inset_; //<! How far to inset the inner walls
     bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
     coord_t min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
-    coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     const AngleRadians wall_transition_angle_;
     const coord_t wall_transition_length_;
     const double min_even_wall_line_width_;
     const double wall_line_width_0_;
     const double min_odd_wall_line_width_;
+    coord_t min_bead_width_; //<! The minimum bead size to use when widening thin model features with the widening beading meta-strategy
     const double wall_line_width_x_;
     const int wall_distribution_count_;
     const coord_t wall_transition_filter_distance_;
@@ -144,6 +158,7 @@ private:
     const Settings& settings_;
     int layer_idx_;
     SectionType section_type_;
+    const WallToolPathGenerator generator_{ WallToolPathGenerator::Arachne };
 };
 } // namespace cura
 

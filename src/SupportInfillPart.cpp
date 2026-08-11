@@ -21,5 +21,4 @@ SupportInfillPart::SupportInfillPart(
     , custom_line_distance_(custom_line_distance)
     , use_fractional_config_(use_fractional_config)
 {
-    infill_area_per_combine_per_density_.clear();
 }

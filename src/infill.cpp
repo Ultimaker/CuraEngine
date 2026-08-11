@@ -65,15 +65,17 @@ Shape Infill::generateWallToolPaths(
     const coord_t line_width,
     const Settings& settings,
     int layer_idx,
-    SectionType section_type)
+    SectionType section_type,
+    WallToolPathGenerator generator)
 {
     Shape inner_contour;
     if (wall_thickness > 0)
     {
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        const size_t walls_count = std::llrint(static_cast<double>(wall_thickness) / line_width);
-        const coord_t actual_line_width = wall_thickness / walls_count;
-        WallToolPaths wall_toolpaths(outer_contour, actual_line_width, walls_count, wall_0_inset, settings, layer_idx, section_type);
+        constexpr coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the outer wall.
+        const size_t wall_line_count = std::llrint(static_cast<double>(wall_thickness) / line_width);
+        const coord_t actual_line_width = wall_thickness / wall_line_count;
+        WallToolPaths wall_toolpaths(outer_contour, actual_line_width, wall_line_count, wall_0_inset, wall_x_inset, settings, layer_idx, section_type, generator);
         wall_toolpaths.pushToolPaths(toolpaths);
         inner_contour = wall_toolpaths.getInnerContour();
     }
@@ -95,14 +97,15 @@ void Infill::generate(
     const std::shared_ptr<LightningLayer>& lightning_trees,
     const SliceMeshStorage* mesh,
     const Shape& prevent_small_exposed_to_air,
-    const coord_t minimum_line_length)
+    const coord_t minimum_line_length,
+    WallToolPathGenerator wall_generator)
 {
     if (outer_contour_.empty())
     {
         return;
     }
 
-    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_thickness_, infill_line_width_, settings, layer_idx, section_type);
+    inner_contour_ = generateWallToolPaths(toolpaths, outer_contour_, wall_thickness_, infill_line_width_, settings, layer_idx, section_type, wall_generator);
     scripta::log("infill_inner_contour_0", inner_contour_, section_type, layer_idx);
 
     inner_contour_ = inner_contour_.offset(infill_overlap_);
@@ -144,7 +147,8 @@ void Infill::generate(
 
         // Fill narrow area with walls.
         const size_t narrow_wall_count = small_area_width_ / infill_line_width_ + 1;
-        WallToolPaths wall_toolpaths(small_infill, infill_line_width_, narrow_wall_count, 0, settings, layer_idx, section_type);
+        const coord_t inset = 0; // outer/inner wall inset is set to 0
+        WallToolPaths wall_toolpaths(small_infill, infill_line_width_, narrow_wall_count, inset, inset, settings, layer_idx, section_type);
         std::vector<VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
         scripta::log(
             "infill_small_infill_paths_0",
@@ -508,7 +512,8 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
 
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
-        WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL);
+        constexpr coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the inner wall.
+        WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, wall_x_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL);
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 
