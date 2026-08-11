@@ -52,6 +52,7 @@ public:
 
     /*!
      * \brief Precalculate avoidances and collisions up to this layer.
+     * \param time_keeper The object used to record the duration of the sub-steps
      *
      * This uses knowledge about branch angle to only calculate avoidances and collisions that could actually be needed.
      * Not calling this will cause the class to lazily calculate avoidances and collisions as needed, which will be a lot slower on systems with more then one or two cores!

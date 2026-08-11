@@ -384,6 +384,9 @@ public:
      */
     bool fill_outline_gaps;
 
+    /*!
+     * \brief Number of layers on which to smooth the tree support branches
+     */
     size_t support_tree_smooth_layers;
 
     /*!

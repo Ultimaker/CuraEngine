@@ -102,6 +102,7 @@ private:
      *
      * \param storage[in] Background storage to access meshes.
      * \param currently_processing_meshes[in] Indexes of all meshes that are processed in this iteration
+     * \param time_keeper The object used to record the duration of the sub-steps
      * \return Uppermost layer precalculated. -1 if no layer were precalculated as no overhang is present.
      */
     LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, TimeKeeper& time_keeper);
@@ -227,6 +228,7 @@ private:
      * \brief Propagates influence downwards, and merges overlapping ones.
      *
      * \param move_bounds[in,out] All currently existing influence areas
+     * \param time_keeper The object used to record the duration of the sub-steps
      */
     void createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, TimeKeeper& time_keeper);
 
@@ -316,6 +318,7 @@ private:
      *
      * \param move_bounds[in] All currently existing influence areas
      * \param storage[in,out] The storage where the support should be stored.
+     * \param time_keeper The object used to record the duration of the sub-steps
      */
     void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, TimeKeeper& time_keeper);
 

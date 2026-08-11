@@ -105,13 +105,16 @@ public:
         return other.target_position_.X == target_position_.X ? other.target_position_.Y < target_position_.Y : other.target_position_.X < target_position_.X;
     }
 
+    /*! \brief Gets the list of parent elements, which are those above the current element */
     const std::vector<TreeSupportElement*>& getParents() const
     {
         return parents_;
     }
 
+    /*! \brief Adds the given elements to be parents of the current element. Parents will also be properly modified to have the element as a child. */
     void addParents(const std::vector<TreeSupportElement*>& new_parents);
 
+    /*! \brief Gets the child element, which is the one beloe the current element. It could also be null if the element lies on the buildplate or on the model */
     TreeSupportElement* getChild() const
     {
         return child_;
@@ -263,6 +266,9 @@ private:
      */
     std::vector<TreeSupportElement*> parents_;
 
+    /*!
+     * \brief The element in the layer below that is supporting this element
+     */
     TreeSupportElement* child_{ nullptr };
 };
 
