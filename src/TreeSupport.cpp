@@ -1914,14 +1914,17 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
 void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*>>& layer_tree_polygons)
 {
     const size_t smooth_window = config.support_tree_smooth_layers;
-    boost::concurrent_flat_map<TreeSupportElement*, Point2LL> smoothed_positions;
+    if (smooth_window < 2) // Smoothing on 1 layer will give a similar result, so can be skipped
+    {
+        return;
+    }
 
-    // TODO: This can definitely be optimized by caching the parents chains and sums of points, but for now performance is more than decent so leaving as is.
-    // If the feature is validated after the spike, then we should definitely do it.
+    // First go through every element and calculate their average position i.r.t their chain of children
+    boost::concurrent_flat_map<TreeSupportElement*, Point2LL> smoothed_positions;
     cura::parallel_for<size_t>(
         0,
         layer_tree_polygons.size(),
-        [&layer_tree_polygons, &smooth_window, &smoothed_positions](size_t layer_index)
+        [&layer_tree_polygons, &smooth_window, &smoothed_positions](const size_t layer_index)
         {
             for (TreeSupportElement* element : layer_tree_polygons[layer_index])
             {
@@ -1940,6 +1943,7 @@ void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*
             }
         });
 
+    // Now apply the smoothed positions
     smoothed_positions.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,

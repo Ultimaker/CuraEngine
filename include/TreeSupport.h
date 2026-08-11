@@ -275,6 +275,10 @@ private:
      */
     void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
 
+    /*!
+     * Smoothes the skeleton of the tree structure according to the smoothing factor
+     * @param layer_tree_polygons The base tree structure to be smoothed
+     */
     void smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*>>& layer_tree_polygons);
 
     /*!
