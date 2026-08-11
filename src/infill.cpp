@@ -74,7 +74,7 @@ Shape Infill::generateWallToolPaths(
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
         constexpr coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the outer wall.
         const size_t wall_line_count = std::llrint(static_cast<double>(wall_thickness) / line_width);
-        const coord_t actual_line_width = wall_thickness / wall_line_count;
+        const coord_t actual_line_width = wall_thickness / std::max(size_t{1}, wall_line_count);
         WallToolPaths wall_toolpaths(outer_contour, actual_line_width, wall_line_count, wall_0_inset, wall_x_inset, settings, layer_idx, section_type, generator);
         wall_toolpaths.pushToolPaths(toolpaths);
         inner_contour = wall_toolpaths.getInnerContour();

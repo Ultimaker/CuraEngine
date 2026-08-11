@@ -2429,8 +2429,12 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
                                            std::max(
                                                config.support_wall_thickness_bottom_layers - static_cast<coord_t>(layer_idx),
                                                config.support_wall_thickness_top_layers - static_cast<coord_t>(elem->distance_to_top_))))
-                                     / config.support_wall_thickness_layer_smooth;
-                const coord_t nominal_wall_width = std::lerp(config.support_enlarged_wall_thickness, config.support_wall_thickness, std::clamp(lerp_mul, 0.f, 1.f));
+                                     / std::max(coord_t{ 1 }, config.support_wall_thickness_layer_smooth);
+                const coord_t nominal_wall_width
+                    = std::lerp(
+                        config.support_enlarged_wall_thickness, std::max(coord_t{ EPSILON }, config.support_wall_thickness),
+                        std::clamp(lerp_mul, 0.f, 1.f));
+
 
                 const auto center = (elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0) ? elem->result_on_layer_ : elem->target_position_;
                 center_locator->insert(center, { nominal_wall_width, elem->area_->area() });
