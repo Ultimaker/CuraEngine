@@ -2266,9 +2266,28 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         }
     }
 
-    for (const auto& local_maxima_point : local_maxima_points)
+    bool replace_with_local_maxima = generated_toolpaths.empty() || generated_toolpaths[0].empty();
+    coord_t total_path_length = 0;
+    if (! replace_with_local_maxima)
     {
-        addCircleToToolpath(local_maxima_point.p_, local_maxima_point.width_, 0);
+        coord_t min_width = std::numeric_limits<coord_t>::max();
+        for (const auto& line : generated_toolpaths[0])
+        {
+            total_path_length += line.length();
+            for (const ExtrusionJunction& j : line)
+            {
+                min_width = std::min(min_width, j.w_);
+            }
+        }
+        replace_with_local_maxima |= total_path_length <= min_width / 2;
+    }
+
+    if (replace_with_local_maxima)
+    {
+        for (const auto& local_maxima_point : local_maxima_points)
+        {
+            addCircleToToolpath(local_maxima_point.p_, local_maxima_point.width_, 0);
+        }
     }
 }
 //
