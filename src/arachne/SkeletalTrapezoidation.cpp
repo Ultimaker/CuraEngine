@@ -2224,7 +2224,6 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             }
         }
     }
-
 }
 //
 // ^^^^^^^^^^^^^^^^^^^^^
