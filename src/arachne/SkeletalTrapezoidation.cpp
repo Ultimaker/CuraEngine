@@ -2207,41 +2207,6 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         line.junctions_.insert(line.junctions_.end(), circle.begin(), circle.end());
     };
 
-    struct LocalMaximaPoint
-    {
-        Point2LL p_;
-        coord_t width_;
-        size_t accumulated_;
-        coord_t length_;
-
-        // NOTE: Empty constructor; `acc_` is set to 0, so that it can be used as a neutral element in the `+=` operator.
-        LocalMaximaPoint()
-            : p_(0, 0)
-            , width_(0)
-            , accumulated_(0)
-            , length_(0)
-        {
-        }
-
-        LocalMaximaPoint(const Point2LL& p, coord_t width)
-            : p_(p)
-            , width_(width)
-            , accumulated_(1)
-            , length_(0)
-        {
-        }
-
-        void operator+=(const LocalMaximaPoint& other)
-        {
-            p_ = (p_ * accumulated_ + other.p_ * other.accumulated_) / (accumulated_ + other.accumulated_);
-            width_ = (width_ * accumulated_ + other.width_ * other.accumulated_) / (accumulated_ + other.accumulated_);
-            accumulated_ += other.accumulated_;
-            length_ += other.length_ + (accumulated_ >= 1 && other.accumulated_ >= 1) ? vSize(p_ - other.p_) : 0L;
-        }
-    };
-
-    LocalMaximaPoint combined_local_maxima_point;
-
     for (const auto& node : graph_.nodes_)
     {
         if (! (node.data_.hasBeading() && node.isLocalMaximum(true)))
@@ -2257,17 +2222,9 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             {
                 addCircleToToolpath(node.p_, width, inset_index);
             }
-            else
-            {
-                combined_local_maxima_point += LocalMaximaPoint(node.p_, width);
-            }
         }
     }
 
-    if (combined_local_maxima_point.accumulated_ > 0 && combined_local_maxima_point.length_ < (combined_local_maxima_point.width_ * 2L))
-    {
-        addCircleToToolpath(combined_local_maxima_point.p_, combined_local_maxima_point.width_, 0);
-    }
 }
 //
 // ^^^^^^^^^^^^^^^^^^^^^
