@@ -1,0 +1,43 @@
+from flask import Flask, request, jsonify
+import os, uuid, subprocess
+
+app = Flask(__name__)
+UPLOAD_FOLDER = "uploads"
+os.makedirs(UPLOAD_FOLDER, exist_ok=True)
+
+@app.route('/estimate', methods=['POST'])
+def estimate():
+    file = request.files['file']
+    filename = f"{uuid.uuid4()}.stl"
+    filepath = os.path.join(UPLOAD_FOLDER, filename)
+    file.save(filepath)
+
+    gcode_path = filepath.replace('.stl', '.gcode')
+
+    subprocess.run([
+        "./CuraEngine", "slice",
+        "-j", "default_profile.json",
+        "-l", filepath,
+        "-o", gcode_path
+    ], check=True)
+
+    time_minutes, filament_mm = 0, 0
+    with open(gcode_path) as f:
+        for line in f:
+            if "TIME:" in line:
+                time_minutes = int(line.strip().split("TIME:")[1]) / 60
+            if "Filament used:" in line:
+                filament_mm += float(line.split()[-2])
+
+    filament_cost = (filament_mm / 1000) * 0.05
+    energy_cost = (time_minutes / 60) * 0.15
+    total_cost = round(filament_cost + energy_cost, 2)
+
+    return jsonify({
+        "time_minutes": round(time_minutes, 2),
+        "filament_mm": round(filament_mm, 2),
+        "cost": total_cost
+    })
+
+if __name__ == '__main__':
+    app.run()
