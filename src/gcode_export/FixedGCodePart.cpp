@@ -7,8 +7,8 @@
 namespace cura
 {
 
-FixedGCodePart::FixedGCodePart(const bool print_code)
-    : GCodePart(print_code)
+FixedGCodePart::FixedGCodePart(const GCodePartType type)
+    : GCodePart(type)
 {
     stream_ << std::fixed;
 }

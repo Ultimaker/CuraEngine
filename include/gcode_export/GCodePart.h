@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include "gcode_export/GCodePartType.h"
+
 namespace cura
 {
 
@@ -18,24 +20,19 @@ public:
     /*! \brief Gets the full piece of GCode to be exported */
     virtual std::string str() const = 0;
 
-    /*! @return Whether the GCode actually contains print instructions, or management commands (header, heating, custom start gcode, ...) */
-    bool isPrintCode() const
+    GCodePartType type() const
     {
-        return print_code_;
+        return type_;
     }
 
 protected:
-    /*!
-     * Constructor
-     * @param print_code Whether the GCode actually contains print instructions, or management commands (header, heating, custom start gcode, ...)
-     */
-    explicit GCodePart(const bool print_code = false)
-        : print_code_(print_code)
+    explicit GCodePart(const GCodePartType type = GCodePartType::Management)
+        : type_(type)
     {
     }
 
 private:
-    const bool print_code_; // Whether the GCode actually contains print instructions, or management commands (header, heating, custom start gcode, ...)
+    const GCodePartType type_;
 };
 
 } // namespace cura

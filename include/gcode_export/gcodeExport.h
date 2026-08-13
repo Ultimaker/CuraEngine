@@ -15,6 +15,7 @@
 
 #include "PrintInformation.h"
 #include "TravelAntiOozing.h"
+#include "gcode_export/GCodePartType.h"
 #include "gcode_export/ResolvingExtruderContext.h"
 #include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
@@ -413,7 +414,7 @@ public:
      * \brief Creates a new instance of fixed GCode part and sets it as the current container for fixed GCode parts.
      * \param print_code Whether the GCode actually contains print instructions, or management commands (heating, extruder switch, ...)
      */
-    void prepareNewFixedGCodePart(const bool print_code = false);
+    void prepareNewFixedGCodePart(const GCodePartType type = GCodePartType::Management);
 
     /*!
      * \brief Write a piece of resolvable GCode

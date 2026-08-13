@@ -12,6 +12,7 @@
 #include <regex>
 
 #include <fmt/chrono.h>
+#include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To send layer view data.
@@ -355,8 +356,8 @@ void GCodeExport::setLayerNr(const LayerIndex& layer_nr)
 {
     layer_nr_ = layer_nr;
 
-    constexpr bool print_code = true; // Now we are actually going to send print commands
-    prepareNewFixedGCodePart(print_code); // Now is a good time to switch to a new buffer
+    constexpr GCodePartType type = GCodePartType::Print; // Now we are actually going to send print commands
+    prepareNewFixedGCodePart(type); // Now is a good time to switch to a new buffer
 }
 
 bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
@@ -1425,8 +1426,55 @@ PrintFeatureType
 
 void GCodeExport::sendFinalGCode()
 {
-    std::shared_ptr<Communication> communication = Application::getInstance().communication_;
+    {
+        // For retro-compatibility with the post-processing plugins, merge all the initial gcode parts into a single one
+        const auto iterator_first_init_part = ranges::find_if(
+            gcode_parts_,
+            [](const std::shared_ptr<GCodePart>& part)
+            {
+                return part->type() != GCodePartType::Header;
+            });
+        const auto iterator_first_print_part = ranges::find_if(
+            iterator_first_init_part,
+            gcode_parts_.end(),
+            [](const std::shared_ptr<GCodePart>& part)
+            {
+                return part->type() == GCodePartType::Print;
+            });
+        if (std::distance(iterator_first_init_part, iterator_first_print_part) > 1) // If there is none or a single init part, we can skip
+        {
+            constexpr auto type = GCodePartType::Management;
+            auto init_part = std::make_shared<FixedGCodePart>(type);
+            for (auto iterator = iterator_first_init_part; iterator != iterator_first_print_part; ++iterator)
+            {
+                init_part->stream() << (*iterator)->str();
+            }
 
+            // To avoid invalidating iterators, replace the first init part and erase the rest
+            *iterator_first_init_part = init_part;
+            gcode_parts_.erase(iterator_first_init_part + 1, iterator_first_print_part);
+        }
+    }
+
+    {
+        // For retro-compatibility with the post-processing plugins, merge all the end gcode parts into a single one
+        auto iterator_last_print_part = gcode_parts_.end() - 1;
+        while (iterator_last_print_part != gcode_parts_.begin() && (*iterator_last_print_part)->type() != GCodePartType::Print)
+        {
+            --iterator_last_print_part;
+        }
+
+        constexpr auto type = GCodePartType::Management;
+        auto end_part = std::make_shared<FixedGCodePart>(type);
+        for (auto iterator = iterator_last_print_part + 1; iterator != gcode_parts_.end(); ++iterator)
+        {
+            end_part->stream() << (*iterator)->str();
+        }
+        gcode_parts_.erase(iterator_last_print_part + 1, gcode_parts_.end());
+        gcode_parts_.push_back(end_part);
+    }
+
+    std::shared_ptr<Communication> communication = Application::getInstance().communication_;
     run_multiple_producers_ordered_consumer(
         0,
         gcode_parts_.size(),
@@ -2029,23 +2077,13 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
 
     template_resolver_->prepareForResolving(print_info.initial_extruder_nr.value_or(0), extra_global_settings);
 
-    // For retro-compatibility with the post-processing plugins, merge all the initial gcode parts into a single one
-    constexpr bool print_code = false;
-    auto init_part = std::make_shared<FixedGCodePart>(print_code);
-    auto iterator_first_print_part = gcode_parts_.begin();
-    while (iterator_first_print_part != gcode_parts_.end() && ! (*iterator_first_print_part)->isPrintCode()) // Stop when we reach the first actual layer-print code
     {
-        init_part->stream() << (*iterator_first_print_part)->str();
-        ++iterator_first_print_part;
+        // Prepend the header as a full separate part
+        constexpr GCodePartType type = GCodePartType::Header;
+        auto header_part = std::make_shared<FixedGCodePart>(type);
+        header_part->stream() << getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids);
+        gcode_parts_.insert(gcode_parts_.begin(), header_part);
     }
-    gcode_parts_.erase(gcode_parts_.begin(), iterator_first_print_part);
-    gcode_parts_.insert(gcode_parts_.begin(), init_part);
-
-    // Prepend the header as a full separate part
-    const std::string header = getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids);
-    auto header_part = std::make_shared<FixedGCodePart>(print_code);
-    header_part->stream() << header;
-    gcode_parts_.insert(gcode_parts_.begin(), header_part);
 
     Application::getInstance().communication_->sendPrintInformation(total_print_times_, print_info);
 }
@@ -2057,9 +2095,9 @@ void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)
     writeCodeWithAbsoluteExtrusion(extruder_end_code, getExtruderNr(), extra_settings);
 }
 
-void GCodeExport::prepareNewFixedGCodePart(const bool print_code)
+void GCodeExport::prepareNewFixedGCodePart(const GCodePartType type)
 {
-    const auto fixed_gcode_part = std::make_shared<FixedGCodePart>(print_code);
+    const auto fixed_gcode_part = std::make_shared<FixedGCodePart>(type);
     gcode_parts_.push_back(fixed_gcode_part);
     output_stream_ = &fixed_gcode_part->stream();
 }
