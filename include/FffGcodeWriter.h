@@ -753,6 +753,7 @@ private:
      *
      * \param infill_below_skin [out] Polygons with infill below the skin
      * \param infill_not_below_skin [out] Polygons with infill outside of skin regions above
+     * \param infill_sandwiched [out] Polygons with infill that both has regions of skin both above _and_ below
      * \param gcode_layer The initial planning of the gcode of the layer
      * \param mesh the mesh containing the layer of interest
      * \param part \param part The part for which to create gcode
@@ -761,6 +762,7 @@ private:
     static void partitionInfillBySkinAbove(
         Shape& infill_below_skin,
         Shape& infill_not_below_skin,
+        Shape& infill_sandwiched,
         const LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const SliceLayerPart& part,
