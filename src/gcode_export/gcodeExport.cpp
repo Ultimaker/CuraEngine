@@ -354,7 +354,9 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 void GCodeExport::setLayerNr(const LayerIndex& layer_nr)
 {
     layer_nr_ = layer_nr;
-    prepareNewFixedGCodePart(); // Now is a good time to switch to a new buffer
+
+    constexpr bool print_code = true; // Now we are actually going to send print commands
+    prepareNewFixedGCodePart(print_code); // Now is a good time to switch to a new buffer
 }
 
 bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
@@ -2027,26 +2029,44 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
 
     template_resolver_->prepareForResolving(print_info.initial_extruder_nr.value_or(0), extra_global_settings);
 
+    // For retro-compatibility with the post-processing plugins, merge all the initial gcode parts into a single one
+    constexpr bool print_code = false;
+    auto init_part = std::make_shared<FixedGCodePart>(print_code);
+    auto iterator_first_print_part = gcode_parts_.begin();
+    while (iterator_first_print_part != gcode_parts_.end() && ! (*iterator_first_print_part)->isPrintCode()) // Stop when we reach the first actual layer-print code
     {
-        // Prepend the header to the first gcode part, so that they become a single unsplittable part
-        const std::string header = getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids);
-
-        // Since the gcode is stored in a stream, we cannot prepend data to it, so create a new part with the assembled strings
-        auto header_part = std::make_shared<FixedGCodePart>();
-        header_part->stream() << header;
-
-        std::shared_ptr<GCodePart> first_gcode_part = gcode_parts_.front();
-        if (const auto fixed_first_gcode_part = std::dynamic_pointer_cast<FixedGCodePart>(first_gcode_part))
-        {
-            header_part->stream() << fixed_first_gcode_part->str();
-            gcode_parts_.front() = header_part;
-        }
-        else
-        {
-            // First GCode part is a resolvable part, which should not happen, but in case it does, just prepend the header as a fixed part
-            gcode_parts_.insert(gcode_parts_.begin(), header_part);
-        }
+        init_part->stream() << (*iterator_first_print_part)->str();
+        ++iterator_first_print_part;
     }
+    gcode_parts_.erase(gcode_parts_.begin(), iterator_first_print_part);
+    gcode_parts_.insert(gcode_parts_.begin(), init_part);
+
+    // Prepend the header as a full separate part
+    const std::string header = getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids);
+    auto header_part = std::make_shared<FixedGCodePart>(print_code);
+    header_part->stream() << header;
+    gcode_parts_.insert(gcode_parts_.begin(), header_part);
+
+    // {
+    //     // Prepend the header to the first gcode part, so that they become a single unsplittable part
+    //     const std::string header = getFileHeader(is_extruder_used_bool, filaments_volumes, materials_ids);
+    //
+    //     // Since the gcode is stored in a stream, we cannot prepend data to it, so create a new part with the assembled strings
+    //     auto header_part = std::make_shared<FixedGCodePart>();
+    //     header_part->stream() << header;
+    //
+    //     std::shared_ptr<GCodePart> first_gcode_part = gcode_parts_.front();
+    //     if (const auto fixed_first_gcode_part = std::dynamic_pointer_cast<FixedGCodePart>(first_gcode_part))
+    //     {
+    //         header_part->stream() << fixed_first_gcode_part->str();
+    //         gcode_parts_.front() = header_part;
+    //     }
+    //     else
+    //     {
+    //         // First GCode part is a resolvable part, which should not happen, but in case it does, just prepend the header as a fixed part
+    //         gcode_parts_.insert(gcode_parts_.begin(), header_part);
+    //     }
+    // }
 
     sendFinalGCode();
 
@@ -2060,14 +2080,9 @@ void GCodeExport::finalizeExtruder(const std::string& extruder_end_code)
     writeCodeWithAbsoluteExtrusion(extruder_end_code, getExtruderNr(), extra_settings);
 }
 
-void GCodeExport::flushOutputStream()
+void GCodeExport::prepareNewFixedGCodePart(const bool print_code)
 {
-    prepareNewFixedGCodePart();
-}
-
-void GCodeExport::prepareNewFixedGCodePart()
-{
-    auto fixed_gcode_part = std::make_shared<FixedGCodePart>();
+    const auto fixed_gcode_part = std::make_shared<FixedGCodePart>(print_code);
     gcode_parts_.push_back(fixed_gcode_part);
     output_stream_ = &fixed_gcode_part->stream();
 }

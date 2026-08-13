@@ -15,7 +15,11 @@ namespace cura
 class FixedGCodePart : public GCodePart
 {
 public:
-    explicit FixedGCodePart();
+    /*!
+     * @brief Constructor
+     * @param print_code Whether the GCode actually contains print instructions, or management commands (heating, extruder switch, ...)
+     */
+    explicit FixedGCodePart(const bool print_code);
 
     /*! \brief Gets the full piece of GCode to be exported */
     std::string str() const override;

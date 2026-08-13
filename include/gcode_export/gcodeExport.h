@@ -409,13 +409,11 @@ public:
      */
     bool needPrimeBlob() const;
 
-    /*
-     *  Function is used to write the content of output_stream to the gcode file
+    /*!
+     * \brief Creates a new instance of fixed GCode part and sets it as the current container for fixed GCode parts.
+     * \param print_code Whether the GCode actually contains print instructions, or management commands (heating, extruder switch, ...)
      */
-    void flushOutputStream();
-
-    /*! \brief Creates a new instance of fixed GCode part and sets it as the current container for fixed GCode parts. */
-    void prepareNewFixedGCodePart();
+    void prepareNewFixedGCodePart(const bool print_code = false);
 
     /*!
      * \brief Write a piece of resolvable GCode
