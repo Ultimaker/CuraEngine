@@ -2247,11 +2247,16 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             }
             else
             {
+                // lines will be removed if they are wider then they are long, if we detect such lines we don't want to print
+                // nothing since this will leave unpredictable gaps in the print. If we detect such small lines we will instead
+                // replace them with a small circle to fill the gap.
+                const auto max_local_maxima_dist = (beading_strategy_.getOptimalWidth() * 3) / 2;
+                const auto max_local_maxima_dist2 = max_local_maxima_dist * max_local_maxima_dist;
                 const auto it = ranges::find_if(
                     local_maxima_points,
                     [&](const LocalMaximaPoint& local_maxima_point)
                     {
-                        return vSize2(local_maxima_point.p_ - node.p_) < 10 * 10;
+                        return vSize2(local_maxima_point.p_ - node.p_) < max_local_maxima_dist2;
                     });
 
                 if (it != local_maxima_points.end())
