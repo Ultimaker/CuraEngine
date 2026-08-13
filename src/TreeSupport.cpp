@@ -1931,12 +1931,11 @@ void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*
                 const size_t actual_smooth_window = std::min(smooth_window, element->distance_to_top_);
                 const TreeSupportElement* child = element->getChild();
                 Point2LL interlayer_position_sum = element->result_on_layer_;
-                size_t added_layers = 1;
-                while (child && child->isResultOnLayerSet() && added_layers < actual_smooth_window)
+                size_t added_layers;
+                for (added_layers = 1; child && child->isResultOnLayerSet() && added_layers < actual_smooth_window; ++added_layers)
                 {
                     interlayer_position_sum += child->result_on_layer_;
                     child = child->getChild();
-                    ++added_layers;
                 }
 
                 smoothed_positions.emplace(element, interlayer_position_sum / added_layers);
