@@ -554,9 +554,6 @@ private:
     static PrintFeatureType
         sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
 
-    /*! \brief Resolves and sends all the pieces of GCode that have been created during slicing */
-    void sendFinalGCode();
-
     /*! \brief Calculates the end-of-print data about material consumption */
     std::vector<std::optional<ExtruderPrintInformation>> calculateMaterialPrintInformation() const;
 
@@ -773,6 +770,9 @@ public:
      * Indicates whether the printer handles the retraction/priming, totally or with specific commands
      */
     bool machineHandlesRetraction() const;
+
+    /*! \brief Resolves and sends all the pieces of GCode that have been created during slicing */
+    void sendFinalGCode();
 };
 
 } // namespace cura
