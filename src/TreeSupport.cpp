@@ -1698,7 +1698,7 @@ void TreeSupport::generateBranchAreas(
                     // Visualization: https://jsfiddle.net/0zvcq39L/2/
                     // Ovalizes the circle to an ellipse, that contains both old center and new target position.
                     double used_scale = (movement.second + offset) / (1.0 * config.branch_radius);
-                    Point2LL center_position = elem->result_on_layer_ + movement.first / static_cast<coord_t>(2);
+                    Point2LL center_position = elem->result_on_layer_ + movement.first / coord_t{ 2 };
                     const double moveX = movement.first.X / (used_scale * config.branch_radius);
                     const double moveY = movement.first.Y / (used_scale * config.branch_radius);
                     const double vsize_inv = 0.5 / (0.01 + std::sqrt(moveX * moveX + moveY * moveY));
@@ -2258,15 +2258,16 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
                     Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              support_layer_storage[layer_idx],
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              true)
-                                                              .offset(config.support_line_width / 2));
+                    tree_lines = tree_lines.unionPolygons(
+                        TreeSupportUtils::generateSupportInfillLines(
+                            support_layer_storage[layer_idx],
+                            config,
+                            false,
+                            layer_idx,
+                            config.support_line_distance,
+                            storage.support.cross_fill_provider,
+                            true)
+                            .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
