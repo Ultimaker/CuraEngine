@@ -2186,8 +2186,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
         const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
         const Shape infill_contour = part.infill_area.offset(-(infill_line_width / 2) + infill_overlap + infill_wall_offset);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
-        std::tie(infill_below_skin, skin_support_angle) =
-            makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
+        std::tie(infill_below_skin, skin_support_angle)
+            = makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
         infill_not_below_skin = infill_not_below_skin.difference(infill_below_skin);
     }
 
@@ -2497,7 +2497,9 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
     // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form
     // a bump
     infill_below_skin = skin_above_combined.difference(skin_below_combined)
-        .intersection(part.infill_area_per_combine_per_density.back().front()).offset(-infill_line_width).offset(infill_line_width);
+                            .intersection(part.infill_area_per_combine_per_density.back().front())
+                            .offset(-infill_line_width)
+                            .offset(infill_line_width);
 
     constexpr bool remove_small_holes_from_infill_below_skin = true;
     constexpr double min_area_multiplier = 25;
