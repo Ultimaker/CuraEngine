@@ -2307,7 +2307,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                     });
                 const auto weighted_average = static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second));
 
-                // Calmp wall-thickness to configured values, and draw the support part with the calculated wall-thickness.
+                // Clamp wall-thickness to configured values, and draw the support part with the calculated wall-thickness.
                 const auto wall_thickness = std::clamp(weighted_average, config.support_wall_thickness, config.support_enlarged_wall_thickness);
                 storage.support.supportLayers[layer_idx].fillInfillParts(support_part, config.support_line_width, wall_thickness, false, convert_every_part);
             }
