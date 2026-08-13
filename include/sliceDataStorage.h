@@ -11,6 +11,7 @@
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
@@ -219,6 +220,8 @@ public:
     Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Shape anti_overhang; //!< Areas where no overhang should be detected.
+    Shape force_overhang; //!< Areas where overhang should be forced.
+    MixedLinesSet base; //!< Extra lines to be printed around for sturdiness.
 
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
@@ -327,6 +330,9 @@ public:
 
     RetractionAndWipeConfig retraction_wipe_config; //!< Per-Object retraction and wipe settings.
 
+    const bool is_printed_; //!< Whether this is an actual printed mesh
+    const bool is_model_mesh_; //!< Whether this is a regular model mesh
+
     /*!
      * \brief Creates a storage space for slice results of a mesh.
      * \param mesh The mesh that the storage space belongs to.
@@ -350,11 +356,13 @@ public:
     bool getExtruderIsUsed(const size_t extruder_nr, const LayerIndex& layer_nr) const;
 
     /*!
-     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
-     * etc.)
-     * \return True if it's a mesh that gets printed.
+     * Gets whether this is a printable mesh (not a modifier mesh). This includes infill meshes, because they do get printed. Cutting meshes are not considered as printable though,
+     * because they are early converted into regular meshes and should not be considered in subsequent algorithms.
      */
     bool isPrinted() const;
+
+    /*! Gets whether this is a regular model mesh (not a modifier or infill mesh) */
+    bool isModelMesh() const;
 
     /*!
      * \return the mesh's user specified z seam hint
@@ -376,7 +384,7 @@ public:
     SupportStorage support;
 
     std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    ClosedLinesSet support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
+    MixedLinesSet support_brim; //!< brim lines for support, inside and outside. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
     Shape raft_base_outline;
@@ -414,6 +422,7 @@ public:
      * \param include_models Whether to include the models in the outline
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
+     * \param include_support_base (optional) include the support base (requires include_support). If false, only the raw support outline is returned.
      */
     Shape getLayerOutlines(
         const LayerIndex layer_nr,
@@ -421,7 +430,8 @@ public:
         const bool include_prime_tower,
         const bool external_polys_only = false,
         const int extruder_nr = -1,
-        const bool include_models = true) const;
+        const bool include_models = true,
+        const bool include_support_base = true) const;
 
     /*!
      * Get the axis-aligned bounding-box of the complete model (all meshes).

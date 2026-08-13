@@ -121,6 +121,13 @@ protected:
     void applySkinExpansion(const Shape& original_outline, Shape& upskin, Shape& downskin);
 
     /*!
+     * Allow small gaps in infill areas to grow over infill areas. This helps keeping the skin areas consistent.
+     * @param skin[in, out] The skin area to be possibly expanded
+     * @param infill[in, out] The infill area to be possibly shrunk
+     */
+    void applySkinFillSmallInfillGaps(Shape& skin, Shape& infill) const;
+
+    /*!
      * Generate infill of a given part
      * \param[in,out] part The part where the wall information (input) is retrieved and
      * where the infill areas (output) are stored.

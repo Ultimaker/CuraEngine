@@ -3,6 +3,11 @@
 
 #include "ExtruderPlan.h"
 
+#include <range/v3/algorithm/any_of.hpp>
+
+#include "gcode_export/gcodeExport.h"
+
+
 namespace cura
 {
 ExtruderPlan::ExtruderPlan(
@@ -30,8 +35,17 @@ void ExtruderPlan::insertCommand(NozzleTempInsert&& insert)
 
 void ExtruderPlan::handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time)
 {
-    while (! inserts_.empty() && path_idx >= inserts_.front().path_idx && inserts_.front().time_after_path_start < cumulative_path_time)
-    { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
+    while (! inserts_.empty())
+    {
+        const NozzleTempInsert& insert = inserts_.front();
+        const bool in_future_path = insert.path_idx > path_idx;
+        const bool in_current_path_at_future_time = insert.path_idx == path_idx && insert.time_after_path_start > cumulative_path_time;
+        if (in_future_path || in_current_path_at_future_time)
+        {
+            break;
+        }
+        // Either the insert is overdue (insert.path_idx < path_idx) and must be fired immediately,
+        // or it is exactly on time (insert.path_idx == path_idx and time threshold reached).
         inserts_.front().write(gcode);
         inserts_.pop_front();
     }
@@ -82,6 +96,46 @@ std::shared_ptr<const SliceMeshStorage> ExtruderPlan::findFirstPrintedMesh() con
     }
 
     return nullptr;
+}
+
+bool ExtruderPlan::hasExtrusion() const
+{
+    return ranges::any_of(
+        paths_,
+        [](const GCodePath& path)
+        {
+            return ! path.isTravelPath() && ! path.points.empty();
+        });
+}
+
+AABB ExtruderPlan::calculateExtrusionBoundingBox() const
+{
+    std::optional<Point2LL> current_position;
+    AABB bounding_box;
+
+    for (const GCodePath& gcode_path : paths_)
+    {
+        if (gcode_path.points.empty())
+        {
+            continue;
+        }
+
+        if (! gcode_path.isTravelPath())
+        {
+            if (current_position.has_value())
+            {
+                bounding_box.include(current_position.value());
+            }
+            for (const Point3LL& position : gcode_path.points)
+            {
+                bounding_box.include(position.toPoint2LL());
+            }
+        }
+
+        current_position = gcode_path.points.back().toPoint2LL();
+    }
+
+    return bounding_box;
 }
 
 } // namespace cura

@@ -12,6 +12,27 @@
 #include "PolygonsSegmentIndex.h"
 
 
+namespace boost::polygon
+{
+template<>
+struct voronoi_diagram_traits<cura::coord_t>
+{
+    typedef cura::coord_t coordinate_type;
+    typedef voronoi_cell<coordinate_type> cell_type;
+    typedef voronoi_vertex<coordinate_type> vertex_type;
+    typedef voronoi_edge<coordinate_type> edge_type;
+
+    class vertex_equality_predicate_type
+    {
+    public:
+        bool operator()(const vertex_type& v1, const vertex_type& v2) const
+        {
+            return v1.x() == v2.x() && v1.y() == v2.y();
+        }
+    };
+};
+} // namespace boost::polygon
+
 namespace cura
 {
 
@@ -21,7 +42,7 @@ class VoronoiUtils
 {
 public:
     using Segment = PolygonsSegmentIndex;
-    using voronoi_data_t = double;
+    using voronoi_data_t = coord_t;
     using vd_t = boost::polygon::voronoi_diagram<voronoi_data_t>;
 
     static Point2LL getSourcePoint(const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
@@ -30,9 +51,9 @@ public:
 
     static Point2LL p(const vd_t::vertex_type* node);
 
-    static bool isSourcePoint(Point2LL p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist = 10);
+    static bool isSourcePoint(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist = 10);
 
-    static coord_t getDistance(Point2LL p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
+    static coord_t getDistance(const Point2LL& p, const vd_t::cell_type& cell, const std::vector<Point2LL>& points, const std::vector<Segment>& segments);
 
     /*!
      * Discretize a parabola based on (approximate) step size.

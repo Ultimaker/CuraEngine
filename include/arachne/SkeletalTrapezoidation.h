@@ -20,6 +20,7 @@
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/PolygonsSegmentIndex.h"
+#include "utils/VoronoiUtils.h"
 #include "utils/section_type.h"
 
 namespace cura
@@ -46,8 +47,8 @@ deposition modeling" by Kuipers et al.
  */
 class SkeletalTrapezoidation
 {
-    using pos_t = double;
-    using vd_t = boost::polygon::voronoi_diagram<pos_t>;
+    using pos_t = VoronoiUtils::voronoi_data_t;
+    using vd_t = VoronoiUtils::vd_t;
     using graph_t = SkeletalTrapezoidationGraph;
     using edge_t = STHalfEdge;
     using node_t = STHalfEdgeNode;
@@ -248,7 +249,8 @@ protected:
         vd_t::edge_type*& starting_vd_edge,
         vd_t::edge_type*& ending_vd_edge,
         const std::vector<Point2LL>& points,
-        const std::vector<Segment>& segments);
+        const std::vector<Segment>& segments,
+        const Shape& polys);
 
     /*!
      * Compute the range of line segments that surround a cell of the skeletal

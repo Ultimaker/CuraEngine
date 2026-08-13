@@ -16,7 +16,7 @@
 #include "PrimeTower/PrimeTowerNormal.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 #include "infill.h"
 #include "raft.h"
 #include "sliceDataStorage.h"
@@ -50,8 +50,7 @@ PrimeTower::PrimeTower()
 
         for (coord_t z = 0; z < base_height; z += layer_height)
         {
-            const double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / static_cast<double>(base_height)), base_curve_magnitude);
-            const coord_t extra_radius = std::llrint(static_cast<double>(base_extra_radius) * brim_radius_factor);
+            const coord_t extra_radius = LinearAlg2D::getSlopedWidth(base_extra_radius, base_height, base_curve_magnitude, z);
             const coord_t total_radius = tower_radius + extra_radius;
             base_occupied_outline_.push_back(OccupiedOutline{ PolygonUtils::makeDisc(middle_, total_radius, circle_definition_), total_radius });
         }

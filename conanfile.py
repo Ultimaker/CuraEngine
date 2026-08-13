@@ -33,6 +33,7 @@ class CuraEngineConan(ConanFile):
         "enable_plugins": [True, False],
         "enable_remote_plugins": [True, False],
         "with_cura_resources": [True, False],
+        "with_curaviz": [True, False],
     }
     default_options = {
         "enable_arcus": True,
@@ -41,6 +42,7 @@ class CuraEngineConan(ConanFile):
         "enable_plugins": True,
         "enable_remote_plugins": False,
         "with_cura_resources": False,
+        "with_curaviz": False
     }
 
     @property
@@ -89,10 +91,13 @@ class CuraEngineConan(ConanFile):
     def configure(self):
         super().configure()
 
-        if self.options.enable_arcus or self.options.enable_plugins:
+        if self.options.enable_arcus or self.options.enable_plugins or self.options.with_curaviz:
             self.options["protobuf"].shared = False
         if self.options.enable_arcus:
             self.options["arcus"].shared = True
+        # ARM64 Windows: Disable tbbproxy (not available on ARM64 platforms)
+        if self.settings.os == "Windows" and self.settings.arch == "armv8":
+            self.options["onetbb"].tbbproxy = False
         # Force all libraries to be static for Emscripten builds
         if self.settings.os == "Emscripten":
             self.options["*"].shared = False
@@ -116,6 +121,8 @@ class CuraEngineConan(ConanFile):
         if self.options.enable_benchmarks:
             self.test_requires("benchmark/1.8.3")
             self.test_requires("docopt.cpp/0.6.3")
+        if self.options.enable_plugins:
+            self.tool_requires("protobuf/6.33.5")
 
     def requirements(self):
         super().requirements()
@@ -135,12 +142,15 @@ class CuraEngineConan(ConanFile):
         if self.options.with_cura_resources:
             for req in self.conan_data["requirements_cura_resources"]:
                 self.requires(req)
+        if self.options.with_curaviz:
+            for req in self.conan_data["requirements_curaviz"]:
+                self.requires(req)
         self.requires("clipper/6.4.2@ultimaker/stable")
         self.requires("boost/1.88.0")
         self.requires("rapidjson/cci.20230929")
         self.requires("stb/cci.20230920")
-        self.requires("spdlog/1.15.1")
-        self.requires("fmt/11.1.3")
+        self.requires("spdlog/1.17.0")
+        self.requires("fmt/12.1.0")
         self.requires("range-v3/0.12.0")
         self.requires("mapbox-wagyu/0.5.0@ultimaker/stable")
 
@@ -166,6 +176,7 @@ class CuraEngineConan(ConanFile):
             tc.variables["ENABLE_REMOTE_PLUGINS"] = self.options.enable_remote_plugins
         else:
             tc.variables["ENABLE_PLUGINS"] = self.options.enable_plugins
+        tc.variables["ENABLE_CURAVIZ"] = self.options.with_curaviz
         self.setup_cmake_toolchain_sentry(tc)
         tc.generate()
 

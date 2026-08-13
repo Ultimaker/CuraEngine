@@ -10,7 +10,6 @@
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/client_rpc.hpp>
 #include <agrpc/grpc_context.hpp>
-#include <agrpc/use_awaitable.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>

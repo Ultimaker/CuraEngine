@@ -1,18 +1,21 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_H
-#define GCODEEXPORT_H
+#ifndef GCODEEXPORT_GCODEEXPORT_H
+#define GCODEEXPORT_GCODEEXPORT_H
 
 #include <deque> // for extrusionAmountAtPreviousRetractions
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
 #endif
+#include <cura-formulae-engine/eval.h>
 #include <optional>
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
+#include "PrintInformation.h"
 #include "TravelAntiOozing.h"
+#include "gcode_export/ResolvingExtruderContext.h"
 #include "geometry/Point2LL.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
@@ -29,6 +32,8 @@ namespace cura
 
 class RetractionConfig;
 class SliceDataStorage;
+class GCodePart;
+class GcodeTemplateResolver;
 struct WipeScriptConfig;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -138,8 +143,8 @@ private:
     std::string machine_name_;
     std::string slice_uuid_; //!< The UUID of the current slice.
 
-    std::ostream* output_stream_;
     std::string new_line_;
+    std::ostream* output_stream_;
 
     double current_e_value_; //!< The last E value written to gcode (in mm or mm^3)
 
@@ -191,6 +196,9 @@ private:
     bool machine_heated_build_volume_; //!< does the machine have the ability to control/stabilize build-volume-temperature
     bool ppr_enable_; //!< if the print process reporting is enabled
 
+    std::vector<std::shared_ptr<GCodePart>> gcode_parts_; //!< List of GCode pieces that will be exported at the end
+    std::shared_ptr<GcodeTemplateResolver> template_resolver_; //!< Object used to resolved the formulae of the dynamic GCode pieces
+
 protected:
     /*!
      * Convert an E value to a value in mm (if it wasn't already in mm) for the current extruder.
@@ -238,26 +246,9 @@ public:
      */
     static std::string flavorToString(const EGCodeFlavor& flavor);
 
-    /*!
-     * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
-     *
-     * \param extruder_is_used For each extruder whether it is used in the print
-     * \param print_time The total print time in seconds of the whole gcode (if known)
-     * \param filament_used The total mm^3 filament used for each extruder or a vector of the wrong size of unknown
-     * \param mat_ids The material GUIDs for each material.
-     * \return The string representing the file header
-     */
-    std::string getFileHeader(
-        const std::vector<bool>& extruder_is_used,
-        const Duration* print_time = nullptr,
-        const std::vector<double>& filament_used = std::vector<double>(),
-        const std::vector<std::string>& mat_ids = std::vector<std::string>());
-
     void setSliceUUID(const std::string& slice_uuid);
 
     void setLayerNr(const LayerIndex& layer_nr);
-
-    void setOutputStream(std::ostream* stream);
 
     bool getExtruderIsUsed(const int extruder_nr) const; //!< return whether the extruder has been used throughout printing all meshgroup up till now
 
@@ -285,7 +276,7 @@ public:
 
     coord_t getPositionZ() const;
 
-    int getExtruderNr() const;
+    size_t getExtruderNr() const;
 
     void setFilamentDiameter(size_t extruder, const coord_t diameter);
 
@@ -299,14 +290,8 @@ public:
      * \param extruder_nr The extruder number for which to get the total netto extruded volume
      * \return total filament printed in mm^3
      */
-    double getTotalFilamentUsed(size_t extruder_nr);
+    double getTotalFilamentUsed(size_t extruder_nr) const;
 
-    /*!
-     * Get the total estimated print time in seconds for each feature
-     *
-     * \return total print time in seconds for each feature
-     */
-    std::vector<Duration> getTotalPrintTimePerFeature();
     /*!
      * Get the total print time in seconds for the complete print
      *
@@ -345,7 +330,9 @@ public:
      */
     void writeLayerCountComment(const size_t layer_count);
 
-    void writeLine(const char* line);
+    void writeLine(const std::string& line);
+
+    void writeRaw(const std::string& gcode);
 
     /*!
      * Reset the current_e_value to prevent too high E values.
@@ -427,6 +414,20 @@ public:
      */
     void flushOutputStream();
 
+    /*! \brief Creates a new instance of fixed GCode part and sets it as the current container for fixed GCode parts. */
+    void prepareNewFixedGCodePart();
+
+    /*!
+     * \brief Write a piece of resolvable GCode
+     * \param raw_text The unresolved piece of GCode to be written
+     * \param extruder_nr The contextual extruder number to be used when resolving this piece of GCode
+     * \param extra_settings Extra settings to be added when resolving this specific piece of GCode
+     */
+    void writeResolvableGCode(
+        const std::string& raw_text,
+        const ResolvingExtruderContext& extruder_nr = DynamicExtruderContext::Global,
+        const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {});
+
     /*!
      * Convert a volume value to an E value (which might be volumetric as well) for the current extruder.
      *
@@ -439,6 +440,19 @@ public:
     double mm3ToE(double mm3) const;
 
 private:
+    /*!
+     * Get the gcode file header (e.g. ";FLAVOR:UltiGCode\n")
+     *
+     * \param extruder_is_used For each extruder whether it is used in the print
+     * \param filament_used The total mm^3 filament used for each extruder or a vector of the wrong size of unknown
+     * \param mat_ids The material GUIDs for each material.
+     * \return The string representing the file header
+     */
+    std::string getFileHeader(
+        const std::vector<bool>& extruder_is_used,
+        const std::vector<double>& filament_used = std::vector<double>(),
+        const std::vector<std::string>& mat_ids = std::vector<std::string>());
+
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
      *
@@ -542,6 +556,12 @@ private:
     static PrintFeatureType
         sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
 
+    /*! \brief Resolves and sends all the pieces of GCode that have been created during slicing */
+    void sendFinalGCode();
+
+    /*! \brief Calculates the end-of-print data about material consumption */
+    std::vector<std::optional<ExtruderPrintInformation>> calculateMaterialPrintInformation() const;
+
 public:
     /*!
      * Get ready for extrusion moves:
@@ -608,18 +628,23 @@ public:
      */
     void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
-    void writeCode(const char* str);
+    void writeCode(const std::string& str);
 
     /*!
-     * Write code while temporarily ensuring absolute extrusion mode.
+     * Write a piece of resolvable GCode while temporarily ensuring absolute extrusion mode.
      * If relative extrusion mode is active, this will:
      * - Switch to absolute extrusion mode
      * - Write the provided code
      * - Restore relative extrusion mode
      *
-     * \param str The code string to write
+     * \param str The unresolved code string to write
+     * \param extruder_nr The contextual extruder number to be used when resolving this piece of GCode
+     * \param extra_settings Extra settings to be added when resolving this specific piece of GCode
      */
-    void writeCodeWithAbsoluteExtrusion(const char* str);
+    void writeCodeWithAbsoluteExtrusion(
+        const std::string& str,
+        const ResolvingExtruderContext& extruder_nr = DynamicExtruderContext::Global,
+        const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value>& extra_settings = {});
 
     void resetExtruderToPrimed(const size_t extruder, const double initial_retraction);
 
@@ -709,9 +734,16 @@ public:
     /*!
      * Finish the gcode: turn fans off, write end gcode and flush all gcode left in the buffer.
      *
-     * \param endCode The end gcode to be appended at the very end.
+     * \param end_code The end gcode to be appended at the very end.
      */
-    void finalize(const char* endCode);
+    void finalize(const std::string& end_code, PrintInformation& print_info);
+
+    /*!
+     * Finish the extruder gcode: write extrude rend gcode.
+     *
+     * \param extruder_end_code The end gcode to be appended at the end.
+     */
+    void finalizeExtruder(const std::string& extruder_end_code);
 
     /*!
      * Get amount of material extruded since last wipe script was inserted.
@@ -747,4 +779,4 @@ public:
 
 } // namespace cura
 
-#endif // GCODEEXPORT_H
+#endif

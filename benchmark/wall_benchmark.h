@@ -68,6 +68,7 @@ public:
         settings.add("min_feature_size", "0");
         settings.add("wall_0_extruder_nr", "0");
         settings.add("wall_0_inset", "0");
+        settings.add("wall_x_inset", "0");
         settings.add("wall_line_count", "2");
         settings.add("wall_line_width_0", "0.4");
         settings.add("wall_line_width_x", "0.4");
@@ -128,6 +129,7 @@ public:
         settings.add("min_feature_size", "0");
         settings.add("wall_0_extruder_nr", "0");
         settings.add("wall_0_inset", "0");
+        settings.add("wall_x_inset", "0");
         settings.add("wall_line_count", "2");
         settings.add("wall_line_width_0", "0.4");
         settings.add("wall_line_width_x", "0.4");

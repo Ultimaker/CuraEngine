@@ -15,6 +15,7 @@ namespace cura
 {
 
 class Mesh;
+class VoxelGrid;
 
 class OBJ : NoCopy
 {
@@ -40,6 +41,8 @@ public:
         const std::optional<Point2F>& uv2 = std::nullopt);
 
     void write(const Mesh& mesh, const SVG::Color color = SVG::Color::BLACK);
+
+    void write(const VoxelGrid& voxel_grid);
 
     void write(const Polyline& polyline, const coord_t z, const coord_t height, const SVG::Color color = SVG::Color::BLACK);
 

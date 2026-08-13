@@ -56,24 +56,8 @@ public:
      */
     void connect(const std::string& ip, const uint16_t port);
 
-    /*
-     * \brief Indicate that we're beginning to send g-code.
-     */
-    void beginGCode() override;
-
-    /*
-     * \brief Flush all g-code still in the stream into a message queued in the
-     * socket.
-     */
-    void flushGCode() override;
-
-    /*
-     * \brief Indicates that for Arcus we don't need to send the g-code from
-     * start to finish.
-     *
-     * We can send the start g-code out of order if we want.
-     */
-    bool isSequential() const override;
+    /* \brief Sends a piece of GCode that is ready to be exported */
+    void sendGCodePart(const std::string& gcode_part) override;
 
     /*
      * \brief Test if there are any more slices in the queue.
@@ -95,12 +79,6 @@ public:
      * or otherwise) should be sent any more regarding the last slice job.
      */
     void sendFinishedSlicing() const override;
-
-    /*
-     * \brief Send the starting g-code separately so that it may be processed by
-     * the front-end for its replacement variables.
-     */
-    void sendGCodePrefix(const std::string& prefix) const override;
 
     /*
      * \brief Send the uuid of the generated slice so that it may be processed by
@@ -143,10 +121,11 @@ public:
     void sendOptimizedLayerData() override;
 
     /*
-     * \brief Send an estimate of how long the print would take and how much
-     * material it would use.
+     * \brief Send an estimate of how long the print would take and how much material it would use.
+     * \param time_estimates The calculated time estimations, per extruder
+     * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintTimeMaterialEstimates() const override;
+    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Communicate to Arcus what our progress is.

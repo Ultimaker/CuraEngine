@@ -5,6 +5,8 @@
 
 #include <cmath> // std::ceil
 
+#include <range/v3/algorithm/all_of.hpp>
+#include <range/v3/algorithm/equal.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
@@ -151,6 +153,9 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     skin.removeSmallAreas(MIN_AREA_SIZE);
     // Create infill area irrespective if the infill is to be generated or not(would be used for bridging).
     part.infill_area = part.inner_area.difference(skin);
+
+    applySkinFillSmallInfillGaps(skin, part.infill_area);
+
     if (process_infill_)
     { // process infill when infill density > 0
         // or when other infill meshes want to modify this infill
@@ -308,6 +313,22 @@ void SkinInfillAreaComputation::applySkinExpansion(const Shape& original_outline
     }
 }
 
+void SkinInfillAreaComputation::applySkinFillSmallInfillGaps(Shape& skin, Shape& infill) const
+{
+    // First do an opening to close the small gaps within the skin
+    const coord_t opening_offset = skin_line_width_ * 2;
+    const Shape opened_skin = skin.offset(opening_offset).offset(-opening_offset - EPSILON);
+
+    // Now extract the filled gaps by removing the initial skin
+    const Shape filled_areas = opened_skin.difference(skin);
+    // Only keep the filled gaps that overlap infill areas
+    const Shape filled_areas_over_infill = filled_areas.intersection(infill).offset(EPSILON);
+
+    // Expand skin and shrink infill with the filled gaps
+    skin = skin.unionPolygons(filled_areas_over_infill);
+    infill = infill.difference(filled_areas_over_infill);
+}
+
 /*
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
@@ -320,6 +341,105 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
     part.infill_area.removeSmallAreas(MIN_AREA_SIZE);
 }
 
+// No "xx_layer_count" as this is done per layer.
+const std::unordered_map<std::string, std::string> roof_setting_floats{
+    { "line_width", "roofing_line_width" },
+    { "wall_0_material_flow", "wall_0_material_flow_roofing" },
+    { "wall_x_material_flow", "wall_x_material_flow_roofing" },
+    { "skin_material_flow", "roofing_material_flow" },
+    { "speed_wall_0", "speed_wall_0_roofing" },
+    { "speed_wall_x", "speed_wall_x_roofing" },
+    { "speed_topbottom", "speed_roofing" },
+    { "acceleration_wall_0", "acceleration_wall_0_roofing" },
+    { "acceleration_wall_x", "acceleration_wall_x_roofing" },
+    { "acceleration_topbottom", "acceleration_roofing" },
+    { "jerk_wall_0", "jerk_wall_0_roofing" },
+    { "jerk_wall_x", "jerk_wall_x_roofing" },
+    { "jerk_topbottom", "jerk_roofing" },
+};
+const std::unordered_map<std::string, std::string> roof_setting_others{
+    { "extruder_nr", "roofing_extruder_nr" },
+    { "top_bottom_pattern", "roofing_pattern" },
+    { "skin_monotonic", "roofing_monotonic" },
+    { "skin_angles", "roofing_angles" },
+};
+
+// NOTE: These settings don't have 'flooring' equivalents (yet?). An empty set is fed into the function in case of flooring.
+//       ("roofing_expansion" is missing here, as it has no bearing on wether we should merge or not)
+const std::vector<std::string> roof_settings_zero_default{ "material_delta_temperature_roofing" };
+
+// No "xx_layer_count" as this is done per layer.
+const std::unordered_map<std::string, std::string> floor_setting_floats{
+    { "line_width", "flooring_line_width" },
+    { "wall_0_material_flow", "wall_0_material_flow_flooring" },
+    { "wall_x_material_flow", "wall_x_material_flow_flooring" },
+    { "skin_material_flow", "flooring_material_flow" },
+    { "speed_wall_0", "speed_wall_0_flooring" },
+    { "speed_wall_x", "speed_wall_x_flooring" },
+    { "speed_topbottom", "speed_flooring" },
+    { "acceleration_wall_0", "acceleration_wall_0_flooring" },
+    { "acceleration_wall_x", "acceleration_wall_x_flooring" },
+    { "acceleration_topbottom", "acceleration_flooring" },
+    { "jerk_wall_0", "jerk_wall_0_flooring" },
+    { "jerk_wall_x", "jerk_wall_x_flooring" },
+    { "jerk_topbottom", "jerk_flooring" },
+};
+const std::unordered_map<std::string, std::string> floor_setting_others{
+    { "extruder_nr", "flooring_extruder_nr" },
+    { "top_bottom_pattern", "flooring_pattern" },
+    { "skin_monotonic", "flooring_monotonic" },
+    { "skin_angles", "flooring_angles" },
+};
+
+bool roofFloorSettingsEqual(
+    const Settings& settings,
+    const std::unordered_map<std::string, std::string>& setting_float_names,
+    const std::unordered_map<std::string, std::string>& setting_other_names,
+    const std::vector<std::string> settings_zero_default)
+{
+    const bool equal_floats = ranges::all_of(
+        setting_float_names,
+        [&settings](const auto& kvp)
+        {
+            return std::abs(settings.get<double>(kvp.second) - settings.get<double>(kvp.first)) < std::numeric_limits<double>::epsilon();
+        });
+    if (! equal_floats)
+    {
+        return false;
+    }
+
+    const bool all_zeros = ranges::all_of(
+        settings_zero_default,
+        [&settings](const auto& name)
+        {
+            return settings.get<double>(name) == 0.0;
+        });
+    if (! all_zeros)
+    {
+        return false;
+    }
+
+    constexpr auto extruder_nr = "extruder_nr";
+    constexpr auto top_bottom_pattern = "top_bottom_pattern";
+    constexpr auto skin_monotonic = "skin_monotonic";
+    constexpr auto skin_angles = "skin_angles";
+    if ((settings.get<int>(setting_other_names.at(extruder_nr)) >= 0 && settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr))
+        || settings.get<EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<EFillMethod>(top_bottom_pattern)
+        || settings.get<bool>(setting_other_names.at(skin_monotonic)) != settings.get<bool>(skin_monotonic)
+        || ! ranges::equal(
+            settings.get<std::vector<double>>(setting_other_names.at(skin_angles)),
+            settings.get<std::vector<double>>(skin_angles),
+            [](const double& a, const double& b)
+            {
+                return std::abs(b - a) < std::numeric_limits<double>::epsilon();
+            }))
+    {
+        return false;
+    }
+
+    return true;
+}
+
 /*
  * This function is executed in a parallel region based on layer_nr.
  * When modifying make sure any changes does not introduce data races.
@@ -329,25 +449,48 @@ void SkinInfillAreaComputation::generateInfill(SliceLayerPart& part)
 void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& part)
 {
     const size_t roofing_layer_count = std::min(mesh_.settings.get<size_t>("roofing_layer_count"), mesh_.settings.get<size_t>("top_layers"));
+    const bool has_roofing = roofing_layer_count > 0 && ! roofFloorSettingsEqual(mesh_.settings, roof_setting_floats, roof_setting_others, roof_settings_zero_default);
     const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
+    const bool has_flooring = flooring_layer_count > 0 && ! roofFloorSettingsEqual(mesh_.settings, floor_setting_floats, floor_setting_others, {});
     const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
     const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
+    const coord_t top_bottom_skin_merge_distance = mesh_.settings.get<coord_t>("top_bottom_skin_merge_distance");
 
-    constexpr coord_t epsilon = 5;
     const SliceDataStorage slice_data;
     const Shape build_plate = slice_data.getRawMachineBorder();
 
-    const Shape filled_area_above = generateFilledAreaAbove(part, roofing_layer_count);
-    const Shape filled_area_below = generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate.offset(epsilon));
+    const Shape filled_area_above = has_roofing ? generateFilledAreaAbove(part, roofing_layer_count) : build_plate;
+    const Shape filled_area_below = has_flooring ? (generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate)) : build_plate;
 
     for (SkinPart& skin_part : part.skin_parts)
     {
-        const Shape below_inside = skin_part.outline.intersection(filled_area_below);
-        const Shape above_inside = skin_part.outline.intersection(filled_area_above);
+        if (has_roofing)
+        {
+            const Shape below_inside = skin_part.outline.intersection(filled_area_below);
+            skin_part.roofing_fill = below_inside.difference(filled_area_above);
+            if (roofing_expansion > 0)
+            {
+                skin_part.roofing_fill = skin_part.roofing_fill.offset(roofing_expansion).intersection(below_inside);
+            }
+        }
 
-        skin_part.roofing_fill = below_inside.difference(filled_area_above).offset(roofing_expansion).intersection(below_inside);
-        skin_part.flooring_fill = above_inside.difference(filled_area_below);
+        if (has_flooring)
+        {
+            const Shape above_inside = skin_part.outline.intersection(filled_area_above);
+            skin_part.flooring_fill = above_inside.difference(filled_area_below);
+        }
+
         skin_part.skin_fill = skin_part.outline.difference(skin_part.roofing_fill).intersection(filled_area_below);
+
+        // In order to avoid thin areas, we allow merging skin into roofing/flooring, the first operation having a higher precedence.
+        // Given the precedence, the ordering of the following operations matter, and also whether thin areas of the source are allowed to merge into the destination.
+        if (top_bottom_skin_merge_distance > 0)
+        {
+            // Skin can grow over flooring and roofing given the top_bottom_skin_merge_distance.
+            constexpr bool allow_thin_areas_grow = true;
+            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.roofing_fill, allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.flooring_fill, allow_thin_areas_grow);
+        }
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
         // Otherwise, adjacent skin_fill and roofing/flooring would have doubled offset areas. Since they both offset into each other.

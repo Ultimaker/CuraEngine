@@ -18,8 +18,9 @@ option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 option(ENABLE_THREADING "Enable threading support" ON)
+option(ENABLE_CURAVIZ "Build with CuraViz toolbox" ON)
 
-if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS})
+if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ})
     find_package(protobuf REQUIRED)
 endif ()
 
@@ -38,6 +39,11 @@ if (${ENABLE_ARCUS})
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
+message(STATUS "Building with CuraViz: ${ENABLE_CURAVIZ}")
+if (${ENABLE_CURAVIZ})
+    find_package(curaviz_grpc_definitions REQUIRED)
+endif ()
+
 ### Compiling CuraEngine ###
 # First compile all of CuraEngine as library.
 
@@ -49,7 +55,6 @@ set(engine_SRCS # Except main.cpp.
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
         src/FffProcessor.cpp
-        src/gcodeExport.cpp
         src/GCodePathConfig.cpp
         src/infill.cpp
         src/InfillOrderOptimizer.cpp
@@ -67,6 +72,7 @@ set(engine_SRCS # Except main.cpp.
         src/PathAdapter.cpp
         src/PathOrderMonotonic.cpp
         src/Preheat.cpp
+        src/PrintInformation.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
         src/PrimeTower/PrimeTowerInterleaved.cpp
@@ -102,6 +108,7 @@ set(engine_SRCS # Except main.cpp.
         src/BeadingStrategy/RedistributeBeadingStrategy.cpp
         src/BeadingStrategy/WideningBeadingStrategy.cpp
         src/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
+        src/BeadingStrategy/InnerWallInsetBeadingStrategy.cpp
 
         src/bridge/bridge.cpp
         src/bridge/ExpansionRange.cpp
@@ -114,6 +121,11 @@ set(engine_SRCS # Except main.cpp.
         src/communication/CommandLine.cpp
         src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
+
+        src/gcode_export/gcodeExport.cpp
+        src/gcode_export/FixedGCodePart.cpp
+        src/gcode_export/ResolvedGCodePart.cpp
+        src/gcode_export/GcodeTemplateResolver.cpp
 
         src/infill/AbstractLinesInfill.cpp
         src/infill/ImageBasedDensityProvider.cpp
@@ -144,6 +156,7 @@ set(engine_SRCS # Except main.cpp.
         src/settings/FlowTempGraph.cpp
         src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
+        src/settings/SettingContainersEnvironmentAdapter.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
 
@@ -151,6 +164,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/AABB3D.cpp
         src/utils/channel.cpp
         src/utils/Segment3LL.cpp
+        src/utils/CuraViz.cpp
         src/utils/Date.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
@@ -187,6 +201,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/RandomScoringCriterion.cpp
         src/utils/scoring/TextureScoringCriterion.cpp
 
+        src/geometry/ClosedLinesSet.cpp
         src/geometry/OpenLinesSet.cpp
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
@@ -222,6 +237,7 @@ target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         $<$<BOOL:${ENABLE_PLUGINS}>:ENABLE_PLUGINS>
+        $<$<BOOL:${ENABLE_CURAVIZ}>:ENABLE_CURAVIZ>
         $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
         $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
@@ -254,6 +270,8 @@ find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
 find_package(PNG REQUIRED)
+find_package(cura-formulae-engine REQUIRED)
+
 if (NOT EMSCRIPTEN)
     find_package(TBB REQUIRED)
 endif ()
@@ -278,9 +296,11 @@ target_link_libraries(_CuraEngine
         boost::boost
         scripta::scripta
         PNG::PNG
+        cura-formulae-engine::cura-formulae-engine
         $<$<NOT:$<BOOL:${EMSCRIPTEN}>>:onetbb::onetbb>
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+        $<$<TARGET_EXISTS:curaviz_grpc_definitions::curaviz_grpc_definitions>:curaviz_grpc_definitions::curaviz_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
         $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
         $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>

@@ -9,6 +9,7 @@
 #include <cmath>
 #include <polyclipping/clipper.hpp>
 
+#include "math.h"
 #include "utils/types/generic.h"
 
 namespace cura
@@ -17,6 +18,7 @@ namespace cura
 using coord_t = ClipperLib::cInt;
 
 constexpr coord_t EPSILON = 5;
+constexpr coord_t EPSILON_SQUARED = square(EPSILON);
 
 static constexpr coord_t operator""_mu(unsigned long long i)
 {
