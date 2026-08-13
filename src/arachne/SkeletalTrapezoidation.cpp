@@ -2289,6 +2289,15 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 
     if (replace_with_local_maxima)
     {
+        if (generated_toolpaths.empty())
+        {
+            generated_toolpaths.emplace_back();
+        }
+        else
+        {
+            generated_toolpaths[0].clear();
+        }
+
         for (const auto& local_maxima_point : local_maxima_points)
         {
             addCircleToToolpath(local_maxima_point.p_, local_maxima_point.width_, 0);
