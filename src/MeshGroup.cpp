@@ -513,7 +513,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
     bool load_success = false;
     bool has_uv = false;
 
-    const std::string base_filename = filename.stem();
+    const std::string base_filename = filename.stem().string();
     std::string extension = filename.extension().string();
     extension = extension.substr(1, extension.size()); // Remove the initial '.'
     ranges::transform(extension, extension.begin(), static_cast<int (*)(int)>(std::tolower)); // To lowercase
