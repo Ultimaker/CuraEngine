@@ -19,6 +19,8 @@
 namespace cura
 {
 
+class OBJ;
+
 // The various stages of the process can be weighted differently in the progress bar.
 // These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.
 constexpr auto TREE_PROGRESS_TOTAL = 10000;
@@ -309,6 +311,12 @@ private:
      * \param storage[in,out] The storage where the support should be stored.
      */
     void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
+
+    /*!
+     * Saves the influence areas and the resulting positions of all the given elements to a 3D object
+     * @para move_bounds The elements to be saved, sorted per layer
+     */
+    void saveToObj(const std::vector<std::set<TreeSupportElement*>>& move_bounds, OBJ& obj) const;
 
     /*!
      * \brief Settings with the indexes of meshes that use these settings.

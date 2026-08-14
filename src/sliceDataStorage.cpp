@@ -102,14 +102,15 @@ SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
     , base_subdiv_cube(nullptr)
     , cross_fill_provider(nullptr)
     , lightning_generator(nullptr)
+    , is_printed_(mesh->isPrinted())
+    , is_model_mesh_(mesh->isModelMesh())
 {
     layers.resize(slice_layer_count);
 }
 
-
 bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
 {
-    if (settings.get<bool>("anti_overhang_mesh") || settings.get<bool>("support_mesh"))
+    if (! is_printed_ || settings.get<bool>("support_mesh"))
     { // object is not printed as object, but as support.
         return false;
     }
@@ -150,6 +151,11 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     {
         return true;
     }
+    const size_t flooring_layer_count = std::min(settings.get<size_t>("flooring_layer_count"), settings.get<size_t>("bottom_layers"));
+    if (flooring_layer_count > 0 && settings.get<ExtruderTrain&>("flooring_extruder_nr").extruder_nr_ == extruder_nr)
+    {
+        return true;
+    }
     return false;
 }
 
@@ -159,7 +165,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
     {
         return false;
     }
-    if (settings.get<bool>("anti_overhang_mesh") || settings.get<bool>("support_mesh"))
+    if (! is_printed_ || settings.get<bool>("support_mesh"))
     { // object is not printed as object, but as support.
         return false;
     }
@@ -227,12 +233,30 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIn
             }
         }
     }
+    if (settings.get<ExtruderTrain&>("flooring_extruder_nr").extruder_nr_ == extruder_nr)
+    {
+        for (const SliceLayerPart& part : layer.parts)
+        {
+            for (const SkinPart& skin_part : part.skin_parts)
+            {
+                if (! skin_part.flooring_fill.empty())
+                {
+                    return true;
+                }
+            }
+        }
+    }
     return false;
 }
 
 bool SliceMeshStorage::isPrinted() const
 {
-    return ! settings.get<bool>("infill_mesh") && ! settings.get<bool>("cutting_mesh") && ! settings.get<bool>("anti_overhang_mesh");
+    return is_printed_;
+}
+
+bool SliceMeshStorage::isModelMesh() const
+{
+    return is_model_mesh_;
 }
 
 Point2LL SliceMeshStorage::getZSeamHint() const
@@ -281,7 +305,8 @@ Shape SliceDataStorage::getLayerOutlines(
     const bool include_prime_tower,
     const bool external_polys_only,
     const int extruder_nr,
-    const bool include_models) const
+    const bool include_models,
+    const bool include_support_base) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
@@ -345,8 +370,7 @@ Shape SliceDataStorage::getLayerOutlines(
         {
             for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
             {
-                if (mesh->settings.get<bool>("infill_mesh") || mesh->settings.get<bool>("anti_overhang_mesh")
-                    || (extruder_nr != -1 && extruder_nr != int(mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)))
+                if (! mesh->isModelMesh() || (extruder_nr != -1 && extruder_nr != int(mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)))
                 {
                     continue;
                 }
@@ -365,7 +389,14 @@ Shape SliceDataStorage::getLayerOutlines(
             {
                 for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
                 {
-                    total.push_back(support_infill_part.outline_);
+                    if (include_support_base)
+                    {
+                        total.push_back(support_infill_part.base_outside_contour_.value_or(support_infill_part.outline_));
+                    }
+                    else
+                    {
+                        total.push_back(support_infill_part.outline_);
+                    }
                 }
                 total.push_back(support_layer.support_bottom);
                 total.push_back(support_layer.support_roof);
@@ -404,7 +435,8 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
         ret[extruder_nr] = false;
     }
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
+    const Settings& mesh_group_settings = mesh_group->settings;
     const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
     if (adhesion_type == EPlatformAdhesion::SKIRT || adhesion_type == EPlatformAdhesion::BRIM)
     {
@@ -442,7 +474,7 @@ std::vector<bool> SliceDataStorage::getExtrudersUsed() const
     // support is presupposed to be present...
     for (const std::shared_ptr<SliceMeshStorage>& mesh : meshes)
     {
-        if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh"))
+        if (mesh->settings.get<bool>("support_enable") || mesh->settings.get<bool>("support_mesh") || mesh_group->has_painted_support)
         {
             ret[mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_] = true;
             ret[mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_] = true;
@@ -593,29 +625,7 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
 
-    Shape border;
-    border.emplace_back();
-    Polygon& outline = border.back();
-    switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
-    {
-    case BuildPlateShape::ELLIPTIC:
-    {
-        // Construct an ellipse to approximate the build volume.
-        const coord_t width = machine_size.max_.x_ - machine_size.min_.x_;
-        const coord_t depth = machine_size.max_.y_ - machine_size.min_.y_;
-        constexpr unsigned int circle_resolution = 50;
-        for (unsigned int i = 0; i < circle_resolution; i++)
-        {
-            const double angle = std::numbers::pi * 2 * i / circle_resolution;
-            outline.emplace_back(machine_size.getMiddle().x_ + std::cos(angle) * width / 2, machine_size.getMiddle().y_ + std::sin(angle) * depth / 2);
-        }
-        break;
-    }
-    case BuildPlateShape::RECTANGULAR:
-    default:
-        outline = machine_size.flatten().toPolygon();
-        break;
-    }
+    Shape border = getRawMachineBorder();
 
     Shape disallowed_areas = mesh_group_settings.get<Shape>("machine_disallowed_areas");
     disallowed_areas = disallowed_areas.unionPolygons(); // union overlapping disallowed areas
@@ -710,6 +720,37 @@ Shape SliceDataStorage::getMachineBorder(int checking_extruder_nr) const
     }
 
     border = border_all_extruders.difference(disallowed_all_extruders);
+    return border;
+}
+
+Shape SliceDataStorage::getRawMachineBorder() const
+{
+    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+
+    Shape border;
+    border.emplace_back();
+    Polygon& outline = border.back();
+    switch (mesh_group_settings.get<BuildPlateShape>("machine_shape"))
+    {
+    case BuildPlateShape::ELLIPTIC:
+    {
+        // Construct an ellipse to approximate the build volume.
+        const coord_t width = machine_size.max_.x_ - machine_size.min_.x_;
+        const coord_t depth = machine_size.max_.y_ - machine_size.min_.y_;
+        constexpr unsigned int circle_resolution = 50;
+        for (unsigned int i = 0; i < circle_resolution; i++)
+        {
+            const double angle = std::numbers::pi * 2 * i / circle_resolution;
+            outline.emplace_back(machine_size.getMiddle().x_ + std::cos(angle) * width / 2, machine_size.getMiddle().y_ + std::sin(angle) * depth / 2);
+        }
+        break;
+    }
+    case BuildPlateShape::RECTANGULAR:
+    default:
+        outline = machine_size.flatten().toPolygon();
+        break;
+    }
+
     return border;
 }
 

@@ -27,21 +27,10 @@ enum class EFillMethod
     CROSS_3D,
     GYROID,
     LIGHTNING,
+    HONEYCOMB,
+    OCTAGON,
     NONE, // NOTE: Should remain second last! Before PLUGIN (Might be used in testing to enumerate the enum.)
     PLUGIN, // Place plugin after none to prevent it from being tested in the gtest suite.
-};
-
-
-/*!
- * Enum for the value of extra_infill_lines_to_support_skins
- * This enum defines what extra lines should be added to infill to support
- * skins above.
- */
-enum class EExtraInfillLinesToSupportSkins
-{
-    WALLS_AND_LINES,
-    WALLS,
-    NONE,
 };
 
 /*!
@@ -93,7 +82,6 @@ enum class EZSeamType
 
 enum class EZSeamCornerPrefType
 {
-    Z_SEAM_CORNER_PREF_NONE,
     Z_SEAM_CORNER_PREF_INNER,
     Z_SEAM_CORNER_PREF_OUTER,
     Z_SEAM_CORNER_PREF_ANY,
@@ -225,6 +213,12 @@ enum class EGCodeFlavor
      *  M227 is used to initialize a single extrusion train.
      **/
     GRIFFIN = 6,
+    /**
+     * Cheetah flavored is Griffin based, but with the Cheetah planner.
+     *  This means it has a jerk-limited motion profile based on real jerk (instead of Marlin's jump).
+     *  The jerk value is set using M215 in m/s^3
+     **/
+    CHEETAH = 61,
 
     REPETIER = 7,
 
@@ -293,6 +287,27 @@ enum class CoolDuringExtruderSwitch
     UNCHANGED, // Let fans as they are during nozzle switch (historical behavior)
     ONLY_LAST_EXTRUDER, // Turn on fan of the previously used extruder to cool it down, turn others off
     ALL_FANS, // Turn on all fans
+};
+
+/*!
+ * How to select the starting position of the infill
+ */
+enum class InfillStartEndPreference
+{
+    START_CLOSEST, // Just start at the vertex that is the closest to current position
+    START_RANDOM, // Pick a random line to start at
+    END_CLOSE_TO_SEAM // End close to the next wall seam, and split an infill line to provide a proper position if required
+};
+
+/*!
+ * Whether to force a retracted or unretracted travel move when going to an outer wall
+ */
+enum class RetractBeforeOuterWall
+{
+    AUTOMATIC, // Let retraction be calculated automatically for the travel move
+    RETRACTED, // Force travel move to be retracted
+    NOT_RETRACTED, // Force travel move not to be retracted
+    NOT_RETRACTED_FROM_INFILL, // Force the first travel move coming from an infill area not to be retracted, others will be use automatic
 };
 
 /*!

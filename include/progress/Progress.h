@@ -16,7 +16,7 @@ namespace cura
 
 struct LayerIndex;
 
-static constexpr size_t N_PROGRESS_STAGES = 7;
+static constexpr size_t N_PROGRESS_STAGES = 8;
 
 /*!
  * Class for handling the progress bar and the progress logging.
@@ -33,17 +33,19 @@ public:
     enum class Stage : unsigned int
     {
         START = 0,
-        SLICING = 1,
-        PARTS = 2,
-        INSET_SKIN = 3,
-        SUPPORT = 4,
-        EXPORT = 5,
-        FINISH = 6
+        SPLIT_MULTIMATERIAL = 1,
+        SLICING = 2,
+        PARTS = 3,
+        INSET_SKIN = 4,
+        SUPPORT = 5,
+        EXPORT = 6,
+        FINISH = 7
     };
 
 private:
     static constexpr std::array<double, N_PROGRESS_STAGES> times{
         0.0, // START   = 0,
+        50.0, // SPLIT_MULTIMATERIAL = 1
         5.269, // SLICING = 1,
         1.533, // PARTS   = 2,
         71.811, // INSET_SKIN = 3

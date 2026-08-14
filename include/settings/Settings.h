@@ -44,7 +44,13 @@ public:
      * \param value The value of the setting. The value is always added and
      * stored in serialised form as a string.
      */
-    void add(const std::string& key, const std::string value);
+    void add(const std::string& key, const std::string& value);
+
+    /*!
+     * @brief Removes a setting, if existing
+     * @param key The name of the setting to be removed
+     */
+    void remove(const std::string& key);
 
     /*!
      * \brief Get the value of a setting.
@@ -84,17 +90,18 @@ public:
      * If this returns ``false``, that means that the setting would be obtained
      * via some inheritance.
      * \param key The setting to check.
+     * \param parent_lookup Indicates whether the setting should also be looked up in the parent settings, as the get() would
      * \return Whether that setting is contained in this particular Settings
      * instance (``true``) or would be obtained via inheritance (``false``).
      */
-    bool has(const std::string& key) const;
+    bool has(const std::string& key, const bool parent_lookup = false) const;
 
     /*
      * Change the parent settings object.
      *
      * If this set of settings has no value for a setting, the parent is asked.
      */
-    void setParent(Settings* new_parent);
+    void setParent(const Settings* new_parent);
 
     std::unordered_map<std::string, std::string> getFlattendSettings() const;
 
@@ -105,7 +112,7 @@ private:
      * Optionally, a parent setting container to ask for the value of a setting
      * if this container has no value for it.
      */
-    Settings* parent;
+    const Settings* parent;
 
     /*!
      * \brief A dictionary to map the setting keys to the actual setting values.

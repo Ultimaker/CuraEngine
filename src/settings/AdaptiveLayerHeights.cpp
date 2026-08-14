@@ -190,8 +190,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
     // loop over all mesh faces (triangles) and find their slopes
     for (const Mesh& mesh : Application::getInstance().current_slice_->scene.current_mesh_group->meshes)
     {
-        // Skip meshes that are not printable
-        if (mesh.settings_.get<bool>("infill_mesh") || mesh.settings_.get<bool>("cutting_mesh") || mesh.settings_.get<bool>("anti_overhang_mesh"))
+        // Skip meshes that are not regular models
+        if (! mesh.isModelMesh())
         {
             continue;
         }
@@ -202,9 +202,9 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
             const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
             const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
 
-            const Point3D p0 = v0.p_;
-            const Point3D p1 = v1.p_;
-            const Point3D p2 = v2.p_;
+            const Point3D p0(v0.p_);
+            const Point3D p1(v1.p_);
+            const Point3D p2(v2.p_);
 
             double min_z = p0.z_;
             min_z = std::min(min_z, p1.z_);

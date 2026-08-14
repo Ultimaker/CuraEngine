@@ -64,9 +64,9 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     const double support_overhang_angle = mesh.settings.get<AngleRadians>("support_angle");
     const coord_t max_overhang_speed = (support_overhang_angle < TAU / 4) ? (coord_t)(tan(support_overhang_angle) * config_.layer_height) : std::numeric_limits<coord_t>::max();
 
-    if (max_overhang_speed == 0)
+    if (max_overhang_speed < 2)
     {
-        max_overhang_insert_lag_ = std::numeric_limits<coord_t>::max();
+        max_overhang_insert_lag_ = std::numeric_limits<size_t>::max();
     }
     else
     {
@@ -385,7 +385,7 @@ std::shared_ptr<SierpinskiFillProvider> TreeSupportTipGenerator::generateCrossFi
     if (config_.support_pattern == EFillMethod::CROSS || config_.support_pattern == EFillMethod::CROSS_3D)
     {
         AABB3D aabb;
-        if (mesh.settings.get<bool>("infill_mesh") || mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (! mesh.isModelMesh())
         {
             spdlog::warn("Tree support tried to generate a CrossFillProvider for a non model mesh.");
             return nullptr;

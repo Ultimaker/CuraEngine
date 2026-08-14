@@ -26,7 +26,7 @@
 #include <range/v3/view/sliding.hpp>
 
 #include "geometry/MixedLinesSet.h"
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/PartsView.h"
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
@@ -64,26 +64,6 @@ void Shape::emplace_back(ClipperLib::Paths&& paths, bool explicitely_closed)
 void Shape::emplace_back(ClipperLib::Path&& path, bool explicitely_closed)
 {
     static_cast<LinesSet<Polygon>*>(this)->emplace_back(std::move(path), explicitely_closed);
-}
-
-Shape Shape::approxConvexHull(int extra_outset) const
-{
-    constexpr int overshoot = MM2INT(100); // 10cm (hard-coded value).
-
-    Shape convex_hull;
-    // Perform the offset for each polygon one at a time.
-    // This is necessary because the polygons may overlap, in which case the offset could end up in an infinite loop.
-    // See http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/_Body.htm
-    for (const Polygon& polygon : (*this))
-    {
-        ClipperLib::Paths offset_result;
-        ClipperLib::ClipperOffset offsetter(1.2, 10.0);
-        offsetter.AddPath(polygon.getPoints(), ClipperLib::jtRound, ClipperLib::etClosedPolygon);
-        offsetter.Execute(offset_result, overshoot);
-        convex_hull.emplace_back(std::move(offset_result));
-    }
-
-    return convex_hull.unionPolygons().offset(-overshoot + extra_outset, ClipperLib::jtRound);
 }
 
 void Shape::makeConvex()
@@ -130,7 +110,7 @@ void Shape::makeConvex()
         }
     };
 
-    std::sort(
+    std::stable_sort(
         points.begin(),
         points.end(),
         [](const Point2LL& a, const Point2LL& b)
@@ -175,7 +155,7 @@ Shape Shape::difference(const Polygon& other) const
     ClipperLib::Paths ret;
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
-    addPath(clipper, other, ClipperLib::ptClip);
+    other.addPath(clipper, ClipperLib::ptClip);
     clipper.Execute(ClipperLib::ctDifference, ret);
     return Shape(std::move(ret));
 }
@@ -205,7 +185,7 @@ Shape Shape::unionPolygons(const Polygon& polygon, ClipperLib::PolyFillType fill
     ClipperLib::Paths ret;
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
-    addPath(clipper, polygon, ClipperLib::ptSubject);
+    polygon.addPath(clipper, ClipperLib::ptSubject);
     clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
     return Shape{ std::move(ret) };
 }
@@ -267,7 +247,7 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
 {
     if (empty())
     {
-        return 0;
+        return NO_INDEX;
     }
 
     // NOTE: Keep these vectors fixed-size, they replace an (non-standard, sized at runtime) arrays.
@@ -326,18 +306,24 @@ size_t Shape::findInside(const Point2LL& p, bool border_result) const
 }
 
 template<class LineType>
-OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance) const
+OpenLinesSet Shape::intersection(const LinesSet<LineType>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const
 {
     if (empty() || polylines.empty())
     {
         return {};
     }
 
-    OpenLinesSet split_polylines = polylines.splitIntoSegments();
 
     ClipperLib::PolyTree result;
     ClipperLib::Clipper clipper(clipper_init);
-    split_polylines.addPaths(clipper, ClipperLib::ptSubject);
+    if (split_into_segments)
+    {
+        polylines.splitIntoSegments().addPaths(clipper, ClipperLib::ptSubject);
+    }
+    else
+    {
+        polylines.addPaths(clipper, ClipperLib::ptSubject);
+    }
     addPaths(clipper, ClipperLib::ptClip);
     clipper.Execute(ClipperLib::ctIntersection, result);
     ClipperLib::Paths result_paths;
@@ -890,9 +876,33 @@ void Shape::simplify(ClipperLib::PolyFillType fill_type)
     for (size_t i = 0; i < ret.size(); i++)
     {
         Polygon& polygon = getLines()[i];
-        polygon.setExplicitelyClosed(clipper_explicitely_closed_); // Required for polygon newly created by resize()
+        polygon.setExplicitlyClosed(clipper_explicitely_closed_); // Required for polygon newly created by resize()
         polygon.setPoints(std::move(ret[i]));
     }
+}
+
+std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const Point2LL& end) const
+{
+    std::vector<float> result;
+
+    for (const Polygon& polygon : getLines())
+    {
+        for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
+        {
+            float t, u;
+            if (LinearAlg2D::segmentSegmentIntersection(start, end, (*iterator).start, (*iterator).end, t, u))
+            {
+                result.push_back(t);
+            }
+        }
+    }
+
+    return result;
+}
+
+Shape Shape::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const
+{
+    return offset(outer_offset).difference(offset(-inner_offset));
 }
 
 void Shape::ensureManifold()
@@ -922,22 +932,6 @@ void Shape::ensureManifold()
     if (! removal_dots.empty())
     {
         *this = difference(removal_dots);
-    }
-}
-
-void Shape::applyMatrix(const PointMatrix& matrix)
-{
-    for (Polygon& polygon : *this)
-    {
-        polygon.applyMatrix(matrix);
-    }
-}
-
-void Shape::applyMatrix(const Point3Matrix& matrix)
-{
-    for (Polygon& polygon : *this)
-    {
-        polygon.applyMatrix(matrix);
     }
 }
 
@@ -994,8 +988,8 @@ void Shape::applyMatrix(const Point3Matrix& matrix)
 }
 #endif
 
-template OpenLinesSet Shape::intersection(const OpenLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
-template OpenLinesSet Shape::intersection(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance) const;
-template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance) const;
+template OpenLinesSet Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 
 } // namespace cura

@@ -5,11 +5,11 @@
 #define PLUGINS_PLUGINPROXY_H
 
 #include <chrono>
+#include <sstream>
 
 #include <agrpc/asio_grpc.hpp>
 #include <agrpc/client_rpc.hpp>
 #include <agrpc/grpc_context.hpp>
-#include <agrpc/use_awaitable.hpp>
 #include <boost/asio/awaitable.hpp>
 #include <boost/asio/co_spawn.hpp>
 #include <boost/asio/detached.hpp>
@@ -275,7 +275,9 @@ private:
 
         // Metadata
         client_context.AddMetadata("cura-engine-uuid", slot_info.engine_uuid.data());
-        client_context.AddMetadata("cura-thread-id", fmt::format("{}", std::this_thread::get_id()));
+        std::stringstream strstrm;
+        strstrm << std::this_thread::get_id();
+        client_context.AddMetadata("cura-thread-id", strstrm.str());
     }
 
     /**

@@ -3,7 +3,7 @@
 
 #include "infill/LightningTreeNode.h"
 
-#include "geometry/OpenPolyline.h"
+#include "geometry/OpenLinesSet.h"
 #include "utils/linearAlg2D.h"
 
 using namespace cura;

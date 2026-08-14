@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "geometry/LinesSet.h"
-#include "geometry/OpenLinesSet.h"
 #include "infill/LightningTreeNode.h"
 #include "utils/SquareGrid.h"
 #include "utils/polygonUtils.h"

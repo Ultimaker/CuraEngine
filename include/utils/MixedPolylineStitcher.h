@@ -5,14 +5,14 @@
 #define UTILS_MIXED_POLYLINE_STITCHER_H
 
 #include "PolylineStitcher.h"
-#include "geometry/ClosedLinesSet.h"
-#include "geometry/LinesSet.h"
-#include "geometry/OpenLinesSet.h"
 
 namespace cura
 {
 
 class MixedLinesSet;
+class OpenPolyline;
+class OpenLinesSet;
+class ClosedLinesSet;
 
 class MixedPolylineStitcher : public PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>
 {

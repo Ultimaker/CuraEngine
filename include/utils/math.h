@@ -21,7 +21,7 @@ namespace cura
  * @return T The square of the input value.
  */
 template<utils::multipliable T>
-[[nodiscard]] T square(const T& a)
+[[nodiscard]] constexpr T square(const T& a)
 {
     return a * a;
 }
@@ -106,6 +106,58 @@ template<utils::multipliable T>
 [[nodiscard]] inline uint64_t round_up_divide(const uint64_t dividend, const uint64_t divisor)
 {
     return (dividend + divisor - 1) / divisor;
+}
+
+/*!
+ * \brief Calculates the "inverse linear interpolation" of a value over a range, i.e. given a range [min, max] the
+ *        value "min" would give a result of 0.0 and the value "max" would give a result of 1.0, values in between will
+ *        be interpolated linearly.
+ * \note The returned value may be out of the [0.0, 1.0] range if the given value is outside the [min, max] range, it is
+ *       up to the caller to clamp the result if required
+ * \note The range_min value may be greater than the range_max, inverting the interpolation logic
+ */
+template<utils::numeric T>
+[[nodiscard]] inline double inverse_lerp(T range_min, T range_max, T value)
+{
+    if (range_min == range_max)
+    {
+        return 0.0;
+    }
+
+    return static_cast<double>(value - range_min) / (range_max - range_min);
+}
+
+/*!
+ * \brief Get a random floating point number in the range [0.0, 1.0]
+ */
+template<utils::floating_point T>
+[[nodiscard]] inline T randf()
+{
+    return static_cast<T>(std::rand()) / static_cast<T>(RAND_MAX);
+}
+
+/*! \brief Check if a value is very close to 0 */
+template<utils::floating_point T>
+[[nodiscard]] bool is_zero(T value, T epsilon = std::numeric_limits<T>::epsilon() * 100.0)
+{
+    return std::abs(value) < epsilon;
+}
+
+/*! \brief Check if two values are very close to each other */
+template<utils::floating_point T>
+[[nodiscard]] bool fuzzy_equal(T value1, T value2, T epsilon = std::numeric_limits<T>::epsilon() * 100.0)
+{
+    return std::abs(value1 - value2) <= epsilon;
+}
+
+/*!
+ * Calculates the sign of a numeric value, 1 if positive and -1 if negative
+ * @note 0 is also considered as positive
+ */
+template<utils::numeric T>
+[[nodiscard]] int8_t sign(T value)
+{
+    return std::signbit(value) ? -1 : 1;
 }
 
 } // namespace cura

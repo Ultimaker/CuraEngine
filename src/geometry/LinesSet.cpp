@@ -3,6 +3,7 @@
 
 #include "geometry/LinesSet.h"
 
+#include <cassert>
 #include <numeric>
 
 #include "geometry/ClosedLinesSet.h"
@@ -52,11 +53,7 @@ template<class LineType>
 template<class OtherLineType>
 void LinesSet<LineType>::push_back(LinesSet<OtherLineType>&& lines_set)
 {
-    reserve(size() + lines_set.size());
-    for (OtherLineType& line : lines_set)
-    {
-        emplace_back(std::move(line));
-    }
+    lines_.insert(lines_.end(), std::make_move_iterator(lines_set.begin()), std::make_move_iterator(lines_set.end()));
 }
 
 template<class LineType>
@@ -70,12 +67,6 @@ size_t LinesSet<LineType>::pointCount() const
         {
             return total + line.size();
         });
-}
-
-template<>
-void OpenLinesSet::addSegment(const Point2LL& from, const Point2LL& to)
-{
-    lines_.emplace_back(std::initializer_list<Point2LL>{ from, to });
 }
 
 template<class LineType>
@@ -130,12 +121,6 @@ coord_t LinesSet<LineType>::length() const
 }
 
 template<class LineType>
-Shape LinesSet<LineType>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const
-{
-    return offset(outer_offset).difference(offset(-inner_offset));
-}
-
-template<class LineType>
 void LinesSet<LineType>::translate(const Point2LL& delta)
 {
     if (delta.X != 0 || delta.Y != 0)
@@ -144,6 +129,24 @@ void LinesSet<LineType>::translate(const Point2LL& delta)
         {
             line.translate(delta);
         }
+    }
+}
+
+template<class LineType>
+void LinesSet<LineType>::applyMatrix(const PointMatrix& matrix)
+{
+    for (LineType& line : *this)
+    {
+        line.applyMatrix(matrix);
+    }
+}
+
+template<class LineType>
+void LinesSet<LineType>::applyMatrix(const Point3Matrix& matrix)
+{
+    for (LineType& line : *this)
+    {
+        line.applyMatrix(matrix);
     }
 }
 
@@ -159,7 +162,7 @@ Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType jo
         Shape result;
         for (const ClosedPolyline& line : getLines())
         {
-            result.emplace_back(line.getPoints(), line.isExplicitelyClosed());
+            result.emplace_back(line.getPoints(), line.isExplicitlyClosed());
         }
         return result;
     }
@@ -191,7 +194,7 @@ Shape LinesSet<Polygon>::offset(coord_t distance, ClipperLib::JoinType join_type
 }
 
 template<>
-Shape OpenLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
+Shape LinesSet<OpenPolyline>::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (empty() || distance == 0)
     {
@@ -277,27 +280,11 @@ void LinesSet<LineType>::removeDegenerateVerts()
 }
 
 template<class LineType>
-template<class OtherLineLine>
-void LinesSet<LineType>::addPath(ClipperLib::Clipper& clipper, const OtherLineLine& line, ClipperLib::PolyType poly_typ) const
-{
-    // In this context, the "Closed" argument means "Is a surface" so it should be only
-    // true for actual filled polygons. Closed polylines are to be treated as lines here.
-    if constexpr (std::is_same<OtherLineLine, Polygon>::value)
-    {
-        clipper.AddPath(line.getPoints(), poly_typ, true);
-    }
-    else
-    {
-        clipper.AddPath(line.getPoints(), poly_typ, false);
-    }
-}
-
-template<class LineType>
 void LinesSet<LineType>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const
 {
     for (const LineType& line : getLines())
     {
-        addPath(clipper, line, poly_typ);
+        line.addPath(clipper, poly_typ);
     }
 }
 
@@ -310,48 +297,49 @@ void LinesSet<LineType>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib
     }
 }
 
-template size_t OpenLinesSet::pointCount() const;
-template void OpenLinesSet::removeAt(size_t index);
-template void OpenLinesSet::splitIntoSegments(OpenLinesSet& result) const;
-template OpenLinesSet OpenLinesSet::splitIntoSegments() const;
-template coord_t OpenLinesSet::length() const;
-template Shape OpenLinesSet::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
-template void OpenLinesSet::translate(const Point2LL& delta);
-template void OpenLinesSet::removeDegenerateVerts();
-template void OpenLinesSet::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
-template void OpenLinesSet::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void OpenLinesSet::push_back(const OpenPolyline& line, CheckNonEmptyParam checkNonEmpty);
-template void OpenLinesSet::push_back(OpenPolyline&& line, CheckNonEmptyParam checkNonEmpty);
-template void OpenLinesSet::push_back(OpenLinesSet&& lines_set);
+template size_t LinesSet<OpenPolyline>::pointCount() const;
+template void LinesSet<OpenPolyline>::removeAt(size_t index);
+template void LinesSet<OpenPolyline>::splitIntoSegments(OpenLinesSet& result) const;
+template OpenLinesSet LinesSet<OpenPolyline>::splitIntoSegments() const;
+template coord_t LinesSet<OpenPolyline>::length() const;
+template void LinesSet<OpenPolyline>::translate(const Point2LL& delta);
+template void LinesSet<OpenPolyline>::applyMatrix(const PointMatrix& matrix);
+template void LinesSet<OpenPolyline>::applyMatrix(const Point3Matrix& matrix);
+template void LinesSet<OpenPolyline>::removeDegenerateVerts();
+template void LinesSet<OpenPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+template void LinesSet<OpenPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
+template void LinesSet<OpenPolyline>::push_back(const OpenPolyline& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<OpenPolyline>::push_back(OpenPolyline&& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<OpenPolyline>::push_back(LinesSet<OpenPolyline>&& lines_set);
 
-template size_t ClosedLinesSet::pointCount() const;
-template void ClosedLinesSet::removeAt(size_t index);
-template void ClosedLinesSet::splitIntoSegments(OpenLinesSet& result) const;
-template OpenLinesSet ClosedLinesSet::splitIntoSegments() const;
-template coord_t ClosedLinesSet::length() const;
-template Shape ClosedLinesSet::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
-template void ClosedLinesSet::translate(const Point2LL& delta);
-template void ClosedLinesSet::removeDegenerateVerts();
-template void ClosedLinesSet::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
-template void ClosedLinesSet::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
-template void ClosedLinesSet::push_back(const ClosedPolyline& line, CheckNonEmptyParam checkNonEmpty);
-template void ClosedLinesSet::push_back(ClosedPolyline&& line, CheckNonEmptyParam checkNonEmpty);
-template void ClosedLinesSet::push_back(ClosedLinesSet&& lines_set);
-template void ClosedLinesSet::push_back(LinesSet<Polygon>&& lines_set);
+template size_t LinesSet<ClosedPolyline>::pointCount() const;
+template void LinesSet<ClosedPolyline>::removeAt(size_t index);
+template void LinesSet<ClosedPolyline>::splitIntoSegments(OpenLinesSet& result) const;
+template OpenLinesSet LinesSet<ClosedPolyline>::splitIntoSegments() const;
+template coord_t LinesSet<ClosedPolyline>::length() const;
+template void LinesSet<ClosedPolyline>::translate(const Point2LL& delta);
+template void LinesSet<ClosedPolyline>::applyMatrix(const PointMatrix& matrix);
+template void LinesSet<ClosedPolyline>::applyMatrix(const Point3Matrix& matrix);
+template void LinesSet<ClosedPolyline>::removeDegenerateVerts();
+template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
+template void LinesSet<ClosedPolyline>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
+template void LinesSet<ClosedPolyline>::push_back(const ClosedPolyline& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<ClosedPolyline>::push_back(ClosedPolyline&& line, CheckNonEmptyParam checkNonEmpty);
+template void LinesSet<ClosedPolyline>::push_back(LinesSet<Polygon>&& lines_set);
 
 template size_t LinesSet<Polygon>::pointCount() const;
 template void LinesSet<Polygon>::removeAt(size_t index);
 template void LinesSet<Polygon>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<Polygon>::splitIntoSegments() const;
 template coord_t LinesSet<Polygon>::length() const;
-template Shape LinesSet<Polygon>::createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
 template void LinesSet<Polygon>::translate(const Point2LL& delta);
+template void LinesSet<Polygon>::applyMatrix(const PointMatrix& matrix);
+template void LinesSet<Polygon>::applyMatrix(const Point3Matrix& matrix);
 template void LinesSet<Polygon>::removeDegenerateVerts();
 template void LinesSet<Polygon>::addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType PolyTyp) const;
 template void LinesSet<Polygon>::addPaths(ClipperLib::ClipperOffset& clipper, ClipperLib::JoinType jointType, ClipperLib::EndType endType) const;
 template void LinesSet<Polygon>::push_back(const Polygon& line, CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<Polygon>::push_back(Polygon&& line, CheckNonEmptyParam checkNonEmpty);
 template void LinesSet<Polygon>::push_back(LinesSet<Polygon>&& lines_set);
-template void LinesSet<Polygon>::addPath(ClipperLib::Clipper& clipper, const Polygon& line, ClipperLib::PolyType poly_typ) const;
 
 } // namespace cura

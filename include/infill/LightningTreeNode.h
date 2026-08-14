@@ -10,7 +10,6 @@
 #include <vector>
 
 #include "geometry/LinesSet.h"
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 #include "utils/polygonUtils.h"

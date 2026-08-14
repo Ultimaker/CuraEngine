@@ -11,10 +11,9 @@
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
-#include "geometry/LinesSet.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
-#include "geometry/OpenPolyline.h"
 #include "geometry/Point2LL.h"
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
@@ -32,6 +31,7 @@ class Mesh;
 class SierpinskiFillProvider;
 class LightningGenerator;
 class PrimeTower;
+class TextureDataProvider;
 
 /*!
  * A SkinPart is a connected area designated as top and/or bottom skin.
@@ -45,8 +45,7 @@ public:
                          //!< roofing and non-roofing.
     Shape skin_fill; //!< The part of the skin which is not roofing.
     Shape roofing_fill; //!< The inner infill which has air directly above
-    Shape top_most_surface_fill; //!< The inner infill of the uppermost top layer which has air directly above.
-    Shape bottom_most_surface_fill; //!< The inner infill of the bottommost bottom layer which has air directly below.
+    Shape flooring_fill; //!< The inner infill which has air directly below
 };
 
 /*!
@@ -69,6 +68,8 @@ public:
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
     std::vector<VariableWidthLines> wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets. Binned by inset_idx.
     std::vector<VariableWidthLines> infill_wall_toolpaths; //!< toolpaths for the walls of the infill areas. Binned by inset_idx.
+    Shape top_most_surface; //!< Sub-part of the outline containing the area that is not covered by something above
+    Shape bottom_most_surface; //!< Sub-part of the outline containing the area that has nothing below
 
     /*!
      * The areas inside of the mesh.
@@ -167,6 +168,7 @@ public:
     coord_t thickness; //!< The thickness of this layer. Can be different when using variable layer heights.
     std::vector<SliceLayerPart> parts; //!< An array of LayerParts which contain the actual data. The parts are printed one at a time to minimize travel outside of the 3D model.
     OpenLinesSet open_polylines; //!< A list of lines which were never hooked up into a 2D polygon. (Currently unused in normal operation)
+    std::shared_ptr<TextureDataProvider> texture_data_provider_; //!< Accessor to pre-sliced texture data
 
     /*!
      * \brief The parts of the model that are exposed at the very top of the
@@ -218,6 +220,8 @@ public:
     Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Shape anti_overhang; //!< Areas where no overhang should be detected.
+    Shape force_overhang; //!< Areas where overhang should be forced.
+    MixedLinesSet base; //!< Extra lines to be printed around for sturdiness.
 
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
@@ -290,6 +294,7 @@ public:
 
     std::vector<SupportLayer> supportLayers;
     std::shared_ptr<SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+    std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     SupportStorage();
     ~SupportStorage();
@@ -309,6 +314,7 @@ public:
 
     std::vector<AngleDegrees> infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
     std::vector<AngleDegrees> roofing_angles; //!< a list of angle values which is cycled through to determine the roofing angle of each layer
+    std::vector<AngleDegrees> flooring_angles; //!< a list of angle values which is cycled through to determine the flooring angle of each layer
     std::vector<AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
     std::vector<Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
     std::vector<Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the
@@ -323,6 +329,9 @@ public:
     std::shared_ptr<LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     RetractionAndWipeConfig retraction_wipe_config; //!< Per-Object retraction and wipe settings.
+
+    const bool is_printed_; //!< Whether this is an actual printed mesh
+    const bool is_model_mesh_; //!< Whether this is a regular model mesh
 
     /*!
      * \brief Creates a storage space for slice results of a mesh.
@@ -347,11 +356,13 @@ public:
     bool getExtruderIsUsed(const size_t extruder_nr, const LayerIndex& layer_nr) const;
 
     /*!
-     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
-     * etc.)
-     * \return True if it's a mesh that gets printed.
+     * Gets whether this is a printable mesh (not a modifier mesh). This includes infill meshes, because they do get printed. Cutting meshes are not considered as printable though,
+     * because they are early converted into regular meshes and should not be considered in subsequent algorithms.
      */
     bool isPrinted() const;
+
+    /*! Gets whether this is a regular model mesh (not a modifier or infill mesh) */
+    bool isModelMesh() const;
 
     /*!
      * \return the mesh's user specified z seam hint
@@ -373,7 +384,7 @@ public:
     SupportStorage support;
 
     std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    ClosedLinesSet support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
+    MixedLinesSet support_brim; //!< brim lines for support, inside and outside. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
     Shape raft_base_outline;
@@ -411,6 +422,7 @@ public:
      * \param include_models Whether to include the models in the outline
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
+     * \param include_support_base (optional) include the support base (requires include_support). If false, only the raw support outline is returned.
      */
     Shape getLayerOutlines(
         const LayerIndex layer_nr,
@@ -418,7 +430,8 @@ public:
         const bool include_prime_tower,
         const bool external_polys_only = false,
         const int extruder_nr = -1,
-        const bool include_models = true) const;
+        const bool include_models = true,
+        const bool include_support_base = true) const;
 
     /*!
      * Get the axis-aligned bounding-box of the complete model (all meshes).
@@ -456,6 +469,11 @@ public:
      * \return the Shape representing the usable area of the print bed.
      */
     Shape getMachineBorder(int extruder_nr = -1) const;
+
+    /*!
+     * @return The raw outer build plate shape without any disallowed area
+     */
+    Shape getRawMachineBorder() const;
 
     void initializePrimeTower();
 

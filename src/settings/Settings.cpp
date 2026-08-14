@@ -41,7 +41,7 @@ Settings::Settings()
     parent = nullptr; // Needs to be properly initialised because we check against this if the parent is not set.
 }
 
-void Settings::add(const std::string& key, const std::string value)
+void Settings::add(const std::string& key, const std::string& value)
 {
     if (settings.find(key) != settings.end()) // Already exists.
     {
@@ -50,6 +50,15 @@ void Settings::add(const std::string& key, const std::string value)
     else // New setting.
     {
         settings.emplace(key, value);
+    }
+}
+
+void Settings::remove(const std::string& key)
+{
+    const auto iterator = settings.find(key);
+    if (iterator != settings.end())
+    {
+        settings.erase(iterator);
     }
 }
 
@@ -183,7 +192,7 @@ Acceleration Settings::get<Acceleration>(const std::string& key) const
 template<>
 Ratio Settings::get<Ratio>(const std::string& key) const
 {
-    return get<double>(key) / 100.0; // The settings are all in percentages, but we need to interpret them as radians.
+    return get<double>(key) / 100.0; // The settings are all in percentages, but we need to interpret them as ratios.
 }
 
 template<>
@@ -371,6 +380,8 @@ EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
         return EGCodeFlavor::MARLIN;
     case "Griffin"_sw:
         return EGCodeFlavor::GRIFFIN;
+    case "Cheetah"_sw:
+        return EGCodeFlavor::CHEETAH;
     case "UltiGCode"_sw:
         return EGCodeFlavor::ULTIGCODE;
     case "Makerbot"_sw:
@@ -429,6 +440,10 @@ EFillMethod Settings::get<EFillMethod>(const std::string& key) const
         return EFillMethod::GYROID;
     case "lightning"_sw:
         return EFillMethod::LIGHTNING;
+    case "honeycomb"_sw:
+        return EFillMethod::HONEYCOMB;
+    case "octagon"_sw:
+        return EFillMethod::OCTAGON;
     case "plugin"_sw:
         return EFillMethod::PLUGIN;
     default:
@@ -455,24 +470,6 @@ EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
         return EPlatformAdhesion::PLUGIN;
     default:
         return EPlatformAdhesion::SKIRT;
-    }
-}
-
-template<>
-EExtraInfillLinesToSupportSkins Settings::get<EExtraInfillLinesToSupportSkins>(const std::string& key) const
-{
-    const std::string& value = get<std::string>(key);
-    using namespace cura::utils;
-    switch (hash_enum(value))
-    {
-    case "walls_and_lines"_sw:
-        return EExtraInfillLinesToSupportSkins::WALLS_AND_LINES;
-    case "walls"_sw:
-        return EExtraInfillLinesToSupportSkins::WALLS;
-    case "none"_sw:
-        return EExtraInfillLinesToSupportSkins::NONE;
-    default:
-        return EExtraInfillLinesToSupportSkins::WALLS_AND_LINES;
     }
 }
 
@@ -544,10 +541,6 @@ EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key)
     using namespace cura::utils;
     switch (hash_enum(value))
     {
-    case "z_seam_corner_none"_sw:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
-    case "z_seam_corner_inner"_sw:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
     case "z_seam_corner_outer"_sw:
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER;
     case "z_seam_corner_any"_sw:
@@ -556,8 +549,9 @@ EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key)
         return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED;
     case "plugin"_sw:
         return EZSeamCornerPrefType::PLUGIN;
+    case "z_seam_corner_inner"_sw:
     default:
-        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_NONE;
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
     }
 }
 
@@ -746,6 +740,46 @@ CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::stri
 }
 
 template<>
+InfillStartEndPreference Settings::get<InfillStartEndPreference>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "end_close_to_seam")
+    {
+        return InfillStartEndPreference::END_CLOSE_TO_SEAM;
+    }
+    else if (value == "start_random")
+    {
+        return InfillStartEndPreference::START_RANDOM;
+    }
+    else // Default.
+    {
+        return InfillStartEndPreference::START_CLOSEST;
+    }
+}
+
+template<>
+RetractBeforeOuterWall Settings::get<RetractBeforeOuterWall>(const std::string& key) const
+{
+    const std::string& value = get<std::string>(key);
+    if (value == "force_retracted")
+    {
+        return RetractBeforeOuterWall::RETRACTED;
+    }
+    else if (value == "force_not_retracted")
+    {
+        return RetractBeforeOuterWall::NOT_RETRACTED;
+    }
+    else if (value == "force_not_retracted_from_infill")
+    {
+        return RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL;
+    }
+    else // Default.
+    {
+        return RetractBeforeOuterWall::AUTOMATIC;
+    }
+}
+
+template<>
 std::vector<double> Settings::get<std::vector<double>>(const std::string& key) const
 {
     const std::string& value_string = get<std::string>(key);
@@ -788,6 +822,22 @@ std::vector<double> Settings::get<std::vector<double>>(const std::string& key) c
 }
 
 template<>
+std::vector<Ratio> Settings::get<std::vector<Ratio>>(const std::string& key) const
+{
+    auto values_double = get<std::vector<double>>(key);
+
+    // The settings are all in percentages, but we need to interpret them as ratios.
+    std::vector<Ratio> result;
+    result.reserve(values_double.size());
+    for (const auto& value_double : values_double)
+    {
+        result.emplace_back(value_double / 100.0);
+    }
+
+    return result;
+}
+
+template<>
 std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
 {
     std::vector<double> values_doubles = get<std::vector<double>>(key);
@@ -819,12 +869,29 @@ const std::string Settings::getAllSettingsString() const
     return sstream.str();
 }
 
-bool Settings::has(const std::string& key) const
+bool Settings::has(const std::string& key, const bool parent_lookup) const
 {
-    return settings.find(key) != settings.end();
+    const bool has_key = settings.contains(key);
+    if (has_key || ! parent_lookup)
+    {
+        return has_key;
+    }
+
+    const std::unordered_map<std::string, ExtruderTrain*>& limit_to_extruder = Application::getInstance().current_slice_->scene.limit_to_extruder;
+    if (limit_to_extruder.find(key) != limit_to_extruder.end())
+    {
+        return limit_to_extruder.at(key)->settings_.has(key, parent_lookup);
+    }
+
+    if (parent)
+    {
+        return parent->has(key, parent_lookup);
+    }
+
+    return false;
 }
 
-void Settings::setParent(Settings* new_parent)
+void Settings::setParent(const Settings* new_parent)
 {
     parent = new_parent;
 }

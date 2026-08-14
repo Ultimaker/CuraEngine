@@ -13,11 +13,12 @@
 #include "PolygonsPointIndex.h"
 #include "SparseLineGrid.h"
 #include "SparsePointGridInclusive.h"
-#include "geometry/ClosedLinesSet.h"
 #include "geometry/Polygon.h"
 
 namespace cura
 {
+
+class ClosedLinesSet;
 
 /*!
  * Result of finding the closest point to a given within a set of polygons, with extra information on where the point is.
@@ -93,6 +94,13 @@ typedef SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator> Loc
 class PolygonUtils
 {
 public:
+    /*! Helper structure to return both the generated walls and the width of the final contour, when generating insets/outsets  */
+    struct InsetOutset
+    {
+        std::vector<Shape> walls;
+        coord_t final_contour_offset{ 0 };
+    };
+
     static const std::function<int(Point2LL)> no_penalty_function; //!< Function always returning zero
 
     /*!
@@ -338,7 +346,7 @@ public:
      * \param start_idx The index of the point in the polygon from which to start looking.
      * \return The nearest point from \p start_idx going along the \p polygon (in both directions) with a locally minimal distance to \p from.
      */
-    static ClosestPointPolygon findNearestClosest(Point2LL from, const Polygon& polygon, int start_idx);
+    static ClosestPointPolygon findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx);
 
     /*!
      * Find the nearest closest point on a polygon from a given index walking in one direction along the polygon.
@@ -349,7 +357,7 @@ public:
      * \param direction The direction to walk: 1 for walking along the \p polygon, -1 for walking in opposite direction
      * \return The nearest point from \p start_idx going along the \p polygon with a locally minimal distance to \p from.
      */
-    static ClosestPointPolygon findNearestClosest(const Point2LL from, const Polygon& polygon, int start_idx, int direction);
+    static ClosestPointPolygon findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx, int direction);
 
     /*!
      * Find the point closest to \p from in all polygons in \p polygons.
@@ -358,7 +366,7 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPointPolygon findClosest(Point2LL from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPointPolygon findClosest(const Point2LL& from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the point closest to \p from in the polygon \p polygon.
@@ -367,7 +375,7 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPointPolygon findClosest(Point2LL from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPointPolygon findClosest(const Point2LL& from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the nearest vertex to \p from in \p polys
@@ -375,7 +383,7 @@ public:
      * \param polys The polygons in which to search
      * \return The nearest vertex on the polygons
      */
-    static PolygonsPointIndex findNearestVert(const Point2LL from, const Shape& polys);
+    static PolygonsPointIndex findNearestVert(const Point2LL& from, const Shape& polys);
 
     /*!
      * Find the nearest vertex to \p from in \p poly
@@ -383,7 +391,7 @@ public:
      * \param poly The polygon in which to search
      * \return The index to the nearest vertex on the polygon
      */
-    static unsigned int findNearestVert(const Point2LL from, const Polygon& poly);
+    static unsigned int findNearestVert(const Point2LL& from, const Polygon& poly);
 
     /*!
      * Create a SparsePointGridInclusive mapping from locations to line segments occurring in the \p polygons
@@ -677,6 +685,32 @@ public:
     static Shape clipPolygonWithAABB(const Shape& src, const AABB& aabb);
 
     /*!
+     * Merges all parts of a destination area with a source area whenever the destination area is thin enough (w.r.t. a given maximum width).
+     * This is done in-place as much as possible (hence no return value)!
+     * \param max_dist The width below which an area is considered 'too thin'.
+     * \param[in, out] source The source area that is allowed to grow.
+     * \param[in, out] destination The destination area that the source is allowed to grow into.
+     * \param allow_thin_areas_grow Whether the thin areas of the source are allowed to grow.
+     */
+    static void mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow);
+
+    /*!
+     * Extract the thin parts of a shape
+     * @param shape The shape we want the thin parts extracted from
+     * @param max_width The maximum width of the parts to be kept
+     * @return The parts of the shape that are thinner than the given maximum.
+     */
+    static Shape getThinAreas(const Shape& shape, const coord_t max_width);
+
+    /*!
+     * Extract the wide parts of a shape
+     * @param shape The shape we want the wide parts extracted from
+     * @param min_width The minimum width of the parts to be kept
+     * @return The parts of the shape that are wider than the given minimum.
+     */
+    static Shape getWideAreas(const Shape& shape, const coord_t min_width);
+
+    /*!
      * Generate a few outset circles around a base, according to the given line width
      *
      * \param center The center of the outset
@@ -700,6 +734,16 @@ public:
      */
     static ClosedLinesSet generateCircularInset(const Point2LL& center, const coord_t outer_radius, const coord_t line_width, const size_t circle_definition);
 
+    /*!
+     * Generates a series of outsetting walls around a given shape
+     * @param shape The shape to be wrapped
+     * @param width The maximum width to be reached, actual result may be thinner but never larger. When a positive width is given, the result will be an outset, when a negative
+     * width is given, the result will be an inset.
+     * @param line_width The line width to be used to print each outset line
+     * @return The generated outset lines and the actual width of the outermost contour
+     */
+    static InsetOutset generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width);
+
 private:
     /*!
      * Helper function for PolygonUtils::moveInside2: moves a point \p from which was moved onto \p closest_polygon_point towards inside/outside when it's not already
@@ -712,6 +756,15 @@ private:
      * \return The point on the polygon closest to \p from
      */
     static ClosestPointPolygon _moveInside2(const ClosestPointPolygon& closest_polygon_point, const int distance, Point2LL& from, const int64_t max_dist2);
+
+    /*!
+     * Extract the wide parts of a shape
+     * @param shape The shape we want the wide parts extracted from
+     * @param min_width The minimum width of the parts to be kept
+     * @param extra_widen An extra widening value to be applied (since we end-up by an offset anyway)
+     * @return The parts of the shape that are wider than the given minimum. Note that the returned shape may go beyond the original one.
+     */
+    static Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen = EPSILON);
 };
 
 } // namespace cura

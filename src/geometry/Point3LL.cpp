@@ -6,9 +6,10 @@
 namespace cura
 {
 
-Point3LL::Point3LL(const Point2LL& point)
+Point3LL::Point3LL(const Point2LL& point, const coord_t z)
     : x_(point.X)
     , y_(point.Y)
+    , z_(z)
 {
 }
 

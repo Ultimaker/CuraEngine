@@ -82,7 +82,7 @@ MixedLinesSet Simplify::polyline(const MixedLinesSet& polylines) const
 
 ClosedPolyline Simplify::polyline(const ClosedPolyline& polyline) const
 {
-    return simplify(polyline, polyline.isExplicitelyClosed());
+    return simplify(polyline, polyline.isExplicitlyClosed());
 }
 
 OpenPolyline Simplify::polyline(const OpenPolyline& polyline) const
@@ -408,7 +408,7 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
     return false;
 }
 
-template OpenLinesSet Simplify::polyline(const OpenLinesSet& polylines) const;
-template ClosedLinesSet Simplify::polyline(const ClosedLinesSet& polylines) const;
+template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
+template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
 
 } // namespace cura

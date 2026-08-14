@@ -328,14 +328,20 @@ infill_generate_response::native_value_type infill_generate_response::operator()
         return v0::PrintFeature::INFILL;
     case PrintFeatureType::SupportInfill:
         return v0::PrintFeature::SUPPORTINFILL;
-    case PrintFeatureType::MoveCombing:
-        return v0::PrintFeature::MOVECOMBING;
-    case PrintFeatureType::MoveRetraction:
-        return v0::PrintFeature::MOVERETRACTION;
+    case PrintFeatureType::MoveUnretracted:
+        return v0::PrintFeature::MOVEUNRETRACTED;
+    case PrintFeatureType::MoveRetracted:
+        return v0::PrintFeature::MOVERETRACTED;
     case PrintFeatureType::SupportInterface:
         return v0::PrintFeature::SUPPORTINTERFACE;
     case PrintFeatureType::PrimeTower:
         return v0::PrintFeature::PRIMETOWER;
+    case PrintFeatureType::MoveWhileRetracting:
+        return v0::PrintFeature::MOVEWHILERETRACTING;
+    case PrintFeatureType::MoveWhileUnretracting:
+        return v0::PrintFeature::MOVEWHILEUNRETRACTING;
+    case PrintFeatureType::StationaryRetractUnretract:
+        return v0::PrintFeature::STATIONARYRETRACTUNRETRACT;
     case PrintFeatureType::NumPrintFeatureTypes:
         return v0::PrintFeature::NUMPRINTFEATURETYPES;
     default:
@@ -374,7 +380,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_unretract_before_last_travel_move(path.unretract_before_last_travel_move);
         gcode_path->set_perform_z_hop(path.perform_z_hop);
         gcode_path->set_perform_prime(path.perform_prime);
-        gcode_path->set_skip_agressive_merge_hint(path.skip_agressive_merge_hint);
+        gcode_path->set_skip_agressive_merge_hint(false); // FIXME: Not used anymore.
         gcode_path->set_done(path.done);
         gcode_path->set_fan_speed(path.getFanSpeed());
         gcode_path->set_mesh_name(path.mesh ? path.mesh->mesh_name : "");
@@ -387,6 +393,7 @@ gcode_paths_modify_request::value_type
         gcode_path->set_flow_ratio(path.config.getFlowRatio());
         gcode_path->set_is_bridge_path(path.config.isBridgePath());
         gcode_path->set_z_offset(path.config.z_offset);
+        gcode_path->set_temperature_delta(path.config.temperature_delta);
     }
 
     return message;
@@ -412,14 +419,20 @@ gcode_paths_modify_request::value_type
         return PrintFeatureType::Infill;
     case v0::PrintFeature::SUPPORTINFILL:
         return PrintFeatureType::SupportInfill;
-    case v0::PrintFeature::MOVECOMBING:
-        return PrintFeatureType::MoveCombing;
-    case v0::PrintFeature::MOVERETRACTION:
-        return PrintFeatureType::MoveRetraction;
+    case v0::PrintFeature::MOVEUNRETRACTED:
+        return PrintFeatureType::MoveUnretracted;
+    case v0::PrintFeature::MOVERETRACTED:
+        return PrintFeatureType::MoveRetracted;
     case v0::PrintFeature::SUPPORTINTERFACE:
         return PrintFeatureType::SupportInterface;
     case v0::PrintFeature::PRIMETOWER:
         return PrintFeatureType::PrimeTower;
+    case v0::PrintFeature::MOVEWHILERETRACTING:
+        return PrintFeatureType::MoveWhileRetracting;
+    case v0::PrintFeature::MOVEWHILEUNRETRACTING:
+        return PrintFeatureType::MoveWhileUnretracting;
+    case v0::PrintFeature::STATIONARYRETRACTUNRETRACT:
+        return PrintFeatureType::StationaryRetractUnretract;
     case v0::PrintFeature::NUMPRINTFEATURETYPES:
         return PrintFeatureType::NumPrintFeatureTypes;
     default:
@@ -446,15 +459,18 @@ gcode_paths_modify_request::value_type
 
 [[nodiscard]] GCodePathConfig gcode_paths_modify_response::buildConfig(const v0::GCodePath& path)
 {
-    return { .z_offset = path.z_offset(),
-             .type = getPrintFeatureType(path.feature()),
-             .line_width = path.line_width(),
-             .layer_thickness = path.layer_thickness(),
-             .flow = path.flow_ratio(),
-             .speed_derivatives
-             = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
-             .is_bridge_path = path.is_bridge_path(),
-             .fan_speed = path.fan_speed() };
+    return {
+        .z_offset = path.z_offset(),
+        .type = getPrintFeatureType(path.feature()),
+        .line_width = path.line_width(),
+        .layer_thickness = path.layer_thickness(),
+        .flow = path.flow_ratio(),
+        .speed_derivatives
+        = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
+        .is_bridge_path = path.is_bridge_path(),
+        .fan_speed = path.fan_speed(),
+        .temperature_delta = path.temperature_delta(),
+    };
 }
 
 gcode_paths_modify_response::native_value_type
@@ -492,7 +508,6 @@ gcode_paths_modify_response::native_value_type
             .unretract_before_last_travel_move = gcode_path_msg.unretract_before_last_travel_move(),
             .perform_z_hop = gcode_path_msg.perform_z_hop(),
             .perform_prime = gcode_path_msg.perform_prime(),
-            .skip_agressive_merge_hint = gcode_path_msg.skip_agressive_merge_hint(),
             .done = gcode_path_msg.done(),
             .fan_speed = gcode_path_msg.fan_speed(),
         };

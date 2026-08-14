@@ -3,12 +3,13 @@
 
 #include "utils/ListPolyIt.h"
 
+#include <cassert>
 #include <cmath> // isfinite
 #include <sstream> // ostream
 
 #include "geometry/Polygon.h"
-#include "utils/AABB.h" // for debug output svg html
-#include "utils/SVG.h"
+#include "geometry/Shape.h"
+
 
 namespace cura
 {

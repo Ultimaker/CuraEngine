@@ -4,7 +4,6 @@
 #ifndef GEOMETRY_POLYLINE_H
 #define GEOMETRY_POLYLINE_H
 
-#include "geometry/OpenLinesSet.h"
 #include "geometry/PointsSet.h"
 #include "geometry/SegmentIterator.h"
 
@@ -15,6 +14,7 @@ template<class LineType>
 class LinesSet;
 class AngleRadians;
 class OpenPolyline;
+class OpenLinesSet;
 
 /*!
  * \brief Base class for various types of polylines. A polyline is basically a set of points, but
@@ -87,6 +87,8 @@ public:
      */
     [[nodiscard]] virtual bool isValid() const = 0;
 
+    virtual void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const = 0;
+
     Polyline& operator=(const Polyline& other) = default;
 
     Polyline& operator=(Polyline&& other) = default;
@@ -96,6 +98,12 @@ public:
 
     /*! \brief Provides an end iterator to iterate over all the segments of the line */
     [[nodiscard]] const_segments_iterator endSegments() const;
+
+    /*! \brief Provides a begin iterator to iterate over all the segments of the line */
+    [[nodiscard]] const_segments_iterator cbeginSegments() const;
+
+    /*! \brief Provides an end iterator to iterate over all the segments of the line */
+    [[nodiscard]] const_segments_iterator cendSegments() const;
 
     /*! \brief Provides a begin iterator to iterate over all the segments of the line */
     segments_iterator beginSegments();
@@ -123,6 +131,23 @@ public:
     [[nodiscard]] coord_t length() const;
 
     [[nodiscard]] bool shorterThan(const coord_t check_length) const;
+
+    /*!
+     * Adds a point to this set, but only if it forms a proper new segment i.r.t the current points in the set
+     * @param point The point to be added
+     * @return True if the point has actually been added, false otherwise
+     * @note The point will also be added if the current list is empty
+     */
+    bool pushBackIfFormingSegment(const Point2LL& point)
+    {
+        if (getPoints().empty() || ! fuzzy_equal(point, getPoints().back()))
+        {
+            push_back(point);
+            return true;
+        }
+
+        return false;
+    }
 
     void reverse()
     {

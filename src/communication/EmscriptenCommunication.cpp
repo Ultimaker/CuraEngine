@@ -34,15 +34,13 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
     {
         slice_info_handler_ = *ranges::next(slice_info_flag);
     }
-    if (auto gcode_header_flag = ranges::find(arguments_, "--gcode_header_cb"); gcode_header_flag != arguments_.end())
+    if (auto engine_info_flag = ranges::find(arguments_, "--engine_info_cb"); engine_info_flag != arguments_.end())
     {
-        gcode_header_handler_ = *ranges::next(gcode_header_flag);
+        engine_info_handler_ = *ranges::next(engine_info_flag);
     }
-}
 
-void EmscriptenCommunication::sendGCodePrefix(const std::string& prefix) const
-{
-    emscripten_run_script(fmt::format("globalThis[\"{}\"](\"{}\")", gcode_header_handler_, convertTobase64(prefix)).c_str());
+    auto engine_info = createEngineInfoMessage();
+    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
 }
 
 void EmscriptenCommunication::sendProgress(double progress) const
@@ -50,7 +48,7 @@ void EmscriptenCommunication::sendProgress(double progress) const
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", progress_handler_, progress).c_str());
 }
 
-std::string EmscriptenCommunication::createSliceInfoMessage()
+std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information)
 {
     // Construct a string with rapidjson containing the slice information
     rapidjson::Document doc;
@@ -64,18 +62,21 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
 
     // Set the time estimates
     rapidjson::Value time_estimates_json(rapidjson::kObjectType);
-    auto time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
-    for (const auto& [feature, duration_idx] : std::vector<std::tuple<std::string, PrintFeatureType>>{ { "infill", PrintFeatureType::Infill },
-                                                                                                       { "skin", PrintFeatureType::Skin },
-                                                                                                       { "support", PrintFeatureType::Support },
-                                                                                                       { "inner_wall", PrintFeatureType::InnerWall },
-                                                                                                       { "move_combing", PrintFeatureType::MoveCombing },
-                                                                                                       { "move_retraction", PrintFeatureType::MoveRetraction },
-                                                                                                       { "outer_wall", PrintFeatureType::OuterWall },
-                                                                                                       { "prime_tower", PrintFeatureType::PrimeTower },
-                                                                                                       { "skirt_brim", PrintFeatureType::SkirtBrim },
-                                                                                                       { "support_infill", PrintFeatureType::SupportInfill },
-                                                                                                       { "support_interface", PrintFeatureType::SupportInterface } })
+    for (const auto& [feature, duration_idx] :
+         std::vector<std::tuple<std::string, PrintFeatureType>>{ { "infill", PrintFeatureType::Infill },
+                                                                 { "skin", PrintFeatureType::Skin },
+                                                                 { "support", PrintFeatureType::Support },
+                                                                 { "inner_wall", PrintFeatureType::InnerWall },
+                                                                 { "move_combing", PrintFeatureType::MoveUnretracted },
+                                                                 { "move_retraction", PrintFeatureType::MoveRetracted },
+                                                                 { "outer_wall", PrintFeatureType::OuterWall },
+                                                                 { "prime_tower", PrintFeatureType::PrimeTower },
+                                                                 { "skirt_brim", PrintFeatureType::SkirtBrim },
+                                                                 { "support_infill", PrintFeatureType::SupportInfill },
+                                                                 { "support_interface", PrintFeatureType::SupportInterface },
+                                                                 { "move_while_retracting", PrintFeatureType::MoveWhileRetracting },
+                                                                 { "move_while_unretracting", PrintFeatureType::MoveWhileUnretracting },
+                                                                 { "stationary_retract_unretract", PrintFeatureType::StationaryRetractUnretract } })
     {
         rapidjson::Value feature_time(feature.c_str(), allocator);
         rapidjson::Value feature_duration(time_estimates[static_cast<unsigned char>(duration_idx)]);
@@ -89,7 +90,8 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
 
     for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
     {
-        const double value = FffProcessor::getInstance()->getTotalFilamentUsed(static_cast<int>(extruder_nr));
+        const std::optional<ExtruderPrintInformation>& extruder_info = print_information.extruders_info[extruder_nr];
+        const double value = extruder_info.has_value() ? extruder_info->filament_length : 0.0;
         spdlog::info("Extruder {} used {} [mm] of filament", extruder_nr, value);
         rapidjson::Value extruder_id(fmt::format("{}", extruder_nr).c_str(), allocator);
         rapidjson::Value extruder_material_estimate(value);
@@ -109,10 +111,33 @@ std::string EmscriptenCommunication::createSliceInfoMessage()
     return buffer.GetString();
 }
 
-void EmscriptenCommunication::sliceNext()
+std::string EmscriptenCommunication::createEngineInfoMessage()
 {
-    CommandLine::sliceNext();
-    auto slice_info = createSliceInfoMessage();
+    // Construct a string with rapidjson containing the engine information
+    rapidjson::Document doc;
+    auto& allocator = doc.GetAllocator();
+    doc.SetObject();
+
+    // Set the slicer version
+    rapidjson::Value version("version", allocator);
+    rapidjson::Value version_value(CURA_ENGINE_VERSION, allocator);
+    doc.AddMember(version, version_value, allocator);
+
+    // Set the hash
+    rapidjson::Value hash("hash", allocator);
+    rapidjson::Value hash_value(CURA_ENGINE_HASH, allocator);
+    doc.AddMember(hash, hash_value, allocator);
+
+    // Serialize the JSON document to a string
+    rapidjson::StringBuffer buffer;
+    rapidjson::Writer<rapidjson::StringBuffer> writer(buffer);
+    doc.Accept(writer);
+    return buffer.GetString();
+}
+
+void EmscriptenCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
+{
+    auto slice_info = createSliceInfoMessage(time_estimates, print_information);
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", slice_info_handler_, slice_info).c_str());
 };
 

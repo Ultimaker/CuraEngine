@@ -1,0 +1,26 @@
+// Copyright (c) 2025 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#ifndef MESH_MATERIAL_SPLITTER_H
+#define MESH_MATERIAL_SPLITTER_H
+
+namespace cura
+{
+
+class Mesh;
+class MeshGroup;
+
+namespace MeshMaterialSplitter
+{
+
+/*!
+ * Generate modifier mesh based user-painted texture data, either for multi-material or support customization
+ * @param meshgroup The group to take the sliced meshes from and add the modifier meshes to
+ */
+void makePaintingModifierMeshes(MeshGroup* meshgroup);
+
+} // namespace MeshMaterialSplitter
+
+} // namespace cura
+
+#endif // MESH_MATERIAL_SPLITTER_H

@@ -4,6 +4,8 @@
 #ifndef UTILS_LINEAR_ALG_2D_H
 #define UTILS_LINEAR_ALG_2D_H
 
+#include <optional>
+
 #include "geometry/Point2LL.h"
 
 namespace cura
@@ -83,6 +85,24 @@ public:
     static bool lineLineIntersection(const Point2LL& p1, const Point2LL& p2, const Point2LL& p3, const Point2LL& p4, float& t, float& u);
 
     static bool lineLineIntersection(const Point2LL& a, const Point2LL& b, const Point2LL& c, const Point2LL& d, Point2LL& output);
+
+    /*!
+     * Computes the intersection between a line and a horizontal line
+     * @param p1 One point on the line
+     * @param p2 An other point on the line
+     * @param line_y The Y coordinates of the horizontal line to intersect with
+     * @return The x coordinate of the intersection, or nullopt if they don't intersect
+     */
+    static std::optional<coord_t> lineHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y);
+
+    /*!
+     * Computes the intersection between a segment and a horizontal line
+     * @param p1 The segment start point
+     * @param p2 The segment end point
+     * @param line_y The Y coordinates of the horizontal line to intersect with
+     * @return The x coordinate of the intersection, or nullopt if they don't intersect
+     */
+    static std::optional<coord_t> segmentHorizontalLineIntersection(const Point2LL& p1, const Point2LL& p2, const coord_t line_y);
 
     /*!
      * Find whether a point projected on a line segment would be projected to
@@ -413,6 +433,16 @@ public:
      * \param vec_len The lenght of the resultant vector. It's not wise to set this to 1, since we do tend to do integer math here.
      */
     static Point2LL getBisectorVector(const Point2LL& intersect, const Point2LL& a, const Point2LL& b, const coord_t vec_len);
+
+    /*!
+     * Gets the actual extra width to be applied when using a sloped base like for the prime tower of the supports
+     * @param base_width The maximum width of the base
+     * @param base_height The total height of the base
+     * @param slope_magnitude The magnitude of the base slope, which will determine the shape and thus the amount of material
+     * @param actual_height The height of the currently layer being processed
+     * @return The extra width to be applied around the element to make the base
+     */
+    static coord_t getSlopedWidth(const coord_t base_width, const coord_t base_height, const double slope_magnitude, const coord_t actual_height);
 };
 
 

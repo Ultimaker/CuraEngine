@@ -4,9 +4,14 @@
 #ifndef MESH_H
 #define MESH_H
 
+#include <algorithm>
+#include <optional>
+
+#include "TextureDataMapping.h"
 #include "settings/Settings.h"
 #include "utils/AABB3D.h"
 #include "utils/Matrix4x3D.h"
+#include "utils/Point2F.h"
 
 namespace cura
 {
@@ -54,8 +59,66 @@ class MeshFace
 public:
     int vertex_index_[3] = { -1 }; //!< counter-clockwise ordering
     int connected_face_index_[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
+    std::optional<Point2F> uv_coordinates_[3]; //!< UV coordinates for each vertex of the face
 };
 
+class Image
+{
+public:
+    explicit Image() = default;
+    explicit Image(const size_t width, const size_t height, const size_t bytes_per_pixel, std::vector<uint8_t>&& data)
+        : width_(width)
+        , height_(height)
+        , bytes_per_pixel_(bytes_per_pixel)
+        , bytes_per_row_(bytes_per_pixel * width)
+        , data_(std::move(data))
+    {
+    }
+
+    size_t getWidth() const
+    {
+        return width_;
+    }
+
+    size_t getHeight() const
+    {
+        return height_;
+    }
+
+    uint32_t getPixel(const std::pair<size_t, size_t>& pixel_coordinates) const
+    {
+        return getPixel(pixel_coordinates.first, pixel_coordinates.second);
+    }
+
+    uint32_t getPixel(const size_t x, const size_t y) const
+    {
+        uint32_t result = 0;
+        const size_t index = y * bytes_per_row_ + x * bytes_per_pixel_;
+        for (size_t i = 0; i < bytes_per_pixel_; ++i)
+        {
+            result |= (data_[index + i] << ((bytes_per_pixel_ - i - 1) * 8));
+        }
+        return result;
+    }
+
+    std::pair<size_t, size_t> getPixelCoordinates(const Point2F& uv_coordinates) const
+    {
+        return { std::clamp(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(0), width_ - 1),
+                 std::clamp(static_cast<size_t>(uv_coordinates.y_ * height_), static_cast<size_t>(0), height_ - 1) };
+    }
+
+    uint32_t getPixel(const Point2F& uv_coordinates) const
+    {
+        return getPixel(getPixelCoordinates(uv_coordinates));
+    }
+
+private:
+    std::vector<uint8_t> data_; // The raw pixels, data
+    size_t width_{ 0 }; // The image width
+    size_t height_{ 0 }; // The image height
+    size_t bytes_per_pixel_{ 0 }; // The number of bytes for each pixel
+    size_t bytes_per_row_{ 0 };
+};
 
 /*!
 A Mesh is the most basic representation of a 3D model. It contains all the faces as MeshFaces.
@@ -73,11 +136,29 @@ public:
     std::vector<MeshFace> faces_; //!< list of all faces in the mesh
     Settings settings_;
     std::string mesh_name_;
+    std::shared_ptr<Image> texture_;
+    std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 
-    Mesh(Settings& parent);
-    Mesh();
+    Mesh(const Settings& parent);
+    Mesh(Settings&& parent);
+    Mesh() = default;
 
-    void addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2); //!< add a face to the mesh without settings it's connected_faces.
+    /*!
+     *
+     * @param v0 The 3D coordinates of vertex 0
+     * @param v1 The 3D coordinates of vertex 1
+     * @param v2 The 3D coordinates of vertex 2
+     * @param uv0 The optional UV coordinates of vertex 0
+     * @param uv1 The optional UV coordinates of vertex 1
+     * @param uv2 The optional UV coordinates of vertex 2
+     */
+    void addFace(
+        const Point3LL& v0,
+        const Point3LL& v1,
+        const Point3LL& v2,
+        const std::optional<Point2F>& uv0 = std::nullopt,
+        const std::optional<Point2F>& uv1 = std::nullopt,
+        const std::optional<Point2F>& uv2 = std::nullopt); //!< add a face to the mesh without settings it's connected_faces.
     void clear(); //!< clears all data
     void finish(); //!< complete the model : set the connected_face_index fields of the faces.
 
@@ -108,24 +189,17 @@ public:
     void transform(const Matrix4x3D& transformation);
 
     /*!
-     * Gets whether this is a printable mesh (not an infill mesh, slicing mesh,
-     * etc.)
-     * \return True if it's a mesh that gets printed.
+     * Gets whether this is a printable mesh (not a modifier mesh). This includes infill meshes, because they do get printed. Cutting meshes are not considered as printable though,
+     * because they are early converted into regular meshes and should not be considered in subsequent algorithms.
      */
     bool isPrinted() const;
 
-    /*!
-     * Certain mesh types can interlock with each other. The interlock property provides
-     * if this mesh can be used for interlocking with other meshes (for example support
-     * blockers should not have an interlocking interface).
-     *
-     * \return True if an interface of the mesh could be interlocking with another mesh
-     */
-    bool canInterlock() const;
+    /*! Gets whether this is a regular model mesh (not a modifier or infill mesh) */
+    bool isModelMesh() const;
 
 private:
-    mutable bool has_disconnected_faces; //!< Whether it has been logged that this mesh contains disconnected faces
-    mutable bool has_overlapping_faces; //!< Whether it has been logged that this mesh contains overlapping faces
+    mutable bool has_disconnected_faces{ false }; //!< Whether it has been logged that this mesh contains disconnected faces
+    mutable bool has_overlapping_faces{ false }; //!< Whether it has been logged that this mesh contains overlapping faces
     int findIndexOfVertex(const Point3LL& v); //!< find index of vertex close to the given point, or create a new vertex and return its index.
 
     /*!

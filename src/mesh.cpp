@@ -23,21 +23,23 @@ static inline uint32_t pointHash(const Point3LL& p)
          ^ (((p.z_ + vertex_meld_distance / 2) / vertex_meld_distance) << 20);
 }
 
-Mesh::Mesh(Settings& parent)
+Mesh::Mesh(const Settings& parent)
     : settings_(parent)
-    , has_disconnected_faces(false)
-    , has_overlapping_faces(false)
 {
 }
 
-Mesh::Mesh()
-    : settings_()
-    , has_disconnected_faces(false)
-    , has_overlapping_faces(false)
+Mesh::Mesh(Settings&& parent)
+    : settings_(std::move(parent))
 {
 }
 
-void Mesh::addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2)
+void Mesh::addFace(
+    const Point3LL& v0,
+    const Point3LL& v1,
+    const Point3LL& v2,
+    const std::optional<Point2F>& uv0,
+    const std::optional<Point2F>& uv1,
+    const std::optional<Point2F>& uv2)
 {
     int vi0 = findIndexOfVertex(v0);
     int vi1 = findIndexOfVertex(v1);
@@ -51,6 +53,9 @@ void Mesh::addFace(Point3LL& v0, Point3LL& v1, Point3LL& v2)
     face.vertex_index_[0] = vi0;
     face.vertex_index_[1] = vi1;
     face.vertex_index_[2] = vi2;
+    face.uv_coordinates_[0] = uv0;
+    face.uv_coordinates_[1] = uv1;
+    face.uv_coordinates_[2] = uv2;
     vertices_[face.vertex_index_[0]].connected_faces_.push_back(idx);
     vertices_[face.vertex_index_[1]].connected_faces_.push_back(idx);
     vertices_[face.vertex_index_[2]].connected_faces_.push_back(idx);
@@ -112,12 +117,13 @@ void Mesh::transform(const Matrix4x3D& transformation)
 
 bool Mesh::isPrinted() const
 {
-    return ! settings_.get<bool>("infill_mesh") && ! settings_.get<bool>("cutting_mesh") && ! settings_.get<bool>("anti_overhang_mesh");
+    return ! settings_.get<bool>("cutting_mesh") && ! settings_.get<bool>("anti_overhang_mesh")
+        && (! settings_.has("force_support_overhang_mesh") || ! settings_.get<bool>("force_support_overhang_mesh"));
 }
 
-bool Mesh::canInterlock() const
+bool Mesh::isModelMesh() const
 {
-    return ! settings_.get<bool>("infill_mesh") && ! settings_.get<bool>("anti_overhang_mesh");
+    return isPrinted() && ! settings_.get<bool>("infill_mesh");
 }
 
 int Mesh::findIndexOfVertex(const Point3LL& v)
@@ -205,9 +211,9 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
         has_disconnected_faces = true;
     }
 
-    Point3D vn = vertices_[idx1].p_ - vertices_[idx0].p_;
+    Point3D vn(vertices_[idx1].p_ - vertices_[idx0].p_);
     Point3D n = vn / vn.vSize(); // the normal of the plane in which all normals of faces connected to the edge lie => the normalized normal
-    Point3D v0 = vertices_[idx1].p_ - vertices_[idx0].p_;
+    Point3D v0(vertices_[idx1].p_ - vertices_[idx0].p_);
 
     // the normals below are abnormally directed! : these normals all point counterclockwise (viewed from idx1 to idx0) from the face, irrespective of the direction of the face.
     Point3D n0 = Point3D(vertices_[notFaceVertexIdx].p_ - vertices_[idx0].p_).cross(v0);
@@ -229,7 +235,7 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
                     break;
         }
 
-        Point3D v1 = vertices_[faces_[candidateFace].vertex_index_[candidateVertex]].p_ - vertices_[idx0].p_;
+        Point3D v1(vertices_[faces_[candidateFace].vertex_index_[candidateVertex]].p_ - vertices_[idx0].p_);
         Point3D n1 = v0.cross(v1);
 
         double dot = n0 * n1;

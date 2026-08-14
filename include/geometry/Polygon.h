@@ -21,6 +21,10 @@ class AngleDegrees;
 class Polygon : public ClosedPolyline
 {
 public:
+    /*!
+     * \brief Builds an empty polygon
+     * \warning By default, the polygon is tagged as non explicitly closed
+     */
     Polygon() = default;
 
     /*!
@@ -69,6 +73,8 @@ public:
     }
 
     ~Polygon() override = default;
+
+    void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const final;
 
     Polygon& operator=(const Polygon& other) = default;
 

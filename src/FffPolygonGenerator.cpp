@@ -19,6 +19,7 @@
 #include "InterlockingGenerator.h"
 #include "layerPart.h"
 #include "MeshGroup.h"
+#include "MeshMaterialSplitter.h"
 #include "Mold.h"
 #include "multiVolumes.h"
 #include "PrintFeature.h"
@@ -26,6 +27,7 @@
 #include "skin.h"
 #include "SkirtBrim.h"
 #include "Slice.h"
+#include "TextureDataProvider.h"
 #include "sliceDataStorage.h"
 #include "slicer.h"
 #include "support.h"
@@ -60,6 +62,8 @@ namespace cura
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
+    MeshMaterialSplitter::makePaintingModifierMeshes(meshgroup);
+
     if (! sliceModel(meshgroup, timeKeeper, storage))
     {
         return false;
@@ -209,7 +213,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         }
 
         Mesh& mesh = meshgroup->meshes[mesh_idx];
-        Slicer* slicer = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values);
+
+        const SlicingTolerance slicing_tolerance = mesh.settings_.get<SlicingTolerance>("slicing_tolerance");
+
+        Slicer* slicer
+            = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness);
 
         slicerList.push_back(slicer);
 
@@ -221,11 +229,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
     Mold::process(slicerList);
 
-    Scene& scene = Application::getInstance().current_slice_->scene;
+    const Scene& scene = Application::getInstance().current_slice_->scene;
     for (unsigned int mesh_idx = 0; mesh_idx < slicerList.size(); mesh_idx++)
     {
-        Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
-        if (mesh.settings_.get<bool>("conical_overhang_enabled") && ! mesh.settings_.get<bool>("anti_overhang_mesh"))
+        const Mesh& mesh = scene.current_mesh_group->meshes[mesh_idx];
+        if (mesh.settings_.get<bool>("conical_overhang_enabled") && ! mesh.settings_.get<bool>("anti_overhang_mesh")
+            && (! mesh.settings_.has("force_support_overhang_mesh") || ! mesh.settings_.get<bool>("force_support_overhang_mesh")))
         {
             ConicalOverhang::apply(slicerList[mesh_idx], mesh);
         }
@@ -251,9 +260,9 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     storage.print_layer_count = 0;
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
-        Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
+        const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
         Slicer* slicer = slicerList[meshIdx];
-        if (! mesh.settings_.get<bool>("anti_overhang_mesh") && ! mesh.settings_.get<bool>("infill_mesh") && ! mesh.settings_.get<bool>("cutting_mesh"))
+        if (mesh.isModelMesh())
         {
             storage.print_layer_count = std::max(storage.print_layer_count, slicer->layers.size());
         }
@@ -265,7 +274,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     for (unsigned int meshIdx = 0; meshIdx < slicerList.size(); meshIdx++)
     {
         Slicer* slicer = slicerList[meshIdx];
-        Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
+        const Mesh& mesh = scene.current_mesh_group->meshes[meshIdx];
 
         // always make a new SliceMeshStorage, so that they have the same ordering / indexing as meshgroup.meshes
         storage.meshes.push_back(std::make_shared<SliceMeshStorage>(&meshgroup->meshes[meshIdx], slicer->layers.size())); // new mesh in storage had settings from the Mesh
@@ -294,6 +303,11 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
+            const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
+            if (slicer_layer.sliced_uv_coordinates_ && mesh.texture_ && mesh.texture_data_mapping_)
+            {
+                layer.texture_data_provider_ = std::make_shared<TextureDataProvider>(slicer_layer.sliced_uv_coordinates_, mesh.texture_, mesh.texture_data_mapping_);
+            }
 
             if (use_variable_layer_heights)
             {
@@ -338,12 +352,12 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     // compute layer count and remove first empty layers
-    // there is no separate progress stage for removeEmptyFisrtLayer (TODO)
+    // there is no separate progress stage for removeEmptyFirstLayer (TODO)
     unsigned int slice_layer_count = 0;
     for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         auto& mesh = *mesh_ptr;
-        if (! mesh.settings.get<bool>("infill_mesh") && ! mesh.settings.get<bool>("anti_overhang_mesh"))
+        if (mesh.isModelMesh())
         {
             slice_layer_count = std::max<unsigned int>(slice_layer_count, mesh.layers.size());
         }
@@ -376,14 +390,16 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
         Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
-    const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
+    const Settings& mesh_group_settings = mesh_group->settings;
+    const bool mesh_group_support_paint = mesh_group->has_painted_support;
 
     // we need to remove empty layers after we have processed the insets
     // processInsets might throw away parts if they have no wall at all (cause it doesn't fit)
     // brim depends on the first layer not being empty
     // only remove empty layers if we haven't generate support, because then support was added underneath the model.
     //   for some materials it's better to print on support than on the build plate.
-    const auto has_support = mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_mesh");
+    const auto has_support = mesh_group_settings.get<bool>("support_enable") || mesh_group_settings.get<bool>("support_mesh") || mesh_group_support_paint;
     const auto remove_empty_first_layers = mesh_group_settings.get<bool>("remove_empty_first_layers") && ! has_support;
     if (remove_empty_first_layers)
     {
@@ -406,6 +422,8 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
 
     // handle helpers
     storage.initializePrimeTower();
+
+    AreaSupport::generateSupportBase(storage);
 
     spdlog::debug("Processing ooze shield");
     processOozeShield(storage);
@@ -431,6 +449,12 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper&
     spdlog::debug("Processing gradual support");
     // generate gradual support
     AreaSupport::generateSupportInfillFeatures(storage);
+
+    // Pre-compute lightning fill
+    if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::LIGHTNING)
+    {
+        storage.support.lightning_generator = std::make_shared<LightningGenerator>(storage.support);
+    }
 }
 
 void FffPolygonGenerator::processBasicWallsSkinInfill(
@@ -860,7 +884,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         for (std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
         {
             auto& mesh = *mesh_ptr;
-            if (mesh.settings.get<bool>("anti_overhang_mesh") || mesh.settings.get<bool>("support_mesh"))
+            if (! mesh.isPrinted() || mesh.settings.get<bool>("support_mesh"))
             {
                 continue; // Special type of mesh that doesn't get printed.
             }
@@ -1012,8 +1036,9 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         draft_shield = draft_shield.unionPolygons(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower));
     }
 
+    draft_shield.makeConvex();
     const coord_t draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
-    storage.draft_protection_shield = draft_shield.approxConvexHull(draft_shield_dist);
+    storage.draft_protection_shield = draft_shield.offset(draft_shield_dist);
 
     // Extra offset has rounded joints, so simplify again.
     coord_t maximum_resolution = 0; // Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
@@ -1058,10 +1083,7 @@ void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
         skirt_brim.generate();
     }
 
-    if (mesh_group_settings.get<bool>("support_brim_enable"))
-    {
-        skirt_brim.generateSupportBrim();
-    }
+    skirt_brim.generateSupportBrim();
 }
 
 

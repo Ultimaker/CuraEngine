@@ -6,6 +6,7 @@
 #include <algorithm>
 #include <limits>
 
+#include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 #include "utils/linearAlg2D.h"
@@ -26,6 +27,15 @@ AABB::AABB(const Point2LL& min, const Point2LL& max)
 {
 }
 
+AABB::AABB(const std::initializer_list<Point2LL>& points)
+    : AABB()
+{
+    for (const auto& pt : points)
+    {
+        include(pt);
+    }
+}
+
 AABB::AABB(const Shape& shape)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
@@ -33,7 +43,14 @@ AABB::AABB(const Shape& shape)
     calculate(shape);
 }
 
-AABB::AABB(const Polygon& poly)
+AABB::AABB(const OpenLinesSet& lines)
+    : min_(POINT_MAX, POINT_MAX)
+    , max_(POINT_MIN, POINT_MIN)
+{
+    calculate(lines);
+}
+
+AABB::AABB(const PointsSet& poly)
     : min_(POINT_MAX, POINT_MAX)
     , max_(POINT_MIN, POINT_MIN)
 {
@@ -83,7 +100,20 @@ void AABB::calculate(const Shape& shape)
     }
 }
 
-void AABB::calculate(const Polygon& poly)
+void AABB::calculate(const OpenLinesSet& lines)
+{
+    min_ = Point2LL(POINT_MAX, POINT_MAX);
+    max_ = Point2LL(POINT_MIN, POINT_MIN);
+    for (const OpenPolyline& line : lines)
+    {
+        for (const Point2LL& point : line)
+        {
+            include(point);
+        }
+    }
+}
+
+void AABB::calculate(const PointsSet& poly)
 {
     min_ = Point2LL(POINT_MAX, POINT_MAX);
     max_ = Point2LL(POINT_MIN, POINT_MIN);
@@ -141,7 +171,7 @@ void AABB::include(const Point2LL& point)
     max_.Y = std::max(max_.Y, point.Y);
 }
 
-void AABB::include(const Polygon& polygon)
+void AABB::include(const PointsSet& polygon)
 {
     for (const Point2LL& point : polygon)
     {
@@ -173,6 +203,67 @@ void AABB::expand(int dist)
 Polygon AABB::toPolygon() const
 {
     return Polygon({ min_, Point2LL(max_.X, min_.Y), max_, Point2LL(min_.X, max_.Y) }, false);
+}
+
+coord_t AABB::width() const
+{
+    return max_.X - min_.X;
+}
+
+coord_t AABB::height() const
+{
+    return max_.Y - min_.Y;
+}
+
+std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape& shape)
+{
+    if (shape[0].size() < 2)
+    {
+        return { { { 0, 0 }, { 0, 0 } }, 0.0 };
+    }
+
+    coord_t min_area = std::numeric_limits<coord_t>::max();
+    AngleRadians best_angle = 0.0;
+    AABB best_aabb = { { 0, 0 }, { 0, 0 } };
+
+    // Iterate through every edge of the polygon
+    for (auto iterator = shape[0].beginSegments(); iterator != shape[0].endSegments(); ++iterator)
+    {
+        const Point2LL& p1 = (*iterator).start;
+        const Point2LL& p2 = (*iterator).end;
+
+        const auto x_hat = p2 - p1;
+        const auto length = vSize(x_hat);
+
+        if (length < 5)
+        {
+            continue;
+        }
+
+        const auto y_hat = turn90CCW(x_hat);
+
+        AABB aabb;
+
+        // Project all points onto the local axes defined by this edge
+        for (const auto& p : shape[0])
+        {
+            Point2LL local_p = {
+                dot(p, x_hat) / length,
+                dot(p, y_hat) / length,
+            };
+            aabb.include(local_p);
+        }
+
+        coord_t area = aabb.area();
+        if (area < min_area)
+        {
+            min_area = area;
+            best_angle = angle_rad(x_hat);
+            best_aabb = aabb;
+        }
+    }
+
+    return { best_aabb, best_angle };
 }
 
 } // namespace cura

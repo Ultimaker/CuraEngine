@@ -32,12 +32,16 @@
 #include "utils/format/filesystem_path.h"
 #include "utils/views/split_paths.h"
 
+
+namespace fs = std::filesystem;
+
 namespace cura
 {
 
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
     : arguments_{ arguments }
     , last_shown_progress_{ 0 }
+    , output_stream_(&std::cout)
 {
     if (auto search_paths = spdlog::details::os::getenv("CURA_ENGINE_SEARCH_PATH"); ! search_paths.empty())
     {
@@ -45,13 +49,11 @@ CommandLine::CommandLine(const std::vector<std::string>& arguments)
     };
 }
 
-// These are not applicable to command line slicing.
-void CommandLine::beginGCode()
+void CommandLine::sendGCodePart(const std::string& gcode_part)
 {
+    *output_stream_ << gcode_part;
 }
-void CommandLine::flushGCode()
-{
-}
+
 void CommandLine::sendCurrentPosition(const Point3LL&)
 {
 }
@@ -79,32 +81,15 @@ bool CommandLine::hasSlice() const
     return ! arguments_.empty();
 }
 
-bool CommandLine::isSequential() const
-{
-    return true; // We have to receive the g-code in sequential order. Start g-code before the rest and so on.
-}
-
-void CommandLine::sendGCodePrefix(const std::string&) const
-{
-    // TODO: Right now this is done directly in the g-code writer. For consistency it should be moved here?
-}
-
 void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) const
 {
     // pass
 }
 
-void CommandLine::sendPrintTimeMaterialEstimates() const
+void CommandLine::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
 {
-    std::vector<Duration> time_estimates = FffProcessor::getInstance()->getTotalPrintTimePerFeature();
-    double sum = std::accumulate(time_estimates.begin(), time_estimates.end(), 0.0);
+    double sum = ranges::accumulate(time_estimates, 0.0);
     spdlog::info("Total print time: {:3}", sum);
-
-    sum = 0.0;
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
-    {
-        sum += FffProcessor::getInstance()->getTotalFilamentUsed(static_cast<int>(extruder_nr));
-    }
 }
 
 void CommandLine::sendProgress(double progress) const
@@ -186,7 +171,9 @@ void CommandLine::sliceNext()
                     force_read_parent = false;
                     force_read_nondefault = false;
                 }
-                else if (argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb") || argument.starts_with("--gcode_header_cb"))
+                else if (
+                    argument.starts_with("--progress_cb") || argument.starts_with("--slice_info_cb") || argument.starts_with("--gcode_header_cb")
+                    || argument.starts_with("--engine_info_cb"))
                 {
                     // Unused in command line slicing, but used in EmscriptenCommunication.
                     argument_index++;
@@ -285,9 +272,9 @@ void CommandLine::sliceNext()
 
                     const auto transformation = last_settings->get<Matrix4x3D>("mesh_rotation_matrix"); // The transformation applied to the model when loaded.
 
-                    if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument.c_str(), transformation, last_extruder->settings_))
+                    if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], argument, transformation, last_extruder->settings_))
                     {
-                        spdlog::error("Failed to load model: {}. (error number {})", argument, errno);
+                        spdlog::error("Failed to load model: {} (error number {})", argument, errno);
                         exit(1);
                     }
                     else
@@ -305,9 +292,16 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    if (! FffProcessor::getInstance()->setTargetFile(argument.c_str()))
+
+                    output_file_ = std::make_shared<std::ofstream>();
+                    output_file_->open(argument);
+                    if (output_file_->is_open())
                     {
-                        spdlog::error("Failed to open {} for output.", argument.c_str());
+                        output_stream_ = output_file_.get();
+                    }
+                    else
+                    {
+                        spdlog::error("Failed to open {} for output.", argument);
                         exit(1);
                     }
                     break;
@@ -370,7 +364,9 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    const auto settings = readResolvedJsonValues(std::filesystem::path{ argument });
+                    const fs::path settings_path(argument);
+                    const fs::path settings_folder(settings_path.parent_path());
+                    const auto settings = readResolvedJsonValues(settings_path);
 
                     if (! settings.has_value())
                     {
@@ -380,7 +376,6 @@ void CommandLine::sliceNext()
 
                     constexpr std::string_view global_identifier = "global";
                     constexpr std::string_view extruder_identifier = "extruder.";
-                    constexpr std::string_view model_identifier = "model.";
                     constexpr std::string_view limit_to_extruder_identifier = "limit_to_extruder";
 
                     // Split the settings into global, extruder and model settings. This is needed since the order in which the settings are applied is important.
@@ -439,9 +434,13 @@ void CommandLine::sliceNext()
                         const auto transformation = slice->scene.mesh_groups[mesh_group_index].settings.get<Matrix4x3D>("mesh_rotation_matrix");
                         const auto extruder_nr = slice->scene.mesh_groups[mesh_group_index].settings.get<size_t>("extruder_nr");
 
-                        if (! loadMeshIntoMeshGroup(&slice->scene.mesh_groups[mesh_group_index], model_name.c_str(), transformation, slice->scene.extruders[extruder_nr].settings_))
+                        if (! loadMeshIntoMeshGroup(
+                                &slice->scene.mesh_groups[mesh_group_index],
+                                settings_folder / model_name,
+                                transformation,
+                                slice->scene.extruders[extruder_nr].settings_))
                         {
-                            spdlog::error("Failed to load model: {}. (error number {})", model_name, errno);
+                            spdlog::error("Failed to load model: {} (error number {})", model_name, errno);
                             exit(1);
                         }
                     }
@@ -497,9 +496,6 @@ void CommandLine::sliceNext()
         exit(1);
     }
 #endif // DEBUG
-
-    // Finalize the processor. This adds the end g-code and reports statistics.
-    FffProcessor::getInstance()->finalize();
 }
 
 int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& settings, bool force_read_parent, bool force_read_nondefault)
@@ -507,7 +503,7 @@ int CommandLine::loadJSON(const std::filesystem::path& json_filename, Settings& 
     std::ifstream file(json_filename, std::ios::binary);
     if (! file)
     {
-        spdlog::error("Couldn't open JSON file: {}", json_filename);
+        spdlog::error("Couldn't open JSON file: {}", json_filename.generic_string());
         return 1;
     }
 
@@ -693,7 +689,7 @@ std::optional<container_setting_map> CommandLine::readResolvedJsonValues(const s
     std::ifstream file(json_filename, std::ios::binary);
     if (! file)
     {
-        spdlog::error("Couldn't open JSON file: {}", json_filename);
+        spdlog::error("Couldn't open JSON file: {}", json_filename.generic_string());
         return std::nullopt;
     }
 

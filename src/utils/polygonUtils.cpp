@@ -11,7 +11,8 @@
 
 #include <range/v3/view/enumerate.hpp>
 
-#include "geometry/OpenPolyline.h"
+#include "geometry/ClosedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/SingleShape.h"
 #include "infill.h"
@@ -679,7 +680,7 @@ void PolygonUtils::walkToNearestSmallestConnection(ClosestPointPolygon& poly1_re
     poly2_result.poly_idx_ = poly2_idx;
 }
 
-ClosestPointPolygon PolygonUtils::findNearestClosest(Point2LL from, const Polygon& polygon, int start_idx)
+ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx)
 {
     ClosestPointPolygon forth = findNearestClosest(from, polygon, start_idx, 1);
     if (! forth.isValid())
@@ -698,7 +699,7 @@ ClosestPointPolygon PolygonUtils::findNearestClosest(Point2LL from, const Polygo
     }
 }
 
-ClosestPointPolygon PolygonUtils::findNearestClosest(Point2LL from, const Polygon& polygon, int start_idx, int direction)
+ClosestPointPolygon PolygonUtils::findNearestClosest(const Point2LL& from, const Polygon& polygon, int start_idx, int direction)
 {
     if (polygon.size() == 0)
     {
@@ -735,7 +736,7 @@ ClosestPointPolygon PolygonUtils::findNearestClosest(Point2LL from, const Polygo
     return ClosestPointPolygon(best, bestPos, &polygon);
 }
 
-ClosestPointPolygon PolygonUtils::findClosest(Point2LL from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function)
+ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Shape& polygons, const std::function<int(Point2LL)>& penalty_function)
 {
     ClosestPointPolygon none;
 
@@ -783,7 +784,7 @@ ClosestPointPolygon PolygonUtils::findClosest(Point2LL from, const Shape& polygo
     return best;
 }
 
-ClosestPointPolygon PolygonUtils::findClosest(Point2LL from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function)
+ClosestPointPolygon PolygonUtils::findClosest(const Point2LL& from, const Polygon& polygon, const std::function<int(Point2LL)>& penalty_function)
 {
     if (polygon.size() == 0)
     {
@@ -817,16 +818,16 @@ ClosestPointPolygon PolygonUtils::findClosest(Point2LL from, const Polygon& poly
     return ClosestPointPolygon(best, bestPos, &polygon);
 }
 
-PolygonsPointIndex PolygonUtils::findNearestVert(const Point2LL from, const Shape& polys)
+PolygonsPointIndex PolygonUtils::findNearestVert(const Point2LL& from, const Shape& polys)
 {
-    int64_t best_dist2 = std::numeric_limits<int64_t>::max();
+    coord_t best_dist2 = std::numeric_limits<coord_t>::max();
     PolygonsPointIndex closest_vert;
     for (unsigned int poly_idx = 0; poly_idx < polys.size(); poly_idx++)
     {
         const Polygon& poly = polys[poly_idx];
         for (unsigned int point_idx = 0; point_idx < poly.size(); point_idx++)
         {
-            int64_t dist2 = vSize2(poly[point_idx] - from);
+            const coord_t dist2 = vSize2(poly[point_idx] - from);
             if (dist2 < best_dist2)
             {
                 best_dist2 = dist2;
@@ -837,7 +838,7 @@ PolygonsPointIndex PolygonUtils::findNearestVert(const Point2LL from, const Shap
     return closest_vert;
 }
 
-unsigned int PolygonUtils::findNearestVert(const Point2LL from, const Polygon& poly)
+unsigned int PolygonUtils::findNearestVert(const Point2LL& from, const Polygon& poly)
 {
     int64_t best_dist2 = std::numeric_limits<int64_t>::max();
     unsigned int closest_vert_idx = -1;
@@ -1420,7 +1421,7 @@ void PolygonUtils::fixSelfIntersections(const coord_t epsilon, Shape& polygon)
                 {
                     const Point2LL& other = polygon[poly_idx][(point_idx + 1) % pathlen];
                     const Point2LL vec = LinearAlg2D::pointIsLeftOfLine(other, a, b) > 0 ? b - a : a - b;
-                    const coord_t len = vSize(vec);
+                    const coord_t len = std::max(vSize(vec), 1LL);
                     pt.X += (-vec.Y * move_dist) / len;
                     pt.Y += (vec.X * move_dist) / len;
                 }
@@ -1518,6 +1519,56 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
+void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow)
+{
+    if (source.empty() || destination.empty())
+    {
+        return;
+    }
+
+    // Get the thin areas of the destination, which we are allowed to grow over
+    const Shape allow_grow_area = getThinAreas(destination, max_dist);
+    if (allow_grow_area.empty())
+    {
+        return;
+    }
+
+    // If necessary, remove the thin parts of the source to not allow them to grow
+    const Shape source_grow_part = allow_thin_areas_grow ? source : getWideAreas(source, max_dist);
+    if (source_grow_part.empty())
+    {
+        return;
+    }
+
+    // Now calculate the actual growing area, which is the intersection of the offset source with the allowed growing area
+    const Shape actual_grow_area = source_grow_part.offset(max_dist).intersection(allow_grow_area).offset(EPSILON);
+    if (actual_grow_area.empty())
+    {
+        return;
+    }
+
+    // Finally, append the growing area to the source and remove it from the destination
+    source = source.unionPolygons(actual_grow_area);
+    destination = destination.difference(actual_grow_area);
+}
+
+Shape PolygonUtils::getThinAreas(const Shape& shape, const coord_t max_width)
+{
+    // Extract the wide areas, then do a difference to actually keep only the thin areas
+    return shape.difference(getRawWideAreas(shape, max_width, EPSILON));
+}
+
+Shape PolygonUtils::getWideAreas(const Shape& shape, const coord_t min_width)
+{
+    // Extract the raw wide areas, then do an intersection to keep them inside the original shape
+    return shape.intersection(getRawWideAreas(shape, min_width, EPSILON));
+}
+
+Shape PolygonUtils::getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen)
+{
+    return shape.offset(-min_width / 2).offset(min_width / 2 + extra_widen);
+}
+
 std::tuple<ClosedLinesSet, coord_t>
     PolygonUtils::generateCirculatOutset(const Point2LL& center, const coord_t inner_radius, const coord_t outer_radius, coord_t line_width, const size_t circle_definition)
 {
@@ -1547,6 +1598,30 @@ ClosedLinesSet PolygonUtils::generateCircularInset(const Point2LL& center, const
     }
 
     return inset;
+}
+
+PolygonUtils::InsetOutset PolygonUtils::generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width)
+{
+    InsetOutset result;
+    Shape current_outset = shape;
+    const coord_t semi_line_width = line_width / 2;
+    coord_t offset = semi_line_width;
+
+    const coord_t direction = (width > 0) ? 1 : -1;
+
+    while ((offset + semi_line_width <= width * direction) && ! current_outset.empty())
+    {
+        current_outset = shape.offset(offset * direction);
+        result.walls.push_back(current_outset);
+        offset += line_width;
+    }
+
+    if (! result.walls.empty())
+    {
+        result.final_contour_offset = direction * (offset - line_width / 2);
+    }
+
+    return result;
 }
 
 template ClosestPoint<Polygon> PolygonUtils::walk(const ClosestPoint<Polygon>& from, coord_t distance);

@@ -42,7 +42,7 @@ bool AABB3D::hit(const AABB3D& other) const
     return true;
 }
 
-AABB3D AABB3D::include(Point3LL p)
+AABB3D AABB3D::include(const Point3LL& p)
 {
     min_.x_ = std::min(min_.x_, p.x_);
     min_.y_ = std::min(min_.y_, p.y_);
@@ -72,14 +72,14 @@ AABB3D AABB3D::includeZ(coord_t z)
     return *this;
 }
 
-AABB3D AABB3D::translate(Point3LL offset)
+AABB3D AABB3D::translate(const Point3LL& offset)
 {
     min_ += offset;
     max_ += offset;
     return *this;
 }
 
-AABB3D AABB3D::translate(Point2LL offset)
+AABB3D AABB3D::translate(const Point2LL& offset)
 {
     min_ += offset;
     max_ += offset;
@@ -106,6 +106,21 @@ AABB3D AABB3D::expandXY(coord_t outset)
         *this = AABB3D();
     }
     return *this;
+}
+
+coord_t AABB3D::spanX() const
+{
+    return max_.x_ - min_.x_;
+}
+
+coord_t AABB3D::spanY() const
+{
+    return max_.y_ - min_.y_;
+}
+
+coord_t AABB3D::spanZ() const
+{
+    return max_.z_ - min_.z_;
 }
 
 } // namespace cura

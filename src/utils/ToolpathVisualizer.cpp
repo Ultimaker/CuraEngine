@@ -12,7 +12,7 @@ namespace cura
 
 void ToolpathVisualizer::outline(const Shape& input)
 {
-    svg_.writeAreas(input, SVG::Color::GRAY, SVG::Color::NONE, 2);
+    svg_.write(input, { .surface = { SVG::Color::GRAY } });
     svg_.nextLayer();
 }
 
@@ -30,11 +30,10 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
             polys.push_back(covered);
         }
         int c = 255 - 200 * (w - .25);
-        SVG::ColorObject clr(c, c, c);
+        SVG::RgbColor clr(c, c, c);
         polys = polys.execute(ClipperLib::pftNonZero);
         polys = PolygonUtils::connect(polys);
-        for (const Polygon& connected : polys)
-            svg_.writeAreas(connected, clr, SVG::Color::NONE);
+        svg_.write(polys, { .surface = { clr } });
         if (! rounded_visualization)
             break;
     }
@@ -44,14 +43,14 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
 
 void ToolpathVisualizer::underfill(const Shape& underfills)
 {
-    svg_.writeAreas(underfills, SVG::ColorObject(0, 128, 255), SVG::Color::NONE);
+    svg_.write(underfills, { .surface = { SVG::RgbColor(0, 128, 255) } });
     svg_.nextLayer();
 }
 void ToolpathVisualizer::overfill(const Shape& overfills, const Shape& double_overfills)
 {
-    svg_.writeAreas(overfills, SVG::ColorObject(255, 128, 0), SVG::Color::NONE);
+    svg_.write(overfills, { .surface = { SVG::RgbColor(255, 128, 0) } });
     svg_.nextLayer();
-    svg_.writeAreas(double_overfills, SVG::ColorObject(255, 100, 0), SVG::Color::NONE);
+    svg_.write(double_overfills, { .surface = { SVG::RgbColor(255, 100, 0) } });
     if (! double_overfills.empty())
     {
         svg_.nextLayer();
@@ -73,17 +72,17 @@ void ToolpathVisualizer::width_legend(const Shape& input, coord_t nozzle_size, c
     legend_btm.p_ += (legend_mid.p_ - legend_btm.p_) / 4;
     legend_top.p_ += (legend_mid.p_ - legend_top.p_) / 4;
     ExtrusionSegment legend_segment(legend_btm, legend_top, true, false);
-    svg_.writeAreas(legend_segment.toShape(false), SVG::ColorObject(200, 200, 200), SVG::Color::NONE); // real outline
+    svg_.write(legend_segment.toShape(false), { .surface = { SVG::RgbColor(200, 200, 200) } }); // real outline
     std::vector<ExtrusionSegment> all_segments_plus;
     all_segments_plus.emplace_back(legend_segment); // colored
 
     Point2LL legend_text_offset(nozzle_size, 0);
-    svg_.writeText(legend_top.p_ + legend_text_offset, to_string(INT2MM(legend_top.w_)));
-    svg_.writeText(legend_btm.p_ + legend_text_offset, to_string(INT2MM(legend_btm.w_)));
-    svg_.writeText(legend_mid.p_ + legend_text_offset, to_string(INT2MM(legend_mid.w_)));
-    svg_.writeLine(legend_top.p_, legend_top.p_ + legend_text_offset);
-    svg_.writeLine(legend_btm.p_, legend_btm.p_ + legend_text_offset);
-    svg_.writeLine(legend_mid.p_, legend_mid.p_ + legend_text_offset);
+    svg_.write(to_string(INT2MM(legend_top.w_)), legend_top.p_ + legend_text_offset, { true });
+    svg_.write(to_string(INT2MM(legend_btm.w_)), legend_btm.p_ + legend_text_offset, { true });
+    svg_.write(to_string(INT2MM(legend_mid.w_)), legend_mid.p_ + legend_text_offset, { true });
+    svg_.write(legend_top.p_, legend_top.p_ + legend_text_offset, { .line = {} });
+    svg_.write(legend_btm.p_, legend_btm.p_ + legend_text_offset, { .line = {} });
+    svg_.write(legend_mid.p_, legend_mid.p_ + legend_text_offset, { .line = {} });
 
     widths(all_segments_plus, nozzle_size, max_dev, min_w, rounded_visualization);
 }
@@ -146,7 +145,7 @@ void ToolpathVisualizer::widths(
                 s.from_.w_ *= w / .9;
                 s.to_.w_ *= w / .9;
                 Shape covered = s.toShape();
-                svg_.writeAreas(covered, SVG::ColorObject(clr.x_, clr.y_, clr.z_), SVG::Color::NONE);
+                svg_.write(covered, { .surface = { SVG::RgbColor(clr.x_, clr.y_, clr.z_) } });
             }
         }
         if (! rounded_visualization)

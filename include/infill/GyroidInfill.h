@@ -1,21 +1,22 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#include "geometry/LinesSet.h"
-#include "geometry/OpenLinesSet.h"
-#include "utils/Coord_t.h"
+#ifndef INFILL_GYROIDINFILL_H
+#define INFILL_GYROIDINFILL_H
+
+#include "infill/AbstractLinesInfill.h"
 
 namespace cura
 {
-class Shape;
 
-class GyroidInfill
+class GyroidInfill : public AbstractLinesInfill
 {
 public:
-    GyroidInfill();
+    GyroidInfill() = default;
 
-    ~GyroidInfill();
+    ~GyroidInfill() override = default;
 
+protected:
     /*!
      * Generate the Gyroid infill pattern within a certain outline.
      *
@@ -25,17 +26,17 @@ public:
      * The pattern generates a sine-wave in two directions that varies across the Z coordinate, gradually changing
      * between the X and Y directions. This is a 2D pattern, but by supplying a Z coordinate the pattern will vary
      * across different heights, producing a 3D pattern.
-     * \param result_lines Output variable to store the resulting polyline segments in.
-     * \param zig_zaggify Whether to connect the polylines at their endpoints, forming one single polyline or at least
-     * very few interruptions in the material flow.
      * \param line_distance Distance between adjacent curves. This determines the density of the pattern (when printed
      * at a fixed line width).
-     * \param in_outline The outline in which to print the pattern. The input shape, so to say.
+     * \param bounding_box The bounding box in which to print the pattern.
      * \param z The Z coordinate of this layer. Different Z coordinates cause the pattern to vary, producing a 3D
      * pattern.
+     * \param line_width Unused in this context.
+     * \return The list of raw gyroid lines.
      */
-    static void generateTotalGyroidInfill(OpenLinesSet& result_lines, bool zig_zaggify, coord_t line_distance, const Shape& in_outline, coord_t z);
-
-private:
+    OpenLinesSet generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const override;
 };
+
 } // namespace cura
+
+#endif

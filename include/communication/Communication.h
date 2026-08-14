@@ -4,6 +4,7 @@
 #ifndef COMMUNICATION_H
 #define COMMUNICATION_H
 
+#include "PrintInformation.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
@@ -15,6 +16,7 @@ enum class PrintFeatureType : unsigned char;
 class Shape;
 class Polygon;
 class ExtruderTrain;
+struct Duration;
 
 /*
  * An abstract class to provide a common interface for all methods of
@@ -32,18 +34,6 @@ public:
      * \brief Test if there are more slices to be queued.
      */
     virtual bool hasSlice() const = 0;
-
-    /*
-     * \brief Whether the output needs to be sent from start to finish or not.
-     *
-     * This determines if the g-code output needs to be output from start to
-     * finish in order.
-     * This matters because the start g-code contains information on the
-     * statistics of the print. These statistics can only be generated at the
-     * end of the slice. Preferably we'd send the start g-code last, so that the
-     * statistics in the start g-code can be more accurate.
-     */
-    virtual bool isSequential() const = 0;
 
     /*
      * \brief Indicate to the communication channel what the current progress of
@@ -110,26 +100,14 @@ public:
     virtual void sendOptimizedLayerData() = 0;
 
     /*
-     * \brief Send an estimate of how long the print would take and how much
-     * material it would use.
+     * \brief Send an estimate of how long the print would take and how much material it would use.
+     * \param time_estimates The calculated time estimations, per extruder
+     * \param print_information The calculated materials consumptions, per extruder
      */
-    virtual void sendPrintTimeMaterialEstimates() const = 0;
+    virtual void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const = 0;
 
-    /*
-     * \brief Indicate that we're beginning to send g-code.
-     */
-    virtual void beginGCode() = 0;
-
-    /*
-     * \brief Flush all remaining g-code to the user.
-     */
-    virtual void flushGCode() = 0;
-
-    /*
-     * \brief Send the starting g-code separately so that it may be processed by
-     * the front-end for its replacement variables.
-     */
-    virtual void sendGCodePrefix(const std::string& prefix) const = 0;
+    /* \brief Sends a piece of GCode that is ready to be exported */
+    virtual void sendGCodePart(const std::string& gcode_part) = 0;
 
     /*
      * \brief Send the uuid of the generated slice so that it may be processed by

@@ -18,8 +18,9 @@ option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 option(ENABLE_THREADING "Enable threading support" ON)
+option(ENABLE_CURAVIZ "Build with CuraViz toolbox" ON)
 
-if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS})
+if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ})
     find_package(protobuf REQUIRED)
 endif ()
 
@@ -38,39 +39,45 @@ if (${ENABLE_ARCUS})
     protobuf_generate_cpp(engine_PB_SRCS engine_PB_HEADERS Cura.proto)
 endif ()
 
+message(STATUS "Building with CuraViz: ${ENABLE_CURAVIZ}")
+if (${ENABLE_CURAVIZ})
+    find_package(curaviz_grpc_definitions REQUIRED)
+endif ()
+
 ### Compiling CuraEngine ###
 # First compile all of CuraEngine as library.
 
 set(engine_SRCS # Except main.cpp.
         src/Application.cpp
-        src/bridge.cpp
         src/ConicalOverhang.cpp
         src/ExtruderPlan.cpp
         src/ExtruderTrain.cpp
         src/FffGcodeWriter.cpp
         src/FffPolygonGenerator.cpp
         src/FffProcessor.cpp
-        src/gcodeExport.cpp
         src/GCodePathConfig.cpp
         src/infill.cpp
-        src/InterlockingGenerator.cpp
+        src/InfillOrderOptimizer.cpp
         src/InsetOrderOptimizer.cpp
+        src/InterlockingGenerator.cpp
         src/layerPart.cpp
         src/LayerPlan.cpp
         src/LayerPlanBuffer.cpp
         src/mesh.cpp
         src/MeshGroup.cpp
+        src/MeshMaterialSplitter.cpp
         src/Mold.cpp
         src/multiVolumes.cpp
         src/path_ordering.cpp
+        src/PathAdapter.cpp
+        src/PathOrderMonotonic.cpp
         src/Preheat.cpp
+        src/PrintInformation.cpp
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
         src/PrimeTower/PrimeTowerInterleaved.cpp
         src/raft.cpp
         src/Scene.cpp
-        src/SkeletalTrapezoidation.cpp
-        src/SkeletalTrapezoidationGraph.cpp
         src/skin.cpp
         src/SkirtBrim.cpp
         src/SupportInfillPart.cpp
@@ -79,12 +86,20 @@ set(engine_SRCS # Except main.cpp.
         src/slicer.cpp
         src/support.cpp
         src/timeEstimate.cpp
+        src/SlicedUVCoordinates.cpp
+        src/TextureDataProvider.cpp
         src/TopSurface.cpp
         src/TreeSupportTipGenerator.cpp
         src/TreeModelVolumes.cpp
         src/TreeSupport.cpp
+        src/TreeSupportElement.cpp
         src/WallsComputation.cpp
         src/WallToolPaths.cpp
+
+        src/arachne/SkeletalTrapezoidation.cpp
+        src/arachne/SkeletalTrapezoidationGraph.cpp
+        src/arachne/STHalfEdge.cpp
+        src/arachne/STHalfEdgeNode.cpp
 
         src/BeadingStrategy/BeadingStrategy.cpp
         src/BeadingStrategy/BeadingStrategyFactory.cpp
@@ -93,6 +108,13 @@ set(engine_SRCS # Except main.cpp.
         src/BeadingStrategy/RedistributeBeadingStrategy.cpp
         src/BeadingStrategy/WideningBeadingStrategy.cpp
         src/BeadingStrategy/OuterWallInsetBeadingStrategy.cpp
+        src/BeadingStrategy/InnerWallInsetBeadingStrategy.cpp
+
+        src/bridge/bridge.cpp
+        src/bridge/ExpansionRange.cpp
+        src/bridge/SegmentOverlappingData.cpp
+        src/bridge/TransformedSegment.cpp
+        src/bridge/TransformedShape.cpp
 
         src/communication/ArcusCommunication.cpp
         src/communication/ArcusCommunicationPrivate.cpp
@@ -100,6 +122,12 @@ set(engine_SRCS # Except main.cpp.
         src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
 
+        src/gcode_export/gcodeExport.cpp
+        src/gcode_export/FixedGCodePart.cpp
+        src/gcode_export/ResolvedGCodePart.cpp
+        src/gcode_export/GcodeTemplateResolver.cpp
+
+        src/infill/AbstractLinesInfill.cpp
         src/infill/ImageBasedDensityProvider.cpp
         src/infill/NoZigZagConnectorProcessor.cpp
         src/infill/ZigzagConnectorProcessor.cpp
@@ -107,6 +135,7 @@ set(engine_SRCS # Except main.cpp.
         src/infill/LightningGenerator.cpp
         src/infill/LightningLayer.cpp
         src/infill/LightningTreeNode.cpp
+        src/infill/RegularNGonalInfill.cpp
         src/infill/SierpinskiFill.cpp
         src/infill/SierpinskiFillProvider.cpp
         src/infill/SubDivCube.cpp
@@ -127,12 +156,15 @@ set(engine_SRCS # Except main.cpp.
         src/settings/FlowTempGraph.cpp
         src/settings/MeshPathConfigs.cpp
         src/settings/PathConfigStorage.cpp
+        src/settings/SettingContainersEnvironmentAdapter.cpp
         src/settings/Settings.cpp
         src/settings/ZSeamConfig.cpp
 
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp
         src/utils/channel.cpp
+        src/utils/Segment3LL.cpp
+        src/utils/CuraViz.cpp
         src/utils/Date.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
@@ -141,7 +173,10 @@ set(engine_SRCS # Except main.cpp.
         src/utils/linearAlg2D.cpp
         src/utils/ListPolyIt.cpp
         src/utils/Matrix4x3D.cpp
+        src/utils/MeshUtils.cpp
         src/utils/MinimumSpanningTree.cpp
+        src/utils/OBJ.cpp
+        src/utils/PlanarPolygon3LL.cpp
         src/utils/PolygonConnector.cpp
         src/utils/PolygonsPointIndex.cpp
         src/utils/PolygonsSegmentIndex.cpp
@@ -149,17 +184,30 @@ set(engine_SRCS # Except main.cpp.
         src/utils/PolylineStitcher.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp
+        src/utils/SpatialLookup.cpp
         src/utils/SquareGrid.cpp
         src/utils/ThreadPool.cpp
         src/utils/ToolpathVisualizer.cpp
         src/utils/VoronoiUtils.cpp
+        src/utils/VoxelGrid.cpp
         src/utils/VoxelUtils.cpp
         src/utils/MixedPolylineStitcher.cpp
 
+        src/utils/scoring/BestElementFinder.cpp
+        src/utils/scoring/CornerScoringCriterion.cpp
+        src/utils/scoring/DistanceScoringCriterion.cpp
+        src/utils/scoring/ExclusionAreaScoringCriterion.cpp
+        src/utils/scoring/PositionBasedScoringCriterion.cpp
+        src/utils/scoring/RandomScoringCriterion.cpp
+        src/utils/scoring/TextureScoringCriterion.cpp
+
+        src/geometry/ClosedLinesSet.cpp
+        src/geometry/OpenLinesSet.cpp
         src/geometry/Point2LL.cpp
         src/geometry/Point3LL.cpp
         src/geometry/Polygon.cpp
         src/geometry/Shape.cpp
+        src/geometry/PointMatrix.cpp
         src/geometry/PointsSet.cpp
         src/geometry/SingleShape.cpp
         src/geometry/PartsView.cpp
@@ -167,6 +215,9 @@ set(engine_SRCS # Except main.cpp.
         src/geometry/Polyline.cpp
         src/geometry/ClosedPolyline.cpp
         src/geometry/MixedLinesSet.cpp
+        src/geometry/MendedShape.cpp
+
+        src/geometry/conversions/Point2D_Point2LL.cpp
 )
 
 add_library(_CuraEngine STATIC ${engine_SRCS} ${engine_PB_SRCS})
@@ -186,9 +237,11 @@ target_compile_definitions(_CuraEngine
         PUBLIC
         $<$<BOOL:${ENABLE_ARCUS}>:ARCUS>
         $<$<BOOL:${ENABLE_PLUGINS}>:ENABLE_PLUGINS>
+        $<$<BOOL:${ENABLE_CURAVIZ}>:ENABLE_CURAVIZ>
         $<$<AND:$<BOOL:${ENABLE_PLUGINS}>,$<BOOL:${ENABLE_REMOTE_PLUGINS}>>:ENABLE_REMOTE_PLUGINS>
         $<$<BOOL:${OLDER_APPLE_CLANG}>:OLDER_APPLE_CLANG>
         CURA_ENGINE_VERSION=\"${CURA_ENGINE_VERSION}\"
+        CURA_ENGINE_HASH=\"${CURA_ENGINE_HASH}\"
         $<$<BOOL:${ENABLE_TESTING}>:BUILD_TESTS>
         PRIVATE
         $<$<BOOL:${WIN32}>:NOMINMAX>
@@ -216,6 +269,12 @@ find_package(spdlog REQUIRED)
 find_package(fmt REQUIRED)
 find_package(range-v3 REQUIRED)
 find_package(scripta REQUIRED)
+find_package(PNG REQUIRED)
+find_package(cura-formulae-engine REQUIRED)
+
+if (NOT EMSCRIPTEN)
+    find_package(TBB REQUIRED)
+endif ()
 
 if (ENABLE_SENTRY)
     find_package(sentry REQUIRED)
@@ -236,8 +295,12 @@ target_link_libraries(_CuraEngine
         stb::stb
         boost::boost
         scripta::scripta
+        PNG::PNG
+        cura-formulae-engine::cura-formulae-engine
+        $<$<NOT:$<BOOL:${EMSCRIPTEN}>>:onetbb::onetbb>
         $<$<TARGET_EXISTS:semver::semver>:semver::semver>
         $<$<TARGET_EXISTS:curaengine_grpc_definitions::curaengine_grpc_definitions>:curaengine_grpc_definitions::curaengine_grpc_definitions>
+        $<$<TARGET_EXISTS:curaviz_grpc_definitions::curaviz_grpc_definitions>:curaviz_grpc_definitions::curaviz_grpc_definitions>
         $<$<TARGET_EXISTS:asio-grpc::asio-grpc>:asio-grpc::asio-grpc>
         $<$<TARGET_EXISTS:grpc::grpc>:grpc::grpc>
         $<$<TARGET_EXISTS:protobuf::libprotobuf>:protobuf::libprotobuf>
@@ -246,6 +309,7 @@ target_link_libraries(_CuraEngine
 
 target_compile_definitions(_CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        SENTRY_ENVIRONMENT=\"${SENTRY_ENVIRONMENT}\"
 )
 
 if (NOT WIN32)
@@ -270,7 +334,7 @@ if (ENABLE_THREADING)
     use_threads(CuraEngine)
 endif ()
 
-if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
+if (EMSCRIPTEN)
     message(STATUS "Building for Emscripten")
     target_link_options(_CuraEngine
             PUBLIC
@@ -286,13 +350,13 @@ if (CMAKE_CXX_PLATFORM_ID STREQUAL "emscripten")
             "SHELL:-sERROR_ON_UNDEFINED_SYMBOLS=0"
             "SHELL:-sWASM_BIGINT=1"
             "SHELL:-sSTACK_SIZE=196608"
-           $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
+            $<$<CONFIG:Debug>:SHELL:-sASSERTIONS=2>
             $<$<CONFIG:Debug>:SHELL:-sSAFE_HEAP=1>
             $<$<CONFIG:Debug>:SHELL:-sSTACK_OVERFLOW_CHECK=2>
             $<$<CONFIG:Debug>:SHELL:-g3>
             $<$<CONFIG:Debug>:SHELL:-gsource-map>
             "SHELL:-lembind"
-            "SHELL:--embind-emit-tsd CuraEngine.d.ts"
+            "SHELL:--emit-tsd CuraEngine.d.ts"
     )
 endif ()
 
@@ -302,6 +366,7 @@ target_link_libraries(CuraEngine PRIVATE
 )
 target_compile_definitions(CuraEngine PRIVATE
         $<$<BOOL:${ENABLE_SENTRY}>:SENTRY_URL=\"${SENTRY_URL}\">
+        SENTRY_ENVIRONMENT=\"${SENTRY_ENVIRONMENT}\"
         VERSION=\"${CURA_ENGINE_VERSION}\"
 )
 

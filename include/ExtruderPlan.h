@@ -6,7 +6,6 @@
 
 #include "FanSpeedLayerTime.h"
 #include "RetractionConfig.h"
-#include "gcodeExport.h"
 #include "geometry/Point2LL.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
@@ -27,6 +26,7 @@ namespace cura
 {
 class LayerPlanBuffer;
 class LayerPlan;
+class GCodeExport;
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
  *
@@ -42,7 +42,9 @@ class ExtruderPlan
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull);
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf);
     FRIEND_TEST(ExtruderPlanTest, BackPressureCompensationEmptyPlan);
-    friend class FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
+    FRIEND_TEST(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet);
+    FRIEND_TEST(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary);
 #endif
 public:
     size_t extruder_nr_{ 0 }; //!< The extruder used for this paths in the current plan.
@@ -76,9 +78,11 @@ public:
      *
      * \param path_idx The index into ExtruderPlan::paths which is currently being consider for temperature command insertion
      * \param gcode The gcode exporter to which to write the temperature command.
-     * \param cumulative_path_time The time spend on this path up to this point.
+     * \param cumulative_path_time The time spent on this path up to this point. Inserts whose path_idx is strictly less
+     *        than the current path_idx are considered overdue and will be fired unconditionally. Inserts whose path_idx
+     *        equals the current path_idx are fired only once cumulative_path_time reaches their time_after_path_start.
      */
-    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time = std::numeric_limits<double>::infinity());
+    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time);
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
@@ -123,6 +127,22 @@ public:
      * \param The amount of back-pressure compensation as a ratio. 'Applying' a value of 0 is a no-op.
      */
     void applyBackPressureCompensation(const Ratio back_pressure_compensation);
+
+    /*!
+     * Gets the mesh being printed first on this plan
+     */
+    std::shared_ptr<const SliceMeshStorage> findFirstPrintedMesh() const;
+
+    /*! \brief Calculates whether this extruder plan actually has at least one extrusion move */
+    bool hasExtrusion() const;
+
+    /*!
+     * \brief Calculate the total bounding box of extrusion moves
+     * \note This is not 100% accurate since at this point we don't know the start position of the extruder plan. So if the very first
+     *       move happens to be an extrusion move and the start position is the outermost of the bounding box, it will not be accounted
+     *       for and the bounding box will be approximate.
+     */
+    AABB calculateExtrusionBoundingBox() const;
 
 private:
     LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
@@ -191,7 +211,7 @@ private:
     /*!
      * @return distance between p0 and p1 as well as the time spend on the segment
      */
-    std::pair<double, double> getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path);
+    std::pair<double, double> getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path) const;
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.

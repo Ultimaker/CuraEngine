@@ -30,7 +30,7 @@ struct formatter<std::filesystem::path> : formatter<string_view>
     }
 
     template<typename FormatContext>
-    auto format(const std::filesystem::path& path, FormatContext& ctx)
+    auto format(const std::filesystem::path& path, FormatContext& ctx) const
     {
         return formatter<string_view>::format(anonymizePath(path.generic_string()), ctx);
     }

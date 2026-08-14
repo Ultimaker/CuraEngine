@@ -130,6 +130,9 @@ private:
     const coord_t offset_from_outlines_; //!< Offset from the boundary of a part to the comb path. (nozzle width / 2)
     const coord_t
         max_moveInside_distance2_; //!< Maximal distance of a point to the Comb::boundary_inside which is still to be considered inside. (very sharp corners not allowed :S)
+    const coord_t max_move_inside_distance_enlarged2_; //!< Enlarged distance for moving points inside, useful when checking for points that are likely to be close to the limit and
+                                                       //!< should be accepted
+    static constexpr coord_t max_move_inside_enlarge_distance_ = 250; //!< Distance to enlarge the move_inside distance with for specific cases with on-border issues
     const coord_t offset_from_inside_to_outside_; //!< The sum of the offsets for the inside and outside boundary Comb::offset_from_outlines and Comb::offset_from_outlines_outside
     const coord_t max_crossing_dist2_; //!< The maximal distance by which to cross the in_between area between inside and outside
     static const coord_t max_moveOutside_distance2_ = std::numeric_limits<coord_t>::max(); //!< Any point which is not inside should be considered outside.
@@ -177,11 +180,18 @@ private:
      * \param inside_loc_to_line[in] A SparseGrid mapping locations to line segments of \p polygons
      * \param dest_point[in,out] The point to move
      * \param start_inside_poly[out] The polygon in which the point has been moved
+     * \param max_move_inside_distance_squared[in] A specific maximum tolerated (squared) distance to move inside the boundaries, or nullopt to use the global one
      * \return Whether we have moved the point inside
      */
-    bool moveInside(Shape& boundary_inside, bool is_inside, LocToLineGrid* inside_loc_to_line, Point2LL& dest_point, size_t& start_inside_poly);
+    bool moveInside(
+        Shape& boundary_inside,
+        bool is_inside,
+        LocToLineGrid* inside_loc_to_line,
+        Point2LL& dest_point,
+        size_t& start_inside_poly,
+        const std::optional<coord_t>& max_move_inside_distance_squared = std::nullopt);
 
-    void moveCombPathInside(Shape& boundary_inside, Shape& boundary_inside_optimal, CombPath& comb_path_input, CombPath& comb_path_output);
+    void moveCombPathInside(const Shape& boundary_inside, const Shape& boundary_inside_optimal, const CombPath& comb_path_input, CombPath& comb_path_output);
 
 public:
     /*!
@@ -222,11 +232,18 @@ public:
      * \param perform_z_hops Whether to Z hop when retracted.
      * \param perform_z_hops_only_when_collides Whether to Z hop only over printed parts.
      * \param train Extruder train, for settings and extruder-nr. NOTE: USe for travel settings and 'extruder-nr' only, don't use for z-hop/retraction/wipe settings, as that should
-     * also be settable per mesh! \param startPoint Where to start moving from. \param endPoint Where to move to. \param[out] combPoints The points along the combing path,
-     * excluding the \p startPoint (?) and \p endPoint. \param startInside Whether we want to start inside the comb boundary. \param endInside Whether we want to end up inside the
-     * comb boundary. \param unretract_before_last_travel_move Whether we should unretract before the last travel move when travelling because of combing. If the endpoint of a
-     * travel path changes with combing, then it means that an outer wall is involved, which means that we should then unretract before the last travel move to that wall to avoid
-     * any blips being introduced due to the unretraction. \return Whether combing has succeeded; otherwise a retraction is needed.
+     *              also be settable per mesh!
+     * \param startPoint Where to start moving from.
+     * \param endPoint Where to move to.
+     * \param[out] combPoints The points along the combing path, excluding the \p startPoint (?) and \p endPoint.
+     * \param startInside Whether we want to start inside the comb boundary.
+     * \param endInside Whether we want to end up inside the comb boundary.
+     * \param[out] unretract_before_last_travel_move Whether we should unretract before the last travel move when travelling because of combing. If the endpoint of a
+     *                                               travel path changes with combing, then it means that an outer wall is involved, which means that we should then unretract
+     *                                               before the last travel move to that wall to avoid any blips being introduced due to the unretraction.
+     * \param[out] do_retracted_move Indicates if the travel move should be done retracted. When the combing works in degraded mode, i.e. close the walls, it is better to still
+     *                               retract to avoid oozing over the external walls.
+     * \return Whether combing has succeeded; otherwise a retraction is needed.
      */
     bool calc(
         bool perform_z_hops,
@@ -238,7 +255,8 @@ public:
         bool startInside,
         bool endInside,
         coord_t max_comb_distance_ignored,
-        bool& unretract_before_last_travel_move);
+        bool& unretract_before_last_travel_move,
+        bool& do_retracted_move);
 };
 
 } // namespace cura

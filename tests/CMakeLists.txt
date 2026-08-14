@@ -5,31 +5,35 @@ message(STATUS "Building tests...")
 include(GoogleTest)
 
 set(TESTS_SRC_BASE
+        AntiOozeAmountsTest
         ClipperTest
         ExtruderPlanTest
         FffGcodeWriterTest
         GCodeExportTest
+        GCodeTemplateResolverTest
         InfillTest
         LayerPlanTest
         PathOrderOptimizerTest
         PathOrderMonotonicTest
         TimeEstimateCalculatorTest
         WallsComputationTest
-        )
+)
 
 set(TESTS_SRC_INTEGRATION
         SlicePhaseTest
-        )
+)
 
 set(TESTS_SRC_SETTINGS
         SettingsTest
-        )
+)
 
 set(TESTS_SRC_UTILS
         AABBTest
         AABB3DTest
+        CoordTTest
         IntPointTest
         LinearAlg2DTest
+        MathTest
         MinimumSpanningTreeTest
         PolygonConnectorTest
         PolygonTest
@@ -39,7 +43,7 @@ set(TESTS_SRC_UTILS
         SparseGridTest
         StringTest
         UnionFindTest
-        )
+)
 
 foreach (test ${TESTS_SRC_BASE})
     add_executable(${test} main.cpp ${test}.cpp)

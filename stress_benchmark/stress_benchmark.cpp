@@ -17,6 +17,7 @@
 #include <boost/geometry/geometries/polygon.hpp>
 #include <boost/geometry/io/wkt/read.hpp>
 #include <fmt/format.h>
+#include <fmt/ranges.h>
 #include <spdlog/spdlog.h>
 
 #include "WallsComputation.h"
@@ -163,7 +164,7 @@ size_t checkCrashCount(size_t crashCount, int status, const auto& resource)
     if (WIFSIGNALED(status))
     {
         ++crashCount;
-        spdlog::error("# Crash detected for: {}", resource.stem());
+        spdlog::critical("# Crash detected for: {}", resource.stem());
     }
     else
     {
@@ -232,7 +233,7 @@ int main(int argc, const char** argv)
         const auto& shapes = resource.polygons();
         const auto& settings = resource.settings();
 
-        spdlog::critical("Starting test case {}", resource.stem());
+        spdlog::info("Starting test case {}", resource.stem());
         pid_t engine_pid = fork();
         if (engine_pid == -1)
         {

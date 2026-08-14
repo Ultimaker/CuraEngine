@@ -16,7 +16,7 @@
 #include "PrimeTower/PrimeTowerNormal.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "gcodeExport.h"
+#include "gcode_export/gcodeExport.h"
 #include "infill.h"
 #include "raft.h"
 #include "sliceDataStorage.h"
@@ -50,8 +50,7 @@ PrimeTower::PrimeTower()
 
         for (coord_t z = 0; z < base_height; z += layer_height)
         {
-            const double brim_radius_factor = std::pow((1.0 - static_cast<double>(z) / static_cast<double>(base_height)), base_curve_magnitude);
-            const coord_t extra_radius = std::llrint(static_cast<double>(base_extra_radius) * brim_radius_factor);
+            const coord_t extra_radius = LinearAlg2D::getSlopedWidth(base_extra_radius, base_height, base_curve_magnitude, z);
             const coord_t total_radius = tower_radius + extra_radius;
             base_occupied_outline_.push_back(OccupiedOutline{ PolygonUtils::makeDisc(middle_, total_radius, circle_definition_), total_radius });
         }
@@ -138,16 +137,26 @@ std::tuple<ClosedLinesSet, coord_t> PrimeTower::generatePrimeToolpaths(const siz
 ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
-    const double max_bridging_distance = static_cast<double>(scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_max_bridging_distance"));
-    const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
+    const Settings& extruder_settings = scene.extruders[extruder_nr].settings_;
+    const coord_t line_width = extruder_settings.get<coord_t>("prime_tower_line_width");
+    const double max_bridging_distance = static_cast<double>(std::max(extruder_settings.get<coord_t>("prime_tower_max_bridging_distance"), line_width));
     const coord_t radius_delta = outer_radius - inner_radius;
     const coord_t semi_line_width = line_width / 2;
 
     ClosedLinesSet toolpaths;
-
     // Split annuli according to max bridging distance
     const coord_t nb_annuli = static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
-    if (nb_annuli > 0)
+    const coord_t nb_circles = radius_delta / line_width;
+
+    if (nb_circles <= nb_annuli)
+    {
+        // Bridging distance is too small for a proper wheel pattern; use solid concentric circles instead.
+        for (coord_t i = 0; i < nb_circles; ++i)
+        {
+            toolpaths.push_back(PolygonUtils::makeCircle(middle_, outer_radius - semi_line_width - i * line_width, circle_definition_));
+        }
+    }
+    else if (nb_annuli > 0)
     {
         const coord_t actual_radius_step = radius_delta / nb_annuli;
 
@@ -351,7 +360,7 @@ bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
     LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr != -Raft::getTotalExtraLayers())
+    if (layer_nr != -LayerIndex(Raft::getTotalExtraLayers()))
     {
         coord_t wipe_radius;
         auto iterator = base_occupied_outline_.iterator_at(gcode_layer.getLayerNr());

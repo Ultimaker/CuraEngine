@@ -6,20 +6,24 @@
 
 #include <memory>
 
-#include "geometry/ClosedLinesSet.h"
-#include "geometry/OpenLinesSet.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
 
-class Polyline;
 class ClosedPolyline;
+class ClosedLinesSet;
+class OpenLinesSet;
+class OpenPolyline;
 class Polygon;
+class Polyline;
 class Shape;
 
 using PolylinePtr = std::shared_ptr<Polyline>;
 using OpenPolylinePtr = std::shared_ptr<OpenPolyline>;
+
+template<class LineType>
+class LinesSet;
 
 /*!
  * \brief Convenience definition for a container that can hold any type of polyline.
@@ -28,6 +32,12 @@ using OpenPolylinePtr = std::shared_ptr<OpenPolyline>;
 class MixedLinesSet : public std::vector<PolylinePtr>
 {
 public:
+    MixedLinesSet() = default;
+
+    MixedLinesSet(const ClosedLinesSet& lines);
+
+    MixedLinesSet(ClipperLib::PolyTree&& tree);
+
     /*!
      * \brief Computes the offset of all the polylines contained in the set. The polylines may
      *        be of different types, and polylines are polygons are treated differently.
@@ -38,8 +48,15 @@ public:
      */
     [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
+    MixedLinesSet intersection(const Shape& shape) const;
+
+    MixedLinesSet difference(const Shape& shape) const;
+
     /*! @brief Adds a copy of the given polyline to the set */
     void push_back(const OpenPolyline& line);
+
+    /*! @brief Adds a copy of the given polyline to the set */
+    void push_back(const ClosedPolyline& line);
 
     /*! @brief Adds a copy of the given polyline to the set */
     void push_back(const Polygon& line);
@@ -56,11 +73,10 @@ public:
     /*! @brief Adds the given shared pointer to the set. The pointer reference count will be incremeted but no data is actually copied. */
     void push_back(const PolylinePtr& line);
 
-    /*! @brief Adds a copy of all the polygons contained in the shape */
-    void push_back(const Shape& shape);
-
     /*! @brief Adds a copy of all the polygons contained in the set */
     void push_back(const LinesSet<Polygon>& lines_set);
+
+    void push_back(LinesSet<Polygon>&& lines_set);
 
     /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(const OpenLinesSet& lines_set);
@@ -69,9 +85,16 @@ public:
     void push_back(OpenLinesSet&& lines_set);
 
     /*! @brief Adds a copy of all the polylines contained in the set */
+    void push_back(const ClosedLinesSet& lines_set);
+
+    /*! @brief Adds a copy of all the polylines contained in the set */
     void push_back(ClosedLinesSet&& lines_set);
 
-    /*! \brief Computes the total lenght of all the polylines in the set */
+    void push_back(const MixedLinesSet& lines_set);
+
+    void push_back(MixedLinesSet&& lines_set);
+
+    /*! \brief Computes the total length of all the polylines in the set */
     [[nodiscard]] coord_t length() const;
 };
 

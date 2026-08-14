@@ -15,6 +15,7 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <numbers>
 #include <polyclipping/clipper.hpp>
 
+#include "settings/types/Angle.h"
 #include "utils/Coord_t.h"
 #include "utils/types/generic.h"
 
@@ -103,11 +104,6 @@ INLINE Point2LL& operator-=(Point2LL& p0, const Point2LL& p1)
     return p0;
 }
 
-INLINE bool operator<(const Point2LL& p0, const Point2LL& p1)
-{
-    return p0.X < p1.X || (p0.X == p1.X && p0.Y < p1.Y);
-}
-
 /* ***** NOTE *****
    TL;DR: DO NOT implement operators *= and /= because of the default values in ClipperLib::IntPoint's constructor.
 
@@ -153,6 +149,11 @@ INLINE coord_t vSize(const Point2LL& p0)
     return std::llrint(sqrt(static_cast<double>(vSize2(p0))));
 }
 
+INLINE coord_t vSizef(const Point2LL& p0)
+{
+    return std::sqrt(vSize2f(p0));
+}
+
 INLINE double vSizeMM(const Point2LL& p0)
 {
     double fx = INT2MM(p0.X);
@@ -194,20 +195,20 @@ INLINE coord_t cross(const Point2LL& p0, const Point2LL& p1)
     return p0.X * p1.Y - p0.Y * p1.X;
 }
 
-INLINE double angle(const Point2LL& p)
-{
-    double angle = std::atan2(p.X, p.Y) / std::numbers::pi * 180.0;
-    if (angle < 0.0)
-    {
-        angle += 360.0;
-    }
-    return angle;
-}
-
 // Identity function, used to be able to make templated algorithms where the input is sometimes points, sometimes things that contain or can be converted to points.
 INLINE const Point2LL& make_point(const Point2LL& p)
 {
     return p;
+}
+
+INLINE const AngleRadians angle_rad(const Point2LL& p)
+{
+    return std::atan2(p.Y, p.X);
+}
+
+INLINE const AngleDegrees angle_deg(const Point2LL& p)
+{
+    return AngleDegrees(angle_rad(p));
 }
 
 Point2LL operator+(const Point2LL& p2, const Point3LL& p3);
@@ -221,6 +222,17 @@ Point3LL operator-(const Point3LL& p3, const Point2LL& p2);
 Point3LL& operator-=(Point3LL& p3, const Point2LL& p2);
 
 Point2LL operator-(const Point2LL& p2, const Point3LL& p3);
+
+inline Point2LL lerp(const Point2LL& a, const Point2LL& b, const double t)
+{
+    return Point2LL(lerp(a.X, b.X, t), lerp(a.Y, b.Y, t));
+}
+
+/*! Returns true if the points are equal or close enough to each other to be considered equal */
+inline bool fuzzy_equal(const Point2LL& a, const Point2LL& b)
+{
+    return fuzzy_equal(a.X, b.X) && fuzzy_equal(a.Y, b.Y);
+}
 
 } // namespace cura
 
@@ -239,5 +251,13 @@ struct hash<cura::Point2LL>
     }
 };
 } // namespace std
+
+namespace ClipperLib
+{
+inline bool operator<(const IntPoint& lhs, const IntPoint& rhs)
+{
+    return lhs.X < rhs.X || (lhs.X == rhs.X && lhs.Y < rhs.Y);
+}
+} // namespace ClipperLib
 
 #endif // GEOMETRY_POINT2LL_H

@@ -8,16 +8,15 @@
 
 #include <range/v3/view/drop.hpp>
 
-#include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
 
 namespace cura
 {
 
 class Shape;
-template<class LineType>
-class LinesSet;
-class OpenPolyline;
+class OpenLinesSet;
+class PointMatrix;
+class Point3Matrix;
 
 enum class CheckNonEmptyParam
 {
@@ -72,19 +71,12 @@ public:
     }
 
     /*!
-     * \brief Constructor that takes ownership of the data from the given set of lines
-     * \warning This constructor is actually only defined for a LinesSet containing OpenPolyline
-     *          objects, because closed ones require an additional argument
+     * \brief Constructor with a lines initializer list, provided for convenience
+     * \warning A copy of the lines list is made, so this constructor is somehow "slow"
      */
-    template<typename U = LineType>
-    requires std::is_same_v<U, OpenPolyline>
-    explicit LinesSet(ClipperLib::Paths&& paths)
+    explicit LinesSet(const std::initializer_list<LineType>& initializer)
+        : lines_{ initializer }
     {
-        reserve(paths.size());
-        for (ClipperLib::Path& path : paths)
-        {
-            lines_.emplace_back(std::move(path));
-        }
     }
 
     const std::vector<LineType>& getLines() const
@@ -199,6 +191,11 @@ public:
         lines_.emplace_back(std::forward<decltype(args)>(args)...);
     }
 
+    void insert(const_iterator iterator, LineType&& line)
+    {
+        lines_.insert(iterator, std::move(line));
+    }
+
     iterator erase(const_iterator first, const_iterator last)
     {
         return lines_.erase(first, last);
@@ -218,6 +215,16 @@ public:
         return lines_[index];
     }
 
+    const LineType& at(size_t index) const
+    {
+        return lines_.at(index);
+    }
+
+    LineType& at(size_t index)
+    {
+        return lines_.at(index);
+    }
+
     LineType& newLine()
     {
         lines_.emplace_back();
@@ -233,9 +240,6 @@ public:
      */
     void removeAt(size_t index);
 
-    /*! \brief Add a simple line consisting of two points */
-    void addSegment(const Point2LL& from, const Point2LL& to);
-
     /*! \brief Get the total length of all the lines */
     [[nodiscard]] coord_t length() const;
 
@@ -247,32 +251,17 @@ public:
 
     [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
-    /*!
-     * Utility method for creating the tube (or 'donut') of a shape.
-     *
-     * \param inner_offset Offset relative to the original shape-outline towards the inside of the
-     *        shape. Sort-of like a negative normal offset, except it's the offset part that's kept,
-     *        not the shape.
-     * \param outer_offset Offset relative to the original shape-outline towards the outside of the
-     *        shape. Comparable to normal offset.
-     * \return The resulting polygons.
-     */
-    [[nodiscard]] Shape createTubeShape(const coord_t inner_offset, const coord_t outer_offset) const;
-
     void translate(const Point2LL& delta);
+
+    void applyMatrix(const PointMatrix& matrix);
+
+    void applyMatrix(const Point3Matrix& matrix);
 
     /*!
      * \brief Utility method to add all the lines to a ClipperLib::Clipper object
      * \note This method needs to be public but you shouldn't need to use it from outside
      */
     void addPaths(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const;
-
-    /*!
-     * \brief Utility method to add a line to a ClipperLib::Clipper object
-     * \note This method needs to be public but you shouldn't need to use it from outside
-     */
-    template<class OtherLineLine>
-    void addPath(ClipperLib::Clipper& clipper, const OtherLineLine& line, ClipperLib::PolyType poly_typ) const;
 
     /*!
      * \brief Utility method to add all the lines to a ClipperLib::ClipperOffset object

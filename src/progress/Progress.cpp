@@ -3,6 +3,7 @@
 
 #include "progress/Progress.h"
 
+#include <algorithm>
 #include <cassert>
 #include <optional>
 
@@ -21,8 +22,7 @@ std::optional<LayerIndex> Progress::first_skipped_layer{};
 
 double Progress::calcOverallProgress(Stage stage, double stage_progress)
 {
-    assert(stage_progress <= 1.0);
-    assert(stage_progress >= 0.0);
+    stage_progress = std::clamp(stage_progress, 0.0, 1.0);
     return (accumulated_times.at(static_cast<size_t>(stage)) + stage_progress * times.at(static_cast<size_t>(stage))) / total_timing;
 }
 

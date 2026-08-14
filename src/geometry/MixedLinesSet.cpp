@@ -5,13 +5,55 @@
 
 #include <numeric>
 
-#include "geometry/OpenPolyline.h"
+#include "geometry/ClosedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
 
 namespace cura
 {
+
+MixedLinesSet::MixedLinesSet(const ClosedLinesSet& lines)
+{
+    push_back(lines);
+}
+
+MixedLinesSet::MixedLinesSet(ClipperLib::PolyTree&& tree)
+{
+    ClipperLib::Paths polylines;
+    ClipperLib::OpenPathsFromPolyTree(tree, polylines); // Open with clipperlib means non-surface (polyline)
+    constexpr bool polyline_explicitely_closed = true;
+    for (ClipperLib::Path& path : polylines)
+    {
+        if (path.empty())
+        {
+            continue;
+        }
+
+        if (path.front() == path.back())
+        {
+            push_back(ClosedPolyline(std::move(path), polyline_explicitely_closed));
+        }
+        else
+        {
+            push_back(OpenPolyline(std::move(path)));
+        }
+    }
+
+    ClipperLib::Paths polygons;
+    ClipperLib::ClosedPathsFromPolyTree(tree, polygons); // Closed with clipperlib means surface (polygon)
+    constexpr bool polygon_explicitely_closed = false;
+    for (ClipperLib::Path& path : polygons)
+    {
+        if (path.empty())
+        {
+            continue;
+        }
+
+        push_back(Polygon(std::move(path), polygon_explicitely_closed));
+    }
+}
 
 Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
@@ -74,9 +116,54 @@ Shape MixedLinesSet::offset(coord_t distance, ClipperLib::JoinType join_type, do
     return Shape{ std::move(result) };
 }
 
+MixedLinesSet MixedLinesSet::intersection(const Shape& shape) const
+{
+    if (empty() || shape.empty())
+    {
+        return {};
+    }
+
+    ClipperLib::PolyTree ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    for (const PolylinePtr& line : (*this))
+    {
+        line->addPath(clipper, ClipperLib::ptSubject);
+    }
+    shape.addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctIntersection, ret);
+    return MixedLinesSet(std::move(ret));
+}
+
+MixedLinesSet MixedLinesSet::difference(const Shape& shape) const
+{
+    if (empty())
+    {
+        return {};
+    }
+    if (shape.empty())
+    {
+        return *this;
+    }
+
+    ClipperLib::PolyTree ret;
+    ClipperLib::Clipper clipper(clipper_init);
+    for (const PolylinePtr& line : (*this))
+    {
+        line->addPath(clipper, ClipperLib::ptSubject);
+    }
+    shape.addPaths(clipper, ClipperLib::ptClip);
+    clipper.Execute(ClipperLib::ctDifference, ret);
+    return MixedLinesSet(std::move(ret));
+}
+
 void MixedLinesSet::push_back(const OpenPolyline& line)
 {
     std::vector<PolylinePtr>::push_back(std::make_shared<OpenPolyline>(line));
+}
+
+void MixedLinesSet::push_back(const ClosedPolyline& line)
+{
+    std::vector<PolylinePtr>::push_back(std::make_shared<ClosedPolyline>(line));
 }
 
 void MixedLinesSet::push_back(OpenPolyline&& line)
@@ -131,6 +218,25 @@ void MixedLinesSet::push_back(ClosedLinesSet&& lines_set)
     }
 }
 
+void MixedLinesSet::push_back(const ClosedLinesSet& lines_set)
+{
+    reserve(size() + lines_set.size());
+    for (const ClosedPolyline& line : lines_set)
+    {
+        push_back(line);
+    }
+}
+
+void MixedLinesSet::push_back(const MixedLinesSet& lines_set)
+{
+    insert(end(), lines_set.begin(), lines_set.end());
+}
+
+void MixedLinesSet::push_back(MixedLinesSet&& lines_set)
+{
+    insert(end(), std::make_move_iterator(lines_set.begin()), std::make_move_iterator(lines_set.end()));
+}
+
 void MixedLinesSet::push_back(const LinesSet<Polygon>& lines_set)
 {
     reserve(size() + lines_set.size());
@@ -140,9 +246,13 @@ void MixedLinesSet::push_back(const LinesSet<Polygon>& lines_set)
     }
 }
 
-void MixedLinesSet::push_back(const Shape& shape)
+void MixedLinesSet::push_back(LinesSet<Polygon>&& lines_set)
 {
-    push_back(static_cast<const LinesSet<Polygon>&>(shape));
+    reserve(size() + lines_set.size());
+    for (Polygon& line : lines_set)
+    {
+        push_back(std::move(line));
+    }
 }
 
 coord_t MixedLinesSet::length() const

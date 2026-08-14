@@ -5,6 +5,12 @@
 
 #include "communication/ArcusCommunicationPrivate.h"
 
+#include <fstream>
+#include <png.h>
+#include <rapidjson/document.h>
+#include <rapidjson/error/en.h>
+#include <rapidjson/memorystream.h>
+
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
@@ -12,6 +18,7 @@
 #include "Slice.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Matrix4x3D.h" //To convert vertices to integer-points.
+#include "utils/MeshUtils.h"
 #include "utils/Point3F.h" //To accept vertices (which are provided in floating point).
 
 namespace cura
@@ -102,7 +109,8 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
     Matrix4x3D matrix;
     for (const cura::proto::Object& object : mesh_group_message.objects())
     {
-        const size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
+        constexpr size_t bytes_per_face = sizeof(Point3F) * 3; // 3 vectors per face.
+        constexpr size_t bytes_per_uv = sizeof(Point2F) * 3; // 3 vectors per face.
         const size_t face_count = object.vertices().size() / bytes_per_face;
 
         if (face_count <= 0)
@@ -126,19 +134,37 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         {
             const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
             const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
+            const std::string uv_coordinates_str = object.uv_coordinates().empty() ? "" : object.uv_coordinates().substr(face * bytes_per_uv, bytes_per_uv);
+            const Point2F* uv_coordinates_data = uv_coordinates_str.empty() ? nullptr : reinterpret_cast<const Point2F*>(uv_coordinates_str.data());
 
             Point3LL verts[3];
             verts[0] = matrix.apply(float_vertices[0].toPoint3d());
             verts[1] = matrix.apply(float_vertices[1].toPoint3d());
             verts[2] = matrix.apply(float_vertices[2].toPoint3d());
-            mesh.addFace(verts[0], verts[1], verts[2]);
+
+            std::optional<Point2F> uv_coordinates[3];
+            if (uv_coordinates_data)
+            {
+                uv_coordinates[0] = uv_coordinates_data[0];
+                uv_coordinates[1] = uv_coordinates_data[1];
+                uv_coordinates[2] = uv_coordinates_data[2];
+            }
+
+            mesh.addFace(verts[0], verts[1], verts[2], uv_coordinates[0], uv_coordinates[1], uv_coordinates[2]);
         }
+
+        loadTextureData(object.texture(), mesh);
 
         mesh.mesh_name_ = object.name();
         mesh.finish();
     }
     object_count++;
     mesh_group.finalize();
+}
+
+void ArcusCommunication::Private::loadTextureData(const std::string& texture_str, Mesh& mesh)
+{
+    MeshUtils::loadTextureFromString(texture_str, mesh);
 }
 
 } // namespace cura

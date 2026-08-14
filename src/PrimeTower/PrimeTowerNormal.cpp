@@ -50,7 +50,7 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNorma
     std::vector<size_t> extruder_order = used_extruders_;
 
     // Then sort from high adhesion to low adhesion. This will give us the outside to inside extruder processing order.
-    std::sort(
+    std::stable_sort(
         extruder_order.begin(),
         extruder_order.end(),
         [&scene](const size_t extruder_nr_a, const size_t extruder_nr_b)
@@ -86,7 +86,7 @@ std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNorma
         std::vector<ExtruderUse> extruders_use_at_layer = *iterator;
 
         // Sort to fit the global order, in order to insert the toolpaths in outside to inside order
-        std::sort(
+        std::stable_sort(
             extruders_use_at_layer.begin(),
             extruders_use_at_layer.end(),
             [extruder_order](const ExtruderUse& extruder_use1, const ExtruderUse& extruder_use2)
