@@ -2211,20 +2211,30 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
     {
         Point2LL p_;
         coord_t width_;
-        size_t acc_;
+        size_t accumulator_;
 
         LocalMaximaPoint(const Point2LL& p, coord_t width)
             : p_(p)
             , width_(width)
-            , acc_(1)
+            , accumulator_(1)
         {
         }
 
         void operator+=(const LocalMaximaPoint& other)
         {
-            p_ = (p_ * acc_ + other.p_ * other.acc_) / (acc_ + other.acc_);
-            width_ = (width_ * acc_ + other.width_ * other.acc_) / (acc_ + other.acc_);
-            acc_ += other.acc_;
+            p_ += p_ + other.p_;
+            width_ += width_ + other.width_;
+            accumulator_ += other.accumulator_;
+        }
+
+        Point2LL getAveragePoint() const
+        {
+            return p_ / static_cast<coord_t>(accumulator_);
+        }
+
+        coord_t getAverageWidth() const
+        {
+            return width_ / static_cast<coord_t>(accumulator_);
         }
     };
 
@@ -2300,7 +2310,7 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 
         for (const auto& local_maxima_point : local_maxima_points)
         {
-            addCircleToToolpath(local_maxima_point.p_, local_maxima_point.width_, 0);
+            addCircleToToolpath(local_maxima_point.getAveragePoint(), local_maxima_point.getAverageWidth(), 0);
         }
     }
 }
