@@ -2222,8 +2222,8 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
 
         void operator+=(const LocalMaximaPoint& other)
         {
-            p_ += p_ + other.p_;
-            width_ += width_ + other.width_;
+            p_ += other.p_;
+            width_ += other.width_;
             accumulator_ += other.accumulator_;
         }
 
