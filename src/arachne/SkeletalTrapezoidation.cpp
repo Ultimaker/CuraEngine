@@ -2211,20 +2211,30 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
     {
         Point2LL p_;
         coord_t width_;
-        size_t acc_;
+        size_t accumulator_;
 
         LocalMaximaPoint(const Point2LL& p, coord_t width)
             : p_(p)
             , width_(width)
-            , acc_(1)
+            , accumulator_(1)
         {
         }
 
         void operator+=(const LocalMaximaPoint& other)
         {
-            p_ = (p_ * acc_ + other.p_ * other.acc_) / (acc_ + other.acc_);
-            width_ = (width_ * acc_ + other.width_ * other.acc_) / (acc_ + other.acc_);
-            acc_ += other.acc_;
+            p_ += other.p_;
+            width_ += other.width_;
+            accumulator_ += other.accumulator_;
+        }
+
+        Point2LL getAveragePoint() const
+        {
+            return p_ / static_cast<coord_t>(accumulator_);
+        }
+
+        coord_t getAverageWidth() const
+        {
+            return width_ / static_cast<coord_t>(accumulator_);
         }
     };
 
@@ -2247,11 +2257,16 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
             }
             else
             {
+                // lines will be removed if they are wider then they are long, if we detect such lines we don't want to print
+                // nothing since this will leave unpredictable gaps in the print. If we detect such small lines we will instead
+                // replace them with a small circle to fill the gap.
+                const auto max_local_maxima_dist = (beading_strategy_.getOptimalWidth() * 3) / 2;
+                const auto max_local_maxima_dist2 = max_local_maxima_dist * max_local_maxima_dist;
                 const auto it = ranges::find_if(
                     local_maxima_points,
                     [&](const LocalMaximaPoint& local_maxima_point)
                     {
-                        return vSize2(local_maxima_point.p_ - node.p_) < 10 * 10;
+                        return vSize2(local_maxima_point.p_ - node.p_) < max_local_maxima_dist2;
                     });
 
                 if (it != local_maxima_points.end())
@@ -2266,9 +2281,37 @@ void SkeletalTrapezoidation::generateLocalMaximaSingleBeads()
         }
     }
 
-    for (const auto& local_maxima_point : local_maxima_points)
+    bool replace_with_local_maxima = generated_toolpaths.empty() || generated_toolpaths[0].empty();
+    coord_t total_path_length = 0;
+    if (! replace_with_local_maxima)
     {
-        addCircleToToolpath(local_maxima_point.p_, local_maxima_point.width_, 0);
+        coord_t min_width = std::numeric_limits<coord_t>::max();
+        for (const auto& line : generated_toolpaths[0])
+        {
+            total_path_length += line.length();
+            for (const ExtrusionJunction& j : line)
+            {
+                min_width = std::min(min_width, j.w_);
+            }
+        }
+        replace_with_local_maxima |= total_path_length <= min_width / 2;
+    }
+
+    if (replace_with_local_maxima)
+    {
+        if (generated_toolpaths.empty())
+        {
+            generated_toolpaths.emplace_back();
+        }
+        else
+        {
+            generated_toolpaths[0].clear();
+        }
+
+        for (const auto& local_maxima_point : local_maxima_points)
+        {
+            addCircleToToolpath(local_maxima_point.getAveragePoint(), local_maxima_point.getAverageWidth(), 0);
+        }
     }
 }
 //
