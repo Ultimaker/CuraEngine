@@ -227,7 +227,7 @@ private:
      * @param width The maximum inside brim width to be generated
      * @param line_width The line width used to print the support inside brim
      */
-    void generateSupportInsideBrim(const Settings& settings, const Shape& support_outline, const size_t width, const size_t line_width);
+    void generateSupportInsideBrim(const Settings& settings, const Shape& support_outline, const coord_t width, const coord_t line_width);
 
     /*!
      * Generates the outside part of the support brim
@@ -236,7 +236,7 @@ private:
      * @param line_width The line width used to print the support inside brim
      * @param exclusion_area The exclusion areas on which the brim is not allowed to grow
      */
-    void generateSupportOutsideBrim(const Shape& support_outline, const size_t width, const size_t line_width, const Shape& exclusion_area);
+    void generateSupportOutsideBrim(const Shape& support_outline, const coord_t width, const coord_t line_width, const Shape& exclusion_area);
 
 public:
     /*!
