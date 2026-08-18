@@ -348,6 +348,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
     }
 
+#ifdef ENABLE_PLUGINS
     std::vector<std::pair<std::string, std::string>> plugins; // For each plugin: slot name, plugin name
     slots::instance().forEachPlugin(
         [&plugins](const plugins::slot_metadata& slot, const plugins::plugin_metadata& plugin)
@@ -362,6 +363,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
             prefix << fmt::format(";  [{} ({})]", plugin.second, plugin.first) << new_line_;
         }
     }
+#endif
 
     return prefix.str();
 }
