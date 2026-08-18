@@ -744,6 +744,16 @@ private:
     unsigned int findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr);
 
     /*!
+     * Retrieve all skin relevant to skin support from the indicated layer w.r.t. the indicated part (on an adjacent layer).
+     *
+     * \param skin_combined [out] Return parameter.
+     * \param mesh [in] Relevant mesh.
+     * \param part [in] The part that we're currently checking.
+     * \param skin_layer_nr [in] A layer that is adjacent to the part (so either above or below the layer of the part).
+     */
+    static void getCombinedSkinForSkinSupport(Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr);
+
+    /*!
      * Partition the Infill regions by the skin at N layers above.
      *
      * When skin edge support layers is set this function will check N layers above the infill layer to see if there is
