@@ -513,7 +513,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
     bool load_success = false;
     bool has_uv = false;
 
-    const fs::path base_filename = filename.stem();
+    const std::string base_filename = filename.stem().string();
     std::string extension = filename.extension().string();
     extension = extension.substr(1, extension.size()); // Remove the initial '.'
     ranges::transform(extension, extension.begin(), static_cast<int (*)(int)>(std::tolower)); // To lowercase
@@ -521,7 +521,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
     if (extension == "stl")
     {
         // Check for corresponding UV and PNG files
-        const fs::path uv_filename = fs::path(base_filename).replace_extension("uv");
+        const fs::path uv_filename = fs::path(base_filename + ".uv");
 
         std::vector<Point2F> uv_coordinates;
         has_uv = loadUVCoordinatesFromFile(uv_filename, uv_coordinates);
@@ -579,7 +579,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
 
         spdlog::info("loading '{}' took {:03.3f} seconds", filename.string(), load_timer.restart());
 
-        mesh.mesh_name_ = base_filename.string();
+        mesh.mesh_name_ = base_filename;
         meshgroup->meshes.push_back(mesh);
     }
 
