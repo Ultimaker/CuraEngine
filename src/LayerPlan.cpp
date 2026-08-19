@@ -940,6 +940,7 @@ void LayerPlan::addPolygon(
         scarf_seam,
         smooth_speed,
         [this, &config, &spiralize](
+            const bool skip_bridging,
             const PathAdapter<Polygon>& /*wall*/,
             const size_t /*segment_index*/,
             const Ratio& /*segment_start_ratio*/,
@@ -1076,6 +1077,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(
+    const bool skip_bridging,
     const PathAdapter<ExtrusionLine>& wall,
     const size_t segment_index,
     const Ratio& segment_start_ratio,
@@ -1233,16 +1235,20 @@ void LayerPlan::addWallLine(
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
-    else if (std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments = wallSegmentUsesBridging(
-                 bridge_wall_mask_bb_,
-                 bridge_wall_mask_,
-                 wall,
-                 segment_index,
-                 segment_start_ratio,
-                 segment_end_ratio,
-                 min_bridge_line_len,
-                 default_config.line_width);
-             ! bridging_subsegments.empty())
+    else if (
+        std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments =
+            skip_bridging ?
+                std::vector<std::tuple<Ratio, Ratio>>{} :
+                wallSegmentUsesBridging(
+                    bridge_wall_mask_bb_,
+                    bridge_wall_mask_,
+                    wall,
+                    segment_index,
+                    segment_start_ratio,
+                    segment_end_ratio,
+                    min_bridge_line_len,
+                    default_config.line_width);
+        ! bridging_subsegments.empty())
     {
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
         for (const std::tuple<Ratio, Ratio>& bridging_subsegment : bridging_subsegments)
@@ -1353,6 +1359,89 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const bool compute_distance_to_bridge_start,
     const AddExtrusionSegmentFunction<PathType>& func_add_segment)
 {
+    // Find parts where the bridge-line would deviate from the anchor-points too much.
+    std::vector<bool> skip_bridge_per_segment(wall.size(), false);
+    // TODO: nesting ifs, replace by early outs (function?)
+    // TODO: indices all over the place, maybe can do this better with ranges (at the least for putting the booleans in the per_segment vector at the end)
+    if (layer_nr_ > 0)
+    {
+        // Get 'supported by model' shape. TODO?: Probably not be the best way to do this. (This info should already be somewhere.) Do we at least know the mesh we're in?
+        Shape last_layer;
+        for (const auto& mesh : storage_.meshes)
+        {
+            last_layer = last_layer.unionPolygons(mesh->layers[layer_nr_ - 1].getOutlines());
+        }
+        //last_layer_ = last_layer_.offset(???);  // TODO: Not sure if we need to add the wall-angle offset here as well.
+
+        // Find the 1st model-supported bit of the wall.
+        size_t first_supported_index = -1;
+        for (size_t wall_i = 0; wall_i < wall.size(); ++wall_i)
+        {
+            if (last_layer.inside(wall.pointAt(wall_i)))
+            {
+                first_supported_index = wall_i;
+                break;
+            }
+        }
+
+        if (first_supported_index >= 0)
+        {
+            // Find each (model-)unsupported span (+ attachment points).
+            size_t wall_i = first_supported_index;
+            size_t last_supported_index = -1;
+            bool last_supported = true;
+            coord_t span_deviation = 0;
+            do
+            {
+                bool supported = last_layer.inside(wall.pointAt(wall_i));
+                if (supported && ! last_supported)
+                {
+                    // End of span, check span and insert appropriate values in skip-bridge vector.
+                    assert(last_supported_idx >= 0);
+                    const auto& pt_a = wall.pointAt(last_supported_index);
+                    const auto& pt_b = wall.pointAt(wall_i);
+                    const size_t seg_end = (wall_i + 1) % wall.size();
+                    if (seg_end == last_supported_index)
+                    {
+                        // Circled back, with the entire shape only having one supported point on the wall.
+                        // Don't bridge any of that. -> Not completely sure about this!
+                        skip_bridge_per_segment = std::vector<bool>(wall.size(), true); // TODO: Don't make a new vector, do this in-place.
+                    }
+                    bool skip_bridging = false;
+                    for (size_t seg_i = last_supported_index; seg_i != seg_end; seg_i = (seg_i + 1) % wall.size())
+                    {
+                        const coord_t dist = LinearAlg2D::getDistFromLine(wall.pointAt(seg_i), pt_a, pt_b);
+                        if (dist > 400)  // TODO!: Get new bridge wall max deviation setting here instead of magic number.
+                        {
+                            // Make entire span skip bridging.
+                            skip_bridging = true;
+                            break;
+                        }
+                    }
+                    if (skip_bridging)
+                    {
+                        // Mark skip_bridge_per segment.
+                        for (size_t seg_i = last_supported_index; seg_i != seg_end; seg_i = (seg_i + 1) % wall.size())
+                        {
+                            skip_bridge_per_segment[seg_i] = true;
+                        }
+                    }
+                }
+                else if (! supported)
+                {
+                    if (last_supported)
+                    {
+                        // First of span.
+                        last_supported_index = wall_i;
+                        span_deviation = 0;
+                    }
+                }
+                last_supported = supported;
+                wall_i = (wall_i + 1) % wall.size();
+            } while (wall_i != first_supported_index);
+        }
+    }
+
     std::optional<coord_t> distance_to_bridge_start; // will be updated before each line is processed
     Point2LL p0 = wall.pointAt(start_idx);
     coord_t w0 = wall.lineWidthAt(start_idx);
@@ -1532,9 +1621,11 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
 
                     // now add the (sub-)segment
                     const bool travel_to_z = wall_processed_distance == 0; // Travel to Z for first sub-segment, but only this one
+                    const size_t pt_idx = point_index(actual_point_index - 1);
                     func_add_segment(
+                        skip_bridge_per_segment[pt_idx],
                         wall,
-                        point_index(actual_point_index - 1),
+                        pt_idx,
                         static_cast<float>(segment_processed_distance) / line_length,
                         static_cast<float>(segment_processed_distance + length_to_process) / line_length,
                         split_origin,
@@ -1920,7 +2011,8 @@ void LayerPlan::addWall(
         wall.inset_idx_ == 0,
         scarf_seam,
         smooth_speed,
-        [&](const PathAdapter<ExtrusionLine>& wall,
+        [&](const bool skip_bridging,
+            const PathAdapter<ExtrusionLine>& wall,
             const size_t segment_index,
             const Ratio& segment_start_ratio,
             const Ratio& segment_end_ratio,
@@ -1933,6 +2025,7 @@ void LayerPlan::addWall(
             const bool travel_to_z)
         {
             addWallLine(
+                skip_bridging,
                 wall,
                 segment_index,
                 segment_start_ratio,

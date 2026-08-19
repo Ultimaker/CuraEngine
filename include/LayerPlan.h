@@ -616,6 +616,7 @@ public:
      * the first bridge segment.
      */
     void addWallLine(
+        const bool skip_bridging,
         const PathAdapter<ExtrusionLine>& wall,
         const size_t segment_index,
         const Ratio& segment_start_ratio,
@@ -1065,6 +1066,7 @@ private:
      */
     template<class PathType>
     using AddExtrusionSegmentFunction = std::function<void(
+        const bool skip_bridging,
         const PathAdapter<PathType>& wall,
         const size_t segment_index,
         const Ratio& segment_start_ratio,
