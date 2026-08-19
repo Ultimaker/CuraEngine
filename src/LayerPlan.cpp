@@ -1235,20 +1235,17 @@ void LayerPlan::addWallLine(
             GCodePathConfig::FAN_SPEED_DEFAULT,
             travel_to_z);
     }
-    else if (
-        std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments =
-            skip_bridging ?
-                std::vector<std::tuple<Ratio, Ratio>>{} :
-                wallSegmentUsesBridging(
-                    bridge_wall_mask_bb_,
-                    bridge_wall_mask_,
-                    wall,
-                    segment_index,
-                    segment_start_ratio,
-                    segment_end_ratio,
-                    min_bridge_line_len,
-                    default_config.line_width);
-        ! bridging_subsegments.empty())
+    else if (std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments = skip_bridging ? std::vector<std::tuple<Ratio, Ratio>>{}
+                                                                                        : wallSegmentUsesBridging(
+                                                                                              bridge_wall_mask_bb_,
+                                                                                              bridge_wall_mask_,
+                                                                                              wall,
+                                                                                              segment_index,
+                                                                                              segment_start_ratio,
+                                                                                              segment_end_ratio,
+                                                                                              min_bridge_line_len,
+                                                                                              default_config.line_width);
+             ! bridging_subsegments.empty())
     {
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
         for (const std::tuple<Ratio, Ratio>& bridging_subsegment : bridging_subsegments)
@@ -1371,7 +1368,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
         {
             last_layer = last_layer.unionPolygons(mesh->layers[layer_nr_ - 1].getOutlines());
         }
-        //last_layer_ = last_layer_.offset(???);  // TODO: Not sure if we need to add the wall-angle offset here as well.
+        // last_layer_ = last_layer_.offset(???);  // TODO: Not sure if we need to add the wall-angle offset here as well.
 
         // Find the 1st model-supported bit of the wall.
         size_t first_supported_index = -1;
@@ -1411,7 +1408,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                     for (size_t seg_i = last_supported_index; seg_i != seg_end; seg_i = (seg_i + 1) % wall.size())
                     {
                         const coord_t dist = LinearAlg2D::getDistFromLine(wall.pointAt(seg_i), pt_a, pt_b);
-                        if (dist > 400)  // TODO!: Get new bridge wall max deviation setting here instead of magic number.
+                        if (dist > 400) // TODO!: Get new bridge wall max deviation setting here instead of magic number.
                         {
                             // Make entire span skip bridging.
                             skip_bridging = true;
