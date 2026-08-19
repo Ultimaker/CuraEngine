@@ -2659,7 +2659,8 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             // max_air_gap is the max allowed width of the unsupported region below the wall line
             // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
 
-            const coord_t max_air_gap = half_outer_wall_width;
+            const coord_t overhang_width = layer_height * boundedTan(mesh.settings.get<AngleRadians>("wall_overhang_angle"));
+            const coord_t max_air_gap = std::max(coord_t{ half_outer_wall_width }, overhang_width);
 
             // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
             // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
