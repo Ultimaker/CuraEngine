@@ -25,6 +25,7 @@
 #include "gcode_export/FixedGCodePart.h"
 #include "gcode_export/GcodeTemplateResolver.h"
 #include "gcode_export/ResolvedGCodePart.h"
+#include "plugins/slots.h"
 #include "settings/types/LayerIndex.h"
 #include "sliceDataStorage.h"
 #include "utils/Date.h"
@@ -346,6 +347,23 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         prefix << ";MAXZ:" << INT2MM(total_bounding_box_.max_.z_) << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
     }
+
+#ifdef ENABLE_PLUGINS
+    std::vector<std::pair<std::string, std::string>> plugins; // For each plugin: slot name, plugin name
+    slots::instance().forEachPlugin(
+        [&plugins](const plugins::slot_metadata& slot, const plugins::plugin_metadata& plugin)
+        {
+            plugins.push_back(std::make_pair(plugins::v0::SlotID_Name(slot.slot_id), plugin.plugin_name));
+        });
+    if (! plugins.empty())
+    {
+        prefix << ";ENGINE PLUGINS" << new_line_;
+        for (const std::pair<std::string, std::string>& plugin : plugins)
+        {
+            prefix << fmt::format(";  [{} ({})]", plugin.second, plugin.first) << new_line_;
+        }
+    }
+#endif
 
     return prefix.str();
 }

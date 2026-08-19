@@ -165,6 +165,16 @@ public:
     }
     ~PluginProxy() = default;
 
+    const slot_metadata& slotInfo() const
+    {
+        return slot_info_;
+    }
+
+    const std::optional<plugin_metadata>& pluginInfo() const
+    {
+        return plugin_info_;
+    }
+
     value_type generate(auto&&... args)
     {
         agrpc::GrpcContext grpc_context;
