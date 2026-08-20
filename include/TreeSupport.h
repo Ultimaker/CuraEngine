@@ -1,8 +1,10 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #ifndef TREESUPPORT_H
 #define TREESUPPORT_H
+
+#include <utility>
 
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
@@ -15,6 +17,7 @@
 #include "settings/EnumSettings.h"
 #include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
+#include "utils/SparsePointGridInclusive.h"
 
 namespace cura
 {
@@ -300,6 +303,7 @@ private:
 
     void filterFloatingLines(std::vector<Shape>& support_layer_storage);
 
+    using CenterGrid = std::vector<std::unique_ptr<SparsePointGridInclusive<std::pair<coord_t, float>>>>;
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
      *
@@ -311,6 +315,7 @@ private:
         std::vector<Shape>& support_layer_storage,
         std::vector<Shape>& support_roof_storage,
         std::vector<Shape>& support_layer_storage_fractional,
+        const CenterGrid& center_locator_per_layer,
         SliceDataStorage& storage);
 
     /*!
