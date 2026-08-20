@@ -2173,10 +2173,11 @@ bool FffGcodeWriter::processSingleLayerInfill(
     // boundary edge
     Shape infill_below_skin;
     Shape infill_not_below_skin;
+    Shape infill_sandwiched;
     AngleDegrees skin_support_angle;
     if (gcode_layer.getLayerNr() > 0)
     {
-        partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+        partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, infill_sandwiched, gcode_layer, mesh, part, infill_line_width);
     }
 
     if (! infill_below_skin.empty())
@@ -2185,7 +2186,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
         const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
         const Shape infill_contour = part.infill_area.offset(infill_overlap + infill_wall_offset);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
-        std::tie(infill_below_skin, skin_support_angle) = makeBridgeOverInfillPrintable(infill_contour, infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
+        std::tie(infill_below_skin, skin_support_angle)
+            = makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
         infill_not_below_skin = infill_not_below_skin.difference(infill_below_skin);
     }
 
@@ -2417,15 +2419,69 @@ bool FffGcodeWriter::processSingleLayerInfill(
     return added_something;
 }
 
+void FffGcodeWriter::getCombinedSkinForSkinSupport(Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr)
+{
+    constexpr coord_t tiny_infill_offset = 20;
+
+    if (skin_layer_nr >= mesh.layers.size() || skin_layer_nr < 1)
+    {
+        return;
+    }
+
+    for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
+    {
+        for (const SkinPart& skin_part : part_i.skin_parts)
+        {
+            // Limit considered areas to the ones that should have infill underneath at the current layer.
+            const Shape relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
+
+            if (! skin_combined.empty())
+            {
+                // does this skin part overlap with any of the skin parts on the layers above?
+                const Shape overlap = skin_combined.intersection(relevant_outline);
+                if (! overlap.empty())
+                {
+                    // yes, it overlaps, need to leave a gap between this skin part and the others
+                    // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so
+                    // far we do this so that these skin region edges will definitely have infill walls below them
+
+                    // looking from the side, if the combined regions so far look like this...
+                    //
+                    //     ----------------------------------
+                    //
+                    // and the new skin part looks like this...
+                    //
+                    //             -------------------------------------
+                    //
+                    // the result should be like this...
+                    //
+                    //     ------- -------------------------------------
+
+                    skin_combined = skin_combined.difference(relevant_outline.offset(tiny_infill_offset));
+                    skin_combined.push_back(relevant_outline);
+                }
+                else // no overlap
+                {
+                    skin_combined.push_back(relevant_outline);
+                }
+            }
+            else // this is the first skin region we have looked at
+            {
+                skin_combined.push_back(relevant_outline);
+            }
+        }
+    }
+}
+
 void FffGcodeWriter::partitionInfillBySkinAbove(
     Shape& infill_below_skin,
     Shape& infill_not_below_skin,
+    Shape& infill_sandwiched,
     const LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const SliceLayerPart& part,
     coord_t infill_line_width)
 {
-    constexpr coord_t tiny_infill_offset = 20;
     const bool skin_support = mesh.settings.get<bool>("skin_support");
 
     if (! skin_support)
@@ -2434,58 +2490,17 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
     }
 
     Shape skin_above_combined; // skin regions on the layers above combined with small gaps between
-
-    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1;
-    if (skin_layer_nr < mesh.layers.size())
-    {
-        for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
-        {
-            for (const SkinPart& skin_part : part_i.skin_parts)
-            {
-                // Limit considered areas to the ones that should have infill underneath at the current layer.
-                const Shape relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
-
-                if (! skin_above_combined.empty())
-                {
-                    // does this skin part overlap with any of the skin parts on the layers above?
-                    const Shape overlap = skin_above_combined.intersection(relevant_outline);
-                    if (! overlap.empty())
-                    {
-                        // yes, it overlaps, need to leave a gap between this skin part and the others
-                        // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so
-                        // far we do this so that these skin region edges will definitely have infill walls below them
-
-                        // looking from the side, if the combined regions so far look like this...
-                        //
-                        //     ----------------------------------
-                        //
-                        // and the new skin part looks like this...
-                        //
-                        //             -------------------------------------
-                        //
-                        // the result should be like this...
-                        //
-                        //     ------- -------------------------------------
-
-                        skin_above_combined = skin_above_combined.difference(relevant_outline.offset(tiny_infill_offset));
-                        skin_above_combined.push_back(relevant_outline);
-                    }
-                    else // no overlap
-                    {
-                        skin_above_combined.push_back(relevant_outline);
-                    }
-                }
-                else // this is the first skin region we have looked at
-                {
-                    skin_above_combined.push_back(relevant_outline);
-                }
-            }
-        }
-    }
+    Shape skin_below_combined; // same for the skin below (to check if we're sandwiching only 1 layer of infill, in which case we shouldn't do the support)
+    getCombinedSkinForSkinSupport(skin_above_combined, mesh, part, gcode_layer.getLayerNr() + 1);
+    getCombinedSkinForSkinSupport(skin_below_combined, mesh, part, std::max(LayerIndex{ 1 }, gcode_layer.getLayerNr()) - 1);
+    infill_sandwiched = skin_above_combined.intersection(skin_below_combined);
 
     // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form
     // a bump
-    infill_below_skin = skin_above_combined.intersection(part.infill_area_per_combine_per_density.back().front()).offset(-infill_line_width).offset(infill_line_width);
+    infill_below_skin = skin_above_combined.difference(skin_below_combined)
+                            .intersection(part.infill_area_per_combine_per_density.back().front())
+                            .offset(-infill_line_width)
+                            .offset(infill_line_width);
 
     constexpr bool remove_small_holes_from_infill_below_skin = true;
     constexpr double min_area_multiplier = 25;
@@ -3629,7 +3644,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         infill_density_multiplier = infill_extruder.settings_.get<size_t>("support_infill_density_multiplier_initial_layer");
     }
 
-    const size_t wall_line_count = infill_extruder.settings_.get<size_t>("support_wall_count");
+    const size_t wall_thickness = infill_extruder.settings_.get<size_t>("support_wall_thickness");
     const coord_t max_resolution = infill_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
     const coord_t max_deviation = infill_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
     coord_t default_support_line_width = infill_extruder.settings_.get<coord_t>("support_line_width");
@@ -3679,7 +3694,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         const auto& configs = part.use_fractional_config_ ? gcode_layer.configs_storage_.support_fractional_infill_config : gcode_layer.configs_storage_.support_infill_config;
 
         // always process the wall overlap if walls are generated
-        const int current_support_infill_overlap = (part.inset_count_to_generate_ > 0) ? default_support_infill_overlap : 0;
+        const int current_support_infill_overlap = (part.inset_width_to_generate_ > 0) ? default_support_infill_overlap : 0;
 
         // The support infill walls were generated separately, first. Always add them, regardless of how many densities we have.
         std::vector<VariableWidthLines> wall_toolpaths = part.wall_toolpaths_;
@@ -3787,7 +3802,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     area,
                     support_line_width,
                     support_line_distance_here,
-                    current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_line_count * support_line_width),
+                    current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_thickness),
                     infill_multiplier,
                     support_infill_angle,
                     gcode_layer.z_ + configs[combine_idx].z_offset,
@@ -3890,7 +3905,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             // If we're printing with a support wall, that support wall generates gap filling as well.
             // If not, the pattern may still generate gap filling (if it's connected infill or zigzag). We still want to print those.
-            if (wall_line_count == 0 || ! wall_toolpaths_here.empty())
+            if (wall_thickness == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = configs[0];
                 constexpr coord_t wipe_dist = 0;

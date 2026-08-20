@@ -88,8 +88,8 @@ void Shape::makeConvex()
 
         for (const auto window : poly | ranges::views::sliding(2))
         {
-            const Point2LL& current = window[0];
-            const Point2LL& after = window[1];
+            const auto& current = window[0];
+            const auto& after = window[1];
 
             if (LinearAlg2D::pointIsLeftOfLine(current, convexified.back(), after) < 0)
             {
@@ -102,6 +102,11 @@ void Shape::makeConvex()
                 }
                 convexified.push_back(current);
             }
+        }
+
+        while (convexified.size() >= 2 && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
+        {
+            convexified.pop_back();
         }
     };
 
