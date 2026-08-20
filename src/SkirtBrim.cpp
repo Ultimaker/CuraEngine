@@ -674,9 +674,9 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
     return allowed_areas_per_extruder;
 }
 
-void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape& support_outline, const size_t width, const size_t line_width)
+void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape& support_outline, const coord_t width, const coord_t line_width)
 {
-    const coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<size_t>("support_brim_minimum_hole_area"));
+    const coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<coord_t>("support_brim_minimum_hole_area"));
 
     PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInsetOutset(support_outline, -width, line_width);
     for (Shape& base_inset : base_insets.walls)
@@ -699,7 +699,7 @@ void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape&
     }
 }
 
-void SkirtBrim::generateSupportOutsideBrim(const Shape& support_outline, const size_t width, const size_t line_width, const Shape& exclusion_area)
+void SkirtBrim::generateSupportOutsideBrim(const Shape& support_outline, const coord_t width, const coord_t line_width, const Shape& exclusion_area)
 {
     PolygonUtils::InsetOutset base_outsets = PolygonUtils::generateInsetOutset(support_outline, width, line_width);
 
