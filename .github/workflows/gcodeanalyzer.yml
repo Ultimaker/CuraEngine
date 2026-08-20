@@ -121,3 +121,10 @@ jobs:
           github-token: ${{ secrets.CURA_BENCHMARK_PAT }}
           auto-push: true
           max-items-in-chart: 250
+
+      - name: Upload GCode artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: gcode-files
+          path: '*.gcode'
+          retention-days: 30
