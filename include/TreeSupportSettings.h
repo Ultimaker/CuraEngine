@@ -83,6 +83,7 @@ struct TreeSupportSettings
         , min_feature_size(mesh_group_settings.get<coord_t>("min_feature_size"))
         , min_wall_line_width(settings.get<coord_t>("min_wall_line_width"))
         , fill_outline_gaps(settings.get<bool>("fill_outline_gaps"))
+        , support_tree_smooth_layers(settings.get<size_t>("support_tree_smooth_layers"))
         , support_wall_thickness_bottom_layers(settings.get<int>("support_wall_thickness_bottom_layers"))
         , support_wall_thickness_top_layers(settings.get<int>("support_wall_thickness_top_layers"))
         , support_wall_thickness_layer_smooth(settings.get<int>("support_wall_thickness_layer_smooth"))
@@ -393,6 +394,11 @@ public:
     bool fill_outline_gaps;
 
     /*!
+     * \brief Number of layers on which to smooth the tree support branches
+     */
+    size_t support_tree_smooth_layers;
+
+    /*!
      * \brief The number of lines from the build-plate at which the nominal line-width switches to the enlarged line-width. (But see also support_line_width_layer_smooth.)
      */
     coord_t support_wall_thickness_bottom_layers;
@@ -436,8 +442,9 @@ public:
             && zag_skip_count == other.zag_skip_count && connect_zigzags == other.connect_zigzags && interface_preference == other.interface_preference
             && min_feature_size == other.min_feature_size && // interface_preference should be identical to ensure the tree will correctly interact with the roof.
                support_rest_preference == other.support_rest_preference && max_radius == other.max_radius && min_wall_line_width == other.min_wall_line_width
-            && fill_outline_gaps == other.fill_outline_gaps && support_wall_thickness_bottom_layers == other.support_wall_thickness_bottom_layers
-            && support_wall_thickness_top_layers == other.support_wall_thickness_top_layers && support_wall_thickness_layer_smooth == other.support_wall_thickness_layer_smooth &&
+            && fill_outline_gaps == other.fill_outline_gaps && support_tree_smooth_layers == other.support_tree_smooth_layers
+            && support_wall_thickness_bottom_layers == other.support_wall_thickness_bottom_layers && support_wall_thickness_top_layers == other.support_wall_thickness_top_layers
+            && support_wall_thickness_layer_smooth == other.support_wall_thickness_layer_smooth &&
                // The infill class now wants the settings object and reads a lot of settings, and as the infill class is used to calculate support roof lines for
                // interface-preference. Not all of these may be required to be identical, but as I am not sure, better safe than sorry
                (interface_preference == InterfacePreference::INTERFACE_AREA_OVERWRITES_SUPPORT || interface_preference == InterfacePreference::SUPPORT_AREA_OVERWRITES_INTERFACE

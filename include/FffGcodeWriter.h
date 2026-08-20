@@ -105,8 +105,7 @@ private:
     struct ProcessLayerResult
     {
         LayerPlan* layer_plan;
-        double total_elapsed_time;
-        TimeKeeper::RegisteredTimes stages_times;
+        TimeKeeper time_keeper;
     };
 
     struct RoofingFlooringSettingsNames

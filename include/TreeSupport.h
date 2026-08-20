@@ -23,6 +23,7 @@ namespace cura
 {
 
 class OBJ;
+class TimeKeeper;
 
 // The various stages of the process can be weighted differently in the progress bar.
 // These weights are obtained experimentally using a small sample size. Sensible weights can differ drastically based on the assumed default settings and model.
@@ -104,9 +105,10 @@ private:
      *
      * \param storage[in] Background storage to access meshes.
      * \param currently_processing_meshes[in] Indexes of all meshes that are processed in this iteration
+     * \param time_keeper The object used to record the duration of the sub-steps
      * \return Uppermost layer precalculated. -1 if no layer were precalculated as no overhang is present.
      */
-    LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes);
+    LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, TimeKeeper& time_keeper);
 
 
     /*!
@@ -229,8 +231,9 @@ private:
      * \brief Propagates influence downwards, and merges overlapping ones.
      *
      * \param move_bounds[in,out] All currently existing influence areas
+     * \param time_keeper The object used to record the duration of the sub-steps
      */
-    void createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds);
+    void createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, TimeKeeper& time_keeper);
 
 
     /*!
@@ -278,6 +281,12 @@ private:
     void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement*, Shape>>& layer_tree_polygons);
 
     /*!
+     * Smoothes the skeleton of the tree structure according to the smoothing factor
+     * @param layer_tree_polygons The base tree structure to be smoothed
+     */
+    void smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*>>& layer_tree_polygons);
+
+    /*!
      * \brief Drop down areas that do rest non-gracefully on the model to ensure the branch actually rests on something.
      *
      * \param layer_tree_polygons[in] Resulting branch areas with the layerindex they appear on.
@@ -314,8 +323,9 @@ private:
      *
      * \param move_bounds[in] All currently existing influence areas
      * \param storage[in,out] The storage where the support should be stored.
+     * \param time_keeper The object used to record the duration of the sub-steps
      */
-    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage);
+    void drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, TimeKeeper& time_keeper);
 
     /*!
      * Saves the influence areas and the resulting positions of all the given elements to a 3D object
