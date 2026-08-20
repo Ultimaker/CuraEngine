@@ -2185,7 +2185,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     {
         const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
         const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
-        const Shape infill_contour = part.infill_area.offset(-(infill_line_width / 2) + infill_overlap + infill_wall_offset);
+        const Shape infill_contour = part.infill_area.offset(infill_overlap + infill_wall_offset);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
         std::tie(infill_below_skin, skin_support_angle)
             = makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
