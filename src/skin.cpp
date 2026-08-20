@@ -656,7 +656,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
             const Shape& infill_area = Infill::generateWallToolPaths(
                 part.infill_wall_toolpaths,
                 part.getOwnInfillArea(),
-                infill_wall_count,
+                static_cast<coord_t>(infill_wall_count) * infill_wall_width,
                 infill_wall_width,
                 mesh.settings,
                 layer_idx,
