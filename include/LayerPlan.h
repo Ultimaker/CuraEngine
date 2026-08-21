@@ -202,7 +202,8 @@ private:
         const Ratio width_factor = 1.0_r,
         const bool spiralize = false,
         const Ratio speed_factor = 1.0_r,
-        const bool travel_to_z = true);
+        const bool travel_to_z = true,
+        const PrintSegmentAttributes print_attributes = {});
 
 public:
     /*!
@@ -456,7 +457,8 @@ public:
         const bool spiralize = false,
         const Ratio speed_factor = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        const bool travel_to_z = true);
+        const bool travel_to_z = true,
+        const PrintSegmentAttributes& attributes = {});
 
     void addExtrusionMoveWithGradualOverhang(
         const Point3LL& p,
@@ -467,7 +469,8 @@ public:
         const bool spiralize = false,
         const Ratio speed_factor = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        const bool travel_to_z = true);
+        const bool travel_to_z = true,
+        const PrintSegmentAttributes& print_attributes = {});
 
     /*!
      * Adds an extrusion move that may go through a skin area
@@ -490,7 +493,8 @@ public:
         const Ratio& flow,
         const Ratio& width_factor,
         const bool spiralize,
-        const bool travel_to_z);
+        const bool travel_to_z,
+        const PrintSegmentAttributes& print_attributes = {});
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -516,7 +520,8 @@ public:
         const Ratio& flow_ratio = 1.0_r,
         const ForceRetract force_retract = ForceRetract::AUTOMATIC,
         bool scarf_seam = false,
-        bool smooth_speed = false);
+        bool smooth_speed = false,
+        const PrintSegmentAttributes& print_attributes = {});
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -553,6 +558,7 @@ public:
         const Shape& polygons,
         const GCodePathConfig& config,
         const Settings& settings,
+        const PrintSegmentAttributes& print_attributes = {},
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
@@ -632,7 +638,8 @@ public:
         double& non_bridge_line_volume,
         Ratio speed_factor,
         double distance_to_bridge_start,
-        const bool travel_to_z = true);
+        const bool travel_to_z = true,
+        const PrintSegmentAttributes& print_attributes = {});
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -703,7 +710,8 @@ public:
         const bool is_reversed,
         const bool is_linked_path,
         const bool scarf_seam = false,
-        const bool smooth_speed = false);
+        const bool smooth_speed = false,
+        const PrintSegmentAttributes& print_attributes = {});
 
     /*!
      * Add an infill wall to the g-code
@@ -768,6 +776,7 @@ public:
         const Ratio flow_ratio = 1.0,
         const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
+        const PrintSegmentAttributes& print_attributes = {},
         const bool reverse_print_direction = false,
         const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
         const coord_t extra_inwards_start_move_length = 0,
@@ -831,7 +840,8 @@ public:
         const coord_t wipe_dist = 0,
         const Ratio flow_ratio = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        const bool interlaced = false);
+        const bool interlaced = false,
+        const PrintSegmentAttributes& print_attributes = {});
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
@@ -967,6 +977,7 @@ private:
         const coord_t wipe_dist,
         const Ratio flow_ratio,
         const double fan_speed,
+        const PrintSegmentAttributes& print_attributes = {},
         const coord_t extra_inwards_start_move_length = 0,
         const coord_t extra_inwards_end_move_length = 0,
         const MendedShape& extra_inwards_move_contour = MendedShape());
@@ -1004,7 +1015,8 @@ private:
         const ForceRetract force_retract = ForceRetract::AUTOMATIC,
         bool reverse_order = false,
         bool scarf_seam = false,
-        bool smooth_speed = false);
+        bool smooth_speed = false,
+        const PrintSegmentAttributes& print_attributes = {});
 
     /*!
      *  @brief Send a GCodePath line to the communication object, applying proper Z offsets

@@ -6,6 +6,7 @@
 
 #include <unordered_set>
 
+#include "PrintSegmentAttributes.h"
 #include "settings/ZSeamConfig.h"
 #include "sliceDataStorage.h"
 
@@ -74,7 +75,7 @@ public:
      * \param retract_before_outer_wall The retraction behavior to be applied when moving to outer walls
      * \return Whether anything was added to the layer plan.
      */
-    bool addToLayer(const RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC);
+    bool addToLayer(const RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC, const PrintSegmentAttributes& print_attributes = {});
 
     /*!
      * Get the order constraints of the insets when printing walls per region / hole.
