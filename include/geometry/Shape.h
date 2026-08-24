@@ -136,14 +136,6 @@ public:
      */
     [[nodiscard]] size_t findInside(const Point2LL& p, bool border_result = false) const;
 
-    /*!
-     * \brief Approximates the convex hull of the polygons.
-     * \p extra_outset Extra offset outward
-     * \return the convex hull (approximately)
-     *
-     */
-    [[nodiscard]] Shape approxConvexHull(int extra_outset = 0) const;
-
     /*! \brief Make each of the polygons convex */
     void makeConvex();
 

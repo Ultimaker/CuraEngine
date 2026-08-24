@@ -11,6 +11,7 @@
 #include "SupportInfillPart.h"
 #include "TopSurface.h"
 #include "WipeScriptConfig.h"
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Point2LL.h"
@@ -220,6 +221,7 @@ public:
     Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     Shape anti_overhang; //!< Areas where no overhang should be detected.
     Shape force_overhang; //!< Areas where overhang should be forced.
+    MixedLinesSet base; //!< Extra lines to be printed around for sturdiness.
 
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
@@ -234,7 +236,7 @@ public:
      * \param area The support polygon to fill up with infill parts.
      * \param support_fill_per_layer The support polygons to fill up with infill parts.
      * \param support_line_width Line width of the support extrusions.
-     * \param wall_line_count Wall-line count around the fill.
+     * \param wall_thickness Wall-line thickness around the fill.
      * \param use_fractional_config (optional, default to false) If the area should be added as fractional support.
      * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
@@ -242,14 +244,14 @@ public:
     void fillInfillParts(
         const Shape& area,
         const coord_t support_line_width,
-        const coord_t wall_line_count,
+        const coord_t wall_thickness,
         const bool use_fractional_config = false,
         const bool unionAll = false,
         const coord_t custom_line_distance = 0)
     {
         for (const SingleShape& island_outline : area.splitIntoParts(unionAll))
         {
-            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_line_count, custom_line_distance);
+            support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_thickness, custom_line_distance);
         }
     }
 
@@ -261,7 +263,7 @@ public:
      * \param infill_layer_height The layer height of the support-fill.
      * \param meshes The model meshes to be supported, needed here to handle fractional support layer height.
      * \param support_line_width Line width of the support extrusions.
-     * \param wall_line_count Wall-line count around the fill.
+     * \param wall_thickness Wall-line thickness around the fill.
      * \param grow_layer_above (optional, default to 0) In cases where support shrinks per layer up, an appropriate offset may be nescesary.
      * \param unionAll (optional, default to false) Wether to 'union all' for the split into parts bit.
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
@@ -272,7 +274,7 @@ public:
         const coord_t infill_layer_height,
         const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
         const coord_t support_line_width,
-        const coord_t wall_line_count,
+        const coord_t wall_thickness,
         const coord_t grow_layer_above = 0,
         const bool unionAll = false,
         const coord_t custom_line_distance = 0);
@@ -382,7 +384,7 @@ public:
     SupportStorage support;
 
     std::vector<MixedLinesSet> skirt_brim[MAX_EXTRUDERS]; //!< Skirt/brim polygons per extruder, ordered from inner to outer polygons.
-    ClosedLinesSet support_brim; //!< brim lines for support, going from the edge of the support inward. \note Not ordered by inset.
+    MixedLinesSet support_brim; //!< brim lines for support, inside and outside. \note Not ordered by inset.
 
     // Storage for the outline of the raft-parts. Will be filled with lines when the GCode is generated.
     Shape raft_base_outline;
@@ -420,6 +422,7 @@ public:
      * \param include_models Whether to include the models in the outline
      * \param external_polys_only Whether to disregard all hole polygons.
      * \param extruder_nr (optional) only give back outlines for this extruder (where the walls are printed with this extruder)
+     * \param include_support_base (optional) include the support base (requires include_support). If false, only the raw support outline is returned.
      */
     Shape getLayerOutlines(
         const LayerIndex layer_nr,
@@ -427,7 +430,8 @@ public:
         const bool include_prime_tower,
         const bool external_polys_only = false,
         const int extruder_nr = -1,
-        const bool include_models = true) const;
+        const bool include_models = true,
+        const bool include_support_base = true) const;
 
     /*!
      * Get the axis-aligned bounding-box of the complete model (all meshes).

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeSupport.h"
@@ -10,6 +10,7 @@
 #include <string>
 #include <thread>
 
+#include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
@@ -1702,7 +1703,7 @@ void TreeSupport::generateBranchAreas(
             }
 
             coord_t max_speed_sqd = 0;
-            std::function<Shape(coord_t)> generateArea = [&](coord_t offset)
+            const std::function<Shape(coord_t)> generateArea = [&](coord_t offset)
             {
                 Shape poly;
 
@@ -1974,7 +1975,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 {
     const auto t_start = std::chrono::high_resolution_clock::now();
 
-    const coord_t closing_dist = config.support_line_width * config.support_wall_count;
+    const coord_t closing_dist = config.support_wall_thickness;
     const coord_t open_close_distance = config.fill_outline_gaps ? config.min_feature_size / 2 - 5 : config.min_wall_line_width / 2 - 5; // based on calculation in WallToolPath
     const double small_area_length = INT2MM(static_cast<double>(config.support_line_width) / 2);
 
@@ -2172,6 +2173,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
     std::vector<Shape>& support_layer_storage,
     std::vector<Shape>& support_roof_storage,
     std::vector<Shape>& support_layer_storage_fractional,
+    const CenterGrid& center_locator_per_layer,
     SliceDataStorage& storage)
 {
     InterfacePreference interface_pref = config.interface_preference; // InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE;
@@ -2285,9 +2287,30 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         {
             constexpr bool convert_every_part = true; // Convert every part into a SingleShape for the support.
 
-            storage.support.supportLayers[layer_idx]
-                .fillInfillParts(support_layer_storage[layer_idx], config.support_line_width, config.support_wall_count, false, convert_every_part);
+            const auto* center_locator = center_locator_per_layer[layer_idx].get();
+            for (const SingleShape& support_part : support_layer_storage[layer_idx].splitIntoParts())
+            {
+                // For each point L (actually) inside the connected support part, retrieve the wall-width and area that the branch representing point L would have at that point.
+                SparsePointGridInclusive<coord_t>::Elem nearest;
+                const AABB aabb(support_part);
+                const coord_t search_radius = EPSILON + std::max(aabb.width(), aabb.height()) / 2;
+                const auto located_data = center_locator->getNearby(aabb.getMiddle(), search_radius);
 
+                // Take the weighted average of the wall-widths and areas of all points inside the support part, where the area is weighted by the area of the branch at that point.
+                const std::pair<float, float> total_area_width = std::accumulate(
+                    located_data.begin(),
+                    located_data.end(),
+                    std::make_pair(0.f, 0.f),
+                    [&support_part](const auto& res, const auto& elem)
+                    {
+                        return support_part.inside(elem.point) ? std::make_pair((elem.val.first * elem.val.second) + res.first, elem.val.second + res.second) : res;
+                    });
+                const auto weighted_average = static_cast<coord_t>(total_area_width.first / std::max(1.f, total_area_width.second));
+
+                // Clamp wall-thickness to configured values, and draw the support part with the calculated wall-thickness.
+                const auto wall_thickness = std::clamp(weighted_average, config.support_wall_thickness, config.support_enlarged_wall_thickness);
+                storage.support.supportLayers[layer_idx].fillInfillParts(support_part, config.support_line_width, wall_thickness, false, convert_every_part);
+            }
 
             // This only works because fractional support is always just projected upwards regular support or skin.
             // Also technically violates skin height, but there is no good way to prevent that.
@@ -2302,7 +2325,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 fractional_support = support_layer_storage_fractional[layer_idx];
             }
 
-            storage.support.supportLayers[layer_idx].fillInfillParts(fractional_support, config.support_line_width, config.support_wall_count, true, convert_every_part);
+            storage.support.supportLayers[layer_idx].fillInfillParts(fractional_support, config.support_line_width, config.support_wall_thickness, true, convert_every_part);
 
 
             for (FakeRoofArea& fake_roof : fake_roof_areas[layer_idx])
@@ -2363,7 +2386,6 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         }
     }
 
-
     // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
     std::vector<std::unordered_map<TreeSupportElement*, Shape>> layer_tree_polygons(move_bounds.size());
     const auto t_start = std::chrono::high_resolution_clock::now();
@@ -2390,6 +2412,32 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
             support_layer_storage[pair.first].push_back(pair.second);
         }
     }
+
+    CenterGrid center_locator_per_layer(move_bounds.size());
+    cura::parallel_for<size_t>(
+        0,
+        center_locator_per_layer.size(),
+        [&](const size_t layer_idx)
+        {
+            center_locator_per_layer[layer_idx] = std::make_unique<SparsePointGridInclusive<std::pair<coord_t, float>>>(config.branch_radius * 2 + EPSILON);
+            auto* center_locator = center_locator_per_layer[layer_idx].get();
+
+            for (const auto& elem : move_bounds[layer_idx])
+            {
+                const float lerp_mul = static_cast<float>(std::min(
+                                           config.support_wall_thickness_layer_smooth,
+                                           std::max(
+                                               config.support_wall_thickness_bottom_layers - static_cast<coord_t>(layer_idx),
+                                               config.support_wall_thickness_top_layers - static_cast<coord_t>(elem->distance_to_top_))))
+                                     / std::max(coord_t{ 1 }, config.support_wall_thickness_layer_smooth);
+                const coord_t nominal_wall_width
+                    = std::lerp(config.support_enlarged_wall_thickness, std::max(coord_t{ EPSILON }, config.support_wall_thickness), std::clamp(lerp_mul, 0.f, 1.f));
+
+
+                const auto center = (elem->result_on_layer_.X >= 0 && elem->result_on_layer_.Y >= 0) ? elem->result_on_layer_ : elem->target_position_;
+                center_locator->insert(center, { nominal_wall_width, elem->area_->area() });
+            }
+        });
 
     // ensure all branch areas added as roof actually cause a roofline to generate. Else disable turning the branch to roof going down
     cura::parallel_for<size_t>(
@@ -2462,7 +2510,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     filterFloatingLines(support_layer_storage);
     const auto t_filter = std::chrono::high_resolution_clock::now();
 
-    finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, support_layer_storage_fractional, storage);
+    finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, support_layer_storage_fractional, center_locator_per_layer, storage);
     const auto t_end = std::chrono::high_resolution_clock::now();
 
     const auto dur_gen_tips = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_generate - t_start).count();

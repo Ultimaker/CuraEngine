@@ -84,6 +84,11 @@ public:
         return size() >= 2;
     }
 
+    void addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const final
+    {
+        clipper.AddPath(getPoints(), poly_typ, false);
+    }
+
     OpenPolyline& operator=(OpenPolyline&& other) noexcept = default;
 
     OpenPolyline& operator=(const OpenPolyline& other) = default;

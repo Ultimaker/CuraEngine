@@ -3,6 +3,7 @@
 
 #include "utils/MixedPolylineStitcher.h"
 
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"

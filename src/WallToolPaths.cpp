@@ -27,22 +27,25 @@ WallToolPaths::WallToolPaths(
     const coord_t nominal_bead_width,
     const size_t inset_count,
     const coord_t wall_0_inset,
+    const coord_t wall_x_inset,
     const Settings& settings,
     const int layer_idx,
-    SectionType section_type)
+    SectionType section_type,
+    WallToolPathGenerator generator)
     : outline_(outline)
     , bead_width_0_(nominal_bead_width)
     , bead_width_x_(nominal_bead_width)
     , inset_count_(inset_count)
     , wall_0_inset_(wall_0_inset)
+    , wall_x_inset_(wall_x_inset)
     , print_thin_walls_(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size_(nominal_bead_width / 4)
-    , min_bead_width_(std::min(min_even_wall_line_width_, min_odd_wall_line_width_))
     , wall_transition_angle_(AngleDegrees(10))
     , wall_transition_length_(nominal_bead_width)
     , min_even_wall_line_width_(std::llrint(nominal_bead_width * 0.85))
     , wall_line_width_0_(nominal_bead_width)
     , min_odd_wall_line_width_(min_even_wall_line_width_)
+    , min_bead_width_(std::min(min_even_wall_line_width_, min_odd_wall_line_width_))
     , wall_line_width_x_(nominal_bead_width)
     , wall_distribution_count_(1)
     , wall_transition_filter_distance_(MM2INT(100))
@@ -52,6 +55,7 @@ WallToolPaths::WallToolPaths(
     , settings_(settings)
     , layer_idx_(layer_idx)
     , section_type_(section_type)
+    , generator_(generator)
 {
 }
 
@@ -61,6 +65,7 @@ WallToolPaths::WallToolPaths(
     const coord_t bead_width_x,
     const size_t inset_count,
     const coord_t wall_0_inset,
+    const coord_t wall_x_inset,
     const Settings& settings,
     const int layer_idx,
     SectionType section_type)
@@ -69,6 +74,7 @@ WallToolPaths::WallToolPaths(
     , bead_width_x_(bead_width_x)
     , inset_count_(inset_count)
     , wall_0_inset_(wall_0_inset)
+    , wall_x_inset_(wall_x_inset)
     , print_thin_walls_(settings.get<bool>("fill_outline_gaps"))
     , min_feature_size_(settings.get<coord_t>("min_feature_size"))
     , min_bead_width_(settings.get<coord_t>("min_bead_width"))
@@ -91,13 +97,109 @@ WallToolPaths::WallToolPaths(
 
 const std::vector<VariableWidthLines>& WallToolPaths::generate()
 {
+    switch (generator_)
+    {
+    case WallToolPathGenerator::Arachne:
+        generateArachne();
+        break;
+    case WallToolPathGenerator::NaiveInset:
+        generateNaiveInset();
+        break;
+    }
+
+    toolpaths_generated_ = true;
+    return toolpaths_;
+}
+
+void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const coord_t stitch_distance)
+{
+    for (unsigned int wall_idx = 0; wall_idx < toolpaths.size(); wall_idx++)
+    {
+        VariableWidthLines& wall_lines = toolpaths[wall_idx];
+
+        VariableWidthLines stitched_polylines;
+        VariableWidthLines closed_polygons;
+        ExtrusionLineStitcher::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
+        wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
+
+        for (ExtrusionLine& wall_polygon : closed_polygons)
+        {
+            if (wall_polygon.junctions_.empty())
+            {
+                continue;
+            }
+            wall_polygon.is_closed_ = true;
+            wall_lines.emplace_back(std::move(wall_polygon)); // add stitched polygons to result
+        }
+#ifdef DEBUG
+        for (ExtrusionLine& line : wall_lines)
+        {
+            assert(line.inset_idx_ == wall_idx);
+        }
+#endif // DEBUG
+    }
+}
+
+void WallToolPaths::removeSmallFillLines(std::vector<VariableWidthLines>& toolpaths)
+{
+    for (VariableWidthLines& inset : toolpaths)
+    {
+        for (size_t line_idx = 0; line_idx < inset.size(); line_idx++)
+        {
+            ExtrusionLine& line = inset[line_idx];
+            if (line.is_outer_wall())
+            {
+                continue;
+            }
+            coord_t min_width = std::numeric_limits<coord_t>::max();
+            for (const ExtrusionJunction& j : line)
+            {
+                min_width = std::min(min_width, j.w_);
+            }
+            if (line.is_odd_ && ! line.is_closed_ && line.shorterThan(min_width / 2))
+            { // remove line
+                line = std::move(inset.back());
+                inset.erase(--inset.end());
+                line_idx--; // reconsider the current position
+            }
+        }
+    }
+}
+
+void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
+{
+    const Simplify simplifier(settings);
+    for (auto& toolpath : toolpaths)
+    {
+        toolpath = toolpath
+                 | ranges::views::transform(
+                       [&simplifier](auto& line)
+                       {
+                           auto line_ = line.is_closed_ ? simplifier.polygon(line) : simplifier.polyline(line);
+
+                           if (line_.is_closed_ && line_.size() >= 2 && line_.front() != line_.back())
+                           {
+                               line_.emplace_back(line_.front());
+                           }
+                           return line_;
+                       })
+                 | ranges::views::filter(
+                       [](const auto& line)
+                       {
+                           return ! line.empty();
+                       })
+                 | ranges::to_vector;
+    }
+}
+
+void WallToolPaths::generateArachne()
+{
     MendedShape prepared_outline(&settings_, section_type_, &outline_);
     if (prepared_outline.getShape().area() <= 0)
     {
         assert(toolpaths_.empty());
-        return toolpaths_;
+        return;
     }
-
 
     constexpr coord_t discretization_step_size = MM2INT(0.8);
 
@@ -120,6 +222,7 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         wall_add_middle_threshold,
         max_bead_count,
         wall_0_inset_,
+        wall_x_inset_,
         wall_distribution_count_);
     SkeletalTrapezoidation wall_maker(
         prepared_outline,
@@ -201,7 +304,6 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
                 return l.front().inset_idx_ < r.front().inset_idx_;
             })
         && "WallToolPaths should be sorted from the outer 0th to inner_walls");
-    toolpaths_generated_ = true;
     scripta::log(
         "toolpaths_5",
         toolpaths_,
@@ -212,88 +314,49 @@ const std::vector<VariableWidthLines>& WallToolPaths::generate()
         scripta::CellVDI{ "inset_idx", &ExtrusionLine::inset_idx_ },
         scripta::PointVDI{ "width", &ExtrusionJunction::w_ },
         scripta::PointVDI{ "perimeter_index", &ExtrusionJunction::perimeter_index_ });
-    return toolpaths_;
 }
 
-
-void WallToolPaths::stitchToolPaths(std::vector<VariableWidthLines>& toolpaths, const coord_t stitch_distance)
+void WallToolPaths::generateNaiveInset()
 {
-    for (unsigned int wall_idx = 0; wall_idx < toolpaths.size(); wall_idx++)
+    std::vector<Shape> walls;
+    walls.reserve(inset_count_);
+
+    if (inset_count_ > 0)
     {
-        VariableWidthLines& wall_lines = toolpaths[wall_idx];
+        walls.push_back(outline_.offset(-wall_line_width_0_ / 2));
+        inner_contour_ = outline_.offset(-(wall_line_width_0_ + (inset_count_ - 1) * wall_line_width_x_));
+    }
+    for (size_t wall_index = 1; wall_index < inset_count_; ++wall_index)
+    {
+        walls.push_back(outline_.offset(-(wall_line_width_0_ + (wall_index - 1) * wall_line_width_x_ + wall_line_width_x_ / 2)));
+    }
 
-        VariableWidthLines stitched_polylines;
-        VariableWidthLines closed_polygons;
-        ExtrusionLineStitcher::stitch(wall_lines, stitched_polylines, closed_polygons, stitch_distance);
-        wall_lines = stitched_polylines; // replace input toolpaths with stitched polylines
+    for (const auto& [inset_index, shape] : walls | ranges::views::enumerate)
+    {
+        VariableWidthLines lines;
+        const coord_t line_width = inset_index == 0 ? wall_line_width_0_ : wall_line_width_x_;
 
-        for (ExtrusionLine& wall_polygon : closed_polygons)
+        for (const Polygon& polygon : shape)
         {
-            if (wall_polygon.junctions_.empty())
+            if (! polygon.isValid())
             {
                 continue;
             }
-            wall_polygon.is_closed_ = true;
-            wall_lines.emplace_back(std::move(wall_polygon)); // add stitched polygons to result
-        }
-#ifdef DEBUG
-        for (ExtrusionLine& line : wall_lines)
-        {
-            assert(line.inset_idx_ == wall_idx);
-        }
-#endif // DEBUG
-    }
-}
 
-void WallToolPaths::removeSmallFillLines(std::vector<VariableWidthLines>& toolpaths)
-{
-    for (VariableWidthLines& inset : toolpaths)
-    {
-        for (size_t line_idx = 0; line_idx < inset.size(); line_idx++)
-        {
-            ExtrusionLine& line = inset[line_idx];
-            if (line.is_outer_wall())
+            ExtrusionLine extrusion_line(inset_index);
+            for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
             {
-                continue;
+                if (iterator == polygon.beginSegments())
+                {
+                    extrusion_line.emplace_back((*iterator).start, line_width, inset_index);
+                }
+                extrusion_line.emplace_back((*iterator).end, line_width, inset_index);
             }
-            coord_t min_width = std::numeric_limits<coord_t>::max();
-            for (const ExtrusionJunction& j : line)
-            {
-                min_width = std::min(min_width, j.w_);
-            }
-            if (line.is_odd_ && ! line.is_closed_ && line.shorterThan(min_width / 2))
-            { // remove line
-                line = std::move(inset.back());
-                inset.erase(--inset.end());
-                line_idx--; // reconsider the current position
-            }
+
+            lines.push_back(std::move(extrusion_line));
         }
-    }
-}
 
-void WallToolPaths::simplifyToolPaths(std::vector<VariableWidthLines>& toolpaths, const Settings& settings)
-{
-    const Simplify simplifier(settings);
-    for (auto& toolpath : toolpaths)
-    {
-        toolpath = toolpath
-                 | ranges::views::transform(
-                       [&simplifier](auto& line)
-                       {
-                           auto line_ = line.is_closed_ ? simplifier.polygon(line) : simplifier.polyline(line);
-
-                           if (line_.is_closed_ && line_.size() >= 2 && line_.front() != line_.back())
-                           {
-                               line_.emplace_back(line_.front());
-                           }
-                           return line_;
-                       })
-                 | ranges::views::filter(
-                       [](const auto& line)
-                       {
-                           return ! line.empty();
-                       })
-                 | ranges::to_vector;
+        toolpaths_.push_back(lines);
     }
 }
 

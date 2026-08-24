@@ -563,6 +563,7 @@ material_flush_purge_speed=0.5
 acceleration_travel=5000
 support_roof_height=1
 wall_0_inset=0
+wall_x_inset=0
 interlocking_depth=2
 prime_tower_position_y=219
 jerk_support=20

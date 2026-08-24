@@ -381,6 +381,7 @@ alternate_extra_perimeter=False
 support_roof_enable=True
 skin_material_flow_layer_0=95
 wall_0_inset=0
+wall_x_inset=0
 relative_extrusion=False
 mold_width=5
 adhesion_extruder_nr=0

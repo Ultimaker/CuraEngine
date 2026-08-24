@@ -1221,11 +1221,15 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
     {
         // process the skirt or the brim of the starting extruder.
         auto extruder_nr = gcode_layer.getExtruder();
-        if (storage.skirt_brim[extruder_nr].size() > 0)
+        if (! storage.skirt_brim[extruder_nr].empty())
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr, layer_nr);
-            time_keeper.registerTime("Skirt/brim");
         }
+        if (! storage.support_brim.empty())
+        {
+            processSupportBrim(storage, gcode_layer, extruder_nr, layer_nr);
+        }
+        time_keeper.registerTime("Skirt/brim");
 
         // handle shield(s) first in a layer so that chances are higher that the other nozzle is wiped (for the ooze shield)
         processOozeShield(storage, gcode_layer);
@@ -1304,7 +1308,7 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     return need_prime_blob;
 }
 
-void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, unsigned int extruder_nr, LayerIndex layer_nr) const
+void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr) const
 {
     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
     const int skirt_height = train.settings_.get<int>("skirt_height");
@@ -1437,11 +1441,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
     assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
 
-    const bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
-    const coord_t wipe_dist = 0u;
-    const Ratio flow_ratio = 1.0;
-    const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-    const bool reverse_print_direction = false;
+    constexpr bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
+    constexpr coord_t wipe_dist = 0u;
+    constexpr Ratio flow_ratio = 1.0;
+    constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    constexpr bool reverse_print_direction = false;
 
     if (! all_brim_lines.empty())
     {
@@ -1457,27 +1461,36 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             reverse_print_direction,
             layer_nr == 0 ? order_requirements : PathOrderOptimizer<const Polyline*>::no_order_requirements_);
     }
+}
 
-
+void FffGcodeWriter::processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr)
+{
     // Add the support brim after the skirt_brim to gcode_layer
     // Support brim is only added in layer 0
     // For support brim we don't care about the order, because support doesn't need to be accurate.
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if ((layer_nr == 0) && (extruder_nr == mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_))
+    if (layer_nr > 0 || (extruder_nr != mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_))
     {
-        total_line_count += storage.support_brim.size();
-        gcode_layer.addLinesByOptimizer(
-            storage.support_brim,
-            gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
-            SpaceFillType::PolyLines,
-            enable_travel_optimization,
-            wipe_dist,
-            flow_ratio,
-            start_close_to,
-            fan_speed,
-            reverse_print_direction,
-            order_requirements = {});
+        return;
     }
+
+    constexpr bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
+    constexpr coord_t wipe_dist = 0u;
+    constexpr Ratio flow_ratio = 1.0;
+    constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+    constexpr bool reverse_print_direction = false;
+    const Point2LL start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
+
+    gcode_layer.addLinesByOptimizer(
+        storage.support_brim,
+        gcode_layer.configs_storage_.skirt_brim_config_per_extruder[extruder_nr],
+        SpaceFillType::PolyLines,
+        enable_travel_optimization,
+        wipe_dist,
+        flow_ratio,
+        start_close_to,
+        fan_speed,
+        reverse_print_direction);
 }
 
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
@@ -2160,19 +2173,21 @@ bool FffGcodeWriter::processSingleLayerInfill(
     // boundary edge
     Shape infill_below_skin;
     Shape infill_not_below_skin;
+    Shape infill_sandwiched;
     AngleDegrees skin_support_angle;
     if (gcode_layer.getLayerNr() > 0)
     {
-        partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, gcode_layer, mesh, part, infill_line_width);
+        partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, infill_sandwiched, gcode_layer, mesh, part, infill_line_width);
     }
 
     if (! infill_below_skin.empty())
     {
         const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
         const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
-        const Shape infill_contour = part.infill_area.offset(-(infill_line_width / 2) + infill_overlap + infill_wall_offset);
+        const Shape infill_contour = part.infill_area.offset(infill_overlap + infill_wall_offset);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
-        std::tie(infill_below_skin, skin_support_angle) = makeBridgeOverInfillPrintable(infill_contour, infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
+        std::tie(infill_below_skin, skin_support_angle)
+            = makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
         infill_not_below_skin = infill_not_below_skin.difference(infill_below_skin);
     }
 
@@ -2404,15 +2419,69 @@ bool FffGcodeWriter::processSingleLayerInfill(
     return added_something;
 }
 
+void FffGcodeWriter::getCombinedSkinForSkinSupport(Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr)
+{
+    constexpr coord_t tiny_infill_offset = 20;
+
+    if (skin_layer_nr >= mesh.layers.size() || skin_layer_nr < 1)
+    {
+        return;
+    }
+
+    for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
+    {
+        for (const SkinPart& skin_part : part_i.skin_parts)
+        {
+            // Limit considered areas to the ones that should have infill underneath at the current layer.
+            const Shape relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
+
+            if (! skin_combined.empty())
+            {
+                // does this skin part overlap with any of the skin parts on the layers above?
+                const Shape overlap = skin_combined.intersection(relevant_outline);
+                if (! overlap.empty())
+                {
+                    // yes, it overlaps, need to leave a gap between this skin part and the others
+                    // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so
+                    // far we do this so that these skin region edges will definitely have infill walls below them
+
+                    // looking from the side, if the combined regions so far look like this...
+                    //
+                    //     ----------------------------------
+                    //
+                    // and the new skin part looks like this...
+                    //
+                    //             -------------------------------------
+                    //
+                    // the result should be like this...
+                    //
+                    //     ------- -------------------------------------
+
+                    skin_combined = skin_combined.difference(relevant_outline.offset(tiny_infill_offset));
+                    skin_combined.push_back(relevant_outline);
+                }
+                else // no overlap
+                {
+                    skin_combined.push_back(relevant_outline);
+                }
+            }
+            else // this is the first skin region we have looked at
+            {
+                skin_combined.push_back(relevant_outline);
+            }
+        }
+    }
+}
+
 void FffGcodeWriter::partitionInfillBySkinAbove(
     Shape& infill_below_skin,
     Shape& infill_not_below_skin,
+    Shape& infill_sandwiched,
     const LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const SliceLayerPart& part,
     coord_t infill_line_width)
 {
-    constexpr coord_t tiny_infill_offset = 20;
     const bool skin_support = mesh.settings.get<bool>("skin_support");
 
     if (! skin_support)
@@ -2421,58 +2490,17 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
     }
 
     Shape skin_above_combined; // skin regions on the layers above combined with small gaps between
-
-    const size_t skin_layer_nr = gcode_layer.getLayerNr() + 1;
-    if (skin_layer_nr < mesh.layers.size())
-    {
-        for (const SliceLayerPart& part_i : mesh.layers[skin_layer_nr].parts)
-        {
-            for (const SkinPart& skin_part : part_i.skin_parts)
-            {
-                // Limit considered areas to the ones that should have infill underneath at the current layer.
-                const Shape relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
-
-                if (! skin_above_combined.empty())
-                {
-                    // does this skin part overlap with any of the skin parts on the layers above?
-                    const Shape overlap = skin_above_combined.intersection(relevant_outline);
-                    if (! overlap.empty())
-                    {
-                        // yes, it overlaps, need to leave a gap between this skin part and the others
-                        // add this layer's skin region without subtracting the overlap but still make a gap between this skin region and what has been accumulated so
-                        // far we do this so that these skin region edges will definitely have infill walls below them
-
-                        // looking from the side, if the combined regions so far look like this...
-                        //
-                        //     ----------------------------------
-                        //
-                        // and the new skin part looks like this...
-                        //
-                        //             -------------------------------------
-                        //
-                        // the result should be like this...
-                        //
-                        //     ------- -------------------------------------
-
-                        skin_above_combined = skin_above_combined.difference(relevant_outline.offset(tiny_infill_offset));
-                        skin_above_combined.push_back(relevant_outline);
-                    }
-                    else // no overlap
-                    {
-                        skin_above_combined.push_back(relevant_outline);
-                    }
-                }
-                else // this is the first skin region we have looked at
-                {
-                    skin_above_combined.push_back(relevant_outline);
-                }
-            }
-        }
-    }
+    Shape skin_below_combined; // same for the skin below (to check if we're sandwiching only 1 layer of infill, in which case we shouldn't do the support)
+    getCombinedSkinForSkinSupport(skin_above_combined, mesh, part, gcode_layer.getLayerNr() + 1);
+    getCombinedSkinForSkinSupport(skin_below_combined, mesh, part, std::max(LayerIndex{ 1 }, gcode_layer.getLayerNr()) - 1);
+    infill_sandwiched = skin_above_combined.intersection(skin_below_combined);
 
     // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form
     // a bump
-    infill_below_skin = skin_above_combined.intersection(part.infill_area_per_combine_per_density.back().front()).offset(-infill_line_width).offset(infill_line_width);
+    infill_below_skin = skin_above_combined.difference(skin_below_combined)
+                            .intersection(part.infill_area_per_combine_per_density.back().front())
+                            .offset(-infill_line_width)
+                            .offset(infill_line_width);
 
     constexpr bool remove_small_holes_from_infill_below_skin = true;
     constexpr double min_area_multiplier = 25;
@@ -2595,6 +2623,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
                 }
             }
         }
+        const Shape non_support_outlines_below = outlines_below;
 
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
 
@@ -2624,10 +2653,10 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
                 {
                     for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
                     {
-                        AABB support_part_bb(support_part.getInfillArea());
+                        AABB support_part_bb(support_part.outline_);
                         if (boundaryBox.hit(support_part_bb))
                         {
-                            outlines_below.push_back(support_part.getInfillArea());
+                            outlines_below.push_back(support_part.outline_);
                         }
                     }
                 }
@@ -2683,19 +2712,20 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             gcode_layer.setBridgeWallMask(Shape());
         }
 
-        const Shape fully_supported_region = outlines_below.offset(-half_outer_wall_width);
-        const Shape part_print_region = part.outline.offset(-half_outer_wall_width);
+        Shape model_supported_region = non_support_outlines_below.offset(-half_outer_wall_width);
+        // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
+        model_supported_region = model_supported_region.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
-        const auto get_supported_region = [&fully_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
+        const auto get_supported_region = [&model_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
         {
             // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
-            // the supported region is made up of those areas that really are supported by either model or support on the layer below
+            // the supported region is made up of those areas that are supported by the model on the layer below
             // expanded to take into account the overhang angle, the greater the overhang angle, the larger the supported area is
             // considered to be
             if (overhang_angle < 90.0)
             {
                 const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
-                return fully_supported_region.offset(overhang_width + 10);
+                return model_supported_region.offset(overhang_width + 10);
             }
 
             return Shape();
@@ -2758,8 +2788,9 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
         const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
         if (seam_overhang_angle < 90.0)
         {
-            const Shape supported_region_seam = get_supported_region(seam_overhang_angle);
-            gcode_layer.setSeamOverhangMask(part_print_region.difference(supported_region_seam).offset(10));
+            const auto seam_overhang_mask
+                = storage.getMachineBorder(mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_).difference(get_supported_region(seam_overhang_angle));
+            gcode_layer.setSeamOverhangMask(seam_overhang_mask);
         }
         else
         {
@@ -3221,7 +3252,8 @@ void FffGcodeWriter::processTopBottom(
 
     double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
 
-    if (layer_nr > 0 && skin_config == &mesh_config.skin_config && support_layer_nr >= 0 && mesh.settings.get<bool>("support_fan_enable"))
+    if (layer_nr > 0 && skin_config == &mesh_config.skin_config && support_layer_nr >= 0 && mesh.settings.get<bool>("support_fan_enable")
+        && mesh.settings.get<bool>("cool_fan_enabled"))
     {
         // skin isn't a bridge but is it above support and we need to modify the fan speed?
 
@@ -3243,10 +3275,10 @@ void FffGcodeWriter::processTopBottom(
         {
             for (auto support_part : support_layer->support_infill_parts)
             {
-                AABB support_part_bb(support_part.getInfillArea());
+                AABB support_part_bb(support_part.outline_);
                 if (skin_bb.hit(support_part_bb))
                 {
-                    supported = ! skin_fill.intersection(support_part.getInfillArea()).empty();
+                    supported = ! skin_fill.intersection(support_part.outline_).empty();
 
                     if (supported)
                     {
@@ -3579,6 +3611,8 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                                                                : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_;
     const ExtruderTrain& infill_extruder = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
 
+    gcode_layer.addLinesByOptimizer(support_layer.base, gcode_layer.configs_storage_.support_infill_config[0], SpaceFillType::PolyLines);
+
     coord_t default_support_line_distance = infill_extruder.settings_.get<coord_t>("support_line_distance");
 
     // To improve adhesion for the "support initial layer" the first layer might have different properties
@@ -3610,7 +3644,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         infill_density_multiplier = infill_extruder.settings_.get<size_t>("support_infill_density_multiplier_initial_layer");
     }
 
-    const size_t wall_line_count = infill_extruder.settings_.get<size_t>("support_wall_count");
+    const size_t wall_thickness = infill_extruder.settings_.get<size_t>("support_wall_thickness");
     const coord_t max_resolution = infill_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
     const coord_t max_deviation = infill_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
     coord_t default_support_line_width = infill_extruder.settings_.get<coord_t>("support_line_width");
@@ -3660,7 +3694,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         const auto& configs = part.use_fractional_config_ ? gcode_layer.configs_storage_.support_fractional_infill_config : gcode_layer.configs_storage_.support_infill_config;
 
         // always process the wall overlap if walls are generated
-        const int current_support_infill_overlap = (part.inset_count_to_generate_ > 0) ? default_support_infill_overlap : 0;
+        const int current_support_infill_overlap = (part.inset_width_to_generate_ > 0) ? default_support_infill_overlap : 0;
 
         // The support infill walls were generated separately, first. Always add them, regardless of how many densities we have.
         std::vector<VariableWidthLines> wall_toolpaths = part.wall_toolpaths_;
@@ -3768,7 +3802,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     area,
                     support_line_width,
                     support_line_distance_here,
-                    current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_line_count * support_line_width),
+                    current_support_infill_overlap - (density_idx == max_density_idx ? 0 : wall_thickness),
                     infill_multiplier,
                     support_infill_angle,
                     gcode_layer.z_ + configs[combine_idx].z_offset,
@@ -3871,7 +3905,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             // If we're printing with a support wall, that support wall generates gap filling as well.
             // If not, the pattern may still generate gap filling (if it's connected infill or zigzag). We still want to print those.
-            if (wall_line_count == 0 || ! wall_toolpaths_here.empty())
+            if (wall_thickness == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = configs[0];
                 constexpr coord_t wipe_dist = 0;
@@ -4186,6 +4220,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
         if (! gcode_layer.getSkirtBrimIsPlanned(extruder_nr))
         {
             processSkirtBrim(storage, gcode_layer, extruder_nr, gcode_layer.getLayerNr());
+            processSupportBrim(storage, gcode_layer, extruder_nr, gcode_layer.getLayerNr());
         }
     }
 
@@ -4238,26 +4273,7 @@ void FffGcodeWriter::finalize()
         gcode.writeBuildVolumeTemperatureCommand(0); // Cool down the build volume.
     }
 
-    const Duration print_time = gcode.getSumTotalPrintTimes();
-    std::vector<double> filament_used;
-    std::vector<std::string> material_ids;
-    std::vector<bool> extruder_is_used;
-    for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
-    {
-        filament_used.emplace_back(gcode.getTotalFilamentUsed(extruder_nr));
-        material_ids.emplace_back(scene.extruders[extruder_nr].settings_.get<std::string>("material_guid"));
-        extruder_is_used.push_back(gcode.getExtruderIsUsed(extruder_nr));
-    }
-    std::string prefix = gcode.getFileHeader(extruder_is_used, &print_time, filament_used, material_ids);
-    if (! Application::getInstance().communication_->isSequential())
-    {
-        Application::getInstance().communication_->sendGCodePrefix(prefix);
-        Application::getInstance().communication_->sendSliceUUID(slice_uuid);
-    }
-    else
-    {
-        spdlog::info("Gcode header after slicing: {}", prefix);
-    }
+    Application::getInstance().communication_->sendSliceUUID(slice_uuid);
     if (mesh_group_settings.get<bool>("acceleration_enabled"))
     {
         gcode.writePrintAcceleration(mesh_group_settings.get<Acceleration>("machine_acceleration"));

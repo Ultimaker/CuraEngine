@@ -42,14 +42,6 @@ public:
     void sendGCodePart(const std::string& gcode_part) override;
 
     /*
-     * \brief Indicates that for command line output we need to send the g-code
-     * from start to finish.
-     *
-     * We can't go back and erase some g-code very easily.
-     */
-    bool isSequential() const override;
-
-    /*
      * \brief Test if there are any more slices to be made.
      */
     bool hasSlice() const override;
@@ -69,11 +61,6 @@ public:
      * ignored.
      */
     void sendFinishedSlicing() const override;
-
-    /*
-     * \brief Output the g-code header.
-     */
-    void sendGCodePrefix(const std::string&) const override;
 
     /*
      * \brief Send the uuid of the generated slice so that it may be processed by

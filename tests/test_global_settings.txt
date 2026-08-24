@@ -409,6 +409,7 @@ machine_nozzle_size=0.4
 machine_head_polygon=[[-1, 1], [-1, -1], [1, -1], [1, 1]]
 adaptive_layer_height_variation=0.1
 wall_0_inset=0
+wall_x_inset=0
 support_skip_some_zags=False
 speed=0
 layer_start_y=198.0

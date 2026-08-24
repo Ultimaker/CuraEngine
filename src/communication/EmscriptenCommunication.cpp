@@ -34,10 +34,6 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
     {
         slice_info_handler_ = *ranges::next(slice_info_flag);
     }
-    if (auto gcode_header_flag = ranges::find(arguments_, "--gcode_header_cb"); gcode_header_flag != arguments_.end())
-    {
-        gcode_header_handler_ = *ranges::next(gcode_header_flag);
-    }
     if (auto engine_info_flag = ranges::find(arguments_, "--engine_info_cb"); engine_info_flag != arguments_.end())
     {
         engine_info_handler_ = *ranges::next(engine_info_flag);
@@ -45,11 +41,6 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
 
     auto engine_info = createEngineInfoMessage();
     emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
-}
-
-void EmscriptenCommunication::sendGCodePrefix(const std::string& prefix) const
-{
-    emscripten_run_script(fmt::format("globalThis[\"{}\"](\"{}\")", gcode_header_handler_, convertTobase64(prefix)).c_str());
 }
 
 void EmscriptenCommunication::sendProgress(double progress) const

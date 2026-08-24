@@ -66,26 +66,6 @@ void Shape::emplace_back(ClipperLib::Path&& path, bool explicitely_closed)
     static_cast<LinesSet<Polygon>*>(this)->emplace_back(std::move(path), explicitely_closed);
 }
 
-Shape Shape::approxConvexHull(int extra_outset) const
-{
-    constexpr int overshoot = MM2INT(100); // 10cm (hard-coded value).
-
-    Shape convex_hull;
-    // Perform the offset for each polygon one at a time.
-    // This is necessary because the polygons may overlap, in which case the offset could end up in an infinite loop.
-    // See http://www.angusj.com/delphi/clipper/documentation/Docs/Units/ClipperLib/Classes/ClipperOffset/_Body.htm
-    for (const Polygon& polygon : (*this))
-    {
-        ClipperLib::Paths offset_result;
-        ClipperLib::ClipperOffset offsetter(1.2, 10.0);
-        offsetter.AddPath(polygon.getPoints(), ClipperLib::jtRound, ClipperLib::etClosedPolygon);
-        offsetter.Execute(offset_result, overshoot);
-        convex_hull.emplace_back(std::move(offset_result));
-    }
-
-    return convex_hull.unionPolygons().offset(-overshoot + extra_outset, ClipperLib::jtRound);
-}
-
 void Shape::makeConvex()
 {
     // early out if there is nothing to do
@@ -108,8 +88,8 @@ void Shape::makeConvex()
 
         for (const auto window : poly | ranges::views::sliding(2))
         {
-            const Point2LL& current = window[0];
-            const Point2LL& after = window[1];
+            const auto& current = window[0];
+            const auto& after = window[1];
 
             if (LinearAlg2D::pointIsLeftOfLine(current, convexified.back(), after) < 0)
             {
@@ -122,6 +102,11 @@ void Shape::makeConvex()
                 }
                 convexified.push_back(current);
             }
+        }
+
+        while (convexified.size() >= 2 && (LinearAlg2D::pointIsLeftOfLine(convexified.back(), convexified[convexified.size() - 2], poly.back()) >= 0))
+        {
+            convexified.pop_back();
         }
     };
 
@@ -170,7 +155,7 @@ Shape Shape::difference(const Polygon& other) const
     ClipperLib::Paths ret;
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
-    addPath(clipper, other, ClipperLib::ptClip);
+    other.addPath(clipper, ClipperLib::ptClip);
     clipper.Execute(ClipperLib::ctDifference, ret);
     return Shape(std::move(ret));
 }
@@ -200,7 +185,7 @@ Shape Shape::unionPolygons(const Polygon& polygon, ClipperLib::PolyFillType fill
     ClipperLib::Paths ret;
     ClipperLib::Clipper clipper(clipper_init);
     addPaths(clipper, ClipperLib::ptSubject);
-    addPath(clipper, polygon, ClipperLib::ptSubject);
+    polygon.addPath(clipper, ClipperLib::ptSubject);
     clipper.Execute(ClipperLib::ctUnion, ret, fill_type, fill_type);
     return Shape{ std::move(ret) };
 }
@@ -1004,7 +989,7 @@ void Shape::ensureManifold()
 #endif
 
 template OpenLinesSet Shape::intersection(const LinesSet<OpenPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
-template OpenLinesSet Shape::intersection(const ClosedLinesSet& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
+template OpenLinesSet Shape::intersection(const LinesSet<ClosedPolyline>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 template OpenLinesSet Shape::intersection(const LinesSet<Polygon>& polylines, bool restitch, const coord_t max_stitch_distance, const bool split_into_segments) const;
 
 } // namespace cura

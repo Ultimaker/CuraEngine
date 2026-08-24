@@ -59,7 +59,6 @@ int main(int argc, char** argv)
 #endif
     std::cerr << std::boolalpha;
 
-
 // Want to set the sentry URL? Use '-c user.sentry:url=<url> -o curaengine/*:enable_sentry=True' with conan install
 #ifdef SENTRY_URL
     if (const auto use_sentry = spdlog::details::os::getenv("USE_SENTRY"); ! use_sentry.empty() && use_sentry == "1")

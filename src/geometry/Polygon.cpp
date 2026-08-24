@@ -14,6 +14,11 @@
 namespace cura
 {
 
+void Polygon::addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const
+{
+    clipper.AddPath(getPoints(), poly_typ, true);
+}
+
 Shape Polygon::intersection(const Polygon& other) const
 {
     ClipperLib::Paths ret_paths;

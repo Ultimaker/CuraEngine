@@ -120,7 +120,7 @@ public:
         constexpr coord_t support_roof_overlap = 0;
         constexpr size_t infill_multiplier = 1;
         const int support_shift = roof ? 0 : support_infill_distance / 2;
-        const size_t wall_line_count = include_walls ? (! roof ? config.support_wall_count : config.support_roof_wall_count) : 0;
+        const size_t wall_line_count = include_walls ? (! roof ? config.support_wall_thickness : config.support_roof_wall_count) : 0;
         constexpr coord_t narrow_area_width = 0;
         const Point2LL infill_origin;
         constexpr bool skip_stitching = false;

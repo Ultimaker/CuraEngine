@@ -11,6 +11,7 @@
 
 #include <range/v3/view/enumerate.hpp>
 
+#include "geometry/ClosedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/SingleShape.h"
@@ -1597,6 +1598,30 @@ ClosedLinesSet PolygonUtils::generateCircularInset(const Point2LL& center, const
     }
 
     return inset;
+}
+
+PolygonUtils::InsetOutset PolygonUtils::generateInsetOutset(const Shape& shape, const coord_t width, const coord_t line_width)
+{
+    InsetOutset result;
+    Shape current_outset = shape;
+    const coord_t semi_line_width = line_width / 2;
+    coord_t offset = semi_line_width;
+
+    const coord_t direction = (width > 0) ? 1 : -1;
+
+    while ((offset + semi_line_width <= width * direction) && ! current_outset.empty())
+    {
+        current_outset = shape.offset(offset * direction);
+        result.walls.push_back(current_outset);
+        offset += line_width;
+    }
+
+    if (! result.walls.empty())
+    {
+        result.final_contour_offset = direction * (offset - line_width / 2);
+    }
+
+    return result;
 }
 
 template ClosestPoint<Polygon> PolygonUtils::walk(const ClosestPoint<Polygon>& from, coord_t distance);

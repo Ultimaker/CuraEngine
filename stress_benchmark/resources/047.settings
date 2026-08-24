@@ -546,6 +546,7 @@ hole_xy_offset=0
 infill_wall_line_count=0
 speed_print=50
 wall_0_inset=0
+wall_x_inset=0
 skin_edge_support_thickness=0
 retraction_extra_prime_amount=0
 adhesion_type=skirt

@@ -27,6 +27,7 @@ public:
         const Ratio wall_add_middle_threshold = 0.5_r,
         const coord_t max_bead_count = 0,
         const coord_t outer_wall_offset = 0,
+        const coord_t inner_wall_offset = 0,
         const int inward_distributed_center_wall_count = 2,
         const Ratio minimum_variable_line_ratio = 0.5);
 };

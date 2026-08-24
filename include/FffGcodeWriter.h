@@ -222,12 +222,22 @@ private:
      * calling it for multiple layers results in the skirt/brim being printed on multiple layers.
      *
      * \param storage where the slice data is stored.
-     * \param gcodeLayer The initial planning of the g-code of the layer.
+     * \param gcode_layer The initial planning of the g-code of the layer.
      * \param extruder_nr The extruder train for which to process the skirt or
      * brim.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcodeLayer, unsigned int extruder_nr, LayerIndex layer_nr) const;
+    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr) const;
+
+    /*!
+     * Add the support brim to the layer plan
+     *
+     * \param storage where the slice data is stored.
+     * \param gcode_layer The initial planning of the g-code of the layer.
+     * \param extruder_nr The extruder train for which to process the brim.
+     * \param layer_nr The index of the layer to write the gcode of.
+     */
+    static void processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr);
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.
@@ -734,6 +744,16 @@ private:
     unsigned int findSpiralizedLayerSeamVertexIndex(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const int layer_nr, const int last_layer_nr);
 
     /*!
+     * Retrieve all skin relevant to skin support from the indicated layer w.r.t. the indicated part (on an adjacent layer).
+     *
+     * \param skin_combined [out] Return parameter.
+     * \param mesh [in] Relevant mesh.
+     * \param part [in] The part that we're currently checking.
+     * \param skin_layer_nr [in] A layer that is adjacent to the part (so either above or below the layer of the part).
+     */
+    static void getCombinedSkinForSkinSupport(Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr);
+
+    /*!
      * Partition the Infill regions by the skin at N layers above.
      *
      * When skin edge support layers is set this function will check N layers above the infill layer to see if there is
@@ -743,6 +763,7 @@ private:
      *
      * \param infill_below_skin [out] Polygons with infill below the skin
      * \param infill_not_below_skin [out] Polygons with infill outside of skin regions above
+     * \param infill_sandwiched [out] Polygons with infill that both has regions of skin both above _and_ below
      * \param gcode_layer The initial planning of the gcode of the layer
      * \param mesh the mesh containing the layer of interest
      * \param part \param part The part for which to create gcode
@@ -751,6 +772,7 @@ private:
     static void partitionInfillBySkinAbove(
         Shape& infill_below_skin,
         Shape& infill_not_below_skin,
+        Shape& infill_sandwiched,
         const LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const SliceLayerPart& part,

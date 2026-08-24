@@ -2,6 +2,7 @@ material_bed_temperature=60
 support_tree_rest_preference=buildplate
 relative_extrusion=False
 wall_0_inset=0
+wall_x_inset=0
 resolution=0
 _plugin__curaenginegradualflow__0_1_0__layer_0_max_flow_acceleration=1
 skin_preshrink=0.84

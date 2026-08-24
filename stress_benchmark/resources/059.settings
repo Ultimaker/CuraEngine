@@ -13,6 +13,7 @@ machine_max_feedrate_z=10
 wall_transition_angle=10
 coasting_min_volume=0.8
 wall_0_inset=0
+wall_x_inset=0
 xy_offset_layer_0=0
 support_tree_limit_branch_reach=True
 bridge_skin_speed_2=15.0
