@@ -322,8 +322,6 @@ std::optional<AngleDegrees> bridgeAngle(
 
     // To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     //  This gives us the islands that the layer rests on.
-    Shape islands;
-
     Shape prev_layer_outline; // we also want the complete outline of the previous layer
     Shape prev_layer_infill;
 
@@ -351,20 +349,13 @@ std::optional<AngleDegrees> bridgeAngle(
                 if (! boundary_box.hit(prev_layer_part.boundaryBox))
                     continue;
 
-                islands.push_back(skin_outline.intersection(solid_below));
+                supported_regions.push_back(skin_outline.intersection(solid_below));
             }
         }
     }
-    supported_regions = islands;
 
     if (support_layer)
     {
-        // add the regions of the skin that have support below them to supportedRegions
-        // but don't add these regions to islands because that can actually cause the code
-        // below to consider the skin a bridge when it isn't (e.g. a skin that is supported by
-        // the model on one side but the remainder of the skin is above support would look like
-        // a bridge because it would have two islands) - FIXME more work required here?
-
         if (! support_layer->support_roof.empty())
         {
             AABB support_roof_bb(support_layer->support_roof);

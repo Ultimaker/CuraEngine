@@ -3159,19 +3159,19 @@ void FffGcodeWriter::processTopBottom(
     // generate skin_polygons and skin_lines
     const GCodePathConfig* skin_config = &mesh_config.skin_config;
     Ratio skin_density = 1.0;
-    const coord_t skin_overlap = 0; // Skin overlap offset is applied in skin.cpp more overlap might be beneficial for curved bridges, but makes it worse in general.
+    constexpr coord_t skin_overlap = 0; // Skin overlap offset is applied in skin.cpp more overlap might be beneficial for curved bridges, but makes it worse in general.
     const bool bridge_settings_enabled = mesh.settings.get<bool>("bridge_settings_enabled");
     const bool bridge_enable_more_layers = bridge_settings_enabled && mesh.settings.get<bool>("bridge_enable_more_layers");
+    const auto bridge_over_support = bridge_settings_enabled && mesh_group_settings.get<bool>("bridge_over_support");
     const Ratio support_threshold = bridge_settings_enabled ? mesh.settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
     const size_t bottom_layers = mesh.settings.get<size_t>("bottom_layers");
+    const auto support_enable = mesh_group_settings.get<bool>("support_enable");
     std::optional<coord_t> forced_small_area_width;
-
-    // if support is enabled, consider the support outlines so we don't generate bridges over support
 
     int support_layer_nr = -1;
     const SupportLayer* support_layer = nullptr;
 
-    if ((mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support) && ! mesh_group_settings.get<bool>("bridge_over_support"))
+    if ((support_enable || mesh_group->has_painted_support) && ! bridge_over_support)
     {
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
