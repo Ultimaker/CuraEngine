@@ -12,6 +12,7 @@
 #include <cura_viz/printer.pb.h>
 #include <cura_viz/step.pb.h>
 
+#include <boost/asio/write.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/map.hpp>
 
@@ -34,10 +35,10 @@ CuraViz::CuraViz()
     try
     {
         constexpr uint16_t port = 49673;
-        socket_.connect(asio::ip::tcp::endpoint(asio::ip::address::from_string("127.0.0.1"), port));
+        socket_.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), port));
         spdlog::info("Connected to CuraViz");
     }
-    catch (asio::system_error error)
+    catch (boost::system::system_error error)
     {
         socket_.close();
         spdlog::warn("CuraViz could not connect to vizualiser: {}", error.what());
@@ -92,8 +93,8 @@ void CuraViz::send(const cura_viz::Message& message, const bool should_lock)
         lock = std::unique_lock(mutex_);
     }
 
-    asio::write(socket_, asio::buffer(&size, sizeof(size)));
-    asio::write(socket_, asio::buffer(serialized));
+    boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+    boost::asio::write(socket_, boost::asio::buffer(serialized));
 }
 
 CuraViz* CuraViz::getInstance()

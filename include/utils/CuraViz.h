@@ -5,7 +5,8 @@
 #define CURAVIZ_H
 #ifdef ENABLE_CURAVIZ
 
-#include <asio.hpp>
+#include <boost/asio/io_context.hpp>
+#include <boost/asio/ip/tcp.hpp>
 
 #include "geometry/Point2LL.h"
 
@@ -95,8 +96,8 @@ private:
     static CuraViz* instance_;
     static std::mutex mutex_;
 
-    asio::io_context io_context_;
-    asio::ip::tcp::socket socket_;
+    boost::asio::io_context io_context_;
+    boost::asio::ip::tcp::socket socket_;
 };
 
 } // namespace cura
