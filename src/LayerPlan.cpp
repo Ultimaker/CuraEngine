@@ -1371,30 +1371,32 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
         // last_layer_ = last_layer_.offset(???);  // TODO: Not sure if we need to add the wall-angle offset here as well.
 
         // Find the 1st model-supported bit of the wall.
-        size_t first_supported_index = -1;
-        for (size_t wall_i = 0; wall_i < wall.size(); ++wall_i)
+        ptrdiff_t first_supported_index = -1;
+        if (! last_layer.empty())
         {
-            if (last_layer.inside(wall.pointAt(wall_i)))
+            for (size_t wall_i = 0; wall_i < wall.size(); ++wall_i)
             {
-                first_supported_index = wall_i;
-                break;
+                if (last_layer.inside(wall.pointAt(wall_i)))
+                {
+                    first_supported_index = wall_i;
+                    break;
+                }
             }
         }
 
         if (first_supported_index >= 0)
         {
             // Find each (model-)unsupported span (+ attachment points).
-            size_t wall_i = first_supported_index;
-            size_t last_supported_index = -1;
+            ptrdiff_t wall_i = first_supported_index;
+            ptrdiff_t last_supported_index = -1;
             bool last_supported = true;
-            coord_t span_deviation = 0;
             do
             {
                 bool supported = last_layer.inside(wall.pointAt(wall_i));
                 if (supported && ! last_supported)
                 {
                     // End of span, check span and insert appropriate values in skip-bridge vector.
-                    assert(last_supported_idx >= 0);
+                    assert(last_supported_index >= 0);
                     const auto& pt_a = wall.pointAt(last_supported_index);
                     const auto& pt_b = wall.pointAt(wall_i);
                     const size_t seg_end = (wall_i + 1) % wall.size();
@@ -1430,7 +1432,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                     {
                         // First of span.
                         last_supported_index = wall_i;
-                        span_deviation = 0;
                     }
                 }
                 last_supported = supported;
