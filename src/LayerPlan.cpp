@@ -1342,6 +1342,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const auto max_resolution,
     const double flow_ratio,
     const coord_t nominal_line_width,
+    const coord_t bridge_max_deviation,
     const coord_t min_bridge_line_len,
     const auto scarf_seam_length,
     const auto scarf_seam_start_ratio,
@@ -1410,7 +1411,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                     for (size_t seg_i = last_supported_index; seg_i != seg_end; seg_i = (seg_i + 1) % wall.size())
                     {
                         const coord_t dist = LinearAlg2D::getDistFromLine(wall.pointAt(seg_i), pt_a, pt_b);
-                        if (dist > 400) // TODO!: Get new bridge wall max deviation setting here instead of magic number.
+                        if (dist > bridge_max_deviation)
                         {
                             // Make entire span skip bridging.
                             skip_bridging = true;
@@ -1895,6 +1896,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const bool actual_scarf_seam = scarf_seam && is_closed && layer_nr_ > 0;
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const coord_t bridge_max_deviation = settings.get<coord_t>("bridge_wall_max_deviation");
 
     const coord_t nominal_line_width = default_config.getLineWidth();
 
@@ -1945,6 +1947,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
             flow_ratio,
             nominal_line_width,
             min_bridge_line_len,
+            bridge_max_deviation,
             scarf_seam_length,
             scarf_seam_start_ratio,
             scarf_split_distance,

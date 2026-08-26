@@ -1127,6 +1127,7 @@ private:
         const double flow_ratio,
         const coord_t nominal_line_width,
         const coord_t min_bridge_line_len,
+        const coord_t bridge_max_deviation,
         const auto scarf_seam_length,
         const auto scarf_seam_start_ratio,
         const auto scarf_split_distance,

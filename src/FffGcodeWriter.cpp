@@ -2673,7 +2673,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             //  which negates the need for compensation, and can make it harmful w.r.t. flow-buildup)
 
             const coord_t compensate_outline_distance = (mesh_config.bridge_inset0_config.flow < 1.0) ? half_outer_wall_width : 0;
-            Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance);
+            Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance).difference(outlines_below);
             gcode_layer.setBridgeWallMask(bridge_mask);
 
             const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
