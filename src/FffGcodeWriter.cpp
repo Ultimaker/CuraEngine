@@ -2612,11 +2612,10 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
 
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
 
-        // if support is enabled, add the support outlines also so we don't generate bridges over support
-
+        // If support is enabled & the proper setting is on, add the support outlines also so we don't generate bridges over support.
         const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
         const Settings& mesh_group_settings = mesh_group->settings;
-        if (mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support)
+        if ((mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support) && mesh_group_settings.get<bool>("bridge_allow_support_anchor"))
         {
             const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
             const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
