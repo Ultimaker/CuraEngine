@@ -589,6 +589,7 @@ public:
 
     /*!
      * Add a single line that is part of a wall to the gcode.
+     * \param bridging_subsegments ... [TODO]
      * \param wall The wall line being printed
      * \param segment_index The index of the segment of the wall line being printed
      * \param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
@@ -616,7 +617,7 @@ public:
      * the first bridge segment.
      */
     void addWallLine(
-        const bool skip_bridging,
+        const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
         const PathAdapter<ExtrusionLine>& wall,
         const size_t segment_index,
         const Ratio& segment_start_ratio,
@@ -1052,6 +1053,7 @@ private:
 
     /*!
      * \brief Alias for a function definition that adds an extrusion segment
+     * \param bridging_subsegments ... [TODO]
      * \param wall The wall line being printed
      * \param segment_index The index of the segment of the wall line being printed
      * \param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
@@ -1066,7 +1068,7 @@ private:
      */
     template<class PathType>
     using AddExtrusionSegmentFunction = std::function<void(
-        const bool skip_bridging,
+        const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
         const PathAdapter<PathType>& wall,
         const size_t segment_index,
         const Ratio& segment_start_ratio,
@@ -1216,15 +1218,65 @@ private:
         const std::function<void(const double, const int64_t)> insertTempOnTime,
         const PathCoasting& path_coasting);
 
+    struct BridgeLocation
+    {
+    public:
+        ptrdiff_t wall_idx_start;
+        ptrdiff_t wall_idx_end;
+        coord_t start_dist;  // distance from the point indicated by wall_idx_start to the start of the bridge-segment
+        coord_t end_dist;      // distance from the point indicated by [wall_idx_end - direction] (which equals wall_idx_start if the bridge is within a single wall-segment) to the end of the bridge-segment
+        coord_t bridge_len;    // length of the bridge (which is only the same as end - start distance, in case the start and end wall indices are exactly 1 apart)
+        coord_t backwards_end_dist;    // distance from the point indicated by wall_idx_end to the end of the bridge-segment (so, backwards from the last point of the line-segment)
+        coord_t from_start_of_wall;  // distance to the start of the bridge segment from the start of the entire wall
+    };
+
     /*!
-     * \brief Helper function to calculate the distance from the start of the current wall line to the first bridge segment
+     * \brief ... [TODO]
+     * \param wall_size ... [TODO]
+     * \param bridge_locations ... [TODO]
+     * \param out_bridging_subsections ... [TODO]
+     * \param direction ... [TODO]
+     */
+    void convertBridgeLocations(
+        const size_t wall_size,
+        const std::vector<BridgeLocation>& bridge_locations,
+        std::vector<std::vector<std::tuple<Ratio, Ratio>>>& out_bridging_subsections,
+        ptrdiff_t direction) const;
+
+    /*!
+     * \brief Helper function to find the distance to the start of ...
      * \param wall The currently processed wall
      * \param current_index The index of the currently processed point
-     * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
      * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards
-     * \return The distance from the start of the current wall line to the first bridge segment
+     * \param bridge_segments ... [TODO]
+     * \param out_next_bridge_dists ... [TODO]
      */
-    [[nodiscard]] coord_t computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len, const int direction = 1) const;
+    void findNextBridgeDistances(
+        const ExtrusionLine& wall,
+        const size_t current_index,
+        const std::vector<BridgeLocation>& bridge_segments,
+        std::vector<coord_t>& out_next_bridge_dists,
+        const int direction) const;
+
+
+    /*!
+     * \brief Helper function to ... [TODO]
+     * \param wall The currently processed wall.
+     * \param current_index The index of the currently processed point
+     * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
+     * \param min_anchor_distance ... [TODO]
+     * \param max_bridge_deviation ... [TODO]
+     * \param out_bridge_segments ... [TODO]
+     * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards
+     */
+    void findBridgingSections(
+        const ExtrusionLine& wall,
+        const size_t current_index,
+        const coord_t min_bridge_line_len,
+        const coord_t min_anchor_distance,
+        const coord_t max_bridge_deviation,
+        std::vector<BridgeLocation>& out_bridge_segments,
+        const int direction = 1) const;
 
     /*!
      * Compute the Z-hop and travel duration for the given travel path
