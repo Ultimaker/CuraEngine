@@ -1223,11 +1223,12 @@ private:
     public:
         ptrdiff_t wall_idx_start;
         ptrdiff_t wall_idx_end;
-        coord_t start_dist;  // distance from the point indicated by wall_idx_start to the start of the bridge-segment
-        coord_t end_dist;      // distance from the point indicated by [wall_idx_end - direction] (which equals wall_idx_start if the bridge is within a single wall-segment) to the end of the bridge-segment
-        coord_t bridge_len;    // length of the bridge (which is only the same as end - start distance, in case the start and end wall indices are exactly 1 apart)
-        coord_t backwards_end_dist;    // distance from the point indicated by wall_idx_end to the end of the bridge-segment (so, backwards from the last point of the line-segment)
-        coord_t from_start_of_wall;  // distance to the start of the bridge segment from the start of the entire wall
+        coord_t start_dist; // distance from the point indicated by wall_idx_start to the start of the bridge-segment
+        coord_t end_dist; // distance from the point indicated by [wall_idx_end - direction] (which equals wall_idx_start if the bridge is within a single wall-segment) to the end
+                          // of the bridge-segment
+        coord_t bridge_len; // length of the bridge (which is only the same as end - start distance, in case the start and end wall indices are exactly 1 apart)
+        coord_t backwards_end_dist; // distance from the point indicated by wall_idx_end to the end of the bridge-segment (so, backwards from the last point of the line-segment)
+        coord_t from_start_of_wall; // distance to the start of the bridge segment from the start of the entire wall
     };
 
     /*!
