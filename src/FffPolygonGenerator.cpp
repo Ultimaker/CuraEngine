@@ -1205,6 +1205,72 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 }
             }
             part.wall_toolpaths = result_paths;
+
+            // Also fuzz the spiral wall, if any. In spiralize mode the outer wall isn't stored in wall_toolpaths but in spiral_wall (as plain polygons),
+            // so it needs to be processed separately, like it used to be before the variable-width toolpaths existed.
+            if (part.spiral_wall.empty())
+            {
+                continue;
+            }
+            if (apply_outside_only)
+            {
+                hole_area = part.print_outline.getOutsidePolygons().offset(-line_width);
+            }
+            Shape fuzzy_spiral_walls;
+            for (const Polygon& wall : part.spiral_wall)
+            {
+                if (wall.size() < 3
+                    || (apply_outside_only
+                        && std::any_of(
+                            wall.begin(),
+                            wall.end(),
+                            [&hole_area](const Point2LL& point)
+                            {
+                                return hole_area.inside(point);
+                            })))
+                {
+                    fuzzy_spiral_walls.push_back(wall);
+                    continue;
+                }
+
+                Polygon fuzzy_wall;
+
+                // generate points in between p0 and p1
+                int64_t dist_left_over
+                    = (min_dist_between_points / 4) + rand() % (min_dist_between_points / 4); // the distance to be traversed on the line before making the first new point
+                const Point2LL* p0 = &wall.back();
+                for (const Point2LL& p1 : wall)
+                {
+                    if (*p0 == p1) // avoid seams
+                    {
+                        p0 = &p1;
+                        continue;
+                    }
+
+                    // 'a' is the (next) new point between p0 and p1
+                    const Point2LL p0p1 = p1 - *p0;
+                    const int64_t p0p1_size = vSize(p0p1);
+                    int64_t p0pa_dist = dist_left_over;
+                    for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
+                    {
+                        const int r = rand() % (fuzziness * 2) - fuzziness;
+                        const Point2LL perp_to_p0p1 = turn90CCW(p0p1);
+                        const Point2LL fuzz = normal(perp_to_p0p1, r);
+                        const Point2LL pa = *p0 + normal(p0p1, p0pa_dist);
+                        fuzzy_wall.push_back(pa + fuzz);
+                    }
+                    // p0pa_dist > p0p1_size now because we broke out of the for-loop
+                    dist_left_over = p0pa_dist - p0p1_size;
+
+                    p0 = &p1;
+                }
+                if (fuzzy_wall.size() < 3)
+                {
+                    fuzzy_wall = wall; // the polygon was too small to fuzz; keep it unchanged
+                }
+                fuzzy_spiral_walls.push_back(std::move(fuzzy_wall));
+            }
+            part.spiral_wall = fuzzy_spiral_walls;
         }
     }
 }
