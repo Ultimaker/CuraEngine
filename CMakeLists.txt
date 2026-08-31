@@ -18,7 +18,7 @@ option(ENABLE_MORE_COMPILER_OPTIMIZATION_FLAGS "Enable more optimization flags" 
 option(USE_SYSTEM_LIBS "Use the system libraries if available" OFF)
 option(OLDER_APPLE_CLANG "Apple Clang <= 13 used" OFF)
 option(ENABLE_THREADING "Enable threading support" ON)
-option(ENABLE_CURAVIZ "Build with CuraViz toolbox" ON)
+option(ENABLE_CURAVIZ "Build with CuraViz toolbox" OFF)
 
 if (${ENABLE_ARCUS} OR ${ENABLE_PLUGINS} OR ${ENABLE_CURAVIZ})
     find_package(protobuf REQUIRED)

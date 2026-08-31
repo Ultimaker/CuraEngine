@@ -10,6 +10,7 @@
 #include <string>
 #include <thread>
 
+#include <boost/unordered/concurrent_flat_map.hpp>
 #include <range/v3/numeric/accumulate.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/enumerate.hpp>
@@ -129,7 +130,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
 
         spdlog::info("Processing support tree mesh group {} of {} containing {} meshes.", counter + 1, grouped_meshes.size(), grouped_meshes[counter].second.size());
         std::vector<Shape> exclude(storage.support.supportLayers.size());
-        auto t_start = std::chrono::high_resolution_clock::now();
+        TimeKeeper time_keeper;
 
         // get all already existing support areas and exclude them
         cura::parallel_for<coord_t>(
@@ -162,13 +163,13 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             exclude);
 
         // ### Precalculate avoidances, collision etc.
-        const LayerIndex max_required_layer = precalculate(storage, processing.second);
+        const LayerIndex max_required_layer = precalculate(storage, processing.second, time_keeper);
         if (max_required_layer < 0)
         {
             spdlog::info("Support tree mesh group {} does not have any overhang. Skipping tree support generation for this support tree mesh group.", counter + 1);
             continue; // If there is no overhang to support, skip these meshes
         }
-        const auto t_precalc = std::chrono::high_resolution_clock::now();
+        time_keeper.registerTime("Calculate Avoidance");
 
         // ### Place tips of the support tree
         for (size_t mesh_idx : processing.second)
@@ -176,36 +177,21 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
             generateInitialAreas(*storage.meshes[mesh_idx], move_bounds, storage);
         }
         const auto t_gen = std::chrono::high_resolution_clock::now();
+        time_keeper.registerTime("Create inital influence areas");
 
         // ### Propagate the influence areas downwards.
-        createLayerPathing(move_bounds);
-        const auto t_path = std::chrono::high_resolution_clock::now();
+        createLayerPathing(move_bounds, time_keeper);
+        time_keeper.registerTime("Create influence area");
 
         // ### Set a point in each influence area
         createNodesFromArea(move_bounds);
-        const auto t_place = std::chrono::high_resolution_clock::now();
+        time_keeper.registerTime("Place Points in InfluenceAreas");
 
         // ### draw these points as circles
-        drawAreas(move_bounds, storage);
+        drawAreas(move_bounds, storage, time_keeper);
 
-        const auto t_draw = std::chrono::high_resolution_clock::now();
-        const auto dur_pre_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_precalc - t_start).count();
-        const auto dur_gen = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_gen - t_precalc).count();
-        const auto dur_path = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_path - t_gen).count();
-        const auto dur_place = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_place - t_path).count();
-        const auto dur_draw = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_place).count();
-        const auto dur_total = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_draw - t_start).count();
-        spdlog::info(
-            "Total time used creating Tree support for the currently grouped meshes: {} ms. Different subtasks:\n"
-            "Calculating Avoidance: {} ms Creating inital influence areas: {} ms Influence area creation: {} ms Placement of Points in InfluenceAreas: {} ms Drawing result as "
-            "support {} ms",
-            dur_total,
-            dur_pre_gen,
-            dur_gen,
-            dur_path,
-            dur_place,
-            dur_draw);
-
+        time_keeper.end();
+        time_keeper.logRegisteredTimes("Tree support generation");
 
         for (auto& layer : move_bounds)
         {
@@ -220,7 +206,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
     storage.support.generated = true;
 }
 
-LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes)
+LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, TimeKeeper& time_keeper)
 {
     // Calculate top most layer that is relevant for support.
     LayerIndex max_layer = -1;
@@ -254,7 +240,7 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
     // ### The actual precalculation happens in TreeModelVolumes.
     if (max_layer >= 0)
     {
-        volumes_.precalculate(max_layer);
+        volumes_.precalculate(max_layer, time_keeper);
     }
     return max_layer;
 }
@@ -1285,16 +1271,13 @@ void TreeSupport::increaseAreas(
         });
 }
 
-void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds)
+void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>& move_bounds, TimeKeeper& time_keeper)
 {
     const double data_size_inverse = 1 / double(move_bounds.size());
     double progress_total = TREE_PROGRESS_PRECALC_AVO + TREE_PROGRESS_PRECALC_COLL + TREE_PROGRESS_GENERATE_NODES;
 
     auto dur_inc = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
     auto dur_merge = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
-
-    const auto dur_inc_recent = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
-    const auto dur_merge_recent = std::chrono::duration_values<std::chrono::nanoseconds>::zero();
 
     LayerIndex last_merge = move_bounds.size();
     bool new_element = false;
@@ -1363,7 +1346,7 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
 
             if (new_area->area() < 1)
             {
-                spdlog::error("Insert Error of Influence area on layer {}. Origin of {} areas. Was to bp {}", layer_idx - 1, elem.parents_.size(), elem.to_buildplate_);
+                spdlog::error("Insert Error of Influence area on layer {}. Origin of {} areas. Was to bp {}", layer_idx - 1, elem.getParents().size(), elem.to_buildplate_);
             }
         }
 
@@ -1381,7 +1364,8 @@ void TreeSupport::createLayerPathing(std::vector<std::set<TreeSupportElement*>>&
         Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
     }
 
-    spdlog::info("Time spent with creating influence areas' subtasks: Increasing areas {} ms merging areas: {} ms", dur_inc.count() / 1000000, dur_merge.count() / 1000000);
+    time_keeper.registerTime("Creating influence areas: increase", 10ms, std::chrono::duration_cast<std::chrono::milliseconds>(dur_inc));
+    time_keeper.registerTime("Creating influence areas: merge", 10ms, std::chrono::duration_cast<std::chrono::milliseconds>(dur_merge));
 }
 
 void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)
@@ -1394,7 +1378,7 @@ void TreeSupport::setPointsOnAreas(const TreeSupportElement* elem)
         return;
     }
 
-    for (TreeSupportElement* next_elem : elem->parents_)
+    for (TreeSupportElement* next_elem : elem->getParents())
     {
         if (next_elem->result_on_layer_
             != Point2LL(-1, -1)) // If the value was set somewhere else it it kept. This happens when a branch tries not to move after being unable to create a roof.
@@ -1447,9 +1431,9 @@ bool TreeSupport::setToModelContact(std::vector<std::set<TreeSupportElement*>>& 
                 valid_place_area = check_valid_place_area;
             }
             checked.emplace_back(check);
-            if (check->parents_.size() == 1)
+            if (check->getParents().size() == 1)
             {
-                check = check->parents_[0];
+                check = check->getParents().front();
             }
             else
             {
@@ -1611,7 +1595,7 @@ void TreeSupport::createNodesFromArea(std::vector<std::set<TreeSupportElement*>>
                     }
                     remove.emplace(elem); // We dont need to remove yet the parents as they will have a lower dtt and also no result_on_layer set.
                     removed = true;
-                    for (TreeSupportElement* parent : elem->parents_)
+                    for (TreeSupportElement* parent : elem->getParents())
                     {
                         // When the roof was not able to generate downwards enough, the top elements may have not moved, and have result_on_layer already set. As this branch needs
                         // to be removed => all parents result_on_layer have to be invalidated.
@@ -1688,7 +1672,7 @@ void TreeSupport::generateBranchAreas(
                     Point2LL movement = (child_elem->result_on_layer_ - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, radius);
                 }
-                for (TreeSupportElement* parent : elem->parents_)
+                for (TreeSupportElement* parent : elem->getParents())
                 {
                     Point2LL movement = (parent->result_on_layer_ - elem->result_on_layer_);
                     movement_directions.emplace_back(movement, std::max(config.getRadius(parent), config.support_line_width));
@@ -1714,7 +1698,7 @@ void TreeSupport::generateBranchAreas(
                     // Visualization: https://jsfiddle.net/0zvcq39L/2/
                     // Ovalizes the circle to an ellipse, that contains both old center and new target position.
                     double used_scale = (movement.second + offset) / (1.0 * config.branch_radius);
-                    Point2LL center_position = elem->result_on_layer_ + movement.first / 2;
+                    Point2LL center_position = elem->result_on_layer_ + movement.first / coord_t{ 2 };
                     const double moveX = movement.first.X / (used_scale * config.branch_radius);
                     const double moveY = movement.first.Y / (used_scale * config.branch_radius);
                     const double vsize_inv = 0.5 / (0.01 + std::sqrt(moveX * moveX + moveY * moveY));
@@ -1826,7 +1810,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
 
                 coord_t max_outer_wall_distance = 0;
                 bool do_something = false;
-                for (TreeSupportElement* parent : data_pair.first->parents_)
+                for (TreeSupportElement* parent : data_pair.first->getParents())
                 {
                     if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                     {
@@ -1841,7 +1825,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                 if (do_something)
                 {
                     Shape max_allowed_area = data_pair.second.offset(max_outer_wall_distance);
-                    for (TreeSupportElement* parent : data_pair.first->parents_)
+                    for (TreeSupportElement* parent : data_pair.first->getParents())
                     {
                         if (config.getRadius(*parent) != config.getCollisionRadius(*parent))
                         {
@@ -1884,9 +1868,9 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                 std::pair<TreeSupportElement*, Shape> data_pair = processing[processing_idx];
                 bool do_something = false;
                 Shape max_allowed_area;
-                for (size_t idx = 0; idx < data_pair.first->parents_.size(); idx++)
+                for (size_t idx = 0; idx < data_pair.first->getParents().size(); idx++)
                 {
-                    TreeSupportElement* parent = data_pair.first->parents_[idx];
+                    TreeSupportElement* parent = data_pair.first->getParents()[idx];
                     const coord_t max_outer_line_increase = max_radius_change_per_layer;
                     Shape result = layer_tree_polygons[layer_idx + 1][parent].offset(max_outer_line_increase);
                     const Point2LL direction = data_pair.first->result_on_layer_ - parent->result_on_layer_;
@@ -1925,6 +1909,48 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
 
     progress_total += TREE_PROGRESS_SMOOTH_BRANCH_AREAS / 2;
     Progress::messageProgress(Progress::Stage::SUPPORT, progress_total * progress_multiplier + progress_offset, TREE_PROGRESS_TOTAL);
+}
+
+void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement*>>& layer_tree_polygons)
+{
+    const size_t smooth_window = config.support_tree_smooth_layers;
+    if (smooth_window < 2) // Smoothing on 1 layer will give a similar result, so can be skipped
+    {
+        return;
+    }
+
+    // First go through every element and calculate their average position i.r.t their chain of children
+    boost::concurrent_flat_map<TreeSupportElement*, Point2LL> smoothed_positions;
+    cura::parallel_for<size_t>(
+        0,
+        layer_tree_polygons.size(),
+        [&layer_tree_polygons, &smooth_window, &smoothed_positions](const size_t layer_index)
+        {
+            for (TreeSupportElement* element : layer_tree_polygons[layer_index])
+            {
+                const size_t actual_smooth_window = std::min(smooth_window, element->distance_to_top_);
+                const TreeSupportElement* child = element->getChild();
+                Point2LL interlayer_position_sum = element->result_on_layer_;
+                size_t added_layers;
+                for (added_layers = 1; child && child->isResultOnLayerSet() && added_layers < actual_smooth_window; ++added_layers)
+                {
+                    interlayer_position_sum += child->result_on_layer_;
+                    child = child->getChild();
+                }
+
+                smoothed_positions.emplace(element, interlayer_position_sum / added_layers);
+            }
+        });
+
+    // Now apply the smoothed positions
+    smoothed_positions.visit_all(
+#ifdef __cpp_lib_execution
+        std::execution::par,
+#endif
+        [](auto& element)
+        {
+            element.first->result_on_layer_ = element.second;
+        });
 }
 
 void TreeSupport::dropNonGraciousAreas(
@@ -2351,7 +2377,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
         });
 }
 
-void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage)
+void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bounds, SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     std::vector<Shape> support_layer_storage(move_bounds.size());
     std::vector<Shape> support_layer_storage_fractional(move_bounds.size());
@@ -2374,7 +2400,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
                 continue;
             }
 
-            for (TreeSupportElement* par : elem->parents_)
+            for (TreeSupportElement* par : elem->getParents())
             {
                 if (par->result_on_layer_ == Point2LL(-1, -1))
                 {
@@ -2388,16 +2414,19 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
 
     // Reorder the processed data by layers again. The map also could be a vector<pair<SupportElement*,Shape>>:
     std::vector<std::unordered_map<TreeSupportElement*, Shape>> layer_tree_polygons(move_bounds.size());
-    const auto t_start = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("drawArea::init");
+
+    smoothBranchSkeletons(move_bounds);
+    time_keeper.registerTime("drawAreas::smoothBranchSkeletons");
 
     // Generate the circles that will be the branches.
     generateBranchAreas(linear_data, layer_tree_polygons, inverse_tree_order);
-    const auto t_generate = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("drawAreas::generateBranchAreas");
 
     // In some edge-cases a branch may go through a hole, where the regular radius does not fit. This can result in an apparent jump in branch radius. As such this cases need to be
     // caught and smoothed out.
     smoothBranchAreas(layer_tree_polygons);
-    const auto t_smooth = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("drawAreas::smoothBranchAreas");
 
     // Drop down all trees that connect non gracefully with the model.
     std::vector<std::vector<std::pair<LayerIndex, Shape>>> dropped_down_areas(linear_data.size());
@@ -2476,7 +2505,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
         {
             for (std::pair<TreeSupportElement*, Shape> data_pair : layer_tree_polygons[layer_idx])
             {
-                if (data_pair.first->parents_.empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size()
+                if (data_pair.first->getParents().empty() && ! data_pair.first->supports_roof_ && layer_idx + 1 < support_roof_storage_fractional.size()
                     && config.z_distance_top % config.layer_height > 0)
                 {
                     if (data_pair.first->missing_roof_layers_ > data_pair.first->distance_to_top_)
@@ -2508,24 +2537,10 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement*>>& move_bou
     }
 
     filterFloatingLines(support_layer_storage);
-    const auto t_filter = std::chrono::high_resolution_clock::now();
+    time_keeper.registerTime("drawAreas::filterFloatingLines");
 
     finalizeInterfaceAndSupportAreas(support_layer_storage, support_roof_storage, support_layer_storage_fractional, center_locator_per_layer, storage);
-    const auto t_end = std::chrono::high_resolution_clock::now();
-
-    const auto dur_gen_tips = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_generate - t_start).count();
-    const auto dur_smooth = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_smooth - t_generate).count();
-    const auto dur_drop = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_drop - t_smooth).count();
-    const auto dur_filter = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_filter - t_drop).count();
-    const auto dur_finalize = 0.001 * std::chrono::duration_cast<std::chrono::microseconds>(t_end - t_filter).count();
-    spdlog::info(
-        "Time used for drawing subfuctions: generateBranchAreas: {} ms smoothBranchAreas: {} ms dropNonGraciousAreas: {} ms filterFloatingLines: {} ms "
-        "finalizeInterfaceAndSupportAreas {} ms",
-        dur_gen_tips,
-        dur_smooth,
-        dur_drop,
-        dur_filter,
-        dur_finalize);
+    time_keeper.registerTime("drawAreas::finalizeInterfaceAndSupportAreas");
 }
 
 void TreeSupport::saveToObj(const std::vector<std::set<TreeSupportElement*>>& move_bounds, OBJ& obj) const
