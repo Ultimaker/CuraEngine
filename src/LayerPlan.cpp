@@ -1929,11 +1929,11 @@ void LayerPlan::findNextBridgeDistances(
     for (const auto& bridge : bridge_segments)
     {
         out_next_bridge_dists[bridge.wall_idx_start] = bridge.from_start_of_wall;
-        wall_segments_with_bridge.insert(bridge.wall_idx_start);
-        for (ptrdiff_t pt_idx = point_index(bridge.wall_idx_start + direction); pt_idx != bridge.wall_idx_end; pt_idx = point_index(pt_idx + direction))
+        // ... if there is more bridge after this, the start-to-bridge would need to be set to 0, but the vector is already initialized to all 0
+
+        // to differentiate, set the wall-segments-with-bridges
+        for (ptrdiff_t pt_idx = bridge.wall_idx_start; pt_idx != bridge.wall_idx_end; pt_idx = point_index(pt_idx + direction))
         {
-            // the bridge encompasses the entire wall-segment
-            out_next_bridge_dists[pt_idx] = 0;
             wall_segments_with_bridge.insert(pt_idx);
         }
     }
