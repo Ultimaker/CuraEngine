@@ -1798,10 +1798,8 @@ void LayerPlan::findBridgingSections(
         // Finally, loop over the intersections to find candidate bridge segments.
         for (const OpenPolyline& intersection_segment : intersections_with_bridge_mask)
         {
-            const auto& [ b0, b1 ] =
-                (vSize2(intersection_segment[0] - p0.p_) < vSize2(intersection_segment[1] - p0.p_)) ?
-                std::tie( intersection_segment[0], intersection_segment[1] ) :
-                std::tie( intersection_segment[1], intersection_segment[0] );
+            const auto& [b0, b1] = (vSize2(intersection_segment[0] - p0.p_) < vSize2(intersection_segment[1] - p0.p_)) ? std::tie(intersection_segment[0], intersection_segment[1])
+                                                                                                                       : std::tie(intersection_segment[1], intersection_segment[0]);
 
             if (vSize2(b1 - b0) < EPSILON_SQUARED)
             {
