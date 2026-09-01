@@ -1239,7 +1239,7 @@ private:
      * \param direction ... [TODO]
      */
     void convertBridgeLocations(
-        const size_t wall_size,
+        const ExtrusionLine& wall,
         const std::vector<BridgeLocation>& bridge_locations,
         std::vector<std::vector<std::tuple<Ratio, Ratio>>>& out_bridging_subsections,
         ptrdiff_t direction) const;

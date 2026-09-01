@@ -1359,12 +1359,13 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
             // just be ignored if using an other PathType (e.g. Polygon)
             findBridgingSections(wall.getPath(), start_idx, min_bridge_line_len, nominal_line_width, bridge_max_deviation, bridging_locations, direction);
             findNextBridgeDistances(wall.getPath(), start_idx, bridging_locations, distances_to_next_bridge, direction);
+            convertBridgeLocations(wall.getPath(), bridging_locations, bridging_subsections_per_segment, direction);
         }
         else
         {
             distances_to_next_bridge.resize(wall.size(), 0);
+            bridging_subsections_per_segment.resize(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
         }
-        convertBridgeLocations(wall.size(), bridging_locations, bridging_subsections_per_segment, direction);
     }
 
     std::optional<coord_t> distance_to_bridge_start; // will be updated before each line is processed
@@ -1962,25 +1963,35 @@ void LayerPlan::findNextBridgeDistances(
 }
 
 void LayerPlan::convertBridgeLocations(
-    const size_t wall_size,
+    const ExtrusionLine& wall,
     const std::vector<BridgeLocation>& bridge_segments,
     std::vector<std::vector<std::tuple<Ratio, Ratio>>>& out_bridging_subsections,
     ptrdiff_t direction) const
 {
-    out_bridging_subsections.resize(wall_size, std::vector<std::tuple<Ratio, Ratio>>{});
+    out_bridging_subsections.resize(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
 
-    const auto point_index = [&wall_size](ptrdiff_t index) -> size_t
+    const auto point_index = [&wall](ptrdiff_t index) -> size_t
     {
-        return (index + 2 * wall_size) % wall_size;
+        return (index + 2 * wall.size()) % wall.size();
     };
 
     for (const auto& bridge : bridge_segments)
     {
-        for (ptrdiff_t pt_idx = bridge.wall_idx_start; pt_idx != bridge.wall_idx_end; pt_idx = point_index(pt_idx + direction))
+        ptrdiff_t pt_idx = bridge.wall_idx_start;
+        do
         {
-            const Ratio seg_len{ bridge.start_dist + bridge.bridge_len + bridge.backwards_end_dist };
-            out_bridging_subsections[pt_idx].emplace_back(Ratio{ bridge.start_dist } / seg_len, Ratio{ bridge.start_dist + bridge.bridge_len } / seg_len);
-        }
+            const ptrdiff_t next_pt_idx = point_index(pt_idx + direction);
+            const Point2LL& a = wall[pt_idx].p_;
+            const Point2LL& b = wall[next_pt_idx].p_;
+            const Ratio seg_len{ vSize(b - a) };
+            if (seg_len >= EPSILON)
+            {
+                const auto ratio_to_start = Ratio{ pt_idx == bridge.wall_idx_start ? bridge.start_dist : 0 } / seg_len;
+                const auto ratio_to_end = 1.0 - ((Ratio{ next_pt_idx == bridge.wall_idx_end ? bridge.backwards_end_dist : 0 } / seg_len));
+                out_bridging_subsections[pt_idx].emplace_back(ratio_to_start, ratio_to_end);
+            }
+            pt_idx = next_pt_idx;
+        } while (pt_idx != bridge.wall_idx_end);
     }
 }
 
