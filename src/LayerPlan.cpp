@@ -1753,14 +1753,17 @@ void LayerPlan::findBridgingSections(
 
         if (! PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
         {
+            ending_anchor_distance += line_distance;
+
             // this can also happen if wholly inside, so check for that
             if (! intersections_with_bridge_mask.empty())
             {
                 // line-segment entirely within bridge, simple case, should record
                 bridge_segment_candidates.emplace_back(idx_0, idx_1, 0, line_distance, line_distance, line_distance, total_distance_p0);
-                total_distance_p0 += line_distance;
                 ending_anchor_distance = 0;
             }
+
+            total_distance_p0 += line_distance;
             continue;
         }
 
@@ -1791,14 +1794,13 @@ void LayerPlan::findBridgingSections(
                 return distance_s0_p0 < distance_s1_p0;
             });
 
-        // Now loop over the segments and try to find one that is long enough
+        // Finally, loop over the intersections to find candidate bridge segments.
         for (const OpenPolyline& intersection_segment : intersections_with_bridge_mask)
         {
-            const Point2LL& b0 = intersection_segment[0];
-            const Point2LL& b1 = intersection_segment[1];
-
-            // add a candidate bridge-segment here (don't check anchoring, distance, max deviation or distance to first yet; that's for the next step)
-            // note that they're also not merged yet
+            const auto& [ b0, b1 ] =
+                (vSize2(intersection_segment[0] - p0.p_) < vSize2(intersection_segment[1] - p0.p_)) ?
+                std::tie( intersection_segment[0], intersection_segment[1] ) :
+                std::tie( intersection_segment[1], intersection_segment[0] );
 
             if (vSize2(b1 - b0) < EPSILON_SQUARED)
             {
@@ -1806,10 +1808,12 @@ void LayerPlan::findBridgingSections(
                 continue;
             }
 
+            // add a candidate bridge-segment here (don't check anchoring, distance, max deviation or distance to first yet; that's for the next step)
+            // note that they're also not merged yet
             const coord_t start_len = vSize(b0 - p0.p_);
             const coord_t end_len = vSize(b1 - p0.p_);
             const coord_t from_end = vSize(p1.p_ - b1);
-            bridge_segment_candidates.emplace_back(idx_0, idx_1, start_len, end_len, end_len - start_len, from_end, total_distance_p0 + start_len);
+            bridge_segment_candidates.emplace_back(idx_0, idx_1, start_len, end_len, line_distance - (start_len + from_end), from_end, total_distance_p0 + start_len);
         }
 
         total_distance_p0 += line_distance;
@@ -1883,7 +1887,7 @@ void LayerPlan::findBridgingSections(
         {
             // skip all candidate bridges until the first anchoring distance is met
             // note that this also prevents us from needing to check if the entire wall is just 'bridge' (no trouble with infinite loops)
-            if ((bridge_segment.from_start_of_wall - skipped_first_anchor_len) > min_anchor_distance)
+            if ((bridge_segment.from_start_of_wall + skipped_first_anchor_len) > min_anchor_distance)
             {
                 // just leave the new bridge here, in case it continues in the next
                 current_bridge = std::move(bridge_segment);
