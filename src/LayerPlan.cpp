@@ -1748,17 +1748,21 @@ void LayerPlan::findBridgingSections(
             continue;
         }
 
-        if (! PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
-        {
-            // line-segment entirely within bridge, simple case, should record, then continue
-            bridge_segment_candidates.emplace_back(idx_0, idx_1, 0, line_distance, line_distance, line_distance, total_distance_p0);
-            total_distance_p0 += line_distance;
-            ending_anchor_distance = 0;
-            continue;
-        }
-
         constexpr bool restitch = false; // only a single line doesn't need stitching
         OpenLinesSet intersections_with_bridge_mask = bridge_wall_mask_.intersection(OpenLinesSet(OpenPolyline({ p0.p_, p1.p_ })), restitch);
+
+        if (! PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
+        {
+            // this can also happen if wholly inside, so check for that
+            if (! intersections_with_bridge_mask.empty())
+            {
+                // line-segment entirely within bridge, simple case, should record
+                bridge_segment_candidates.emplace_back(idx_0, idx_1, 0, line_distance, line_distance, line_distance, total_distance_p0);
+                total_distance_p0 += line_distance;
+                ending_anchor_distance = 0;
+            }
+            continue;
+        }
 
         // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
         // determine which segments of the line are bridges
