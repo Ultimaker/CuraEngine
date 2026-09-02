@@ -127,6 +127,10 @@ public:
     constexpr void broadcast([[maybe_unused]] auto&&... args) noexcept
     {
     } // Base case, do nothing
+
+    void forEachPlugin(const std::invocable<const slot_metadata&, const plugin_metadata&> auto& function) noexcept
+    {
+    }
 };
 
 template<typename T, typename... Types, template<typename> class Unit>
@@ -171,6 +175,12 @@ public:
     {
         value_.proxy.template broadcast<S>(std::forward<decltype(args)>(args)...);
         Base::template broadcast<S>(std::forward<decltype(args)>(args)...);
+    }
+
+    void forEachPlugin(const std::invocable<const slot_metadata&, const plugin_metadata&> auto& function)
+    {
+        value_.proxy.forEachPlugin(function);
+        Base::forEachPlugin(std::forward<decltype(function)>(function));
     }
 
 protected:

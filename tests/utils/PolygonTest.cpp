@@ -5,12 +5,16 @@
 
 #include <numbers>
 
+#include <range/v3/view/sliding.hpp>
+#include <spdlog/spdlog.h>
+
 #include <gtest/gtest.h>
 
 #include "geometry/OpenPolyline.h"
 #include "geometry/SingleShape.h"
 #include "utils/Coord_t.h"
 #include "utils/SVG.h" // helper functions
+#include "utils/linearAlg2D.h"
 #include "utils/polygonUtils.h" // helper functions
 
 // NOLINTBEGIN(*-magic-numbers)
@@ -295,6 +299,40 @@ TEST_F(PolygonTest, convexHullStar)
         coord_t x = -std::cos(angle) * outer_radius;
         coord_t y = -std::sin(angle) * outer_radius;
         EXPECT_EQ(d[i], Point2LL(x, y));
+    }
+}
+
+TEST_F(PolygonTest, makeConvexPolygon)
+{
+    Polygon polygon;
+    polygon.setPoints({
+        { 110139, 106039 }, { 111866, 106001 }, { 114033, 106017 }, { 114409, 106046 }, { 114739, 106087 }, { 114982, 106136 }, { 115131, 106193 }, { 115113, 106326 },
+        { 115118, 106460 }, { 114915, 106496 }, { 114540, 106512 }, { 114198, 106505 }, { 112338, 106507 }, { 112045, 106531 }, { 111795, 106577 }, { 111609, 106643 },
+        { 111498, 106733 }, { 111495, 109561 }, { 111396, 109642 }, { 111229, 109704 }, { 110997, 109750 }, { 110995, 110250 }, { 111227, 110296 }, { 111395, 110358 },
+        { 111494, 110438 }, { 111497, 113260 }, { 111553, 113334 }, { 111686, 113402 }, { 111895, 113457 }, { 112241, 113498 }, { 112582, 113507 }, { 114483, 113512 },
+        { 114760, 113535 }, { 114879, 113573 }, { 114869, 113841 }, { 114637, 113904 }, { 114404, 113944 }, { 113970, 113985 }, { 113655, 114001 }, { 112302, 114010 },
+        { 109861, 113961 }, { 108134, 113999 }, { 105967, 113983 }, { 105591, 113954 }, { 105261, 113913 }, { 105018, 113864 }, { 104869, 113807 }, { 104887, 113674 },
+        { 104882, 113540 }, { 105085, 113504 }, { 105460, 113488 }, { 105796, 113495 }, { 107661, 113493 }, { 107811, 113484 }, { 108086, 113448 }, { 108307, 113392 },
+        { 108501, 113294 }, { 108505, 110439 }, { 108604, 110358 }, { 108771, 110296 }, { 109004, 110250 }, { 109005, 109750 }, { 108773, 109704 }, { 108605, 109642 },
+        { 108506, 109562 }, { 108506, 106720 }, { 108372, 106613 }, { 108106, 106544 }, { 107900, 106513 }, { 107418, 106493 }, { 105517, 106488 }, { 105240, 106465 },
+        { 105121, 106427 }, { 105131, 106159 }, { 105363, 106096 }, { 105596, 106056 }, { 106030, 106015 }, { 106345, 105999 }, { 107698, 105990 }, { 110139, 106039 },
+    });
+
+    auto shape = Shape(polygon);
+    shape.makeConvex();
+    const auto convex_hull = shape[0];
+
+    // test that all corners are convex
+    EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(convex_hull.front(), convex_hull.back(), convex_hull[1]) < 0);
+    EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(convex_hull.back(), convex_hull[convex_hull.size() - 2], convex_hull.front()) < 0);
+
+    for (const auto window : convex_hull | ranges::views::sliding(3))
+    {
+        const auto& a = window[0];
+        const auto& b = window[1];
+        const auto& c = window[2];
+
+        EXPECT_TRUE(LinearAlg2D::pointIsLeftOfLine(b, a, c) < 0);
     }
 }
 

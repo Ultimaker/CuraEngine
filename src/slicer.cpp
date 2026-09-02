@@ -7,6 +7,7 @@
 #include <cstdio>
 #include <numbers>
 
+#include <fmt/chrono.h>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
@@ -835,11 +836,11 @@ Slicer::Slicer(
 
     buildSegments(*mesh, zbbox, slicing_tolerance, layers);
 
-    spdlog::info("Slice of mesh took {:03.3f} seconds", slice_timer.restart());
+    spdlog::info("Slice of mesh took {}", std::chrono::duration<double>(slice_timer.restart()));
 
     makePolygons(*i_mesh, slicing_tolerance, layers);
     scripta::log("sliced_polygons", layers, SectionType::NA);
-    spdlog::info("Make polygons took {:03.3f} seconds", slice_timer.restart());
+    spdlog::info("Make polygons took {}", std::chrono::duration<double>(slice_timer.restart()));
 }
 
 void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbbox, const SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers)

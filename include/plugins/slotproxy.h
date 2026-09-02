@@ -64,6 +64,21 @@ public:
     }
 
     /**
+     * @brief Applies the visitor function on all the loaded plugins
+     * @param function The function to be called on each plugin
+     */
+    void forEachPlugin(const std::invocable<const slot_metadata&, const plugin_metadata&> auto& function) const
+    {
+        for (const value_type& plugin : plugins_)
+        {
+            if (plugin.pluginInfo().has_value())
+            {
+                function(plugin.slotInfo(), plugin.pluginInfo().value());
+            }
+        }
+    }
+
+    /**
      * @brief Executes the plugin operation.
      *
      * This operator allows the SlotProxy object to be invoked as a callable, which delegates the
