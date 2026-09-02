@@ -1803,7 +1803,7 @@ void LayerPlan::findBridgingSections(
 
             if (vSize2(b1 - b0) < EPSILON_SQUARED)
             {
-                // don't consider neligable lenghts in any case however
+                // don't consider negligble lengths in any case however
                 continue;
             }
 
@@ -1819,7 +1819,7 @@ void LayerPlan::findBridgingSections(
         ending_anchor_distance = bridge_segment_candidates.empty() ? 0 : bridge_segment_candidates.back().backwards_end_dist;
     }
 
-    // append to result function -- also checks if the bridge-legnth is sufficient and if it stays under the max deviation
+    // append to result function -- also checks if the bridge-length is sufficient and if it stays under the max deviation
     const auto check_and_collect_bridge_func = [&](BridgeLocation& bridge)
     {
         // check against min bridge length (measure direct, not along the possibly deviating bridge)
