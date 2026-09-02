@@ -1263,9 +1263,9 @@ private:
      * \param wall The currently processed wall.
      * \param current_index The index of the currently processed point.
      * \param min_bridge_line_len The minimum line length to allow an extrusion move to be processed as a bridge move.
- 
+
      * \param min_anchor_distance The minimum distance needed before and after a bridge to consider it properly 'anchored' (and therefore a bridge).
- 
+
      * \param max_bridge_deviation The maximum radial distance a bridge can be from the 'direct route' before it's not considered a bridge anymore.
      * \param[out] out_bridge_locations The output bridge locations.
      * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards.
