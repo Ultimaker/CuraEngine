@@ -1710,7 +1710,7 @@ void LayerPlan::findBridgingSections(
     const coord_t min_bridge_line_len,
     const coord_t min_anchor_distance,
     const coord_t max_bridge_deviation,
-    std::vector<BridgeLocation>& out_bridge_segments,
+    std::vector<BridgeLocation>& out_bridge_locations,
     const int direction) const
 {
     if (bridge_wall_mask_.empty())
@@ -1847,7 +1847,7 @@ void LayerPlan::findBridgingSections(
             }
         }
 
-        out_bridge_segments.push_back(std::move(bridge));
+        out_bridge_locations.push_back(std::move(bridge));
     };
 
     // merge bridges, check if the resulting bridges conform to the parameters, and if so, add them to the out batch
@@ -1909,7 +1909,7 @@ void LayerPlan::findBridgingSections(
 void LayerPlan::findNextBridgeDistances(
     const ExtrusionLine& wall,
     const size_t current_index,
-    const std::vector<BridgeLocation>& bridge_segments,
+    const std::vector<BridgeLocation>& bridge_locations,
     std::vector<coord_t>& out_next_bridge_dists,
     const int direction) const
 {
@@ -1926,7 +1926,7 @@ void LayerPlan::findNextBridgeDistances(
 
     // first fill in the 'trivial' cases, where there's a bridge within the wall-line-segment
     coord_t distance_from_end_of_prev = 0;
-    for (const auto& bridge : bridge_segments)
+    for (const auto& bridge : bridge_locations)
     {
         out_next_bridge_dists[bridge.wall_idx_start] = bridge.from_start_of_wall;
         // ... if there is more bridge after this, the start-to-bridge would need to be set to 0, but the vector is already initialized to all 0
@@ -1962,7 +1962,7 @@ void LayerPlan::findNextBridgeDistances(
 
 void LayerPlan::convertBridgeLocations(
     const ExtrusionLine& wall,
-    const std::vector<BridgeLocation>& bridge_segments,
+    const std::vector<BridgeLocation>& bridge_locations,
     std::vector<std::vector<std::tuple<Ratio, Ratio>>>& out_bridging_subsections,
     ptrdiff_t direction) const
 {
@@ -1973,7 +1973,7 @@ void LayerPlan::convertBridgeLocations(
         return (index + 2 * wall.size()) % wall.size();
     };
 
-    for (const auto& bridge : bridge_segments)
+    for (const auto& bridge : bridge_locations)
     {
         ptrdiff_t pt_idx = bridge.wall_idx_start;
         do

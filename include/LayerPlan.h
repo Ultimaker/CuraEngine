@@ -589,7 +589,7 @@ public:
 
     /*!
      * Add a single line that is part of a wall to the gcode.
-     * \param bridging_subsegments ... [TODO]
+     * \param bridging_subsegments Per wall-segment, a vector of bridging sub-segments (defined by begin and end ratios w.r.t. the entire lenght of the wall-segment).
      * \param wall The wall line being printed
      * \param segment_index The index of the segment of the wall line being printed
      * \param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
@@ -1053,7 +1053,7 @@ private:
 
     /*!
      * \brief Alias for a function definition that adds an extrusion segment
-     * \param bridging_subsegments ... [TODO]
+     * \param bridging_subsegments Per wall-segment, a vector of bridging sub-segments (defined by begin and end ratios w.r.t. the entire lenght of the wall-segment).
      * \param wall The wall line being printed
      * \param segment_index The index of the segment of the wall line being printed
      * \param segment_start_ratio When printing only a portion of the extrusion segment (e.g. for scarf seam), this is the ratio at which the current subsegment starts
@@ -1232,11 +1232,11 @@ private:
     };
 
     /*!
-     * \brief ... [TODO]
-     * \param wall_size ... [TODO]
-     * \param bridge_locations ... [TODO]
-     * \param out_bridging_subsections ... [TODO]
-     * \param direction ... [TODO]
+     * \brief Convert from 'bridge location' structs, which are 'per bridge' & absolute, to 'bridging subsections' tuples, which are per wall-segment and relative to the lenght of that segment.
+     * \param wall The entire wall.
+     * \param bridge_locations The input bridge-locations (one bridge-location for one complete bridge).
+     * \param out_bridging_subsections The output bridging-subsections (one vector of bridging subsections for each wall-segment).
+     * \param direction The direction in which the head moves over the wall.
      */
     void convertBridgeLocations(
         const ExtrusionLine& wall,
@@ -1245,30 +1245,30 @@ private:
         ptrdiff_t direction) const;
 
     /*!
-     * \brief Helper function to find the distance to the start of ...
-     * \param wall The currently processed wall
-     * \param current_index The index of the currently processed point
-     * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards
-     * \param bridge_segments ... [TODO]
-     * \param out_next_bridge_dists ... [TODO]
+     * \brief Helper function to find the distance to the start of each bridge, useful for if any coasting needs to happen _before_ we start a bridge.
+     * \param wall The currently processed wall.
+     * \param current_index The index of the currently processed point.
+     * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards.
+     * \param bridge_locations The input bridge-locations (one bridge-location for one complete bridge).
+     * \param out_next_bridge_dists The output; per wall, where the next bridge would start (note: also 0 if a next bridge doesn't start anymore after this).
      */
     void findNextBridgeDistances(
         const ExtrusionLine& wall,
         const size_t current_index,
-        const std::vector<BridgeLocation>& bridge_segments,
+        const std::vector<BridgeLocation>& bridge_locations,
         std::vector<coord_t>& out_next_bridge_dists,
         const int direction) const;
 
 
     /*!
-     * \brief Helper function to ... [TODO]
+     * \brief Find the locations of each bridge for the input-wall.
      * \param wall The currently processed wall.
-     * \param current_index The index of the currently processed point
-     * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move
-     * \param min_anchor_distance ... [TODO]
-     * \param max_bridge_deviation ... [TODO]
-     * \param out_bridge_segments ... [TODO]
-     * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards
+     * \param current_index The index of the currently processed point.
+     * \param min_bridge_line_len The minimum line width to allow an extrusion move to be processed as a bridge move.
+     * \param min_anchor_distance The minimum distance needed before and after a bridge to consider it properly 'anchored' (and therefore not a brdige).
+     * \param max_bridge_deviation The maximum distance a bridge can be from the 'direct route' before it's not considered a bridge anymore.
+     * \param out_bridge_locations The output bridge locations.
+     * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards.
      */
     void findBridgingSections(
         const ExtrusionLine& wall,
@@ -1276,7 +1276,7 @@ private:
         const coord_t min_bridge_line_len,
         const coord_t min_anchor_distance,
         const coord_t max_bridge_deviation,
-        std::vector<BridgeLocation>& out_bridge_segments,
+        std::vector<BridgeLocation>& out_bridge_locations,
         const int direction = 1) const;
 
     /*!
