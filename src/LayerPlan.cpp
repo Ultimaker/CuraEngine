@@ -49,6 +49,11 @@ namespace cura
 constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
 constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
 
+template<typename T>
+size_t point_index(T wall, ptrdiff_t index)
+{
+    return (index + (wall.size() << 2)) % wall.size();
+}
 
 GCodePath* LayerPlan::getLatestPathWithConfig(
     const GCodePathConfig& config,
@@ -1349,23 +1354,19 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
 {
     std::vector<coord_t> distances_to_next_bridge;
     std::vector<std::vector<std::tuple<Ratio, Ratio>>> bridging_subsections_per_segment;
-
-    { // start scope (for bridging_locations)
-        std::vector<BridgeLocation> bridging_locations;
-        if constexpr (std::is_same_v<PathType, ExtrusionLine>)
-        {
-            // The bridging functionality has not been designed to work with anything else than ExtrusionLine objects,
-            // and there is no need to do it otherwise yet. So the compute_distance_to_bridge_start argument will
-            // just be ignored if using an other PathType (e.g. Polygon)
-            findBridgingSections(wall.getPath(), start_idx, min_bridge_line_len, nominal_line_width, bridge_max_deviation, bridging_locations, direction);
-            findNextBridgeDistances(wall.getPath(), start_idx, bridging_locations, distances_to_next_bridge, direction);
-            convertBridgeLocations(wall.getPath(), bridging_locations, bridging_subsections_per_segment, direction);
-        }
-        else
-        {
-            distances_to_next_bridge.resize(wall.size(), 0);
-            bridging_subsections_per_segment.resize(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
-        }
+    if constexpr (std::is_same_v<PathType, ExtrusionLine>)
+    {
+        // The bridging functionality has not been designed to work with anything else than ExtrusionLine objects,
+        // and there is no need to do it otherwise yet. So the compute_distance_to_bridge_start argument will
+        // just be ignored if using an other PathType (e.g. Polygon)
+        const auto bridging_locations = findBridgingSections(wall.getPath(), start_idx, min_bridge_line_len, nominal_line_width, bridge_max_deviation, direction);
+        distances_to_next_bridge = std::move(findNextBridgeDistances(wall.getPath(), start_idx, bridging_locations, direction));
+        bridging_subsections_per_segment = std::move(convertBridgeLocations(wall.getPath(), bridging_locations, direction));
+    }
+    else
+    {
+        distances_to_next_bridge.resize(wall.size(), 0);
+        bridging_subsections_per_segment.resize(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
     }
 
     std::optional<coord_t> distance_to_bridge_start; // will be updated before each line is processed
@@ -1386,16 +1387,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     Point3LL split_destination = p0;
     size_t previous_point_index = start_idx;
     bool keep_processing = true;
-
-    const auto point_index = [&wall](const int base_index) -> size_t
-    {
-        int index = base_index;
-        while (index < 0)
-        {
-            index += wall.size();
-        }
-        return index % wall.size();
-    };
 
     for (size_t point_idx = 1; point_idx < max_index && keep_processing; point_idx++)
     {
@@ -1540,7 +1531,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
 
                     // now add the (sub-)segment
                     const bool travel_to_z = wall_processed_distance == 0; // Travel to Z for first sub-segment, but only this one
-                    const size_t pt_idx = point_index(actual_point_index - 1);
+                    const size_t pt_idx = point_index(wall, actual_point_index - 1);
                     func_add_segment(
                         bridging_subsections_per_segment[pt_idx],
                         wall,
@@ -1704,24 +1695,20 @@ std::vector<LayerPlan::PathCoasting>
     return path_coastings;
 }
 
-void LayerPlan::findBridgingSections(
+std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
     const ExtrusionLine& wall,
     const size_t current_index,
     const coord_t min_bridge_line_len,
     const coord_t min_anchor_distance,
     const coord_t max_bridge_deviation,
-    std::vector<BridgeLocation>& out_bridge_locations,
     const int direction) const
 {
     if (bridge_wall_mask_.empty())
     {
-        return;
+        return {};
     }
 
-    const auto point_index = [&wall](ptrdiff_t index) -> size_t
-    {
-        return (index + 2 * wall.size()) % wall.size();
-    };
+    std::vector<BridgeLocation> out_bridge_locations;
 
     coord_t total_distance_p0 = 0;
     coord_t ending_anchor_distance = 0;
@@ -1735,8 +1722,8 @@ void LayerPlan::findBridgingSections(
     for (size_t iteration = 0; iteration < iterations; ++iteration)
     {
         const size_t base_index = current_index + iteration * direction;
-        const size_t idx_0 = point_index(base_index);
-        const size_t idx_1 = point_index(base_index + direction);
+        const size_t idx_0 = point_index(wall, base_index);
+        const size_t idx_1 = point_index(wall, base_index + direction);
         const ExtrusionJunction& p0 = wall[idx_0];
         const ExtrusionJunction& p1 = wall[idx_1];
         const coord_t line_distance = vSize(p1.p_ - p0.p_);
@@ -1829,16 +1816,16 @@ void LayerPlan::findBridgingSections(
         }
 
         // get the endpoints of the bridge
-        const auto p00 = wall[bridge.wall_idx_start];
-        const auto p01 = wall[point_index(bridge.wall_idx_start + direction)];
+        const auto& p00 = wall[bridge.wall_idx_start];
+        const auto& p01 = wall[point_index(wall, bridge.wall_idx_start + direction)];
         const auto start_pt = p00.p_ + normal(p01.p_ - p00.p_, bridge.start_dist);
 
-        const auto p10 = wall[point_index(bridge.wall_idx_end - direction)];
-        const auto p11 = wall[bridge.wall_idx_end];
+        const auto& p10 = wall[point_index(wall, bridge.wall_idx_end - direction)];
+        const auto& p11 = wall[bridge.wall_idx_end];
         const auto end_pt = p10.p_ + normal(p11.p_ - p10.p_, bridge.end_dist);
 
         // see what other points in the bridge go over the max deviation, if any
-        for (ptrdiff_t pt_idx = point_index(bridge.wall_idx_start + direction); pt_idx != bridge.wall_idx_end; pt_idx = point_index(pt_idx + direction))
+        for (ptrdiff_t pt_idx = point_index(wall, bridge.wall_idx_start + direction); pt_idx != bridge.wall_idx_end; pt_idx = point_index(wall, pt_idx + direction))
         {
             if (LinearAlg2D::getDistFromLine(wall[pt_idx].p_, start_pt, end_pt) > max_bridge_deviation)
             {
@@ -1905,22 +1892,18 @@ void LayerPlan::findBridgingSections(
     {
         check_and_collect_bridge_func(current_bridge.value());
     }
+
+    return out_bridge_locations;
 }
 
-void LayerPlan::findNextBridgeDistances(
+std::vector<coord_t> LayerPlan::findNextBridgeDistances(
     const ExtrusionLine& wall,
     const size_t current_index,
     const std::vector<BridgeLocation>& bridge_locations,
-    std::vector<coord_t>& out_next_bridge_dists,
     const int direction) const
 {
-    out_next_bridge_dists.resize(wall.size(), 0);
+    std::vector<coord_t> out_next_bridge_dists(wall.size(), 0);
     std::set<size_t> wall_segments_with_bridge;
-
-    const auto point_index = [&wall](ptrdiff_t index) -> size_t
-    {
-        return (index + 2 * wall.size()) % wall.size();
-    };
 
     // now that we have all bridges, for each line segment in the _wall_ we'd like to have the distance to the start of the next bridge
     // (for coasting purposes) note that these aren't the same as the anchoring distances, since we can ignore anything that happened before the current wall segment
@@ -1933,7 +1916,7 @@ void LayerPlan::findNextBridgeDistances(
         // ... if there is more bridge after this, the start-to-bridge would need to be set to 0, but the vector is already initialized to all 0
 
         // to differentiate, set the wall-segments-with-bridges
-        for (ptrdiff_t pt_idx = bridge.wall_idx_start; pt_idx != bridge.wall_idx_end; pt_idx = point_index(pt_idx + direction))
+        for (ptrdiff_t pt_idx = bridge.wall_idx_start; pt_idx != bridge.wall_idx_end; pt_idx = point_index(wall, pt_idx + direction))
         {
             wall_segments_with_bridge.insert(pt_idx);
         }
@@ -1943,7 +1926,7 @@ void LayerPlan::findNextBridgeDistances(
 
     coord_t non_bridge_dist = 0;
     bool found_last = false;
-    for (ptrdiff_t pt_idx = point_index(current_index - direction); pt_idx != current_index; pt_idx = point_index(pt_idx - direction))
+    for (ptrdiff_t pt_idx = point_index(wall, current_index - direction); pt_idx != current_index; pt_idx = point_index(wall, pt_idx - direction))
     {
         if (wall_segments_with_bridge.contains(pt_idx))
         {
@@ -1954,32 +1937,28 @@ void LayerPlan::findNextBridgeDistances(
         else if (found_last)
         {
             // didn't exist yet, but we can fill in info by appending the current segment-length
-            const size_t next_pt_idx = point_index(pt_idx + direction);
+            const size_t next_pt_idx = point_index(wall, pt_idx + direction);
             non_bridge_dist += vSize(wall[next_pt_idx].p_ - wall[pt_idx].p_);
             out_next_bridge_dists[pt_idx] = non_bridge_dist;
         }
     }
+
+    return out_next_bridge_dists;
 }
 
-void LayerPlan::convertBridgeLocations(
+std::vector<std::vector<std::tuple<Ratio, Ratio>>> LayerPlan::convertBridgeLocations(
     const ExtrusionLine& wall,
     const std::vector<BridgeLocation>& bridge_locations,
-    std::vector<std::vector<std::tuple<Ratio, Ratio>>>& out_bridging_subsections,
     ptrdiff_t direction) const
 {
-    out_bridging_subsections.resize(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
-
-    const auto point_index = [&wall](ptrdiff_t index) -> size_t
-    {
-        return (index + 2 * wall.size()) % wall.size();
-    };
+    std::vector<std::vector<std::tuple<Ratio, Ratio>>> out_bridging_subsections(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
 
     for (const auto& bridge : bridge_locations)
     {
         ptrdiff_t pt_idx = bridge.wall_idx_start;
         do
         {
-            const ptrdiff_t next_pt_idx = point_index(pt_idx + direction);
+            const ptrdiff_t next_pt_idx = point_index(wall, pt_idx + direction);
             const Point2LL& a = wall[pt_idx].p_;
             const Point2LL& b = wall[next_pt_idx].p_;
             const Ratio seg_len{ vSize(b - a) };
@@ -1992,6 +1971,8 @@ void LayerPlan::convertBridgeLocations(
             pt_idx = next_pt_idx;
         } while (pt_idx != bridge.wall_idx_end);
     }
+
+    return out_bridging_subsections;
 }
 
 template<class PathType>
