@@ -1896,11 +1896,8 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
     return out_bridge_locations;
 }
 
-std::vector<coord_t> LayerPlan::findNextBridgeDistances(
-    const ExtrusionLine& wall,
-    const size_t current_index,
-    const std::vector<BridgeLocation>& bridge_locations,
-    const int direction) const
+std::vector<coord_t>
+    LayerPlan::findNextBridgeDistances(const ExtrusionLine& wall, const size_t current_index, const std::vector<BridgeLocation>& bridge_locations, const int direction) const
 {
     std::vector<coord_t> out_next_bridge_dists(wall.size(), 0);
     std::set<size_t> wall_segments_with_bridge;
@@ -1946,10 +1943,8 @@ std::vector<coord_t> LayerPlan::findNextBridgeDistances(
     return out_next_bridge_dists;
 }
 
-std::vector<std::vector<std::tuple<Ratio, Ratio>>> LayerPlan::convertBridgeLocations(
-    const ExtrusionLine& wall,
-    const std::vector<BridgeLocation>& bridge_locations,
-    ptrdiff_t direction) const
+std::vector<std::vector<std::tuple<Ratio, Ratio>>>
+    LayerPlan::convertBridgeLocations(const ExtrusionLine& wall, const std::vector<BridgeLocation>& bridge_locations, ptrdiff_t direction) const
 {
     std::vector<std::vector<std::tuple<Ratio, Ratio>>> out_bridging_subsections(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
 

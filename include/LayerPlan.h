@@ -1239,10 +1239,8 @@ private:
      * \param direction The direction in which the head moves over the wall.
      * \return Bridging-subsections (one vector of bridging subsections for each wall-segment).
      */
-    std::vector<std::vector<std::tuple<Ratio, Ratio>>> convertBridgeLocations(
-        const ExtrusionLine& wall,
-        const std::vector<BridgeLocation>& bridge_locations,
-        ptrdiff_t direction) const;
+    std::vector<std::vector<std::tuple<Ratio, Ratio>>>
+        convertBridgeLocations(const ExtrusionLine& wall, const std::vector<BridgeLocation>& bridge_locations, ptrdiff_t direction) const;
 
     /*!
      * \brief Helper function to find the distance to the start of each bridge, useful for if any coasting needs to happen _before_ we start a bridge.
@@ -1252,11 +1250,8 @@ private:
      * \param direction The direction to look for, 1 to use the actual line direction, -1 to go backwards.
      * \return Per wall, where the next bridge would start (note: also 0 if a next bridge doesn't start anymore after this).
      */
-    std::vector<coord_t> findNextBridgeDistances(
-        const ExtrusionLine& wall,
-        const size_t current_index,
-        const std::vector<BridgeLocation>& bridge_locations,
-        const int direction) const;
+    std::vector<coord_t>
+        findNextBridgeDistances(const ExtrusionLine& wall, const size_t current_index, const std::vector<BridgeLocation>& bridge_locations, const int direction) const;
 
     /*!
      * \brief Find the locations of each bridge for the input-wall.
