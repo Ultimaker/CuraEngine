@@ -1852,7 +1852,8 @@ void LayerPlan::findBridgingSections(
 
     // merge bridges, check if the resulting bridges conform to the parameters, and if so, add them to the out batch
     std::optional<BridgeLocation> current_bridge;
-    coord_t skipped_first_anchor_len = 0; // <- combined length of skipped bridges before the first proper one; can be used to get the proper anchor length from the from-start-of-wall member
+    coord_t skipped_first_anchor_len
+        = 0; // <- combined length of skipped bridges before the first proper one; can be used to get the proper anchor length from the from-start-of-wall member
     for (; ! bridge_segment_candidates.empty(); bridge_segment_candidates.pop_front())
     {
         auto& bridge_segment = bridge_segment_candidates.front();

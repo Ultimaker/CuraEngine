@@ -1232,11 +1232,9 @@ private:
     };
 
     /*!
-     * \brief Convert from 'bridge location' structs, which are 'per bridge' & absolute, to 'bridging subsections' tuples, which are per wall-segment and relative to the lenght of that segment.
-     * \param wall The entire wall.
-     * \param bridge_locations The input bridge-locations (one bridge-location for one complete bridge).
-     * \param out_bridging_subsections The output bridging-subsections (one vector of bridging subsections for each wall-segment).
-     * \param direction The direction in which the head moves over the wall.
+     * \brief Convert from 'bridge location' structs, which are 'per bridge' & absolute, to 'bridging subsections' tuples, which are per wall-segment and relative to the lenght of
+     * that segment. \param wall The entire wall. \param bridge_locations The input bridge-locations (one bridge-location for one complete bridge). \param out_bridging_subsections
+     * The output bridging-subsections (one vector of bridging subsections for each wall-segment). \param direction The direction in which the head moves over the wall.
      */
     void convertBridgeLocations(
         const ExtrusionLine& wall,
