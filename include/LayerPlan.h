@@ -1243,7 +1243,6 @@ private:
 
     struct BridgeLocation
     {
-    public:
         ptrdiff_t wall_idx_start;
         ptrdiff_t wall_idx_end;
         coord_t start_dist; // distance from the point indicated by wall_idx_start to the start of the bridge-segment

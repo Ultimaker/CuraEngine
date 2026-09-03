@@ -2127,7 +2127,6 @@ void LayerPlan::addWall(
     }
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
-    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
     const PathAdapter path_adapter(wall);
 
     const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<ExtrusionLine>(
