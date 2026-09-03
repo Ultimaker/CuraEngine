@@ -156,6 +156,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 {
     // Setup:
     cura::proto::ObjectList mesh_message;
+    Application::getInstance().current_slice_->scene.extruders.push_back(ExtruderTrain(0, nullptr)); // We do need the extruder to be declared first
 
     // - Load 'global' settings:
     std::unordered_map<std::string, std::string> raw_settings;

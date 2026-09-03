@@ -5,6 +5,7 @@
 #define COMMUNICATION_H
 
 #include "PrintInformation.h"
+#include "PrintSegmentAttributes.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
@@ -65,8 +66,16 @@ public:
      * \param line_width The width of the line.
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
+     * \param print_attributes Print attributes to be set for this segment, e.g. overhanging or bridging
      */
-    virtual void sendLineTo(const PrintFeatureType& type, const Point3LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity) = 0;
+    virtual void sendLineTo(
+        const PrintFeatureType& type,
+        const Point3LL& to,
+        const coord_t& line_width,
+        const coord_t& line_thickness,
+        const Velocity& velocity,
+        const PrintSegmentAttributes& print_attributes = {})
+        = 0;
 
     /*
      * \brief Send the current position to visualise.

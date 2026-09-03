@@ -19,6 +19,7 @@
 #include <unordered_set>
 #include <utility>
 
+#include <fmt/chrono.h>
 #include <range/v3/all.hpp>
 #include <spdlog/details/os.h>
 #include <spdlog/spdlog.h>
@@ -63,7 +64,7 @@ void CommandLine::sendFinishedSlicing() const
 void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&)
 {
 }
-void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&)
+void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&, const PrintSegmentAttributes&)
 {
 }
 void CommandLine::sendOptimizedLayerData()
@@ -481,7 +482,7 @@ void CommandLine::sliceNext()
     {
 #endif // DEBUG
         slice->scene.mesh_groups[mesh_group_index].finalize();
-        spdlog::info("Loaded from disk in {:3}s\n", FffProcessor::getInstance()->time_keeper.restart());
+        spdlog::info("Loaded from disk in {}\n", FffProcessor::getInstance()->time_keeper.restart());
 
         // Start slicing.
         slice->compute();

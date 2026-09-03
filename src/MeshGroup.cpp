@@ -14,6 +14,7 @@
 #include <stdio.h>
 #include <string.h>
 
+#include <fmt/chrono.h>
 #include <fmt/format.h>
 #include <range/v3/algorithm/transform.hpp>
 #include <range/v3/view/enumerate.hpp>
@@ -577,7 +578,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
             }
         }
 
-        spdlog::info("loading '{}' took {:03.3f} seconds", filename.string(), load_timer.restart());
+        spdlog::info("loading '{}' took {}", filename.string(), std::chrono::duration<double>(load_timer.restart()));
 
         mesh.mesh_name_ = base_filename;
         meshgroup->meshes.push_back(mesh);

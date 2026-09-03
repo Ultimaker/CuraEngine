@@ -120,7 +120,7 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     if (! ironing_polygons.empty())
     {
         layer.addTravel(ironing_polygons[0][0]);
-        layer.addPolygonsByOptimizer(ironing_polygons, line_config, mesh.settings, ZSeamConfig());
+        layer.addPolygonsByOptimizer(ironing_polygons, line_config, mesh.settings);
         added = true;
     }
     if (! ironing_lines.empty())

@@ -58,12 +58,13 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     const Ratio width_factor,
     const bool spiralize,
     const Ratio speed_factor,
-    const bool travel_to_z)
+    const bool travel_to_z,
+    const PrintSegmentAttributes print_attributes)
 {
     std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
-    if (paths.size() > 0 && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
-        && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset
-        && paths.back().mesh == current_mesh_) // spiralize can only change when a travel path is in between
+    if (! paths.empty() && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
+        && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset && paths.back().mesh == current_mesh_
+        && paths.back().print_attributes == print_attributes) // spiralize can only change when a travel path is in between
     {
         return &paths.back();
     }
@@ -77,6 +78,7 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
         .spiralize = spiralize,
         .speed_factor = speed_factor,
         .travel_to_z = travel_to_z,
+        .print_attributes = print_attributes,
     });
 
     GCodePath* ret = &paths.back();
@@ -580,9 +582,10 @@ void LayerPlan::addExtrusionMove(
     const bool spiralize,
     const Ratio speed_factor,
     const double fan_speed,
-    const bool travel_to_z)
+    const bool travel_to_z,
+    const PrintSegmentAttributes& print_attributes)
 {
-    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor, travel_to_z);
+    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor, travel_to_z, print_attributes);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
     if (! static_cast<bool>(first_extrusion_acc_jerk_))
@@ -601,12 +604,18 @@ void LayerPlan::addExtrusionMoveWithGradualOverhang(
     const bool spiralize,
     const Ratio speed_factor,
     const double fan_speed,
-    const bool travel_to_z)
+    const bool travel_to_z,
+    const PrintSegmentAttributes& print_attributes)
 {
     const auto add_extrusion_move = [&](const Point3LL& target, const std::optional<size_t> speed_region_index = std::nullopt)
     {
+        PrintSegmentAttributes final_attributes = print_attributes;
+        if (speed_region_index.has_value() && speed_region_index.value() > 0)
+        {
+            final_attributes |= PrintSegmentAttribute::Overhanging;
+        }
         const Ratio overhang_speed_factor = speed_region_index.has_value() ? overhang_masks_[speed_region_index.value()].speed_ratio : 1.0_r;
-        addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z);
+        addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z, final_attributes);
     };
 
     const auto update_is_overhanging = [this](const Point3LL& target, std::optional<Point3LL> current_position, const bool is_overhanging = false)
@@ -801,7 +810,8 @@ void LayerPlan::addSkinExtrusion(
     const Ratio& flow,
     const Ratio& width_factor,
     const bool spiralize,
-    bool travel_to_z)
+    bool travel_to_z,
+    const PrintSegmentAttributes& print_attributes)
 {
     // The line segment is wholly or partially in the skin area. The line is intersected
     // with the skin area into line segments. Each line segment left in this intersection
@@ -858,7 +868,8 @@ void LayerPlan::addSkinExtrusion(
                 spiralize,
                 1.0_r,
                 GCodePathConfig::FAN_SPEED_DEFAULT,
-                travel_to_z);
+                travel_to_z,
+                print_attributes);
 
             travel_to_z = false; // Only travel to Z for the first sub-segment
         }
@@ -918,7 +929,8 @@ void LayerPlan::addPolygon(
     const Ratio& flow_ratio,
     const ForceRetract force_retract,
     bool scarf_seam,
-    bool smooth_speed)
+    bool smooth_speed,
+    const PrintSegmentAttributes& print_attributes)
 {
     constexpr bool is_closed = true;
     constexpr bool is_candidate_small_feature = false;
@@ -939,7 +951,7 @@ void LayerPlan::addPolygon(
         is_candidate_small_feature,
         scarf_seam,
         smooth_speed,
-        [this, &config, &spiralize](
+        [this, &config, &spiralize, &print_attributes](
             const PathAdapter<Polygon>& /*wall*/,
             const size_t /*segment_index*/,
             const Ratio& /*segment_start_ratio*/,
@@ -955,7 +967,7 @@ void LayerPlan::addPolygon(
             constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
             constexpr bool travel_to_z = false;
 
-            addExtrusionMove(end, config, SpaceFillType::Polygons, actual_flow_ratio, line_width_ratio, spiralize, speed_factor, fan_speed, travel_to_z);
+            addExtrusionMove(end, config, SpaceFillType::Polygons, actual_flow_ratio, line_width_ratio, spiralize, speed_factor, fan_speed, travel_to_z, print_attributes);
         });
 
 
@@ -973,6 +985,7 @@ void LayerPlan::addPolygonsByOptimizer(
     const Shape& polygons,
     const GCodePathConfig& config,
     const Settings& settings,
+    const PrintSegmentAttributes& print_attributes,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
     bool spiralize,
@@ -1026,7 +1039,8 @@ void LayerPlan::addPolygonsByOptimizer(
         force_retract,
         reverse_order,
         scarf_seam,
-        smooth_speed);
+        smooth_speed,
+        print_attributes);
 }
 
 void LayerPlan::addInfillPolygonsByOptimizer(
@@ -1092,7 +1106,8 @@ void LayerPlan::addWallLine(
     double& non_bridge_line_volume,
     Ratio speed_factor,
     double distance_to_bridge_start,
-    const bool travel_to_z)
+    const bool travel_to_z,
+    const PrintSegmentAttributes& print_attributes)
 {
     constexpr double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
@@ -1156,7 +1171,8 @@ void LayerPlan::addWallLine(
                             spiralize,
                             speed_factor,
                             GCodePathConfig::FAN_SPEED_DEFAULT,
-                            travel_to_z);
+                            travel_to_z,
+                            print_attributes);
                     }
                     // then coast to start of bridge segment
                     constexpr Ratio no_flow = 0.0_r; // Coasting has no flow rate.
@@ -1174,7 +1190,8 @@ void LayerPlan::addWallLine(
                         spiralize,
                         speed_factor,
                         GCodePathConfig::FAN_SPEED_DEFAULT,
-                        travel_to_z);
+                        travel_to_z,
+                        print_attributes);
                 }
 
                 distance_to_bridge_start -= len;
@@ -1191,7 +1208,8 @@ void LayerPlan::addWallLine(
                     spiralize,
                     speed_factor,
                     GCodePathConfig::FAN_SPEED_DEFAULT,
-                    travel_to_z);
+                    travel_to_z,
+                    print_attributes);
             }
             non_bridge_line_volume += (cur_point - segment_end).vSize() * segment_flow * width_factor * speed_factor * default_config.getSpeed();
             cur_point = segment_end;
@@ -1217,7 +1235,7 @@ void LayerPlan::addWallLine(
 
     if (use_skin_config(roofing_mask_, roofing_config))
     {
-        addSkinExtrusion(p0, p1, roofing_mask_, roofing_config, default_config, flow, width_factor, spiralize, travel_to_z);
+        addSkinExtrusion(p0, p1, roofing_mask_, roofing_config, default_config, flow, width_factor, spiralize, travel_to_z, print_attributes);
     }
     else if (bridge_wall_mask_.empty())
     {
@@ -1231,7 +1249,8 @@ void LayerPlan::addWallLine(
             spiralize,
             speed_factor,
             GCodePathConfig::FAN_SPEED_DEFAULT,
-            travel_to_z);
+            travel_to_z,
+            print_attributes);
     }
     else if (std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments = wallSegmentUsesBridging(
                  bridge_wall_mask_bb_,
@@ -1244,6 +1263,8 @@ void LayerPlan::addWallLine(
                  default_config.line_width);
              ! bridging_subsegments.empty())
     {
+        const PrintSegmentAttributes attributes_bridging = print_attributes | PrintSegmentAttribute::Bridging;
+
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
         for (const std::tuple<Ratio, Ratio>& bridging_subsegment : bridging_subsegments)
         {
@@ -1251,7 +1272,17 @@ void LayerPlan::addWallLine(
             const Point3LL bridging_subsegment_p1 = lerp(p0, p1, std::get<1>(bridging_subsegment).value);
 
             addNonBridgeLine(bridging_subsegment_p0);
-            addExtrusionMove(bridging_subsegment_p1, bridge_config, SpaceFillType::Polygons, flow, width_factor, spiralize, 1.0_r, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
+            addExtrusionMove(
+                bridging_subsegment_p1,
+                bridge_config,
+                SpaceFillType::Polygons,
+                flow,
+                width_factor,
+                spiralize,
+                1.0_r,
+                GCodePathConfig::FAN_SPEED_DEFAULT,
+                travel_to_z,
+                attributes_bridging);
 
             non_bridge_line_volume = 0;
             cur_point = bridging_subsegment_p1;
@@ -1264,7 +1295,7 @@ void LayerPlan::addWallLine(
     }
     else if (use_skin_config(flooring_mask_, flooring_config))
     {
-        addSkinExtrusion(p0, p1, flooring_mask_, flooring_config, default_config, flow, width_factor, spiralize, travel_to_z);
+        addSkinExtrusion(p0, p1, flooring_mask_, flooring_config, default_config, flow, width_factor, spiralize, travel_to_z, print_attributes);
     }
     else
     {
@@ -1897,7 +1928,8 @@ void LayerPlan::addWall(
     const bool is_reversed,
     const bool is_linked_path,
     const bool scarf_seam,
-    const bool smooth_speed)
+    const bool smooth_speed,
+    const PrintSegmentAttributes& print_attributes)
 {
     if (wall.empty())
     {
@@ -1949,7 +1981,8 @@ void LayerPlan::addWall(
                 non_bridge_line_volume,
                 speed_factor,
                 distance_to_bridge_start,
-                travel_to_z);
+                travel_to_z,
+                print_attributes);
         });
 
     if (wall.size() >= 2)
@@ -2196,6 +2229,7 @@ void LayerPlan::addLinesByOptimizer(
     const Ratio flow_ratio,
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
+    const PrintSegmentAttributes& print_attributes,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
@@ -2255,6 +2289,7 @@ void LayerPlan::addLinesByOptimizer(
         wipe_dist,
         flow_ratio,
         fan_speed,
+        print_attributes,
         extra_inwards_start_move_length,
         extra_inwards_end_move_length,
         extra_inwards_move_contour);
@@ -2326,6 +2361,7 @@ void LayerPlan::addLinesInGivenOrder(
     const coord_t wipe_dist,
     const Ratio flow_ratio,
     const double fan_speed,
+    const PrintSegmentAttributes& print_attributes,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
     const MendedShape& extra_inwards_move_contour)
@@ -2418,7 +2454,8 @@ void LayerPlan::addLinesInGivenOrder(
             constexpr Ratio width_factor = 1.0_r;
             constexpr bool spiralize = false;
             constexpr Ratio speed_factor = 1.0_r;
-            addExtrusionMove(start, config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed);
+            constexpr bool travel_to_z = true;
+            addExtrusionMove(start, config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z, print_attributes);
         }
         else
         {
@@ -2455,7 +2492,8 @@ void LayerPlan::addLinesInGivenOrder(
                 constexpr Ratio width_factor = 1.0_r;
                 constexpr bool spiralize = false;
                 constexpr Ratio speed_factor = 1.0_r;
-                addExtrusionMove(p1, config, space_fill_type, flow_ratio, width_factor, spiralize, speed_factor, fan_speed);
+                constexpr bool travel_to_z = true;
+                addExtrusionMove(p1, config, space_fill_type, flow_ratio, width_factor, spiralize, speed_factor, fan_speed, travel_to_z, print_attributes);
                 p0 = p1;
             }
         }
@@ -2494,7 +2532,8 @@ void LayerPlan::addLinesInGivenOrder(
                 constexpr Ratio width_factor = 1.0_r;
                 constexpr bool spiralize = false;
                 constexpr Ratio speed_factor = 1.0_r;
-                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed);
+                constexpr bool travel_to_z = true;
+                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z, print_attributes);
             }
         }
     }
@@ -2511,10 +2550,12 @@ void LayerPlan::addPolygonsInGivenOrder(
     const ForceRetract force_retract,
     bool reverse_order,
     bool scarf_seam,
-    bool smooth_speed)
+    bool smooth_speed,
+    const PrintSegmentAttributes& print_attributes)
 {
-    const auto add_polygons
-        = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &force_retract, &scarf_seam, &smooth_speed](const auto& iterator_begin, const auto& iterator_end)
+    const auto add_polygons = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &force_retract, &scarf_seam, &smooth_speed, &print_attributes](
+                                  const auto& iterator_begin,
+                                  const auto& iterator_end)
     {
         for (auto iterator = iterator_begin; iterator != iterator_end; ++iterator)
         {
@@ -2529,7 +2570,8 @@ void LayerPlan::addPolygonsInGivenOrder(
                 flow_ratio,
                 force_retract,
                 scarf_seam,
-                smooth_speed);
+                smooth_speed,
+                print_attributes);
         }
     };
 
@@ -2831,7 +2873,8 @@ void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, cons
         position + Point3LL(0, 0, z_ + path.z_offset),
         path.getLineWidthForLayerView(),
         line_thickness.value_or(path.config.getLayerThickness() + path.z_offset + position.z_),
-        extrude_speed);
+        extrude_speed,
+        path.print_attributes);
 }
 
 void LayerPlan::writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset, const std::optional<double> retract_distance)
@@ -2876,7 +2919,8 @@ void LayerPlan::addLinesMonotonic(
     const coord_t wipe_dist,
     const Ratio flow_ratio,
     const double fan_speed,
-    const bool interlaced)
+    const bool interlaced,
+    const PrintSegmentAttributes& print_attributes)
 {
     const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
     const coord_t exclude_dist2 = exclude_distance * exclude_distance;
@@ -2922,10 +2966,10 @@ void LayerPlan::addLinesMonotonic(
     order.optimize();
 
     // Read out and process the monotonically ordered lines.
-    addLinesInGivenOrder(order.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed);
+    addLinesInGivenOrder(order.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed, print_attributes);
 
     // Add all lines in the excluded areas the 'normal' way.
-    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, getLastPlannedPositionOrStartingPosition(), fan_speed);
+    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, getLastPlannedPositionOrStartingPosition(), fan_speed, print_attributes);
 }
 
 void LayerPlan::spiralizeWallSlice(
@@ -4188,6 +4232,7 @@ template void LayerPlan::addLinesByOptimizer(
     const Ratio flow_ratio,
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
+    const PrintSegmentAttributes& print_attributes,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
@@ -4203,6 +4248,7 @@ template void LayerPlan::addLinesByOptimizer(
     const Ratio flow_ratio,
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
+    const PrintSegmentAttributes& print_attributes,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
