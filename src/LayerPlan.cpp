@@ -49,6 +49,11 @@ namespace cura
 constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
 constexpr int MINIMUM_SQUARED_LINE_LENGTH = MINIMUM_LINE_LENGTH * MINIMUM_LINE_LENGTH;
 
+template<typename T>
+size_t point_index(T wall, ptrdiff_t index)
+{
+    return (index + (wall.size() << 2)) % wall.size();
+}
 
 GCodePath* LayerPlan::getLatestPathWithConfig(
     const GCodePathConfig& config,
@@ -68,18 +73,19 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{
-        .z_offset = z_offset,
-        .config = config,
-        .mesh = current_mesh_,
-        .space_fill_type = space_fill_type,
-        .flow = flow,
-        .width_factor = width_factor,
-        .spiralize = spiralize,
-        .speed_factor = speed_factor,
-        .travel_to_z = travel_to_z,
-        .print_attributes = print_attributes,
-    });
+    paths.emplace_back(
+        GCodePath{
+            .z_offset = z_offset,
+            .config = config,
+            .mesh = current_mesh_,
+            .space_fill_type = space_fill_type,
+            .flow = flow,
+            .width_factor = width_factor,
+            .spiralize = spiralize,
+            .speed_factor = speed_factor,
+            .travel_to_z = travel_to_z,
+            .print_attributes = print_attributes,
+        });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -952,6 +958,7 @@ void LayerPlan::addPolygon(
         scarf_seam,
         smooth_speed,
         [this, &config, &spiralize, &print_attributes](
+            const std::vector<std::tuple<Ratio, Ratio>>& /*bridging_subsegments*/,
             const PathAdapter<Polygon>& /*wall*/,
             const size_t /*segment_index*/,
             const Ratio& /*segment_start_ratio*/,
@@ -1090,6 +1097,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
 void LayerPlan::addWallLine(
+    const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
     const PathAdapter<ExtrusionLine>& wall,
     const size_t segment_index,
     const Ratio& segment_start_ratio,
@@ -1252,16 +1260,7 @@ void LayerPlan::addWallLine(
             travel_to_z,
             print_attributes);
     }
-    else if (std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments = wallSegmentUsesBridging(
-                 bridge_wall_mask_bb_,
-                 bridge_wall_mask_,
-                 wall,
-                 segment_index,
-                 segment_start_ratio,
-                 segment_end_ratio,
-                 min_bridge_line_len,
-                 default_config.line_width);
-             ! bridging_subsegments.empty())
+    else if (! bridging_subsegments.empty())
     {
         const PrintSegmentAttributes attributes_bridging = print_attributes | PrintSegmentAttribute::Bridging;
 
@@ -1371,6 +1370,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const double flow_ratio,
     const coord_t nominal_line_width,
     const coord_t min_bridge_line_len,
+    const coord_t bridge_max_deviation,
     const auto scarf_seam_length,
     const auto scarf_seam_start_ratio,
     const auto scarf_split_distance,
@@ -1384,6 +1384,23 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const bool compute_distance_to_bridge_start,
     const AddExtrusionSegmentFunction<PathType>& func_add_segment)
 {
+    std::vector<coord_t> distances_to_next_bridge;
+    std::vector<std::vector<std::tuple<Ratio, Ratio>>> bridging_subsections_per_segment;
+    if constexpr (std::is_same_v<PathType, ExtrusionLine>)
+    {
+        // The bridging functionality has not been designed to work with anything else than ExtrusionLine objects,
+        // and there is no need to do it otherwise yet. So the compute_distance_to_bridge_start argument will
+        // just be ignored if using an other PathType (e.g. Polygon)
+        const auto bridging_locations = findBridgingSections(wall.getPath(), start_idx, min_bridge_line_len, nominal_line_width, bridge_max_deviation, direction);
+        distances_to_next_bridge = std::move(findNextBridgeDistances(wall.getPath(), start_idx, bridging_locations, direction));
+        bridging_subsections_per_segment = std::move(convertBridgeLocations(wall.getPath(), bridging_locations, direction));
+    }
+    else
+    {
+        distances_to_next_bridge.resize(wall.size(), 0);
+        bridging_subsections_per_segment.resize(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
+    }
+
     std::optional<coord_t> distance_to_bridge_start; // will be updated before each line is processed
     Point2LL p0 = wall.pointAt(start_idx);
     coord_t w0 = wall.lineWidthAt(start_idx);
@@ -1403,16 +1420,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     size_t previous_point_index = start_idx;
     bool keep_processing = true;
 
-    const auto point_index = [&wall](const int base_index) -> size_t
-    {
-        int index = base_index;
-        while (index < 0)
-        {
-            index += wall.size();
-        }
-        return index % wall.size();
-    };
-
     for (size_t point_idx = 1; point_idx < max_index && keep_processing; point_idx++)
     {
         const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
@@ -1421,16 +1428,9 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
         const coord_t w1 = wall.lineWidthAt(actual_point_index);
         coord_t segment_processed_distance = 0;
 
-        if constexpr (std::is_same_v<PathType, ExtrusionLine>)
+        if (compute_distance_to_bridge_start && ! bridge_wall_mask_.empty() && ! distance_to_bridge_start.has_value())
         {
-            // The bridging functionality has not been designed to work with anything else than ExtrusionLine objects,
-            // and there is no need to do it otherwise yet. So the compute_distance_to_bridge_start argument will
-            // just be ignored if using an other PathType (e.g. Polygon)
-            if (compute_distance_to_bridge_start && ! bridge_wall_mask_.empty() && ! distance_to_bridge_start.has_value())
-            {
-                distance_to_bridge_start
-                    = computeDistanceToBridgeStart(wall.getPath(), (wall.size() + start_idx + point_idx * direction - 1) % wall.size(), min_bridge_line_len, direction);
-            }
+            distance_to_bridge_start = distances_to_next_bridge[actual_point_index];
         }
 
         if (first_line)
@@ -1563,9 +1563,11 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
 
                     // now add the (sub-)segment
                     const bool travel_to_z = wall_processed_distance == 0; // Travel to Z for first sub-segment, but only this one
+                    const size_t pt_idx = point_index(wall, actual_point_index - 1);
                     func_add_segment(
+                        bridging_subsections_per_segment[pt_idx],
                         wall,
-                        point_index(actual_point_index - 1),
+                        pt_idx,
                         static_cast<float>(segment_processed_distance) / line_length,
                         static_cast<float>(segment_processed_distance + length_to_process) / line_length,
                         split_origin,
@@ -1725,93 +1727,279 @@ std::vector<LayerPlan::PathCoasting>
     return path_coastings;
 }
 
-coord_t LayerPlan::computeDistanceToBridgeStart(const ExtrusionLine& wall, const size_t current_index, const coord_t min_bridge_line_len, const int direction) const
+std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
+    const ExtrusionLine& wall,
+    const size_t current_index,
+    const coord_t min_bridge_line_len,
+    const coord_t min_anchor_distance,
+    const coord_t max_bridge_deviation,
+    const int direction) const
 {
-    coord_t distance_to_bridge_start = 0;
-
-    const auto point_index = [&wall](const int base_index) -> size_t
+    if (bridge_wall_mask_.empty())
     {
-        int index = base_index;
-        while (index < 0)
-        {
-            index += wall.size();
-        }
-        return index % wall.size();
-    };
-
-    if (! bridge_wall_mask_.empty())
-    {
-        const size_t iterations = wall.is_closed_ ? wall.size() : (direction > 0 ? wall.size() - current_index : current_index);
-
-        // there is air below the part so iterate through the lines that have not yet been output accumulating the total distance to the first bridge segment
-        for (size_t iteration = 0; iteration < iterations; ++iteration)
-        {
-            const size_t base_index = current_index + iteration * direction;
-            const ExtrusionJunction& p0 = wall[point_index(base_index)];
-            const ExtrusionJunction& p1 = wall[point_index(base_index + direction)];
-
-            if (bridge_wall_mask_bb_.hit(AABB({ p0.p_, p1.p_ })) && PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
-            {
-                constexpr bool restitch = false; // only a single line doesn't need stitching
-                OpenLinesSet intersections_with_bridge_mask = bridge_wall_mask_.intersection(OpenLinesSet(OpenPolyline({ p0.p_, p1.p_ })), restitch);
-
-                // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
-                // determine which segments of the line are bridges
-
-                // First, replace the intersection segments in the proper direction, and sort them by order along the main segment
-                ranges::sort(
-                    intersections_with_bridge_mask,
-                    [&p0](OpenPolyline& segment0, OpenPolyline& segment1) -> bool
-                    {
-                        const coord_t distance_s0_p0 = vSize2(segment0[0] - p0.p_);
-                        const coord_t distance_s0_p1 = vSize2(segment0[1] - p0.p_);
-                        const coord_t distance_s1_p0 = vSize2(segment1[0] - p0.p_);
-                        const coord_t distance_s1_p1 = vSize2(segment1[1] - p0.p_);
-
-                        // Reorder segments if they end up not being in the same direction as the original segment
-                        if (distance_s0_p1 < distance_s0_p0)
-                        {
-                            std::swap(segment0[0], segment0[1]);
-                        }
-                        if (distance_s1_p1 < distance_s1_p0)
-                        {
-                            std::swap(segment1[0], segment1[1]);
-                        }
-
-                        // The segments should not intersect each other, so we can just return the ordering between any of their distances
-                        return distance_s0_p0 < distance_s1_p0;
-                    });
-
-                // Now loop over the segments and try to find one that is long enough
-                for (const OpenPolyline& intersection_segment : intersections_with_bridge_mask)
-                {
-                    const Point2LL& b0 = intersection_segment[0];
-                    const Point2LL& b1 = intersection_segment[1];
-
-                    const double bridge_line_len = vSize(b1 - b0);
-                    if (bridge_line_len >= min_bridge_line_len)
-                    {
-                        // job done, we have found the first bridge line
-                        return distance_to_bridge_start + vSize(b0 - p0.p_);
-                    }
-                }
-
-                // None of the intersection segments was long enough to be considered relevant, so just ignore the segment
-                distance_to_bridge_start += vSize(p1.p_ - p0.p_);
-            }
-            else if (! bridge_wall_mask_.inside(p0.p_, true))
-            {
-                // none of the line is over air
-                distance_to_bridge_start += vSize(p1.p_ - p0.p_);
-            }
-        }
-
-        // we have got all the way to the end of the wall without finding a bridge segment so disable coasting by setting distance_to_bridge_start back to 0
-
-        distance_to_bridge_start = 0;
+        return {};
     }
 
-    return distance_to_bridge_start;
+    std::vector<BridgeLocation> out_bridge_locations;
+
+    coord_t total_distance_p0 = 0;
+    coord_t ending_anchor_distance = 0;
+
+    std::deque<BridgeLocation> bridge_segment_candidates;
+
+    const size_t iterations = wall.is_closed_ ? wall.size() : (direction > 0 ? wall.size() - current_index : current_index);
+
+    // there is air below the part so iterate through the lines that have not yet been output accumulating all (unmerged) bridge segment candidates
+    // (... and the final anchor distance)
+    for (size_t iteration = 0; iteration < iterations; ++iteration)
+    {
+        const size_t base_index = current_index + iteration * direction;
+        const size_t idx_0 = point_index(wall, base_index);
+        const size_t idx_1 = point_index(wall, base_index + direction);
+        const ExtrusionJunction& p0 = wall[idx_0];
+        const ExtrusionJunction& p1 = wall[idx_1];
+        const coord_t line_distance = vSize(p1.p_ - p0.p_);
+
+        if (! bridge_wall_mask_bb_.hit(AABB({ p0.p_, p1.p_ })))
+        {
+            // line segment not connected to bridge, can only function as anchor but not otherwise related
+            total_distance_p0 += line_distance;
+            ending_anchor_distance += line_distance;
+            continue;
+        }
+
+        constexpr bool restitch = false; // only a single line doesn't need stitching
+        OpenLinesSet intersections_with_bridge_mask = bridge_wall_mask_.intersection(OpenLinesSet(OpenPolyline({ p0.p_, p1.p_ })), restitch);
+
+        if (! PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
+        {
+            ending_anchor_distance += line_distance;
+
+            // this can also happen if wholly inside, so check for that
+            if (! intersections_with_bridge_mask.empty())
+            {
+                // line-segment entirely within bridge, simple case, should record
+                bridge_segment_candidates.emplace_back(idx_0, idx_1, 0, line_distance, line_distance, line_distance, total_distance_p0);
+                ending_anchor_distance = 0;
+            }
+
+            total_distance_p0 += line_distance;
+            continue;
+        }
+
+        // the line crosses the boundary between supported and non-supported regions so it will contain one or more bridge segments
+        // determine which segments of the line are bridges
+
+        // First, replace the intersection segments in the proper direction, and sort them by order along the main segment
+        ranges::sort(
+            intersections_with_bridge_mask,
+            [&p0](OpenPolyline& segment0, OpenPolyline& segment1) -> bool
+            {
+                const coord_t distance_s0_p0 = vSize2(segment0[0] - p0.p_);
+                const coord_t distance_s0_p1 = vSize2(segment0[1] - p0.p_);
+                const coord_t distance_s1_p0 = vSize2(segment1[0] - p0.p_);
+                const coord_t distance_s1_p1 = vSize2(segment1[1] - p0.p_);
+
+                // Reorder segments if they end up not being in the same direction as the original segment
+                if (distance_s0_p1 < distance_s0_p0)
+                {
+                    std::swap(segment0[0], segment0[1]);
+                }
+                if (distance_s1_p1 < distance_s1_p0)
+                {
+                    std::swap(segment1[0], segment1[1]);
+                }
+
+                // The segments should not intersect each other, so we can just return the ordering between any of their distances
+                return distance_s0_p0 < distance_s1_p0;
+            });
+
+        // Finally, loop over the intersections to find candidate bridge segments.
+        for (const OpenPolyline& intersection_segment : intersections_with_bridge_mask)
+        {
+            const auto& [b0, b1] = (vSize2(intersection_segment[0] - p0.p_) < vSize2(intersection_segment[1] - p0.p_)) ? std::tie(intersection_segment[0], intersection_segment[1])
+                                                                                                                       : std::tie(intersection_segment[1], intersection_segment[0]);
+
+            if (vSize2(b1 - b0) < EPSILON_SQUARED)
+            {
+                // don't consider negligble lengths in any case however
+                continue;
+            }
+
+            // add a candidate bridge-segment here (don't check anchoring, distance, max deviation or distance to first yet; that's for the next step)
+            // note that they're also not merged yet
+            const coord_t start_len = vSize(b0 - p0.p_);
+            const coord_t end_len = vSize(b1 - p0.p_);
+            const coord_t from_end = vSize(p1.p_ - b1);
+            bridge_segment_candidates.emplace_back(idx_0, idx_1, start_len, end_len, line_distance - (start_len + from_end), from_end, total_distance_p0 + start_len);
+        }
+
+        total_distance_p0 += line_distance;
+        ending_anchor_distance = bridge_segment_candidates.empty() ? 0 : bridge_segment_candidates.back().backwards_end_dist;
+    }
+
+    // append to result function -- also checks if the bridge-length is sufficient and if it stays under the max deviation
+    const auto check_and_collect_bridge_func = [&](BridgeLocation& bridge)
+    {
+        // check against min bridge length (measure direct, not along the possibly deviating bridge)
+        if (bridge.bridge_len < min_bridge_line_len)
+        {
+            return;
+        }
+
+        // get the endpoints of the bridge
+        const auto& p00 = wall[bridge.wall_idx_start];
+        const auto& p01 = wall[point_index(wall, bridge.wall_idx_start + direction)];
+        const auto start_pt = p00.p_ + normal(p01.p_ - p00.p_, bridge.start_dist);
+
+        const auto& p10 = wall[point_index(wall, bridge.wall_idx_end - direction)];
+        const auto& p11 = wall[bridge.wall_idx_end];
+        const auto end_pt = p10.p_ + normal(p11.p_ - p10.p_, bridge.end_dist);
+
+        // see what other points in the bridge go over the max deviation, if any
+        for (ptrdiff_t pt_idx = point_index(wall, bridge.wall_idx_start + direction); pt_idx != bridge.wall_idx_end; pt_idx = point_index(wall, pt_idx + direction))
+        {
+            if (LinearAlg2D::getDistFromLine(wall[pt_idx].p_, start_pt, end_pt) > max_bridge_deviation)
+            {
+                // don't add a bridge -- we're over the max deviation here
+                return;
+            }
+        }
+
+        out_bridge_locations.push_back(std::move(bridge));
+    };
+
+    // merge bridges, check if the resulting bridges conform to the parameters, and if so, add them to the out batch
+    std::optional<BridgeLocation> current_bridge;
+    coord_t skipped_first_anchor_len
+        = 0; // <- combined length of skipped bridges before the first proper one; can be used to get the proper anchor length from the from-start-of-wall member
+    for (; ! bridge_segment_candidates.empty(); bridge_segment_candidates.pop_front())
+    {
+        auto& bridge_segment = bridge_segment_candidates.front();
+
+        // check if we're continueing from last
+        if (current_bridge.has_value())
+        {
+            auto& buildup = current_bridge.value();
+
+            // if the current 'build-up' and the new bridge segment are close enough together (that is, less than the anchoring distance)
+            // they should be merged; otherwise, they should be treated as two separate bridges, in which case we finalize the buildup
+
+            const auto anchor_dist = bridge_segment.from_start_of_wall - (buildup.from_start_of_wall + buildup.bridge_len);
+            if (anchor_dist < min_anchor_distance)
+            {
+                // smaller than anchoring distance, so should be treated as one (candidate) bridge, merge
+                // note that if the anchoring distance is large enough, you might want to treat these as two separate candidate bridges, but it's about a line-width now
+                buildup.wall_idx_end = bridge_segment.wall_idx_end;
+                buildup.end_dist = bridge_segment.end_dist;
+                buildup.bridge_len += bridge_segment.bridge_len + anchor_dist;
+                buildup.backwards_end_dist = bridge_segment.backwards_end_dist;
+            }
+            else
+            {
+                // larger than anchoring distance, two (candidate) bridges
+                check_and_collect_bridge_func(buildup);
+                current_bridge = std::move(bridge_segment);
+            }
+        }
+        else
+        {
+            // skip all candidate bridges until the first anchoring distance is met
+            // note that this also prevents us from needing to check if the entire wall is just 'bridge' (no trouble with infinite loops)
+            if ((bridge_segment.from_start_of_wall - skipped_first_anchor_len) > min_anchor_distance)
+            {
+                // just leave the new bridge here, in case it continues in the next
+                current_bridge = std::move(bridge_segment);
+            }
+            else
+            {
+                // in case where the previous length of the wall was all unanchored bridges (with too small non-bridging segments inbetween)
+                skipped_first_anchor_len += bridge_segment.bridge_len;
+            }
+        }
+    }
+
+    // still need to check the last bridge 'leftover' (actually likely the only one), if any (and wether it has enough anchor distance at the end)
+    if (current_bridge.has_value() && ending_anchor_distance >= min_anchor_distance)
+    {
+        check_and_collect_bridge_func(current_bridge.value());
+    }
+
+    return out_bridge_locations;
+}
+
+std::vector<coord_t>
+    LayerPlan::findNextBridgeDistances(const ExtrusionLine& wall, const size_t current_index, const std::vector<BridgeLocation>& bridge_locations, const int direction) const
+{
+    std::vector<coord_t> out_next_bridge_dists(wall.size(), 0);
+    std::set<size_t> wall_segments_with_bridge;
+
+    // now that we have all bridges, for each line segment in the _wall_ we'd like to have the distance to the start of the next bridge
+    // (for coasting purposes) note that these aren't the same as the anchoring distances, since we can ignore anything that happened before the current wall segment
+
+    // first fill in the 'trivial' cases, where there's a bridge within the wall-line-segment
+    coord_t distance_from_end_of_prev = 0;
+    for (const auto& bridge : bridge_locations)
+    {
+        out_next_bridge_dists[bridge.wall_idx_start] = bridge.from_start_of_wall;
+        // ... if there is more bridge after this, the start-to-bridge would need to be set to 0, but the vector is already initialized to all 0
+
+        // to differentiate, set the wall-segments-with-bridges
+        for (ptrdiff_t pt_idx = bridge.wall_idx_start; pt_idx != bridge.wall_idx_end; pt_idx = point_index(wall, pt_idx + direction))
+        {
+            wall_segments_with_bridge.insert(pt_idx);
+        }
+    }
+
+    // with help of the already filled in starts, populate the previous ones
+
+    coord_t non_bridge_dist = 0;
+    bool found_last = false;
+    for (ptrdiff_t pt_idx = point_index(wall, current_index - direction); pt_idx != current_index; pt_idx = point_index(wall, pt_idx - direction))
+    {
+        if (wall_segments_with_bridge.contains(pt_idx))
+        {
+            // it already exists, ok, reset value, signal good to go for filling in the rest
+            non_bridge_dist = out_next_bridge_dists[pt_idx];
+            found_last = true;
+        }
+        else if (found_last)
+        {
+            // didn't exist yet, but we can fill in info by appending the current segment-length
+            const size_t next_pt_idx = point_index(wall, pt_idx + direction);
+            non_bridge_dist += vSize(wall[next_pt_idx].p_ - wall[pt_idx].p_);
+            out_next_bridge_dists[pt_idx] = non_bridge_dist;
+        }
+    }
+
+    return out_next_bridge_dists;
+}
+
+std::vector<std::vector<std::tuple<Ratio, Ratio>>>
+    LayerPlan::convertBridgeLocations(const ExtrusionLine& wall, const std::vector<BridgeLocation>& bridge_locations, ptrdiff_t direction) const
+{
+    std::vector<std::vector<std::tuple<Ratio, Ratio>>> out_bridging_subsections(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
+
+    for (const auto& bridge : bridge_locations)
+    {
+        ptrdiff_t pt_idx = bridge.wall_idx_start;
+        do
+        {
+            const ptrdiff_t next_pt_idx = point_index(wall, pt_idx + direction);
+            const Point2LL& a = wall[pt_idx].p_;
+            const Point2LL& b = wall[next_pt_idx].p_;
+            const Ratio seg_len{ vSize(b - a) };
+            if (seg_len >= EPSILON)
+            {
+                const auto ratio_to_start = Ratio{ pt_idx == bridge.wall_idx_start ? bridge.start_dist : 0 } / seg_len;
+                const auto ratio_to_end = 1.0 - ((Ratio{ next_pt_idx == bridge.wall_idx_end ? bridge.backwards_end_dist : 0 } / seg_len));
+                out_bridging_subsections[pt_idx].emplace_back(ratio_to_start, ratio_to_end);
+            }
+            pt_idx = next_pt_idx;
+        } while (pt_idx != bridge.wall_idx_end);
+    }
+
+    return out_bridging_subsections;
 }
 
 template<class PathType>
@@ -1837,6 +2025,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const bool actual_scarf_seam = scarf_seam && is_closed && layer_nr_ > 0;
 
     const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const coord_t bridge_max_deviation = settings.get<coord_t>("bridge_wall_max_deviation");
 
     const coord_t nominal_line_width = default_config.getLineWidth();
 
@@ -1887,6 +2076,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
             flow_ratio,
             nominal_line_width,
             min_bridge_line_len,
+            bridge_max_deviation,
             scarf_seam_length,
             scarf_seam_start_ratio,
             scarf_split_distance,
@@ -1952,7 +2142,8 @@ void LayerPlan::addWall(
         wall.inset_idx_ == 0,
         scarf_seam,
         smooth_speed,
-        [&](const PathAdapter<ExtrusionLine>& wall,
+        [&](const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
+            const PathAdapter<ExtrusionLine>& wall,
             const size_t segment_index,
             const Ratio& segment_start_ratio,
             const Ratio& segment_end_ratio,
@@ -1965,6 +2156,7 @@ void LayerPlan::addWall(
             const bool travel_to_z)
         {
             addWallLine(
+                bridging_subsegments,
                 wall,
                 segment_index,
                 segment_start_ratio,
