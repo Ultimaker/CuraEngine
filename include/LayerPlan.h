@@ -630,10 +630,6 @@ public:
      */
     void addWallLine(
         const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
-        const PathAdapter<ExtrusionLine>& wall,
-        const size_t segment_index,
-        const Ratio& segment_start_ratio,
-        const Ratio& segment_end_ratio,
         const Point3LL& p0,
         const Point3LL& p1,
         const Settings& settings,
@@ -1092,10 +1088,6 @@ private:
     template<class PathType>
     using AddExtrusionSegmentFunction = std::function<void(
         const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
-        const PathAdapter<PathType>& wall,
-        const size_t segment_index,
-        const Ratio& segment_start_ratio,
-        const Ratio& segment_end_ratio,
         const Point3LL& start,
         const Point3LL& end,
         const Ratio& speed_factor,

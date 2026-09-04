@@ -958,10 +958,6 @@ void LayerPlan::addPolygon(
         smooth_speed,
         [this, &config, &spiralize, &print_attributes](
             const std::vector<std::tuple<Ratio, Ratio>>& /*bridging_subsegments*/,
-            const PathAdapter<Polygon>& /*wall*/,
-            const size_t /*segment_index*/,
-            const Ratio& /*segment_start_ratio*/,
-            const Ratio& /*segment_end_ratio*/,
             const Point3LL& /*start*/,
             const Point3LL& end,
             const Ratio& speed_factor,
@@ -1097,10 +1093,6 @@ static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to ac
 
 void LayerPlan::addWallLine(
     const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
-    const PathAdapter<ExtrusionLine>& wall,
-    const size_t segment_index,
-    const Ratio& segment_start_ratio,
-    const Ratio& segment_end_ratio,
     const Point3LL& p0,
     const Point3LL& p1,
     const Settings& settings,
@@ -1120,7 +1112,6 @@ void LayerPlan::addWallLine(
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     constexpr bool spiralize = false;
 
-    const coord_t min_bridge_line_len = std::max(EPSILON, settings.get<coord_t>("bridge_wall_min_length"));
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
     Point3LL cur_point = p0;
@@ -1565,10 +1556,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                     const size_t pt_idx = point_index(wall, actual_point_index - 1);
                     func_add_segment(
                         bridging_subsections_per_segment[pt_idx],
-                        wall,
-                        pt_idx,
-                        static_cast<float>(segment_processed_distance) / line_length,
-                        static_cast<float>(segment_processed_distance + length_to_process) / line_length,
                         split_origin,
                         split_destination,
                         accelerate_speed_factor * decelerate_speed_factor,
@@ -2141,10 +2128,6 @@ void LayerPlan::addWall(
         scarf_seam,
         smooth_speed,
         [&](const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
-            const PathAdapter<ExtrusionLine>& wall,
-            const size_t segment_index,
-            const Ratio& segment_start_ratio,
-            const Ratio& segment_end_ratio,
             const Point3LL& start,
             const Point3LL& end,
             const Ratio& speed_factor,
@@ -2155,10 +2138,6 @@ void LayerPlan::addWall(
         {
             addWallLine(
                 bridging_subsegments,
-                wall,
-                segment_index,
-                segment_start_ratio,
-                segment_end_ratio,
                 start,
                 end,
                 settings,
