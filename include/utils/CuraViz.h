@@ -9,6 +9,7 @@
 #include <boost/asio/ip/tcp.hpp>
 
 #include "geometry/Point2LL.h"
+#include "geometry/Point3LL.h"
 
 namespace cura_viz
 {
@@ -54,6 +55,12 @@ class CuraViz
 {
 public:
     static void send(const Point2LL& point, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const Point2LL& start, const Point2LL& end, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const Point3LL& start, const Point3LL& end, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const Polyline& line, const std::string& name = "", const std::string& step_name = "");
 
     static void send(const Shape& shape, const std::string& name = "", const std::string& step_name = "");
 

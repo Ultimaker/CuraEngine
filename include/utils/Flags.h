@@ -33,6 +33,11 @@ public:
         return value_;
     }
 
+    bool isSet(const EnumClass value) const
+    {
+        return *this & value;
+    }
+
     Flags operator|(const Flags& other) const
     {
         return Flags(static_cast<EnumClass>(value_ | other.value_));

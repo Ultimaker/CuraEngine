@@ -307,7 +307,7 @@ std::optional<AngleDegrees> bridgeAngle(
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    Shape& supported_regions)
+    Shape& bridging_area)
 {
     const Settings& settings = mesh.settings;
     const bool bridge_settings_enabled = settings.get<bool>("bridge_settings_enabled");
@@ -324,6 +324,7 @@ std::optional<AngleDegrees> bridgeAngle(
     //  This gives us the islands that the layer rests on.
     Shape prev_layer_outline; // we also want the complete outline of the previous layer
     Shape prev_layer_infill;
+    Shape supported_regions;
 
     // include parts from all meshes
     for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
@@ -396,6 +397,8 @@ std::optional<AngleDegrees> bridgeAngle(
         // considered to be a bridge and the original bridge detection code below is skipped
         return std::nullopt;
     }
+
+    bridging_area = skin_outline.difference(supported_regions.offset(EPSILON));
 
     prev_layer_infill = skin_outline.intersection(prev_layer_infill);
     const Ratio infill_ratio = prev_layer_infill.area() / (skin_outline.area() + 1);

@@ -455,7 +455,7 @@ private:
         SliceLayerPart& part,
         const bool end_infill_close_to_seam) const;
 
-    std::vector<LayerPlan::OverhangMask>
+    OverrideAreas
         makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, SliceLayerPart& part) const;
 
     /*!
@@ -472,7 +472,7 @@ private:
      */
     bool endProcessInsets(
         InsetsPreprocessResult& preprocess_result,
-        const std::vector<LayerPlan::OverhangMask>& overhang_masks,
+        const OverrideAreas overhang_areas,
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
@@ -622,7 +622,7 @@ private:
         bool& added_something,
         double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         std::optional<coord_t> forced_small_area_width = std::nullopt,
-        const PrintSegmentAttributes& print_attributes = {}) const;
+        const OverrideAreas& override_areas = {}) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to

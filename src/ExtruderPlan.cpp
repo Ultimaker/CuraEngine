@@ -138,4 +138,43 @@ AABB ExtruderPlan::calculateExtrusionBoundingBox() const
     return bounding_box;
 }
 
+coord_t ExtruderPlan::calculateMaxOverhangLength() const
+{
+    coord_t max_overhang_length = 0;
+    bool overhanging = false;
+    coord_t current_overhang_length = 0;
+    std::optional<Point2LL> current_position;
+
+    for (const GCodePath& path : paths_)
+    {
+        const bool new_overhanging = path.print_attributes.isSet(PrintSegmentAttribute::Overhanging);
+        if (new_overhanging != overhanging)
+        {
+            if (overhanging)
+            {
+                max_overhang_length = std::max(max_overhang_length, current_overhang_length);
+            }
+
+            current_overhang_length = 0;
+        }
+
+        if (new_overhanging)
+        {
+            for (const Point3LL& position : path.points)
+            {
+                if (current_position.has_value())
+                {
+                    current_overhang_length += vSize(position.toPoint2LL() - current_position.value());
+                }
+                current_position = position.toPoint2LL();
+            }
+        }
+
+        current_position = path.points.back().toPoint2LL();
+        overhanging = new_overhanging;
+    }
+
+    return std::max(max_overhang_length, current_overhang_length);
+}
+
 } // namespace cura

@@ -19,6 +19,7 @@
 #include "Application.h"
 #include "Slice.h"
 #include "geometry/MixedLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 #include "settings/Settings.h"
@@ -152,6 +153,23 @@ void CuraViz::send(const Point2LL& point, const std::string& name, const std::st
 {
     MessageToSend message(step_name);
     setup(point, message.addGeometricElement(name));
+}
+
+void CuraViz::send(const Point2LL& start, const Point2LL& end, const std::string& name, const std::string& step_name)
+{
+    const OpenPolyline segment({ start, end });
+    send(segment, name, step_name);
+}
+
+void CuraViz::send(const Point3LL& start, const Point3LL& end, const std::string& name, const std::string& step_name)
+{
+    send(start.toPoint2LL(), end.toPoint2LL(), name, step_name);
+}
+
+void CuraViz::send(const Polyline& line, const std::string& name, const std::string& step_name)
+{
+    MessageToSend message(step_name);
+    setup(line, message.addGeometricElement(name)->mutable_data()->mutable_lines_set2ll()->add_lines());
 }
 
 void CuraViz::send(const Shape& shape, const std::string& name, const std::string& step_name)

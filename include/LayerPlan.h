@@ -7,6 +7,7 @@
 #include "ExtruderPlan.h"
 #include "FanSpeedLayerTime.h"
 #include "InsetOrderOptimizer.h"
+#include "OverrideAreas.h"
 #include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
 #include "gcode_export/gcodeExport.h"
@@ -158,16 +159,10 @@ private:
     coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     AABB bridge_wall_mask_bb_; //!< Cached bounding box for the above value.
-    std::vector<OverhangMask> overhang_masks_; //!< The regions of a layer part where the walls overhang, calculated for multiple overhang angles. The latter is the most
-                                               //!< overhanging. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
     Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
 
     Shape roofing_mask_; //!< The regions of a layer part where the walls are exposed to the air above
     Shape flooring_mask_; //!< The regions of a layer part where the walls are exposed to the air below
-
-    bool currently_overhanging_{ false }; //!< Indicates whether the last extrusion move was overhanging
-    coord_t current_overhang_length_{ 0 }; //!< When doing consecutive overhanging moves, this is the current accumulated overhanging length
-    coord_t max_overhang_length_{ 0 }; //!< From all consecutive overhanging moves in the layer, this is the longest one
 
     bool min_layer_time_used = false; //!< Wether or not the minimum layer time (cool_min_layer_time) was actually used in this layerplan.
 
@@ -351,13 +346,6 @@ public:
     void setBridgeWallMask(const Shape& polys);
 
     /*!
-     * Set overhang_masks.
-     *
-     * \param masks The overhung areas of the part currently being processed that will require modified print settings
-     */
-    void setOverhangMasks(const std::vector<OverhangMask>& masks);
-
-    /*!
      * Set seam_overhang_mask.
      *
      * \param polys The overhung areas of the part currently being processed that will require modified print settings w.r.t. seams
@@ -462,17 +450,17 @@ public:
         const bool travel_to_z = true,
         const PrintSegmentAttributes& print_attributes = {});
 
-    void addExtrusionMoveWithGradualOverhang(
+    void addExtrusionMove(
         const Point3LL& p,
         const GCodePathConfig& config,
+        const OverrideAreas& override_areas,
         const SpaceFillType space_fill_type,
         const Ratio& flow = 1.0_r,
         const Ratio width_factor = 1.0_r,
         const bool spiralize = false,
         const Ratio speed_factor = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        const bool travel_to_z = true,
-        const PrintSegmentAttributes& print_attributes = {});
+        const bool travel_to_z = true);
 
     /*!
      * Adds an extrusion move that may go through a skin area
@@ -497,7 +485,7 @@ public:
         const Ratio& width_factor,
         const bool spiralize,
         const bool travel_to_z,
-        const PrintSegmentAttributes& print_attributes = {});
+        const OverrideAreas& override_areas = {});
 
     /*!
      * Add polygon to the gcode starting at vertex \p startIdx
@@ -525,7 +513,7 @@ public:
         const ForceRetract force_retract = ForceRetract::AUTOMATIC,
         bool scarf_seam = false,
         bool smooth_speed = false,
-        const PrintSegmentAttributes& print_attributes = {});
+        const OverrideAreas& override_areas = {});
 
     /*!
      * Add polygons to the gcode with optimized order.
@@ -563,7 +551,7 @@ public:
         const Shape& polygons,
         const GCodePathConfig& config,
         const Settings& settings,
-        const PrintSegmentAttributes& print_attributes = {},
+        const OverrideAreas& override_areas = {},
         const ZSeamConfig& z_seam_config = ZSeamConfig(),
         coord_t wall_0_wipe_dist = 0,
         bool spiralize = false,
@@ -643,7 +631,7 @@ public:
         Ratio speed_factor,
         double distance_to_bridge_start,
         const bool travel_to_z = true,
-        const PrintSegmentAttributes& print_attributes = {});
+        const OverrideAreas& override_areas = {});
 
     /*!
      * Add a wall to the g-code starting at vertex \p start_idx
@@ -716,7 +704,7 @@ public:
         const bool is_linked_path,
         const bool scarf_seam = false,
         const bool smooth_speed = false,
-        const PrintSegmentAttributes& print_attributes = {});
+        const OverrideAreas& override_areas = {});
 
     /*!
      * Add an infill wall to the g-code
@@ -782,7 +770,7 @@ public:
         const Ratio flow_ratio = 1.0,
         const std::optional<Point2LL> near_start_location = std::optional<Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        const PrintSegmentAttributes& print_attributes = {},
+        const OverrideAreas& override_areas = {},
         const bool reverse_print_direction = false,
         const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
         const coord_t extra_inwards_start_move_length = 0,
@@ -848,7 +836,7 @@ public:
         const Ratio flow_ratio = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool interlaced = false,
-        const PrintSegmentAttributes& print_attributes = {});
+        const OverrideAreas& override_areas = {});
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
@@ -947,6 +935,12 @@ public:
     const bool empty() const;
 
 private:
+    struct PartialExtrusionSegment
+    {
+        Point3LL p1;
+        const OverrideArea* area;
+    };
+
     /*!
      * \brief Compute the preferred or minimum combing boundary
      *
@@ -985,7 +979,7 @@ private:
         const coord_t wipe_dist,
         const Ratio flow_ratio,
         const double fan_speed,
-        const PrintSegmentAttributes& print_attributes = {},
+        const OverrideAreas& override_areas = {},
         const coord_t extra_inwards_start_move_length = 0,
         const coord_t extra_inwards_end_move_length = 0,
         const MendedShape& extra_inwards_move_contour = MendedShape());
@@ -1025,7 +1019,7 @@ private:
         bool reverse_order = false,
         bool scarf_seam = false,
         bool smooth_speed = false,
-        const PrintSegmentAttributes& print_attributes = {});
+        const OverrideAreas& override_areas = {});
 
     /*!
      *  @brief Send a GCodePath line to the communication object, applying proper Z offsets
@@ -1238,8 +1232,8 @@ private:
         ptrdiff_t wall_idx_start;
         ptrdiff_t wall_idx_end;
         coord_t start_dist; // distance from the point indicated by wall_idx_start to the start of the bridge-segment
-        coord_t end_dist; // distance from the point indicated by [wall_idx_end - direction] (which equals wall_idx_start if the bridge is within a single wall-segment) to the end
-                          // of the bridge-segment
+        coord_t end_dist; // distance from the point indicated by [wall_idx_end - direction] (which equals wall_idx_start if the bridge is within a single wall-segment) to the
+                          // end of the bridge-segment
         coord_t bridge_len; // length of the bridge (which is only the same as end - start distance, in case the start and end wall indices are exactly 1 apart)
         coord_t backwards_end_dist; // distance from the point indicated by wall_idx_end to the end of the bridge-segment (so, backwards from the last point of the line-segment)
         coord_t from_start_of_wall; // distance to the start of the bridge segment from the start of the entire wall
@@ -1351,6 +1345,8 @@ private:
         const Velocity& speed,
         const size_t point_index);
 
+    coord_t calculateMaxOverhangLength() const;
+
     /*!
      * Generates an extrusion move that goes as inwards as possible given a skeletized contour, starting from the given point
      * @param trapezoidal_edges The edges of the skeletal trapezoidation for the contour
@@ -1360,6 +1356,8 @@ private:
      *         already inwards the contour enough.
      */
     static OpenPolyline makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point, const coord_t move_inwards_length);
+
+    static std::vector<PartialExtrusionSegment> splitExtrusionSegment(const Point3LL& start, const Point3LL& end, const OverrideAreas& override_areas);
 };
 
 } // namespace cura

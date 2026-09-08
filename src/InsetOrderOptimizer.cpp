@@ -145,7 +145,7 @@ void InsetOrderOptimizer::optimize()
     path_optimizer_->optimize();
 }
 
-bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before_outer_wall, const PrintSegmentAttributes& print_attributes)
+bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before_outer_wall, const OverrideAreas& override_areas)
 {
     if (path_optimizer_ == nullptr)
     {
@@ -212,7 +212,7 @@ bool InsetOrderOptimizer::addToLayer(const RetractBeforeOuterWall retract_before
             linked_path,
             scarf_seam,
             smooth_speed,
-            print_attributes);
+            override_areas);
         added_something = true;
 
         if (retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL)
