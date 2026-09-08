@@ -952,8 +952,6 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
         return start + factor * vector;
     };
 
-    return { PartialExtrusionSegment{ end, nullptr } };
-
     // Pre-calculate the intersections of the segment with all regions
     std::vector<std::vector<float>> override_areas_intersections(override_areas.size());
     boost::dynamic_bitset areas_under_segments(override_areas.size()); // Stack of the areas currently under the part of the segment
