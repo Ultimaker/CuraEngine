@@ -8,6 +8,7 @@
 #include <vector>
 
 #include "GCodePathConfig.h"
+#include "PrintSegmentAttributes.h"
 #include "SpaceFillType.h"
 #include "TimeMaterialEstimates.h"
 #include "geometry/Point2LL.h"
@@ -50,6 +51,7 @@ struct GCodePath
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates
     bool travel_to_z{ true }; //! Indicates whether we should add a travel move to the Z height of the first point before processing the path
+    PrintSegmentAttributes print_attributes; //! Indicates if the line is processed with specific settings, e.g. overhanging or bridging
 
     /*!
      * Whether this config is the config of a travel path.

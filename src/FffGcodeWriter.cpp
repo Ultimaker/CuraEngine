@@ -713,12 +713,13 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 wall_orderer.addToLayer();
             }
 
-            const auto wipe_dist = 0;
-            const auto spiralize = false;
-            const auto flow_ratio = 1.0_r;
-            const auto enable_travel_optimization = false;
-            const auto always_retract = ForceRetract::AUTOMATIC;
-            const auto reverse_order = false;
+            constexpr auto wipe_dist = 0;
+            constexpr auto spiralize = false;
+            constexpr auto flow_ratio = 1.0_r;
+            constexpr auto enable_travel_optimization = false;
+            constexpr auto always_retract = ForceRetract::AUTOMATIC;
+            constexpr auto reverse_order = false;
+            constexpr PrintSegmentAttributes print_attributes;
 
             gcode_layer.addLinesByOptimizer(
                 raft_lines,
@@ -733,6 +734,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 raft_polygons,
                 gcode_layer.configs_storage_.raft_base_config,
                 mesh_group_settings,
+                print_attributes,
                 ZSeamConfig(),
                 wipe_dist,
                 spiralize,
@@ -874,12 +876,13 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             wall_orderer.addToLayer();
         }
 
-        const auto wipe_dist = 0;
-        const auto spiralize = false;
-        const auto flow_ratio = 1.0_r;
-        const auto enable_travel_optimization = false;
-        const auto always_retract = ForceRetract::AUTOMATIC;
-        const auto reverse_order = false;
+        constexpr auto wipe_dist = 0;
+        constexpr auto spiralize = false;
+        constexpr auto flow_ratio = 1.0_r;
+        constexpr auto enable_travel_optimization = false;
+        constexpr auto always_retract = ForceRetract::AUTOMATIC;
+        constexpr auto reverse_order = false;
+        constexpr PrintSegmentAttributes print_attributes;
 
         gcode_layer.addLinesByOptimizer(
             raft_lines,
@@ -894,6 +897,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_polygons,
             gcode_layer.configs_storage_.raft_interface_config,
             mesh_group_settings,
+            print_attributes,
             ZSeamConfig(),
             wipe_dist,
             spiralize,
@@ -1047,12 +1051,13 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 wall_orderer.addToLayer();
             }
 
-            const auto wipe_dist = 0;
-            const auto spiralize = false;
-            const auto flow_ratio = 1.0_r;
-            const auto enable_travel_optimization = false;
-            const auto always_retract = ForceRetract::AUTOMATIC;
-            const auto reverse_order = false;
+            constexpr auto wipe_dist = 0;
+            constexpr auto spiralize = false;
+            constexpr auto flow_ratio = 1.0_r;
+            constexpr auto enable_travel_optimization = false;
+            constexpr auto always_retract = ForceRetract::AUTOMATIC;
+            constexpr auto reverse_order = false;
+            constexpr PrintSegmentAttributes print_attributes;
 
             if (monotonic)
             {
@@ -1077,6 +1082,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     raft_polygons,
                     gcode_layer.configs_storage_.raft_surface_config,
                     mesh_group_settings,
+                    print_attributes,
                     ZSeamConfig(),
                     wipe_dist,
                     spiralize,
@@ -1750,11 +1756,13 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     const std::optional<Point2LL> start_near_location = std::nullopt;
     constexpr bool scarf_seam = true;
     constexpr bool smooth_speed = true;
+    constexpr PrintSegmentAttributes print_attributes;
 
     gcode_layer.addPolygonsByOptimizer(
         polygons,
         mesh_config.inset0_config,
         mesh.settings,
+        print_attributes,
         z_seam_config,
         mesh.settings.get<coord_t>("wall_0_wipe_dist"),
         spiralize,
@@ -2065,6 +2073,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
                 constexpr Ratio flow_ratio = 1.0_r;
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
+                constexpr PrintSegmentAttributes print_attributes;
                 const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
                 gcode_layer.addLinesByOptimizer(
@@ -2076,6 +2085,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                     flow_ratio,
                     near_start_location,
                     fan_speed,
+                    print_attributes,
                     reverse_print_direction,
                     order_requirements,
                     start_move_inwards_length,
@@ -2931,8 +2941,7 @@ bool FffGcodeWriter::endProcessInsets(
             {
                 gcode_layer.addTravel(spiral_inset[spiral_start_vertex]);
             }
-            int wall_0_wipe_dist(0);
-            gcode_layer.addPolygonsByOptimizer(part.spiral_wall, mesh_config.inset0_config, mesh.settings, ZSeamConfig(), wall_0_wipe_dist);
+            gcode_layer.addPolygonsByOptimizer(part.spiral_wall, mesh_config.inset0_config, mesh.settings);
         }
 
         if (extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ && ! part.spiral_wall.empty())
@@ -3166,6 +3175,7 @@ void FffGcodeWriter::processTopBottom(
     const Ratio support_threshold = bridge_settings_enabled ? mesh.settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
     const size_t bottom_layers = mesh.settings.get<size_t>("bottom_layers");
     std::optional<coord_t> forced_small_area_width;
+    PrintSegmentAttributes print_attributes;
 
     // if support is enabled, consider the support outlines so we don't generate bridges over support
 
@@ -3227,6 +3237,7 @@ void FffGcodeWriter::processTopBottom(
             pattern = EFillMethod::LINES; // force lines pattern when bridging
             if (bridge_settings_enabled)
             {
+                print_attributes |= PrintSegmentAttribute::Bridging;
                 skin_config = config;
                 skin_density = density;
             }
@@ -3325,7 +3336,8 @@ void FffGcodeWriter::processTopBottom(
         is_roofing_flooring,
         added_something,
         fan_speed,
-        forced_small_area_width);
+        forced_small_area_width,
+        print_attributes);
 }
 
 void FffGcodeWriter::processSkinPrintFeature(
@@ -3343,7 +3355,8 @@ void FffGcodeWriter::processSkinPrintFeature(
     const bool is_roofing_flooring,
     bool& added_something,
     double fan_speed,
-    std::optional<coord_t> forced_small_area_width) const
+    std::optional<coord_t> forced_small_area_width,
+    const PrintSegmentAttributes& print_attributes) const
 {
     Shape skin_polygons;
     OpenLinesSet skin_lines;
@@ -3416,6 +3429,7 @@ void FffGcodeWriter::processSkinPrintFeature(
         {
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
             constexpr coord_t wipe_dist = 0;
+            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
             const ZSeamConfig z_seam_config(
                 mesh.settings.get<EZSeamType>("z_seam_type"),
                 mesh.getZSeamHint(),
@@ -3441,12 +3455,12 @@ void FffGcodeWriter::processSkinPrintFeature(
                 z_seam_config,
                 skin_paths,
                 mesh.bounding_box.flatten().getMiddle());
-            added_something |= wall_orderer.addToLayer();
+            added_something |= wall_orderer.addToLayer(retract_before_outer_wall, print_attributes);
         }
         if (! skin_polygons.empty())
         {
             gcode_layer.addTravel(skin_polygons[0][0]);
-            gcode_layer.addPolygonsByOptimizer(skin_polygons, config, mesh.settings);
+            gcode_layer.addPolygonsByOptimizer(skin_polygons, config, mesh.settings, print_attributes);
         }
 
         if (ordering == LinesOrderingMethod::Monotonic || ordering == LinesOrderingMethod::Interlaced)
@@ -3473,7 +3487,8 @@ void FffGcodeWriter::processSkinPrintFeature(
                     mesh.settings.get<coord_t>("infill_wipe_dist"),
                     flow,
                     fan_speed,
-                    interlaced);
+                    interlaced,
+                    print_attributes);
             }
             else
             {
@@ -3490,7 +3505,8 @@ void FffGcodeWriter::processSkinPrintFeature(
                     wipe_dist,
                     flow,
                     fan_speed,
-                    interlaced);
+                    interlaced,
+                    print_attributes);
             }
         }
         else
@@ -3517,13 +3533,14 @@ void FffGcodeWriter::processSkinPrintFeature(
                     mesh.settings.get<coord_t>("infill_wipe_dist"),
                     flow,
                     near_start_location,
-                    fan_speed);
+                    fan_speed,
+                    print_attributes);
             }
             else
             {
                 SpaceFillType space_fill_type = (actual_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
                 constexpr coord_t wipe_dist = 0;
-                gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed);
+                gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed, print_attributes);
             }
         }
     }
@@ -3856,6 +3873,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             const bool alternate_inset_direction = infill_extruder.settings_.get<bool>("material_alternate_walls");
             const bool alternate_layer_print_direction = alternate_inset_direction && gcode_layer.getLayerNr() % 2 == 1;
+            constexpr PrintSegmentAttributes print_attributes;
 
             if (! support_polygons.empty())
             {
@@ -3872,6 +3890,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_polygons,
                     configs[combine_idx],
                     mesh_group_settings,
+                    print_attributes,
                     z_seam_config,
                     wall_0_wipe_dist,
                     spiralize,
@@ -3899,6 +3918,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     flow_ratio,
                     near_start_location,
                     fan_speed,
+                    print_attributes,
                     alternate_layer_print_direction);
 
                 added_something = true;

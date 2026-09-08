@@ -384,9 +384,9 @@ Shape SliceDataStorage::getLayerOutlines(
         }
         if (include_support && (extruder_nr == -1 || extruder_nr == int(mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_)))
         {
-            const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)];
-            if (support.generated)
+            if (support.generated && ! support.supportLayers.empty())
             {
+                const SupportLayer& support_layer = support.supportLayers[std::max(LayerIndex(0), layer_nr)];
                 for (const SupportInfillPart& support_infill_part : support_layer.support_infill_parts)
                 {
                     if (include_support_base)

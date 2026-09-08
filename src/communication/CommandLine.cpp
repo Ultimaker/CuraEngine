@@ -64,7 +64,7 @@ void CommandLine::sendFinishedSlicing() const
 void CommandLine::sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&)
 {
 }
-void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&)
+void CommandLine::sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&, const PrintSegmentAttributes&)
 {
 }
 void CommandLine::sendOptimizedLayerData()

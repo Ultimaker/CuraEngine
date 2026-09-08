@@ -557,7 +557,7 @@ TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
     config.move_speed = 10.0;
     config.pause = 0;
 
-    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
     gcode.insertWipeScript(config);
 
     std::string token;
@@ -589,7 +589,7 @@ TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
     config.move_speed = 10.0;
     config.pause = 0;
 
-    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(6);
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_, testing::_)).Times(6);
     gcode.insertWipeScript(config);
 
     std::string token;
@@ -627,7 +627,7 @@ TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
     config.move_speed = 10.0;
     config.pause = 1.5; // 1.5 sec = 1500 ms.
 
-    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
     gcode.insertWipeScript(config);
 
     std::string token;
@@ -672,7 +672,7 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
     config.move_speed = 10.0;
     config.pause = 0;
 
-    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_, testing::_)).Times(3);
     gcode.insertWipeScript(config);
 
     std::string token;
@@ -708,7 +708,7 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     config.move_speed = 10.0;
     config.pause = 0;
 
-    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_)).Times(5);
+    EXPECT_CALL(*mock_communication, sendLineTo(testing::_, testing::_, testing::_, testing::_, testing::_, testing::_)).Times(5);
     gcode.insertWipeScript(config);
 
     std::string token;

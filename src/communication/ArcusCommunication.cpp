@@ -56,9 +56,9 @@ class ArcusCommunication::PathCompiler
     //! Reference to the private data of the CommandSocket used to send the data to the front end.
     ArcusCommunication::Private& _cs_private_data;
     //! Keeps track of the current layer number being processed. If layer number is set to a different value, the current data is flushed to CommandSocket.
-    LayerIndex _layer_nr;
-    size_t extruder;
-    PointType data_point_type;
+    LayerIndex _layer_nr{ 0 };
+    size_t extruder{ 0 };
+    PointType data_point_type{ cura::proto::PathSegment::Point3D };
 
     std::vector<PrintFeatureType> line_types; //!< Line types for the line segments stored, the size of this vector is N.
     std::vector<float> line_widths; //!< Line widths for the line segments stored, the size of this vector is N.
@@ -66,6 +66,7 @@ class ArcusCommunication::PathCompiler
     std::vector<float> line_velocities; //!< Line feedrates for the line segments stored, the size of this vector is N.
     std::vector<float> points; //!< The points used to define the line segments, the size of this vector is D*(N+1) as each line segment is defined from one point to the next. D is
                                //!< the dimensionality of the point.
+    std::vector<uint32_t> line_attributes; //! Indicates if the line is processed with specific settings, e.g. overhanging or bridging, the size of this vector is N.
 
     Point3LL last_point;
 
@@ -78,14 +79,6 @@ public:
      */
     PathCompiler(ArcusCommunication::Private& cs_private_data)
         : _cs_private_data(cs_private_data)
-        , _layer_nr(0)
-        , extruder(0)
-        , data_point_type(cura::proto::PathSegment::Point3D)
-        , line_types()
-        , line_widths()
-        , line_thicknesses()
-        , line_velocities()
-        , points()
     {
     }
 
@@ -150,7 +143,7 @@ public:
         }
         else if (initial_point != last_point)
         {
-            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0.0);
+            addLineSegment(PrintFeatureType::NoneType, initial_point, 1, 0, 0.0, {});
         }
     }
 
@@ -195,6 +188,12 @@ public:
         line_velocity_data.append(reinterpret_cast<const char*>(line_velocities.data()), line_velocities.size() * sizeof(float));
         line_velocities.clear();
         path_segment->set_line_feedrate(line_velocity_data);
+
+        for (const uint32_t line_attribute : line_attributes)
+        {
+            path_segment->add_attributes(line_attribute);
+        }
+        line_attributes.clear();
     }
 
     /*!
@@ -215,14 +214,21 @@ public:
      * \param line_width The width of the line.
      * \param line_thickness The thickness (in the Z direction) of the line.
      * \param velocity The velocity of printing this polygon.
+     * \param print_attributes Print attributes to be set for this segment, e.g. overhanging or bridging
      */
-    void sendLineTo(const PrintFeatureType& print_feature_type, const Point3LL& to, const coord_t& width, const coord_t& thickness, const Velocity& feedrate)
+    void sendLineTo(
+        const PrintFeatureType& print_feature_type,
+        const Point3LL& to,
+        const coord_t& width,
+        const coord_t& thickness,
+        const Velocity& feedrate,
+        const PrintSegmentAttributes& print_attributes)
     {
         assert(! points.empty() && "A point must already be in the buffer for sendLineTo(.) to function properly.");
 
         if (to != last_point)
         {
-            addLineSegment(print_feature_type, to, width, thickness, feedrate);
+            addLineSegment(print_feature_type, to, width, thickness, feedrate, print_attributes);
         }
     }
 
@@ -252,14 +258,22 @@ private:
      * \param width The width of the lines of the polygon.
      * \param thickness The layer thickness of the polygon.
      * \param velocity How fast the polygon is printed.
+     * \param print_attributes Print attributes to be set for this segment, e.g. overhanging or bridging
      */
-    void addLineSegment(const PrintFeatureType& print_feature_type, const Point3LL& point, const coord_t& width, const coord_t& thickness, const Velocity& velocity)
+    void addLineSegment(
+        const PrintFeatureType& print_feature_type,
+        const Point3LL& point,
+        const coord_t& width,
+        const coord_t& thickness,
+        const Velocity& velocity,
+        const PrintSegmentAttributes& print_attributes)
     {
         addPoint3D(point);
         line_types.push_back(print_feature_type);
         line_widths.push_back(INT2MM(width));
         line_thicknesses.push_back(INT2MM(thickness));
         line_velocities.push_back(velocity);
+        line_attributes.push_back(static_cast<uint32_t>(print_attributes.value()));
     }
 };
 
@@ -356,9 +370,15 @@ void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_n
     layer->set_thickness(thickness);
 }
 
-void ArcusCommunication::sendLineTo(const PrintFeatureType& type, const Point3LL& to, const coord_t& line_width, const coord_t& line_thickness, const Velocity& velocity)
+void ArcusCommunication::sendLineTo(
+    const PrintFeatureType& type,
+    const Point3LL& to,
+    const coord_t& line_width,
+    const coord_t& line_thickness,
+    const Velocity& velocity,
+    const PrintSegmentAttributes& print_attributes)
 {
-    path_compiler->sendLineTo(type, to, line_width, line_thickness, velocity);
+    path_compiler->sendLineTo(type, to, line_width, line_thickness, velocity, print_attributes);
 }
 
 void ArcusCommunication::sendOptimizedLayerData()

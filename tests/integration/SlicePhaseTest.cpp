@@ -63,6 +63,9 @@ class SlicePhaseTest : public testing::Test
         scene.settings.add("cutting_mesh", "false");
         scene.settings.add("infill_mesh", "false");
         scene.settings.add("adhesion_type", "none");
+
+        // Register an extruder
+        Application::getInstance().current_slice_->scene.extruders.push_back(ExtruderTrain(0, &scene.settings));
     }
 };
 
