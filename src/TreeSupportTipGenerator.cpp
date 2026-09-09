@@ -624,7 +624,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
 
 void TreeSupportTipGenerator::addPointAsInfluenceArea(
-    std::vector<std::set<TreeSupportElement*>>& move_bounds,
+    std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
     std::pair<Point2LL, TreeSupportTipGenerator::LineStatus> p,
     size_t dtt,
     LayerIndex insert_layer,
@@ -654,7 +654,7 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
         {
             // Normalize the point a bit to also catch points which are so close that inserting it would achieve nothing.
             already_inserted_[insert_layer].emplace(p.first / ((config_.min_radius + 1) / 10));
-            TreeSupportElement* elem = new TreeSupportElement(
+            auto elem = std::make_shared<TreeSupportElement>(
                 dtt,
                 insert_layer,
                 p.first,
@@ -682,7 +682,7 @@ void TreeSupportTipGenerator::addPointAsInfluenceArea(
 
 
 void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
-    std::vector<std::set<TreeSupportElement*>>& move_bounds,
+    std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
     std::vector<TreeSupportTipGenerator::LineInformation> lines,
     size_t roof_tip_layers,
     LayerIndex insert_layer_idx,
@@ -794,7 +794,7 @@ void TreeSupportTipGenerator::addLinesAsInfluenceAreas(
 
 
 void TreeSupportTipGenerator::removeUselessAddedPoints(
-    std::vector<std::set<TreeSupportElement*>>& move_bounds,
+    std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
     SliceDataStorage& storage,
     std::vector<Shape>& additional_support_areas)
 {
@@ -805,13 +805,13 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
         {
             if (layer_idx + 1 < storage.support.supportLayers.size())
             {
-                std::vector<TreeSupportElement*> to_be_removed;
+                std::vector<TreeSupportElement::Ptr> to_be_removed;
                 Shape roof_on_layer_above = use_fake_roof_ ? support_roof_drawn_[layer_idx + 1]
                                                            : storage.support.supportLayers[layer_idx + 1].support_roof.unionPolygons(additional_support_areas[layer_idx + 1]);
                 Shape roof_on_layer
                     = use_fake_roof_ ? support_roof_drawn_[layer_idx] : storage.support.supportLayers[layer_idx].support_roof.unionPolygons(additional_support_areas[layer_idx]);
 
-                for (TreeSupportElement* elem : move_bounds[layer_idx])
+                for (TreeSupportElement::Ptr elem : move_bounds[layer_idx])
                 {
                     if (roof_on_layer.inside(elem->result_on_layer_)) // Remove branches that start inside of support interface
                     {
@@ -834,9 +834,8 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
 
                 for (auto elem : to_be_removed)
                 {
-                    move_bounds[layer_idx].erase(elem);
                     delete elem->area_;
-                    delete elem;
+                    move_bounds[layer_idx].erase(elem);
                 }
             }
         });
@@ -846,11 +845,11 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
 void TreeSupportTipGenerator::generateTips(
     SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
-    std::vector<std::set<TreeSupportElement*>>& move_bounds,
+    std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds,
     std::vector<Shape>& additional_support_areas,
     std::vector<std::vector<FakeRoofArea>>& placed_fake_roof_areas)
 {
-    std::vector<std::set<TreeSupportElement*>> new_tips(move_bounds.size());
+    std::vector<std::set<TreeSupportElement::Ptr>> new_tips(move_bounds.size());
 
     const coord_t circle_length_to_half_linewidth_change
         = config_.min_radius < config_.support_line_width ? config_.min_radius / 2 : sqrt(square(config_.min_radius) - square(config_.min_radius - config_.support_line_width / 2));
