@@ -930,9 +930,15 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
     }
 
     // Useful values
-    const Point2LL start_flat = start.toPoint2LL();
-    const Point2LL end_flat = end.toPoint2LL();
     const Point3LL vector = end - start;
+    const coord_t vector_length = vector.vSize();
+
+    if (vector_length <= EPSILON)
+    {
+        return { PartialExtrusionSegment{ end, nullptr } };
+    }
+
+    const float epsilon_factor = float{ EPSILON } / vector_length;
 
     // Utility functions
     const auto make_partial_segment = [&override_areas](const Point3LL& p1, const std::optional<size_t> area_index) -> PartialExtrusionSegment
@@ -958,16 +964,19 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
     boost::dynamic_bitset areas_under_segments(override_areas.size()); // Stack of the areas currently under the part of the segment
     for (const auto& [index, override_area] : override_areas | ranges::views::enumerate)
     {
-        std::vector<float> intersections = override_area.area.intersectionsWithSegment(start_flat, end_flat);
+        // Ignore intersections very close to the tips
+        std::vector<float> intersections = override_area.area.intersectionsWithSegment(get_position(epsilon_factor).toPoint2LL(), get_position(1.0 - epsilon_factor).toPoint2LL());
         ranges::stable_sort(intersections);
-        override_areas_intersections[index] = std::move(intersections);
 
         // Calculate whether this area is under the segment start
         constexpr bool border_result = true;
-        if (override_area.area.inside(start_flat, border_result))
+        const Point2LL first_subsegment_average_pos = get_position(intersections.empty() ? 0.5 : intersections.front() * 0.5).toPoint2LL();
+        if (override_area.area.inside(first_subsegment_average_pos, border_result))
         {
             areas_under_segments.set(index);
         }
+
+        override_areas_intersections[index] = std::move(intersections);
     }
 
     const auto get_topmost_area = [&areas_under_segments]() -> std::optional<size_t>
