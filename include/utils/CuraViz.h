@@ -8,6 +8,7 @@
 #include <boost/asio/io_context.hpp>
 #include <boost/asio/ip/tcp.hpp>
 
+#include "ExtrusionLine.h"
 #include "geometry/Point2LL.h"
 #include "geometry/Point3LL.h"
 
@@ -16,11 +17,13 @@ namespace cura_viz
 class Message;
 class GeometricElement;
 class Polyline2LL;
+class Segment2LL;
 } // namespace cura_viz
 
 namespace cura
 {
 
+class OpenLinesSet;
 class MixedLinesSet;
 class Shape;
 class Polyline;
@@ -66,9 +69,13 @@ public:
 
     static void send(const std::vector<Shape>& shapes, const std::string& name = "", const std::string& step_name = "");
 
+    static void send(const OpenLinesSet& lines, const std::string& name = "", const std::string& step_name = "");
+
     static void send(const MixedLinesSet& lines_set, const std::string& name = "", const std::string& step_name = "");
 
     static void send(const std::vector<MixedLinesSet>& lines_sets, const std::string& name = "", const std::string& step_name = "");
+
+    static void send(const std::vector<VariableWidthLines>& lines, const std::string& name = "", const std::string& step_name = "");
 
 private:
     /*! Convenience class that stores the message and handles its actual sending and destruction when appropriate */
@@ -98,6 +105,10 @@ private:
     static void setup(const Point2LL& point, cura_viz::GeometricElement* element);
 
     static void setup(const Polyline& polyline, cura_viz::Polyline2LL* polyline_message);
+
+    static void setup(const ExtrusionLine& line, cura_viz::Polyline2LL* polyline_message);
+
+    static void setup(const Point2LL& start, const Point2LL& end, cura_viz::Segment2LL* segment_message);
 
 private:
     static CuraViz* instance_;
