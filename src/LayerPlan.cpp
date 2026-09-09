@@ -74,18 +74,19 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{
-        .z_offset = z_offset,
-        .config = config,
-        .mesh = current_mesh_,
-        .space_fill_type = space_fill_type,
-        .flow = flow,
-        .width_factor = width_factor,
-        .spiralize = spiralize,
-        .speed_factor = speed_factor,
-        .travel_to_z = travel_to_z,
-        .print_attributes = print_attributes,
-    });
+    paths.emplace_back(
+        GCodePath{
+            .z_offset = z_offset,
+            .config = config,
+            .mesh = current_mesh_,
+            .space_fill_type = space_fill_type,
+            .flow = flow,
+            .width_factor = width_factor,
+            .spiralize = spiralize,
+            .speed_factor = speed_factor,
+            .travel_to_z = travel_to_z,
+            .print_attributes = print_attributes,
+        });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -1348,7 +1349,7 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
         // The bridging functionality has not been designed to work with anything else than ExtrusionLine objects,
         // and there is no need to do it otherwise yet. So the compute_distance_to_bridge_start argument will
         // just be ignored if using an other PathType (e.g. Polygon)
-        const auto bridging_locations = findBridgingSections(wall.getPath(), start_idx, min_bridge_line_len, nominal_line_width, bridge_max_deviation, direction);
+        const auto bridging_locations = findBridgingSections(wall.getPath(), start_idx, min_bridge_line_len, nominal_line_width / 2, bridge_max_deviation, direction);
         distances_to_next_bridge = std::move(findNextBridgeDistances(wall.getPath(), start_idx, bridging_locations, direction));
         bridging_subsections_per_segment = std::move(convertBridgeLocations(wall.getPath(), bridging_locations, direction));
     }
@@ -1775,7 +1776,7 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
 
             if (vSize2(b1 - b0) < EPSILON_SQUARED)
             {
-                // don't consider negligble lengths in any case however
+                // don't consider negligible lengths in any case however
                 continue;
             }
 
