@@ -120,7 +120,6 @@ private:
     {
         std::shared_ptr<InsetOrderOptimizer> walls_optimizer{}; // Contains the ready-to-add optimized insets
         bool spiralize{ false }; // Indicates whether this layer is a regular or a spiral layer
-        std::vector<LayerPlan::OverhangMask> overhang_masks{}; // Overhang speed masks to be applied only while drawing the walls
     };
 
     static const RoofingFlooringSettingsNames roofing_settings_names;
@@ -447,7 +446,7 @@ private:
      * \param end_infill_close_to_seam Indicates whether the infill will end close to the seam, in which case we can slightly adjust the insets ordering
      * \return The content to be later inserted
      */
-    InsetsPreprocessResult preProcessInsets(
+    std::optional<InsetsPreprocessResult> preProcessInsets(
         const SliceDataStorage& storage,
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
@@ -455,6 +454,9 @@ private:
         const MeshPathConfigs& mesh_config,
         SliceLayerPart& part,
         const bool end_infill_close_to_seam) const;
+
+    OverrideAreas
+        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, SliceLayerPart& part) const;
 
     /*!
      * Inserts the previously processed insets
@@ -470,6 +472,7 @@ private:
      */
     bool endProcessInsets(
         InsetsPreprocessResult& preprocess_result,
+        const OverrideAreas overhang_areas,
         const SliceDataStorage& storage,
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
@@ -609,6 +612,7 @@ private:
         const size_t extruder_nr,
         const Shape& area,
         const GCodePathConfig& config,
+        const GCodePathConfig* bridge_config,
         EFillMethod pattern,
         const AngleDegrees skin_angle,
         const coord_t skin_overlap,
@@ -618,7 +622,7 @@ private:
         bool& added_something,
         double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         std::optional<coord_t> forced_small_area_width = std::nullopt,
-        const PrintSegmentAttributes& print_attributes = {}) const;
+        const OverrideAreas& override_areas = {}) const;
 
     /*!
      *  see if we can avoid printing a lines or zig zag style skin part in multiple segments by moving to

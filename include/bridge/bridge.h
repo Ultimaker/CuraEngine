@@ -22,8 +22,9 @@ class AngleDegrees;
 class LayerPlan;
 template<class PathType>
 class PathAdapter;
-struct Ratio;
 struct ExtrusionLine;
+struct MeshPathConfigs;
+class Settings;
 
 /*!
  * \brief Computes the angle that lines have to take to bridge a certain shape
@@ -47,7 +48,7 @@ std::optional<AngleDegrees> bridgeAngle(
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    Shape& supported_regions);
+    Shape& bridging_area);
 
 /*!
  * @brief Make sure the bridging above infill (below skin) is properly printable by expanding the area below the skin so that the bridging would always provide anchoring points

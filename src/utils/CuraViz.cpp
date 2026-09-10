@@ -12,12 +12,15 @@
 #include <cura_viz/printer.pb.h>
 #include <cura_viz/step.pb.h>
 
+#include <boost/asio/write.hpp>
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/map.hpp>
 
 #include "Application.h"
 #include "Slice.h"
 #include "geometry/MixedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
+#include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 #include "settings/Settings.h"
@@ -34,10 +37,10 @@ CuraViz::CuraViz()
     try
     {
         constexpr uint16_t port = 49673;
-        socket_.connect(asio::ip::tcp::endpoint(asio::ip::address::from_string("127.0.0.1"), port));
+        socket_.connect(boost::asio::ip::tcp::endpoint(boost::asio::ip::make_address("127.0.0.1"), port));
         spdlog::info("Connected to CuraViz");
     }
-    catch (asio::system_error error)
+    catch (boost::system::system_error error)
     {
         socket_.close();
         spdlog::warn("CuraViz could not connect to vizualiser: {}", error.what());
@@ -92,8 +95,8 @@ void CuraViz::send(const cura_viz::Message& message, const bool should_lock)
         lock = std::unique_lock(mutex_);
     }
 
-    asio::write(socket_, asio::buffer(&size, sizeof(size)));
-    asio::write(socket_, asio::buffer(serialized));
+    boost::asio::write(socket_, boost::asio::buffer(&size, sizeof(size)));
+    boost::asio::write(socket_, boost::asio::buffer(serialized));
 }
 
 CuraViz* CuraViz::getInstance()
@@ -139,18 +142,57 @@ void CuraViz::setup(const Polyline& polyline, cura_viz::Polyline2LL* polyline_me
 
     for (auto iterator = polyline.beginSegments(); iterator != polyline.endSegments(); ++iterator)
     {
-        cura_viz::Segment2LL* segment_message = polyline_message->add_segments();
-        segment_message->mutable_start()->set_x((*iterator).start.X);
-        segment_message->mutable_start()->set_y((*iterator).start.Y);
-        segment_message->mutable_end()->set_x((*iterator).end.X);
-        segment_message->mutable_end()->set_y((*iterator).end.Y);
+        setup((*iterator).start, (*iterator).end, polyline_message->add_segments());
     }
+}
+
+void CuraViz::setup(const ExtrusionLine& line, cura_viz::Polyline2LL* polyline_message)
+{
+    polyline_message->set_surface(false);
+
+    if (line.junctions_.empty())
+    {
+        return;
+    }
+
+    Point2LL p0 = line.junctions_[0].p_;
+    for (const ExtrusionJunction& junction : line.junctions_ | ranges::views::drop(1))
+    {
+        const Point2LL& p1 = junction.p_;
+        setup(p0, p1, polyline_message->add_segments());
+        p0 = p1;
+    }
+}
+
+void CuraViz::setup(const Point2LL& start, const Point2LL& end, cura_viz::Segment2LL* segment_message)
+{
+    segment_message->mutable_start()->set_x(start.X);
+    segment_message->mutable_start()->set_y(start.Y);
+    segment_message->mutable_end()->set_x(end.X);
+    segment_message->mutable_end()->set_y(end.Y);
 }
 
 void CuraViz::send(const Point2LL& point, const std::string& name, const std::string& step_name)
 {
     MessageToSend message(step_name);
     setup(point, message.addGeometricElement(name));
+}
+
+void CuraViz::send(const Point2LL& start, const Point2LL& end, const std::string& name, const std::string& step_name)
+{
+    const OpenPolyline segment({ start, end });
+    send(segment, name, step_name);
+}
+
+void CuraViz::send(const Point3LL& start, const Point3LL& end, const std::string& name, const std::string& step_name)
+{
+    send(start.toPoint2LL(), end.toPoint2LL(), name, step_name);
+}
+
+void CuraViz::send(const Polyline& line, const std::string& name, const std::string& step_name)
+{
+    MessageToSend message(step_name);
+    setup(line, message.addGeometricElement(name)->mutable_data()->mutable_lines_set2ll()->add_lines());
 }
 
 void CuraViz::send(const Shape& shape, const std::string& name, const std::string& step_name)
@@ -168,6 +210,15 @@ void CuraViz::send(const std::vector<Shape>& shapes, const std::string& name, co
     }
 }
 
+void CuraViz::send(const OpenLinesSet& lines, const std::string& name, const std::string& step_name)
+{
+    MessageToSend message(step_name);
+    for (const auto& [line_index, line] : lines.getLines() | ranges::views::enumerate)
+    {
+        setup(line, message.addGeometricElement(fmt::format("{}_{}", name, line_index))->mutable_data()->mutable_lines_set2ll()->add_lines());
+    }
+}
+
 void CuraViz::send(const MixedLinesSet& lines_set, const std::string& name, const std::string& step_name)
 {
     MessageToSend message(step_name);
@@ -180,6 +231,19 @@ void CuraViz::send(const std::vector<MixedLinesSet>& lines_sets, const std::stri
     for (const auto& [lines_set_index, lines_set] : lines_sets | ranges::views::enumerate)
     {
         setup(lines_set, message.addGeometricElement(fmt::format("{}_{}", name, lines_set_index)));
+    }
+}
+
+void CuraViz::send(const std::vector<VariableWidthLines>& lines, const std::string& name, const std::string& step_name)
+{
+    MessageToSend message(step_name);
+    for (const auto& [index, lines_set] : lines | ranges::views::enumerate)
+    {
+        cura_viz::GeometricElement* geometric_element = message.addGeometricElement(fmt::format("{}_{}", name, index));
+        for (const ExtrusionLine& line : lines_set)
+        {
+            setup(line, geometric_element->mutable_data()->mutable_lines_set2ll()->add_lines());
+        }
     }
 }
 
