@@ -6,6 +6,8 @@
 
 #include <string>
 
+#include "gcode_export/GCodePartType.h"
+
 namespace cura
 {
 
@@ -18,8 +20,19 @@ public:
     /*! \brief Gets the full piece of GCode to be exported */
     virtual std::string str() const = 0;
 
+    GCodePartType type() const
+    {
+        return type_;
+    }
+
 protected:
-    explicit GCodePart() = default;
+    explicit GCodePart(const GCodePartType type = GCodePartType::Management)
+        : type_(type)
+    {
+    }
+
+private:
+    const GCodePartType type_;
 };
 
 } // namespace cura

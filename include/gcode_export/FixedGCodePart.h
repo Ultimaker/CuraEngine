@@ -15,7 +15,7 @@ namespace cura
 class FixedGCodePart : public GCodePart
 {
 public:
-    explicit FixedGCodePart();
+    explicit FixedGCodePart(const GCodePartType type);
 
     /*! \brief Gets the full piece of GCode to be exported */
     std::string str() const override;
