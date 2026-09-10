@@ -2638,11 +2638,10 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
 
         const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
 
-        // if support is enabled, add the support outlines also so we don't generate bridges over support
-
+        // If support is enabled & the proper setting is on, add the support outlines also so we don't generate bridges over support.
         const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
         const Settings& mesh_group_settings = mesh_group->settings;
-        if (mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support)
+        if ((mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support) && mesh_group_settings.get<bool>("bridge_allow_support_anchor"))
         {
             const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
             const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
@@ -2685,7 +2684,8 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             // max_air_gap is the max allowed width of the unsupported region below the wall line
             // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
 
-            const coord_t max_air_gap = half_outer_wall_width;
+            const coord_t overhang_width = layer_height * boundedTan(mesh.settings.get<AngleRadians>("wall_overhang_angle"));
+            const coord_t max_air_gap = std::max(coord_t{ half_outer_wall_width }, overhang_width);
 
             // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
             // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
@@ -2698,7 +2698,7 @@ FffGcodeWriter::InsetsPreprocessResult FffGcodeWriter::preProcessInsets(
             //  which negates the need for compensation, and can make it harmful w.r.t. flow-buildup)
 
             const coord_t compensate_outline_distance = (mesh_config.bridge_inset0_config.flow < 1.0) ? half_outer_wall_width : 0;
-            Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance);
+            Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance).difference(outlines_below);
             gcode_layer.setBridgeWallMask(bridge_mask);
 
             const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
