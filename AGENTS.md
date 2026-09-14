@@ -49,7 +49,7 @@ Since clipper works only with integer values, we have adopted the following conv
 
 There are also a few specific types that are defined in the engine and that are to be used in all relevant situations. They help making the code more explicit:
 * `AngleDegrees` and `AngleRadians` types to store all the angle values
-* `Ratio` type when storing a value that is to be multipled, like speed or flow factor
+* `Ratio` type when storing a value that is to be multiplied, like speed or flow factor
 * `Duration` type to store all the processing and print durations
 * `LayerIndex` type to store the index of a layer
 * `Temperature` type to store heating temperature
