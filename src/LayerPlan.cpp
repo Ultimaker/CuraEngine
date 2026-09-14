@@ -8,6 +8,7 @@
 #include <numeric>
 #include <optional>
 
+#include <boost/dynamic_bitset.hpp>
 #include <boost/mpl/distance.hpp>
 #include <boost/range/distance.hpp>
 #include <range/v3/algorithm/max_element.hpp>
@@ -600,209 +601,38 @@ void LayerPlan::addExtrusionMove(
     last_planned_position_ = p;
 }
 
-void LayerPlan::addExtrusionMoveWithGradualOverhang(
+void LayerPlan::addExtrusionMove(
     const Point3LL& p,
     const GCodePathConfig& config,
+    const OverrideAreas& override_areas,
     const SpaceFillType space_fill_type,
     const Ratio& flow,
     const Ratio width_factor,
     const bool spiralize,
     const Ratio speed_factor,
     const double fan_speed,
-    const bool travel_to_z,
-    const PrintSegmentAttributes& print_attributes)
+    const bool travel_to_z)
 {
-    const auto add_extrusion_move = [&](const Point3LL& target, const std::optional<size_t> speed_region_index = std::nullopt)
+    if (last_planned_position_.has_value() && ! override_areas.empty())
     {
-        PrintSegmentAttributes final_attributes = print_attributes;
-        if (speed_region_index.has_value() && speed_region_index.value() > 0)
+        for (const PartialExtrusionSegment& partial_segment : splitExtrusionSegment(last_planned_position_.value(), p, override_areas))
         {
-            final_attributes |= PrintSegmentAttribute::Overhanging;
+            addExtrusionMove(
+                partial_segment.p1,
+                partial_segment.area != nullptr && partial_segment.area->config != nullptr ? *partial_segment.area->config : config,
+                space_fill_type,
+                flow,
+                width_factor,
+                spiralize,
+                partial_segment.area != nullptr ? speed_factor * partial_segment.area->speed_factor : speed_factor,
+                fan_speed,
+                travel_to_z,
+                partial_segment.area != nullptr ? partial_segment.area->print_attributes : PrintSegmentAttributes{});
         }
-        const Ratio overhang_speed_factor = speed_region_index.has_value() ? overhang_masks_[speed_region_index.value()].speed_ratio : 1.0_r;
-        addExtrusionMove(target, config, space_fill_type, flow, width_factor, spiralize, speed_factor * overhang_speed_factor, fan_speed, travel_to_z, final_attributes);
-    };
-
-    const auto update_is_overhanging = [this](const Point3LL& target, std::optional<Point3LL> current_position, const bool is_overhanging = false)
-    {
-        if (is_overhanging != currently_overhanging_)
-        {
-            max_overhang_length_ = std::max(current_overhang_length_, max_overhang_length_);
-            current_overhang_length_ = 0;
-        }
-
-        if (is_overhanging && current_position.has_value())
-        {
-            current_overhang_length_ += (target - current_position.value()).vSize();
-        }
-
-        currently_overhanging_ = is_overhanging;
-    };
-
-    if (overhang_masks_.empty() || ! last_planned_position_.has_value())
-    {
-        // Unable to apply gradual overhanging (probably just disabled), just add the basic extrusion move
-        update_is_overhanging(p, last_planned_position_);
-        add_extrusion_move(p);
-        return;
-    }
-
-    // First, find the speed region where the segment starts
-    const Point3LL start = last_planned_position_.value();
-    const Point2LL start_flat = start.toPoint2LL();
-    size_t actual_speed_region_index = overhang_masks_.size() - 1; // Default to last region, which is infinity and beyond
-    for (const auto& [index, overhang_region] : overhang_masks_ | ranges::views::drop_last(1) | ranges::views::enumerate)
-    {
-        if (overhang_region.supported_region.inside(start_flat, true))
-        {
-            actual_speed_region_index = index;
-            break;
-        }
-    }
-
-    // Pre-calculate the intersections of the segment with all regions (except last one, you cannot intersect an infinite plane)
-    const Point3LL end = p;
-    const Point2LL end_flat = end.toPoint2LL();
-    const Point3LL vector = end - start;
-    std::vector<std::vector<float>> speed_regions_intersections;
-    speed_regions_intersections.reserve(overhang_masks_.size() - 1);
-    for (const OverhangMask& overhang_region : overhang_masks_ | ranges::views::drop_last(1))
-    {
-        std::vector<float> intersections = overhang_region.supported_region.intersectionsWithSegment(start_flat, end_flat);
-        ranges::stable_sort(intersections);
-        speed_regions_intersections.push_back(intersections);
-    }
-
-    const auto remove_previous_intersections = [&speed_regions_intersections](const float current_intersection)
-    {
-        for (std::vector<float>& intersections : speed_regions_intersections)
-        {
-            auto iterator = ranges::find_if(
-                intersections,
-                [&current_intersection](const float next_intersection)
-                {
-                    return next_intersection > current_intersection;
-                });
-
-            intersections.erase(intersections.begin(), iterator);
-        }
-    };
-
-    struct SegmentExtrusionMove
-    {
-        Point3LL position;
-        size_t speed_region_index;
-    };
-
-    std::vector<SegmentExtrusionMove> extrusion_moves;
-
-    // Now move along segment and split it where we cross speed regions
-    while (true)
-    {
-        // First, see if we cross either the border or our current region (go out) or the border of the inner region (go in)
-        auto get_first_intersection = [](const std::vector<float>* intersections) -> std::optional<float>
-        {
-            return intersections != nullptr && ! intersections->empty() ? std::make_optional(intersections->front()) : std::nullopt;
-        };
-
-        std::vector<float>* intersections_current_region
-            = actual_speed_region_index < speed_regions_intersections.size() ? &speed_regions_intersections[actual_speed_region_index] : nullptr;
-        const std::optional<float> first_intersection_current_region = get_first_intersection(intersections_current_region);
-
-        std::vector<float>* intersections_inner_region = actual_speed_region_index > 0 ? &speed_regions_intersections[actual_speed_region_index - 1] : nullptr;
-        const std::optional<float> first_intersection_inner_region = get_first_intersection(intersections_inner_region);
-
-        if (first_intersection_current_region.has_value() || first_intersection_inner_region.has_value())
-        {
-            float intersection_parameter;
-            size_t next_speed_region_index;
-
-            if (first_intersection_current_region.has_value()
-                && (! first_intersection_inner_region.has_value() || first_intersection_inner_region.value() > first_intersection_current_region.value()))
-            {
-                // We crossed the border of the current region, which means we are getting out of it to an outer region
-                intersection_parameter = first_intersection_current_region.value();
-                next_speed_region_index = actual_speed_region_index + 1;
-            }
-            else
-            {
-                // We crossed the border of the inner region, which means we are getting inside of it
-                intersection_parameter = first_intersection_inner_region.value();
-                next_speed_region_index = actual_speed_region_index - 1;
-            }
-
-            // Move to intersection at current region speed
-            const Point3LL split_position = start + vector * intersection_parameter;
-            extrusion_moves.push_back(SegmentExtrusionMove{ split_position, actual_speed_region_index });
-
-            // Prepare for next move in different region
-            actual_speed_region_index = next_speed_region_index;
-            remove_previous_intersections(intersection_parameter);
-        }
-        else
-        {
-            // We cross no border, which means we can reach the end of the segment within the current speed region, so we are done
-            extrusion_moves.push_back(SegmentExtrusionMove{ p, actual_speed_region_index });
-            break;
-        }
-    }
-
-    // Filter out micro-segments
-    std::vector<SegmentExtrusionMove> extrusion_moves_filtered;
-    extrusion_moves_filtered.reserve(extrusion_moves.size());
-    Point3LL current_position = start;
-    for (const SegmentExtrusionMove& extrusion_move : extrusion_moves | ranges::views::drop_last(1))
-    {
-        if ((extrusion_move.position - current_position).vSize2() >= MINIMUM_SQUARED_LINE_LENGTH)
-        {
-            extrusion_moves_filtered.push_back(extrusion_move);
-        }
-
-        current_position = extrusion_move.position;
-    }
-
-    if (extrusion_moves_filtered.empty() || (extrusion_moves.back().position - current_position).vSize2() >= MINIMUM_SQUARED_LINE_LENGTH)
-    {
-        extrusion_moves_filtered.push_back(extrusion_moves.back());
     }
     else
     {
-        extrusion_moves_filtered.back().position = extrusion_moves.back().position;
-    }
-
-    // Calculate max consecutive overhanging segment length
-    current_position = start;
-    for (const SegmentExtrusionMove& extrusion_move : extrusion_moves_filtered)
-    {
-        const bool is_overhanging = extrusion_move.speed_region_index > 0;
-        update_is_overhanging(extrusion_move.position, current_position, is_overhanging);
-        current_position = extrusion_move.position;
-    }
-
-    // Merge consecutive sub-segments that in the end have the same speed
-    std::vector<SegmentExtrusionMove> extrusion_moves_merged;
-    extrusion_moves_merged.reserve(extrusion_moves_filtered.size());
-    extrusion_moves_merged.push_back(extrusion_moves_filtered.front());
-
-    for (const SegmentExtrusionMove& extrusion_move : extrusion_moves_filtered | ranges::views::drop(1))
-    {
-        const Ratio previous_speed_factor = overhang_masks_[extrusion_moves_merged.back().speed_region_index].speed_ratio;
-        const Ratio next_speed_factor = overhang_masks_[extrusion_move.speed_region_index].speed_ratio;
-
-        if (next_speed_factor == previous_speed_factor)
-        {
-            extrusion_moves_merged.back().position = extrusion_move.position;
-        }
-        else
-        {
-            extrusion_moves_merged.push_back(extrusion_move);
-        }
-    }
-
-    // Finally, add extrusion moves
-    for (const SegmentExtrusionMove& extrusion_move : extrusion_moves_merged)
-    {
-        add_extrusion_move(extrusion_move.position, extrusion_move.speed_region_index);
+        addExtrusionMove(p, config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
     }
 }
 
@@ -816,7 +646,7 @@ void LayerPlan::addSkinExtrusion(
     const Ratio& width_factor,
     const bool spiralize,
     bool travel_to_z,
-    const PrintSegmentAttributes& print_attributes)
+    const OverrideAreas& override_areas)
 {
     // The line segment is wholly or partially in the skin area. The line is intersected
     // with the skin area into line segments. Each line segment left in this intersection
@@ -867,14 +697,14 @@ void LayerPlan::addSkinExtrusion(
             addExtrusionMove(
                 target_position,
                 inside_skin ? skin_config : default_config,
+                override_areas,
                 SpaceFillType::Polygons,
                 flow,
                 width_factor,
                 spiralize,
                 1.0_r,
                 GCodePathConfig::FAN_SPEED_DEFAULT,
-                travel_to_z,
-                print_attributes);
+                travel_to_z);
 
             travel_to_z = false; // Only travel to Z for the first sub-segment
         }
@@ -935,7 +765,7 @@ void LayerPlan::addPolygon(
     const ForceRetract force_retract,
     bool scarf_seam,
     bool smooth_speed,
-    const PrintSegmentAttributes& print_attributes)
+    const OverrideAreas& override_areas)
 {
     constexpr bool is_closed = true;
     constexpr bool is_candidate_small_feature = false;
@@ -956,12 +786,8 @@ void LayerPlan::addPolygon(
         is_candidate_small_feature,
         scarf_seam,
         smooth_speed,
-        [this, &config, &spiralize, &print_attributes](
+        [this, &config, &spiralize, &override_areas](
             const std::vector<std::tuple<Ratio, Ratio>>& /*bridging_subsegments*/,
-            const PathAdapter<Polygon>& /*wall*/,
-            const size_t /*segment_index*/,
-            const Ratio& /*segment_start_ratio*/,
-            const Ratio& /*segment_end_ratio*/,
             const Point3LL& /*start*/,
             const Point3LL& end,
             const Ratio& speed_factor,
@@ -973,7 +799,7 @@ void LayerPlan::addPolygon(
             constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
             constexpr bool travel_to_z = false;
 
-            addExtrusionMove(end, config, SpaceFillType::Polygons, actual_flow_ratio, line_width_ratio, spiralize, speed_factor, fan_speed, travel_to_z, print_attributes);
+            addExtrusionMove(end, config, override_areas, SpaceFillType::Polygons, actual_flow_ratio, line_width_ratio, spiralize, speed_factor, fan_speed, travel_to_z);
         });
 
 
@@ -991,7 +817,7 @@ void LayerPlan::addPolygonsByOptimizer(
     const Shape& polygons,
     const GCodePathConfig& config,
     const Settings& settings,
-    const PrintSegmentAttributes& print_attributes,
+    const OverrideAreas& override_areas,
     const ZSeamConfig& z_seam_config,
     coord_t wall_0_wipe_dist,
     bool spiralize,
@@ -1046,7 +872,7 @@ void LayerPlan::addPolygonsByOptimizer(
         reverse_order,
         scarf_seam,
         smooth_speed,
-        print_attributes);
+        override_areas);
 }
 
 void LayerPlan::addInfillPolygonsByOptimizer(
@@ -1095,12 +921,164 @@ void LayerPlan::addInfillPolygonsByOptimizer(
 
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
+std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment(const Point3LL& start, const Point3LL& end, const std::vector<OverrideArea>& override_areas)
+{
+    if (override_areas.empty())
+    {
+        return { PartialExtrusionSegment{ end, nullptr } };
+    }
+
+    // Useful values
+    const Point3LL vector = end - start;
+    const coord_t vector_length = vector.vSize();
+
+    if (vector_length <= EPSILON)
+    {
+        return { PartialExtrusionSegment{ end, nullptr } };
+    }
+
+    const float epsilon_factor = float{ EPSILON } / vector_length;
+
+    // Utility functions
+    const auto make_partial_segment = [&override_areas](const Point3LL& p1, const std::optional<size_t> area_index) -> PartialExtrusionSegment
+    {
+        if (area_index.has_value())
+        {
+            const OverrideArea& area = override_areas.at(*area_index);
+            return PartialExtrusionSegment{ p1, &area };
+        }
+        else
+        {
+            return PartialExtrusionSegment{ p1, nullptr };
+        }
+    };
+
+    const auto get_position = [&start, &vector](const float factor) -> Point3LL
+    {
+        return start + factor * vector;
+    };
+
+    // Pre-calculate the intersections of the segment with all regions
+    std::vector<std::vector<float>> override_areas_intersections(override_areas.size());
+    boost::dynamic_bitset areas_under_segments(override_areas.size()); // Stack of the areas currently under the part of the segment
+    for (const auto& [index, override_area] : override_areas | ranges::views::enumerate)
+    {
+        // Ignore intersections very close to the tips
+        std::vector<float> intersections = override_area.area.intersectionsWithSegment(get_position(epsilon_factor).toPoint2LL(), get_position(1.0 - epsilon_factor).toPoint2LL());
+        ranges::stable_sort(intersections);
+
+        // Calculate whether this area is under the segment start
+        constexpr bool border_result = true;
+        const Point2LL first_subsegment_average_pos = get_position(intersections.empty() ? 0.5 : intersections.front() * 0.5).toPoint2LL();
+        if (override_area.area.inside(first_subsegment_average_pos, border_result))
+        {
+            areas_under_segments.set(index);
+        }
+
+        override_areas_intersections[index] = std::move(intersections);
+    }
+
+    const auto get_topmost_area = [&areas_under_segments]() -> std::optional<size_t>
+    {
+        size_t current = areas_under_segments.find_first();
+        if (current == areas_under_segments.npos)
+        {
+            // No bit is set, we are in the infinite area
+            return std::nullopt;
+        }
+
+        while (true)
+        {
+            size_t next = areas_under_segments.find_next(current);
+            if (next == areas_under_segments.npos)
+            {
+                return current;
+            }
+
+            current = next;
+        }
+    };
+
+    std::optional<size_t> current_topmost_area = get_topmost_area();
+    std::vector<PartialExtrusionSegment> partial_extrusion_segments;
+
+    // Now move along segment and split it where we cross relevant intersections
+    while (true)
+    {
+        if (ranges::all_of(
+                override_areas_intersections,
+                [](const std::vector<float>& intersections)
+                {
+                    return intersections.empty();
+                }))
+        {
+            // All intersections have been treated, return the remaining segment part
+            partial_extrusion_segments.push_back(make_partial_segment(end, current_topmost_area));
+            break;
+        }
+
+        // Find the next intersection among all the lists
+        std::optional<float> next_intersection;
+        size_t next_intersection_index;
+        for (const auto& [index, intersections] : override_areas_intersections | ranges::views::enumerate)
+        {
+            if (intersections.empty())
+            {
+                continue;
+            }
+
+            const float first_intersection = intersections.front();
+            if (! next_intersection.has_value() || next_intersection.value() < first_intersection)
+            {
+                next_intersection = first_intersection;
+                next_intersection_index = index;
+            }
+        }
+
+        // Erase the treated intersection, and flip the associated area containing bit
+        override_areas_intersections[next_intersection_index].erase(override_areas_intersections[next_intersection_index].begin());
+        areas_under_segments.flip(next_intersection_index);
+
+        // Now see if this intersection got us to a different topmost area, or if it happened under
+        std::optional<size_t> new_topmost_area = get_topmost_area();
+        if (new_topmost_area != current_topmost_area)
+        {
+            // We are either moving out of the area of moving in to a higher-level area, so end the current segment
+            const Point3LL next_intersection_position = get_position(*next_intersection);
+            partial_extrusion_segments.push_back(make_partial_segment(next_intersection_position, current_topmost_area));
+
+            current_topmost_area = new_topmost_area;
+        }
+    }
+
+    // Filter out micro-segments
+    std::vector<PartialExtrusionSegment> partial_extrusion_segments_filtered;
+    partial_extrusion_segments_filtered.reserve(partial_extrusion_segments.size());
+    Point3LL current_position = start;
+    for (const PartialExtrusionSegment& extrusion_move : partial_extrusion_segments | ranges::views::drop_last(1))
+    {
+        if ((extrusion_move.p1 - current_position).vSize2() >= MINIMUM_SQUARED_LINE_LENGTH)
+        {
+            partial_extrusion_segments_filtered.push_back(extrusion_move);
+        }
+
+        current_position = extrusion_move.p1;
+    }
+
+    if (partial_extrusion_segments_filtered.empty() || (partial_extrusion_segments.back().p1 - current_position).vSize2() >= MINIMUM_SQUARED_LINE_LENGTH)
+    {
+        partial_extrusion_segments_filtered.push_back(partial_extrusion_segments.back());
+    }
+    else
+    {
+        partial_extrusion_segments_filtered.back().p1 = partial_extrusion_segments.back().p1;
+    }
+
+    return partial_extrusion_segments_filtered;
+}
+
 void LayerPlan::addWallLine(
     const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
-    const PathAdapter<ExtrusionLine>& wall,
-    const size_t segment_index,
-    const Ratio& segment_start_ratio,
-    const Ratio& segment_end_ratio,
     const Point3LL& p0,
     const Point3LL& p1,
     const Settings& settings,
@@ -1114,13 +1092,12 @@ void LayerPlan::addWallLine(
     Ratio speed_factor,
     double distance_to_bridge_start,
     const bool travel_to_z,
-    const PrintSegmentAttributes& print_attributes)
+    const OverrideAreas& override_areas)
 {
     constexpr double acceleration_segment_len = MM2INT(1); // accelerate using segments of this length
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     constexpr bool spiralize = false;
 
-    const coord_t min_bridge_line_len = std::max(EPSILON, settings.get<coord_t>("bridge_wall_min_length"));
     const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
     Point3LL cur_point = p0;
@@ -1172,14 +1149,14 @@ void LayerPlan::addWallLine(
                         addExtrusionMove(
                             segment_end + coast_dist * (cur_point - segment_end) / len,
                             default_config,
+                            override_areas,
                             SpaceFillType::Polygons,
                             segment_flow,
                             width_factor,
                             spiralize,
                             speed_factor,
                             GCodePathConfig::FAN_SPEED_DEFAULT,
-                            travel_to_z,
-                            print_attributes);
+                            travel_to_z);
                     }
                     // then coast to start of bridge segment
                     constexpr Ratio no_flow = 0.0_r; // Coasting has no flow rate.
@@ -1188,17 +1165,17 @@ void LayerPlan::addWallLine(
                 else
                 {
                     // no coasting required, just normal segment using non-bridge config
-                    addExtrusionMoveWithGradualOverhang(
+                    addExtrusionMove(
                         segment_end,
                         default_config,
+                        override_areas,
                         SpaceFillType::Polygons,
                         segment_flow,
                         width_factor,
                         spiralize,
                         speed_factor,
                         GCodePathConfig::FAN_SPEED_DEFAULT,
-                        travel_to_z,
-                        print_attributes);
+                        travel_to_z);
                 }
 
                 distance_to_bridge_start -= len;
@@ -1206,17 +1183,17 @@ void LayerPlan::addWallLine(
             else
             {
                 // no coasting required, just normal segment using non-bridge config
-                addExtrusionMoveWithGradualOverhang(
+                addExtrusionMove(
                     segment_end,
                     default_config,
+                    override_areas,
                     SpaceFillType::Polygons,
                     segment_flow,
                     width_factor,
                     spiralize,
                     speed_factor,
                     GCodePathConfig::FAN_SPEED_DEFAULT,
-                    travel_to_z,
-                    print_attributes);
+                    travel_to_z);
             }
             non_bridge_line_volume += (cur_point - segment_end).vSize() * segment_flow * width_factor * speed_factor * default_config.getSpeed();
             cur_point = segment_end;
@@ -1242,26 +1219,16 @@ void LayerPlan::addWallLine(
 
     if (use_skin_config(roofing_mask_, roofing_config))
     {
-        addSkinExtrusion(p0, p1, roofing_mask_, roofing_config, default_config, flow, width_factor, spiralize, travel_to_z, print_attributes);
+        addSkinExtrusion(p0, p1, roofing_mask_, roofing_config, default_config, flow, width_factor, spiralize, travel_to_z, override_areas);
     }
     else if (bridge_wall_mask_.empty())
     {
         // no bridges required
-        addExtrusionMoveWithGradualOverhang(
-            p1,
-            default_config,
-            SpaceFillType::Polygons,
-            flow,
-            width_factor,
-            spiralize,
-            speed_factor,
-            GCodePathConfig::FAN_SPEED_DEFAULT,
-            travel_to_z,
-            print_attributes);
+        addExtrusionMove(p1, default_config, override_areas, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor, GCodePathConfig::FAN_SPEED_DEFAULT, travel_to_z);
     }
     else if (! bridging_subsegments.empty())
     {
-        const PrintSegmentAttributes attributes_bridging = print_attributes | PrintSegmentAttribute::Bridging;
+        const PrintSegmentAttributes attributes_bridging = PrintSegmentAttribute::Bridging;
 
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
         for (const std::tuple<Ratio, Ratio>& bridging_subsegment : bridging_subsegments)
@@ -1293,7 +1260,7 @@ void LayerPlan::addWallLine(
     }
     else if (use_skin_config(flooring_mask_, flooring_config))
     {
-        addSkinExtrusion(p0, p1, flooring_mask_, flooring_config, default_config, flow, width_factor, spiralize, travel_to_z, print_attributes);
+        addSkinExtrusion(p0, p1, flooring_mask_, flooring_config, default_config, flow, width_factor, spiralize, travel_to_z, override_areas);
     }
     else
     {
@@ -1565,10 +1532,6 @@ std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
                     const size_t pt_idx = point_index(wall, actual_point_index - 1);
                     func_add_segment(
                         bridging_subsections_per_segment[pt_idx],
-                        wall,
-                        pt_idx,
-                        static_cast<float>(segment_processed_distance) / line_length,
-                        static_cast<float>(segment_processed_distance + length_to_process) / line_length,
                         split_origin,
                         split_destination,
                         accelerate_speed_factor * decelerate_speed_factor,
@@ -2118,7 +2081,7 @@ void LayerPlan::addWall(
     const bool is_linked_path,
     const bool scarf_seam,
     const bool smooth_speed,
-    const PrintSegmentAttributes& print_attributes)
+    const OverrideAreas& override_areas)
 {
     if (wall.empty())
     {
@@ -2126,7 +2089,6 @@ void LayerPlan::addWall(
     }
 
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
-    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
     const PathAdapter path_adapter(wall);
 
     const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<ExtrusionLine>(
@@ -2142,10 +2104,6 @@ void LayerPlan::addWall(
         scarf_seam,
         smooth_speed,
         [&](const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
-            const PathAdapter<ExtrusionLine>& wall,
-            const size_t segment_index,
-            const Ratio& segment_start_ratio,
-            const Ratio& segment_end_ratio,
             const Point3LL& start,
             const Point3LL& end,
             const Ratio& speed_factor,
@@ -2156,10 +2114,6 @@ void LayerPlan::addWall(
         {
             addWallLine(
                 bridging_subsegments,
-                wall,
-                segment_index,
-                segment_start_ratio,
-                segment_end_ratio,
                 start,
                 end,
                 settings,
@@ -2173,7 +2127,7 @@ void LayerPlan::addWall(
                 speed_factor,
                 distance_to_bridge_start,
                 travel_to_z,
-                print_attributes);
+                override_areas);
         });
 
     if (wall.size() >= 2)
@@ -2420,7 +2374,7 @@ void LayerPlan::addLinesByOptimizer(
     const Ratio flow_ratio,
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
-    const PrintSegmentAttributes& print_attributes,
+    const OverrideAreas& override_areas,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
@@ -2480,7 +2434,7 @@ void LayerPlan::addLinesByOptimizer(
         wipe_dist,
         flow_ratio,
         fan_speed,
-        print_attributes,
+        override_areas,
         extra_inwards_start_move_length,
         extra_inwards_end_move_length,
         extra_inwards_move_contour);
@@ -2552,7 +2506,7 @@ void LayerPlan::addLinesInGivenOrder(
     const coord_t wipe_dist,
     const Ratio flow_ratio,
     const double fan_speed,
-    const PrintSegmentAttributes& print_attributes,
+    const OverrideAreas& override_areas,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
     const MendedShape& extra_inwards_move_contour)
@@ -2646,7 +2600,7 @@ void LayerPlan::addLinesInGivenOrder(
             constexpr bool spiralize = false;
             constexpr Ratio speed_factor = 1.0_r;
             constexpr bool travel_to_z = true;
-            addExtrusionMove(start, config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z, print_attributes);
+            addExtrusionMove(start, config, override_areas, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
         }
         else
         {
@@ -2684,7 +2638,7 @@ void LayerPlan::addLinesInGivenOrder(
                 constexpr bool spiralize = false;
                 constexpr Ratio speed_factor = 1.0_r;
                 constexpr bool travel_to_z = true;
-                addExtrusionMove(p1, config, space_fill_type, flow_ratio, width_factor, spiralize, speed_factor, fan_speed, travel_to_z, print_attributes);
+                addExtrusionMove(p1, config, override_areas, space_fill_type, flow_ratio, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
                 p0 = p1;
             }
         }
@@ -2724,7 +2678,7 @@ void LayerPlan::addLinesInGivenOrder(
                 constexpr bool spiralize = false;
                 constexpr Ratio speed_factor = 1.0_r;
                 constexpr bool travel_to_z = true;
-                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z, print_attributes);
+                addExtrusionMove(p1 + normal(p1 - p0, wipe_dist), config, override_areas, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
             }
         }
     }
@@ -2742,9 +2696,9 @@ void LayerPlan::addPolygonsInGivenOrder(
     bool reverse_order,
     bool scarf_seam,
     bool smooth_speed,
-    const PrintSegmentAttributes& print_attributes)
+    const OverrideAreas& override_areas)
 {
-    const auto add_polygons = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &force_retract, &scarf_seam, &smooth_speed, &print_attributes](
+    const auto add_polygons = [this, &config, &settings, &wall_0_wipe_dist, &spiralize, &flow_ratio, &force_retract, &scarf_seam, &smooth_speed, &override_areas](
                                   const auto& iterator_begin,
                                   const auto& iterator_end)
     {
@@ -2762,7 +2716,7 @@ void LayerPlan::addPolygonsInGivenOrder(
                 force_retract,
                 scarf_seam,
                 smooth_speed,
-                print_attributes);
+                override_areas);
         }
     };
 
@@ -3031,7 +2985,8 @@ void LayerPlan::writeTravelSegment(
             travel_retraction_state = TravelRetractionState::Priming;
 
             writeTravelRelativeZ(gcode, priming_amounts->segment_split_position, speed, path.z_offset);
-            writeTravelSegment(travel_retraction_state, gcode, path, retraction_amounts, priming_amounts, speed, point_index); // Do the priming part now we have changed the state
+            writeTravelSegment(travel_retraction_state, gcode, path, retraction_amounts, priming_amounts, speed, point_index); // Do the priming part now we have changed the
+                                                                                                                               // state
         }
         else
         {
@@ -3055,6 +3010,17 @@ void LayerPlan::writeTravelSegment(
         break;
     }
     }
+}
+
+coord_t LayerPlan::calculateMaxOverhangLength() const
+{
+    return ranges::max(
+        extruder_plans_
+        | ranges::views::transform(
+            [](const ExtruderPlan& extruder_plan) -> coord_t
+            {
+                return extruder_plan.calculateMaxOverhangLength();
+            }));
 }
 
 void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed, const std::optional<coord_t>& line_thickness)
@@ -3111,7 +3077,7 @@ void LayerPlan::addLinesMonotonic(
     const Ratio flow_ratio,
     const double fan_speed,
     const bool interlaced,
-    const PrintSegmentAttributes& print_attributes)
+    const OverrideAreas& override_areas)
 {
     const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
     const coord_t exclude_dist2 = exclude_distance * exclude_distance;
@@ -3157,10 +3123,10 @@ void LayerPlan::addLinesMonotonic(
     order.optimize();
 
     // Read out and process the monotonically ordered lines.
-    addLinesInGivenOrder(order.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed, print_attributes);
+    addLinesInGivenOrder(order.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed, override_areas);
 
     // Add all lines in the excluded areas the 'normal' way.
-    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, getLastPlannedPositionOrStartingPosition(), fan_speed, print_attributes);
+    addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, getLastPlannedPositionOrStartingPosition(), fan_speed, override_areas);
 }
 
 void LayerPlan::spiralizeWallSlice(
@@ -3578,7 +3544,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
             }
 
             const FanSpeedLayerTimeSettings& settings = extruder_plan.fan_speed_layer_time_settings_;
-            const bool apply_minimum_layer_time_overhang = max_overhang_length_ > settings.cool_min_layer_time_overhang_min_segment_length;
+            const bool apply_minimum_layer_time_overhang = calculateMaxOverhangLength() > settings.cool_min_layer_time_overhang_min_segment_length;
             maximum_cool_min_layer_time
                 = std::max(maximum_cool_min_layer_time, apply_minimum_layer_time_overhang ? settings.cool_min_layer_time_overhang : settings.cool_min_layer_time);
 
@@ -4389,11 +4355,6 @@ void LayerPlan::setBridgeWallMask(const Shape& polys)
     bridge_wall_mask_bb_ = AABB(polys);
 }
 
-void LayerPlan::setOverhangMasks(const std::vector<OverhangMask>& masks)
-{
-    overhang_masks_ = masks;
-}
-
 void LayerPlan::setSeamOverhangMask(const Shape& polys)
 {
     seam_overhang_mask_ = polys;
@@ -4423,7 +4384,7 @@ template void LayerPlan::addLinesByOptimizer(
     const Ratio flow_ratio,
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
-    const PrintSegmentAttributes& print_attributes,
+    const OverrideAreas& override_areas,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
@@ -4439,7 +4400,7 @@ template void LayerPlan::addLinesByOptimizer(
     const Ratio flow_ratio,
     const std::optional<Point2LL> near_start_location,
     const double fan_speed,
-    const PrintSegmentAttributes& print_attributes,
+    const OverrideAreas& override_areas,
     const bool reverse_print_direction,
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
