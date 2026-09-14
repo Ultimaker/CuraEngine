@@ -47,7 +47,7 @@ Since clipper works only with integer values, we have adopted the following conv
 * When we require floating-point calculation, we use `float` type by default
 * When we require floating-point calculation with a specific need for precision, we use the `double` type
 
-There are also a few specific types that are defined in the engine and that are to be used in every relevant situations. They help making the code more explicit:
+There are also a few specific types that are defined in the engine and that are to be used in all relevant situations. They help making the code more explicit:
 * `AngleDegrees` and `AngleRadians` types to store all the angle values
 * `Ratio` type when storing a value that is to be multipled, like speed or flow factor
 * `Duration` type to store all the processing and print durations
@@ -55,4 +55,4 @@ There are also a few specific types that are defined in the engine and that are 
 * `Temperature` type to store heating temperature
 * `Velocity` and `Acceleration` types to store speeds and acceleration, typically of the print head
 
-To ensure the handling of edge-cases in geometrical calculations, there is an EPSILON value and some convenience methods that are defined to help the developpers. They should be used whenever there is a possibility of an edge-case, to properly handle it and make sure the the code is robust and repeatable.
+To ensure the handling of edge-cases in geometrical calculations, there is an EPSILON value and some convenience methods that are defined to help the developers. They should be used whenever there is a possibility of an edge-case, to properly handle it and make sure the the code is robust and repeatable.
