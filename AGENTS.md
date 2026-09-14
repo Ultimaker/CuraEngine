@@ -39,3 +39,20 @@ The project uses various external tools:
 * protobuf to generate messages for the front-end application
 
 It also has a few unit testing and benchmarking sub-projects that are run periodically, so it is critical that they keep working.
+
+### Computational geometry
+Given its nature, CuraEngine contains a lot of computational geometry algorithms. The main library we use is clipper, for boolean operations (union, intersections, difference) and offsetting.
+Since clipper works only with integer values, we have adopted the following conventions for numbers typing:
+* Most of the geometric coordinates are typed with the `coord_t` type, which is an alias to `signed long long`. This way we can give those elements directly to clipper. Physically, those coordinates represent micrometers. All the values that represent a distance/position in physical space should then use this type.
+* When we require floating-point calculation, we use `float` type by default
+* When we require floating-point calculation with a specific need for precision, we use the `double` type
+
+There are also a few specific types that are defined in the engine and that are to be used in every relevant situations. They help making the code more explicit:
+* `AngleDegrees` and `AngleRadians` types to store all the angle values
+* `Ratio` type when storing a value that is to be multipled, like speed or flow factor
+* `Duration` type to store all the processing and print durations
+* `LayerIndex` type to store the index of a layer
+* `Temperature` type to store heating temperature
+* `Velocity` and `Acceleration` types to store speeds and acceleration, typically of the print head
+
+To ensure the handling of edge-cases in geometrical calculations, there is an EPSILON value and some convenience methods that are defined to help the developpers. They should be used whenever there is a possibility of an edge-case, to properly handle it and make sure the the code is robust and repeatable.
