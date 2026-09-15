@@ -111,7 +111,8 @@ private:
     struct RoofingFlooringSettingsNames
     {
         std::string extruder_nr;
-        std::string pattern;
+        std::string pattern_0; // Infill pattern on layer 0
+        std::string pattern_x; // Infill pattern on layers others than 0
         std::string monotonic;
     };
 
@@ -124,6 +125,7 @@ private:
 
     static const RoofingFlooringSettingsNames roofing_settings_names;
     static const RoofingFlooringSettingsNames flooring_settings_names;
+    static const RoofingFlooringSettingsNames skin_settings_names;
 
     /*!
      * \brief Set the FffGcodeWriter::fan_speed_layer_time_settings by
@@ -542,28 +544,6 @@ private:
         const SkinPart& skin_part) const;
 
     /*!
-     * Add the roofing/flooring which is the area inside the innermost skin inset which has air 'directly' above or below
-     *
-     * \param[in] storage where the slice data is stored.
-     * \param gcode_layer The initial planning of the gcode of the layer.
-     * \param mesh The mesh for which to add to the layer plan \p gcode_layer.
-     * \param extruder_nr The extruder for which to print all features of the mesh which should be printed with this extruder
-     * \param mesh_config the line config with which to print a print feature
-     * \param skin_part The skin part for which to create gcode
-     * \param[out] added_something Whether this function added anything to the layer plan
-     */
-    void processRoofingFlooring(
-        const SliceDataStorage& storage,
-        LayerPlan& gcode_layer,
-        const SliceMeshStorage& mesh,
-        const size_t extruder_nr,
-        const RoofingFlooringSettingsNames& settings_names,
-        const Shape& fill,
-        const GCodePathConfig& config,
-        const std::vector<AngleDegrees>& angles,
-        bool& added_something) const;
-
-    /*!
      * Add the normal skinfill which is the area inside the innermost skin inset
      * which doesn't have air directly above it if we're printing roofing
      *
@@ -580,8 +560,12 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
+        const RoofingFlooringSettingsNames& settings_names,
         const MeshPathConfigs& mesh_config,
+        const GCodePathConfig& default_config,
+        const std::vector<AngleDegrees>& angles,
         const Shape& skin_fill,
+        const bool is_roofing_flooring,
         bool& added_something) const;
 
     /*!

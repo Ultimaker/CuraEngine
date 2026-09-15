@@ -44,8 +44,12 @@
 namespace cura
 {
 
-const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names = { "roofing_extruder_nr", "roofing_pattern", "roofing_monotonic" };
-const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names = { "flooring_extruder_nr", "flooring_pattern", "flooring_monotonic" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names
+    = { .extruder_nr = "roofing_extruder_nr", .pattern_0 = "roofing_pattern", .pattern_x = "roofing_pattern", .monotonic = "roofing_monotonic" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::flooring_settings_names
+    = { .extruder_nr = "flooring_extruder_nr", .pattern_0 = "flooring_pattern", .pattern_x = "flooring_pattern", .monotonic = "flooring_monotonic" };
+const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::skin_settings_names
+    = { .extruder_nr = "top_bottom_extruder_nr", .pattern_0 = "top_bottom_pattern_0", .pattern_x = "top_bottom_pattern", .monotonic = "skin_monotonic" };
 
 FffGcodeWriter::FffGcodeWriter()
     : max_object_height(0)
@@ -2762,22 +2766,6 @@ OverrideAreas
             const coord_t compensate_outline_distance = (mesh_config.bridge_inset0_config.flow < 1.0) ? half_outer_wall_width : 0;
             Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance).difference(outlines_below);
             gcode_layer.setBridgeWallMask(bridge_mask);
-
-            const coord_t skin_overlap = mesh.settings.get<coord_t>("skin_overlap_mm");
-
-            // Override flooring/skin areas to register bridging areas to be treated as normal skin
-            for (SkinPart& skin_part : part.skin_parts)
-            {
-                Shape moved_area = skin_part.flooring_fill.intersection(bridge_mask).offset(10);
-                skin_part.skin_fill = skin_part.skin_fill.unionPolygons(moved_area);
-
-                // make sure that
-                // - skin_fill (bridging) and flooring/roofing areas are distinct areas
-                // - skin overlap is reapplied on roofing and flooring areas
-                // - skin doesn't grow beyond its original area
-                skin_part.flooring_fill = skin_part.flooring_fill.difference(skin_part.skin_fill).offset(-10).offset(skin_overlap + 10).intersection(skin_part.flooring_fill);
-                skin_part.roofing_fill = skin_part.roofing_fill.difference(skin_part.skin_fill).offset(-10).offset(skin_overlap + 10).intersection(skin_part.roofing_fill);
-            }
         }
     }
 
@@ -3063,79 +3051,45 @@ bool FffGcodeWriter::processSkinPart(
     const SkinPart& skin_part) const
 {
     bool added_something = false;
-    processRoofingFlooring(
+    constexpr bool is_flooring_roofing = true;
+    constexpr bool is_not_flooring_roofing = true;
+    processTopBottom(
         storage,
         gcode_layer,
         mesh,
         extruder_nr,
         roofing_settings_names,
-        skin_part.roofing_fill,
+        mesh_config,
         mesh_config.roofing_config,
         mesh.roofing_angles,
+        skin_part.roofing_fill,
+        is_flooring_roofing,
         added_something);
-    processRoofingFlooring(
+    processTopBottom(
         storage,
         gcode_layer,
         mesh,
         extruder_nr,
         flooring_settings_names,
-        skin_part.flooring_fill,
+        mesh_config,
         mesh_config.flooring_config,
         mesh.flooring_angles,
+        skin_part.flooring_fill,
+        is_flooring_roofing,
         added_something);
-    processTopBottom(storage, gcode_layer, mesh, extruder_nr, mesh_config, skin_part.skin_fill, added_something);
-    return added_something;
-}
-
-void FffGcodeWriter::processRoofingFlooring(
-    const SliceDataStorage& storage,
-    LayerPlan& gcode_layer,
-    const SliceMeshStorage& mesh,
-    const size_t extruder_nr,
-    const RoofingFlooringSettingsNames& settings_names,
-    const Shape& fill,
-    const GCodePathConfig& config,
-    const std::vector<AngleDegrees>& angles,
-    bool& added_something) const
-{
-    if (fill.empty())
-    {
-        return;
-    }
-
-    const size_t skin_extruder_nr = mesh.settings.get<ExtruderTrain&>(settings_names.extruder_nr).extruder_nr_;
-    if (extruder_nr != skin_extruder_nr)
-    {
-        return;
-    }
-
-    const EFillMethod pattern = mesh.settings.get<EFillMethod>(settings_names.pattern);
-    AngleDegrees roofing_angle = 45;
-    if (angles.size() > 0)
-    {
-        roofing_angle = angles.at(gcode_layer.getLayerNr() % angles.size());
-    }
-
-    const GCodePathConfig* bridge_config = nullptr;
-    const Ratio skin_density = 1.0;
-    const coord_t skin_overlap = 0; // skinfill already expanded over the roofing areas; don't overlap with perimeters
-    const LinesOrderingMethod ordering = mesh.settings.get<bool>(settings_names.monotonic) ? LinesOrderingMethod::Monotonic : LinesOrderingMethod::Basic;
-    constexpr bool is_roofing_flooring = true;
-    processSkinPrintFeature(
+    processTopBottom(
         storage,
         gcode_layer,
         mesh,
         extruder_nr,
-        fill,
-        config,
-        bridge_config,
-        pattern,
-        roofing_angle,
-        skin_overlap,
-        skin_density,
-        ordering,
-        is_roofing_flooring,
+        skin_settings_names,
+        mesh_config,
+        mesh_config.skin_config,
+        mesh.skin_angles,
+        skin_part.skin_fill,
+        is_not_flooring_roofing,
         added_something);
+    return added_something;
 }
 
 void FffGcodeWriter::processTopBottom(
@@ -3143,15 +3097,19 @@ void FffGcodeWriter::processTopBottom(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
+    const RoofingFlooringSettingsNames& settings_names,
     const MeshPathConfigs& mesh_config,
+    const GCodePathConfig& default_config,
+    const std::vector<AngleDegrees>& angles,
     const Shape& skin_fill,
+    const bool is_roofing_flooring,
     bool& added_something) const
 {
     if (skin_fill.empty())
     {
         return; // bridgeAngle requires a non-empty skin_fill.
     }
-    const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
+    const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>(settings_names.extruder_nr).extruder_nr_;
     if (extruder_nr != top_bottom_extruder_nr)
     {
         return;
@@ -3161,16 +3119,16 @@ void FffGcodeWriter::processTopBottom(
 
     const size_t layer_nr = gcode_layer.getLayerNr();
 
-    EFillMethod pattern = (layer_nr == 0) ? mesh.settings.get<EFillMethod>("top_bottom_pattern_0") : mesh.settings.get<EFillMethod>("top_bottom_pattern");
+    EFillMethod pattern = (layer_nr == 0) ? mesh.settings.get<EFillMethod>(settings_names.pattern_0) : mesh.settings.get<EFillMethod>(settings_names.pattern_x);
 
     AngleDegrees skin_angle = 45;
-    if (mesh.skin_angles.size() > 0)
+    if (angles.size() > 0)
     {
-        skin_angle = mesh.skin_angles.at(layer_nr % mesh.skin_angles.size());
+        skin_angle = angles.at(layer_nr % angles.size());
     }
 
     // generate skin_polygons and skin_lines
-    const GCodePathConfig* skin_config = &mesh_config.skin_config;
+    const GCodePathConfig* skin_config = &default_config;
     const GCodePathConfig* bridge_config = nullptr;
     Ratio skin_density = 1.0;
     constexpr coord_t skin_overlap = 0; // Skin overlap offset is applied in skin.cpp more overlap might be beneficial for curved bridges, but makes it worse in general.
@@ -3262,8 +3220,7 @@ void FffGcodeWriter::processTopBottom(
 
     double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
 
-    if (layer_nr > 0 && skin_config == &mesh_config.skin_config && support_layer_nr >= 0 && mesh.settings.get<bool>("support_fan_enable")
-        && mesh.settings.get<bool>("cool_fan_enabled"))
+    if (layer_nr > 0 && skin_config == &default_config && support_layer_nr >= 0 && mesh.settings.get<bool>("support_fan_enable") && mesh.settings.get<bool>("cool_fan_enabled"))
     {
         // skin isn't a bridge but is it above support and we need to modify the fan speed?
 
@@ -3309,7 +3266,7 @@ void FffGcodeWriter::processTopBottom(
     {
         ordering = mesh.settings.get<bool>("bridge_interlace_lines") ? LinesOrderingMethod::Interlaced : LinesOrderingMethod::Basic;
     }
-    else if (mesh.settings.get<bool>("skin_monotonic"))
+    else if (mesh.settings.get<bool>(settings_names.monotonic))
     {
         ordering = LinesOrderingMethod::Monotonic;
     }
@@ -3318,7 +3275,6 @@ void FffGcodeWriter::processTopBottom(
         ordering = LinesOrderingMethod::Basic;
     }
 
-    constexpr bool is_roofing_flooring = false;
     processSkinPrintFeature(
         storage,
         gcode_layer,
