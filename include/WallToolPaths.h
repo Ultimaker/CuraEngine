@@ -12,17 +12,22 @@
 
 namespace cura
 {
+
+/*! A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls */
 class WallToolPaths
 {
 public:
     /*!
-     * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
+     * Constructor using settings that are based on the given main values. It should be used when dealing with non-outer-walls extrusions paths.
      * \param outline An outline of the area in which the ToolPaths are to be generated
      * \param nominal_bead_width The nominal bead width used in the generation of the toolpaths
      * \param inset_count The maximum number of parallel extrusion lines that make up the wall
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
      * \param wall_x_inset How far to inset the inner walls, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
+     * \param layer_idx The index of the layer the extrusion belongs to
+     * \param section_type The type of element being printed
+     * \param generator Indicates whether to use Arachne to generate variable-line-width walls, or a naive insetting
      */
     WallToolPaths(
         const Shape& outline,
@@ -36,7 +41,7 @@ public:
         WallToolPathGenerator generator = WallToolPathGenerator::Arachne);
 
     /*!
-     * A class that creates the toolpaths given an outline, nominal bead width and maximum amount of walls
+     * Constructor using wall printing settings. It should be used when dealing with outer walls extrusions paths.
      * \param outline An outline of the area in which the ToolPaths are to be generated
      * \param bead_width_0 The bead width of the first wall used in the generation of the toolpaths
      * \param bead_width_x The bead width of the inner walls used in the generation of the toolpaths
@@ -44,6 +49,8 @@ public:
      * \param wall_0_inset How far to inset the outer wall, to make it adhere better to other walls.
      * \param wall_x_inset How far to inset the inner walls, to make it adhere better to other walls.
      * \param settings The settings as provided by the user
+     * \param layer_idx The index of the layer the extrusion belongs to
+     * \param section_type The type of element being printed
      */
     WallToolPaths(
         const Shape& outline,
