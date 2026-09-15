@@ -13,4 +13,4 @@ requirements_plugins:
 requirements_cura_resources:
   - "cura_resources/5.14.0-alpha.0@ultimaker/testing"
 requirements_curaviz:
-  - "curaviz_grpc_definitions/1.0.0"
+  - "curaviz_grpc_definitions/1.0.0@internal/testing"
