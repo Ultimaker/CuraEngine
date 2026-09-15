@@ -579,18 +579,25 @@ class OverhangSpeedTest : public LayerPlanTest
 };
 
 /*!
- * Verifies that addExtrusionMoveWithGradualOverhang applies the mask's reduced speed_factor
- * when overhang masks are active on the LayerPlan.
+ * Verifies that addExtrusionMove applies the override area's reduced speed_factor
+ * when an overhang override area covers the whole move.
  *
  * Regression guard: masks were previously cleared prematurely inside preProcessInsets()
  * before endProcessInsets() drew the walls, causing speed_factor to always be 1.0.
  */
 TEST_F(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet)
 {
-    // An empty supported_region means no point is ever "inside" it, so every move
-    // lands in the overhang zone and receives the reduced speed_ratio.
+    // A huge override area covering the whole move means every point lands in the overhang zone
+    // and receives the reduced speed_ratio.
     constexpr Ratio overhang_speed_ratio = 0.5_r;
-    layer_plan.setOverhangMasks({ LayerPlan::OverhangMask{ Shape{}, overhang_speed_ratio } });
+    Shape overhang_region;
+    overhang_region.emplace_back();
+    overhang_region.back().emplace_back(-MM2INT(1000), -MM2INT(1000));
+    overhang_region.back().emplace_back(MM2INT(1000), -MM2INT(1000));
+    overhang_region.back().emplace_back(MM2INT(1000), MM2INT(1000));
+    overhang_region.back().emplace_back(-MM2INT(1000), MM2INT(1000));
+
+    const OverrideAreas overhang_areas{ OverrideArea{ overhang_region, PrintSegmentAttribute::Overhanging, nullptr, overhang_speed_ratio } };
 
     const GCodePathConfig config{
         .type = PrintFeatureType::OuterWall,
@@ -601,7 +608,7 @@ TEST_F(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet)
     };
 
     // SetUp() placed last_planned_position at (0,0). Move somewhere entirely in the overhang zone.
-    layer_plan.addExtrusionMoveWithGradualOverhang(Point3LL(MM2INT(10), 0, 0), config, SpaceFillType::Lines);
+    layer_plan.addExtrusionMove(Point3LL(MM2INT(10), 0, 0), config, overhang_areas, SpaceFillType::Lines);
 
     const auto& paths = layer_plan.extruder_plans_.back().paths_;
     const bool any_reduced = std::any_of(
@@ -621,8 +628,8 @@ TEST_F(OverhangSpeedTest, SpeedFactorAppliedWhenMasksSet)
  */
 TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
 {
-    // masks[0]: 20x20 mm square centred at origin — points inside get speed_ratio = 1.0 (supported)
-    // masks[1]: the catch-all "infinite" region — points outside get speed_ratio = 0.5 (overhang)
+    // supported_region: 20x20 mm square centred at origin — points inside get no override (full speed)
+    // overhang_region: the rest of a huge area outside the square — gets speed_ratio = 0.5 (overhang)
     Shape supported_region;
     supported_region.emplace_back();
     supported_region.back().emplace_back(-MM2INT(10), -MM2INT(10));
@@ -630,10 +637,15 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
     supported_region.back().emplace_back( MM2INT(10),  MM2INT(10));
     supported_region.back().emplace_back(-MM2INT(10),  MM2INT(10));
 
-    layer_plan.setOverhangMasks({
-        LayerPlan::OverhangMask{ supported_region, 1.0_r }, // region 0: inside square
-        LayerPlan::OverhangMask{ Shape{},          0.5_r }, // region 1: outside square (overhang)
-    });
+    Shape full_area;
+    full_area.emplace_back();
+    full_area.back().emplace_back(-MM2INT(1000), -MM2INT(1000));
+    full_area.back().emplace_back(MM2INT(1000), -MM2INT(1000));
+    full_area.back().emplace_back(MM2INT(1000), MM2INT(1000));
+    full_area.back().emplace_back(-MM2INT(1000), MM2INT(1000));
+
+    const Shape overhang_region = full_area.difference(supported_region);
+    const OverrideAreas overhang_areas{ OverrideArea{ overhang_region, PrintSegmentAttribute::Overhanging, nullptr, 0.5_r } };
 
     const GCodePathConfig config{
         .type = PrintFeatureType::OuterWall,
@@ -644,7 +656,7 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
     };
 
     // Start at (0,0) inside the square. Move to (50mm,0,0), crossing the boundary at x=10mm.
-    layer_plan.addExtrusionMoveWithGradualOverhang(Point3LL(MM2INT(50), 0, 0), config, SpaceFillType::Lines);
+    layer_plan.addExtrusionMove(Point3LL(MM2INT(50), 0, 0), config, overhang_areas, SpaceFillType::Lines);
 
     const auto& paths = layer_plan.extruder_plans_.back().paths_;
     bool found_full_speed = false;

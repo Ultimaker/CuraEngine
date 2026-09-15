@@ -307,7 +307,7 @@ std::optional<AngleDegrees> bridgeAngle(
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    Shape& supported_regions)
+    Shape& bridging_area)
 {
     const Settings& settings = mesh.settings;
     const bool bridge_settings_enabled = settings.get<bool>("bridge_settings_enabled");
@@ -322,10 +322,9 @@ std::optional<AngleDegrees> bridgeAngle(
 
     // To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     //  This gives us the islands that the layer rests on.
-    Shape islands;
-
     Shape prev_layer_outline; // we also want the complete outline of the previous layer
     Shape prev_layer_infill;
+    Shape supported_regions;
 
     // include parts from all meshes
     for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
@@ -351,20 +350,13 @@ std::optional<AngleDegrees> bridgeAngle(
                 if (! boundary_box.hit(prev_layer_part.boundaryBox))
                     continue;
 
-                islands.push_back(skin_outline.intersection(solid_below));
+                supported_regions.push_back(skin_outline.intersection(solid_below));
             }
         }
     }
-    supported_regions = islands;
 
     if (support_layer)
     {
-        // add the regions of the skin that have support below them to supportedRegions
-        // but don't add these regions to islands because that can actually cause the code
-        // below to consider the skin a bridge when it isn't (e.g. a skin that is supported by
-        // the model on one side but the remainder of the skin is above support would look like
-        // a bridge because it would have two islands) - FIXME more work required here?
-
         if (! support_layer->support_roof.empty())
         {
             AABB support_roof_bb(support_layer->support_roof);
@@ -405,6 +397,8 @@ std::optional<AngleDegrees> bridgeAngle(
         // considered to be a bridge and the original bridge detection code below is skipped
         return std::nullopt;
     }
+
+    bridging_area = skin_outline.difference(supported_regions.offset(EPSILON));
 
     prev_layer_infill = skin_outline.intersection(prev_layer_infill);
     const Ratio infill_ratio = prev_layer_infill.area() / (skin_outline.area() + 1);
@@ -744,174 +738,4 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
 
-/*!
- * Calculates whether the given tip of an extrusion segment is properly anchored for bridging
- * @param bridge_mask The bridging mask, i.e. the regions that are fully over air
- * @param wall The wall line being printed
- * @param tip_index The index of the tip to be considered
- * @param tip The position of the tip to be considered
- * @param other_tip The position of the opposite tip of the segment
- * @param tip_inside_bridge_mask Indicates whether the tip is inside the bridge mask
- * @param segment_direction Indicates whether the segment goes forwards on the extrusion line (1) or backwards (-1)
- * @param min_anchoring_length The minimum anchoring length to be reached to consider that the segment is properly anchored
- * @param intersections The intersections of the segment with the bridge mask (ordered in original segment orientation)
- * @return True if the tip is properly anchored, false if it is fully hanging
- */
-bool isWallTipAnchored(
-    const Shape& bridge_mask,
-    const PathAdapter<ExtrusionLine>& wall,
-    const size_t tip_index,
-    const Point2LL& tip,
-    const Point2LL& other_tip,
-    const bool tip_inside_bridge_mask,
-    const std::ptrdiff_t segment_direction,
-    const coord_t min_anchoring_length,
-    const std::vector<float>& intersections)
-{
-    coord_t remaining_anchoring_length = min_anchoring_length;
-
-    if (! tip_inside_bridge_mask)
-    {
-        // The tip of the segment is supported, so check that the total anchored length is long enough to provide a proper anchoring
-        const float closest_intersection = segment_direction > 0 ? intersections.front() : (1.0 - intersections.back());
-        const coord_t segment_length = vSize(other_tip - tip);
-        const coord_t inside_anchoring_length = closest_intersection * segment_length;
-        remaining_anchoring_length -= inside_anchoring_length;
-    }
-
-    if (remaining_anchoring_length > 0)
-    {
-        // The inside of the segment is not enough to anchor it properly, take a look on the following segments
-        const coord_t max_outside_search_length = min_anchoring_length * 2;
-        coord_t remaining_search_length = max_outside_search_length;
-
-        bool over_air = tip_inside_bridge_mask;
-        Point2LL following_segment_p0 = tip;
-        ptrdiff_t next_point_index = tip_index;
-
-        const auto increment_index = [&next_point_index, segment_direction, &wall]()
-        {
-            next_point_index = ((next_point_index - segment_direction) + wall.size()) % wall.size();
-        };
-
-        const auto account_for_segment = [&over_air, &remaining_anchoring_length, &remaining_search_length](const Point2LL& start, const Point2LL& end)
-        {
-            const coord_t segment_length = vSize(end - start);
-            if (! over_air)
-            {
-                remaining_anchoring_length -= std::min(remaining_search_length, segment_length);
-            }
-            remaining_search_length = std::max(static_cast<coord_t>(0), remaining_search_length - segment_length);
-        };
-
-        increment_index();
-        while (remaining_search_length > 0 && remaining_anchoring_length > 0)
-        {
-            // for each following segment, account for parts of the segments that are not over air, i.e. not inside the bridging area
-            const Point2LL following_segment_p1 = wall.pointAt(next_point_index);
-            std::vector<float> following_segment_intersections = bridge_mask.intersectionsWithSegment(following_segment_p0, following_segment_p1);
-
-            Point2LL current_position = following_segment_p0;
-
-            ranges::stable_sort(following_segment_intersections);
-            for (const float next_intersection : following_segment_intersections)
-            {
-                const Point2LL next_intersection_position = lerp(following_segment_p0, following_segment_p1, next_intersection);
-                account_for_segment(current_position, next_intersection_position);
-
-                over_air = ! over_air; // Since we have intersected the bridging area, this flips
-                current_position = next_intersection_position;
-            }
-
-            account_for_segment(current_position, following_segment_p1);
-
-            following_segment_p0 = following_segment_p1;
-            increment_index();
-        }
-    }
-
-    // The tip is anchored if somehow we found enough adjacent segments that are supported
-    return remaining_anchoring_length <= 0;
-}
-
-std::vector<std::tuple<Ratio, Ratio>> wallSegmentUsesBridging(
-    const AABB& bridge_mask_bb,
-    const Shape& bridge_mask,
-    const PathAdapter<ExtrusionLine>& wall,
-    const size_t segment_index,
-    const Ratio& segment_start_ratio,
-    const Ratio& segment_end_ratio,
-    const coord_t min_bridge_line_len,
-    const coord_t line_width)
-{
-    const size_t p0_index = segment_index;
-    const size_t p1_index = (segment_index + 1) % wall.size();
-    const Point2LL& p0 = wall.pointAt(p0_index);
-    const Point2LL& p1 = wall.pointAt(p1_index);
-    const coord_t segment_length = vSize(p0 - p1);
-
-    if (! bridge_mask_bb.hit(AABB({ p0, p1 })) || segment_length < min_bridge_line_len)
-    {
-        // Early out: completely outside bridging area or too small segment
-        return {};
-    }
-
-    const bool p0_inside_mask = bridge_mask.inside(p0);
-    const bool p1_inside_mask = bridge_mask.inside(p1);
-    std::vector<float> intersections = bridge_mask.intersectionsWithSegment(p0, p1);
-
-    if (! p0_inside_mask && ! p1_inside_mask && intersections.empty())
-    {
-        // Not starting nor ending in bridging area, and not crossing it, so obviously not bridging
-        return {};
-    }
-
-    // In order to properly bridge, the segment needs to be supported at both its tips to get a proper anchoring
-    const coord_t min_anchoring_length = line_width;
-    ranges::stable_sort(intersections);
-    if (! isWallTipAnchored(bridge_mask, wall, p0_index, p0, p1, p0_inside_mask, 1, min_anchoring_length, intersections)
-        || ! isWallTipAnchored(bridge_mask, wall, p1_index, p1, p0, p1_inside_mask, -1, min_anchoring_length, intersections))
-    {
-        // At least one of the tips is not properly anchored, do not bridge the segment
-        return {};
-    }
-
-    // Loop through all the intersections, starting with the first anchoring subsegment, then switch bridging/non-bridging at each intersection
-    Ratio current_position = 0.0;
-    bool bridging = p0_inside_mask;
-    std::vector<std::tuple<Ratio, Ratio>> bridging_subsegments;
-    const auto add_bridging_subsegment
-        = [&bridging_subsegments, min_bridge_line_len, segment_length, &segment_start_ratio, &segment_end_ratio](const Ratio& start, const Ratio& end)
-    {
-        const coord_t bridge_line_len = (end - start) * segment_length;
-        if (bridge_line_len >= min_bridge_line_len && end >= segment_start_ratio && start <= segment_end_ratio)
-        {
-            const Ratio full_segment_start_ratio = std::max(start, segment_start_ratio);
-            const Ratio full_segment_end_ratio = std::min(end, segment_end_ratio);
-
-            const Ratio sub_segment_start_ratio = inverse_lerp(segment_start_ratio.value, segment_end_ratio.value, full_segment_start_ratio.value);
-            const Ratio sub_segment_end_ratio = inverse_lerp(segment_start_ratio.value, segment_end_ratio.value, full_segment_end_ratio.value);
-
-            bridging_subsegments.push_back(std::make_tuple(sub_segment_start_ratio, sub_segment_end_ratio));
-        }
-    };
-
-    for (const float next_intersection : intersections)
-    {
-        if (bridging)
-        {
-            add_bridging_subsegment(current_position, next_intersection);
-        }
-
-        current_position = next_intersection;
-        bridging = ! bridging;
-    }
-
-    if (bridging)
-    {
-        add_bridging_subsegment(current_position, 1.0);
-    }
-
-    return bridging_subsegments;
-}
 } // namespace cura
