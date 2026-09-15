@@ -38,7 +38,7 @@ public:
         const Settings& settings,
         const int layer_idx,
         SectionType section_type,
-        WallToolPathGenerator generator = WallToolPathGenerator::Arachne);
+        WallToolPathGenerator generator);
 
     /*!
      * Constructor using wall printing settings. It should be used when dealing with outer walls extrusions paths.
