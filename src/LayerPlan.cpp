@@ -374,7 +374,7 @@ std::optional<std::pair<Point2LL, bool>> LayerPlan::getFirstTravelDestinationSta
     return ret;
 }
 
-GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retract, const coord_t z_offset)
+GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retract, const coord_t z_offset, const std::optional<coord_t> max_distance_ignore_combing)
 {
     const GCodePathConfig& travel_config = configs_storage_.travel_config_per_extruder[getExtruder()];
 
@@ -425,7 +425,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retr
 
         // Divide by 2 to get the radius
         // Multiply by 2 because if two lines start and end points places very close then will be applied combing with retractions. (Ex: for brim)
-        const coord_t max_distance_ignored = mesh_or_extruder_settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2;
+        const coord_t max_distance_ignored = max_distance_ignore_combing.value_or(mesh_or_extruder_settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2);
 
         bool unretract_before_last_travel_move = false; // Decided when calculating the combing
         bool do_retracted_combing_move = false; // Decided when calculating the combing
@@ -2379,7 +2379,8 @@ void LayerPlan::addLinesByOptimizer(
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
-    const MendedShape& extra_inwards_move_contour)
+    const MendedShape& extra_inwards_move_contour,
+    const std::optional<coord_t> max_distance_ignore_combing)
 {
     Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
@@ -2437,7 +2438,8 @@ void LayerPlan::addLinesByOptimizer(
         override_areas,
         extra_inwards_start_move_length,
         extra_inwards_end_move_length,
-        extra_inwards_move_contour);
+        extra_inwards_move_contour,
+        max_distance_ignore_combing);
 }
 
 void LayerPlan::addLinesByOptimizer(
@@ -2509,7 +2511,8 @@ void LayerPlan::addLinesInGivenOrder(
     const OverrideAreas& override_areas,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
-    const MendedShape& extra_inwards_move_contour)
+    const MendedShape& extra_inwards_move_contour,
+    const std::optional<coord_t> max_distance_ignore_combing)
 {
     const coord_t half_line_width = config.getLineWidth() / 2;
     const coord_t line_width_2 = half_line_width * half_line_width;
@@ -2609,7 +2612,10 @@ void LayerPlan::addLinesInGivenOrder(
                 // Make sure we don't travel at fractional height
                 addTravel(getLastPlannedPositionOrStartingPosition());
             }
-            addTravel(start);
+
+            constexpr auto force_retract{ ForceRetract::AUTOMATIC };
+            constexpr coord_t z_offset{ 0 };
+            addTravel(start, force_retract, z_offset, max_distance_ignore_combing);
         }
 
         Point2LL p0 = start;
@@ -3077,7 +3083,8 @@ void LayerPlan::addLinesMonotonic(
     const Ratio flow_ratio,
     const double fan_speed,
     const bool interlaced,
-    const OverrideAreas& override_areas)
+    const OverrideAreas& override_areas,
+    const std::optional<coord_t> max_distance_ignore_combing)
 {
     const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
     const coord_t exclude_dist2 = exclude_distance * exclude_distance;
@@ -3123,7 +3130,21 @@ void LayerPlan::addLinesMonotonic(
     order.optimize();
 
     // Read out and process the monotonically ordered lines.
-    addLinesInGivenOrder(order.paths_, config, space_fill_type, wipe_dist, flow_ratio, fan_speed, override_areas);
+    constexpr coord_t extra_inwards_start_move_length{ 0 };
+    constexpr coord_t extra_inwards_end_move_length{ 0 };
+    constexpr MendedShape extra_inwards_move_contour;
+    addLinesInGivenOrder(
+        order.paths_,
+        config,
+        space_fill_type,
+        wipe_dist,
+        flow_ratio,
+        fan_speed,
+        override_areas,
+        extra_inwards_start_move_length,
+        extra_inwards_end_move_length,
+        extra_inwards_move_contour,
+        max_distance_ignore_combing);
 
     // Add all lines in the excluded areas the 'normal' way.
     addLinesByOptimizer(left_over, config, space_fill_type, true, wipe_dist, flow_ratio, getLastPlannedPositionOrStartingPosition(), fan_speed, override_areas);
@@ -4389,7 +4410,8 @@ template void LayerPlan::addLinesByOptimizer(
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
-    const MendedShape& extra_inwards_move_contour);
+    const MendedShape& extra_inwards_move_contour,
+    const std::optional<coord_t> max_distance_ignore_combing);
 
 template void LayerPlan::addLinesByOptimizer(
     const LinesSet<ClosedPolyline>& lines,
@@ -4405,6 +4427,7 @@ template void LayerPlan::addLinesByOptimizer(
     const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
     const coord_t extra_inwards_start_move_length,
     const coord_t extra_inwards_end_move_length,
-    const MendedShape& extra_inwards_move_contour);
+    const MendedShape& extra_inwards_move_contour,
+    const std::optional<coord_t> max_distance_ignore_combing);
 
 } // namespace cura
