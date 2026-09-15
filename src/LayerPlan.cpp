@@ -425,7 +425,7 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retr
 
         // Divide by 2 to get the radius
         // Multiply by 2 because if two lines start and end points places very close then will be applied combing with retractions. (Ex: for brim)
-        const coord_t max_distance_ignored = max_distance_ignore_combing.value_or(mesh_or_extruder_settings.get<coord_t>("machine_nozzle_tip_outer_diameter") / 2 * 2);
+        const coord_t max_distance_ignored = max_distance_ignore_combing.value_or(mesh_or_extruder_settings.get<coord_t>("machine_nozzle_tip_outer_diameter")) / 2 * 2;
 
         bool unretract_before_last_travel_move = false; // Decided when calculating the combing
         bool do_retracted_combing_move = false; // Decided when calculating the combing
@@ -2613,9 +2613,8 @@ void LayerPlan::addLinesInGivenOrder(
                 addTravel(getLastPlannedPositionOrStartingPosition());
             }
 
-            constexpr auto force_retract{ ForceRetract::AUTOMATIC };
             constexpr coord_t z_offset{ 0 };
-            addTravel(start, force_retract, z_offset, max_distance_ignore_combing);
+            addTravel(start, ForceRetract::AUTOMATIC, z_offset, max_distance_ignore_combing);
         }
 
         Point2LL p0 = start;
