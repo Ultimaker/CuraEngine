@@ -43,7 +43,7 @@ It also has a few unit testing and benchmarking sub-projects that are run period
 ### Computational geometry
 Given its nature, CuraEngine contains a lot of computational geometry algorithms. The main library we use is clipper, for boolean operations (union, intersections, difference) and offsetting.
 Since clipper works only with integer values, we have adopted the following conventions for numeric types:
-* By default, geometric coordinates are typed with the `coord_t` type, which is an alias to `signed long long`. This way we can give those elements directly to clipper. Physically, those coordinates represent micrometers. All the values that represent a distance/position in physical space should then use this type.
+* By default, geometric coordinates are typed with the `coord_t` type, which is an alias to `signed long long`. Its derivates can also be used: `Point2LL` and `Point3LL`. This way we can give those elements directly to clipper. Physically, those coordinates represent micrometers. All the values that represent a distance/position in physical space should then use this type.
 * When we require floating-point calculation, we use `float` type by default, and its derivatives: `Point2F` and `Point3F`
 * When we require floating-point calculation with a specific need for precision, we use the `double` type, and its derivatives: `Point2D` and `Point3D`
 
