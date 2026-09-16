@@ -691,8 +691,9 @@ public:
      * \param[in, out] source The source area that is allowed to grow.
      * \param[in, out] destination The destination area that the source is allowed to grow into.
      * \param allow_thin_areas_grow Whether the thin areas of the source are allowed to grow.
+     * \return True if something could actually be merged
      */
-    static void mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow);
+    static bool mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow);
 
     /*!
      * Extract the thin parts of a shape
