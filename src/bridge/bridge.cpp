@@ -67,9 +67,9 @@ double getWallAlignmentBonus(const coord_t line_y, const TransformedShape& trans
     const TransformedSegment* skin_backward_longest{ nullptr };
     for (const auto& segment : transformed_skin_area.getSegments())
     {
-        const auto vec_x{ segment.getEnd().X - segment.getStart().X };
-        const TransformedSegment*& skin_longest{ vec_x > 0 ? skin_forward_longest : skin_backward_longest };
-        if (skin_longest == nullptr || std::abs(vec_x) > std::abs(skin_longest->getEnd().X - skin_longest->getStart().X))
+        const auto length_x{ segment.getEnd().X - segment.getStart().X };
+        const TransformedSegment*& skin_longest{ length_x > 0 ? skin_forward_longest : skin_backward_longest };
+        if (skin_longest == nullptr || std::abs(length_x) > std::abs(skin_longest->getEnd().X - skin_longest->getStart().X))
         {
             skin_longest = &segment;
         }
