@@ -67,8 +67,8 @@ double getWallAlignmentBonus(const coord_t line_y, const TransformedShape& trans
     const TransformedSegment* skin_backward_longest{ nullptr };
     for (const auto& segment : transformed_skin_area.getSegments())
     {
-        const auto vec_x = segment.getEnd().X - segment.getStart().X;
-        const TransformedSegment*& skin_longest = vec_x > 0 ? skin_forward_longest : skin_backward_longest;
+        const auto vec_x{ segment.getEnd().X - segment.getStart().X };
+        const TransformedSegment*& skin_longest{ vec_x > 0 ? skin_forward_longest : skin_backward_longest };
         if (skin_longest == nullptr || std::abs(vec_x) > std::abs(skin_longest->getEnd().X - skin_longest->getStart().X))
         {
             skin_longest = &segment;
@@ -76,7 +76,7 @@ double getWallAlignmentBonus(const coord_t line_y, const TransformedShape& trans
     }
 
     // Encourage the lines to be aligned with the longest walls.
-    const auto half_bridge_len2 = (bridge_len / 2) << 1;
+    const auto half_bridge_len2{ (bridge_len / 2) << 1 };
     const AngleRadians small_angle{ AngleDegrees{ 0.5 } };
     int wall_alignment_count = 0;
     for (const TransformedSegment* skin_longest : { skin_forward_longest, skin_backward_longest })
@@ -87,7 +87,7 @@ double getWallAlignmentBonus(const coord_t line_y, const TransformedShape& trans
             // Don't align with smaller walls, or walls that are too far away.
             continue;
         }
-        AngleRadians angle = std::abs(std::atan2(vec.Y, vec.X));
+        AngleRadians angle{ std::abs(std::atan2(vec.Y, vec.X)) };
         angle = std::min(angle, AngleRadians{ TAU / 2 } - angle);
         if (angle <= small_angle)
         {
