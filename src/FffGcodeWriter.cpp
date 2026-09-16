@@ -3052,7 +3052,7 @@ bool FffGcodeWriter::processSkinPart(
 {
     bool added_something = false;
     constexpr bool is_flooring_roofing = true;
-    constexpr bool is_not_flooring_roofing = true;
+    constexpr bool is_not_flooring_roofing = false;
     processTopBottom(
         storage,
         gcode_layer,
