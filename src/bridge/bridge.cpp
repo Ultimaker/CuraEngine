@@ -55,6 +55,13 @@ std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const Transfor
 
 double getWallAlignmentBonus(const coord_t line_y, const TransformedShape& transformed_skin_area, const coord_t bridge_len)
 {
+    // If the line is clearly too far away (making it unlikely that the overall form of the shape is even followed) don't give out any bonus.
+    const auto relative_line_y{ std::min(std::abs(line_y - transformed_skin_area.minY()), std::abs(transformed_skin_area.maxY() - line_y)) };
+    if ((bridge_len + EPSILON) < relative_line_y)
+    {
+        return 0.0;
+    }
+
     // Find the 'longest' segments (in forwards and backwards directions) w.r.t. the current direction.
     const TransformedSegment* skin_forward_longest{ nullptr };
     const TransformedSegment* skin_backward_longest{ nullptr };
