@@ -88,7 +88,7 @@ double getWallAlignmentBonus(const coord_t line_y, const TransformedShape& trans
         }
     }
 
-    return wall_alignment_count >= 2 ? 0.5 : 0.0;
+    return wall_alignment_count >= 2 ? 0.05 : 0.0;
 }
 
 /*!
