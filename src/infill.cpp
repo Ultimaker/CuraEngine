@@ -148,7 +148,8 @@ void Infill::generate(
         // Fill narrow area with walls.
         const size_t narrow_wall_count = small_area_width_ / infill_line_width_ + 1;
         const coord_t inset = 0; // outer/inner wall inset is set to 0
-        WallToolPaths wall_toolpaths(small_infill, infill_line_width_, narrow_wall_count, inset, inset, settings, layer_idx, section_type);
+        constexpr auto narrow_wall_generator{ WallToolPathGenerator::Arachne };
+        WallToolPaths wall_toolpaths(small_infill, infill_line_width_, narrow_wall_count, inset, inset, settings, layer_idx, section_type, narrow_wall_generator);
         std::vector<VariableWidthLines> small_infill_paths = wall_toolpaths.getToolPaths();
         scripta::log(
             "infill_small_infill_paths_0",
@@ -513,7 +514,9 @@ void Infill::generateConcentricInfill(const Shape& outline, std::vector<Variable
         constexpr size_t inset_wall_count = 1; // 1 wall at a time.
         constexpr coord_t wall_0_inset = 0; // Don't apply any outer wall inset for these. That's just for the outer wall.
         constexpr coord_t wall_x_inset = 0; // Don't apply any inner wall inset for these. That's just for the inner wall.
-        WallToolPaths wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, wall_x_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL);
+        constexpr auto wall_generator{ WallToolPathGenerator::Arachne };
+        WallToolPaths
+            wall_toolpaths(current_inset, infill_line_width_, inset_wall_count, wall_0_inset, wall_x_inset, settings, layer_idx, SectionType::CONCENTRIC_INFILL, wall_generator);
         const std::vector<VariableWidthLines> inset_paths = wall_toolpaths.getToolPaths();
         toolpaths.insert(toolpaths.end(), inset_paths.begin(), inset_paths.end());
 
