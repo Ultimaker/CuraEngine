@@ -24,7 +24,7 @@ Since the input meshes can have very different shapes, we try to handle all the 
 ### Codebase
 The codebase is essentially C++. Some parts of it are quite old, and possibly written at a time where there were no strict rules. But every time we make changes, we try to upgrade it with modern standards. The one we use is C++20, so not all features of modern C++ are available to us, because we need to support old platforms that don't support modern compilers. However we try to leverage the modern features as much as possible, in order to simplify our code, make it more portable and faster.
 
-The application will be built on both Linux, Windows and Mac platforms. So we have many specific cases here and there for each platform, and it is important that they all keep working.
+The application will be built for Linux, Windows and Mac platforms. So we have many specific cases here and there for each platform, and it is important that they all keep working.
 
 ### Testing
 Some parts of the application have very exhaustive unit tests. However we don't always add new tests when adding or changing a feature. Mostly when this is really relevant.
@@ -32,17 +32,21 @@ Some parts of the application have very exhaustive unit tests. However we don't 
 ### Package management
 Dependencies of CuraEngine are handled using conan2. Most of the recipes are taken from the conan center, but some are custom recipes that we have created/forked. CuraEngine is also a package that is consumed by the global application, Cura, that contains a front-end which calls CuraEngine.
 
-### Project tools
+### Project tools and libraries
 The project uses various external tools:
-
 * CMake for building
 * protobuf to generate messages for the front-end application
+
+And also some major libraries:
+* ranges-v3 (because we don't support std::ranges yet)
+* libfmt
+* clipperlib, for geometrical operations (union, intersections, difference, offsetting)
+* boost
 
 It also has a few unit testing and benchmarking sub-projects that are run periodically, so it is critical that they keep working.
 
 ### Computational geometry
-Given its nature, CuraEngine contains a lot of computational geometry algorithms. The main library we use is clipper, for boolean operations (union, intersections, difference) and offsetting.
-Since clipper works only with integer values, we have adopted the following conventions for numeric types:
+Given its nature, CuraEngine contains a lot of computational geometry algorithms. The main library we use is clipper Since clipper works only with integer values, we have adopted the following conventions for numeric types.
 * By default, geometric coordinates are typed with the `coord_t` type, which is an alias to `signed long long`. Its derivates can also be used: `Point2LL` and `Point3LL`. This way we can give those elements directly to clipper. Physically, those coordinates represent micrometers. All the values that represent a distance/position in physical space should then use this type.
 * When we require floating-point calculation, we use `float` type by default, and its derivatives: `Point2F` and `Point3F`
 * When we require floating-point calculation with a specific need for precision, we use the `double` type, and its derivatives: `Point2D` and `Point3D`
@@ -55,4 +59,4 @@ There are also a few specific types that are defined in the engine and that are 
 * `Temperature` type to store heating temperature
 * `Velocity` and `Acceleration` types to store speeds and acceleration, typically of the print head
 
-To ensure the handling of edge-cases in geometrical calculations, there is an EPSILON value and some convenience methods that are defined to help the developers. They should be used whenever there is a possibility of an edge-case, to properly handle it and make sure the code is robust and repeatable.
+To ensure the handling of edge-cases in geometrical calculations, we consider geometric points to be coincident if they are 5 microns or less apart. For this purpose, there are global EPSILON and EPSILON_SQUARED values defined and some convenience methods that are defined to help the developers. They should be used whenever there is a possibility of an edge-case, to properly handle it and make sure the code is robust and repeatable.
