@@ -75,7 +75,7 @@ void WallsComputation::generateWalls(SliceLayerPart* part, SectionType section_t
         generateSpiralInsets(part, line_width_0, wall_0_inset, recompute_outline_based_on_outer_wall);
         if (layer_nr_ <= static_cast<LayerIndex>(settings_.get<size_t>("initial_bottom_layers")))
         {
-            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, settings_, layer_nr_, section_type);
+            WallToolPaths wall_tool_paths(part->outline, line_width_0, line_width_x, wall_count, wall_0_inset, wall_x_inset, settings_, layer_nr_, section_type);
             part->wall_toolpaths = wall_tool_paths.getToolPaths();
             part->inner_area = wall_tool_paths.getInnerContour();
         }
