@@ -53,6 +53,51 @@ std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const Transfor
     return intersections;
 }
 
+double getWallAlignmentBonus(const coord_t line_y, const TransformedShape& transformed_skin_area, const coord_t bridge_len)
+{
+    // If the line is clearly too far away (making it unlikely that the overall form of the shape is even followed) don't give out any bonus.
+    const auto relative_line_y{ std::min(std::abs(line_y - transformed_skin_area.minY()), std::abs(transformed_skin_area.maxY() - line_y)) };
+    if ((bridge_len + EPSILON) < relative_line_y)
+    {
+        return 0.0;
+    }
+
+    // Find the 'longest' segments (in forwards and backwards directions) w.r.t. the current direction.
+    const TransformedSegment* skin_forward_longest{ nullptr };
+    const TransformedSegment* skin_backward_longest{ nullptr };
+    for (const auto& segment : transformed_skin_area.getSegments())
+    {
+        const auto length_x{ segment.getEnd().X - segment.getStart().X };
+        const TransformedSegment*& skin_longest{ length_x > 0 ? skin_forward_longest : skin_backward_longest };
+        if (skin_longest == nullptr || std::abs(length_x) > std::abs(skin_longest->getEnd().X - skin_longest->getStart().X))
+        {
+            skin_longest = &segment;
+        }
+    }
+
+    // Encourage the lines to be aligned with the longest walls.
+    const auto half_bridge_len2{ (bridge_len / 2) << 1 };
+    const AngleRadians small_angle{ AngleDegrees{ 0.5 } };
+    int wall_alignment_count = 0;
+    for (const TransformedSegment* skin_longest : { skin_forward_longest, skin_backward_longest })
+    {
+        const auto vec = skin_longest->getEnd() - skin_longest->getStart();
+        if (vSize2(vec) < half_bridge_len2)
+        {
+            // Don't align with smaller walls, or walls that are too far away.
+            continue;
+        }
+        AngleRadians angle{ std::abs(std::atan2(vec.Y, vec.X)) };
+        angle = std::min(angle, AngleRadians{ TAU / 2 } - angle);
+        if (angle <= small_angle)
+        {
+            ++wall_alignment_count;
+        }
+    }
+
+    return wall_alignment_count >= 2 ? 0.05 : 0.0;
+}
+
 /*!
  * Evaluates a potential bridging line to see if it can actually bridge between two supported regions
  * @param line_y The Y coordinate of the horizontal line
@@ -74,6 +119,9 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
         return 0;
     }
     ranges::stable_sort(skin_outline_intersections);
+
+    const coord_t bridge_len = std::abs(skin_outline_intersections.back() - skin_outline_intersections.front());
+    const double wall_alignment_bonus = getWallAlignmentBonus(line_y, transformed_skin_area, bridge_len);
 
     // Calculate intersections with supported regions to see which segments are anchored
     std::vector<coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported_area);
@@ -155,7 +203,7 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
 
         const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
         const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
-        double add_segment_score_weight = 0.0;
+        double add_segment_score_weight = wall_alignment_bonus;
 
         switch (bridge_status)
         {
@@ -208,7 +256,8 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
  * @param supported_regions The supported regions areas
  * @param line_width The bridging line width
  * @param angle The current angle to be tested
- * @return The global bridging score for this angle */
+ * @return The global bridging score for this angle
+ */
 coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_regions, const coord_t line_width, const AngleDegrees& angle)
 {
     // Transform the skin outline and supported regions according to the angle to speedup intersections calculations
