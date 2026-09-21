@@ -1519,37 +1519,38 @@ Shape PolygonUtils::clipPolygonWithAABB(const Shape& src, const AABB& aabb)
     return out;
 }
 
-void PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow)
+bool PolygonUtils::mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow)
 {
     if (source.empty() || destination.empty())
     {
-        return;
+        return false;
     }
 
     // Get the thin areas of the destination, which we are allowed to grow over
     const Shape allow_grow_area = getThinAreas(destination, max_dist);
     if (allow_grow_area.empty())
     {
-        return;
+        return false;
     }
 
     // If necessary, remove the thin parts of the source to not allow them to grow
     const Shape source_grow_part = allow_thin_areas_grow ? source : getWideAreas(source, max_dist);
     if (source_grow_part.empty())
     {
-        return;
+        return false;
     }
 
     // Now calculate the actual growing area, which is the intersection of the offset source with the allowed growing area
     const Shape actual_grow_area = source_grow_part.offset(max_dist).intersection(allow_grow_area).offset(EPSILON);
     if (actual_grow_area.empty())
     {
-        return;
+        return false;
     }
 
     // Finally, append the growing area to the source and remove it from the destination
     source = source.unionPolygons(actual_grow_area);
     destination = destination.difference(actual_grow_area);
+    return true;
 }
 
 Shape PolygonUtils::getThinAreas(const Shape& shape, const coord_t max_width)

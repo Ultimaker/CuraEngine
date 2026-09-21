@@ -686,13 +686,14 @@ public:
 
     /*!
      * Merges all parts of a destination area with a source area whenever the destination area is thin enough (w.r.t. a given maximum width).
-     * This is done in-place as much as possible (hence no return value)!
+     * This is done in-place as much as possible!
      * \param max_dist The width below which an area is considered 'too thin'.
      * \param[in, out] source The source area that is allowed to grow.
      * \param[in, out] destination The destination area that the source is allowed to grow into.
      * \param allow_thin_areas_grow Whether the thin areas of the source are allowed to grow.
+     * \return True if something could actually be merged
      */
-    static void mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow);
+    static bool mergeThinOverlap(const coord_t max_dist, Shape& source, Shape& destination, const bool allow_thin_areas_grow);
 
     /*!
      * Extract the thin parts of a shape
