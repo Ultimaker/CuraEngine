@@ -686,7 +686,7 @@ public:
 
     /*!
      * Merges all parts of a destination area with a source area whenever the destination area is thin enough (w.r.t. a given maximum width).
-     * This is done in-place as much as possible (hence no return value)!
+     * This is done in-place as much as possible!
      * \param max_dist The width below which an area is considered 'too thin'.
      * \param[in, out] source The source area that is allowed to grow.
      * \param[in, out] destination The destination area that the source is allowed to grow into.
