@@ -10,6 +10,7 @@
 #include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"
 #include "utils/linearAlg2D.h"
+#include "utils/math.h"
 
 namespace cura
 {
