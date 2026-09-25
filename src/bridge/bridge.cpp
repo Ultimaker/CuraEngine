@@ -5,6 +5,7 @@
 
 #include <range/v3/action/stable_sort.hpp>
 #include <range/v3/algorithm/reverse.hpp>
+#include <range/v3/numeric/accumulate.hpp>
 
 #include "LayerPlan.h"
 #include "PathAdapter.h"
@@ -53,49 +54,26 @@ std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const Transfor
     return intersections;
 }
 
-double getWallAlignmentBonus(const coord_t line_y, const TransformedShape& transformed_skin_area, const coord_t bridge_len)
+double getWallAlignmentBonus(const TransformedShape& transformed_skin_area)
 {
-    // If the line is clearly too far away (making it unlikely that the overall form of the shape is even followed) don't give out any bonus.
-    const auto relative_line_y{ std::min(std::abs(line_y - transformed_skin_area.minY()), std::abs(transformed_skin_area.maxY() - line_y)) };
-    if ((bridge_len + EPSILON) < relative_line_y)
+    const size_t total_segments_length = ranges::accumulate(
+        transformed_skin_area.getSegments(),
+        0,
+        [](const size_t accumulated_length, const TransformedSegment& segment)
+        {
+            return accumulated_length + segment.length();
+        });
+
+    double bonus = 0.0;
+    for (const TransformedSegment& segment : transformed_skin_area.getSegments())
     {
-        return 0.0;
+        const Point2LL segment_vector = segment.getEnd() - segment.getStart();
+        const double segment_weight = static_cast<double>(segment.length()) / total_segments_length;
+        AngleRadians segment_angle{ std::abs(std::atan2(segment_vector.Y, segment_vector.X)) };
+        bonus += segment_weight * std::lerp(1, 0, std::abs(std::numbers::pi / 2 - segment_angle) / (std::numbers::pi / 2));
     }
 
-    // Find the 'longest' segments (in forwards and backwards directions) w.r.t. the current direction.
-    const TransformedSegment* skin_forward_longest{ nullptr };
-    const TransformedSegment* skin_backward_longest{ nullptr };
-    for (const auto& segment : transformed_skin_area.getSegments())
-    {
-        const auto length_x{ segment.getEnd().X - segment.getStart().X };
-        const TransformedSegment*& skin_longest{ length_x > 0 ? skin_forward_longest : skin_backward_longest };
-        if (skin_longest == nullptr || std::abs(length_x) > std::abs(skin_longest->getEnd().X - skin_longest->getStart().X))
-        {
-            skin_longest = &segment;
-        }
-    }
-
-    // Encourage the lines to be aligned with the longest walls.
-    const auto half_bridge_len2{ (bridge_len / 2) << 1 };
-    const AngleRadians small_angle{ AngleDegrees{ 0.5 } };
-    int wall_alignment_count = 0;
-    for (const TransformedSegment* skin_longest : { skin_forward_longest, skin_backward_longest })
-    {
-        const auto vec = skin_longest->getEnd() - skin_longest->getStart();
-        if (vSize2(vec) < half_bridge_len2)
-        {
-            // Don't align with smaller walls, or walls that are too far away.
-            continue;
-        }
-        AngleRadians angle{ std::abs(std::atan2(vec.Y, vec.X)) };
-        angle = std::min(angle, AngleRadians{ TAU / 2 } - angle);
-        if (angle <= small_angle)
-        {
-            ++wall_alignment_count;
-        }
-    }
-
-    return wall_alignment_count >= 2 ? 0.05 : 0.0;
+    return bonus;
 }
 
 /*!
@@ -121,7 +99,6 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
     ranges::stable_sort(skin_outline_intersections);
 
     const coord_t bridge_len = std::abs(skin_outline_intersections.back() - skin_outline_intersections.front());
-    const double wall_alignment_bonus = getWallAlignmentBonus(line_y, transformed_skin_area, bridge_len);
 
     // Calculate intersections with supported regions to see which segments are anchored
     std::vector<coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported_area);
@@ -203,7 +180,7 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
 
         const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
         const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
-        double add_segment_score_weight = wall_alignment_bonus;
+        double add_segment_score_weight = 0;
 
         switch (bridge_status)
         {
@@ -214,23 +191,23 @@ coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transfo
         case BridgeStatus::Supported:
             bridge_status = leaving_skin ? BridgeStatus::Outside : BridgeStatus::Anchored;
             // Negatively account for fully supported lines to avoid lonely line parts over the supported areas
-            add_segment_score_weight = -0.1;
+            add_segment_score_weight -= 0.1;
             break;
 
         case BridgeStatus::Hanging:
-            add_segment_score_weight = -1.0;
+            add_segment_score_weight -= 1.0;
             bridge_status = reaching_supported ? BridgeStatus::Supported : BridgeStatus::Outside;
             break;
 
         case BridgeStatus::Anchored:
             if (reaching_supported)
             {
-                add_segment_score_weight = 1.0;
+                add_segment_score_weight += 1.0;
                 bridge_status = BridgeStatus::Supported;
             }
             else if (leaving_skin)
             {
-                add_segment_score_weight = -1.0;
+                add_segment_score_weight -= 1.0;
                 bridge_status = BridgeStatus::Outside;
             }
             break;
@@ -279,6 +256,8 @@ coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_re
 
     const coord_t line_min = transformed_skin_area.minY() + line_width * 0.5;
 
+    const double wall_alignment_bonus = 1.0 + getWallAlignmentBonus(transformed_skin_area);
+
     // Evaluated lines that could be properly bridging
     coord_t line_score = 0;
     const TransformedShape empty_transformed_shape;
@@ -286,7 +265,7 @@ coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_re
     {
         const coord_t line_y = line_min + i * line_width;
         const bool has_supports = line_y >= transformed_supported_area.minY() && line_y <= transformed_supported_area.maxY();
-        line_score += evaluateBridgeLine(line_y, transformed_skin_area, has_supports ? transformed_supported_area : empty_transformed_shape);
+        line_score += wall_alignment_bonus * evaluateBridgeLine(line_y, transformed_skin_area, has_supports ? transformed_supported_area : empty_transformed_shape);
     }
 
     return line_score;

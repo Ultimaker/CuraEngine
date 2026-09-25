@@ -34,12 +34,14 @@ public:
     {
         start_ = transformed_start;
         updateMinMax();
+        length_.reset();
     }
 
     void setEnd(const Point2LL& transformed_end)
     {
         end_ = transformed_end;
         updateMinMax();
+        length_.reset();
     }
 
     void updateMinMax();
@@ -62,6 +64,16 @@ public:
     const Point2LL& getEnd() const
     {
         return end_;
+    }
+
+    const coord_t length() const
+    {
+        if (! length_.has_value())
+        {
+            const_cast<TransformedSegment*>(this)->length_ = vSize(end_ - start_);
+        }
+
+        return length_.value();
     }
 
     /*!
@@ -87,6 +99,7 @@ private:
     Point2LL end_;
     coord_t min_y_{ 0 };
     coord_t max_y_{ 0 };
+    std::optional<coord_t> length_;
 };
 
 } // namespace cura
