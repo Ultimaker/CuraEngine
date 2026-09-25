@@ -12,6 +12,8 @@ class BridgeAngleShapeScoringCriterion : public BridgeAngleScoringCriterion
 {
 public:
     explicit BridgeAngleShapeScoringCriterion(const Shape& bridging_area, const Shape& skin_outline);
+
+    [[nodiscard]] static AngleDegrees preferredExtrusionAngle(const Shape& bridging_area, const Shape& skin_outline);
 };
 
 } // namespace cura

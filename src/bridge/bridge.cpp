@@ -213,7 +213,7 @@ std::optional<AngleDegrees> bridgeAngle(
     const std::optional<size_t> best_angle_index = angle_finder.findBestElement(BridgeAngleScoringCriterion::candidatesCount());
     if (! best_angle_index.has_value())
     {
-        return std::nullopt;
+        return BridgeAngleShapeScoringCriterion::preferredExtrusionAngle(bridging_area, skin_outline);
     }
 
     return BridgeAngleScoringCriterion::candidateIndexToExtrusionAngle(best_angle_index.value());

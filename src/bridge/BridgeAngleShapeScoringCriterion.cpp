@@ -10,23 +10,23 @@ namespace cura
 namespace
 {
 
-std::vector<double> buildShapeScores(const Shape& bridging_area, const Shape& skin_outline)
+Shape preferredShape(const Shape& bridging_area, const Shape& skin_outline)
 {
     Shape preferred_shape = bridging_area.empty() ? skin_outline : bridging_area;
+    preferred_shape.makeConvex();
+    return preferred_shape;
+}
+
+std::vector<double> buildShapeScores(const Shape& bridging_area, const Shape& skin_outline)
+{
+    const Shape preferred_shape = preferredShape(bridging_area, skin_outline);
     if (preferred_shape.empty())
     {
         return std::vector<double>(BridgeAngleScoringCriterion::candidatesCount(), 1.0);
     }
 
-    preferred_shape.makeConvex();
-    const auto [aabb, angle] = AABB::minimumAreaOrientedBoundingBox(preferred_shape);
-
-    AngleDegrees preferred_axis_angle(angle);
-    if (aabb.height() > aabb.width())
-    {
-        preferred_axis_angle += 90;
-    }
-    const AngleDegrees preferred_extrusion_angle(-static_cast<double>(preferred_axis_angle));
+    const auto [aabb, unused_angle] = AABB::minimumAreaOrientedBoundingBox(preferred_shape);
+    const AngleDegrees preferred_extrusion_angle = BridgeAngleShapeScoringCriterion::preferredExtrusionAngle(bridging_area, skin_outline);
 
     const coord_t longest_side = std::max(aabb.width(), aabb.height());
     const coord_t shortest_side = std::min(aabb.width(), aabb.height());
@@ -50,6 +50,24 @@ std::vector<double> buildShapeScores(const Shape& bridging_area, const Shape& sk
 BridgeAngleShapeScoringCriterion::BridgeAngleShapeScoringCriterion(const Shape& bridging_area, const Shape& skin_outline)
     : BridgeAngleScoringCriterion(buildShapeScores(bridging_area, skin_outline))
 {
+}
+
+AngleDegrees BridgeAngleShapeScoringCriterion::preferredExtrusionAngle(const Shape& bridging_area, const Shape& skin_outline)
+{
+    const Shape preferred_shape = preferredShape(bridging_area, skin_outline);
+    if (preferred_shape.empty())
+    {
+        return 0;
+    }
+
+    const auto [aabb, angle] = AABB::minimumAreaOrientedBoundingBox(preferred_shape);
+    AngleDegrees preferred_axis_angle(angle);
+    if (aabb.height() > aabb.width())
+    {
+        preferred_axis_angle += 90;
+    }
+
+    return AngleDegrees(-static_cast<double>(preferred_axis_angle));
 }
 
 } // namespace cura
