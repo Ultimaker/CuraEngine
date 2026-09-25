@@ -200,14 +200,15 @@ std::optional<AngleDegrees> bridgeAngle(
         bridge_area_lines.push_back(path.toPseudoOpenPolyline());
     }
     bridge_area_lines = bridge_area_lines.difference(supported_regions.offset(10));
+    if (bridge_area_lines.empty())
+    {
+        return BridgeAngleShapeScoringCriterion::preferredExtrusionAngle(bridging_area, skin_outline);
+    }
 
     BestElementFinder angle_finder;
     BestElementFinder::CriteriaPass criteria_pass;
     criteria_pass.criteria.push_back({ std::make_shared<BridgeAngleShapeScoringCriterion>(bridging_area, skin_outline), 1.0 });
-    if (! bridge_area_lines.empty())
-    {
-        criteria_pass.criteria.push_back({ std::make_shared<BridgeAngleLineScoringCriterion>(skin_outline, supported_regions, line_width), 1.0 });
-    }
+    criteria_pass.criteria.push_back({ std::make_shared<BridgeAngleLineScoringCriterion>(skin_outline, supported_regions, line_width), 1.0 });
     angle_finder.appendCriteriaPass(criteria_pass);
 
     const std::optional<size_t> best_angle_index = angle_finder.findBestElement(BridgeAngleScoringCriterion::candidatesCount());
