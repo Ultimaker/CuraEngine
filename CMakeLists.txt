@@ -111,6 +111,9 @@ set(engine_SRCS # Except main.cpp.
         src/BeadingStrategy/InnerWallInsetBeadingStrategy.cpp
 
         src/bridge/bridge.cpp
+        src/bridge/BridgeAngleLineScoringCriterion.cpp
+        src/bridge/BridgeAngleScoringCriterion.cpp
+        src/bridge/BridgeAngleShapeScoringCriterion.cpp
         src/bridge/ExpansionRange.cpp
         src/bridge/SegmentOverlappingData.cpp
         src/bridge/TransformedSegment.cpp

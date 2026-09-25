@@ -3,11 +3,14 @@
 
 #include "bridge/bridge.h"
 
-#include <range/v3/action/stable_sort.hpp>
+#include <memory>
 #include <range/v3/algorithm/reverse.hpp>
 
 #include "LayerPlan.h"
 #include "PathAdapter.h"
+#include "bridge/BridgeAngleLineScoringCriterion.h"
+#include "bridge/BridgeAngleScoringCriterion.h"
+#include "bridge/BridgeAngleShapeScoringCriterion.h"
 #include "bridge/ExpansionRange.h"
 #include "bridge/SegmentOverlapping.h"
 #include "bridge/TransformedShape.h"
@@ -19,229 +22,12 @@
 #include "utils/AABB.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
+#include "utils/scoring/BestElementFinder.h"
 #include "utils/types/geometry.h"
 
 
 namespace cura
 {
-
-/*!
- * Calculates all the intersections between a horizontal line and the given transformed shape
- * @param line_y The horizontal line Y coordinate
- * @param transformed_shape The shape to intersect with
- * @return The list of X coordinates of the intersections, unsorted
- */
-std::vector<coord_t> shapeLineIntersections(const coord_t line_y, const TransformedShape& transformed_shape)
-{
-    std::vector<coord_t> intersections;
-
-    for (const TransformedSegment& transformed_segment : transformed_shape.getSegments())
-    {
-        if (transformed_segment.minY() > line_y || transformed_segment.maxY() < line_y)
-        {
-            // Segment is fully over or under the line, skip
-            continue;
-        }
-
-        const std::optional<coord_t> intersection = LinearAlg2D::lineHorizontalLineIntersection(transformed_segment.getStart(), transformed_segment.getEnd(), line_y);
-        if (intersection.has_value())
-        {
-            intersections.push_back(intersection.value());
-        }
-    }
-
-    return intersections;
-}
-
-/*!
- * Evaluates a potential bridging line to see if it can actually bridge between two supported regions
- * @param line_y The Y coordinate of the horizontal line
- * @param transformed_skin_area The skin outline, transformed so that the bridging line is horizontal
- * @param transformed_supported_area The supported regions, transformed so that the bridging line is horizontal
- * @return The score of the line regarding bridging, which can be positive if it is mostly bridging, or negative if it is mostly hanging
- *
- * The score is based on the following criteria:
- *   - Properly bridging segments, i.e. between two supported areas, add their length to the score
- *   - Hanging segments, i.e. supported on one side but not the other (or not at all), subtract their length from the score
- *   - Segments that lie on a supported area substract part of their length from the score  */
-coord_t evaluateBridgeLine(const coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area)
-{
-    // Calculate intersections with skin outline to see which segments should actually be printed
-    std::vector<coord_t> skin_outline_intersections = shapeLineIntersections(line_y, transformed_skin_area);
-    if (skin_outline_intersections.size() < 2)
-    {
-        // We need to enter the skin at some point to bridge inside
-        return 0;
-    }
-    ranges::stable_sort(skin_outline_intersections);
-
-    // Calculate intersections with supported regions to see which segments are anchored
-    std::vector<coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported_area);
-    ranges::stable_sort(supported_regions_intersections);
-
-    enum class BridgeStatus
-    {
-        Outside, // Segment is outside the skin
-        Hanging, // Segment has started to extrude over air
-        Anchored, // Segment has been anchored to a supported area
-        Supported, // Segment is being extruded over a supported area
-    };
-
-    // Loop through intersections with skin and supported regions to see which parts of the line are hanging/bridging/supported
-    bool inside_skin_area = false;
-    bool inside_supported_area = false;
-    coord_t last_position;
-    coord_t segment_score = 0;
-    BridgeStatus bridge_status = BridgeStatus::Outside;
-    while (! skin_outline_intersections.empty() || ! supported_regions_intersections.empty())
-    {
-        // See what is the next intersection: skin, supported or both
-        bool next_intersection_is_skin_area = false;
-        bool next_intersection_is_supported_area = false;
-        if (skin_outline_intersections.empty())
-        {
-            next_intersection_is_supported_area = true;
-        }
-        else if (supported_regions_intersections.empty())
-        {
-            next_intersection_is_skin_area = true;
-        }
-        else
-        {
-            const double next_intersection_skin_area = skin_outline_intersections.front();
-            const double next_intersection_supported_area = supported_regions_intersections.front();
-
-            if (is_zero(next_intersection_skin_area - next_intersection_supported_area))
-            {
-                next_intersection_is_skin_area = true;
-                next_intersection_is_supported_area = true;
-            }
-            else if (next_intersection_skin_area <= next_intersection_supported_area)
-            {
-                next_intersection_is_skin_area = true;
-                if (inside_skin_area && inside_supported_area)
-                {
-                    // When leaving skin, assume also leaving supported. This should always happen naturally, but may not due to rounding errors.
-                    next_intersection_is_supported_area = true;
-                }
-            }
-            else
-            {
-                next_intersection_is_supported_area = true;
-                if (! inside_supported_area && ! inside_skin_area)
-                {
-                    // When reaching supported, assume also reaching skin. This should always happen naturally, but may not due to rounding errors.
-                    next_intersection_is_skin_area = true;
-                }
-            }
-        }
-
-        // Get new insideness states
-        bool next_inside_skin_area = inside_skin_area;
-        bool next_inside_supported_area = inside_supported_area;
-        coord_t next_intersection;
-        if (next_intersection_is_skin_area)
-        {
-            next_intersection = skin_outline_intersections.front();
-            skin_outline_intersections.erase(skin_outline_intersections.begin());
-            next_inside_skin_area = ! next_inside_skin_area;
-        }
-        if (next_intersection_is_supported_area)
-        {
-            next_intersection = supported_regions_intersections.front();
-            supported_regions_intersections.erase(supported_regions_intersections.begin());
-            next_inside_supported_area = ! next_inside_supported_area;
-        }
-
-        const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
-        const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
-        double add_segment_score_weight = 0.0;
-
-        switch (bridge_status)
-        {
-        case BridgeStatus::Outside:
-            bridge_status = reaching_supported ? BridgeStatus::Supported : BridgeStatus::Hanging;
-            break;
-
-        case BridgeStatus::Supported:
-            bridge_status = leaving_skin ? BridgeStatus::Outside : BridgeStatus::Anchored;
-            // Negatively account for fully supported lines to avoid lonely line parts over the supported areas
-            add_segment_score_weight = -0.1;
-            break;
-
-        case BridgeStatus::Hanging:
-            add_segment_score_weight = -1.0;
-            bridge_status = reaching_supported ? BridgeStatus::Supported : BridgeStatus::Outside;
-            break;
-
-        case BridgeStatus::Anchored:
-            if (reaching_supported)
-            {
-                add_segment_score_weight = 1.0;
-                bridge_status = BridgeStatus::Supported;
-            }
-            else if (leaving_skin)
-            {
-                add_segment_score_weight = -1.0;
-                bridge_status = BridgeStatus::Outside;
-            }
-            break;
-        }
-
-        if (add_segment_score_weight != 0.0)
-        {
-            const coord_t segment_length = next_intersection - last_position;
-            segment_score += std::llrint(segment_length * add_segment_score_weight);
-        }
-
-        last_position = next_intersection;
-        inside_skin_area = next_inside_skin_area;
-        inside_supported_area = next_inside_supported_area;
-    }
-
-    return segment_score;
-}
-
-/*!
- * Evaluate the bridging lines scoring for the given angle
- * @param skin_outline The skin outline to be filled
- * @param supported_regions The supported regions areas
- * @param line_width The bridging line width
- * @param angle The current angle to be tested
- * @return The global bridging score for this angle */
-coord_t evaluateBridgeLines(const Shape& skin_outline, const Shape& supported_regions, const coord_t line_width, const AngleDegrees& angle)
-{
-    // Transform the skin outline and supported regions according to the angle to speedup intersections calculations
-    const PointMatrix matrix(angle);
-    const TransformedShape transformed_skin_area(skin_outline, matrix);
-    const TransformedShape transformed_supported_area(supported_regions, matrix);
-
-    if (transformed_skin_area.minY() >= transformed_skin_area.maxY() || transformed_supported_area.minY() >= transformed_supported_area.maxY())
-    {
-        return std::numeric_limits<coord_t>::lowest();
-    }
-
-    const size_t bridge_lines_count = (transformed_skin_area.maxY() - transformed_skin_area.minY()) / line_width;
-    if (bridge_lines_count == 0)
-    {
-        // We cannot fit a single line in this direction, give up
-        return std::numeric_limits<coord_t>::lowest();
-    }
-
-    const coord_t line_min = transformed_skin_area.minY() + line_width * 0.5;
-
-    // Evaluated lines that could be properly bridging
-    coord_t line_score = 0;
-    const TransformedShape empty_transformed_shape;
-    for (size_t i = 0; i < bridge_lines_count; ++i)
-    {
-        const coord_t line_y = line_min + i * line_width;
-        const bool has_supports = line_y >= transformed_supported_area.minY() && line_y <= transformed_supported_area.maxY();
-        line_score += evaluateBridgeLine(line_y, transformed_skin_area, has_supports ? transformed_supported_area : empty_transformed_shape);
-    }
-
-    return line_score;
-}
 
 /*!
  * Gets the proper angle when bridging over infill
@@ -408,12 +194,6 @@ std::optional<AngleDegrees> bridgeAngle(
         return bridgeOverInfillAngle(mesh, layer_nr);
     }
 
-    struct FitAngle
-    {
-        coord_t score;
-        std::optional<AngleDegrees> angle;
-    };
-
     OpenLinesSet bridge_area_lines;
     for (auto& path : skin_outline)
     {
@@ -421,37 +201,22 @@ std::optional<AngleDegrees> bridgeAngle(
     }
     bridge_area_lines = bridge_area_lines.difference(supported_regions.offset(10));
 
-    if (bridge_area_lines.empty())
+    BestElementFinder angle_finder;
+    BestElementFinder::CriteriaPass criteria_pass;
+    criteria_pass.criteria.push_back({ std::make_shared<BridgeAngleShapeScoringCriterion>(bridging_area, skin_outline), 1.0 });
+    if (! bridge_area_lines.empty())
     {
-        // if bridge lines are supported in all directions, use the following heuristic
-        // 1. calculate the minimum oriented bounding box
-        // 2. bridge lines in the smallest axis of this min oriented
-        //    bounding box is considered the best orientation
-        // This heuristic is used since this produces more consistent bridging angles.
-        // While the else-case would produce a better theoretical bridging angle it would
-        // produce a different angle for similar areas within the same print. Since this
-        // would look _chaotic_ on the final print a more consistent approach is used.
-        auto skin_outline_ = skin_outline;
-        skin_outline_.makeConvex();
-        auto [aabb, angle] = AABB::minimumAreaOrientedBoundingBox(skin_outline_);
-        if (aabb.height() > aabb.width())
-        {
-            angle += AngleDegrees(90);
-        }
-        return -AngleDegrees(angle);
+        criteria_pass.criteria.push_back({ std::make_shared<BridgeAngleLineScoringCriterion>(skin_outline, supported_regions, line_width), 1.0 });
+    }
+    angle_finder.appendCriteriaPass(criteria_pass);
+
+    const std::optional<size_t> best_angle_index = angle_finder.findBestElement(BridgeAngleScoringCriterion::candidatesCount());
+    if (! best_angle_index.has_value())
+    {
+        return std::nullopt;
     }
 
-    FitAngle best_angle{ std::numeric_limits<coord_t>::lowest(), std::nullopt };
-    for (AngleDegrees angle = 0; angle < 180; angle += 1)
-    {
-        const coord_t score = evaluateBridgeLines(skin_outline, supported_regions, line_width, angle);
-        if (score > best_angle.score)
-        {
-            best_angle = { score, angle + 90 };
-        }
-    }
-
-    return best_angle.angle;
+    return BridgeAngleScoringCriterion::candidateIndexToExtrusionAngle(best_angle_index.value());
 }
 /*!
  * Make the expanded ranges for the given segment
