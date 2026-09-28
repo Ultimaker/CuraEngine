@@ -23,14 +23,14 @@ double LineAnchoringScoringCriterion::computeScore(const TransformedShape& trans
 {
     if (transformed_skin_area.minY() >= transformed_skin_area.maxY() || transformed_supported_area.minY() >= transformed_supported_area.maxY())
     {
-        return std::numeric_limits<coord_t>::lowest();
+        return 0.0;
     }
 
     const size_t bridge_lines_count = (transformed_skin_area.maxY() - transformed_skin_area.minY()) / line_width_;
     if (bridge_lines_count == 0)
     {
         // We cannot fit a single line in this direction, give up
-        return std::numeric_limits<coord_t>::lowest();
+        return 0.0;
     }
 
     const coord_t line_min = transformed_skin_area.minY() + line_width_ * 0.5;
