@@ -6,6 +6,7 @@
 #include <limits>
 
 #include <range/v3/view/enumerate.hpp>
+#include <spdlog/spdlog.h>
 
 #include "utils/scoring/ScoringCriterion.h"
 
@@ -23,7 +24,7 @@ void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriteri
     appendCriteriaPass(criteria_pass);
 }
 
-std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t candidates_count)
+std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates_count)
 {
     // Start by initializing the candidates list in natural order
     std::vector<Candidate> best_candidates(candidates_count);
@@ -46,7 +47,18 @@ std::optional<size_t> cura::BestElementFinder::findBestElement(const size_t cand
 
             for (const auto& weighed_criterion : criteria_pass.criteria)
             {
-                iterator->score += weighed_criterion.criterion->computeScore(iterator->candidate_index) * weighed_criterion.weight;
+                const double criterion_score = weighed_criterion.criterion->computeScore(iterator->candidate_index);
+
+                if (criterion_score < 0.0)
+                {
+                    spdlog::warn("Criterion returned a score<0: {}", criterion_score);
+                }
+                else if (criterion_score > 1.0)
+                {
+                    spdlog::warn("Criterion returned a score>1: {}", criterion_score);
+                }
+
+                iterator->score += criterion_score * weighed_criterion.weight;
             }
 
             if (best_candidate_iterator == end || iterator->score > best_candidate_iterator->score)
