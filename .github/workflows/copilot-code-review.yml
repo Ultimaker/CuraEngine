@@ -1,0 +1,30 @@
+name: Copilot code review setup
+
+on:
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  copilot-setup-steps:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Install UltiCortex review skills
+        shell: bash
+        env:
+          ACTIONS_ULTICORTEX_READ_TOKEN: ${{ secrets.ULTICORTEX_READ_TOKEN }}
+        run: |
+          set -euo pipefail
+          token="${ULTICORTEX_READ_TOKEN:-${ACTIONS_ULTICORTEX_READ_TOKEN:-}}"
+          if [[ -z "$token" ]]; then
+            echo "Configure ULTICORTEX_READ_TOKEN with read access to Ultimaker/UltiCortex (Agents secret for reviews, Actions secret for workflow_dispatch)." >&2
+            exit 1
+          fi
+          gh skill --help >/dev/null
+          export GH_TOKEN="$token"
+          for skill in cpp-pro cmake conan-2 software-architect; do
+            gh skill install Ultimaker/UltiCortex "skills/software/$skill" \
+              --agent github-copilot --scope user \
+              --pin 9d6f3507ba50ef8497b6a7708771fe2ed1a0cdbc
+          done
