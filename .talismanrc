@@ -42,7 +42,7 @@ fileignoreconfig:
 - filename: .agents/hooks/check_security_downgrades.py
   checksum: 5b7730aa506842c87af5ed390bbee798498e13acafb340e69ab1c7266616a537
 - filename: .agents/hooks/check_upstream_alignment.py
-  checksum: c79dcc53c6822cca460c4281b9d077ce22ff4e84103973d76041c89ec670793b
+  checksum: e9677db66438d85f41920d0d61aa5492a7c3e45fe66c56929fef3ae1e2cabf32
 - filename: .agents/hooks/compile_aiignore.py
   checksum: 9b790aff74c1f2644c1cffe250fb5decca184a73e1cd8730d2a4751d04a0f64a
 - filename: .agents/hooks/compile_rule_frontmatter.py

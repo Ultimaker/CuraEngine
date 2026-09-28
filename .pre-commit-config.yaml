@@ -53,6 +53,21 @@ repos:
   - repo: local
     hooks:
 
+      - id: check-ast-grep
+        name: Check changed C++ lines against CuraEngine structural rules
+        entry: python .agents/hooks/check_ast_grep.py
+        language: python
+        additional_dependencies: ['ast-grep-cli==0.45.1']
+        types_or: [c++, c]
+
+      - id: test-ast-grep-rules
+        name: Verify CuraEngine structural rule fixtures
+        entry: python .agents/hooks/test_check_ast_grep.py
+        language: python
+        additional_dependencies: ['ast-grep-cli==0.45.1']
+        files: '^(sgconfig\.yml|rules/cpp/|\.agents/hooks/(check_ast_grep|test_check_ast_grep)\.py)'
+        pass_filenames: false
+
       - id: block-absolute-paths
         name: Block absolute local path references
         entry: python .agents/hooks/block-absolute-paths.py

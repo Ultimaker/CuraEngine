@@ -615,50 +615,50 @@
       "fired": true,
       "blocked": true,
       "detail": "staged violation rejected",
-      "at": "2026-09-28T12:19:44+00:00",
-      "sha": "741be28fd"
+      "at": "2026-09-28T12:57:27+00:00",
+      "sha": "12ec063c3"
     },
     "block-absolute-paths": {
       "fired": true,
       "blocked": true,
       "detail": "staged violation rejected",
-      "at": "2026-09-28T12:19:44+00:00",
-      "sha": "741be28fd"
+      "at": "2026-09-28T12:57:27+00:00",
+      "sha": "12ec063c3"
     },
     "pretool-guard": {
       "fired": true,
       "blocked": true,
       "detail": "secret payload denied",
-      "at": "2026-09-28T12:19:44+00:00",
-      "sha": "741be28fd"
+      "at": "2026-09-28T12:57:27+00:00",
+      "sha": "12ec063c3"
     },
     "block-name-matched-kill": {
       "fired": true,
       "blocked": true,
       "detail": "pkill denied",
-      "at": "2026-09-28T12:19:44+00:00",
-      "sha": "741be28fd"
+      "at": "2026-09-28T12:57:27+00:00",
+      "sha": "12ec063c3"
     },
     "check-rule-frontmatter": {
       "fired": true,
       "blocked": null,
       "detail": "exit 0 (advisory check)",
-      "at": "2026-09-28T12:19:44+00:00",
-      "sha": "741be28fd"
+      "at": "2026-09-28T12:57:27+00:00",
+      "sha": "12ec063c3"
     },
     "audit-quad-agent-parity": {
       "fired": true,
       "blocked": null,
       "detail": "exit 0 (advisory check)",
-      "at": "2026-09-28T12:19:44+00:00",
-      "sha": "741be28fd"
+      "at": "2026-09-28T12:57:27+00:00",
+      "sha": "12ec063c3"
     },
     "check-upstream-alignment": {
       "fired": true,
       "blocked": null,
       "detail": "exit 0 (advisory check)",
-      "at": "2026-09-28T12:19:45+00:00",
-      "sha": "741be28fd"
+      "at": "2026-09-28T12:57:27+00:00",
+      "sha": "12ec063c3"
     }
   }
 }

@@ -54,7 +54,12 @@ def main():
                 failures.append(str(path.relative_to(ROOT)))
     if failures:
         print("clang-format reported issues in: " + ", ".join(failures), file=sys.stderr)
-    return 1 if failures else 0
+    structural = subprocess.run(
+        [sys.executable, str(ROOT / ".agents/hooks/check_ast_grep.py"), "--working", *(str(path) for path in sorted(changed))],
+        cwd=ROOT,
+        check=False,
+    )
+    return 1 if failures or structural.returncode else 0
 
 
 if __name__ == "__main__":
