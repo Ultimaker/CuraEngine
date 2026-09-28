@@ -98,10 +98,9 @@ bool Comb::calc(
     bool& unretract_before_last_travel_move,
     bool& do_retracted_move)
 {
-    if (shorterThen(end_point - start_point, max_comb_distance_ignored))
-    {
-        return true;
-    }
+    // A move shorter than the nozzle tip can still leave the current part. Returning success here
+    // used to skip every crossing check, so the travel was combed with an empty path and no retraction.
+    // Short moves that stay in one part still take the direct path inside LinePolygonsCrossings.
     const Point2LL travel_end_point_before_combing = end_point;
     // Move start and end point inside the optimal comb boundary
     size_t start_inside_poly = NO_INDEX;
