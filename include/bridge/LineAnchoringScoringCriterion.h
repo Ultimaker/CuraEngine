@@ -12,7 +12,7 @@ namespace cura
 class Shape;
 class TransformedShape;
 
-/*! Scoring criterion for bridge angle candidate that bases the score on whether the bridging lines will be properly be anchored */
+/*! Scoring criterion for bridge angle candidate that bases the score on whether the bridging lines will properly be anchored */
 class LineAnchoringScoringCriterion : public BridgeAngleScoringCriterion
 {
 public:

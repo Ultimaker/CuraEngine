@@ -10,6 +10,7 @@
 
 namespace cura
 {
+
 struct AngleCandidate;
 class TransformedShape;
 class Shape;
@@ -20,12 +21,13 @@ class BridgeAngleScoringCriterion : public ScoringCriterion
 public:
     explicit BridgeAngleScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions);
 
-    [[nodiscard]] double computeScore(const size_t candidate_index) const override;
+    double computeScore(const size_t candidate_index) const override;
 
 protected:
     /*!
      * Method to be overridden by child classes to actually calculate the score of an angle candidate
-     * @param candidate The candidate which score is to be calculated
+     * @param transformed_skin The skin area, rotated so that it is in the plan where bridging lines are horizontal
+     * @param transformed_supported_regions The supported regions, rotated so that it is in the plan where bridging lines are horizontal
      * @return The score of this candidate
      */
     virtual double computeScore(const TransformedShape& transformed_skin, const TransformedShape& transformed_supported_regions) const = 0;
