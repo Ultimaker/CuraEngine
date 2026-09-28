@@ -70,8 +70,6 @@ std::tuple<coord_t, coord_t>
     }
     ranges::stable_sort(skin_outline_intersections);
 
-    const coord_t bridge_len = std::abs(skin_outline_intersections.back() - skin_outline_intersections.front());
-
     // Calculate intersections with supported regions to see which segments are anchored
     std::vector<coord_t> supported_regions_intersections = shapeLineIntersections(line_y, transformed_supported_area);
     ranges::stable_sort(supported_regions_intersections);
@@ -89,6 +87,7 @@ std::tuple<coord_t, coord_t>
     bool inside_supported_area = false;
     coord_t last_position;
     coord_t segment_score = 0;
+    coord_t total_bridge_length = 0;
     BridgeStatus bridge_status = BridgeStatus::Outside;
     while (! skin_outline_intersections.empty() || ! supported_regions_intersections.empty())
     {
@@ -153,6 +152,12 @@ std::tuple<coord_t, coord_t>
         const bool leaving_skin = next_intersection_is_skin_area && ! next_inside_skin_area;
         const bool reaching_supported = next_intersection_is_supported_area && next_inside_supported_area;
         double add_segment_score_weight = 0;
+        const coord_t segment_length = next_intersection - last_position;
+
+        if (bridge_status != BridgeStatus::Outside)
+        {
+            total_bridge_length += segment_length;
+        }
 
         switch (bridge_status)
         {
@@ -187,7 +192,6 @@ std::tuple<coord_t, coord_t>
 
         if (add_segment_score_weight != 0.0)
         {
-            const coord_t segment_length = next_intersection - last_position;
             segment_score += std::llrint(segment_length * add_segment_score_weight);
         }
 
@@ -196,7 +200,7 @@ std::tuple<coord_t, coord_t>
         inside_supported_area = next_inside_supported_area;
     }
 
-    return { bridge_len, segment_score };
+    return { total_bridge_length, segment_score };
 }
 
 std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const coord_t line_y, const TransformedShape& transformed_shape)

@@ -21,8 +21,8 @@ double AlignShapeScoringCriterion::computeScore(const TransformedShape& transfor
     {
         const_cast<AlignShapeScoringCriterion*>(this)->total_segments_length_ = ranges::accumulate(
             transformed_skin_area.getSegments(),
-            0,
-            [](const size_t accumulated_length, const TransformedSegment& segment)
+            coord_t{ 0 },
+            [](const coord_t accumulated_length, const TransformedSegment& segment)
             {
                 return accumulated_length + segment.length();
             });
