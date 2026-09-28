@@ -1,3 +1,4 @@
+<!-- @generated from AGENTS.md. Edit AGENTS.md and re-run sync. -->
 # Agent Operational & Onboarding Guide (AGENTS.md)
 
 This document explains the main structure of the CuraEngine application.
