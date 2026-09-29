@@ -1035,19 +1035,23 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
             }
         }
 
-        // Erase the treated intersection, and classify the area immediately after the hit. This
-        // avoids treating a vertex hit as a crossing when the segment only touches the area.
-        override_areas_intersections[next_intersection_index].erase(override_areas_intersections[next_intersection_index].begin());
-        const OverrideArea& override_area = override_areas[next_intersection_index];
-        const bool area_before_intersection = override_area.area.inside(get_position(*next_intersection - epsilon_factor).toPoint2LL(), true);
-        const bool area_after_intersection = override_area.area.inside(get_position(*next_intersection + epsilon_factor).toPoint2LL(), true);
-        if (area_before_intersection != area_after_intersection)
+        // Erase the treated intersection. A single edge intersection is always a crossing, while
+        // multiple close intersections may be a vertex touch and need to be classified geometrically.
+        auto& intersections = override_areas_intersections[next_intersection_index];
+        const float cluster_end = *next_intersection + epsilon_factor;
+        const auto cluster_end_it = std::upper_bound(intersections.begin(), intersections.end(), cluster_end);
+        const size_t cluster_size = std::distance(intersections.begin(), cluster_end_it);
+        intersections.erase(intersections.begin(), cluster_end_it);
+
+        if (cluster_size == 1)
         {
-            areas_under_segments[next_intersection_index] = area_after_intersection;
+            areas_under_segments.flip(next_intersection_index);
         }
         else
         {
-            areas_under_segments[next_intersection_index] = area_before_intersection;
+            const OverrideArea& override_area = override_areas[next_intersection_index];
+            const bool area_after_intersection = override_area.area.inside(get_position(*next_intersection + epsilon_factor).toPoint2LL(), true);
+            areas_under_segments[next_intersection_index] = area_after_intersection;
         }
 
         // Now see if this intersection got us to a different topmost area, or if it happened under
