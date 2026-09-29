@@ -8,6 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "Application.h" //To provide settings for the layer plan.
+#include "mesh.h" //To supply a model outline for outside travel.
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
 #include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
@@ -488,6 +489,43 @@ public:
 
         return layer_plan.addTravel(Point2LL(MM2INT(0.5), 0));
     }
+
+    GCodePath travelShortOutsideModel(bool crosses_model)
+    {
+        settings->add("retraction_enable", "true");
+        settings->add("retraction_combing", "all");
+        settings->add("retraction_hop_enabled", "false");
+        settings->add("retraction_min_travel", "0.1");
+        settings->add("retraction_combing_max_distance", "0");
+        settings->add("machine_nozzle_tip_outer_diameter", "2");
+        settings->add("cutting_mesh", "false");
+        settings->add("anti_overhang_mesh", "false");
+        settings->add("infill_mesh", "false");
+        settings->add("magic_mesh_surface_mode", "normal");
+        storage->retraction_wipe_config_per_extruder[0].retraction_config.retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel");
+
+        // This is an outside-to-outside move, as generated between skirt or brim lines.
+        // The model is either across the travel segment or clear of it.
+        Mesh model_mesh(*settings);
+        auto model_storage = std::make_shared<SliceMeshStorage>(&model_mesh, 101);
+        Polygon model_outline;
+        const coord_t x_offset = crosses_model ? 0 : MM2INT(2);
+        model_outline.push_back(Point2LL(x_offset + MM2INT(0.25), -MM2INT(0.1)));
+        model_outline.push_back(Point2LL(x_offset + MM2INT(0.35), -MM2INT(0.1)));
+        model_outline.push_back(Point2LL(x_offset + MM2INT(0.35), MM2INT(0.1)));
+        model_outline.push_back(Point2LL(x_offset + MM2INT(0.25), MM2INT(0.1)));
+        model_storage->layers[100].parts.emplace_back().print_outline.push_back(model_outline);
+        storage->meshes.push_back(model_storage);
+
+        layer_plan.setIsInside(false);
+        layer_plan.was_inside_ = false;
+        delete layer_plan.comb_;
+        layer_plan.comb_ = new Comb(*storage, 100, layer_plan.comb_boundary_minimum_, layer_plan.comb_boundary_preferred_, 20, 5000, 10);
+
+        const GCodePath travel = layer_plan.addTravel(Point2LL(MM2INT(0.6), 0));
+        storage->meshes.clear(); // SliceMeshStorage holds a reference to model_mesh.settings_.
+        return travel;
+    }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
 
@@ -662,6 +700,20 @@ TEST_F(AddTravelTest, ShortTravelInsideOnePartDoesNotRetract)
     const GCodePath result = travelShortInsideOnePart();
 
     EXPECT_FALSE(result.retract) << "A short move that stays inside one part should not retract.";
+}
+
+TEST_F(AddTravelTest, ShortTravelOutsideModelDoesNotRetract)
+{
+    const GCodePath result = travelShortOutsideModel(false);
+
+    EXPECT_FALSE(result.retract) << "A short outside move clear of model outlines should not retract.";
+}
+
+TEST_F(AddTravelTest, ShortTravelOutsideCrossingModelRetracts)
+{
+    const GCodePath result = travelShortOutsideModel(true);
+
+    EXPECT_TRUE(result.retract) << "A short outside move crossing a model outline should retract.";
 }
 
 class OverhangSpeedTest : public LayerPlanTest

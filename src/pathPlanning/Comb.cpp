@@ -45,7 +45,7 @@ Shape& Comb::getModelBoundary(const ExtruderTrain& train)
         bool travel_avoid_supports = train.settings_.get<bool>("travel_avoid_supports");
         model_boundary_[train.extruder_nr_] = storage_.getLayerOutlines(layer_nr_, travel_avoid_supports, travel_avoid_supports);
     }
-    return boundary_outside_[train.extruder_nr_];
+    return model_boundary_[train.extruder_nr_];
 }
 
 LocToLineGrid& Comb::getModelBoundaryLocToLine(const ExtruderTrain& train)
@@ -98,9 +98,13 @@ bool Comb::calc(
     bool& unretract_before_last_travel_move,
     bool& do_retracted_move)
 {
-    // A move shorter than the nozzle tip can still leave the current part. Returning success here
-    // used to skip every crossing check, so the travel was combed with an empty path and no retraction.
-    // Short moves that stay in one part still take the direct path inside LinePolygonsCrossings.
+    // A short outside move clear of the model can stay unretracted (e.g. between brim lines).
+    // Inside moves still need part classification, since even a short move can leave one part.
+    if (! _start_inside && ! _end_inside && shorterThen(end_point - start_point, max_comb_distance_ignored)
+        && ! PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train)))
+    {
+        return true;
+    }
     const Point2LL travel_end_point_before_combing = end_point;
     // Move start and end point inside the optimal comb boundary
     size_t start_inside_poly = NO_INDEX;
