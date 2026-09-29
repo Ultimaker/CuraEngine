@@ -710,6 +710,7 @@ void GCodeExport::resetExtrusionValue()
         extruded_volume_at_retraction -= current_extruded_volume;
     }
     current_e_value_ = 0.0;
+    estimate_calculator_.resetExtrusionValue();
     extruder_attr_[current_extruder_].retraction_e_amount_at_e_start_ = extruder_attr_[current_extruder_].retraction_e_amount_current_;
 }
 
