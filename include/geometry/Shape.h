@@ -248,7 +248,7 @@ public:
      * Calculates the intersections between the given segment and all the segments of the shape
      * @param start The start position of the segment
      * @param end The end position of the segment
-     * @return The parameters of the intersections on the segment (intersection = start + t * (end - start)), unsorted
+     * @return The parameters of the intersections on the segment (intersection = start + t * (end - start)), unsorted and possibly containing duplicates
      */
     std::vector<float> intersectionsWithSegment(const Point2LL& start, const Point2LL& end) const;
 

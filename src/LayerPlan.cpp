@@ -966,6 +966,8 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
         // Ignore intersections very close to the tips
         std::vector<float> intersections = override_area.area.intersectionsWithSegment(get_position(epsilon_factor).toPoint2LL(), get_position(1.0 - epsilon_factor).toPoint2LL());
         ranges::stable_sort(intersections);
+        const auto duplicates = ranges::unique(intersections);
+        intersections.erase(duplicates, intersections.end());
 
         // Calculate whether this area is under the segment start
         constexpr bool border_result = true;
