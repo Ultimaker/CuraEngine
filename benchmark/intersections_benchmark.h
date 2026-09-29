@@ -32,7 +32,7 @@ BENCHMARK_DEFINE_F(IntersectionsTestFixture, IntersectionsTestFixture_WorstCase)
 {
     for (auto _ : st)
     {
-        shape.intersectionsWithSegment(Point2LL(0, 0), Point2LL(square_side, square_side));
+        benchmark::DoNotOptimize(shape.intersectionsWithSegment(Point2LL(0, 0), Point2LL(square_side, square_side)));
     }
 }
 
