@@ -1677,7 +1677,7 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
 
     if (! support_layer.force_overhang.empty())
     {
-        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang);
+        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang.intersection(outlines));
     }
 
     Shape overhang_extended = basic_overhang
