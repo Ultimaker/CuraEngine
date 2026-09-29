@@ -5,6 +5,8 @@
 #include <filesystem>
 #include <fstream>
 #include <numbers>
+#include <random>
+#include <string>
 
 #include <gtest/gtest.h>
 
@@ -209,32 +211,59 @@ void writeUvSidecar(const std::filesystem::path& path, const float value)
 
 TEST_F(SlicePhaseTest, StlUvSidecarLoadsFromModelDirectory)
 {
-    const std::filesystem::path model_dir = std::filesystem::temp_directory_path() / "curaengine-2380-uv-sidecar";
+    const std::filesystem::path original_cwd = std::filesystem::current_path();
+    const std::filesystem::path temp_dir = std::filesystem::absolute(std::filesystem::temp_directory_path());
+    std::filesystem::path fixture_dir;
+    std::random_device random;
+    for (int attempt = 0; attempt < 32; ++attempt)
+    {
+        const std::filesystem::path candidate = temp_dir / ("curaengine-2380-uv-sidecar-" + std::to_string(random()));
+        if (std::filesystem::create_directory(candidate))
+        {
+            fixture_dir = candidate;
+            break;
+        }
+    }
+    ASSERT_FALSE(fixture_dir.empty()) << "Could not create a unique UV sidecar test directory";
+
+    struct Cleanup
+    {
+        std::filesystem::path original_cwd;
+        std::filesystem::path fixture_dir;
+        ~Cleanup()
+        {
+            std::error_code error;
+            std::filesystem::current_path(original_cwd, error);
+            if (error)
+            {
+                ADD_FAILURE() << "Failed to restore working directory: " << error.message();
+                return;
+            }
+            std::filesystem::remove_all(fixture_dir, error);
+            if (error)
+            {
+                ADD_FAILURE() << "Failed to remove UV sidecar test directory: " << error.message();
+            }
+        }
+    } cleanup{ original_cwd, fixture_dir };
+
+    const std::filesystem::path model_dir = fixture_dir / "model";
+    const std::filesystem::path decoy_dir = fixture_dir / "cwd";
     const std::filesystem::path model_path = model_dir / "sidecar_uv_probe.stl";
     const std::filesystem::path sidecar_path = model_dir / "sidecar_uv_probe.uv";
-    const std::filesystem::path decoy_path = std::filesystem::current_path() / "sidecar_uv_probe.uv";
-    std::filesystem::remove_all(model_dir);
-    std::filesystem::remove(decoy_path);
+    const std::filesystem::path decoy_path = decoy_dir / "sidecar_uv_probe.uv";
     std::filesystem::create_directories(model_dir);
+    std::filesystem::create_directories(decoy_dir);
     writeBinaryTriangle(model_path);
     writeUvSidecar(sidecar_path, 0.25F);
     writeUvSidecar(decoy_path, 0.75F);
 
-    struct Cleanup
-    {
-        std::filesystem::path model_dir;
-        std::filesystem::path decoy_path;
-        ~Cleanup()
-        {
-            std::error_code error;
-            std::filesystem::remove_all(model_dir, error);
-            std::filesystem::remove(decoy_path, error);
-        }
-    } cleanup{ model_dir, decoy_path };
-
     Scene& scene = Application::getInstance().current_slice_->scene;
     MeshGroup& mesh_group = scene.mesh_groups.back();
-    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, model_path, Matrix4x3D(), scene.settings));
+    std::filesystem::current_path(decoy_dir);
+    const bool loaded_model = loadMeshIntoMeshGroup(&mesh_group, model_path, Matrix4x3D(), scene.settings);
+    std::filesystem::current_path(cleanup.original_cwd);
+    ASSERT_TRUE(loaded_model);
     ASSERT_EQ(mesh_group.meshes.size(), 1);
     const Mesh& loaded = mesh_group.meshes.front();
     EXPECT_EQ(loaded.mesh_name_, "sidecar_uv_probe");
