@@ -241,9 +241,10 @@ public:
      * Write one extruder plan whose only cooling action is cool_lift_head.
      * \param extra_time Pause still required after slowing down, in seconds.
      * \param hop_speed_mm_per_s Commanded Z hop speed.
+     * \param next_hop_speed_mm_per_s Fastest possible return speed on the next layer, if known.
      * \return G-code produced for that plan.
      */
-    std::string writeCoolLiftHead(const double extra_time, const char* hop_speed_mm_per_s)
+    std::string writeCoolLiftHead(const double extra_time, const char* hop_speed_mm_per_s, const double next_hop_speed_mm_per_s = 0.0)
     {
         settings->add("flow_rate_max_extrusion_offset", "0");
         settings->add("flow_rate_extrusion_offset_factor", "0");
@@ -262,10 +263,16 @@ public:
         storage->retraction_wipe_config_per_extruder[0].retraction_config.distance = 0;
         layer_plan.extruder_plans_[0].paths_.clear();
         layer_plan.extruder_plans_[0].extra_time_ = extra_time;
+        if (next_hop_speed_mm_per_s > 0.0)
+        {
+            layer_plan.next_layer_hop_return_ = LayerPlan::NextLayerHopReturn{ Velocity(next_hop_speed_mm_per_s), layer_plan.z_ + MM2INT(0.1) };
+        }
 
         Application::getInstance().communication_ = std::make_shared<MockCommunication>();
 
         GCodeExport gcode;
+        gcode.setZ(layer_plan.z_);
+        gcode.writeTravel(gcode.getPositionXY(), settings->get<Velocity>("speed_z_hop"));
         layer_plan.writeGCode(gcode);
 
         std::stringstream written;
@@ -723,7 +730,9 @@ TEST_F(LayerPlanTest, CoolLiftHeadDwellSubtractsRoundTripHopTime)
     const Duration hop_time(2.0 * INT2MM(MM2INT(3.0)) / 10.0);
     const int dwell_ms = static_cast<int>((Duration(5.0) - hop_time) * 1000.0);
 
-    EXPECT_NE(gcode.find("Z13"), std::string::npos) << gcode;
+    const size_t layer_z = gcode.find(" Z10\n");
+    ASSERT_NE(layer_z, std::string::npos) << gcode;
+    EXPECT_NE(gcode.find("G1 Z13\n", layer_z), std::string::npos) << gcode;
     EXPECT_NE(gcode.find("G4 P" + std::to_string(dwell_ms)), std::string::npos) << gcode;
     EXPECT_EQ(gcode.find("G4 P5000"), std::string::npos) << gcode;
     EXPECT_LT(dwell_ms, 5000);
@@ -735,8 +744,24 @@ TEST_F(LayerPlanTest, CoolLiftHeadSkipsDwellWhenHopCoversExtraTime)
     // Round trip at 10 mm/s is 0.6 s, which already covers a 0.4 s pause.
     const std::string gcode = writeCoolLiftHead(0.4, "10");
 
-    EXPECT_NE(gcode.find("Z13"), std::string::npos) << gcode;
+    const size_t layer_z = gcode.find(" Z10\n");
+    ASSERT_NE(layer_z, std::string::npos) << gcode;
+    EXPECT_NE(gcode.find("G1 Z13\n", layer_z), std::string::npos) << gcode;
     EXPECT_EQ(gcode.find("G4 "), std::string::npos) << gcode;
+}
+
+TEST_F(LayerPlanTest, CoolLiftHeadAccountsForFasterNextExtruderReturn)
+{
+    // The next layer is 0.1 mm higher and its extruder can return the hop at 100 mm/s.
+    // Only 0.3 s of ascent and at least 0.029 s of descent can count toward the pause.
+    const std::string gcode = writeCoolLiftHead(0.5, "10", 100.0);
+    const size_t dwell_pos = gcode.find("G4 P");
+
+    const size_t layer_z = gcode.find(" Z10\n");
+    ASSERT_NE(layer_z, std::string::npos) << gcode;
+    EXPECT_NE(gcode.find("G1 Z13\n", layer_z), std::string::npos) << gcode;
+    ASSERT_NE(dwell_pos, std::string::npos) << gcode;
+    EXPECT_NEAR(std::stoi(gcode.substr(dwell_pos + 4)), 171, 1) << gcode;
 }
 
 TEST(NozzleTempInsertTest, SortNozzleTempInsterts)

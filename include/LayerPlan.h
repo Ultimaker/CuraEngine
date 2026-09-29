@@ -152,6 +152,12 @@ private:
     bool first_travel_destination_is_inside_; //!< Whether the destination of the first planned travel move is inside a layer part
     std::optional<std::pair<Acceleration, Velocity>> first_extrusion_acc_jerk_; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
     std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk_; //!< If there is a next layer, the first acceleration and jerk it starts with.
+    struct NextLayerHopReturn
+    {
+        Velocity fastest_speed;
+        coord_t z;
+    };
+    std::optional<NextLayerHopReturn> next_layer_hop_return_; //!< Conservative timing for a cool-lift hop that ends on the next layer.
     bool was_inside_; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside_; //!< Whether the destination of the next planned travel move is inside a layer part
     Shape comb_boundary_minimum_; //!< The minimum boundary within which to comb, or to move into when performing a retraction.

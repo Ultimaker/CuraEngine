@@ -4057,10 +4057,23 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 const Velocity hop_speed = extruder.settings_.get<Velocity>("speed_z_hop");
                 if (hop_speed > 0.0)
                 {
-                    // Lift now, and the drop that ends the hop, both travel this distance at speed_z_hop.
-                    // That motion already spends part of the minimum-layer-time pause.
-                    const double round_trip_mm = 2.0 * INT2MM(hop_height);
-                    cool_lift_travel_time = Duration(round_trip_mm / static_cast<double>(hop_speed));
+                    Velocity fastest_return_speed = hop_speed;
+                    const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
+                    for (size_t next_idx = extruder_plan_idx + 1; next_idx < extruder_plans_.size(); ++next_idx)
+                    {
+                        fastest_return_speed = std::max(fastest_return_speed, extruders[extruder_plans_[next_idx].extruder_nr_].settings_.get<Velocity>("speed_z_hop"));
+                    }
+
+                    coord_t return_distance = hop_height;
+                    if (next_layer_hop_return_)
+                    {
+                        fastest_return_speed = std::max(fastest_return_speed, next_layer_hop_return_->fastest_speed);
+                        return_distance = std::max<coord_t>(0, hop_height - std::max<coord_t>(0, next_layer_hop_return_->z - z_));
+                    }
+
+                    // A later plan may end the hop after switching extruders. Credit only the
+                    // return time guaranteed by its distance and the fastest possible hop speed.
+                    cool_lift_travel_time = Duration(INT2MM(hop_height) / static_cast<double>(hop_speed) + INT2MM(return_distance) / static_cast<double>(fastest_return_speed));
                 }
             }
             const Duration remaining_dwell = Duration(extruder_plan.extra_time_) - cool_lift_travel_time;
