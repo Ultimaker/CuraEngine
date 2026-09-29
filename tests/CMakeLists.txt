@@ -12,6 +12,7 @@ set(TESTS_SRC_BASE
         GCodeExportTest
         GCodeTemplateResolverTest
         InfillTest
+        InterlockingGeneratorTest
         LayerPlanTest
         PathOrderOptimizerTest
         PathOrderMonotonicTest
