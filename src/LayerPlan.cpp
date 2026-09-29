@@ -1037,21 +1037,57 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
 
         // Erase the treated intersection. A single edge intersection is always a crossing, while
         // multiple close intersections may be a vertex touch and need to be classified geometrically.
-        auto& intersections = override_areas_intersections[next_intersection_index];
-        const float cluster_end = *next_intersection + epsilon_factor;
-        const auto cluster_end_it = std::upper_bound(intersections.begin(), intersections.end(), cluster_end);
-        const size_t cluster_size = std::distance(intersections.begin(), cluster_end_it);
-        intersections.erase(intersections.begin(), cluster_end_it);
+        float actual_last_intersection = *next_intersection;
+        float cluster_end = actual_last_intersection + epsilon_factor;
+        std::vector<std::pair<size_t, size_t>> cluster_area_counts;
+        bool cluster_grew;
+        do
+        {
+            cluster_grew = false;
+            for (auto&& [index, intersections] : override_areas_intersections | ranges::views::enumerate)
+            {
+                size_t cluster_size = 0;
+                while (! intersections.empty() && intersections.front() <= cluster_end)
+                {
+                    actual_last_intersection = std::max(actual_last_intersection, intersections.front());
+                    cluster_end = actual_last_intersection + epsilon_factor;
+                    intersections.erase(intersections.begin());
+                    ++cluster_size;
+                    cluster_grew = true;
+                }
 
-        if (cluster_size == 1)
+                if (cluster_size > 0)
+                {
+                    const auto area_count = ranges::find_if(
+                        cluster_area_counts,
+                        [index](const auto& entry)
+                        {
+                            return entry.first == index;
+                        });
+                    if (area_count == cluster_area_counts.end())
+                    {
+                        cluster_area_counts.emplace_back(index, cluster_size);
+                    }
+                    else
+                    {
+                        area_count->second += cluster_size;
+                    }
+                }
+            }
+        } while (cluster_grew);
+
+        for (const auto& [index, cluster_size] : cluster_area_counts)
         {
-            areas_under_segments.flip(next_intersection_index);
-        }
-        else
-        {
-            const OverrideArea& override_area = override_areas[next_intersection_index];
-            const bool area_after_intersection = override_area.area.inside(get_position(*next_intersection + epsilon_factor).toPoint2LL(), true);
-            areas_under_segments[next_intersection_index] = area_after_intersection;
+            if (cluster_size == 1)
+            {
+                areas_under_segments.flip(index);
+            }
+            else
+            {
+                const OverrideArea& override_area = override_areas[index];
+                const bool area_after_intersection = override_area.area.inside(get_position(actual_last_intersection + epsilon_factor).toPoint2LL(), true);
+                areas_under_segments[index] = area_after_intersection;
+            }
         }
 
         // Now see if this intersection got us to a different topmost area, or if it happened under
