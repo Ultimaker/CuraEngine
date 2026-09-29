@@ -17,10 +17,18 @@ class WindowsBuildTest(unittest.TestCase):
         self.addCleanup(self.temporary.cleanup)
         self.source = Path(self.temporary.name) / "Cura Engine"
         self.source.mkdir()
+        self.visual_studio = Path(self.temporary.name) / "Visual Studio"
+        self.visual_studio.mkdir()
+        self.local_app_data = Path(self.temporary.name) / "Local App Data"
         self.versions = {"cl": "19.44.35207", "conan": "2.24.0", "cmake": "3.23.0", "ninja": "1.10.0"}
         self.process = self.enterContext(patch("build_windows.subprocess.run", side_effect=self.runProcess))
         self.enterContext(patch("build_windows.sys.platform", "win32"))
-        self.enterContext(patch.dict(os.environ, {"VSCMD_ARG_TGT_ARCH": "x64", "CONAN_HOME": "existing-cache"}))
+        self.enterContext(patch.dict(os.environ, {
+            "VSCMD_ARG_TGT_ARCH": "x64",
+            "VSINSTALLDIR": str(self.visual_studio),
+            "LOCALAPPDATA": str(self.local_app_data),
+            "CONAN_HOME": "existing-cache",
+        }))
 
     def runProcess(self, command: list[str], **kwargs: object) -> subprocess.CompletedProcess[str]:
         return subprocess.CompletedProcess(command, 0, stdout="version {}".format(self.versions[command[0]]))
@@ -44,8 +52,11 @@ class WindowsBuildTest(unittest.TestCase):
                 command = self.commands()[-1]
                 output = self.source / "build" / "windows-vs2022"
                 self.assertEqual(command[command.index("--output-folder") + 1], str(output))
+                storage = command[command.index("-cc") + 1]
+                self.assertTrue(storage.startswith("core.cache:storage_path={}".format(self.local_app_data)))
+                self.assertTrue(storage.endswith("vs2022"))
                 self.assertIn("tools.cmake.cmaketoolchain:user_presets=", command)
-                self.assertIn("tools.build:skip_test=True", command)
+                self.assertIn("&:tools.build:skip_test=True", command)
                 environment = self.process.call_args.kwargs["env"]
                 self.assertEqual(environment["CONAN_HOME"], str(output / "conan-home"))
                 self.assertEqual(environment["CC"], "cl")
@@ -59,9 +70,31 @@ class WindowsBuildTest(unittest.TestCase):
         self.assertEqual(command[:3], ["conan", "build", str(self.source)])
         self.assertIn(str(self.source / "build" / "windows-vs2026"), command)
         self.assertIn("build_type=Debug", command)
-        self.assertIn("tools.build:skip_test=False", command)
+        self.assertIn("&:tools.build:skip_test=False", command)
+        self.assertNotIn("tools.build:skip_test=False", command)
         self.assertIn("cura.jinja", command)
         self.assertIn("cura_build.jinja", command)
+        installation = "tools.microsoft.msbuild:installation_path={}".format(self.visual_studio)
+        self.assertEqual(command.count(installation), 2)
+
+    def testConanStorageIsPerSourceAndCompiler(self) -> None:
+        environment = {"LOCALAPPDATA": str(self.local_app_data)}
+        source_a = self.source / "a"
+        source_b = self.source / "b"
+        paths = {
+            build_windows.getConanStorage(source_a, "2022", environment),
+            build_windows.getConanStorage(source_a, "2026", environment),
+            build_windows.getConanStorage(source_b, "2026", environment),
+        }
+        self.assertEqual(len(paths), 3)
+        for path in paths:
+            self.assertEqual(path.parents[2], self.local_app_data / "CuraEngine")
+
+    def testMissingLocalAppDataStopsBeforeConan(self) -> None:
+        with patch.dict(os.environ, {"LOCALAPPDATA": ""}):
+            with self.assertRaisesRegex(RuntimeError, "LOCALAPPDATA"):
+                build_windows.buildWindows(self.source, "2022", "Release", False)
+        self.assertEqual(self.commands(), [["cl", "/?"]])
 
     def testCompilerMismatchStopsBeforeConan(self) -> None:
         for selected, compiler in (("2022", "19.50.35727"), ("2026", "19.44.35207")):
@@ -108,6 +141,12 @@ class WindowsBuildTest(unittest.TestCase):
             with self.assertRaisesRegex(RuntimeError, "x64 Native Tools"):
                 build_windows.buildWindows(self.source, "2022", "Release", False)
         self.process.assert_not_called()
+
+    def testMissingVisualStudioInstallationStopsBeforeConan(self) -> None:
+        with patch.dict(os.environ, {"VSINSTALLDIR": ""}):
+            with self.assertRaisesRegex(RuntimeError, "active Visual Studio installation"):
+                build_windows.buildWindows(self.source, "2022", "Release", False)
+        self.assertEqual(self.commands(), [["cl", "/?"]])
 
     def testFailureIsReportedAsNonzeroExit(self) -> None:
         with patch("sys.argv", ["build_windows.py"]), patch("build_windows.buildWindows", side_effect=OSError("missing cl")):

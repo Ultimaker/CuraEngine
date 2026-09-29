@@ -57,14 +57,21 @@ environment for the helper instead of upgrading it in place. It rejects a
 mismatched compiler instead of silently selecting another installation. It sets
 `CC`/`CXX` and `CONAN_HOME` only for its subprocesses. It does not modify the
 caller's Conan home, profiles, or root `CMakeUserPresets.json`.
+It also pins Conan package builds to the active prompt's `VSINSTALLDIR`, so a
+different installation of the same Visual Studio version is not selected.
 
 Helper outputs are isolated under `build/windows-vs2022` and
 `build/windows-vs2026`; the existing recipe places binaries in the nested
-`build/Release` or `build/Debug` directory. Its Conan cache is `conan-home` under
-the corresponding output root. Both compiler paths can therefore use the same
-checkout. Do not run two helper builds for the same compiler concurrently.
+`build/Release` or `build/Debug` directory. Conan profiles and remotes stay in
+`conan-home` under the corresponding output root. Package sources and binaries use
+a shorter, per-checkout and per-compiler store below
+`%LOCALAPPDATA%\CuraEngine\conan-storage`; this avoids dependency path-length
+failures without sharing packages between checkouts or compilers. Both compiler
+paths can therefore use the same checkout. Do not run two helper builds for the
+same compiler concurrently.
 
-`--with-tests` enables compilation of the unit tests; run them separately after a
+`--with-tests` enables compilation of CuraEngine's unit tests without enabling
+tests in dependencies built from source; run CuraEngine's tests separately after a
 successful build. For the VS 2026 Debug example above:
 
 ```bat
@@ -161,7 +168,7 @@ The shared Conan configuration skips tests by default. To enable the existing
 CuraEngine unit tests, repeat installation and configuration with testing enabled:
 
 ```bat
-conan install . --build=missing -c tools.build:skip_test=False
+conan install . --build=missing -c "&:tools.build:skip_test=False"
 cmake --preset conan-release
 cmake --build --preset conan-release
 call build\Release\generators\conanrun.bat
@@ -169,8 +176,10 @@ ctest --test-dir build/Release --output-on-failure --no-tests=error
 build\Release\CuraEngine.exe help
 ```
 
-Run this in each compiler's separate checkout/environment. For Debug tests, add
-`-s build_type=Debug` to `conan install`, select `conan-debug` for both CMake
+The `&:` consumer scope enables tests only for CuraEngine, not for dependencies
+built from source. Run this in each compiler's separate checkout/environment.
+For Debug tests, add `-s build_type=Debug` to `conan install`, select
+`conan-debug` for both CMake
 commands, and use `build\Debug` for the runtime script, tests, and executable.
 Record the compiler, Conan, and CMake versions with the results. Native Windows
 builds and tests with both VS 2022 and VS 2026 are needed before treating a new
