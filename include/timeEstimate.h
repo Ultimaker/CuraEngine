@@ -104,6 +104,7 @@ public:
      */
     void setFirmwareDefaults(const Settings& settings);
     void setPosition(Position newPos);
+    void resetExtrusionValue(); //!< Rebase E to zero without planning a move.
     void plan(Position newPos, Velocity feedRate, PrintFeatureType feature);
     void addTime(const Duration& time);
     void setAcceleration(const Acceleration& acc); //!< Set the default acceleration to \p acc

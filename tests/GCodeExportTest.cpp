@@ -86,6 +86,13 @@ public:
         gcode.prepareNewFixedGCodePart();
         return output_;
     }
+
+    void prepareExtrusionTimeEstimate()
+    {
+        gcode.setFilamentDiameter(0, MM2INT(2.85));
+        gcode.setFlowRateExtrusionSettings(0.0, 0.0);
+        gcode.extruder_attr_[0].last_e_value_after_wipe_ = 0.0;
+    }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
 
@@ -150,6 +157,28 @@ TEST_F(GCodeExportTest, CommentTimeFloatRoundingError)
 {
     gcode.writeTimeComment(0.3);
     EXPECT_EQ(std::string(";TIME_ELAPSED:0.300000\n"), output().str()) << "Don't output up to the precision of rounding errors.";
+}
+
+TEST_F(GCodeExportTest, ExtrusionResetDoesNotIncreaseEstimatedTime)
+{
+    prepareExtrusionTimeEstimate();
+    constexpr Velocity speed{ 50.0 };
+    constexpr double extrusion_mm3_per_mm = 1.0;
+
+    gcode.writeExtrusion(Point3LL(MM2INT(100), 0, MM2INT(20)), speed, extrusion_mm3_per_mm, PrintFeatureType::Infill);
+    gcode.updateTotalPrintTime();
+    const double time_after_first_move = gcode.getSumTotalPrintTimes();
+
+    gcode.writeExtrusion(Point3LL(MM2INT(110), 0, MM2INT(20)), speed, extrusion_mm3_per_mm, PrintFeatureType::Infill);
+    gcode.updateTotalPrintTime();
+    const double time_before_reset = gcode.getSumTotalPrintTimes();
+
+    gcode.resetExtrusionValue();
+    gcode.writeExtrusion(Point3LL(MM2INT(120), 0, MM2INT(20)), speed, extrusion_mm3_per_mm, PrintFeatureType::Infill);
+    gcode.updateTotalPrintTime();
+
+    EXPECT_NE(std::string::npos, output().str().find("G92 E0\n"));
+    EXPECT_NEAR(time_before_reset - time_after_first_move, gcode.getSumTotalPrintTimes() - time_before_reset, 0.00001);
 }
 
 TEST_F(GCodeExportTest, CommentTypeAllTypesCovered)
