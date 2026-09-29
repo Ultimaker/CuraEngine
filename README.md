@@ -82,3 +82,10 @@ applications and integrate it into your own app.
 [Button Internals]: https://img.shields.io/badge/Internals-00979D?style=for-the-badge&logoColor=white&logo=CodeReview
 [Button Install]: https://img.shields.io/badge/Installation-e23345?style=for-the-badge&logoColor=white&logo=DocuSign
 
+## Building on Windows
+
+See the [Windows build guide](docs/building-windows.md) for Visual Studio 2022 and
+an opt-in Visual Studio 2026 setup. The `scripts/build_windows.py` launcher defaults
+to VS 2022; pass `--vs 2026` to select VS 2026. The guide covers prerequisites,
+isolated build environments, and validation commands. Existing VS 2022 builds can keep their
+current configuration. The [general build guide][Install] covers other platforms.
