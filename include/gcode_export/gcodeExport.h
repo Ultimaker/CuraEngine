@@ -45,6 +45,7 @@ class GCodeExport : public NoCopy
     friend class GCodeExportTest;
     friend class GriffinHeaderTest;
     friend class AntiOozeAmountsTest;
+    friend class LayerPlanTest;
     FRIEND_TEST(GCodeExportTest, CommentEmpty);
     FRIEND_TEST(GCodeExportTest, CommentSimple);
     FRIEND_TEST(GCodeExportTest, CommentMultiLine);

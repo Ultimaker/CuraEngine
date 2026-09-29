@@ -4,14 +4,19 @@
 #include "LayerPlan.h" //The code under test.
 
 #include <algorithm>
+#include <sstream>
 
 #include <gtest/gtest.h>
 
 #include "Application.h" //To provide settings for the layer plan.
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
+#include "arcus/MockCommunication.h" //To prevent calls to any missing Communication class.
+#include "gcode_export/GCodePart.h" //To read the written g-code parts.
+#include "gcode_export/gcodeExport.h" //To capture the dwell written for a small layer.
 #include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
 #include "pathPlanning/NozzleTempInsert.h" //To provide nozzle temperature commands.
+#include "settings/types/Duration.h"
 #include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
 #include "utils/Coord_t.h"
 
@@ -230,6 +235,45 @@ public:
     void TearDown() override
     {
         delete storage;
+    }
+
+    /*!
+     * Write one extruder plan whose only cooling action is cool_lift_head.
+     * \param extra_time Pause still required after slowing down, in seconds.
+     * \param hop_speed_mm_per_s Commanded Z hop speed.
+     * \return G-code produced for that plan.
+     */
+    std::string writeCoolLiftHead(const double extra_time, const char* hop_speed_mm_per_s)
+    {
+        settings->add("flow_rate_max_extrusion_offset", "0");
+        settings->add("flow_rate_extrusion_offset_factor", "0");
+        settings->add("build_volume_fan_nr", "0");
+        settings->add("acceleration_enabled", "false");
+        settings->add("acceleration_travel_enabled", "false");
+        settings->add("jerk_enabled", "false");
+        settings->add("jerk_travel_enabled", "false");
+        settings->add("coasting_enable", "false");
+        settings->add("retract_at_layer_change", "false");
+        settings->add("cool_lift_head", "true");
+        settings->add("machine_extruder_end_pos_abs", "false");
+        settings->add("speed_z_hop", hop_speed_mm_per_s);
+
+        storage->retraction_wipe_config_per_extruder[0].wipe_config.clean_between_layers = false;
+        storage->retraction_wipe_config_per_extruder[0].retraction_config.distance = 0;
+        layer_plan.extruder_plans_[0].paths_.clear();
+        layer_plan.extruder_plans_[0].extra_time_ = extra_time;
+
+        Application::getInstance().communication_ = std::make_shared<MockCommunication>();
+
+        GCodeExport gcode;
+        layer_plan.writeGCode(gcode);
+
+        std::stringstream written;
+        for (const std::shared_ptr<GCodePart>& part : gcode.gcode_parts_)
+        {
+            written << part->str();
+        }
+        return written.str();
     }
 };
 
@@ -670,6 +714,29 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
 
     EXPECT_TRUE(found_full_speed)    << "Segment inside supported region should have full speed";
     EXPECT_TRUE(found_reduced_speed) << "Segment crossing into overhang should have reduced speed";
+}
+
+TEST_F(LayerPlanTest, CoolLiftHeadDwellSubtractsRoundTripHopTime)
+{
+    // 3 mm up and 3 mm down at 10 mm/s is 0.6 s, so a 5 s pause dwells 4.4 s.
+    const std::string gcode = writeCoolLiftHead(5.0, "10");
+    const Duration hop_time(2.0 * INT2MM(MM2INT(3.0)) / 10.0);
+    const int dwell_ms = static_cast<int>((Duration(5.0) - hop_time) * 1000.0);
+
+    EXPECT_NE(gcode.find("Z13"), std::string::npos) << gcode;
+    EXPECT_NE(gcode.find("G4 P" + std::to_string(dwell_ms)), std::string::npos) << gcode;
+    EXPECT_EQ(gcode.find("G4 P5000"), std::string::npos) << gcode;
+    EXPECT_LT(dwell_ms, 5000);
+    EXPECT_GT(dwell_ms, 4000);
+}
+
+TEST_F(LayerPlanTest, CoolLiftHeadSkipsDwellWhenHopCoversExtraTime)
+{
+    // Round trip at 10 mm/s is 0.6 s, which already covers a 0.4 s pause.
+    const std::string gcode = writeCoolLiftHead(0.4, "10");
+
+    EXPECT_NE(gcode.find("Z13"), std::string::npos) << gcode;
+    EXPECT_EQ(gcode.find("G4 "), std::string::npos) << gcode;
 }
 
 TEST(NozzleTempInsertTest, SortNozzleTempInsterts)

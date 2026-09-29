@@ -36,6 +36,7 @@
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
+#include "settings/types/Duration.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
@@ -4047,12 +4048,26 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             const RetractionAndWipeConfig& actual_retraction_config
                 = current_mesh ? current_mesh->retraction_wipe_config : storage_.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(actual_retraction_config.retraction_config);
+            Duration cool_lift_travel_time{ 0.0 };
             if (extruder_plan_idx == extruder_plans_.size() - 1 || ! extruder.settings_.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
                 // or do it anyway when we switch extruder in-place
-                gcode.writeZhopStart(MM2INT(3.0));
+                constexpr coord_t hop_height = MM2INT(3.0);
+                gcode.writeZhopStart(hop_height);
+                const Velocity hop_speed = extruder.settings_.get<Velocity>("speed_z_hop");
+                if (hop_speed > 0.0)
+                {
+                    // Lift now, and the drop that ends the hop, both travel this distance at speed_z_hop.
+                    // That motion already spends part of the minimum-layer-time pause.
+                    const double round_trip_mm = 2.0 * INT2MM(hop_height);
+                    cool_lift_travel_time = Duration(round_trip_mm / static_cast<double>(hop_speed));
+                }
             }
-            gcode.writeDelay(extruder_plan.extra_time_);
+            const Duration remaining_dwell = Duration(extruder_plan.extra_time_) - cool_lift_travel_time;
+            if (remaining_dwell > 0.0)
+            {
+                gcode.writeDelay(remaining_dwell);
+            }
         }
 
         extruder_plan.handleAllRemainingInserts(gcode);
