@@ -29,6 +29,62 @@ CMake 4.2 also adds the
 The commands below retain the shared configuration's Ninja generator, which can
 also be used when opening the checkout as a folder in Visual Studio.
 
+## Build with the Windows helper
+
+The optional `scripts/build_windows.py` launcher checks the active compiler and
+prerequisite tool versions, installs the shared Conan configuration into a
+compiler-specific cache on first use, detects a profile there, and invokes the
+existing `conan build` recipe. Activate a Python environment containing Conan,
+CMake, and Ninja, then run from the matching **x64 Native Tools Command Prompt**:
+
+```bat
+rem VS 2022 is the default. Use Conan 2.24+ in the helper environment.
+python scripts\build_windows.py
+python scripts\build_windows.py --vs 2022 --build-type Debug
+```
+
+From the VS 2026 prompt, with Conan >=2.24,<3 and CMake >=4.2 installed:
+
+```bat
+python scripts\build_windows.py --vs 2026
+python scripts\build_windows.py --vs 2026 --build-type Debug --with-tests
+```
+
+The helper requires Conan >=2.24,<3 for **both** compiler selections so it can
+disable root preset generation, and CMake >=3.23 for VS 2022. Keep an older
+VS 2022 Conan environment for direct builds if needed; create a separate Python
+environment for the helper instead of upgrading it in place. It rejects a
+mismatched compiler instead of silently selecting another installation. It sets
+`CC`/`CXX` and `CONAN_HOME` only for its subprocesses. It does not modify the
+caller's Conan home, profiles, or root `CMakeUserPresets.json`.
+
+Helper outputs are isolated under `build/windows-vs2022` and
+`build/windows-vs2026`; the existing recipe places binaries in the nested
+`build/Release` or `build/Debug` directory. Its Conan cache is `conan-home` under
+the corresponding output root. Both compiler paths can therefore use the same
+checkout. Do not run two helper builds for the same compiler concurrently.
+
+`--with-tests` enables compilation of the unit tests; run them separately after a
+successful build. For the VS 2026 Debug example above:
+
+```bat
+call build\windows-vs2026\build\Debug\generators\conanrun.bat
+ctest --test-dir build/windows-vs2026/build/Debug --output-on-failure --no-tests=error
+build\windows-vs2026\build\Debug\CuraEngine.exe help
+```
+
+Use `windows-vs2022` or `Release` for the other selections. Errors from Conan,
+CMake, or compilation stop the helper with a nonzero exit status. The helper's
+own portable checks can be run with
+`python -m unittest discover -s scripts -p "test_*.py"`; they simulate external
+tools and do not replace native Windows build validation.
+
+## Manual setup and builds
+
+The direct Conan/CMake path remains available below. It uses the active shell's
+Conan home and generates root presets, so keep its compiler checkouts separate.
+The helper already isolates these files and does not require a separate checkout.
+
 ## Set up a separate VS 2026 environment
 
 Use a separate checkout for each compiler so generated presets and CMake caches
