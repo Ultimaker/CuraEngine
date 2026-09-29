@@ -26,6 +26,80 @@
 
 namespace cura
 {
+namespace
+{
+
+/*!
+ * Walk from \p start in \p direction until the stored layer thicknesses sum to \p required.
+ * The walk includes \p start. A non-positive thickness, or a start outside the stack, needs no layers.
+ */
+size_t layersToReachThickness(const std::vector<SliceLayer>& layers, const LayerIndex start, const int direction, const coord_t required)
+{
+    if (required <= 0 || direction == 0 || layers.empty() || start < 0 || start >= static_cast<LayerIndex>(layers.size()))
+    {
+        return 0;
+    }
+
+    coord_t covered = 0;
+    size_t count = 0;
+    for (LayerIndex index = start; index >= 0 && index < static_cast<LayerIndex>(layers.size()); index += direction)
+    {
+        covered += layers[static_cast<size_t>(index.value)].thickness;
+        ++count;
+        if (covered >= required)
+        {
+            break;
+        }
+    }
+    return count;
+}
+
+bool usesAdaptiveLayerHeights(const Settings& settings)
+{
+    return settings.get<bool>("adaptive_layer_height_enabled");
+}
+
+size_t topSkinLayerCount(const SliceMeshStorage& mesh, const LayerIndex layer_nr, const size_t configured_count)
+{
+    if (! usesAdaptiveLayerHeights(mesh.settings))
+    {
+        return configured_count;
+    }
+    return layersToReachThickness(mesh.layers, layer_nr, 1, mesh.settings.get<coord_t>("top_thickness"));
+}
+
+size_t bottomSkinLayerCount(const SliceMeshStorage& mesh, const LayerIndex layer_nr, const size_t configured_count)
+{
+    if (! usesAdaptiveLayerHeights(mesh.settings))
+    {
+        return configured_count;
+    }
+    if (layer_nr <= 0)
+    {
+        return 0;
+    }
+    return layersToReachThickness(mesh.layers, layer_nr - 1, -1, mesh.settings.get<coord_t>("bottom_thickness"));
+}
+
+size_t initialBottomSkinLayerCount(const SliceMeshStorage& mesh, const size_t configured_count)
+{
+    if (! usesAdaptiveLayerHeights(mesh.settings))
+    {
+        return configured_count;
+    }
+    return layersToReachThickness(mesh.layers, 0, 1, mesh.settings.get<coord_t>("bottom_thickness"));
+}
+
+size_t topCapLayerCount(const SliceMeshStorage& mesh)
+{
+    if (mesh.layers.empty() || ! usesAdaptiveLayerHeights(mesh.settings))
+    {
+        return mesh.settings.get<size_t>("top_layers");
+    }
+    return layersToReachThickness(mesh.layers, static_cast<LayerIndex>(mesh.layers.size()) - 1, -1, mesh.settings.get<coord_t>("top_thickness"));
+}
+
+} // namespace
 
 coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
 {
@@ -111,7 +185,10 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
 {
     SliceLayer& layer = mesh_.layers[layer_nr_];
 
-    if (! process_infill_ && bottom_layer_count_ == 0 && top_layer_count_ == 0)
+    const bool adaptive = usesAdaptiveLayerHeights(mesh_.settings);
+    const bool want_top = adaptive ? mesh_.settings.get<coord_t>("top_thickness") > 0 : top_layer_count_ > 0;
+    const bool want_bottom = adaptive ? mesh_.settings.get<coord_t>("bottom_thickness") > 0 : (bottom_layer_count_ > 0 || initial_bottom_layer_count_ > 0);
+    if (! process_infill_ && ! want_top && ! want_bottom)
     {
         return;
     }
@@ -130,14 +207,18 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
  */
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
+    const size_t top_layers_here = topSkinLayerCount(mesh_, layer_nr_, top_layer_count_);
+    const size_t initial_bottom = initialBottomSkinLayerCount(mesh_, initial_bottom_layer_count_);
+    const size_t bottom_layers_here = bottomSkinLayerCount(mesh_, layer_nr_, bottom_layer_count_);
+
     // Make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
     Shape top_skin;
-    if (top_layer_count_ > 0)
+    if (top_layers_here > 0)
     {
         top_skin = Shape(part.inner_area);
     }
     Shape bottom_skin;
-    if (bottom_layer_count_ > 0 || layer_nr_ < LayerIndex(initial_bottom_layer_count_))
+    if (bottom_layers_here > 0 || layer_nr_ < LayerIndex(initial_bottom))
     {
         bottom_skin = Shape(part.inner_area);
     }
@@ -181,15 +262,17 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
  */
 void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, Shape& downskin)
 {
-    if (bottom_layer_count_ == 0 && initial_bottom_layer_count_ == 0)
+    const size_t initial_bottom = initialBottomSkinLayerCount(mesh_, initial_bottom_layer_count_);
+    const size_t bottom_layers_here = bottomSkinLayerCount(mesh_, layer_nr_, bottom_layer_count_);
+    if (bottom_layers_here == 0 && initial_bottom == 0)
     {
         return; // downskin remains empty
     }
-    if (layer_nr_ < LayerIndex(initial_bottom_layer_count_))
+    if (layer_nr_ < LayerIndex(initial_bottom))
     {
         return; // don't subtract anything form the downskin
     }
-    LayerIndex bottom_check_start_layer_idx{ std::max(LayerIndex{ 0 }, LayerIndex{ layer_nr_ - bottom_layer_count_ }) };
+    LayerIndex bottom_check_start_layer_idx{ std::max(LayerIndex{ 0 }, layer_nr_ - bottom_layers_here) };
     Shape not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
     if (! no_small_gaps_heuristic_)
     {
@@ -208,17 +291,18 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
 
 void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Shape& upskin)
 {
-    if (layer_nr_ > LayerIndex(mesh_.layers.size()) - top_layer_count_ || top_layer_count_ <= 0)
+    const size_t top_layers_here = topSkinLayerCount(mesh_, layer_nr_, top_layer_count_);
+    if (layer_nr_ > LayerIndex(mesh_.layers.size()) - top_layers_here || top_layers_here <= 0)
     {
         // If we're in the very top layers (less than top_layer_count from the top of the mesh) everything will be top skin anyway, so no need to generate infill. Just take the
         // original inner contour. If top_layer_count is 0, no need to calculate anything either.
         return;
     }
 
-    Shape not_air = getOutlineOnLayer(part, layer_nr_ + top_layer_count_);
+    Shape not_air = getOutlineOnLayer(part, layer_nr_ + top_layers_here);
     if (! no_small_gaps_heuristic_)
     {
-        for (int upskin_layer_nr = layer_nr_ + 1; upskin_layer_nr < layer_nr_ + top_layer_count_; upskin_layer_nr++)
+        for (int upskin_layer_nr = layer_nr_ + 1; upskin_layer_nr < layer_nr_ + top_layers_here; upskin_layer_nr++)
         {
             not_air = not_air.intersection(getOutlineOnLayer(part, upskin_layer_nr));
         }
@@ -637,8 +721,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     layer_skip_count = gradual_infill_step_layer_count / n_skip_steps_per_gradual_step;
     const size_t max_infill_steps = mesh.settings.get<size_t>("gradual_infill_steps");
 
-    const LayerIndex mesh_min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
-    const LayerIndex mesh_max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
+    const LayerIndex mesh_min_layer = initialBottomSkinLayerCount(mesh, mesh.settings.get<size_t>("initial_bottom_layers"));
+    const LayerIndex mesh_max_layer = LayerIndex(mesh.layers.size()) - 1 - topCapLayerCount(mesh);
 
     const Simplify simplifier(mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").settings_);
 
@@ -720,8 +804,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
 
 void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
 {
-    if (mesh.layers.empty() || mesh.layers.size() - 1 < mesh.settings.get<size_t>("top_layers")
-        || mesh.settings.get<coord_t>("infill_line_distance") == 0) // No infill is even generated.
+    const size_t top_cap = topCapLayerCount(mesh);
+    if (mesh.layers.empty() || mesh.layers.size() - 1 < top_cap || mesh.settings.get<coord_t>("infill_line_distance") == 0) // No infill is even generated.
     {
         return;
     }
@@ -741,10 +825,10 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
     divisible index. Otherwise we get some parts that have infill at divisible
     layers and some at non-divisible layers. Those layers would then miss each
     other. */
-    size_t bottom_most_layers = mesh.settings.get<size_t>("initial_bottom_layers");
+    size_t bottom_most_layers = initialBottomSkinLayerCount(mesh, mesh.settings.get<size_t>("initial_bottom_layers"));
     LayerIndex min_layer = static_cast<LayerIndex>(bottom_most_layers + amount) - 1;
     min_layer -= min_layer % amount; // Round upwards to the nearest layer divisible by infill_sparse_combine.
-    LayerIndex max_layer = static_cast<LayerIndex>(mesh.layers.size()) - 1 - mesh.settings.get<size_t>("top_layers");
+    LayerIndex max_layer = static_cast<LayerIndex>(mesh.layers.size()) - 1 - top_cap;
     max_layer -= max_layer % amount; // Round downwards to the nearest layer divisible by infill_sparse_combine.
     for (LayerIndex layer_idx = min_layer; layer_idx <= max_layer; layer_idx += amount) // Skip every few layers, but extrude more.
     {
