@@ -5,11 +5,16 @@
 
 #include <algorithm>
 
+#include <gmock/gmock.h>
 #include <gtest/gtest.h>
 
 #include "Application.h" //To provide settings for the layer plan.
 #include "RetractionConfig.h" //To provide retraction settings.
 #include "Slice.h" //To provide settings for the layer plan.
+#include "arcus/MockCommunication.h"
+#include "gcode_export/GCodePart.h"
+#include "gcode_export/gcodeExport.h"
+#include "mesh.h"
 #include "pathPlanning/Comb.h" //To create a combing path around the layer plan.
 #include "pathPlanning/NozzleTempInsert.h" //To provide nozzle temperature commands.
 #include "sliceDataStorage.h" //To provide slice data as input for the planning stage.
@@ -31,8 +36,7 @@ public:
     /*!
      * Cooling settings, which are passed to the layer plan by reference.
      *
-     * One for each extruder. There is only one extruder by default in this
-     * fixture.
+     * One for each extruder. This fixture has two extruders.
      *
      * \note This needs to be allocated BEFORE layer_plan since the constructor
      * of layer_plan in the initializer list needs to have a valid vector
@@ -191,6 +195,7 @@ public:
         settings->add("travel_avoid_supports", "true");
 
         Application::getInstance().current_slice_->scene.extruders.emplace_back(0, settings); // Add an extruder train.
+        Application::getInstance().current_slice_->scene.extruders.emplace_back(1, settings);
 
         // Set the fan speed layer time settings (since the LayerPlan constructor copies these).
         FanSpeedLayerTimeSettings fan_settings;
@@ -201,6 +206,7 @@ public:
         fan_settings.cool_fan_speed_max = settings->get<Ratio>("cool_fan_speed_max");
         fan_settings.cool_min_speed = settings->get<Velocity>("cool_min_speed");
         fan_settings.cool_fan_full_layer = settings->get<LayerIndex>("cool_fan_full_layer");
+        fan_speed_layer_time_settings.push_back(fan_settings);
         fan_speed_layer_time_settings.push_back(fan_settings);
 
         // Set the retraction settings (also copied by LayerPlan).
@@ -216,6 +222,7 @@ public:
 
         auto* result = new SliceDataStorage();
         result->retraction_wipe_config_per_extruder[0].retraction_config = retraction_config;
+        result->retraction_wipe_config_per_extruder[1].retraction_config = retraction_config;
         return result;
     }
 
@@ -633,9 +640,9 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
     Shape supported_region;
     supported_region.emplace_back();
     supported_region.back().emplace_back(-MM2INT(10), -MM2INT(10));
-    supported_region.back().emplace_back( MM2INT(10), -MM2INT(10));
-    supported_region.back().emplace_back( MM2INT(10),  MM2INT(10));
-    supported_region.back().emplace_back(-MM2INT(10),  MM2INT(10));
+    supported_region.back().emplace_back(MM2INT(10), -MM2INT(10));
+    supported_region.back().emplace_back(MM2INT(10), MM2INT(10));
+    supported_region.back().emplace_back(-MM2INT(10), MM2INT(10));
 
     Shape full_area;
     full_area.emplace_back();
@@ -663,12 +670,15 @@ TEST_F(OverhangSpeedTest, SpeedFactorSplitAtOverhangBoundary)
     bool found_reduced_speed = false;
     for (const GCodePath& path : paths)
     {
-        if (path.isTravelPath()) continue;
-        if (path.speed_factor >= 1.0_r) found_full_speed = true;
-        if (path.speed_factor < 1.0_r)  found_reduced_speed = true;
+        if (path.isTravelPath())
+            continue;
+        if (path.speed_factor >= 1.0_r)
+            found_full_speed = true;
+        if (path.speed_factor < 1.0_r)
+            found_reduced_speed = true;
     }
 
-    EXPECT_TRUE(found_full_speed)    << "Segment inside supported region should have full speed";
+    EXPECT_TRUE(found_full_speed) << "Segment inside supported region should have full speed";
     EXPECT_TRUE(found_reduced_speed) << "Segment crossing into overhang should have reduced speed";
 }
 
@@ -686,6 +696,135 @@ TEST(NozzleTempInsertTest, SortNozzleTempInsterts)
     EXPECT_EQ(nozzle_temp_inserts[3].temperature, 110.);
     EXPECT_EQ(nozzle_temp_inserts[4].temperature, 140.);
     EXPECT_EQ(nozzle_temp_inserts[5].temperature, 130.);
+}
+
+/*!
+ * A mesh-less travel after a mid-layer tool change must use the extruder that
+ * is active after the switch. The mesh printed before the switch keeps the
+ * previous extruder's retraction.
+ */
+TEST_F(LayerPlanTest, TravelRetractionUsesActiveExtruderAfterToolChange)
+{
+    auto fill_retraction = [](RetractionConfig& config, const double distance, const double speed)
+    {
+        config.distance = distance;
+        config.retract_during_travel = 0.0_r;
+        config.keep_retracting_during_travel = false;
+        config.prime_during_travel = 0.0_r;
+        config.speed = speed;
+        config.primeSpeed = speed;
+        config.prime_volume = 0.0;
+        config.zHop = 0;
+        config.retraction_min_travel_distance = 0;
+        config.retraction_extrusion_window = 10.0;
+        config.retraction_count_max = 30;
+    };
+
+    settings->add("machine_gcode_flavor", "Marlin");
+    settings->add("machine_use_extruder_offset_to_offset_coords", "false");
+    settings->add("ppr_enable", "false");
+    settings->add("material_diameter", "2850");
+    settings->add("machine_extruder_cooling_fan_number", "0");
+    settings->add("machine_firmware_retract", "false");
+    settings->add("machine_name", "retraction-test");
+    settings->add("relative_extrusion", "false");
+    settings->add("machine_always_write_active_tool", "false");
+    settings->add("material_bed_temp_prepend", "true");
+    settings->add("machine_max_feedrate_x", "300");
+    settings->add("machine_max_feedrate_y", "300");
+    settings->add("machine_max_feedrate_z", "40");
+    settings->add("machine_max_feedrate_e", "45");
+    settings->add("machine_max_acceleration_x", "9000");
+    settings->add("machine_max_acceleration_y", "9000");
+    settings->add("machine_max_acceleration_z", "100");
+    settings->add("machine_max_acceleration_e", "10000");
+    settings->add("machine_max_jerk_xy", "20");
+    settings->add("machine_max_jerk_z", "0.4");
+    settings->add("machine_max_jerk_e", "5");
+    settings->add("machine_minimum_feedrate", "0");
+    settings->add("machine_acceleration", "1500");
+    settings->add("flow_rate_max_extrusion_offset", "0");
+    settings->add("flow_rate_extrusion_offset_factor", "0");
+    settings->add("machine_heated_bed", "false");
+    settings->add("build_volume_fan_nr", "0");
+    settings->add("acceleration_enabled", "false");
+    settings->add("acceleration_travel_enabled", "false");
+    settings->add("jerk_enabled", "false");
+    settings->add("jerk_travel_enabled", "false");
+    settings->add("coasting_enable", "false");
+    settings->add("machine_nozzle_temp_enabled", "false");
+    settings->add("retraction_enable", "true");
+    settings->add("retraction_hop_enabled", "false");
+    settings->add("retract_at_layer_change", "false");
+    settings->add("magic_spiralize", "false");
+    settings->add("retraction_hop_after_extruder_switch", "false");
+    settings->add("machine_extruder_end_code", "");
+    settings->add("machine_extruder_end_code_duration", "0");
+    settings->add("machine_extruder_prestart_code", "");
+    settings->add("machine_extruder_start_code", "");
+    settings->add("machine_extruder_start_code_duration", "0");
+    settings->add("machine_extruder_change_duration", "0");
+    settings->add("machine_extruder_end_pos_abs", "false");
+    settings->add("machine_extruder_end_pos_x", "0");
+    settings->add("machine_extruder_end_pos_y", "0");
+    settings->add("machine_extruder_start_pos_abs", "false");
+    settings->add("machine_extruder_start_pos_x", "0");
+    settings->add("machine_extruder_start_pos_y", "0");
+    settings->add("speed_z_hop", "10");
+    Application::getInstance().current_slice_->scene.settings.add("cool_during_extruder_switch", "unchanged");
+    Application::getInstance().current_slice_->scene.settings.add("machine_scale_fan_speed_zero_to_one", "false");
+    settings->add("machine_extruders_share_heater", "false");
+    settings->add("prime_blob_enable", "false");
+    settings->add("cool_lift_head", "false");
+
+    auto configure_extruder = [&fill_retraction](RetractionAndWipeConfig& config, const double distance, const double speed)
+    {
+        fill_retraction(config.retraction_config, distance, speed);
+        fill_retraction(config.extruder_switch_retraction_config, 0.0, 1.0);
+        config.retraction_hop_after_extruder_switch = 0;
+        config.switch_extruder_extra_prime_amount = 0.0;
+        config.wipe_config.clean_between_layers = false;
+    };
+    configure_extruder(storage->retraction_wipe_config_per_extruder[0], 3.0, 40.0);
+    configure_extruder(storage->retraction_wipe_config_per_extruder[1], 10.0, 25.0);
+
+    mesh.settings_.setParent(settings);
+    mesh.settings_.add("extruder_nr", "0");
+    mesh.settings_.add("cutting_mesh", "false");
+    mesh.settings_.add("anti_overhang_mesh", "false");
+    mesh.settings_.add("infill_mesh", "false");
+    const auto mesh_storage = std::make_shared<SliceMeshStorage>(&mesh, 0);
+    configure_extruder(mesh_storage->retraction_wipe_config, 3.0, 40.0);
+
+    layer_plan.setMesh(mesh_storage);
+    layer_plan.addTravel(Point2LL(MM2INT(10), 0));
+    ASSERT_TRUE(layer_plan.setExtruder(1));
+    layer_plan.setMesh(nullptr);
+    layer_plan.addTravel(Point2LL(MM2INT(30), 0));
+
+    auto communication = std::make_shared<testing::NiceMock<MockCommunication>>();
+    Application::getInstance().communication_ = communication;
+    GCodeExport gcode;
+    gcode.preSetup(0);
+    layer_plan.writeGCode(gcode);
+    Application::getInstance().communication_ = nullptr;
+    layer_plan.setMesh(nullptr);
+
+    std::string gcode_text;
+    for (const std::shared_ptr<GCodePart>& gcode_part : gcode.gcode_parts_)
+    {
+        gcode_text += gcode_part->str();
+    }
+    const auto tool_change = gcode_text.find("T1\n");
+    ASSERT_NE(tool_change, std::string::npos) << gcode_text;
+    const std::string before_switch = gcode_text.substr(0, tool_change);
+    const std::string after_switch = gcode_text.substr(tool_change);
+    EXPECT_NE(before_switch.find("F2400"), std::string::npos) << before_switch;
+    EXPECT_NE(before_switch.find("E-3"), std::string::npos) << before_switch;
+    EXPECT_NE(after_switch.find("F1500"), std::string::npos) << after_switch;
+    EXPECT_NE(after_switch.find("E-10"), std::string::npos) << after_switch;
+    EXPECT_EQ(after_switch.find("F2400"), std::string::npos) << after_switch;
+    EXPECT_EQ(after_switch.find("E-3"), std::string::npos) << after_switch;
 }
 
 } // namespace cura
