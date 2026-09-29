@@ -966,8 +966,6 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
         // Ignore intersections very close to the tips
         std::vector<float> intersections = override_area.area.intersectionsWithSegment(get_position(epsilon_factor).toPoint2LL(), get_position(1.0 - epsilon_factor).toPoint2LL());
         ranges::stable_sort(intersections);
-        const auto duplicates = ranges::unique(intersections);
-        intersections.erase(duplicates, intersections.end());
 
         // Calculate whether this area is under the segment start
         constexpr bool border_result = true;
@@ -1037,9 +1035,20 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
             }
         }
 
-        // Erase the treated intersection, and flip the associated area containing bit
+        // Erase the treated intersection, and classify the area immediately after the hit. This
+        // avoids treating a vertex hit as a crossing when the segment only touches the area.
         override_areas_intersections[next_intersection_index].erase(override_areas_intersections[next_intersection_index].begin());
-        areas_under_segments.flip(next_intersection_index);
+        const OverrideArea& override_area = override_areas[next_intersection_index];
+        const bool area_before_intersection = override_area.area.inside(get_position(*next_intersection - epsilon_factor).toPoint2LL(), true);
+        const bool area_after_intersection = override_area.area.inside(get_position(*next_intersection + epsilon_factor).toPoint2LL(), true);
+        if (area_before_intersection != area_after_intersection)
+        {
+            areas_under_segments[next_intersection_index] = area_after_intersection;
+        }
+        else
+        {
+            areas_under_segments[next_intersection_index] = area_before_intersection;
+        }
 
         // Now see if this intersection got us to a different topmost area, or if it happened under
         std::optional<size_t> new_topmost_area = get_topmost_area();
