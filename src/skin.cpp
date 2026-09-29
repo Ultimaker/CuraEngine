@@ -65,7 +65,23 @@ size_t topSkinLayerCount(const SliceMeshStorage& mesh, const LayerIndex layer_nr
     {
         return configured_count;
     }
-    return layersToReachThickness(mesh.layers, layer_nr, 1, mesh.settings.get<coord_t>("top_thickness"));
+    const coord_t required = mesh.settings.get<coord_t>("top_thickness");
+    if (required <= 0 || layer_nr < 0 || layer_nr >= static_cast<LayerIndex>(mesh.layers.size()))
+    {
+        return 0;
+    }
+
+    // calculateTopSkin probes layer_nr + count, so measure the layers above this one.
+    coord_t covered = 0;
+    for (LayerIndex index = layer_nr + 1; index < static_cast<LayerIndex>(mesh.layers.size()); ++index)
+    {
+        covered += mesh.layers[index].thickness;
+        if (covered >= required)
+        {
+            return static_cast<size_t>((index - layer_nr).value);
+        }
+    }
+    return mesh.layers.size() - static_cast<size_t>(layer_nr.value); // Probe past the top when the upper layers cannot cover the thickness.
 }
 
 size_t bottomSkinLayerCount(const SliceMeshStorage& mesh, const LayerIndex layer_nr, const size_t configured_count)

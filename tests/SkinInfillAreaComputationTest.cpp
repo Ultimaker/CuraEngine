@@ -186,6 +186,62 @@ TEST_F(SkinInfillAreaComputationTest, AdaptiveSkinRoundsUpAPartialLayer)
     }
 }
 
+TEST_F(SkinInfillAreaComputationTest, ThinFinalLayerKeepsThePenultimateLayerSolid)
+{
+    // The 0.1 mm final layer cannot cover a 0.4 mm top by itself.
+    Mesh mesh;
+    addSettings(mesh, true, "2", "0", "0.4", "0");
+    SliceMeshStorage storage(&mesh, 10);
+    for (SliceLayer& layer : storage.layers)
+    {
+        fillLayer(layer, MM2INT(0.4));
+    }
+    storage.layers.back().thickness = MM2INT(0.1);
+
+    generate(storage);
+
+    for (size_t layer = 0; layer < storage.layers.size(); ++layer)
+    {
+        const SliceLayerPart& part = storage.layers[layer].parts.front();
+        if (layer >= 8)
+        {
+            EXPECT_TRUE(isSolidSkin(part)) << "layer " << layer;
+        }
+        else
+        {
+            EXPECT_TRUE(isInfillOnly(part)) << "layer " << layer;
+        }
+    }
+}
+
+TEST_F(SkinInfillAreaComputationTest, ThinLayerBelowThickTopDoesNotAddSkin)
+{
+    // The two 0.4 mm layers above layer 7 already cover the requested top thickness.
+    Mesh mesh;
+    addSettings(mesh, true, "2", "0", "0.8", "0");
+    SliceMeshStorage storage(&mesh, 10);
+    for (SliceLayer& layer : storage.layers)
+    {
+        fillLayer(layer, MM2INT(0.4));
+    }
+    storage.layers[7].thickness = MM2INT(0.1);
+
+    generate(storage);
+
+    for (size_t layer = 0; layer < storage.layers.size(); ++layer)
+    {
+        const SliceLayerPart& part = storage.layers[layer].parts.front();
+        if (layer >= 8)
+        {
+            EXPECT_TRUE(isSolidSkin(part)) << "layer " << layer;
+        }
+        else
+        {
+            EXPECT_TRUE(isInfillOnly(part)) << "layer " << layer;
+        }
+    }
+}
+
 TEST_F(SkinInfillAreaComputationTest, ConstantLayerHeightKeepsConfiguredCounts)
 {
     // Thickness settings would imply 8 layers, but adaptive layers are off.
