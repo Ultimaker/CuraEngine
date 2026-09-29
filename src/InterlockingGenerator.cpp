@@ -202,6 +202,13 @@ void InterlockingGenerator::addBoundaryCells(const std::vector<Shape>& layers, c
 {
     auto voxel_emplacer = [&cells](GridPoint3 p)
     {
+        // Grid z < 0 maps to layer range [z * cell_size.z, (z + 1) * cell_size.z), which ends at or below layer 0.
+        // Interface dilation of the bottom layer still emits those cells. They cover no printable layer, and indexing
+        // them with size_t in applyMicrostructureToOutlines and handleThinAreas wraps and crashes.
+        if (p.z_ < 0)
+        {
+            return true;
+        }
         cells.emplace(p);
         return true;
     };
