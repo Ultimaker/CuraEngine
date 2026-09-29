@@ -280,6 +280,8 @@ private:
      */
     void calculatePrimeLayerPerExtruder(const SliceDataStorage& storage);
 
+    void calculateSeamPositions(SliceDataStorage& storage);
+
     /*!
      * Gets a list of extruders that are used on the given layer.
      * When it's on the first layer, the prime blob will also be taken into account.

@@ -764,6 +764,8 @@ protected:
             return 0; // Front end is closer.
         }
 
+        return 0;
+
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
         const PointsSet& points = *path.converted_;
 

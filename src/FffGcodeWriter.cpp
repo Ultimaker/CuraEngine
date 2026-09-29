@@ -13,6 +13,7 @@
 #include <optional>
 #include <unordered_set>
 
+#include <range/v3/algorithm/rotate.hpp>
 #include <range/v3/view/chunk_by.hpp>
 #include <range/v3/view/concat.hpp>
 #include <spdlog/spdlog.h>
@@ -136,6 +137,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
 
     calculateExtruderOrderPerLayer(storage);
     calculatePrimeLayerPerExtruder(storage);
+    calculateSeamPositions(storage);
 
     if (scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
@@ -1606,6 +1608,124 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
             if (used_extruders[extruder_nr])
             {
                 extruder_prime_layer_nr[extruder_nr] = std::min(extruder_prime_layer_nr[extruder_nr], layer_nr);
+            }
+        }
+    }
+}
+
+void FffGcodeWriter::calculateSeamPositions(SliceDataStorage& storage)
+{
+    for (std::shared_ptr<SliceMeshStorage>& mesh : storage.meshes)
+    {
+        const Settings& settings = mesh->settings;
+        auto seam_type = settings.get<EZSeamType>("z_seam_type");
+        auto corner_pref = settings.get<EZSeamCornerPrefType>("z_seam_corner");
+        const Point2LL target_pos(settings.get<coord_t>("z_seam_x"), settings.get<coord_t>("z_seam_y"));
+
+        for (SliceLayer& layer : mesh->layers)
+        {
+            // ########## Step 1: define the main criteria to be applied and their weights
+            // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
+            // exactly one calculation using this criterion.
+            BestElementFinder best_candidate_finder;
+            BestElementFinder::CriteriaPass main_criteria_pass;
+            main_criteria_pass.outsider_delta_threshold = 0.05;
+            PointsSet points;
+
+            if (layer.texture_data_provider_)
+            {
+                BestElementFinder::WeighedCriterion texture_criterion;
+                texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, layer.texture_data_provider_, "seam");
+                texture_criterion.weight = 5.0;
+                main_criteria_pass.criteria.push_back(texture_criterion);
+            }
+
+            BestElementFinder::WeighedCriterion main_criterion;
+
+            /*if (path.force_start_index_.has_value()) // Handles EZSeamType::USER_SPECIFIED with "seam_on_vertex" disabled
+            {
+                // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
+                constexpr double distance_divider = 1.0;
+                constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
+                main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
+            }
+            else */
+            if (seam_type == EZSeamType::SHORTEST || seam_type == EZSeamType::USER_SPECIFIED)
+            {
+                main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
+            }
+            else if (seam_type == EZSeamType::SHARPEST_CORNER && corner_pref != EZSeamCornerPrefType::PLUGIN)
+            {
+                main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, corner_pref);
+            }
+            else if (seam_type == EZSeamType::RANDOM)
+            {
+                main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
+            }
+
+            if (main_criterion.criterion)
+            {
+                main_criteria_pass.criteria.push_back(main_criterion);
+            }
+            else
+            {
+                spdlog::warn("Missing main criterion calculator");
+            }
+
+            // Second criterion with higher weight to avoid overhanging areas
+            // if (! overhang_areas_.empty())
+            // {
+            //     BestElementFinder::WeighedCriterion overhang_criterion;
+            //     overhang_criterion.weight = 2.0;
+            //     overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(points, overhang_areas_);
+            //     main_criteria_pass.criteria.push_back(overhang_criterion);
+            // }
+
+            best_candidate_finder.appendCriteriaPass(main_criteria_pass);
+
+            // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
+            if (seam_type == EZSeamType::SHARPEST_CORNER)
+            {
+                const AABB path_bounding_box(points);
+
+                { // First fallback strategy is to take points on the back-most position
+                    auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+                    constexpr double outsider_delta_threshold = 0.01;
+                    best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
+                }
+
+                { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
+                    auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+                    best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
+                }
+            }
+
+            // if (! disallowed_area_for_seams.empty())
+            // {
+            //     best_i = pathIfZseamIsInDisallowedArea(best_i.value_or(0), path, 0);
+            // }
+
+            for (SliceLayerPart& part : layer.parts)
+            {
+                for (VariableWidthLines& extrusion_lines : part.wall_toolpaths)
+                {
+                    for (ExtrusionLine& extrusion_line : extrusion_lines)
+                    {
+                        points.clear();
+
+                        for (const ExtrusionJunction& junction : extrusion_line)
+                        {
+                            points.push_back(junction.p_);
+                        }
+
+                        const std::optional<size_t> best_seam_candidate = best_candidate_finder.findBestElement(points.size());
+                        if (best_seam_candidate.has_value() && best_seam_candidate.value() != 0)
+                        {
+                            // Re-order the toolpath so that it starts with the most appropriate seam position
+                            ranges::rotate(extrusion_line, std::next(extrusion_line.begin(), *best_seam_candidate));
+                        }
+                    }
+                }
             }
         }
     }
