@@ -60,6 +60,8 @@ class LayerPlan : public NoCopy
     friend class LayerPlanBuffer;
 #ifdef BUILD_TESTS
     friend class AddTravelTest;
+    FRIEND_TEST(LayerPlanTest, WithinInfillMinimumBoundaryPreservesInfillArea);
+    FRIEND_TEST(LayerPlanTest, WithinInfillPreferredBoundaryAvoidsSkinEdge);
     friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
     friend class AntiOozeAmountsTest;
     FRIEND_TEST(AntiOozeAmountsTest, ComputeAntiOozeAmounts);
@@ -947,12 +949,12 @@ private:
      * Minimum combing boundary:
      *  - If CombingMode::ALL: Add the outline offset (skin, infill and inner walls).
      *  - If CombingMode::NO_SKIN: Add the outline offset, subtract skin (infill and inner walls).
-     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *  - If CombingMode::INFILL: Add the infill (infill only) as a fallback boundary.
      *
      * Preferred combing boundary:
      *  - If CombingMode::ALL: Add the increased outline offset (skin, infill and part of the inner walls).
      *  - If CombingMode::NO_SKIN: Add the increased outline offset, subtract skin (infill and part of the inner walls).
-     *  - If CombingMode::INFILL: Add the infill (infill only).
+     *  - If CombingMode::INFILL: Add the infill, excluding the configured avoidance distance around skin.
      *
      * \param boundary_type The boundary type to compute.
      * \return the combing boundary or an empty Shape if no combing is required

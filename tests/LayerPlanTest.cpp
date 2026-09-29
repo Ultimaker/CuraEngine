@@ -231,7 +231,54 @@ public:
     {
         delete storage;
     }
+
+    /*! Prepare adjacent skin and infill regions for Within Infill comb-boundary tests. */
+    void setUpInfillCombingBoundaryScene()
+    {
+        settings->add("retraction_combing", "infill");
+        settings->add("retraction_combing_avoid_distance", "1");
+        settings->add("machine_nozzle_size", "0.4");
+        settings->add("cutting_mesh", "false");
+        settings->add("anti_overhang_mesh", "false");
+        settings->add("infill_mesh", "false");
+        mesh.settings_.setParent(settings);
+
+        auto slice_mesh = std::make_shared<SliceMeshStorage>(&mesh, 101);
+        SliceLayerPart part;
+        part.infill_area.emplace_back();
+        part.infill_area.back().emplace_back(MM2INT(5), 0);
+        part.infill_area.back().emplace_back(MM2INT(10), 0);
+        part.infill_area.back().emplace_back(MM2INT(10), MM2INT(10));
+        part.infill_area.back().emplace_back(MM2INT(5), MM2INT(10));
+        part.skin_parts.emplace_back();
+        part.skin_parts.back().outline.emplace_back();
+        part.skin_parts.back().outline.back().emplace_back(0, 0);
+        part.skin_parts.back().outline.back().emplace_back(MM2INT(5), 0);
+        part.skin_parts.back().outline.back().emplace_back(MM2INT(5), MM2INT(10));
+        part.skin_parts.back().outline.back().emplace_back(0, MM2INT(10));
+        slice_mesh->layers[100].parts.push_back(std::move(part));
+        storage->meshes.push_back(std::move(slice_mesh));
+    }
 };
+
+TEST_F(LayerPlanTest, WithinInfillMinimumBoundaryPreservesInfillArea)
+{
+    setUpInfillCombingBoundaryScene();
+
+    const Shape boundary = layer_plan.computeCombBoundary(LayerPlan::CombBoundary::MINIMUM);
+
+    EXPECT_TRUE(boundary.inside(Point2LL(MM2INT(5.5), MM2INT(5)))) << "The minimum boundary must preserve infill near the skin edge as a fallback.";
+}
+
+TEST_F(LayerPlanTest, WithinInfillPreferredBoundaryAvoidsSkinEdge)
+{
+    setUpInfillCombingBoundaryScene();
+
+    const Shape boundary = layer_plan.computeCombBoundary(LayerPlan::CombBoundary::PREFERRED);
+
+    EXPECT_FALSE(boundary.inside(Point2LL(MM2INT(5.5), MM2INT(5)))) << "The preferred boundary must avoid the configured 1 mm around the skin edge.";
+    EXPECT_TRUE(boundary.inside(Point2LL(MM2INT(6.5), MM2INT(5)))) << "The preferred boundary must retain infill beyond the configured clearance.";
+}
 
 // Test all combinations of these settings in parameterised tests.
 std::vector<std::string> retraction_enable = { "false", "true" };
