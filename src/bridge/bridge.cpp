@@ -246,7 +246,7 @@ std::optional<AngleDegrees> bridgeAngle(
         // Do a second pass around the best found angle to refine it, so that it looks well aligned with the model lines.
         const double best_angle = best_angle_index.value();
         angle_candidates.clear();
-        for (double angle = best_angle - 1.0; angle <= best_angle + 1; angle += 0.05)
+        for (double angle = best_angle - 1.0; angle <= best_angle + 1.0; angle += 0.05)
         {
             angle_candidates.push_back(angle);
         }

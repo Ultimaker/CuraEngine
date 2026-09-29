@@ -48,16 +48,7 @@ std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates
             for (const auto& weighed_criterion : criteria_pass.criteria)
             {
                 const double criterion_score = weighed_criterion.criterion->computeScore(iterator->candidate_index);
-
-                if (criterion_score < 0.0)
-                {
-                    spdlog::warn("Criterion returned a score<0: {}", criterion_score);
-                }
-                else if (criterion_score > 1.0)
-                {
-                    spdlog::warn("Criterion returned a score>1: {}", criterion_score);
-                }
-
+                assert(criterion_score >= 0.0 && criterion_score <= 1.0 && "Criterion score is out-of-bounds");
                 iterator->score += criterion_score * weighed_criterion.weight;
             }
 

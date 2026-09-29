@@ -38,7 +38,7 @@ double AlignShapeScoringCriterion::computeScore(const TransformedShape& transfor
         AngleRadians segment_angle{ std::abs(std::atan2(segment_vector.Y, segment_vector.X)) };
 
         // We want segments that have an angle far from π/2 (close to horizontal) to have a high score
-        const double angle_score = std::lerp(0, 1, std::abs(std::numbers::pi / 2 - segment_angle) / (std::numbers::pi / 2));
+        const double angle_score = std::abs(std::numbers::pi / 2 - segment_angle) / (std::numbers::pi / 2);
 
         // Segments that are perfectly horizontal get a much higher score
         const double weighed_score = std::pow(angle_score, 3);

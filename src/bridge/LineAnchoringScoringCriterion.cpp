@@ -43,9 +43,7 @@ double LineAnchoringScoringCriterion::computeScore(const TransformedShape& trans
     {
         const coord_t line_y = line_min + i * line_width_;
         const bool has_supports = line_y >= transformed_supported_area.minY() && line_y <= transformed_supported_area.maxY();
-        coord_t line_length;
-        coord_t line_score;
-        std::tie(line_length, line_score) = evaluateBridgeLine(line_y, transformed_skin_area, has_supports ? transformed_supported_area : empty_transformed_shape);
+        const auto [line_length, line_score] = evaluateBridgeLine(line_y, transformed_skin_area, has_supports ? transformed_supported_area : empty_transformed_shape);
         total_line_length += line_length;
         total_line_score += line_score;
     }
