@@ -3654,6 +3654,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 gcode.switchExtruder(extruder_nr, prev_retraction_config.extruder_switch_retraction_config);
             }
 
+            // The config selected above still belongs to the extruder that was active before this switch
+            // when the current mesh does too. Mesh-less travels, such as support, would otherwise keep
+            // that extruder's retraction distance and speed. The switch retraction itself already used
+            // the previous extruder's switch config.
+            retraction_config = get_retraction_config(current_mesh).value_or(&storage_.retraction_wipe_config_per_extruder[extruder_nr]);
+            z_hop_height = retraction_config->retraction_config.zHop;
+
             { // require printing temperature to be met
                 constexpr bool wait = true;
                 gcode.writeTemperatureCommand(extruder_nr, extruder_plan.required_start_temperature_, wait);
