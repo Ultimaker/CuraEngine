@@ -36,6 +36,7 @@
 #include "plugins/slots.h"
 #include "raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
+#include "settings/types/Duration.h"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
 #include "utils/Simplify.h"
@@ -4047,12 +4048,39 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             const RetractionAndWipeConfig& actual_retraction_config
                 = current_mesh ? current_mesh->retraction_wipe_config : storage_.retraction_wipe_config_per_extruder[gcode.getExtruderNr()];
             gcode.writeRetraction(actual_retraction_config.retraction_config);
+            Duration cool_lift_travel_time{ 0.0 };
             if (extruder_plan_idx == extruder_plans_.size() - 1 || ! extruder.settings_.get<bool>("machine_extruder_end_pos_abs"))
             { // only do the z-hop if it's the last extruder plan; otherwise it's already at the switching bay area
                 // or do it anyway when we switch extruder in-place
-                gcode.writeZhopStart(MM2INT(3.0));
+                constexpr coord_t hop_height = MM2INT(3.0);
+                gcode.writeZhopStart(hop_height);
+                const Velocity hop_speed = extruder.settings_.get<Velocity>("speed_z_hop");
+                if (hop_speed > 0.0)
+                {
+                    Velocity fastest_return_speed = hop_speed;
+                    const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
+                    for (size_t next_idx = extruder_plan_idx + 1; next_idx < extruder_plans_.size(); ++next_idx)
+                    {
+                        fastest_return_speed = std::max(fastest_return_speed, extruders[extruder_plans_[next_idx].extruder_nr_].settings_.get<Velocity>("speed_z_hop"));
+                    }
+
+                    coord_t return_distance = hop_height;
+                    if (next_layer_hop_return_)
+                    {
+                        fastest_return_speed = std::max(fastest_return_speed, next_layer_hop_return_->fastest_speed);
+                        return_distance = std::max<coord_t>(0, hop_height - std::max<coord_t>(0, next_layer_hop_return_->z - z_));
+                    }
+
+                    // A later plan may end the hop after switching extruders. Credit only the
+                    // return time guaranteed by its distance and the fastest possible hop speed.
+                    cool_lift_travel_time = Duration(INT2MM(hop_height) / static_cast<double>(hop_speed) + INT2MM(return_distance) / static_cast<double>(fastest_return_speed));
+                }
             }
-            gcode.writeDelay(extruder_plan.extra_time_);
+            const Duration remaining_dwell = Duration(extruder_plan.extra_time_) - cool_lift_travel_time;
+            if (remaining_dwell > 0.0)
+            {
+                gcode.writeDelay(remaining_dwell);
+            }
         }
 
         extruder_plan.handleAllRemainingInserts(gcode);
