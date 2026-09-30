@@ -205,11 +205,7 @@ struct PrecisionedDouble
 
     static bool equalGivenPrecision(const PrecisionedDouble& a, const PrecisionedDouble& b)
     {
-        return (a.value == b.value) ||
-            (
-                (a.value - std::fmod(a.value, std::pow(10.0, -a.precision))) ==
-                (b.value - std::fmod(b.value, std::pow(10.0, -b.precision)))
-            );
+        return (a.value == b.value) || ((a.value - std::fmod(a.value, std::pow(10.0, -a.precision))) == (b.value - std::fmod(b.value, std::pow(10.0, -b.precision))));
     }
 
     friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
