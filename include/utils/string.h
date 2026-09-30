@@ -203,6 +203,15 @@ struct PrecisionedDouble
         return (std::abs(value) * std::pow(10.0, precision)) < 1.0;
     }
 
+    static bool equalGivenPrecision(const PrecisionedDouble& a, const PrecisionedDouble& b)
+    {
+        return (a.value == b.value) ||
+            (
+                (a.value - std::fmod(a.value, std::pow(10.0, -a.precision))) ==
+                (b.value - std::fmod(b.value, std::pow(10.0, -b.precision)))
+            );
+    }
+
     friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
     {
         writeDoubleToStream(precision_and_input.precision, precision_and_input.value, out);
