@@ -1017,10 +1017,9 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
             break;
         }
 
-        // Find the next intersection among all the lists
-        std::optional<float> next_intersection;
-        size_t next_intersection_index;
-        for (const auto& [index, intersections] : override_areas_intersections | ranges::views::enumerate)
+        // Find the closest intersection among all the lists
+        std::optional<float> next_closest_intersection;
+        for (const std::vector<float>& intersections : override_areas_intersections)
         {
             if (intersections.empty())
             {
@@ -1028,23 +1027,58 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
             }
 
             const float first_intersection = intersections.front();
-            if (! next_intersection.has_value() || next_intersection.value() < first_intersection)
+            if (! next_closest_intersection.has_value() || first_intersection < next_closest_intersection.value())
             {
-                next_intersection = first_intersection;
-                next_intersection_index = index;
+                next_closest_intersection = first_intersection;
             }
         }
 
-        // Erase the treated intersection, and flip the associated area containing bit
-        override_areas_intersections[next_intersection_index].erase(override_areas_intersections[next_intersection_index].begin());
-        areas_under_segments.flip(next_intersection_index);
+        // Now find all the intersections that are very close to the next one, to group them and treat them as a single "complex" crossing
+        float furthest_group_intersection = *next_closest_intersection;
+        const float group_lookup_distance = epsilon_factor * 2.0f; // Lookup a bit further than epsilon, so that we have enough margin when doing the inclusion testing
+        float next_intersection_lookup_limit = furthest_group_intersection + group_lookup_distance;
+        size_t intersections_counts = 0;
+        std::optional<size_t> crossed_override_area_index;
+        bool intersection_added;
+        do
+        {
+            intersection_added = false;
+            for (auto&& [override_area_index, intersections] : override_areas_intersections | ranges::views::enumerate)
+            {
+                while (! intersections.empty() && intersections.front() <= next_intersection_lookup_limit)
+                {
+                    furthest_group_intersection = std::max(furthest_group_intersection, intersections.front());
+                    next_intersection_lookup_limit = furthest_group_intersection + group_lookup_distance;
+                    intersections.erase(intersections.begin());
+                    ++intersections_counts;
+                    intersection_added = true;
+                    crossed_override_area_index = override_area_index;
+                }
+            }
+        } while (intersection_added);
+
+        if (intersections_counts == 1)
+        {
+            // We have a single intersection, which means we just crossed a border in or out
+            areas_under_segments.flip(crossed_override_area_index.value());
+        }
+        else
+        {
+            // We have a complex intersection, possibly involving multiple areas, so just recalculate the full stack of underneath areas just after the intersection
+            const Point2LL position_after_intersection = get_position(furthest_group_intersection + epsilon_factor).toPoint2LL();
+            for (const auto& [override_area_index, override_area] : override_areas | ranges::views::enumerate)
+            {
+                constexpr bool border_result = true;
+                areas_under_segments.set(override_area_index, override_area.area.inside(position_after_intersection, border_result));
+            }
+        }
 
         // Now see if this intersection got us to a different topmost area, or if it happened under
-        std::optional<size_t> new_topmost_area = get_topmost_area();
+        const std::optional<size_t> new_topmost_area = get_topmost_area();
         if (new_topmost_area != current_topmost_area)
         {
             // We are either moving out of the area of moving in to a higher-level area, so end the current segment
-            const Point3LL next_intersection_position = get_position(*next_intersection);
+            const Point3LL next_intersection_position = get_position(*next_closest_intersection);
             partial_extrusion_segments.push_back(make_partial_segment(next_intersection_position, current_topmost_area));
 
             current_topmost_area = new_topmost_area;
