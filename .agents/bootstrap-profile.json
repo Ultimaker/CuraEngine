@@ -1,0 +1,685 @@
+{
+  "repository": {
+    "name": "CuraEngine",
+    "source": "git-remote:origin"
+  },
+  "stacks": {
+    "has_frontend": false,
+    "has_cloud": false,
+    "has_cpp": true,
+    "has_infra": false,
+    "has_qml": false,
+    "has_freertos": false,
+    "has_debian": false,
+    "has_materials": false,
+    "has_rust": false
+  },
+  "git": {
+    "commits_sampled": 200,
+    "jira_keys": {
+      "CURA": 6,
+      "NP": 2
+    },
+    "allowed_jira_keys": [
+      "CURA",
+      "NP"
+    ],
+    "branch_jira_key": null,
+    "history_jira_key": "CURA",
+    "dominant_jira_key": "CURA",
+    "semantic_prefix_ratio": 0.01
+  },
+  "base_branch": "main",
+  "submodules": [],
+  "ci": {
+    "providers": [
+      "github-actions"
+    ],
+    "workflows": [
+      ".github/workflows/benchmark.yml",
+      ".github/workflows/gcodeanalyzer.yml",
+      ".github/workflows/lint-formatter.yml",
+      ".github/workflows/lint-poster.yml",
+      ".github/workflows/lint-tidier.yml",
+      ".github/workflows/package.yml",
+      ".github/workflows/process-pull-request.yml",
+      ".github/workflows/scorecard.yml",
+      ".github/workflows/stress_benchmark.yml",
+      ".github/workflows/unit-test-post.yml",
+      ".github/workflows/unit-test.yml"
+    ],
+    "signals": {
+      "tests": true,
+      "lint": true,
+      "build": true
+    }
+  },
+  "tests": {
+    "frameworks": [
+      "ctest",
+      "gtest"
+    ],
+    "commands": [
+      "ctest --test-dir build --output-on-failure"
+    ]
+  },
+  "linters": {
+    "ruff": false,
+    "black": false,
+    "flake8": false,
+    "mypy": false,
+    "eslint": false,
+    "prettier": false,
+    "stylelint": false,
+    "clang_format": true,
+    "clang_tidy": true,
+    "pre_commit_config": false
+  },
+  "lint_scripts": [],
+  "protected_branches": [
+    "0.44",
+    "10220-mental_support",
+    "15.06",
+    "15.10",
+    "2.1",
+    "2.3",
+    "2.4",
+    "2.5",
+    "2.6",
+    "2.7",
+    "3.0",
+    "3.1",
+    "3.2",
+    "3.3",
+    "3.4",
+    "3.5",
+    "3.6",
+    "4.0",
+    "4.1",
+    "4.10",
+    "4.11",
+    "4.12",
+    "4.13",
+    "4.2",
+    "4.3",
+    "4.4",
+    "4.5",
+    "4.6",
+    "4.7",
+    "4.8",
+    "4.9",
+    "5.0",
+    "5.1",
+    "5.10",
+    "5.11",
+    "5.12",
+    "5.13",
+    "5.14",
+    "5.2",
+    "5.3",
+    "5.4",
+    "5.5",
+    "5.6",
+    "5.7",
+    "5.8",
+    "5.9",
+    "CURA-10201_fill-narrow-skin-with-walls",
+    "CURA-10220_moral_support",
+    "CURA-10255_add_unit_tests",
+    "CURA-10255_voronoi_fixes",
+    "CURA-10347_no_support_for_narrow_ridges",
+    "CURA-10348_Revert_boost_fix",
+    "CURA-10500_polygon_subdiv",
+    "CURA-10683_no-interface-for-tree-support",
+    "CURA-10748",
+    "CURA-10854_tree_xyz_override_fix",
+    "CURA-10914_allow_multiple_plugins_on_same_slot",
+    "CURA-10993_simple_prime_tower_raft",
+    "CURA-11019_speedup_ugly_version",
+    "CURA-11157_remove_support_interface_skip_height_remove_all_references",
+    "CURA-11360_test_wagyu_fix__dont_merge",
+    "CURA-11361-svg-wkt-formatters",
+    "CURA-11542_optimized_prime_tower",
+    "CURA-11597_fix_multiple_support_lines",
+    "CURA-11622_conan_v2",
+    "CURA-11630_avoid_seam_locations",
+    "CURA-11630_avoid_seam_locations_smarter",
+    "CURA-11649",
+    "CURA-11696-spiral-z-hop",
+    "CURA-11735-support-interface-layer",
+    "CURA-11830_smart_seam_unretract",
+    "CURA-11834-ambient-occlusion",
+    "CURA-11834-ambient-occlusion-faces",
+    "CURA-11887_refuzzed_minispike",
+    "CURA-11966_handover_code_reduce_sprint_overhang",
+    "CURA-12065_proposed_fix_extruder_vs_mesh_retract",
+    "CURA-12074_introduce-bambu-printers",
+    "CURA-12080_better-seam",
+    "CURA-12236_test_revert",
+    "CURA-12250_refactor-the-post-processing-like-algorithms",
+    "CURA-12304_Wipe-movements-should-have-a-limit-Wipe-nozzle-between-layers-moves-off-the-build-plate",
+    "CURA-12446_top_bottom_wall_count",
+    "CURA-12446_top_bottom_wall_count_new",
+    "CURA-12446_top_bottom_wall_count_v3",
+    "CURA-12449_handling-painted-models",
+    "CURA-12460_dual_layer_time_spike_dont_merge",
+    "CURA-12490_fix_spdlog_on_npm_package",
+    "CURA-12580_paint-on-support",
+    "CURA-12634_panda_painting_alpha",
+    "CURA-12774_zits_when_intermittent_roofing",
+    "CURA-12777",
+    "CURA-12793_multi-material-overlapping-models-with-painted-data-is-not-handled-as-expected",
+    "CURA-12851",
+    "CURA-12873",
+    "CURA-12890-Layer_time_message",
+    "CURA-12961_auto_brim_spike",
+    "CURA-12976_apply-inside-travel-avoid-distance-within-same-feature",
+    "CURA-13172",
+    "CURA-13183_sturdier-tree-support",
+    "CURA-13215",
+    "CURA-13279",
+    "CURA-13280_fix_tool_path_line_width_generation",
+    "CURA-13287_fix_microseg_regress",
+    "CURA-13287_fix_microseg_regress_test",
+    "CURA-13291_sharpen_bridging_conditions",
+    "CURA-13293",
+    "CURA-13335_flooring-over-support-not-bridging",
+    "CURA-13353_wrong-bridging-lines-direction",
+    "CURA-7557-inset-optimiser-use",
+    "CURA-7948_experiments",
+    "CURA-7948_remove_singular_nodes",
+    "CURA-7970_voronoi_graph_integer_rounding_experiments",
+    "CURA-8636_rdp_debug",
+    "CURA-8737_debug",
+    "CURA-9052_introuduce-maximum-travel-deviation",
+    "CURA-9178_crash_voronoi",
+    "CURA-9178_crash_voronoi_debug",
+    "CURA-9178_port_external_voronoi_fixes",
+    "CURA-9178_temp_sidebranch",
+    "CURA-9295_Overextrusion_when_printing_with_gradual_infill_",
+    "CURA-9296_Travel_trough_model_wehn_printing_PVA",
+    "CURA-9377_debug",
+    "CURA-9377_fix_transitions_out_of_range",
+    "CURA-9540_insert_temp_mid_polygon",
+    "CURA-9790-reconfigure-gradual-infill",
+    "CURA-9839-add-bridging-and-overhang-line-type-color-scheme",
+    "NP-1234-make-paint-from-neoprep-slicable",
+    "NP-1347",
+    "NP-1357_harden_ci_script_execution",
+    "NP-1361",
+    "NP-31_CuraEngine_Benchmark",
+    "NP-334_run_CuraEngine_wasm_multithreaded",
+    "NP-43_integrate_wasm_curaengine",
+    "NP-637_conan_v2_curaengine_5_9",
+    "NP-861",
+    "PPQ-41_randomize_layer_speed",
+    "PPQ-6",
+    "UMH-2021_ribbed_vaults_infill__rerooting",
+    "UMH-2022_litening_support",
+    "UMH-2025_id_label_paint",
+    "a_d_revert",
+    "add-useful-variables-to-gcode",
+    "add-useful-variables-to-gcode-v2",
+    "add_more_variables_to_resolvable_gcode",
+    "automerge_main_workflow",
+    "brim_per_material",
+    "combing-polygon-type",
+    "copilot/cura-13353-wrong-bridging-lines-direction",
+    "copilot/cura-13353-wrong-bridging-lines-direction-again",
+    "cura_10724",
+    "dependabot/pip/pyjwt-2.4.0",
+    "feature/curaengine-update",
+    "feature_estimate_dissolving_time",
+    "flow_advance",
+    "fractal_dithering",
+    "gh-pages",
+    "hackaton_color_power",
+    "immediate_visualization",
+    "interlocking_carving",
+    "jellespijker-patch-1",
+    "legacy",
+    "main",
+    "merge_crash_fix_into_polygon_rework",
+    "optimize_polyline_order",
+    "pva_support_fix",
+    "sparselinegrid_insert_cleanup",
+    "temp_umh2022_branch",
+    "test-linter",
+    "test-unit-test",
+    "texture_processing_color_model",
+    "volumetric_prop"
+  ],
+  "cpp": {
+    "sampled_files": 300,
+    "expected_hits": 0,
+    "throw_hits": 8,
+    "error_style": "exceptions",
+    "cxx_standard": null,
+    "idioms": {
+      "ranges": 275,
+      "constexpr": 589,
+      "concepts": 0,
+      "auto": 741,
+      "unique_ptr": 43,
+      "shared_ptr": 163,
+      "raw_new": 23,
+      "raw_delete": 30,
+      "optional": 250,
+      "variant": 6,
+      "coroutines": 7
+    },
+    "auto_per_file": 2.5,
+    "has_wasm": true,
+    "conan_major": 2,
+    "conan_version_req": ">=2.7.0"
+  },
+  "c": {},
+  "python": {
+    "sampled_files": 3,
+    "total_defs": 56,
+    "typed_def_ratio": 0.0,
+    "async_def_ratio": 0.0,
+    "frameworks": [],
+    "logging_over_print": false,
+    "has_secret_string": false,
+    "prefers_pathlib": false,
+    "python_requires": null,
+    "string_format_style": "mixed",
+    "string_format_counts": {
+      "f-strings": 8,
+      ".format()": 1,
+      "%-formatting": 11
+    },
+    "docstring_style": null
+  },
+  "ui": {
+    "has_ui": false,
+    "design_md_exists": false,
+    "token_sources": [],
+    "uses_stardust": false
+  },
+  "pr_template": {
+    "exists": true,
+    "path": ".github/PULL_REQUEST_TEMPLATE.md",
+    "has_why": true,
+    "has_what": true,
+    "has_how": true,
+    "content": "# Description\n\n<!-- Please include a summary of which issue is fixed or feature was added. Please also include relevant motivation and context. \nIf this pull request adds settings definitions for machines/materials, list them here. \n\nThis fixes... OR This improves... -->\n\n## Type of change\n\n<!-- Please delete options that are not relevant. -->\n\n- [ ] Bug fix (non-breaking change which fixes an issue)\n- [ ] New feature (non-breaking change which adds functionality)\n\n# How Has This Been Tested?\n\n<!-- Please describe the tests that you ran to verify your changes. Provide instructions so we can reproduce. Please also list any relevant details for your test configuration -->\n\n- [ ] Test A\n- [ ] Test B\n\n**Test Configuration**:\n* Operating System:\n\n# Checklist:\n\n- [ ] My code follows the style guidelines of this project as described in [UltiMaker Meta](https://github.com/Ultimaker/Meta)\n- [ ] I have read the [Contribution guide](https://github.com/Ultimaker/Cura/blob/main/contributing.md)\n- [ ] I have commented my code, particularly in hard-to-understand areas\n- [ ] I have uploaded any files required to test this change"
+  },
+  "build_commands": [
+    "cmake --build build",
+    "conan build ."
+  ],
+  "directory_map": [
+    {
+      "name": "include",
+      "count": 256,
+      "extensions": ".h, .hpp"
+    },
+    {
+      "name": "src",
+      "count": 157,
+      "extensions": ".cpp"
+    },
+    {
+      "name": "stress_benchmark",
+      "count": 124,
+      "extensions": ".settings, .wkt, .txt"
+    },
+    {
+      "name": "tests",
+      "count": 59,
+      "extensions": ".cpp, .txt, .h"
+    },
+    {
+      "name": "benchmark",
+      "count": 7,
+      "extensions": ".h, .txt, .wkt"
+    },
+    {
+      "name": "doc",
+      "count": 4,
+      "extensions": ".svg, .drawio"
+    }
+  ],
+  "artifact_dirs": [],
+  "has_api_surface": false,
+  "interface_dirs": [],
+  "api_doc_paths": [],
+  "has_storybook": false,
+  "host": {
+    "os": "linux",
+    "has_secret_tool": true,
+    "has_security": false
+  },
+  "vendored": [],
+  "generated": [],
+  "evidence": {
+    "has_systemd": false,
+    "systemd_units": [],
+    "has_udev": false,
+    "udev_rules": [],
+    "has_dbus": false,
+    "dbus_policy": [],
+    "has_machine_json": false,
+    "machine_json_files": [],
+    "has_gcode": false,
+    "gcode_evidence": [
+      "src/gcode_export/gcodeExport.cpp"
+    ],
+    "has_po_files": false,
+    "po_files": [],
+    "has_debian_packaging": false,
+    "debian_evidence": [],
+    "shell_script_count": 0,
+    "has_cargo_manifest": false
+  },
+  "license": {
+    "declared": "AGPL-3.0",
+    "source": "conanfile.py",
+    "proprietary": false
+  },
+  "has_package_json": false,
+  "node_package_dirs": [],
+  "python_packaging_manifests": [],
+  "file_count": 634,
+  "complexity": {
+    "functions_sampled": 2036,
+    "median": 2,
+    "p90": 11,
+    "max": 105
+  },
+  "skills": {
+    "catalog_root": "~/.agents",
+    "catalog_size": 0,
+    "matched": []
+  },
+  "observations": [
+    {
+      "category": "architecture",
+      "title": "Part of the tree is generated from source definitions",
+      "evidence": [
+        "found: `.proto` definitions",
+        "example: `Cura.proto`"
+      ],
+      "question": "Which files are generated, what command regenerates them, and should a rule forbid editing them by hand?",
+      "draft_rule": "Generated code (<paths>) MUST NOT be edited by hand. Change the source definition and re-run `<generator command>`; commit the regenerated output in the same commit.",
+      "confidence": "high",
+      "data": {}
+    },
+    {
+      "category": "code-pattern",
+      "title": "Recurring design patterns are named in the code",
+      "evidence": [
+        "`*Strategy`: 21 declarations (e.g. BeadingStrategy in `include/BeadingStrategy/BeadingStrategy.h`)",
+        "`*Provider`: 19 declarations (e.g. TextureDataProvider in `include/TextureDataProvider.h`)",
+        "`*Adapter`: 8 declarations (e.g. PathAdapter in `include/LayerPlan.h`)"
+      ],
+      "question": "Are these patterns the expected way to extend the system, and does a new feature have a prescribed shape (which pattern, which directory, which registration point)?",
+      "draft_rule": "Extend the system using the established patterns: `*Strategy`, `*Provider`, `*Adapter`. A new <unit of work> is added as a <pattern> in <directory> and registered in <registration point> \u2014 do not inline it into an existing large module.",
+      "confidence": "high",
+      "data": {
+        "patterns": [
+          "Strategy",
+          "Provider",
+          "Adapter"
+        ]
+      }
+    },
+    {
+      "category": "ecosystem_contract",
+      "title": "This repository defines or consumes an inter-process interface (D-Bus / IDL / protobuf)",
+      "evidence": [
+        "`Cura.proto`"
+      ],
+      "question": "Which of these definitions does this repository OWN, and which are copies or generated proxies of a definition owned elsewhere? Who are the peers on the other side of the interface, and what happens to them when a signal, method or field changes here?",
+      "draft_rule": "The interface definitions under `<paths>` are owned by `<owning repo>`. Never edit a generated proxy \u2014 change the canonical definition and regenerate with `<command>`. A change to a method, signal or field is a cross-repository change: name the affected peers (`<repos>`) in the PR and land the coordinated change before merging. Relevant catalogue skills: `ultimaker-firmware-development`.",
+      "confidence": "high",
+      "data": {
+        "surface": "dbus_interface",
+        "files": [
+          "Cura.proto"
+        ],
+        "skills": [
+          "ultimaker-firmware-development"
+        ]
+      }
+    },
+    {
+      "category": "ecosystem_contract",
+      "title": "This repository participates in the G/M-code command contract",
+      "evidence": [
+        "`.github/workflows/gcodeanalyzer.yml`",
+        "`include/gcode_export/FixedGCodePart.h`",
+        "`include/gcode_export/GCodePart.h`",
+        "`include/gcode_export/GCodePartType.h`",
+        "`include/gcode_export/GcodeTemplateResolver.h`"
+      ],
+      "question": "Does this repository SEND, FORWARD or HANDLE these codes? A code is a contract shared by every repository on its path \u2014 which sibling has the parser, which has the dispatcher, and which document is the registry of record?",
+      "draft_rule": "Adding or changing a G/M-code is an ecosystem change, never a local one. Register the code and its parameter definitions in `<registry path>` and synchronise the parser, dispatch and handler in `<sibling repos>` in the same ticket. Load `ultimaker-gcode-architecture` before touching a code; do not restate the registry in this repository. Relevant catalogue skills: `ultimaker-gcode-architecture`.",
+      "confidence": "high",
+      "data": {
+        "surface": "gcode_registry",
+        "files": [
+          ".github/workflows/gcodeanalyzer.yml",
+          "include/gcode_export/FixedGCodePart.h",
+          "include/gcode_export/GCodePart.h",
+          "include/gcode_export/GCodePartType.h",
+          "include/gcode_export/GcodeTemplateResolver.h"
+        ],
+        "skills": [
+          "ultimaker-gcode-architecture"
+        ]
+      }
+    },
+    {
+      "category": "ecosystem_contract",
+      "title": "A WebAssembly/embind boundary crosses out of this repository",
+      "evidence": [
+        "`CMakeLists.txt`",
+        "`include/Application.h`",
+        "`include/communication/EmscriptenCommunication.h`",
+        "`src/Application.cpp`",
+        "`src/communication/EmscriptenCommunication.cpp`"
+      ],
+      "question": "Which link options and exported symbols are a published contract with the JavaScript consumer, and which are build trivia? Which consumer bundler configuration depends on them, and is any generated TypeScript surface (`.d.ts`, a generated registry) typechecked by anything at all?",
+      "draft_rule": "The Emscripten link options in `<file>` are a contract with `<consumer repo>`'s bundler, not a build detail: `<contractual flags>` determine how the module is imported and must not change without naming the consumer impact in the PR. WASM-specific code stays in `<wasm dir>`; the core must build natively unchanged. Every exported binding is a public API change. Relevant catalogue skills: `ultimaker-curator-development`, `ultimaker-neoprep-development`.",
+      "confidence": "high",
+      "data": {
+        "surface": "wasm_boundary",
+        "files": [
+          "CMakeLists.txt",
+          "include/Application.h",
+          "include/communication/EmscriptenCommunication.h",
+          "src/Application.cpp",
+          "src/communication/EmscriptenCommunication.cpp"
+        ],
+        "skills": [
+          "ultimaker-curator-development",
+          "ultimaker-neoprep-development"
+        ]
+      }
+    },
+    {
+      "category": "architecture",
+      "title": "Tests are collected in a top-level test tree",
+      "evidence": [
+        "59 test files: 59 in a central tree, 0 beside sources"
+      ],
+      "question": "Should the test-placement convention be stated so agents stop guessing where a new test belongs?",
+      "draft_rule": "Place new tests in the top-level test tree, mirroring the source directory structure.",
+      "confidence": "medium",
+      "data": {}
+    },
+    {
+      "category": "code-pattern",
+      "title": "Observed file-size distribution (input to the ratchet)",
+      "evidence": [
+        "median 92 lines, 90th percentile 531, largest sampled 4411",
+        "49 of 400 sampled files exceed the 400-line budget and will be grandfathered at their current size"
+      ],
+      "question": "The file-size ratchet is already generated as a managed rule (`10-file-size-and-decomposition-rules.md`) with a 400-line budget. Is 400 the right budget for this codebase, or does its shape justify a different number (90th percentile is 531)? Re-run the bootstrap with `--file-size-budget N` to change it \u2014 do not write a competing rule.",
+      "draft_rule": "No new rule needed: adjust the managed budget instead. Consider whether the largest grandfathered files deserve a decomposition ticket of their own.",
+      "confidence": "medium",
+      "data": {
+        "median": 92,
+        "p90": 531,
+        "largest": 4411,
+        "over_budget": 49
+      }
+    },
+    {
+      "category": "commit-style",
+      "title": "Commit messages carry explanatory bodies",
+      "evidence": [
+        "51% of sampled commits have a body",
+        "average body length 1.4 lines"
+      ],
+      "question": "Should agents be required to write a body explaining why/how, not just a subject line?",
+      "draft_rule": "Every commit message MUST include a body explaining why the change was needed and how it works \u2014 a subject line alone is not enough.",
+      "confidence": "medium",
+      "data": {}
+    },
+    {
+      "category": "commit-style",
+      "title": "Commits are small and tightly scoped",
+      "evidence": [
+        "median 1 files per commit, 90th percentile 3"
+      ],
+      "question": "Should the scope rule name a concrete file-count expectation derived from this repository's own history?",
+      "draft_rule": "Keep commits tightly scoped: this repository's median commit touches 1 files. A commit touching more than 3 files needs an explicit justification in the message.",
+      "confidence": "medium",
+      "data": {}
+    },
+    {
+      "category": "ecosystem_contract",
+      "title": "This repository publishes a package whose identity is generated, not committed",
+      "evidence": [
+        "`conanfile.py`",
+        "`.github/workflows/package.yml`",
+        "`test_package/conanfile.py`"
+      ],
+      "question": "What is the published artifact called, who consumes it, and where does its version string actually come from? A repository whose package metadata is generated at packaging time has no committed manifest for a detector to read \u2014 the identity has to be traced through the recipe.",
+      "draft_rule": "The published artifact is `<package name>`, assembled by `<mechanism>`; `<file>` is the single source of truth for its identity, version and exports. Never hand-write a competing manifest. Consumers (`<consumer repos>`) pin exact versions \u2014 a breaking change to the exported surface requires the paired consumer PR in the same ticket. Relevant catalogue skills: `conan-2`.",
+      "confidence": "medium",
+      "data": {
+        "surface": "package_publishing",
+        "files": [
+          "conanfile.py",
+          ".github/workflows/package.yml",
+          "test_package/conanfile.py"
+        ],
+        "skills": [
+          "conan-2"
+        ]
+      }
+    },
+    {
+      "category": "git-workflow",
+      "title": "History keeps merge commits",
+      "evidence": [
+        "87/300 sampled commits are merges (mostly direct branch merges)",
+        "`Merge pull request`: 0, `Merge branch`: 43"
+      ],
+      "question": "Is the merge commit intentional (preserving branch topology), and should agents therefore NOT rebase published branches?",
+      "draft_rule": "This repository preserves merge topology. Do not rewrite or rebase branches that have already been pushed; integrate with merges.",
+      "confidence": "medium",
+      "data": {}
+    },
+    {
+      "category": "code-pattern",
+      "title": "File names are predominantly PascalCase",
+      "evidence": [
+        "{'PascalCase': 379, 'snake_case': 15, 'camelCase': 15} across 409 multi-word file names"
+      ],
+      "question": "Does the convention differ per language or per directory, and is it worth stating so new files match?",
+      "draft_rule": "Name new source files in PascalCase, matching the existing tree.",
+      "confidence": "low",
+      "data": {}
+    },
+    {
+      "category": "release",
+      "title": "Releases are tagged with bare semantic versions",
+      "evidence": [
+        "40/40 recent tags are semantic versions",
+        "most recent tags: 5.14.0-beta.0-RC3, 5.14.0-beta.0, 5.14.0-beta.0-RC2, 5.14.0-beta.0-RC1, 5.13.0-RC6"
+      ],
+      "question": "Do version bumps have a required home (packaging metadata, recipe file, CMake project version) that must move together with the tag?",
+      "draft_rule": "Release tags follow bare semantic versions. When bumping a version, update every location that carries it (<list them>) in the same commit.",
+      "confidence": "low",
+      "data": {}
+    }
+  ],
+  "hook_verification": {
+    "block-secrets": {
+      "fired": true,
+      "blocked": true,
+      "detail": "staged violation rejected",
+      "at": "2026-09-30T16:31:46+00:00",
+      "sha": "1f8fc6112"
+    },
+    "block-absolute-paths": {
+      "fired": true,
+      "blocked": true,
+      "detail": "staged violation rejected",
+      "at": "2026-09-30T16:31:46+00:00",
+      "sha": "1f8fc6112"
+    },
+    "block-absolute-paths-windows": {
+      "fired": true,
+      "blocked": true,
+      "detail": "staged violation rejected",
+      "at": "2026-09-30T16:31:46+00:00",
+      "sha": "1f8fc6112"
+    },
+    "pretool-guard": {
+      "fired": true,
+      "blocked": true,
+      "detail": "secret payload denied",
+      "at": "2026-09-30T16:31:46+00:00",
+      "sha": "1f8fc6112"
+    },
+    "block-name-matched-kill": {
+      "fired": true,
+      "blocked": true,
+      "detail": "all kill variants (pkill, wrapped kill, negative/zero PID) denied",
+      "at": "2026-09-30T16:31:46+00:00",
+      "sha": "1f8fc6112"
+    },
+    "check-complexity-h-budget": {
+      "fired": true,
+      "blocked": true,
+      "detail": "staged .h complexity violation rejected",
+      "at": "2026-09-30T16:31:46+00:00",
+      "sha": "1f8fc6112"
+    },
+    "check-rule-frontmatter-mismatch": {
+      "fired": true,
+      "blocked": true,
+      "detail": "mismatched rule frontmatter rejected",
+      "at": "2026-09-30T16:31:46+00:00",
+      "sha": "1f8fc6112"
+    },
+    "check-rule-frontmatter": {
+      "fired": true,
+      "blocked": null,
+      "detail": "exit 0 (advisory check)",
+      "at": "2026-09-30T16:31:46+00:00",
+      "sha": "1f8fc6112"
+    },
+    "audit-quad-agent-parity": {
+      "fired": true,
+      "blocked": null,
+      "detail": "exit 0 (advisory check)",
+      "at": "2026-09-30T16:31:47+00:00",
+      "sha": "1f8fc6112"
+    },
+    "check-upstream-alignment": {
+      "fired": true,
+      "blocked": null,
+      "detail": "exit 0 (advisory check)",
+      "at": "2026-09-30T16:31:47+00:00",
+      "sha": "1f8fc6112"
+    }
+  }
+}

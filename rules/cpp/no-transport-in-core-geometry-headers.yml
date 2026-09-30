@@ -1,0 +1,14 @@
+id: no-transport-in-core-geometry-headers
+language: cpp
+severity: error
+message: Core geometry headers must not depend on the process or communication layer.
+note: CuraEngine keeps Arcus/plugin transports behind Communication; clang-tidy does not check include direction.
+files:
+  - include/geometry/**
+  - include/utils/Coord_t.h
+  - include/utils/linearAlg2D.h
+rule:
+  kind: preproc_include
+  has:
+    field: path
+    regex: '(communication/|plugins/|Application\.h|Slice\.h|Scene\.h|FffGcodeWriter\.h|LayerPlan\.h)'
