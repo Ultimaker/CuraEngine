@@ -111,7 +111,8 @@ repos:
       - id: check-complexity-budget
         name: Enforce cyclomatic complexity budget on changed code
         entry: python .agents/hooks/check_complexity.py --staged
-        language: system
+        language: python
+        additional_dependencies: ['lizard==1.24.0']
         pass_filenames: false
         types_or: [text]
 

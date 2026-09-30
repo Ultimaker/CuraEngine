@@ -10,7 +10,7 @@ fileignoreconfig:
 - filename: .agents/bootstrap-observations.md
   checksum: b5da2858364fe4e96d9616bf48d22dcdb5eb7250d8da95b73024bb39a804e61f
 - filename: .agents/bootstrap-profile.json
-  checksum: eaad21bb11e89973371f2fd5bd1f982255651e7b2feb7bfad4c6b03a556d798c
+  checksum: 01ae2fcf3bf8ba95db0d37d7f1bc5c2712cb164b473a83c467cc2949293d775e
 - filename: .agents/dispatch-invariants.md
   checksum: 1aa8629af4e608d4e98b816889b58f8e72cf91847341744494d02372db2a2bca
 - filename: .agents/file-size-baseline.json
@@ -105,8 +105,8 @@ fileignoreconfig:
   checksum: 6d0ce0aac2cca3b89a0cbae6bc4f964f358c19a9219bd1e9d51b4d4ac710349b
 - filename: .github/copilot-instructions.md
   checksum: b7f39b6e1756baf7bbbe0acd458bd27ff1c6af5de66a6449dac12040757b1270
-- filename: .github/workflows/copilot-code-review.yml
-  checksum: ce1b2089f6c5b0b3418c83d587d16648caf1b10c213fcba136cc5bb387aa6ed8
+- filename: .github/workflows/copilot-setup-steps.yml
+  checksum: 85d2fe3b9d83a6e6b2e42f46cc1c674cfdb6abb5b0dfc6d47527e047799c1a66
 version: "1.0"
 threshold: medium
 custom_patterns:
