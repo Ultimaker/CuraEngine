@@ -31,6 +31,7 @@
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
 #include "settings/types/Ratio.h"
+#include "utils/AABB.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/linearAlg2D.h"
 
@@ -885,10 +886,17 @@ std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const 
 {
     std::vector<float> result;
 
+    const AABB lineseg_aabb(start, end);
+
     for (const Polygon& polygon : getLines())
     {
         for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
         {
+            if (! AABB((*iterator).start, (*iterator).end).hit(lineseg_aabb))
+            {
+                continue;
+            }
+
             float t, u;
             if (LinearAlg2D::segmentSegmentIntersection(start, end, (*iterator).start, (*iterator).end, t, u))
             {
