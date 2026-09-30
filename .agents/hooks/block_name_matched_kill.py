@@ -28,6 +28,54 @@ Do this instead:
 If the process is not in your worktree, it is not yours to signal."""
 
 
+SHELL_WRAPPERS = ("bash", "sh", "zsh", "dash", "ksh")
+
+
+def parse_kill_targets(args: list[str]) -> list[str]:
+    """Extract operand targets from kill arguments, skipping options."""
+    targets = []
+    saw_double_dash = False
+    saw_signal = False
+    skip_next = False
+    for arg in args:
+        if skip_next:
+            skip_next = False
+            continue
+        if not saw_double_dash:
+            if arg == "--":
+                saw_double_dash = True
+                continue
+            if arg in ("-s", "-n"):
+                saw_signal = True
+                skip_next = True
+                continue
+            if arg.startswith("-"):
+                val = arg[1:]
+                if val.isdigit() and not saw_signal and 1 <= int(val) <= 64:
+                    saw_signal = True
+                    continue
+                if not val.isdigit():
+                    saw_signal = True
+                    continue
+                # Negative number after signal option is a target (PGID)
+        targets.append(arg)
+    return targets
+
+
+def check_kill_targets(targets: list[str]) -> str | None:
+    """Verify each target is a literal positive PID (> 0)."""
+    for t in targets:
+        if SUBSTITUTION.search(t):
+            return "`kill` is being given a command substitution, not a PID"
+        try:
+            pid = int(t)
+            if pid <= 0:
+                return f"`kill` targets a process group (PID {pid} <= 0), not a specific positive PID"
+        except ValueError:
+            return f"`kill` is being given something that is not a literal positive PID: '{t}'"
+    return None
+
+
 def offending_command(command: str) -> str | None:
     """Return the reason this command is refused, or None if it is fine."""
     try:
@@ -37,17 +85,23 @@ def offending_command(command: str) -> str | None:
 
     for index, token in enumerate(tokens):
         name = token.rsplit("/", 1)[-1]
-        if name in BY_NAME:
-            return f"`{name}` selects processes by name"
-        if name == "kill":
+        if name in SHELL_WRAPPERS:
             rest = tokens[index + 1:]
-            targets = [t for t in rest if not t.startswith("-")]
+            for r_idx, r_tok in enumerate(rest):
+                if r_tok == "-c" or (r_tok.startswith("-") and not r_tok.startswith("--") and "c" in r_tok):
+                    if r_idx + 1 < len(rest):
+                        nested = offending_command(rest[r_idx + 1])
+                        if nested:
+                            return nested
+        elif name in BY_NAME:
+            return f"`{name}` selects processes by name"
+        elif name == "kill":
+            targets = parse_kill_targets(tokens[index + 1:])
             if not targets:
                 continue
-            if any(SUBSTITUTION.search(t) for t in targets):
-                return "`kill` is being given a command substitution, not a PID"
-            if not all(t.isdigit() for t in targets):
-                return "`kill` is being given something that is not a literal PID"
+            reason = check_kill_targets(targets)
+            if reason:
+                return reason
     return None
 
 

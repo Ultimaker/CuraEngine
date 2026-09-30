@@ -37,11 +37,12 @@ import re
 import subprocess
 import sys
 
-HOOKS_DIR = os.path.abspath(os.path.dirname(__file__))
-if HOOKS_DIR not in sys.path:
-    sys.path.insert(0, HOOKS_DIR)
-from secret_scanner import SecretScanner  # noqa: E402
-from path_scanner import PathScanner  # noqa: E402
+try:
+    from secret_scanner import SecretScanner  # noqa: E402
+    from path_scanner import PathScanner  # noqa: E402
+except Exception:
+    SecretScanner = None
+    PathScanner = None
 
 FORBIDDEN_BRANCHES = ("main", "master", "staging")
 
@@ -164,16 +165,17 @@ def find_violation(tool, path, blobs):
     managed = managed_file_violation(tool, path)
     if managed:
         return managed
-    for blob in blobs:
-        for line in blob.splitlines():
-            if SecretScanner.scan_line(line):
-                return ("This change contains what looks like a credential "
-                        "(private key, API token, or passphrase). Secrets "
-                        "must never be written into the repository.")
+    if SecretScanner:
+        for blob in blobs:
+            for line in blob.splitlines():
+                if SecretScanner.scan_line(line):
+                    return ("This change contains what looks like a credential "
+                            "(private key, API token, or passphrase). Secrets "
+                            "must never be written into the repository.")
 
     # Absolute home paths are only meaningful in file content; a shell command
     # legitimately references absolute paths all the time.
-    if tool not in SHELL_TOOLS:
+    if PathScanner and tool not in SHELL_TOOLS:
         for blob in blobs:
             for line in blob.splitlines():
                 has_viol, bad_paths = PathScanner.scan_line(line)

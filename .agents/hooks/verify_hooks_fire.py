@@ -45,6 +45,8 @@ FAKE_KEY = (f"{_PEM_EDGE}BEGIN RSA {_PRIVATE} {_KEY_WORD}{_PEM_EDGE}\n"
             f"MIIEvFAKEFAKEFAKE\n{_PEM_EDGE}END RSA {_PRIVATE} {_KEY_WORD}{_PEM_EDGE}\n")
 _HOME_ROOT = "/" + "home"
 FAKE_PATH = f"config = '{_HOME_ROOT}/exampleuser/secret/config.yaml'\n"
+_WIN_USER = "C:" + "\\\\" + "Users" + "\\\\" + "runneradmin"
+FAKE_WIN_PATH = f"config = '{_WIN_USER}\\\\secret\\\\config.yaml'\n"
 
 
 def _run(cmd, **kwargs):
@@ -104,14 +106,62 @@ def exercise_kill_guard(results):
     path = HOOKS / "block_name_matched_kill.py"
     if not path.exists():
         return
-    payload = json.dumps({
-        "hook_event_name": "PreToolUse", "tool_name": "Bash",
-        "tool_input": {"command": "pkill -f my_service"},
-    })
-    res = _run([sys.executable, str(path)], input=payload)
-    blocked = res.returncode == 2 or '"deny"' in res.stdout
-    _record(results, "block-name-matched-kill", True, blocked,
-            "pkill denied" if blocked else "pkill ALLOWED")
+    commands = [
+        "pkill -f my_service",
+        "bash -c 'pkill -9 my_service'",
+        "kill 0",
+        "kill -- -123",
+    ]
+    for cmd in commands:
+        payload = json.dumps({
+            "hook_event_name": "PreToolUse", "tool_name": "Bash",
+            "tool_input": {"command": cmd},
+        })
+        res = _run([sys.executable, str(path)], input=payload)
+        blocked = res.returncode == 2 or '"deny"' in res.stdout
+        if not blocked:
+            _record(results, "block-name-matched-kill", True, False, f"{cmd} ALLOWED")
+            return
+    _record(results, "block-name-matched-kill", True, True,
+            "all kill variants (pkill, wrapped kill, negative/zero PID) denied")
+
+
+def exercise_complexity_guard(results):
+    path = HOOKS / "check_complexity.py"
+    if not path.exists():
+        return
+    body = "\n".join([f"    if (x == {i}) return {i};" for i in range(1, 15)])
+    content = f"int complex_h_func(int x) {{\n{body}\n    return 0;\n}}\n"
+    fixture = _fixture(content, suffix=".h")
+    try:
+        _run(["git", "add", "--force", fixture])
+        res = _run([sys.executable, str(path)])
+        blocked = res.returncode != 0
+        _record(results, "check-complexity-h-budget", True, blocked,
+                "staged .h complexity violation rejected" if blocked
+                else "staged .h complexity violation ACCEPTED")
+    finally:
+        _run(["git", "reset", "-q", "--", fixture])
+        os.unlink(fixture)
+
+
+def exercise_frontmatter_guard(results):
+    path = HOOKS / "compile_rule_frontmatter.py"
+    if not path.exists():
+        return
+    fake_rule = Path(".agents/rules/15-test-synthetic-mismatch.md")
+    fake_rule.write_text(
+        "---\nname: mismatched-name\ndescription: Test description\ntrigger: glob\n---\nRule body\n"
+    )
+    try:
+        res = _run([sys.executable, str(path), "--check"])
+        blocked = res.returncode != 0
+        _record(results, "check-rule-frontmatter-mismatch", True, blocked,
+                "mismatched rule frontmatter rejected" if blocked
+                else "mismatched rule frontmatter ACCEPTED")
+    finally:
+        if fake_rule.exists():
+            fake_rule.unlink()
 
 
 def exercise_run_only(results, script, hook_id, *args):
@@ -183,8 +233,12 @@ def main():
     exercise_file_guard(results, "block-secrets.py", FAKE_KEY, "block-secrets")
     exercise_file_guard(results, "block-absolute-paths.py", FAKE_PATH,
                         "block-absolute-paths")
+    exercise_file_guard(results, "block-absolute-paths.py", FAKE_WIN_PATH,
+                        "block-absolute-paths-windows")
     exercise_pretool_guard(results)
     exercise_kill_guard(results)
+    exercise_complexity_guard(results)
+    exercise_frontmatter_guard(results)
     exercise_run_only(results, "compile_rule_frontmatter.py",
                       "check-rule-frontmatter", "--check")
     exercise_run_only(results, "audit_quad_agent_parity.py",

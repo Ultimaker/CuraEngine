@@ -56,6 +56,7 @@ CHECKED_SUFFIXES: tuple[str, ...] = (
     '.cc',
     '.cpp',
     '.cxx',
+    '.h',
     '.hpp',
     '.py',
 )
@@ -109,8 +110,14 @@ def git_show(ref: str, path: str):
 
 
 def changed_paths(staged: bool):
-    args = (["diff", "--cached", "--name-only", "--diff-filter=ACMR"] if staged
-            else ["diff", "--name-only", "--diff-filter=ACMR", "HEAD"])
+    from_ref = os.environ.get("PRE_COMMIT_FROM_REF")
+    to_ref = os.environ.get("PRE_COMMIT_TO_REF")
+    if staged and from_ref and to_ref:
+        args = ["diff", "--name-only", "--diff-filter=ACMR", f"{from_ref}...{to_ref}"]
+    elif staged:
+        args = ["diff", "--cached", "--name-only", "--diff-filter=ACMR"]
+    else:
+        args = ["diff", "--name-only", "--diff-filter=ACMR", "HEAD"]
     result = subprocess.run(["git", *args], capture_output=True, text=True)
     paths = result.stdout.splitlines() if result.returncode == 0 else []
     if not staged:
@@ -205,11 +212,18 @@ def check(staged: bool, advisory: bool, only=None):
         # and the cost grows with the length of the branch, not the edit.
         wanted = {p.lstrip("./") for p in only}
         paths = [p for p in paths if p in wanted]
+    from_ref = os.environ.get("PRE_COMMIT_FROM_REF")
+    to_ref = os.environ.get("PRE_COMMIT_TO_REF")
+    base_ref = from_ref if (staged and from_ref) else "HEAD"
     for path in paths:
         suffix = Path(path).suffix
-        before = complexity_of(git_show("HEAD", path), suffix)
-        after_blob = (git_show(":0", path) if staged
-                      else (Path(path).read_bytes() if Path(path).is_file() else None))
+        before = complexity_of(git_show(base_ref, path), suffix)
+        if staged and to_ref:
+            after_blob = git_show(to_ref, path)
+        elif staged:
+            after_blob = git_show(":0", path)
+        else:
+            after_blob = (Path(path).read_bytes() if Path(path).is_file() else None)
         after = complexity_of(after_blob, suffix)
 
         for name, ccn in sorted(after.items()):

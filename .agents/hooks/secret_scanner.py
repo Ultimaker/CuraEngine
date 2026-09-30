@@ -49,7 +49,14 @@ SECRET_PATTERNS = [
 
 HOME_PATH_PATTERN = re.compile(r"/home/[a-zA-Z0-9_-]+/")
 USERS_PATH_PATTERN = re.compile(r"/Users/[a-zA-Z0-9_-]+/")
-ABSOLUTE_PATH_PATTERNS = [HOME_PATH_PATTERN, USERS_PATH_PATTERN]
+WINDOWS_DRIVE_PATTERN = re.compile(r"[a-zA-Z]:[/\\\\]+Users[/\\\\]+[a-zA-Z0-9_.-]+[/\\\\]?", re.IGNORECASE)
+WINDOWS_UNC_PATTERN = re.compile(r"[/\\\\]{2,4}[a-zA-Z0-9_.-]+[/\\\\]+[a-zA-Z0-9_.$ -]+[/\\\\]+(?:Users|home)[/\\\\]+[a-zA-Z0-9_.-]+[/\\\\]?", re.IGNORECASE)
+ABSOLUTE_PATH_PATTERNS = [
+    HOME_PATH_PATTERN,
+    USERS_PATH_PATTERN,
+    WINDOWS_DRIVE_PATTERN,
+    WINDOWS_UNC_PATTERN,
+]
 
 
 # --- self-exemption, by exact identity (generated from one source) ---------
@@ -112,8 +119,14 @@ class SecretScanner:
 
     @classmethod
     def scan_staged(cls) -> bool:
+        from_ref = os.environ.get("PRE_COMMIT_FROM_REF")
+        to_ref = os.environ.get("PRE_COMMIT_TO_REF")
+        if from_ref and to_ref:
+            diff_range = [f"{from_ref}...{to_ref}"]
+        else:
+            diff_range = ["--cached"]
         diff_cmd = subprocess.run(
-            ["git", "diff", "--cached", "-U0", *DIFF_FORMAT_ARGS],
+            ["git", "diff", *diff_range, "-U0", *DIFF_FORMAT_ARGS],
             capture_output=True,
             text=True,
             check=False,

@@ -21,7 +21,7 @@ if command -v pre-commit >/dev/null 2>&1; then
     _pre_state=$(git status --porcelain 2>/dev/null || true)
 
     _precommit_rc=0
-    pre-commit run || _precommit_rc=$?
+    pre-commit run --from-ref "$BASE_REF" --to-ref HEAD || _precommit_rc=$?
 
     _post_state=$(git status --porcelain 2>/dev/null || true)
     if [ "$_pre_state" != "$_post_state" ]; then

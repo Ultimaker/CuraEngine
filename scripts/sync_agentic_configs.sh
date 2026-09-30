@@ -93,12 +93,12 @@ fi
 # a single run produced, so repo-owned and custom-band rules never reached it
 # and no sync ever put them back.
 if [ -d .agents/rules ] && [ -f .agents/hooks/copilot_index.py ]; then
-  python3 .agents/hooks/copilot_index.py || true
+  python3 .agents/hooks/copilot_index.py
 fi
 
 # Recompile AI exclusion targets from .aiignore (no platform reads it directly)
 if [ -f .aiignore ] && [ -f .agents/hooks/compile_aiignore.py ]; then
-  python3 .agents/hooks/compile_aiignore.py || true
+  python3 .agents/hooks/compile_aiignore.py
 fi
 
 # Re-checksum drifted .talismanrc entries LAST, once every file this script can

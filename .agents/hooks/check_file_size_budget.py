@@ -295,7 +295,12 @@ def main():
         paths = git_files("diff", "--name-only", "HEAD")
         tighten = False
     else:
-        paths = git_files("diff", "--cached", "--name-only")
+        from_ref = os.environ.get("PRE_COMMIT_FROM_REF")
+        to_ref = os.environ.get("PRE_COMMIT_TO_REF")
+        if from_ref and to_ref:
+            paths = git_files("diff", "--name-only", f"{from_ref}...{to_ref}")
+        else:
+            paths = git_files("diff", "--cached", "--name-only")
         tighten = True
     explicit = [a for a in args if not a.startswith("--")]
     if explicit:

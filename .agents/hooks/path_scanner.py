@@ -3,7 +3,7 @@ import os
 import re
 import subprocess
 import sys
-from pathlib import Path, PurePosixPath
+from pathlib import Path, PurePosixPath, PureWindowsPath
 
 # --- shared detection patterns (generated from ONE source) -----------------
 # Every guard that scans content imports these: the pre-flight guard
@@ -50,7 +50,14 @@ SECRET_PATTERNS = [
 
 HOME_PATH_PATTERN = re.compile(r"/home/[a-zA-Z0-9_-]+/")
 USERS_PATH_PATTERN = re.compile(r"/Users/[a-zA-Z0-9_-]+/")
-ABSOLUTE_PATH_PATTERNS = [HOME_PATH_PATTERN, USERS_PATH_PATTERN]
+WINDOWS_DRIVE_PATTERN = re.compile(r"[a-zA-Z]:[/\\\\]+Users[/\\\\]+[a-zA-Z0-9_.-]+[/\\\\]?", re.IGNORECASE)
+WINDOWS_UNC_PATTERN = re.compile(r"[/\\\\]{2,4}[a-zA-Z0-9_.-]+[/\\\\]+[a-zA-Z0-9_.$ -]+[/\\\\]+(?:Users|home)[/\\\\]+[a-zA-Z0-9_.-]+[/\\\\]?", re.IGNORECASE)
+ABSOLUTE_PATH_PATTERNS = [
+    HOME_PATH_PATTERN,
+    USERS_PATH_PATTERN,
+    WINDOWS_DRIVE_PATTERN,
+    WINDOWS_UNC_PATTERN,
+]
 
 
 # --- self-exemption, by exact identity (generated from one source) ---------
@@ -118,7 +125,9 @@ class PathScanner:
 
     PATH_CANDIDATE_REGEX = re.compile(
         r"(?:/(?:[a-zA-Z0-9_.-]+/)+[a-zA-Z0-9_.-]*"
-        r"|/home/[a-zA-Z0-9_-]+|/Users/[a-zA-Z0-9_-]+)"
+        r"|/home/[a-zA-Z0-9_-]+|/Users/[a-zA-Z0-9_-]+"
+        r"|[a-zA-Z]:[/\\\\]+(?:[a-zA-Z0-9_.-]+[/\\\\]+)*[a-zA-Z0-9_.-]*"
+        r"|[/\\\\]{2,4}[a-zA-Z0-9_.-]+[/\\\\]+[a-zA-Z0-9_.$ -]+(?:[/\\\\]+[a-zA-Z0-9_.-]+)*)"
     )
 
     @classmethod
@@ -139,6 +148,18 @@ class PathScanner:
                     is_forbidden_user_path = True
         except (ValueError, TypeError):
             pass
+
+        try:
+            candidate_norm = re.sub(r"\\{2,}", r"\\", candidate)
+            pw = PureWindowsPath(candidate_norm)
+            if pw.is_absolute():
+                is_absolute = True
+                parts = pw.parts
+                if len(parts) >= 3 and parts[1].lower() in ("users", "home"):
+                    is_forbidden_user_path = True
+        except (ValueError, TypeError):
+            pass
+
         return {
             "is_absolute": is_absolute,
             "is_forbidden_user_path": is_forbidden_user_path,
@@ -173,8 +194,14 @@ class PathScanner:
 
     @classmethod
     def scan_staged(cls) -> bool:
+        from_ref = os.environ.get("PRE_COMMIT_FROM_REF")
+        to_ref = os.environ.get("PRE_COMMIT_TO_REF")
+        if from_ref and to_ref:
+            diff_range = [f"{from_ref}...{to_ref}"]
+        else:
+            diff_range = ["--cached"]
         diff_cmd = subprocess.run(
-            ["git", "diff", "--cached", "-U0", *DIFF_FORMAT_ARGS],
+            ["git", "diff", *diff_range, "-U0", *DIFF_FORMAT_ARGS],
             capture_output=True,
             text=True,
             check=False,

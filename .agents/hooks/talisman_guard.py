@@ -39,6 +39,7 @@ import re
 import shutil
 import subprocess
 import sys
+import tempfile
 from pathlib import Path
 
 _ROOT = subprocess.run(["git", "rev-parse", "--show-toplevel"],
@@ -130,23 +131,25 @@ def checksums(paths):
             "guessed digest looks like an exemption while exempting nothing. "
             "Install talisman (https://github.com/thoughtworks/talisman) and "
             "re-run this command.")
-    if subprocess.run(["git", "add", "--", *paths],
-                      capture_output=True).returncode != 0:
+    with tempfile.NamedTemporaryFile(prefix="talisman_idx_") as tmp_index:
+        env = dict(os.environ, GIT_INDEX_FILE=tmp_index.name)
+        if subprocess.run(["git", "add", "--", *paths],
+                          env=env, capture_output=True).returncode != 0:
+            for path in paths:
+                subprocess.run(["git", "add", "--", path], env=env, capture_output=True)
+        digests = {}
         for path in paths:
-            subprocess.run(["git", "add", "--", path], capture_output=True)
-    digests = {}
-    for path in paths:
-        res = subprocess.run(["talisman", "--checksum", path],
-                             capture_output=True, text=True)
-        pairs = ENTRY_PAIR_RE.findall(res.stdout)
-        for name, digest in pairs:
-            if name.strip("'\"") == path:
-                digests[path] = digest
-                break
-        else:
-            if len(pairs) == 1:
-                digests[path] = pairs[0][1]
-    return digests
+            res = subprocess.run(["talisman", "--checksum", path],
+                                 env=env, capture_output=True, text=True)
+            pairs = ENTRY_PAIR_RE.findall(res.stdout)
+            for name, digest in pairs:
+                if name.strip("'\"") == path:
+                    digests[path] = digest
+                    break
+            else:
+                if len(pairs) == 1:
+                    digests[path] = pairs[0][1]
+        return digests
 
 
 def merge(base_p, ours_p, theirs_p) -> int:

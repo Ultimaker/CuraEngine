@@ -97,6 +97,10 @@ def raise_ceilings_for_merge(baseline: dict) -> None:
     for name, was, now in raised:
         print(f"File-size ratchet: merge raises the ceiling for {name} "
               f"({was} -> {now}); the incoming branch already gated that growth.")
+    if raised:
+        save_baseline(baseline)
+        subprocess.run(["git", "add", str(BASELINE_PATH)], check=False)
+    return bool(raised)
 
 
 def commit_baseline(baseline: dict, grandfathered: dict) -> None:

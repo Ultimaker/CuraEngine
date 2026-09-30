@@ -59,6 +59,17 @@ def main():
         cwd=ROOT,
         check=False,
     )
+    changed_rel = [str(path.relative_to(ROOT)) for path in sorted(changed)]
+    subprocess.run(
+        [sys.executable, str(ROOT / ".agents/hooks/check_file_size_budget.py"), "--changed", *changed_rel],
+        cwd=ROOT,
+        check=False,
+    )
+    subprocess.run(
+        [sys.executable, str(ROOT / ".agents/hooks/check_complexity.py"), "--changed", *changed_rel],
+        cwd=ROOT,
+        check=False,
+    )
     return 1 if failures or structural.returncode else 0
 
 

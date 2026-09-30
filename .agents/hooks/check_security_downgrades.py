@@ -6,6 +6,7 @@ Deterministic pre-commit & pre-PR hook script to detect and block security
 feature downgrades in staged diffs.
 """
 
+import os
 import re
 import subprocess
 import sys
@@ -149,8 +150,14 @@ def _is_self_exempt(path: str) -> bool:
 
 def get_staged_diff() -> str:
     try:
+        from_ref = os.environ.get("PRE_COMMIT_FROM_REF")
+        to_ref = os.environ.get("PRE_COMMIT_TO_REF")
+        if from_ref and to_ref:
+            diff_range = [f"{from_ref}...{to_ref}"]
+        else:
+            diff_range = ["--cached"]
         res = subprocess.run(
-            ["git", "diff", "--cached", "-U0", *DIFF_FORMAT_ARGS],
+            ["git", "diff", *diff_range, "-U0", *DIFF_FORMAT_ARGS],
             stdout=subprocess.PIPE,
             stderr=subprocess.PIPE,
             text=True,

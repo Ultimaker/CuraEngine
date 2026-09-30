@@ -129,7 +129,22 @@ def check_rule(path: Path, manifest: dict, errors: list):
     if not keys.get("description"):
         errors.append(f"{path.name}: missing description: — a rule without "
                       "one is not lazily loaded, it is undiscoverable")
+    authored_name = keys.get("name")
+    expected_stem = re.sub(r"^\d{2}-", "", path.stem.removesuffix("-rules"))
+    if authored_name and authored_name != expected_stem:
+        errors.append(f"{path.name}: declared name '{authored_name}' does not match "
+                      f"expected '{expected_stem}'")
+    authored_trigger = keys.get("trigger")
+    if authored_trigger and authored_trigger != trigger:
+        errors.append(f"{path.name}: declared trigger '{authored_trigger}' does not match "
+                      f"expected band trigger '{trigger}'")
     paths_declared = bool(keys.get("paths"))
+    authored_glob = keys.get("glob")
+    if paths_declared and authored_glob:
+        expected_glob = ",".join(keys.get("paths"))
+        if authored_glob != expected_glob:
+            errors.append(f"{path.name}: declared glob '{authored_glob}' does not match "
+                          f"joined paths '{expected_glob}'")
     if trigger == "glob" and not paths_declared:
         errors.append(f"{path.name}: glob-band rule declares no paths: — "
                       "its scope can never fire")
