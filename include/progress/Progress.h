@@ -54,7 +54,7 @@ private:
         0.1 // FINISH  = 6
     };
 
-    static constexpr std::array<std::string_view, N_PROGRESS_STAGES> names{ "start", "slice", "layerparts", "inset+skin", "support", "export", "process" };
+    static constexpr std::array<std::string_view, N_PROGRESS_STAGES> names{ "start", "painting", "slice", "layerparts", "inset+skin", "support", "export", "process" };
     static std::array<double, N_PROGRESS_STAGES> accumulated_times; //!< Time past before each stage
     static double total_timing; //!< An estimate of the total time
     static std::optional<LayerIndex> first_skipped_layer; //!< The index of the layer for which we skipped time reporting
