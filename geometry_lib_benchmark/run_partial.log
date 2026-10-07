@@ -1,0 +1,742 @@
+Building data sets...
+== ellipse 1k (1000 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 0.144778 ms (31 reps) rings=1 area_rel_diff=0
+   intersection clipper1: 0.180262 ms (31 reps) rings=1 area_rel_diff=3.56615e-09
+   intersection boost: 0.07326 ms (31 reps) rings=1 area_rel_diff=3.56615e-09 valid
+   union clipper2: 0.150767 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 0.188975 ms (31 reps) rings=1 area_rel_diff=5.56156e-09
+   union boost: 0.064768 ms (31 reps) rings=1 area_rel_diff=5.56156e-09 valid
+   offset_miter_+100 clipper2: 0.107873 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 0.133381 ms (31 reps) rings=1 area_rel_diff=-5.97372e-07
+   offset_miter_+100 boost: 0.653925 ms (31 reps) rings=1 area_rel_diff=-1.69207e-05 valid
+   offset_miter_-100 clipper2: 0.626634 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 0.476618 ms (31 reps) rings=1 area_rel_diff=2.38618e-06
+   offset_miter_-100 boost: 2.47175 ms (31 reps) rings=1 area_rel_diff=-9.18479e-06 valid
+   offset_miter_+5000 clipper2: 0.108274 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 0.12619 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 boost: 0.340553 ms (31 reps) rings=1 area_rel_diff=-3.64609e-05 valid
+   offset_miter_-5000 clipper2: 2.17403 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-5000 clipper1: 2.27612 ms (31 reps) rings=1 area_rel_diff=1.99486e-06
+   offset_miter_-5000 boost: 1.43886 ms (31 reps) rings=1 area_rel_diff=-3.93188e-05 valid
+   offset_round_+100 clipper2: 0.198319 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 0.19886 ms (31 reps) rings=1 area_rel_diff=-1.89069e-07
+   offset_round_+100 boost: 0.543058 ms (31 reps) rings=1 area_rel_diff=-1.64094e-05 valid
+   offset_round_-100 clipper2: 0.628226 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 0.505451 ms (31 reps) rings=1 area_rel_diff=2.38618e-06
+   offset_round_-100 boost: 2.47656 ms (31 reps) rings=1 area_rel_diff=-9.18479e-06 valid
+   offset_round_+5000 clipper2: 0.216105 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 0.262385 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 boost: 0.320252 ms (31 reps) rings=1 area_rel_diff=-3.63388e-05 valid
+   offset_round_-5000 clipper2: 2.18684 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_-5000 clipper1: 2.29171 ms (31 reps) rings=1 area_rel_diff=1.99486e-06
+   offset_round_-5000 boost: 1.45114 ms (31 reps) rings=1 area_rel_diff=-3.93188e-05 valid
+   offset_square_+100 clipper2: 0.109124 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 0.203747 ms (31 reps) rings=1 area_rel_diff=-3.48516e-07
+   offset_square_-100 clipper2: 0.62422 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 0.507395 ms (31 reps) rings=1 area_rel_diff=2.38618e-06
+   offset_square_+5000 clipper2: 0.109274 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 0.270367 ms (31 reps) rings=1 area_rel_diff=-6.15329e-07
+   offset_square_-5000 clipper2: 2.19668 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper1: 2.28269 ms (31 reps) rings=1 area_rel_diff=1.99486e-06
+== star 1k (1000 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 9.84393 ms (31 reps) rings=1 area_rel_diff=0
+   intersection clipper1: 6.49875 ms (31 reps) rings=1 area_rel_diff=1.16654e-05
+   intersection boost: 9.2556 ms (31 reps) rings=1 area_rel_diff=1.11381e-05 valid
+   union clipper2: 9.91573 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 5.45207 ms (31 reps) rings=1 area_rel_diff=1.1428e-05
+   union boost: 6.29314 ms (31 reps) rings=1 area_rel_diff=1.32677e-05 valid
+   offset_miter_+100 clipper2: 2.96736 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 4.21531 ms (31 reps) rings=1 area_rel_diff=0.00104734
+   offset_miter_+100 boost: 7.12618 ms (31 reps) rings=1 area_rel_diff=0.000759111 valid
+   offset_miter_-100 clipper2: 2.92539 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 4.37064 ms (31 reps) rings=1 area_rel_diff=-0.000690946
+   offset_miter_-100 boost: 7.41484 ms (31 reps) rings=1 area_rel_diff=-0.000339467 valid
+   offset_miter_+5000 clipper2: 6.03318 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 9.61038 ms (31 reps) rings=1 area_rel_diff=9.69205e-06
+   offset_miter_+5000 boost: 20.9863 ms (31 reps) rings=1 area_rel_diff=0.00975026 valid
+   offset_miter_-5000 clipper2: 5.33157 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-5000 clipper1: 8.17209 ms (31 reps) rings=1 area_rel_diff=2.25957e-05
+   offset_miter_-5000 boost: 33.5496 ms (31 reps) rings=1 area_rel_diff=-0.0288058 valid
+   offset_round_+100 clipper2: 10.3062 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 6.73889 ms (31 reps) rings=1 area_rel_diff=-1.85797e-05
+   offset_round_+100 boost: 7.33455 ms (31 reps) rings=1 area_rel_diff=-0.0001046 valid
+   offset_round_-100 clipper2: 10.0034 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 6.79202 ms (31 reps) rings=1 area_rel_diff=3.99276e-05
+   offset_round_-100 boost: 7.60467 ms (31 reps) rings=1 area_rel_diff=0.000109784 valid
+   offset_round_+5000 clipper2: 87.8677 ms (18 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 38.5513 ms (31 reps) rings=1 area_rel_diff=2.67242e-06
+   offset_round_+5000 boost: 27.0856 ms (31 reps) rings=1 area_rel_diff=-8.44311e-06 valid
+   offset_round_-5000 clipper2: 84.576 ms (18 reps) rings=1 area_rel_diff=0
+   offset_round_-5000 clipper1: 46.7026 ms (31 reps) rings=1 area_rel_diff=1.0496e-05
+   offset_round_-5000 boost: 44.9957 ms (31 reps) rings=1 area_rel_diff=-3.90128e-05 valid
+   offset_square_+100 clipper2: 2.97672 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 4.23458 ms (31 reps) rings=1 area_rel_diff=0.00104734
+   offset_square_-100 clipper2: 2.86245 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 4.34795 ms (31 reps) rings=1 area_rel_diff=-0.000690946
+   offset_square_+5000 clipper2: 6.01981 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 9.62368 ms (31 reps) rings=1 area_rel_diff=9.69205e-06
+   offset_square_-5000 clipper2: 5.3471 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper1: 8.16682 ms (31 reps) rings=1 area_rel_diff=2.25957e-05
+== comb 1k (1001 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 4.85299 ms (31 reps) rings=250 area_rel_diff=0
+   intersection clipper1: 5.55945 ms (31 reps) rings=250 area_rel_diff=0
+   intersection boost: 8.56248 ms (31 reps) rings=250 area_rel_diff=0 valid
+   union clipper2: 2.80297 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 3.69777 ms (31 reps) rings=1 area_rel_diff=0
+   union boost: 7.32405 ms (31 reps) rings=1 area_rel_diff=0 valid
+   offset_miter_+100 clipper2: 3.08849 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 1.89257 ms (31 reps) rings=1 area_rel_diff=1.37659e-06
+   offset_miter_+100 boost: 16.8785 ms (31 reps) rings=1 area_rel_diff=-3.29489e-05 valid
+   offset_miter_-100 clipper2: 3.11476 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 1.79822 ms (31 reps) rings=1 area_rel_diff=-4.12002e-05
+   offset_miter_-100 boost: 18.1314 ms (31 reps) rings=1 area_rel_diff=0.00018769 valid
+   offset_miter_+5000 clipper2: 4.57214 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 21.4525 ms (31 reps) rings=1 area_rel_diff=0.00413159
+   offset_miter_+5000 boost: 57144.3 ms (1 reps) rings=1 area_rel_diff=0.000437802 valid
+   offset_miter_-5000 clipper2: 4.33641 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 clipper1: 2.17031 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 boost: 58911 ms (1 reps) rings=200 area_rel_diff=90000 valid
+   offset_round_+100 clipper2: 3.13885 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 1.79015 ms (31 reps) rings=1 area_rel_diff=6.46497e-09
+   offset_round_+100 boost: 16.8047 ms (31 reps) rings=1 area_rel_diff=-3.35648e-06 valid
+   offset_round_-100 clipper2: 3.13384 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 2.32341 ms (31 reps) rings=1 area_rel_diff=3.54659e-05
+   offset_round_-100 boost: 17.9973 ms (31 reps) rings=1 area_rel_diff=3.54659e-05 valid
+   offset_round_+5000 clipper2: 4.51224 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 3.0737 ms (31 reps) rings=1 area_rel_diff=-1.35011e-05
+   offset_round_+5000 boost: 59437.4 ms (1 reps) rings=1 area_rel_diff=-6.93237e-06 valid
+   offset_round_-5000 clipper2: 5.60281 ms (31 reps) rings=200 area_rel_diff=0
+   offset_round_-5000 clipper1: 3.76048 ms (31 reps) rings=1 area_rel_diff=3
+   offset_round_-5000 boost: 59698.7 ms (1 reps) rings=200 area_rel_diff=2 valid
+   offset_square_+100 clipper2: 3.07955 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 1.79459 ms (31 reps) rings=1 area_rel_diff=9.77954e-09
+   offset_square_-100 clipper2: 3.089 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 2.3158 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper2: 4.64192 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 11.9126 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper2: 4.31449 ms (31 reps) rings=0 area_rel_diff=0
+   offset_square_-5000 clipper1: 2.81128 ms (31 reps) rings=0 area_rel_diff=0
+== disc_with_holes 1k (1028 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 0.350989 ms (31 reps) rings=11 area_rel_diff=0
+   intersection clipper1: 0.35169 ms (31 reps) rings=11 area_rel_diff=-8.61368e-06
+   intersection boost: 0.451741 ms (31 reps) rings=11 area_rel_diff=-8.61202e-06 valid
+   union clipper2: 0.359983 ms (31 reps) rings=43 area_rel_diff=0
+   union clipper1: 0.334614 ms (31 reps) rings=43 area_rel_diff=-2.69295e-06
+   union boost: 0.455907 ms (31 reps) rings=43 area_rel_diff=-2.69334e-06 valid
+   offset_miter_+100 clipper2: 0.608146 ms (31 reps) rings=17 area_rel_diff=0
+   offset_miter_+100 clipper1: 0.556619 ms (31 reps) rings=17 area_rel_diff=2.67217e-07
+   offset_miter_+100 boost: 2.09237 ms (31 reps) rings=17 area_rel_diff=-2.38036e-06 valid
+   offset_miter_-100 clipper2: 0.122215 ms (31 reps) rings=17 area_rel_diff=0
+   offset_miter_-100 clipper1: 0.136646 ms (31 reps) rings=17 area_rel_diff=0
+   offset_miter_-100 boost: 0.765013 ms (31 reps) rings=17 area_rel_diff=9.99343e-06 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (19884; 41840); method: i; operations: u/i; segment IDs {source; multi; ring; segment}: {0; 0; 0; 132}/{0; 0; 0; 134}
+   offset_miter_+5000 clipper2: 0.938915 ms (31 reps) rings=17 area_rel_diff=0
+   offset_miter_+5000 clipper1: 0.784242 ms (31 reps) rings=17 area_rel_diff=0.00048213
+   offset_miter_+5000 boost: 2.78708 ms (31 reps) rings=17 area_rel_diff=4.94664e-05 valid
+   offset_miter_-5000 clipper2: 0.121823 ms (31 reps) rings=9 area_rel_diff=0
+   offset_miter_-5000 clipper1: 0.146501 ms (31 reps) rings=9 area_rel_diff=-5.37741e-08
+   offset_miter_-5000 boost: 0.804483 ms (31 reps) rings=9 area_rel_diff=1.7171e-05 valid
+   offset_round_+100 clipper2: 0.614286 ms (31 reps) rings=17 area_rel_diff=0
+   offset_round_+100 clipper1: 0.559473 ms (31 reps) rings=17 area_rel_diff=-1.25371e-08
+   offset_round_+100 boost: 2.11372 ms (31 reps) rings=17 area_rel_diff=-2.40294e-06 valid
+   offset_round_-100 clipper2: 0.250417 ms (31 reps) rings=17 area_rel_diff=0
+   offset_round_-100 clipper1: 0.284669 ms (31 reps) rings=17 area_rel_diff=0
+   offset_round_-100 boost: 0.660085 ms (31 reps) rings=17 area_rel_diff=2.50425e-06 valid
+   offset_round_+5000 clipper2: 0.946076 ms (31 reps) rings=17 area_rel_diff=0
+   offset_round_+5000 clipper1: 0.787627 ms (31 reps) rings=17 area_rel_diff=7.97413e-06
+   offset_round_+5000 boost: 2.81437 ms (31 reps) rings=17 area_rel_diff=-5.73004e-06 valid
+   offset_round_-5000 clipper2: 0.242515 ms (31 reps) rings=9 area_rel_diff=0
+   offset_round_-5000 clipper1: 0.282997 ms (31 reps) rings=9 area_rel_diff=-1.6378e-08
+   offset_round_-5000 boost: 0.768509 ms (31 reps) rings=9 area_rel_diff=3.31369e-05 valid
+   offset_square_+100 clipper2: 0.605863 ms (31 reps) rings=17 area_rel_diff=0
+   offset_square_+100 clipper1: 0.576399 ms (31 reps) rings=17 area_rel_diff=-1.25371e-08
+   offset_square_-100 clipper2: 0.243257 ms (31 reps) rings=17 area_rel_diff=0
+   offset_square_-100 clipper1: 0.295896 ms (31 reps) rings=17 area_rel_diff=0
+   offset_square_+5000 clipper2: 0.944814 ms (31 reps) rings=17 area_rel_diff=0
+   offset_square_+5000 clipper1: 0.779815 ms (31 reps) rings=17 area_rel_diff=8.78988e-06
+   offset_square_-5000 clipper2: 0.238199 ms (31 reps) rings=9 area_rel_diff=0
+   offset_square_-5000 clipper1: 0.299922 ms (31 reps) rings=9 area_rel_diff=-3.5254e-08
+== circle_grid 1k (1152 vertices, 36 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 0.408446 ms (31 reps) rings=66 area_rel_diff=0
+   intersection clipper1: 0.386533 ms (31 reps) rings=66 area_rel_diff=5.49986e-05
+   intersection boost: 1.11999 ms (31 reps) rings=66 area_rel_diff=7.58895e-05 valid
+   union clipper2: 0.460444 ms (31 reps) rings=6 area_rel_diff=0
+   union clipper1: 0.439792 ms (31 reps) rings=6 area_rel_diff=8.18963e-06
+   union boost: 0.924954 ms (31 reps) rings=6 area_rel_diff=6.84477e-06 valid
+   offset_miter_+100 clipper2: 0.139941 ms (31 reps) rings=36 area_rel_diff=0
+   offset_miter_+100 clipper1: 0.145279 ms (31 reps) rings=36 area_rel_diff=0
+   offset_miter_+100 boost: 0.834778 ms (31 reps) rings=36 area_rel_diff=-9.30669e-05 valid
+   offset_miter_-100 clipper2: 0.761899 ms (31 reps) rings=36 area_rel_diff=0
+   offset_miter_-100 clipper1: 0.691703 ms (31 reps) rings=36 area_rel_diff=-0.000453696
+   offset_miter_-100 boost: 3.0907 ms (31 reps) rings=36 area_rel_diff=-0.000988991 valid
+   offset_miter_+5000 clipper2: 0.155074 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 0.200712 ms (31 reps) rings=1 area_rel_diff=4.65912e-05
+   offset_miter_+5000 boost: 3.17048 ms (31 reps) rings=1 area_rel_diff=-9.29401e-05 valid
+   offset_miter_-5000 clipper2: 29.602 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 clipper1: 41.1199 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 boost: 458.851 ms (5 reps) rings=0 area_rel_diff=0 valid
+   offset_round_+100 clipper2: 0.284339 ms (31 reps) rings=36 area_rel_diff=0
+   offset_round_+100 clipper1: 0.299522 ms (31 reps) rings=36 area_rel_diff=0
+   offset_round_+100 boost: 0.781538 ms (31 reps) rings=36 area_rel_diff=0.000107967 valid
+   offset_round_-100 clipper2: 0.760336 ms (31 reps) rings=36 area_rel_diff=0
+   offset_round_-100 clipper1: 0.693956 ms (31 reps) rings=36 area_rel_diff=-0.000453696
+   offset_round_-100 boost: 3.12387 ms (31 reps) rings=36 area_rel_diff=-0.000988991 valid
+   offset_round_+5000 clipper2: 0.465482 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 0.575738 ms (31 reps) rings=1 area_rel_diff=-0.000493348
+   offset_round_+5000 boost: 3.24757 ms (31 reps) rings=1 area_rel_diff=1.05348e-05 valid
+   offset_round_-5000 clipper2: 29.6343 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 clipper1: 41.0969 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 boost: 455.356 ms (5 reps) rings=0 area_rel_diff=0 valid
+   offset_square_+100 clipper2: 0.273112 ms (31 reps) rings=36 area_rel_diff=0
+   offset_square_+100 clipper1: 0.310318 ms (31 reps) rings=36 area_rel_diff=0
+   offset_square_-100 clipper2: 0.76952 ms (31 reps) rings=36 area_rel_diff=0
+   offset_square_-100 clipper1: 0.686294 ms (31 reps) rings=36 area_rel_diff=-0.000453696
+   offset_square_+5000 clipper2: 0.285911 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 0.362537 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper2: 29.6216 ms (31 reps) rings=0 area_rel_diff=0
+   offset_square_-5000 clipper1: 41.1252 ms (31 reps) rings=0 area_rel_diff=0
+== jitter_circle 1k (1000 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 0.171248 ms (31 reps) rings=1 area_rel_diff=0
+   intersection clipper1: 0.221453 ms (31 reps) rings=1 area_rel_diff=8.55708e-09
+   intersection boost: 0.262005 ms (31 reps) rings=1 area_rel_diff=8.55708e-09 valid
+   union clipper2: 0.168874 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 0.224308 ms (31 reps) rings=1 area_rel_diff=9.27411e-09
+   union boost: 0.206511 ms (31 reps) rings=1 area_rel_diff=9.27411e-09 valid
+   offset_miter_+100 clipper2: 0.227152 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 0.151178 ms (31 reps) rings=1 area_rel_diff=1.79773e-07
+   offset_miter_+100 boost: 0.896461 ms (31 reps) rings=1 area_rel_diff=-1.35435e-05 valid
+   offset_miter_-100 clipper2: 0.700336 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 0.547465 ms (31 reps) rings=1 area_rel_diff=1.93294e-06
+   offset_miter_-100 boost: 2.19833 ms (31 reps) rings=1 area_rel_diff=-7.29703e-06 valid
+   offset_miter_+5000 clipper2: 0.239171 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 0.258209 ms (31 reps) rings=1 area_rel_diff=4.90634e-07
+   offset_miter_+5000 boost: 0.321555 ms (31 reps) rings=1 area_rel_diff=-2.75194e-05 valid
+   offset_miter_-5000 clipper2: 2.06658 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-5000 clipper1: 2.01885 ms (31 reps) rings=1 area_rel_diff=2.04659e-06
+   offset_miter_-5000 boost: 1.33001 ms (31 reps) rings=1 area_rel_diff=-2.88464e-05 valid
+   offset_round_+100 clipper2: 0.336818 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 0.228975 ms (31 reps) rings=1 area_rel_diff=1.68527e-08
+   offset_round_+100 boost: 0.788178 ms (31 reps) rings=1 area_rel_diff=-1.35256e-05 valid
+   offset_round_-100 clipper2: 0.717261 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 0.567405 ms (31 reps) rings=1 area_rel_diff=1.86827e-06
+   offset_round_-100 boost: 2.21259 ms (31 reps) rings=1 area_rel_diff=-7.36166e-06 valid
+   offset_round_+5000 clipper2: 0.456698 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 0.465071 ms (31 reps) rings=1 area_rel_diff=4.58687e-07
+   offset_round_+5000 boost: 0.317078 ms (31 reps) rings=1 area_rel_diff=-2.735e-05 valid
+   offset_round_-5000 clipper2: 2.12393 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_-5000 clipper1: 2.10136 ms (31 reps) rings=1 area_rel_diff=2.05309e-06
+   offset_round_-5000 boost: 1.33348 ms (31 reps) rings=1 area_rel_diff=-2.88955e-05 valid
+   offset_square_+100 clipper2: 0.210567 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 0.215024 ms (31 reps) rings=1 area_rel_diff=1.64318e-07
+   offset_square_-100 clipper2: 0.707386 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 0.557681 ms (31 reps) rings=1 area_rel_diff=1.93294e-06
+   offset_square_+5000 clipper2: 0.250718 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 0.495427 ms (31 reps) rings=1 area_rel_diff=4.61935e-07
+   offset_square_-5000 clipper2: 2.06558 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper1: 2.09655 ms (31 reps) rings=1 area_rel_diff=2.18869e-06
+== squares_coincident 1k (1024 vertices, 256 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 0.352261 ms (31 reps) rings=256 area_rel_diff=0
+   intersection clipper1: 0.326753 ms (31 reps) rings=256 area_rel_diff=0
+   intersection boost: 9.4181 ms (31 reps) rings=256 area_rel_diff=0 valid
+   union clipper2: 0.444119 ms (31 reps) rings=256 area_rel_diff=0
+   union clipper1: 0.620796 ms (31 reps) rings=256 area_rel_diff=0
+   union boost: 9.63011 ms (31 reps) rings=256 area_rel_diff=0 valid
+   offset_miter_+100 clipper2: 0.381435 ms (31 reps) rings=256 area_rel_diff=0
+   offset_miter_+100 clipper1: 0.250788 ms (31 reps) rings=256 area_rel_diff=0.00485821
+   offset_miter_+100 boost: 0.752153 ms (31 reps) rings=256 area_rel_diff=0.000523015 valid
+   offset_miter_-100 clipper2: 0.533594 ms (31 reps) rings=256 area_rel_diff=0
+   offset_miter_-100 clipper1: 0.525051 ms (31 reps) rings=256 area_rel_diff=0
+   offset_miter_-100 boost: 4.53305 ms (31 reps) rings=256 area_rel_diff=0 valid
+   offset_miter_+5000 clipper2: 0.867046 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 0.491641 ms (31 reps) rings=1 area_rel_diff=0.0103123
+   offset_miter_+5000 boost: 27.1437 ms (31 reps) rings=1 area_rel_diff=-0.000403835 valid
+   offset_miter_-5000 clipper2: 1.15045 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 clipper1: 0.903331 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 boost: 124.758 ms (12 reps) rings=0 area_rel_diff=0 valid
+   offset_round_+100 clipper2: 0.5113 ms (31 reps) rings=256 area_rel_diff=0
+   offset_round_+100 clipper1: 0.540455 ms (31 reps) rings=256 area_rel_diff=0
+   offset_round_+100 boost: 0.781858 ms (31 reps) rings=256 area_rel_diff=0.000131303 valid
+   offset_round_-100 clipper2: 0.534836 ms (31 reps) rings=256 area_rel_diff=0
+   offset_round_-100 clipper1: 0.529618 ms (31 reps) rings=256 area_rel_diff=0
+   offset_round_-100 boost: 4.53604 ms (31 reps) rings=256 area_rel_diff=0 valid
+   offset_round_+5000 clipper2: 3.84995 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 5.05599 ms (31 reps) rings=1 area_rel_diff=-0.000185849
+   offset_round_+5000 boost: 43.9246 ms (31 reps) rings=1 area_rel_diff=-6.10979e-05 valid
+   offset_round_-5000 clipper2: 1.15149 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 clipper1: 0.911804 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 boost: 125.216 ms (12 reps) rings=0 area_rel_diff=0 valid
+   offset_square_+100 clipper2: 0.387033 ms (31 reps) rings=256 area_rel_diff=0
+   offset_square_+100 clipper1: 0.393804 ms (31 reps) rings=256 area_rel_diff=0
+   offset_square_-100 clipper2: 0.53062 ms (31 reps) rings=256 area_rel_diff=0
+   offset_square_-100 clipper1: 0.525733 ms (31 reps) rings=256 area_rel_diff=0
+   offset_square_+5000 clipper2: 0.86247 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 1.23295 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper2: 1.14321 ms (31 reps) rings=0 area_rel_diff=0
+   offset_square_-5000 clipper1: 0.906326 ms (31 reps) rings=0 area_rel_diff=0
+== squares_touching 1k (1024 vertices, 256 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 0.19298 ms (31 reps) rings=0 area_rel_diff=0
+   intersection clipper1: 0.412492 ms (31 reps) rings=0 area_rel_diff=0
+   intersection boost: 2.1883 ms (31 reps) rings=0 area_rel_diff=0 valid
+   union clipper2: 0.586895 ms (31 reps) rings=16 area_rel_diff=0
+   union clipper1: 0.594546 ms (31 reps) rings=16 area_rel_diff=0
+   union boost: 2.69858 ms (31 reps) rings=16 area_rel_diff=0 valid
+   offset_miter_+100 clipper2: 0.385251 ms (31 reps) rings=256 area_rel_diff=0
+   offset_miter_+100 clipper1: 0.255836 ms (31 reps) rings=256 area_rel_diff=0.00485821
+   offset_miter_+100 boost: 0.751222 ms (31 reps) rings=256 area_rel_diff=0.000523015 valid
+   offset_miter_-100 clipper2: 0.527566 ms (31 reps) rings=256 area_rel_diff=0
+   offset_miter_-100 clipper1: 0.525351 ms (31 reps) rings=256 area_rel_diff=0
+   offset_miter_-100 boost: 4.49223 ms (31 reps) rings=256 area_rel_diff=0 valid
+   offset_miter_+5000 clipper2: 0.850532 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 0.488357 ms (31 reps) rings=1 area_rel_diff=0.0103123
+   offset_miter_+5000 boost: 27.409 ms (31 reps) rings=1 area_rel_diff=-0.000403835 valid
+   offset_miter_-5000 clipper2: 1.14675 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 clipper1: 0.916341 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 boost: 125.415 ms (12 reps) rings=0 area_rel_diff=0 valid
+   offset_round_+100 clipper2: 0.51108 ms (31 reps) rings=256 area_rel_diff=0
+   offset_round_+100 clipper1: 0.535087 ms (31 reps) rings=256 area_rel_diff=0
+   offset_round_+100 boost: 0.789019 ms (31 reps) rings=256 area_rel_diff=0.000131303 valid
+   offset_round_-100 clipper2: 0.53758 ms (31 reps) rings=256 area_rel_diff=0
+   offset_round_-100 clipper1: 0.529519 ms (31 reps) rings=256 area_rel_diff=0
+   offset_round_-100 boost: 4.5131 ms (31 reps) rings=256 area_rel_diff=0 valid
+   offset_round_+5000 clipper2: 3.80424 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 5.1785 ms (31 reps) rings=1 area_rel_diff=-0.000185849
+   offset_round_+5000 boost: 44.0852 ms (31 reps) rings=1 area_rel_diff=-6.10979e-05 valid
+   offset_round_-5000 clipper2: 1.12463 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 clipper1: 0.913777 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 boost: 125.842 ms (12 reps) rings=0 area_rel_diff=0 valid
+   offset_square_+100 clipper2: 0.38431 ms (31 reps) rings=256 area_rel_diff=0
+   offset_square_+100 clipper1: 0.394665 ms (31 reps) rings=256 area_rel_diff=0
+   offset_square_-100 clipper2: 0.526183 ms (31 reps) rings=256 area_rel_diff=0
+   offset_square_-100 clipper1: 0.53744 ms (31 reps) rings=256 area_rel_diff=0
+   offset_square_+5000 clipper2: 0.843071 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 1.23795 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper2: 1.14461 ms (31 reps) rings=0 area_rel_diff=0
+   offset_square_-5000 clipper1: 0.921529 ms (31 reps) rings=0 area_rel_diff=0
+== self_intersecting 1k (1000 vertices, 1 polygons)  boost input validity A: Geometry has invalid self-intersections. A self-intersection point was found at (0, 44995); method: i; operations: u/i; segment IDs {source, multi, ring, segment}: {0, 0, -1, 83}/{0, 0, -1, 416} / B: Geometry has invalid self-intersections. A self-intersection point was found at (-673, 46835); method: i; operations: u/i; segment IDs {source, multi, ring, segment}: {0, 0, -1, 83}/{0, 0, -1, 416}
+   intersection clipper2: 0.288314 ms (31 reps) rings=1 area_rel_diff=0
+   intersection clipper1: 0.289016 ms (31 reps) rings=1 area_rel_diff=6.2327e-07
+   intersection boost: 0.456308 ms (31 reps) rings=1 area_rel_diff=-0.830846 valid
+   union clipper2: 0.290648 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 0.274904 ms (31 reps) rings=1 area_rel_diff=3.39718e-07
+   union boost: 0.370068 ms (31 reps) rings=1 area_rel_diff=3.40801e-07 valid
+   offset_miter_+100 clipper2: 0.173852 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 0.167212 ms (31 reps) rings=1 area_rel_diff=5.25632e-08
+   offset_miter_+100 boost: 1.27359 ms (31 reps) rings=1 area_rel_diff=-1.5603e-05 valid
+   offset_miter_-100 clipper2: 0.729199 ms (31 reps) rings=317 area_rel_diff=0
+   offset_miter_-100 clipper1: 0.793015 ms (31 reps) rings=335 area_rel_diff=1.63979e-06
+   offset_miter_-100 boost: 3.46903 ms (31 reps) rings=1 area_rel_diff=-0.826377 valid
+   offset_miter_+5000 clipper2: 0.344339 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 0.31838 ms (31 reps) rings=1 area_rel_diff=1.22089e-07
+   offset_miter_+5000 boost: 1.58637 ms (31 reps) rings=1 area_rel_diff=-1.57887e-05 valid
+   offset_miter_-5000 clipper2: 1.54314 ms (31 reps) rings=355 area_rel_diff=0
+   offset_miter_-5000 clipper1: 1.6614 ms (31 reps) rings=355 area_rel_diff=1.61011e-05
+   offset_miter_-5000 boost: 5.03442 ms (31 reps) rings=1 area_rel_diff=-0.825439 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (-15608; -32835); method: i; operations: i/u; segment IDs {source; multi; ring; segment}: {0; 0; -1; 519}/{0; 0; -1; 521}
+   offset_round_+100 clipper2: 0.270558 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 0.267093 ms (31 reps) rings=1 area_rel_diff=1.48577e-07
+   offset_round_+100 boost: 1.15838 ms (31 reps) rings=1 area_rel_diff=-1.43029e-05 valid
+   offset_round_-100 clipper2: 0.747587 ms (31 reps) rings=317 area_rel_diff=0
+   offset_round_-100 clipper1: 0.821538 ms (31 reps) rings=335 area_rel_diff=1.63979e-06
+   offset_round_-100 boost: 3.43631 ms (31 reps) rings=1 area_rel_diff=-0.826377 valid
+   offset_round_+5000 clipper2: 0.477149 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 0.483759 ms (31 reps) rings=1 area_rel_diff=9.10012e-08
+   offset_round_+5000 boost: 1.563 ms (31 reps) rings=1 area_rel_diff=-1.5391e-05 valid
+   offset_round_-5000 clipper2: 1.6133 ms (31 reps) rings=355 area_rel_diff=0
+   offset_round_-5000 clipper1: 1.71165 ms (31 reps) rings=355 area_rel_diff=1.59737e-05
+   offset_round_-5000 boost: 5.04129 ms (31 reps) rings=1 area_rel_diff=-0.825434 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (-15608; -32835); method: i; operations: i/u; segment IDs {source; multi; ring; segment}: {0; 0; -1; 367}/{0; 0; -1; 369}
+   offset_square_+100 clipper2: 0.21256 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 0.28516 ms (31 reps) rings=1 area_rel_diff=-2.64048e-07
+   offset_square_-100 clipper2: 0.743931 ms (31 reps) rings=317 area_rel_diff=0
+   offset_square_-100 clipper1: 0.832024 ms (31 reps) rings=335 area_rel_diff=1.63979e-06
+   offset_square_+5000 clipper2: 0.387764 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 0.480794 ms (31 reps) rings=1 area_rel_diff=6.20274e-07
+   offset_square_-5000 clipper2: 1.58437 ms (31 reps) rings=355 area_rel_diff=0
+   offset_square_-5000 clipper1: 1.72765 ms (31 reps) rings=355 area_rel_diff=1.59364e-05
+== ellipse 10k (10000 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 1.56112 ms (31 reps) rings=1 area_rel_diff=0
+   intersection clipper1: 1.88264 ms (31 reps) rings=1 area_rel_diff=2.48078e-09
+   intersection boost: 0.437519 ms (31 reps) rings=1 area_rel_diff=1.55049e-09 valid
+   union clipper2: 1.62575 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 1.91971 ms (31 reps) rings=1 area_rel_diff=1.90797e-09
+   union boost: 0.457229 ms (31 reps) rings=1 area_rel_diff=1.07577e-09 valid
+   offset_miter_+100 clipper2: 4.48876 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 6.24474 ms (31 reps) rings=1 area_rel_diff=2.52722e-06
+   offset_miter_+100 boost: 18.4805 ms (31 reps) rings=1 area_rel_diff=-1.61946e-05 valid
+   offset_miter_-100 clipper2: 4.56389 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 14.1652 ms (31 reps) rings=1 area_rel_diff=7.30217e-07
+   offset_miter_-100 boost: 21.7885 ms (31 reps) rings=1 area_rel_diff=-1.05413e-05 valid
+   offset_miter_+5000 clipper2: 60.8588 ms (25 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 47.5006 ms (31 reps) rings=1 area_rel_diff=2.26211e-06
+   offset_miter_+5000 boost: 0.774146 ms (31 reps) rings=1 area_rel_diff=-3.76072e-05 valid
+   offset_miter_-5000 clipper2: 71.4797 ms (21 reps) rings=1 area_rel_diff=0
+   offset_miter_-5000 clipper1: 57.8242 ms (26 reps) rings=1 area_rel_diff=1.73583e-06
+   offset_miter_-5000 boost: 2.49769 ms (31 reps) rings=1 area_rel_diff=-3.79866e-05 valid
+   offset_round_+100 clipper2: 5.30224 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 7.39818 ms (31 reps) rings=1 area_rel_diff=2.25865e-06
+   offset_round_+100 boost: 17.0182 ms (31 reps) rings=1 area_rel_diff=-1.67301e-05 valid
+   offset_round_-100 clipper2: 5.35116 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 16.9971 ms (31 reps) rings=1 area_rel_diff=8.94823e-07
+   offset_round_-100 boost: 20.7304 ms (31 reps) rings=1 area_rel_diff=-1.00236e-05 valid
+   offset_round_+5000 clipper2: 73.61 ms (21 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 54.2399 ms (28 reps) rings=1 area_rel_diff=1.3365e-06
+   offset_round_+5000 boost: 0.773346 ms (31 reps) rings=1 area_rel_diff=-3.67161e-05 valid
+   offset_round_-5000 clipper2: 83.0089 ms (19 reps) rings=1 area_rel_diff=0
+   offset_round_-5000 clipper1: 65.3811 ms (23 reps) rings=1 area_rel_diff=7.85022e-07
+   offset_round_-5000 boost: 2.50052 ms (31 reps) rings=1 area_rel_diff=-4.06756e-05 valid
+   offset_square_+100 clipper2: 4.47191 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 7.34218 ms (31 reps) rings=1 area_rel_diff=2.42355e-06
+   offset_square_-100 clipper2: 4.59596 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 16.5074 ms (31 reps) rings=1 area_rel_diff=7.96474e-07
+   offset_square_+5000 clipper2: 61.0565 ms (25 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 57.4189 ms (27 reps) rings=1 area_rel_diff=1.96045e-06
+   offset_square_-5000 clipper2: 71.4924 ms (21 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper1: 67.2038 ms (23 reps) rings=1 area_rel_diff=2.12814e-06
+== star 10k (10000 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 1518.68 ms (5 reps) rings=13873 area_rel_diff=0
+   intersection clipper1: 716.223 ms (5 reps) rings=13888 area_rel_diff=8.13369e-06
+   intersection boost: 14396.1 ms (1 reps) rings=13894 area_rel_diff=1.19015e-05 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (-59946; -4719); method: i; operations: i/u; segment IDs {source; multi; ring; segment}: {0; 485; -1; 1}/{0; 1; -1; 22297}
+   union clipper2: 1520.73 ms (5 reps) rings=13842 area_rel_diff=0
+   union clipper1: 707.219 ms (5 reps) rings=13883 area_rel_diff=4.57959e-06
+   union boost: 14983.7 ms (1 reps) rings=13924 area_rel_diff=5.77917e-05 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (-72588; -67140); method: i; operations: i/u; segment IDs {source; multi; ring; segment}: {0; 0; -1; 25367}/{0; 0; -1; 25369}
+   offset_miter_+100 clipper2: 492.962 ms (5 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 348.78 ms (5 reps) rings=1 area_rel_diff=3.91553e-06
+   offset_miter_+100 boost: 1204.27 ms (5 reps) rings=1 area_rel_diff=-0.000365652 valid
+   offset_miter_-100 clipper2: 472.168 ms (5 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 308.916 ms (5 reps) rings=1 area_rel_diff=1.68555e-06
+   offset_miter_-100 boost: 782.075 ms (5 reps) rings=1 area_rel_diff=7.48157e-05 valid
+   offset_miter_+5000 clipper2: 1031.28 ms (5 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 3158.35 ms (1 reps) rings=1 area_rel_diff=7.64052e-06
+   offset_miter_+5000 boost: 4417.5 ms (1 reps) rings=1 area_rel_diff=0.0161099 valid
+   offset_miter_-5000 clipper2: 977.13 ms (5 reps) rings=1 area_rel_diff=0
+   offset_miter_-5000 clipper1: 3207.18 ms (1 reps) rings=1 area_rel_diff=5.0549e-06
+   offset_miter_-5000 boost: 7505.66 ms (1 reps) rings=1 area_rel_diff=-0.0353144 valid
+   offset_round_+100 clipper2: 1660.1 ms (5 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 794.642 ms (5 reps) rings=1 area_rel_diff=-3.70601e-05
+   offset_round_+100 boost: 1206.33 ms (5 reps) rings=1 area_rel_diff=9.60557e-06 valid
+   offset_round_-100 clipper2: 1537.39 ms (5 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 668.586 ms (5 reps) rings=1 area_rel_diff=2.75518e-05
+   offset_round_-100 boost: 790.927 ms (5 reps) rings=1 area_rel_diff=-6.02124e-05 valid
+   offset_round_+5000 clipper2: 10175.7 ms (1 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 5802.51 ms (1 reps) rings=1 area_rel_diff=3.02224e-06
+   offset_round_+5000 boost: 155501 ms (1 reps) rings=284 area_rel_diff=4.79091 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (313; -83210); method: i; operations: u/i; segment IDs {source; multi; ring; segment}: {0; 67; -1; 13}/{0; 149; -1; 15}
+   offset_round_-5000 clipper2: 10203.4 ms (1 reps) rings=1 area_rel_diff=0
+   offset_round_-5000 clipper1: 7373.7 ms (1 reps) rings=1 area_rel_diff=5.04987e-06
+   offset_round_-5000 boost: 55642.3 ms (1 reps) rings=1 area_rel_diff=28.3591 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (787; -83552); method: i; operations: i/u; segment IDs {source; multi; ring; segment}: {0; 0; -1; 20191}/{0; 0; -1; 20803}
+   offset_square_+100 clipper2: 500.968 ms (5 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 347.255 ms (5 reps) rings=1 area_rel_diff=3.91553e-06
+   offset_square_-100 clipper2: 478.443 ms (5 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 308.788 ms (5 reps) rings=1 area_rel_diff=1.68555e-06
+   offset_square_+5000 clipper2: 1039 ms (5 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 3128.61 ms (1 reps) rings=1 area_rel_diff=7.64052e-06
+   offset_square_-5000 clipper2: 984.017 ms (5 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper1: 3208.81 ms (1 reps) rings=1 area_rel_diff=5.0549e-06
+== comb 10k (10001 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 398.22 ms (5 reps) rings=2500 area_rel_diff=0
+   intersection clipper1: 685.84 ms (5 reps) rings=2500 area_rel_diff=0
+   intersection boost: 769.816 ms (5 reps) rings=2500 area_rel_diff=0 valid
+   union clipper2: 261.404 ms (6 reps) rings=1 area_rel_diff=0
+   union clipper1: 506.712 ms (5 reps) rings=1 area_rel_diff=0
+   union boost: 628.367 ms (5 reps) rings=1 area_rel_diff=0 valid
+   offset_miter_+100 clipper2: 226.706 ms (7 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 215.83 ms (7 reps) rings=1 area_rel_diff=6.19147e-06
+   offset_miter_+100 boost: 1547.08 ms (5 reps) rings=1 area_rel_diff=-3.08786e-05 valid
+   offset_miter_-100 clipper2: 244.275 ms (7 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 181.776 ms (9 reps) rings=1 area_rel_diff=-4.13124e-05
+   offset_miter_-100 boost: 1662.49 ms (5 reps) rings=1 area_rel_diff=0.000188201 valid
+   offset_miter_+5000 clipper2: 377.292 ms (5 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 2472.38 ms (5 reps) rings=1 area_rel_diff=0.000483706
+   offset_miter_-5000 clipper2: 281.733 ms (6 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 clipper1: 220.14 ms (7 reps) rings=0 area_rel_diff=0
+   offset_round_+100 clipper2: 231.121 ms (7 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 200.96 ms (8 reps) rings=1 area_rel_diff=6.47757e-10
+   offset_round_+100 boost: 1549.08 ms (5 reps) rings=1 area_rel_diff=-3.36302e-07 valid
+   offset_round_-100 clipper2: 249.702 ms (7 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 217.379 ms (7 reps) rings=1 area_rel_diff=2.64896e-05
+   offset_round_-100 boost: 1668.77 ms (5 reps) rings=1 area_rel_diff=2.64896e-05 valid
+   offset_round_+5000 clipper2: 326.596 ms (5 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 237.394 ms (7 reps) rings=1 area_rel_diff=-7.88659e-06
+   offset_round_-5000 clipper2: 364.904 ms (5 reps) rings=2450 area_rel_diff=0
+   offset_round_-5000 clipper1: 306.074 ms (6 reps) rings=1 area_rel_diff=3
+   offset_square_+100 clipper2: 234.836 ms (7 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 191.825 ms (8 reps) rings=1 area_rel_diff=9.79861e-10
+   offset_square_-100 clipper2: 246.707 ms (7 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 211.494 ms (8 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper2: 360.265 ms (5 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 1224.93 ms (5 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper2: 283.586 ms (6 reps) rings=0 area_rel_diff=0
+   offset_square_-5000 clipper1: 259.343 ms (6 reps) rings=0 area_rel_diff=0
+== disc_with_holes 10k (10820 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 7.64258 ms (31 reps) rings=30 area_rel_diff=0
+   intersection clipper1: 7.35356 ms (31 reps) rings=30 area_rel_diff=-6.73281e-06
+   intersection boost: 5.63309 ms (31 reps) rings=30 area_rel_diff=-6.66348e-06 valid
+   union clipper2: 7.26018 ms (31 reps) rings=366 area_rel_diff=0
+   union clipper1: 6.57539 ms (31 reps) rings=366 area_rel_diff=-2.74875e-06
+   union boost: 8.32761 ms (31 reps) rings=366 area_rel_diff=-2.74536e-06 valid
+   offset_miter_+100 clipper2: 8.20335 ms (31 reps) rings=170 area_rel_diff=0
+   offset_miter_+100 clipper1: 7.22359 ms (31 reps) rings=170 area_rel_diff=1.72367e-06
+   offset_miter_+100 boost: 59.2682 ms (26 reps) rings=170 area_rel_diff=7.14568e-06 valid
+   offset_miter_-100 clipper2: 1.49278 ms (31 reps) rings=170 area_rel_diff=0
+   offset_miter_-100 clipper1: 1.66726 ms (31 reps) rings=170 area_rel_diff=0
+   offset_miter_-100 boost: 12.8383 ms (31 reps) rings=170 area_rel_diff=-1.22187e-05 valid
+   offset_miter_+5000 clipper2: 77.9134 ms (20 reps) rings=170 area_rel_diff=0
+   offset_miter_+5000 clipper1: 69.9892 ms (22 reps) rings=170 area_rel_diff=0.000389467
+   offset_miter_+5000 boost: 835.38 ms (5 reps) rings=170 area_rel_diff=4.56164e-05 valid
+   offset_miter_-5000 clipper2: 1.22295 ms (31 reps) rings=144 area_rel_diff=0
+   offset_miter_-5000 clipper1: 1.39654 ms (31 reps) rings=144 area_rel_diff=1.65757e-05
+   offset_miter_-5000 boost: 16.3552 ms (31 reps) rings=144 area_rel_diff=0.00010196 valid
+   offset_round_+100 clipper2: 8.27435 ms (31 reps) rings=170 area_rel_diff=0
+   offset_round_+100 clipper1: 7.3408 ms (31 reps) rings=170 area_rel_diff=1.44824e-06
+   offset_round_+100 boost: 62.0914 ms (24 reps) rings=170 area_rel_diff=7.12345e-06 valid
+   offset_round_-100 clipper2: 2.72705 ms (31 reps) rings=170 area_rel_diff=0
+   offset_round_-100 clipper1: 3.16014 ms (31 reps) rings=170 area_rel_diff=0
+   offset_round_-100 boost: 11.8306 ms (31 reps) rings=170 area_rel_diff=-1.16328e-05 valid
+   offset_round_+5000 clipper2: 77.5616 ms (20 reps) rings=170 area_rel_diff=0
+   offset_round_+5000 clipper1: 70.519 ms (22 reps) rings=170 area_rel_diff=-1.10109e-06
+   offset_round_+5000 boost: 799.437 ms (5 reps) rings=170 area_rel_diff=1.51049e-07 valid
+   offset_round_-5000 clipper2: 2.43979 ms (31 reps) rings=144 area_rel_diff=0
+   offset_round_-5000 clipper1: 2.72003 ms (31 reps) rings=144 area_rel_diff=0.000119372
+   offset_round_-5000 boost: 15.693 ms (31 reps) rings=144 area_rel_diff=-0.00121563 valid
+   offset_square_+100 clipper2: 8.23395 ms (31 reps) rings=170 area_rel_diff=0
+   offset_square_+100 clipper1: 7.29996 ms (31 reps) rings=170 area_rel_diff=1.44824e-06
+   offset_square_-100 clipper2: 2.81245 ms (31 reps) rings=170 area_rel_diff=0
+   offset_square_-100 clipper1: 3.40553 ms (31 reps) rings=170 area_rel_diff=0
+   offset_square_+5000 clipper2: 77.6649 ms (20 reps) rings=170 area_rel_diff=0
+   offset_square_+5000 clipper1: 69.8891 ms (22 reps) rings=170 area_rel_diff=-4.28217e-07
+   offset_square_-5000 clipper2: 2.64639 ms (31 reps) rings=144 area_rel_diff=0
+   offset_square_-5000 clipper1: 3.04014 ms (31 reps) rings=144 area_rel_diff=0.000376231
+== circle_grid 10k (10368 vertices, 324 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 8.33291 ms (31 reps) rings=630 area_rel_diff=0
+   intersection clipper1: 7.06858 ms (31 reps) rings=630 area_rel_diff=1.70147e-05
+   intersection boost: 18.395 ms (31 reps) rings=630 area_rel_diff=2.28801e-05 valid
+   union clipper2: 8.67982 ms (31 reps) rings=18 area_rel_diff=0
+   union clipper1: 7.82574 ms (31 reps) rings=18 area_rel_diff=2.78767e-06
+   union boost: 10.2435 ms (31 reps) rings=18 area_rel_diff=2.12884e-06 valid
+   offset_miter_+100 clipper2: 1.36909 ms (31 reps) rings=324 area_rel_diff=0
+   offset_miter_+100 clipper1: 1.42221 ms (31 reps) rings=324 area_rel_diff=0
+   offset_miter_+100 boost: 9.12189 ms (31 reps) rings=324 area_rel_diff=9.55402e-05 valid
+   offset_miter_-100 clipper2: 8.64864 ms (31 reps) rings=324 area_rel_diff=0
+   offset_miter_-100 clipper1: 7.67587 ms (31 reps) rings=324 area_rel_diff=-0.000688463
+   offset_miter_-100 boost: 61.2436 ms (25 reps) rings=324 area_rel_diff=-0.000988561 valid
+   offset_miter_+5000 clipper2: 3.09764 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 4.17039 ms (31 reps) rings=1 area_rel_diff=3.34972e-05
+   offset_miter_+5000 boost: 57.4603 ms (27 reps) rings=1 area_rel_diff=-3.36628e-05 valid
+   offset_miter_-5000 clipper2: 359.083 ms (5 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 clipper1: 471.59 ms (5 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 boost: 6109.07 ms (1 reps) rings=0 area_rel_diff=0 valid
+   offset_round_+100 clipper2: 2.66575 ms (31 reps) rings=324 area_rel_diff=0
+   offset_round_+100 clipper1: 2.9456 ms (31 reps) rings=324 area_rel_diff=0
+   offset_round_+100 boost: 8.73174 ms (31 reps) rings=324 area_rel_diff=0.000285544 valid
+   offset_round_-100 clipper2: 8.64386 ms (31 reps) rings=324 area_rel_diff=0
+   offset_round_-100 clipper1: 7.65316 ms (31 reps) rings=324 area_rel_diff=-0.000688463
+   offset_round_-100 boost: 61.1218 ms (25 reps) rings=324 area_rel_diff=-0.000988561 valid
+   offset_round_+5000 clipper2: 7.97481 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 8.39388 ms (31 reps) rings=1 area_rel_diff=-0.000311899
+   offset_round_+5000 boost: 57.787 ms (26 reps) rings=1 area_rel_diff=-3.951e-06 valid
+   offset_round_-5000 clipper2: 354.715 ms (5 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 clipper1: 470.392 ms (5 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 boost: 5942.11 ms (1 reps) rings=0 area_rel_diff=0 valid
+   offset_square_+100 clipper2: 2.58763 ms (31 reps) rings=324 area_rel_diff=0
+   offset_square_+100 clipper1: 3.06614 ms (31 reps) rings=324 area_rel_diff=0
+   offset_square_-100 clipper2: 8.62048 ms (31 reps) rings=324 area_rel_diff=0
+   offset_square_-100 clipper1: 7.75036 ms (31 reps) rings=324 area_rel_diff=-0.000688463
+   offset_square_+5000 clipper2: 4.86935 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 6.68547 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper2: 357.761 ms (5 reps) rings=0 area_rel_diff=0
+   offset_square_-5000 clipper1: 473.616 ms (5 reps) rings=0 area_rel_diff=0
+== jitter_circle 10k (10000 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 2.033 ms (31 reps) rings=1 area_rel_diff=0
+   intersection clipper1: 2.35024 ms (31 reps) rings=1 area_rel_diff=5.1665e-10
+   intersection boost: 0.686264 ms (31 reps) rings=1 area_rel_diff=5.1665e-10 valid
+   union clipper2: 2.01726 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 2.3518 ms (31 reps) rings=1 area_rel_diff=3.92303e-10
+   union boost: 0.680135 ms (31 reps) rings=1 area_rel_diff=3.92303e-10 valid
+   offset_miter_+100 clipper2: 6.31399 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 14.8382 ms (31 reps) rings=1 area_rel_diff=2.18886e-06
+   offset_miter_+100 boost: 25.9218 ms (31 reps) rings=1 area_rel_diff=-1.32029e-05 valid
+   offset_miter_-100 clipper2: 6.19984 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 26.5344 ms (31 reps) rings=1 area_rel_diff=1.07045e-06
+   offset_miter_-100 boost: 29.5881 ms (31 reps) rings=1 area_rel_diff=-9.15348e-06 valid
+   offset_miter_+5000 clipper2: 117.617 ms (13 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 89.5433 ms (17 reps) rings=1 area_rel_diff=3.43454e-06
+   offset_miter_+5000 boost: 0.793406 ms (31 reps) rings=1 area_rel_diff=-3.45862e-05 valid
+   offset_miter_-5000 clipper2: 115.816 ms (13 reps) rings=1 area_rel_diff=0
+   offset_miter_-5000 clipper1: 89.3802 ms (17 reps) rings=1 area_rel_diff=3.82256e-06
+   offset_miter_-5000 boost: 2.55272 ms (31 reps) rings=1 area_rel_diff=3.39126e-05 valid
+   offset_round_+100 clipper2: 7.46865 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 18.9064 ms (31 reps) rings=1 area_rel_diff=2.14418e-06
+   offset_round_+100 boost: 25.0623 ms (31 reps) rings=1 area_rel_diff=-1.30613e-05 valid
+   offset_round_-100 clipper2: 7.3457 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 33.6372 ms (31 reps) rings=1 area_rel_diff=1.03457e-06
+   offset_round_-100 boost: 28.6092 ms (31 reps) rings=1 area_rel_diff=-8.9712e-06 valid
+   offset_round_+5000 clipper2: 141.68 ms (11 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 110.7 ms (14 reps) rings=1 area_rel_diff=2.0538e-06
+   offset_round_+5000 boost: 0.786227 ms (31 reps) rings=1 area_rel_diff=2.01781e-06 valid
+   offset_round_-5000 clipper2: 138.807 ms (11 reps) rings=1 area_rel_diff=0
+   offset_round_-5000 clipper1: 110.662 ms (14 reps) rings=1 area_rel_diff=1.99829e-06
+   offset_round_-5000 boost: 2.55771 ms (31 reps) rings=1 area_rel_diff=-1.00937e-05 valid
+   offset_square_+100 clipper2: 6.80505 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 18.6317 ms (31 reps) rings=1 area_rel_diff=2.15248e-06
+   offset_square_-100 clipper2: 6.68771 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 33.7033 ms (31 reps) rings=1 area_rel_diff=9.79235e-07
+   offset_square_+5000 clipper2: 126.698 ms (12 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 107.315 ms (14 reps) rings=1 area_rel_diff=1.20279e-06
+   offset_square_-5000 clipper2: 126.828 ms (12 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper1: 105.908 ms (15 reps) rings=1 area_rel_diff=3.67351e-06
+== squares_coincident 10k (10000 vertices, 2500 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 6.03585 ms (31 reps) rings=2500 area_rel_diff=0
+   intersection clipper1: 5.4181 ms (31 reps) rings=2500 area_rel_diff=0
+   intersection boost: 1711.87 ms (5 reps) rings=2500 area_rel_diff=0 valid
+   union clipper2: 5.96728 ms (31 reps) rings=2500 area_rel_diff=0
+   union clipper1: 9.67237 ms (31 reps) rings=2500 area_rel_diff=0
+   union boost: 1692.9 ms (5 reps) rings=2500 area_rel_diff=0 valid
+   offset_miter_+100 clipper2: 4.11162 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_miter_+100 clipper1: 2.99492 ms (31 reps) rings=2500 area_rel_diff=0.00485821
+   offset_miter_+100 boost: 11.535 ms (31 reps) rings=2500 area_rel_diff=0.000528946 valid
+   offset_miter_-100 clipper2: 8.22849 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_miter_-100 clipper1: 6.79568 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_miter_-100 boost: 564.732 ms (5 reps) rings=2500 area_rel_diff=0 valid
+   offset_miter_+5000 clipper2: 15.6988 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 8.67625 ms (31 reps) rings=1 area_rel_diff=0.00144625
+   offset_miter_+5000 boost: 406.364 ms (5 reps) rings=1 area_rel_diff=-0.000566757 valid
+   offset_miter_-5000 clipper2: 33.9284 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 clipper1: 18.6754 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 boost: 1508.84 ms (5 reps) rings=0 area_rel_diff=0 valid
+   offset_round_+100 clipper2: 5.71791 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_round_+100 clipper1: 6.38141 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_round_+100 boost: 11.9657 ms (31 reps) rings=2500 area_rel_diff=0.000137255 valid
+   offset_round_-100 clipper2: 8.31545 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_round_-100 clipper1: 6.81999 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_round_-100 boost: 573.165 ms (5 reps) rings=2500 area_rel_diff=0 valid
+   offset_round_+5000 clipper2: 67.8594 ms (23 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 66.025 ms (23 reps) rings=1 area_rel_diff=-7.92622e-05
+   offset_round_+5000 boost: 607.8 ms (5 reps) rings=1 area_rel_diff=-2.74008e-05 valid
+   offset_round_-5000 clipper2: 33.7686 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 clipper1: 18.7324 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 boost: 1505.32 ms (5 reps) rings=0 area_rel_diff=0 valid
+   offset_square_+100 clipper2: 4.11993 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_square_+100 clipper1: 4.74036 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_square_-100 clipper2: 8.26206 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_square_-100 clipper1: 6.78807 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_square_+5000 clipper2: 15.5252 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 20.4316 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper2: 33.9101 ms (31 reps) rings=0 area_rel_diff=0
+   offset_square_-5000 clipper1: 18.7244 ms (31 reps) rings=0 area_rel_diff=0
+== squares_touching 10k (10000 vertices, 2500 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 3.62557 ms (31 reps) rings=0 area_rel_diff=0
+   intersection clipper1: 6.7856 ms (31 reps) rings=0 area_rel_diff=0
+   intersection boost: 24.6768 ms (31 reps) rings=0 area_rel_diff=0 valid
+   union clipper2: 11.6195 ms (31 reps) rings=50 area_rel_diff=0
+   union clipper1: 10.0969 ms (31 reps) rings=50 area_rel_diff=0
+   union boost: 42.4492 ms (31 reps) rings=50 area_rel_diff=0 valid
+   offset_miter_+100 clipper2: 4.12139 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_miter_+100 clipper1: 3.01786 ms (31 reps) rings=2500 area_rel_diff=0.00485821
+   offset_miter_+100 boost: 11.5451 ms (31 reps) rings=2500 area_rel_diff=0.000528946 valid
+   offset_miter_-100 clipper2: 8.29878 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_miter_-100 clipper1: 6.78723 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_miter_-100 boost: 565.429 ms (5 reps) rings=2500 area_rel_diff=0 valid
+   offset_miter_+5000 clipper2: 15.5038 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 8.61532 ms (31 reps) rings=1 area_rel_diff=0.00144625
+   offset_miter_+5000 boost: 409.33 ms (5 reps) rings=1 area_rel_diff=-0.000566757 valid
+   offset_miter_-5000 clipper2: 33.7147 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 clipper1: 18.5493 ms (31 reps) rings=0 area_rel_diff=0
+   offset_miter_-5000 boost: 1508.71 ms (5 reps) rings=0 area_rel_diff=0 valid
+   offset_round_+100 clipper2: 5.72359 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_round_+100 clipper1: 6.39416 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_round_+100 boost: 11.905 ms (31 reps) rings=2500 area_rel_diff=0.000137255 valid
+   offset_round_-100 clipper2: 8.29468 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_round_-100 clipper1: 6.84762 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_round_-100 boost: 567.508 ms (5 reps) rings=2500 area_rel_diff=0 valid
+   offset_round_+5000 clipper2: 67.7208 ms (23 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 66.7189 ms (23 reps) rings=1 area_rel_diff=-7.92622e-05
+   offset_round_+5000 boost: 606.635 ms (5 reps) rings=1 area_rel_diff=-2.74008e-05 valid
+   offset_round_-5000 clipper2: 33.8783 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 clipper1: 18.6703 ms (31 reps) rings=0 area_rel_diff=0
+   offset_round_-5000 boost: 1505.9 ms (5 reps) rings=0 area_rel_diff=0 valid
+   offset_square_+100 clipper2: 4.13958 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_square_+100 clipper1: 4.77884 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_square_-100 clipper2: 8.28779 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_square_-100 clipper1: 6.78815 ms (31 reps) rings=2500 area_rel_diff=0
+   offset_square_+5000 clipper2: 15.622 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 20.4356 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper2: 33.834 ms (31 reps) rings=0 area_rel_diff=0
+   offset_square_-5000 clipper1: 18.702 ms (31 reps) rings=0 area_rel_diff=0
+== self_intersecting 10k (10000 vertices, 1 polygons)  boost input validity A: Geometry has invalid self-intersections. A self-intersection point was found at (0, 45000); method: i; operations: u/i; segment IDs {source, multi, ring, segment}: {0, 0, -1, 833}/{0, 0, -1, 4166} / B: Geometry has invalid self-intersections. A self-intersection point was found at (-39584, -11788); method: i; operations: u/i; segment IDs {source, multi, ring, segment}: {0, 0, -1, 5119}/{0, 0, -1, 8452}
+   intersection clipper2: 2.81959 ms (31 reps) rings=1 area_rel_diff=0
+   intersection clipper1: 2.79692 ms (31 reps) rings=1 area_rel_diff=5.0667e-08
+   intersection boost: 1.13489 ms (31 reps) rings=1 area_rel_diff=-0.830884 valid
+   union clipper2: 2.80943 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 2.78839 ms (31 reps) rings=1 area_rel_diff=1.338e-08
+   union boost: 0.964904 ms (31 reps) rings=1 area_rel_diff=1.37198e-08 valid
+   offset_miter_+100 clipper2: 2.93512 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 2.01044 ms (31 reps) rings=1 area_rel_diff=1.66047e-07
+   offset_miter_+100 boost: 13.8355 ms (31 reps) rings=1 area_rel_diff=-1.57427e-05 valid
+   offset_miter_-100 clipper2: 6.35657 ms (31 reps) rings=91 area_rel_diff=0
+   offset_miter_-100 clipper1: 5.88464 ms (31 reps) rings=758 area_rel_diff=-8.47248e-09
+   offset_miter_-100 boost: 71.2031 ms (22 reps) rings=1 area_rel_diff=-0.826411 valid
+   offset_miter_+5000 clipper2: 23.4202 ms (31 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 19.1365 ms (31 reps) rings=1 area_rel_diff=2.78753e-07
+   offset_miter_+5000 boost: 3.38827 ms (31 reps) rings=1 area_rel_diff=-4.5666e-05 valid
+   offset_miter_-5000 clipper2: 85.3701 ms (18 reps) rings=3967 area_rel_diff=0
+   offset_miter_-5000 clipper1: 84.5384 ms (18 reps) rings=3999 area_rel_diff=2.802e-06
+   offset_miter_-5000 boost: 13.7066 ms (31 reps) rings=1 area_rel_diff=-0.870155 valid
+   offset_round_+100 clipper2: 3.68226 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 2.38445 ms (31 reps) rings=1 area_rel_diff=1.13229e-07
+   offset_round_+100 boost: 12.7931 ms (31 reps) rings=1 area_rel_diff=-1.57048e-05 valid
+   offset_round_-100 clipper2: 6.63546 ms (31 reps) rings=91 area_rel_diff=0
+   offset_round_-100 clipper1: 5.99032 ms (31 reps) rings=758 area_rel_diff=-1.72325e-08
+   offset_round_-100 boost: 70.9243 ms (22 reps) rings=1 area_rel_diff=-0.826411 valid
+   offset_round_+5000 clipper2: 28.6314 ms (31 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 22.6498 ms (31 reps) rings=1 area_rel_diff=2.22105e-07
+   offset_round_+5000 boost: 3.36098 ms (31 reps) rings=1 area_rel_diff=-4.52778e-05 valid
+   offset_round_-5000 clipper2: 91.9917 ms (17 reps) rings=3967 area_rel_diff=0
+   offset_round_-5000 clipper1: 89.4474 ms (17 reps) rings=3999 area_rel_diff=3.76231e-06
+   offset_round_-5000 boost: 13.7034 ms (31 reps) rings=1 area_rel_diff=-0.870151 valid
+   offset_square_+100 clipper2: 2.93104 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 2.37704 ms (31 reps) rings=1 area_rel_diff=5.58551e-08
+   offset_square_-100 clipper2: 6.36878 ms (31 reps) rings=91 area_rel_diff=0
+   offset_square_-100 clipper1: 5.98474 ms (31 reps) rings=758 area_rel_diff=-8.47248e-09
+   offset_square_+5000 clipper2: 23.4069 ms (31 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 23.8961 ms (31 reps) rings=1 area_rel_diff=1.84041e-07
+   offset_square_-5000 clipper2: 85.4931 ms (18 reps) rings=3967 area_rel_diff=0
+   offset_square_-5000 clipper1: 90.8321 ms (17 reps) rings=3999 area_rel_diff=2.67004e-06
+== ellipse 100k (100000 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 15.8102 ms (31 reps) rings=1 area_rel_diff=0
+   intersection clipper1: 18.569 ms (31 reps) rings=1 area_rel_diff=-5.16829e-11
+   intersection boost: 5.31496 ms (31 reps) rings=1 area_rel_diff=-5.16829e-11 valid
+   union clipper2: 16.2421 ms (31 reps) rings=1 area_rel_diff=0
+   union clipper1: 21.1931 ms (31 reps) rings=1 area_rel_diff=6.08926e-11
+   union boost: 5.45167 ms (31 reps) rings=1 area_rel_diff=6.08926e-11 valid
+   offset_miter_+100 clipper2: 89.2632 ms (17 reps) rings=1 area_rel_diff=0
+   offset_miter_+100 clipper1: 187.757 ms (8 reps) rings=1 area_rel_diff=2.01949e-06
+   offset_miter_+100 boost: 47740.7 ms (1 reps) rings=356 area_rel_diff=-0.999981 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (-79961; -42131); method: i; operations: u/i; segment IDs {source; multi; ring; segment}: {0; 24; -1; 1}/{0; 25; -1; 6}
+   offset_miter_-100 clipper2: 86.0802 ms (18 reps) rings=1 area_rel_diff=0
+   offset_miter_-100 clipper1: 259.133 ms (6 reps) rings=1 area_rel_diff=1.89847e-06
+   offset_miter_-100 boost: 30873 ms (1 reps) rings=46 area_rel_diff=-0.999997 valid
+   offset_miter_+5000 clipper2: 7228.25 ms (1 reps) rings=1 area_rel_diff=0
+   offset_miter_+5000 clipper1: 5961.7 ms (1 reps) rings=1 area_rel_diff=4.91885e-06
+   offset_miter_+5000 boost: 5.2115 ms (31 reps) rings=1 area_rel_diff=-0.000542476 valid
+   offset_miter_-5000 clipper2: 6840.32 ms (1 reps) rings=1 area_rel_diff=0
+   offset_miter_-5000 clipper1: 5812.3 ms (1 reps) rings=1 area_rel_diff=4.61182e-06
+   offset_miter_-5000 boost: 18.2656 ms (31 reps) rings=1 area_rel_diff=0.000594316 valid
+   offset_round_+100 clipper2: 98.4604 ms (16 reps) rings=1 area_rel_diff=0
+   offset_round_+100 clipper1: 366.135 ms (5 reps) rings=1 area_rel_diff=1.32921e-06
+   offset_round_+100 boost: 38107.2 ms (1 reps) rings=20 area_rel_diff=-0.999999 valid
+   offset_round_-100 clipper2: 95.8095 ms (16 reps) rings=1 area_rel_diff=0
+   offset_round_-100 clipper1: 500.704 ms (5 reps) rings=1 area_rel_diff=5.6331e-07
+   offset_round_-100 boost: 35702.8 ms (1 reps) rings=186 area_rel_diff=-0.999992 INVALID: Geometry has invalid self-intersections. A self-intersection point was found at (-80289; -41593); method: i; operations: u/i; segment IDs {source; multi; ring; segment}: {0; 26; -1; 4}/{0; 28; -1; 1}
+   offset_round_+5000 clipper2: 9108.35 ms (1 reps) rings=1 area_rel_diff=0
+   offset_round_+5000 clipper1: 10503.6 ms (1 reps) rings=1 area_rel_diff=-1.55108e-05
+   offset_round_+5000 boost: 5.1977 ms (31 reps) rings=1 area_rel_diff=1.64738e-05 valid
+   offset_round_-5000 clipper2: 8472.26 ms (1 reps) rings=1 area_rel_diff=0
+   offset_round_-5000 clipper1: 10050 ms (1 reps) rings=1 area_rel_diff=2.27137e-05
+   offset_round_-5000 boost: 18.2596 ms (31 reps) rings=1 area_rel_diff=-7.55502e-05 valid
+   offset_square_+100 clipper2: 112.187 ms (14 reps) rings=1 area_rel_diff=0
+   offset_square_+100 clipper1: 276.414 ms (6 reps) rings=1 area_rel_diff=1.42027e-06
+   offset_square_-100 clipper2: 94.7474 ms (16 reps) rings=1 area_rel_diff=0
+   offset_square_-100 clipper1: 311.13 ms (5 reps) rings=1 area_rel_diff=8.50905e-07
+   offset_square_+5000 clipper2: 7905.84 ms (1 reps) rings=1 area_rel_diff=0
+   offset_square_+5000 clipper1: 8261.63 ms (1 reps) rings=1 area_rel_diff=2.93346e-06
+   offset_square_-5000 clipper2: 7573.56 ms (1 reps) rings=1 area_rel_diff=0
+   offset_square_-5000 clipper1: 7889.24 ms (1 reps) rings=1 area_rel_diff=3.94557e-06
+== star 100k (100000 vertices, 1 polygons)  boost input validity A: valid / B: valid
+   intersection clipper2: 393988 ms (1 reps) rings=1723977 area_rel_diff=0
+   intersection clipper1: 182731 ms (1 reps) rings=1797564 area_rel_diff=-0.000648557
+   union clipper2: 396417 ms (1 reps) rings=1715974 area_rel_diff=0
