@@ -439,22 +439,6 @@ public:
         const std::function<int(Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
-     * Checks whether a given line segment collides with polygons as given in a loc_to_line grid.
-     *
-     * If the line segment doesn't intersect with any edge of the polygon, but
-     * merely touches it, a collision is also reported. For instance, a
-     * collision is reported when the an endpoint of the line is exactly on the
-     * polygon, and when the line coincides with an edge.
-     *
-     * \param[in] from The start point
-     * \param[in] to The end point
-     * \param[in] loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segmetns of the \p polygons
-     * \param[out] collision_result (optional) The polygons segment intersecting with the line segment
-     * \return whether the line segment collides with the boundary of the polygons
-     */
-    static bool polygonCollidesWithLineSegment(const Point2LL from, const Point2LL to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result = nullptr);
-
-    /*!
      * Find the next point (going along the direction of the polygon) with a distance \p dist from the point \p from within the \p poly.
      * Returns whether another point could be found within the \p poly which can be found before encountering the point at index \p start_idx.
      * The point \p from and the polygon \p poly are assumed to lie on the same plane.
@@ -486,65 +470,20 @@ public:
     static std::optional<ClosestPointPolygon> getNextParallelIntersection(const ClosestPointPolygon& start, const Point2LL& line_to, const coord_t dist, const bool forward);
 
     /*!
-     * Checks whether a given line segment collides with a given polygon(s).
-     * The transformed_startPoint and transformed_endPoint should have the same
-     * Y coordinate.
+     * Checks whether a given line segment collides with polygons as given in a loc_to_line grid.
      *
      * If the line segment doesn't intersect with any edge of the polygon, but
      * merely touches it, a collision is also reported. For instance, a
      * collision is reported when the an endpoint of the line is exactly on the
      * polygon, and when the line coincides with an edge.
      *
-     * \param poly The polygon
-     * \param transformed_startPoint The start point transformed such that it is
-     * on the same horizontal line as the end point
-     * \param transformed_endPoint The end point transformed such that it is on
-     * the same horizontal line as the start point
-     * \param transformation_matrix The transformation applied to the start and
-     * end point to be applied to the polygon(s)
-     * \return whether the line segment collides with the boundary of the
-     * polygon(s)
+     * \param[in] from The start point
+     * \param[in] to The end point
+     * \param[in] loc_to_line A SparsePointGridInclusive mapping locations to starting vertices of line segmetns of the \p polygons
+     * \param[out] collision_result (optional) The polygons segment intersecting with the line segment
+     * \return whether the line segment collides with the boundary of the polygons
      */
-    static bool
-        polygonCollidesWithLineSegment(const Polygon& poly, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
-
-    /*!
-     * Checks whether a given line segment collides with a given polygon(s).
-     *
-     * If the line segment doesn't intersect with any edge of the polygon, but
-     * merely touches it, a collision is also reported. For instance, a
-     * collision is reported when the an endpoint of the line is exactly on the
-     * polygon, and when the line coincides with an edge.
-     *
-     * \param poly The polygon
-     * \param startPoint The start point
-     * \param endPoint The end point
-     * \return whether the line segment collides with the boundary of the
-     * polygon(s)
-     */
-    static bool polygonCollidesWithLineSegment(const Polygon& poly, const Point2LL& startPoint, const Point2LL& endPoint);
-
-    /*!
-     * Checks whether a given line segment collides with a given polygon(s).
-     * The transformed_startPoint and transformed_endPoint should have the same
-     * Y coordinate.
-     *
-     * If the line segment doesn't intersect with any edge of the polygon, but
-     * merely touches it, a collision is also reported. For instance, a
-     * collision is reported when the an endpoint of the line is exactly on the
-     * polygon, and when the line coincides with an edge.
-     *
-     * \param poly The polygon
-     * \param transformed_startPoint The start point transformed such that it is
-     * on the same horizontal line as the end point
-     * \param transformed_endPoint The end point transformed such that it is on
-     * the same horizontal line as the start point
-     * \param transformation_matrix The transformation applied to the start and
-     * end point to be applied to the polygon(s)
-     * \return whether the line segment collides with the boundary of the
-     * polygon(s)
-     */
-    static bool polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, PointMatrix transformation_matrix);
+    static bool polygonCollidesWithLineSegment(const Point2LL& from, const Point2LL& to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result = nullptr);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -765,6 +704,52 @@ private:
      * @return The parts of the shape that are wider than the given minimum. Note that the returned shape may go beyond the original one.
      */
     static Shape getRawWideAreas(const Shape& shape, const coord_t min_width, const coord_t extra_widen = EPSILON);
+
+    /*!
+     * Checks whether a given line segment collides with a given polygon(s).
+     * The transformed_startPoint and transformed_endPoint should have the same
+     * Y coordinate.
+     *
+     * If the line segment doesn't intersect with any edge of the polygon, but
+     * merely touches it, a collision is also reported. For instance, a
+     * collision is reported when the an endpoint of the line is exactly on the
+     * polygon, and when the line coincides with an edge.
+     *
+     * \param poly The polygon
+     * \param transformed_startPoint The start point transformed such that it is
+     * on the same horizontal line as the end point
+     * \param transformed_endPoint The end point transformed such that it is on
+     * the same horizontal line as the start point
+     * \param transformation_matrix The transformation applied to the start and
+     * end point to be applied to the polygon(s)
+     * \return whether the line segment collides with the boundary of the
+     * polygon(s)
+     */
+    static bool
+        polygonCollidesWithLineSegment(const Polygon& poly, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, const PointMatrix& transformation_matrix);
+
+    /*!
+     * Checks whether a given line segment collides with a given polygon(s).
+     * The transformed_startPoint and transformed_endPoint should have the same
+     * Y coordinate.
+     *
+     * If the line segment doesn't intersect with any edge of the polygon, but
+     * merely touches it, a collision is also reported. For instance, a
+     * collision is reported when the an endpoint of the line is exactly on the
+     * polygon, and when the line coincides with an edge.
+     *
+     * \param poly The polygon
+     * \param transformed_startPoint The start point transformed such that it is
+     * on the same horizontal line as the end point
+     * \param transformed_endPoint The end point transformed such that it is on
+     * the same horizontal line as the start point
+     * \param transformation_matrix The transformation applied to the start and
+     * end point to be applied to the polygon(s)
+     * \return whether the line segment collides with the boundary of the
+     * polygon(s)
+     */
+    static bool
+        polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& transformed_startPoint, const Point2LL& transformed_endPoint, const PointMatrix& transformation_matrix);
 };
 
 } // namespace cura
