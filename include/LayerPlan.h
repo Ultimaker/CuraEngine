@@ -1392,6 +1392,13 @@ private:
      */
     static std::optional<float> findClosestIntersection(std::vector<std::vector<float>>& multi_intersections);
 
+    /*!
+     * Make a partial extrusion segment that goes through an override area
+     * @param override_areas The areas where the extrusion settings should be overridden
+     * @param p1 The partial extrusion destination position
+     * @param area_index The index of the override area this partial segment is crossing, or nullopt if it is not inside an override area
+     * @return The proper partial extrusion segment given the input values
+     */
     static PartialExtrusionSegment makePartialExtrusionSegment(const std::vector<OverrideArea>& override_areas, const Point3LL& p1, const std::optional<size_t> area_index);
 };
 
