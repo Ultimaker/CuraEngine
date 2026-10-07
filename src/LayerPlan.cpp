@@ -8,8 +8,7 @@
 #include <numeric>
 #include <optional>
 
-#include <boost/dynamic_bitset.hpp>
-#include <boost/mpl/distance.hpp>
+#include <boost/dynamic_bitset/dynamic_bitset.hpp>
 #include <boost/range/distance.hpp>
 #include <range/v3/algorithm/max_element.hpp>
 #include <scripta/logger.h>
@@ -929,9 +928,7 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
     }
 
     // Useful values
-    const Point3LL vector = end - start;
-    const coord_t vector_length = vector.vSize();
-
+    const coord_t vector_length = (end - start).vSize();
     if (vector_length <= EPSILON)
     {
         return { PartialExtrusionSegment{ end, nullptr } };
@@ -940,22 +937,9 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
     const float epsilon_factor = float{ EPSILON } / vector_length;
 
     // Utility functions
-    const auto make_partial_segment = [&override_areas](const Point3LL& p1, const std::optional<size_t> area_index) -> PartialExtrusionSegment
+    const auto get_position = [&start, &end](const float factor) -> Point3LL
     {
-        if (area_index.has_value())
-        {
-            const OverrideArea& area = override_areas.at(*area_index);
-            return PartialExtrusionSegment{ p1, &area };
-        }
-        else
-        {
-            return PartialExtrusionSegment{ p1, nullptr };
-        }
-    };
-
-    const auto get_position = [&start, &vector](const float factor) -> Point3LL
-    {
-        return start + factor * vector;
+        return lerp(start, end, factor);
     };
 
     // Pre-calculate the intersections of the segment with all regions
@@ -1013,25 +997,12 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
                 }))
         {
             // All intersections have been treated, return the remaining segment part
-            partial_extrusion_segments.push_back(make_partial_segment(end, current_topmost_area));
+            partial_extrusion_segments.push_back(makePartialExtrusionSegment(override_areas, end, current_topmost_area));
             break;
         }
 
         // Find the closest intersection among all the lists
-        std::optional<float> next_closest_intersection;
-        for (const std::vector<float>& intersections : override_areas_intersections)
-        {
-            if (intersections.empty())
-            {
-                continue;
-            }
-
-            const float first_intersection = intersections.front();
-            if (! next_closest_intersection.has_value() || first_intersection < next_closest_intersection.value())
-            {
-                next_closest_intersection = first_intersection;
-            }
-        }
+        std::optional<float> next_closest_intersection = findClosestIntersection(override_areas_intersections);
 
         // Now find all the intersections that are very close to the next one, to group them and treat them as a single "complex" crossing
         float furthest_group_intersection = *next_closest_intersection;
@@ -1079,13 +1050,17 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
         {
             // We are either moving out of the area of moving in to a higher-level area, so end the current segment
             const Point3LL next_intersection_position = get_position(*next_closest_intersection);
-            partial_extrusion_segments.push_back(make_partial_segment(next_intersection_position, current_topmost_area));
+            partial_extrusion_segments.push_back(makePartialExtrusionSegment(override_areas, next_intersection_position, current_topmost_area));
 
             current_topmost_area = new_topmost_area;
         }
     }
 
-    // Filter out micro-segments
+    return filterOutMicroSegments(partial_extrusion_segments, start);
+}
+
+std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::filterOutMicroSegments(const std::vector<PartialExtrusionSegment>& partial_extrusion_segments, const Point3LL& start)
+{
     std::vector<PartialExtrusionSegment> partial_extrusion_segments_filtered;
     partial_extrusion_segments_filtered.reserve(partial_extrusion_segments.size());
     Point3LL current_position = start;
@@ -1109,6 +1084,39 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
     }
 
     return partial_extrusion_segments_filtered;
+}
+
+std::optional<float> LayerPlan::findClosestIntersection(std::vector<std::vector<float>>& multi_intersections)
+{
+    std::optional<float> next_closest_intersection;
+
+    for (const std::vector<float>& intersections : multi_intersections)
+    {
+        if (intersections.empty())
+        {
+            continue;
+        }
+
+        const float first_intersection = intersections.front();
+        if (! next_closest_intersection.has_value() || first_intersection < next_closest_intersection.value())
+        {
+            next_closest_intersection = first_intersection;
+        }
+    }
+
+    return next_closest_intersection;
+}
+
+LayerPlan::PartialExtrusionSegment
+    LayerPlan::makePartialExtrusionSegment(const std::vector<OverrideArea>& override_areas, const Point3LL& p1, const std::optional<size_t> area_index)
+{
+    if (area_index.has_value())
+    {
+        const OverrideArea& area = override_areas.at(*area_index);
+        return PartialExtrusionSegment{ p1, &area };
+    }
+
+    return PartialExtrusionSegment{ p1, nullptr };
 }
 
 void LayerPlan::addWallLine(
