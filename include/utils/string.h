@@ -205,7 +205,8 @@ struct PrecisionedDouble
 
     static bool equalGivenPrecision(const PrecisionedDouble& a, const PrecisionedDouble& b)
     {
-        return (a.value == b.value) || ((a.value - std::fmod(a.value, std::pow(10.0, -a.precision))) == (b.value - std::fmod(b.value, std::pow(10.0, -b.precision))));
+        // We expect the 'value's here to be in the hundereds or thousands or so at max, so this implementation should be OK.
+        return (a.value == b.value) || (std::round(a.value * std::pow(10, a.precision)) == std::round(b.value * std::pow(10, b.precision)));
     }
 
     friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
