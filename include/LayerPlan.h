@@ -397,8 +397,13 @@ public:
      * afterwards.
      * \param p The point to travel to.
      * \param force_retract Whether to force a retraction to occur or not occur.
+     * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
-    GCodePath& addTravel(const Point2LL& p, const ForceRetract force_retract = ForceRetract::AUTOMATIC, const coord_t z_offset = 0);
+    GCodePath& addTravel(
+        const Point2LL& p,
+        const ForceRetract force_retract = ForceRetract::AUTOMATIC,
+        const coord_t z_offset = 0,
+        const std::optional<coord_t> max_distance_ignore_combing = std::nullopt);
 
     /*!
      * Add a travel path to a certain point and retract if needed.
@@ -759,6 +764,7 @@ public:
      * \param extra_inwards_start_move_length The length of the extra inwards moves to be added at the start of each infill line
      * \param extra_inwards_end_move_length The length of the extra inwards moves to be added at the end of each infill line
      * \param extra_inwards_move_contour The contour to be considered in order to add the inwards moves
+     * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
     template<class LineType>
     void addLinesByOptimizer(
@@ -775,7 +781,8 @@ public:
         const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_,
         const coord_t extra_inwards_start_move_length = 0,
         const coord_t extra_inwards_end_move_length = 0,
-        const MendedShape& extra_inwards_move_contour = MendedShape());
+        const MendedShape& extra_inwards_move_contour = MendedShape(),
+        const std::optional<coord_t> max_distance_ignore_combing = std::nullopt);
 
     /*!
      * Add lines to the gcode with optimized order.
@@ -823,6 +830,7 @@ public:
      * \param flow_ratio The ratio with which to multiply the extrusion amount.
      * \param fan_speed Fan speed override for this path.
      * \param print_attributes Print attributes to be set for this segment, e.g. overhanging or bridging
+     * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
     void addLinesMonotonic(
         const Shape& area,
@@ -836,7 +844,8 @@ public:
         const Ratio flow_ratio = 1.0_r,
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool interlaced = false,
-        const OverrideAreas& override_areas = {});
+        const OverrideAreas& override_areas = {},
+        const std::optional<coord_t> max_distance_ignore_combing = std::nullopt);
 
     /*!
      * Add a spiralized slice of wall that is interpolated in X/Y between \p last_wall and \p wall.
@@ -971,6 +980,7 @@ private:
      * \param extra_inwards_start_move_length The length of the extra inwards moves to be added at the start of each infill line
      * \param extra_inwards_end_move_length The length of the extra inwards moves to be added at the end of each infill line
      * \param extra_inwards_move_contour The contour to be considered in order to add the inwards moves
+     * \param max_distance_ignore_combing If the travel distance is less than this value, combing will be ignored. nullopt means use the default value.
      */
     void addLinesInGivenOrder(
         const std::vector<PathOrdering<const Polyline*>>& lines,
@@ -982,7 +992,8 @@ private:
         const OverrideAreas& override_areas = {},
         const coord_t extra_inwards_start_move_length = 0,
         const coord_t extra_inwards_end_move_length = 0,
-        const MendedShape& extra_inwards_move_contour = MendedShape());
+        const MendedShape& extra_inwards_move_contour = MendedShape(),
+        const std::optional<coord_t> max_distance_ignore_combing = std::nullopt);
 
     /*!
      * Add order optimized polygons to the gcode.
