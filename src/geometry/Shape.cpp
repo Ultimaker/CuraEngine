@@ -886,13 +886,13 @@ std::vector<float> Shape::intersectionsWithSegment(const Point2LL& start, const 
 {
     std::vector<float> result;
 
-    const AABB lineseg_aabb(start, end);
+    const AABB lineseg_aabb({ start, end });
 
     for (const Polygon& polygon : getLines())
     {
         for (auto iterator = polygon.beginSegments(); iterator != polygon.endSegments(); ++iterator)
         {
-            if (! AABB((*iterator).start, (*iterator).end).hit(lineseg_aabb))
+            if (! AABB({ (*iterator).start, (*iterator).end }).hit(lineseg_aabb))
             {
                 continue;
             }
