@@ -193,10 +193,22 @@ bool loadTextureFromPngData(const std::vector<unsigned char>& texture_data, Mesh
                 std::string feature_name = it->name.GetString();
 
                 const rapidjson::Value& array = it->value;
-                if (array.IsArray() && array.Size() == 2)
+                if (! array.IsArray() || array.Size() != 2 || ! array[0].IsUint() || ! array[1].IsUint())
                 {
-                    (*texture_data_mapping)[feature_name] = TextureBitField{ array[0].GetUint(), array[1].GetUint() };
+                    spdlog::warn("Ignoring malformed texture data mapping for feature '{}' in {}", feature_name, source_description);
+                    continue;
                 }
+
+                // The bit-field range is untrusted input. Enforce the TextureBitField invariant here, at the trust
+                // boundary, so every field that reaches the mapping (and therefore every consumer) is known-valid.
+                const TextureBitField bit_field{ array[0].GetUint(), array[1].GetUint() };
+                if (! bit_field.isValid())
+                {
+                    spdlog::warn("Ignoring out-of-range texture bit field for feature '{}' in {}", feature_name, source_description);
+                    continue;
+                }
+
+                (*texture_data_mapping)[feature_name] = bit_field;
             }
 
             break;
