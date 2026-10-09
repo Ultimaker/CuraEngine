@@ -1656,7 +1656,8 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
     // To avoids generating support for textures on vertical surfaces, a moving average
     // is taken over smooth_height. The smooth_height is currently an educated guess
     // that we might want to expose to the frontend in the future.
-    Shape outlines_below = storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower).offset(max_dist_from_lower_layer);
+    const Shape original_outlines_below{ storage.getLayerOutlines(layer_idx - 1, no_support, no_prime_tower) };
+    Shape outlines_below = original_outlines_below.offset(max_dist_from_lower_layer);
     for (int layer_idx_offset = 2; layer_idx - layer_idx_offset >= 0 && layer_idx_offset <= layers_below; layer_idx_offset++)
     {
         auto outlines_below_ = storage.getLayerOutlines(layer_idx - layer_idx_offset, no_support, no_prime_tower).offset(max_dist_from_lower_layer * layer_idx_offset);
@@ -1677,7 +1678,7 @@ std::pair<Shape, Shape> AreaSupport::computeBasicAndFullOverhang(const SliceData
 
     if (! support_layer.force_overhang.empty())
     {
-        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang);
+        basic_overhang = basic_overhang.unionPolygons(support_layer.force_overhang.intersection(outlines.difference(original_outlines_below.offset(EPSILON))));
     }
 
     Shape overhang_extended = basic_overhang
