@@ -203,6 +203,12 @@ struct PrecisionedDouble
         return (std::abs(value) * std::pow(10.0, precision)) < 1.0;
     }
 
+    static bool equalGivenPrecision(const PrecisionedDouble& a, const PrecisionedDouble& b)
+    {
+        // We expect the 'value's here to be in the hundereds or thousands or so at max, so this implementation should be OK.
+        return (a.value == b.value) || (std::round(a.value * std::pow(10, a.precision)) == std::round(b.value * std::pow(10, b.precision)));
+    }
+
     friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
     {
         writeDoubleToStream(precision_and_input.precision, precision_and_input.value, out);
