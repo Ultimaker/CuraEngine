@@ -38,6 +38,7 @@
 #include "range/v3/view/chunk_by.hpp"
 #include "settings/types/Ratio.h"
 #include "sliceDataStorage.h"
+#include "utils/ArcFitter.h"
 #include "utils/Simplify.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
@@ -3603,6 +3604,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"),
         mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
 
+    // Arc fitting: write runs of short segments as G2/G3 arcs.
+    const bool arc_fitting_enabled = mesh_group_settings.has("arc_fitting_enable", true) && mesh_group_settings.get<bool>("arc_fitting_enable") && gcode.supportsArcMoves();
+    const coord_t arc_fitting_tolerance = mesh_group_settings.has("arc_fitting_tolerance", true) ? mesh_group_settings.get<coord_t>("arc_fitting_tolerance") : 50;
+    const coord_t arc_fitting_max_radius = mesh_group_settings.has("arc_fitting_max_radius", true) ? mesh_group_settings.get<coord_t>("arc_fitting_max_radius") : 1'000'000;
+    const coord_t arc_fitting_min_radius = std::max<coord_t>(300, arc_fitting_tolerance * 4);
+
     static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) };
     if (layer_nr_ == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed"))
     {
@@ -3987,17 +3994,94 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
+                    const double extrude_speed = speed * path.speed_back_pressure_factor;
                     Point3LL prev_point = gcode.getPosition();
-                    for (const auto& pt : path.points)
+
+                    // Runs of short segments at a constant height can be written as circular arcs (G2/G3).
+                    std::vector<ArcFitter::Segment> arc_segments;
+                    if (arc_fitting_enabled && path.points.size() >= 2)
                     {
-                        const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
-                        insertTempOnTime(time, path_idx);
+                        // Only for plain flat moves: the flow compensation for moves that change height is not applied to arcs.
+                        const bool constant_z = gcode.getPositionZ() == z_ && path.z_offset == 0
+                                             && std::all_of(
+                                                    path.points.begin(),
+                                                    path.points.end(),
+                                                    [](const Point3LL& pt)
+                                                    {
+                                                        return pt.z_ == 0;
+                                                    });
+                        if (constant_z)
+                        {
+                            std::vector<Point2LL> fit_points;
+                            fit_points.reserve(path.points.size() + 1);
+                            fit_points.push_back(prev_point.toPoint2LL());
+                            for (const auto& pt : path.points)
+                            {
+                                fit_points.push_back(pt.toPoint2LL());
+                            }
+                            arc_segments = ArcFitter::fit(fit_points, arc_fitting_tolerance, arc_fitting_max_radius, arc_fitting_min_radius);
+                        }
+                    }
 
-                        const double extrude_speed = speed * path.speed_back_pressure_factor;
-                        writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
-                        sendLineTo(path, pt, extrude_speed);
+                    if (arc_segments.empty())
+                    {
+                        for (const auto& pt : path.points)
+                        {
+                            const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
+                            insertTempOnTime(time, path_idx);
 
-                        prev_point = pt;
+                            writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
+                            sendLineTo(path, pt, extrude_speed);
+
+                            prev_point = pt;
+                        }
+                    }
+                    else
+                    {
+                        // Segment indices refer to the fitted points: index 0 is the starting position, index n is path.points[n - 1].
+                        for (const ArcFitter::Segment& segment : arc_segments)
+                        {
+                            if (segment.is_arc)
+                            {
+                                for (size_t idx = segment.first_index + 1; idx <= segment.last_index; ++idx)
+                                {
+                                    const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, path.points[idx - 1], path);
+                                    insertTempOnTime(time, path_idx);
+                                    prev_point = path.points[idx - 1];
+                                }
+
+                                const Point3LL arc_end = path.points[segment.last_index - 1] + Point3LL(0, 0, z_ + path.z_offset);
+                                gcode.writeExtrusionArc(
+                                    arc_end,
+                                    segment.center_x,
+                                    segment.center_y,
+                                    segment.clockwise,
+                                    segment.arcLength() / 1000.0,
+                                    extrude_speed,
+                                    path.getExtrusionMM3perMM(),
+                                    path.config.type,
+                                    update_extrusion_offset);
+                                // The layer view gets the original points, so that it looks the same as without arcs.
+                                for (size_t idx = segment.first_index + 1; idx <= segment.last_index; ++idx)
+                                {
+                                    sendLineTo(path, path.points[idx - 1], extrude_speed);
+                                }
+                            }
+                            else
+                            {
+                                for (size_t idx = segment.first_index + 1; idx <= segment.last_index; ++idx)
+                                {
+                                    const Point3LL& pt = path.points[idx - 1];
+                                    const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
+                                    insertTempOnTime(time, path_idx);
+
+                                    writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
+                                    sendLineTo(path, pt, extrude_speed);
+
+                                    prev_point = pt;
+                                }
+                            }
+                        }
                     }
                 }
             }

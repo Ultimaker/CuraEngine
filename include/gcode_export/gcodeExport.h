@@ -387,6 +387,38 @@ public:
     void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
 
     /*!
+     * Whether the g-code flavor supports circular arc moves (G2/G3).
+     */
+    bool supportsArcMoves() const;
+
+    /*!
+     * Write an extrusion move along a circular arc in the XY plane (G2 for clockwise, G3 for counter-clockwise).
+     *
+     * The arc starts at the current position and the Z coordinate must not change along it.
+     * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
+     *
+     * \param end The end point of the arc.
+     * \param center_x X coordinate of the centre of the circle, in microns (build plate coordinates).
+     * \param center_y Y coordinate of the centre of the circle, in microns (build plate coordinates).
+     * \param clockwise Whether the arc runs clockwise (G2) or counter-clockwise (G3).
+     * \param arc_length_mm The length of the arc, in mm. This sets the amount of material to extrude.
+     * \param speed movement speed
+     * \param extrusion_mm3_per_mm the amount of material extruded per mm of movement
+     * \param feature the feature that's currently printing
+     * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
+     */
+    void writeExtrusionArc(
+        const Point3LL& end,
+        double center_x,
+        double center_y,
+        bool clockwise,
+        double arc_length_mm,
+        const Velocity& speed,
+        double extrusion_mm3_per_mm,
+        PrintFeatureType feature,
+        bool update_extrusion_offset = false);
+
+    /*!
      * Initialize the extruder trains.
      *
      * \param[in] storage where the slice data is stored.
