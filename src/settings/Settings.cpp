@@ -684,6 +684,8 @@ InsetDirection Settings::get<InsetDirection>(const std::string& key) const
         return InsetDirection::INSIDE_OUT;
     case "outside_in"_sw:
         return InsetDirection::OUTSIDE_IN;
+    case "inner_outer_inner"_sw:
+        return InsetDirection::INNER_OUTER_INNER;
     case "plugin"_sw:
         return InsetDirection::PLUGIN;
     default:
