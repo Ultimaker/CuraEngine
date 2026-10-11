@@ -176,6 +176,14 @@ InfillTestParameters generateInfillToTest(const InfillParameters& params, const 
         MAX_DEVIATION); // There are some optional parameters, but these will do for now (future improvement?).
 
     Settings infill_settings;
+    infill_settings.add("bone_seed", "1");
+    infill_settings.add("bone_irregularity", "40");
+    infill_settings.add("bone_alignment", "60");
+    infill_settings.add("bone_alignment_tilt", "0");
+    infill_settings.add("bone_alignment_azimuth", "0");
+    infill_settings.add("bone_connectivity", "100");
+    infill_settings.add("bone_cortical_width", "0");
+    infill_settings.add("bone_cortical_lines", "1");
     std::vector<VariableWidthLines> result_paths;
     Shape result_polygons;
     OpenLinesSet result_lines;
@@ -202,10 +210,11 @@ std::vector<InfillTestParameters> generateInfillTests()
      *    this can be considered a TODO for these testcases here, not in the methods themselves
      *    (these are; Cross, Cross-3D and Cubic-Subdivision)
      *  - Gyroid, honeycomb and octagon since they don't handle the 100% infill and related cases well
+     *  - Bone, since its dense cortical zone and closed-loop output are not meant for this sweep (it is covered by BoneInfillTest)
      *  - Concentric and ZigZag, since they now use a method that starts from an extra infill wall, which fail these tests (TODO!)
      */
     std::vector<EFillMethod> skip_methods = { EFillMethod::CONCENTRIC, EFillMethod::ZIG_ZAG,   EFillMethod::CROSS,     EFillMethod::CROSS_3D, EFillMethod::CUBICSUBDIV,
-                                              EFillMethod::GYROID,     EFillMethod::LIGHTNING, EFillMethod::HONEYCOMB, EFillMethod::OCTAGON };
+                                              EFillMethod::GYROID,     EFillMethod::LIGHTNING, EFillMethod::HONEYCOMB, EFillMethod::OCTAGON, EFillMethod::BONE };
 
     std::vector<EFillMethod> methods;
     for (int i_method = 0; i_method < static_cast<int>(EFillMethod::NONE); ++i_method)

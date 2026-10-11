@@ -131,6 +131,7 @@ set(engine_SRCS # Except main.cpp.
         src/gcode_export/GcodeTemplateResolver.cpp
 
         src/infill/AbstractLinesInfill.cpp
+        src/infill/BoneInfill.cpp
         src/infill/ImageBasedDensityProvider.cpp
         src/infill/NoZigZagConnectorProcessor.cpp
         src/infill/ZigzagConnectorProcessor.cpp
