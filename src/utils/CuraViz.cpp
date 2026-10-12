@@ -247,6 +247,13 @@ void CuraViz::send(const std::vector<VariableWidthLines>& lines, const std::stri
     }
 }
 
+void CuraViz::send(const ExtrusionLine& line, const std::string& name, const std::string& step_name)
+{
+    MessageToSend message(step_name);
+    cura_viz::GeometricElement* geometric_element = message.addGeometricElement(name);
+    setup(line, geometric_element->mutable_data()->mutable_lines_set2ll()->add_lines());
+}
+
 CuraViz::MessageToSend::MessageToSend(const std::string& step_name)
     : message_(std::make_shared<cura_viz::Message>())
 {

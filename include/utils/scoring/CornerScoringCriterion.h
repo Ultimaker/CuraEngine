@@ -22,6 +22,8 @@ class CornerScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
     const EZSeamCornerPrefType corner_preference_;
+    double concave_angle_score_{ 0.0 };
+    double convex_angle_score_{ 0.0 };
     std::vector<coord_t> segments_sizes_;
     coord_t total_length_{ 0 };
 
@@ -41,7 +43,7 @@ private:
      * \param angle_query_distance query range (default to 1mm)
      * \return angle between the reference point and the two sibling points, weighed to [-1.0 ; 1.0]
      */
-    double cornerAngle(size_t vertex_index, const coord_t angle_query_distance = 1000) const;
+    double cornerAngle(const size_t vertex_index, const std::vector<coord_t>& angle_query_distances) const;
 
     /*!
      * Finds a neighbour point on the path, located before or after the given reference point. The neighbour point

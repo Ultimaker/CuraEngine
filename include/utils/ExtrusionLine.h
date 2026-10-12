@@ -182,6 +182,12 @@ struct ExtrusionLine
         junctions_.emplace_back(args...);
     }
 
+    template<class... Args>
+    std::vector<ExtrusionJunction>::iterator emplace(std::vector<ExtrusionJunction>::const_iterator pos, Args&&... args)
+    {
+        return junctions_.emplace(pos, args...);
+    }
+
     void remove(unsigned int index)
     {
         junctions_.erase(junctions_.begin() + index);

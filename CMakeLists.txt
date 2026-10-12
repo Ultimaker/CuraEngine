@@ -200,6 +200,7 @@ set(engine_SRCS # Except main.cpp.
         src/utils/scoring/PositionBasedScoringCriterion.cpp
         src/utils/scoring/RandomScoringCriterion.cpp
         src/utils/scoring/TextureScoringCriterion.cpp
+        src/utils/scoring/VerticalAlignmentScoringCriterion.cpp
 
         src/geometry/ClosedLinesSet.cpp
         src/geometry/OpenLinesSet.cpp

@@ -3,6 +3,9 @@
 
 #include "utils/scoring/CornerScoringCriterion.h"
 
+#include <range/v3/algorithm/find_if.hpp>
+#include <spdlog/spdlog.h>
+
 #include "geometry/PointsSet.h"
 #include "utils/linearAlg2D.h"
 #include "utils/math.h"
@@ -16,6 +19,32 @@ CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZ
     , corner_preference_(corner_preference)
     , segments_sizes_(points.size())
 {
+    switch (corner_preference_)
+    {
+    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
+        // Give advantage to concave corners. More advantage for sharper corners.
+        concave_angle_score_ = 1.0;
+        convex_angle_score_ = 0.0;
+        break;
+    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
+        // Give advantage to convex corners. More advantage for sharper corners.
+        concave_angle_score_ = 0.0;
+        convex_angle_score_ = 1.0;
+        break;
+    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
+        // Still give sharper corners more advantage.
+        concave_angle_score_ = 1.0;
+        convex_angle_score_ = 1.0;
+        break;
+    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
+        // Give sharper corners some advantage, but concave sharper corners even more.
+        concave_angle_score_ = 1.0;
+        convex_angle_score_ = 0.5;
+        break;
+    case EZSeamCornerPrefType::PLUGIN:
+        break;
+    }
+
     // Pre-calculate the segments lengths because we are going to need them multiple times
     for (size_t i = 0; i < points.size(); ++i)
     {
@@ -29,54 +58,43 @@ CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZ
 
 double CornerScoringCriterion::computeScore(const size_t candidate_index) const
 {
-    double corner_angle = cornerAngle(candidate_index);
+    const double corner_angle = cornerAngle(candidate_index, { 100, 1000 });
     // angles < 0 are concave (left turning)
     // angles > 0 are convex (right turning)
 
-    double score = 0.0;
-
-    switch (corner_preference_)
-    {
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
-        // Give advantage to concave corners. More advantage for sharper corners.
-        score = cura::inverse_lerp(1.0, -1.0, corner_angle);
-        break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
-        // Give advantage to convex corners. More advantage for sharper corners.
-        score = cura::inverse_lerp(-1.0, 1.0, corner_angle);
-        break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
-        // Still give sharper corners more advantage.
-        score = std::abs(corner_angle);
-        break;
-    case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED:
-        // Give sharper corners some advantage, but sharper concave corners even more.
-        if (corner_angle < 0)
-        {
-            score = -corner_angle;
-        }
-        else
-        {
-            score = corner_angle / 2.0;
-        }
-        break;
-    case EZSeamCornerPrefType::PLUGIN:
-        break;
-    }
-
-    return score;
+    return corner_angle > 0 ? convex_angle_score_ * corner_angle : concave_angle_score_ * (-corner_angle);
 }
 
-double CornerScoringCriterion::cornerAngle(size_t vertex_index, const coord_t angle_query_distance) const
+double CornerScoringCriterion::cornerAngle(const size_t vertex_index, const std::vector<coord_t>& angle_query_distances) const
 {
-    const coord_t bounded_distance = std::min(angle_query_distance, total_length_ / 2);
+    std::vector<coord_t> filtered_angle_query_distances = angle_query_distances;
+    const coord_t max_length = total_length_ / 2;
+    const auto iterator = ranges::find_if(
+        filtered_angle_query_distances,
+        [&max_length](const coord_t distance)
+        {
+            return distance > max_length;
+        });
+    filtered_angle_query_distances.erase(iterator, filtered_angle_query_distances.end());
+    if (filtered_angle_query_distances.empty())
+    {
+        filtered_angle_query_distances.push_back(max_length);
+    }
+
+#warning This is the unoptimized version, to be optimized by searching the various distances along the segments at once
+    double total_angle = 0.0;
     const Point2LL& here = getPoints().at(vertex_index);
-    const Point2LL next = findNeighbourPoint(vertex_index, bounded_distance);
-    const Point2LL previous = findNeighbourPoint(vertex_index, -bounded_distance);
+    for (const coord_t distance : filtered_angle_query_distances)
+    {
+        const Point2LL next = findNeighbourPoint(vertex_index, distance);
+        const Point2LL previous = findNeighbourPoint(vertex_index, -distance);
 
-    double angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
+        const double angle = LinearAlg2D::getAngleLeft(previous, here, next) - std::numbers::pi;
 
-    return angle / std::numbers::pi;
+        total_angle += angle / std::numbers::pi;
+    }
+
+    return total_angle / filtered_angle_query_distances.size();
 }
 
 Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t distance) const
