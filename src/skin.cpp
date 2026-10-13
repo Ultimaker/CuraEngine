@@ -490,6 +490,10 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
             constexpr bool allow_thin_areas_grow = true;
             PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.roofing_fill, allow_thin_areas_grow);
             PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.flooring_fill, allow_thin_areas_grow);
+
+            constexpr bool do_not_allow_thin_areas_grow = false;
+            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.roofing_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.flooring_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
         }
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.

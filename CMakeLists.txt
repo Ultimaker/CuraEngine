@@ -115,6 +115,9 @@ set(engine_SRCS # Except main.cpp.
         src/bridge/SegmentOverlappingData.cpp
         src/bridge/TransformedSegment.cpp
         src/bridge/TransformedShape.cpp
+        src/bridge/LineAnchoringScoringCriterion.cpp
+        src/bridge/BridgeAngleScoringCriterion.cpp
+        src/bridge/AlignShapeScoringCriterion.cpp
 
         src/communication/ArcusCommunication.cpp
         src/communication/ArcusCommunicationPrivate.cpp
