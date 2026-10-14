@@ -582,7 +582,7 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
         }
     };
 
-    // Since we are doing a long Z travel move, it matters that acceleration and jerk are properly set here
+    // Since we are doing a long Z travel move, it matters that acceleration are properly set here
     apply_acceleration(acceleration_travel_z);
     gcode.writeTravel(gcode.getPositionXY(), speed_travel_z);
 
