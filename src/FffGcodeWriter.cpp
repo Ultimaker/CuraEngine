@@ -571,38 +571,26 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     const auto acceleration_travel_xy = std::min(machine_max_acceleration_xy, acceleration_travel);
     const auto acceleration_travel_z = std::min(machine_max_acceleration_z, acceleration_travel);
 
-    const auto jerk_enabled = settings.get<bool>("jerk_enabled");
-    const auto jerk_travel_enabled = settings.get<bool>("jerk_travel_enabled");
-    const auto machine_max_jerk_xy = settings.get<Velocity>("machine_max_jerk_xy");
-    const auto machine_max_jerk_z = settings.get<Velocity>("machine_max_jerk_z");
-    const auto jerk_travel = jerk_travel_enabled ? settings.get<Velocity>("jerk_travel") : settings.get<Velocity>("jerk_print");
-    const auto jerk_travel_z = std::min(machine_max_jerk_z, jerk_travel);
-    const auto jerk_travel_xy = std::min(machine_max_jerk_xy, jerk_travel);
-
     const auto speed_travel_z = settings.get<Velocity>("speed_z_hop");
     const auto speed_travel_xy = settings.get<Velocity>("speed_travel");
 
-    const auto apply_acceleration_and_jerk = [this, &acceleration_enabled, &jerk_enabled](const Acceleration& acceleration, const Velocity& jerk)
+    const auto apply_acceleration = [this, &acceleration_enabled](const Acceleration& acceleration)
     {
         if (acceleration_enabled)
         {
             gcode.writeTravelAcceleration(acceleration);
         }
-        if (jerk_enabled)
-        {
-            gcode.writeJerk(jerk);
-        }
     };
 
     // Since we are doing a long Z travel move, it matters that acceleration and jerk are properly set here
-    apply_acceleration_and_jerk(acceleration_travel_z, jerk_travel_z);
+    apply_acceleration(acceleration_travel_z);
     gcode.writeTravel(gcode.getPositionXY(), speed_travel_z);
 
-    apply_acceleration_and_jerk(acceleration_travel_xy, jerk_travel_xy);
+    apply_acceleration(acceleration_travel_xy);
     const Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
     gcode.writeTravel(start_pos, speed_travel_xy);
 
-    apply_acceleration_and_jerk(acceleration_travel_z, jerk_travel_z);
+    apply_acceleration(acceleration_travel_z);
     const coord_t target_z = settings.get<coord_t>("layer_height_0") + (settings.get<bool>("retraction_hop_enabled") ? settings.get<coord_t>("retraction_hop") : 0);
     gcode.setZ(target_z);
     gcode.writeTravel(gcode.getPositionXY(), speed_travel_z);
