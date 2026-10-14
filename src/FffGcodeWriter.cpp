@@ -554,9 +554,6 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
 {
-    gcode.writeFanCommand(0);
-    gcode.setZ(max_object_height + MM2INT(5));
-
     const Application& application = Application::getInstance();
     const Settings& settings = application.current_slice_->scene.extruders[gcode.getExtruderNr()].settings_;
     application.communication_->sendCurrentPosition(gcode.getPositionXY());
@@ -582,18 +579,19 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
         }
     };
 
-    // Since we are doing a long Z travel move, it matters that acceleration are properly set here
+    gcode.writeFanCommand(0);
+
+    // Since we are doing a long Z travel move, it matters that acceleration is properly set here
+    const coord_t travel_z = max_object_height + MM2INT(5);
     apply_acceleration(acceleration_travel_z);
-    gcode.writeTravel(gcode.getPositionXY(), speed_travel_z);
+    gcode.writeTravel(Point3LL(gcode.getPositionXY(), travel_z), speed_travel_z);
 
     apply_acceleration(acceleration_travel_xy);
-    const Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
-    gcode.writeTravel(start_pos, speed_travel_xy);
+    gcode.writeTravel(Point3LL(storage.model_min.x_, storage.model_min.y_, travel_z), speed_travel_xy);
 
     apply_acceleration(acceleration_travel_z);
     const coord_t target_z = settings.get<coord_t>("layer_height_0") + (settings.get<bool>("retraction_hop_enabled") ? settings.get<coord_t>("retraction_hop") : 0);
-    gcode.setZ(target_z);
-    gcode.writeTravel(gcode.getPositionXY(), speed_travel_z);
+    gcode.writeTravel(Point3LL(gcode.getPositionXY(), target_z), speed_travel_z);
 
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
