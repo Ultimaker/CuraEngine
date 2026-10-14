@@ -676,7 +676,7 @@ std::vector<Shape> SkirtBrim::generateAllowedAreas(const std::vector<Outline>& s
 
 void SkirtBrim::generateSupportInsideBrim(const Settings& settings, const Shape& support_outline, const coord_t width, const coord_t line_width)
 {
-    const coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<coord_t>("support_brim_minimum_hole_area"));
+    const coord_t support_brim_minimum_hole_area = MM2_2INT(settings.get<double>("support_brim_minimum_hole_area"));
 
     PolygonUtils::InsetOutset base_insets = PolygonUtils::generateInsetOutset(support_outline, -width, line_width);
     for (Shape& base_inset : base_insets.walls)
