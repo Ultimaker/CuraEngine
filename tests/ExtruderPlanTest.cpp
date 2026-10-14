@@ -76,12 +76,12 @@ public:
                                             .line_width = 400,
                                             .layer_thickness = 100,
                                             .flow = 1.0_r,
-                                            .speed_derivatives = SpeedDerivatives{ .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
+                                            .speed_derivatives = SpeedDerivatives{ 50.0, 1000.0, 10.0 } })
         , travel_config(GCodePathConfig{ .type = PrintFeatureType::MoveUnretracted,
                                          .line_width = 0,
                                          .layer_thickness = 100,
                                          .flow = 0.0_r,
-                                         .speed_derivatives = SpeedDerivatives{ .speed = 120.0, .acceleration = 5000.0, .jerk = 30.0 } })
+                                         .speed_derivatives = SpeedDerivatives{ 120.0, 5000.0, 30.0 } })
     {
         std::shared_ptr<SliceMeshStorage> mesh = nullptr;
         constexpr Ratio flow_1 = 1.0_r;
@@ -306,13 +306,13 @@ public:
 
     ExtruderPlanPathsParameterizedTest()
         : extruder_plan(
-            /*extruder=*/0,
-            /*layer_nr=*/50,
-            /*is_initial_layer=*/false,
-            /*is_raft_layer=*/false,
-            /*layer_thickness=*/100,
-            FanSpeedLayerTimeSettings(),
-            RetractionConfig())
+              /*extruder=*/0,
+              /*layer_nr=*/50,
+              /*is_initial_layer=*/false,
+              /*is_raft_layer=*/false,
+              /*layer_thickness=*/100,
+              FanSpeedLayerTimeSettings(),
+              RetractionConfig())
     {
     }
 
@@ -355,13 +355,13 @@ public:
 
     ExtruderPlanTest()
         : extruder_plan(
-            /*extruder=*/0,
-            /*layer_nr=*/50,
-            /*is_initial_layer=*/false,
-            /*is_raft_layer=*/false,
-            /*layer_thickness=*/100,
-            FanSpeedLayerTimeSettings(),
-            RetractionConfig())
+              /*extruder=*/0,
+              /*layer_nr=*/50,
+              /*is_initial_layer=*/false,
+              /*is_raft_layer=*/false,
+              /*layer_thickness=*/100,
+              FanSpeedLayerTimeSettings(),
+              RetractionConfig())
     {
     }
 };

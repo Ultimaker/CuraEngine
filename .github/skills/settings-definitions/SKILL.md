@@ -13,11 +13,14 @@ Settings definitions are maintained in the public **Ultimaker/Cura** repository,
 
 - Base printer settings: https://github.com/Ultimaker/Cura/blob/main/resources/definitions/fdmprinter.def.json
 - Raw base definitions: https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmprinter.def.json
-- Other printer and extruder definitions: https://github.com/Ultimaker/Cura/tree/main/resources/definitions
+- Base extruder settings: https://github.com/Ultimaker/Cura/blob/main/resources/definitions/fdmextruder.def.json
+- Raw base extruder definitions: https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmextruder.def.json
 - Setting Properties documentation: https://github.com/Ultimaker/Cura/wiki/Setting-Properties
 - Raw wiki fallback: https://raw.githubusercontent.com/wiki/Ultimaker/Cura/Setting-Properties.md
 
 Read the Setting Properties documentation alongside the definitions. Use the Cura revision relevant to the task; if using `main`, state that explicitly rather than assuming it matches a particular CuraEngine release. If access fails, notify the user and ask for the relevant definitions instead of guessing.
+
+Use only these two base definition files for engine settings guidance, not printer-specific profiles.
 
 ## Settings ownership and movement context
 
@@ -28,21 +31,16 @@ Select the settings source using the definition's scope properties and the conte
 - Settings with `settable_per_meshgroup` enabled, but neither mesh- nor extruder-specific, belong at **MeshGroup** level.
 - Settings with none of those scopes enabled belong at the most global **Scene** level.
 
-Use the mesh associated with the path and the appropriate extruder for the feature being emitted. Do not assume that a feature's extruder is always the currently selected extruder; inspect `limit_to_extruder`. Preserve existing settings inheritance and resolution instead of duplicating or relocating settings without checking their scope. When a move has no associated mesh, establish the applicable settings context explicitly.
+Always retrieve settings from the lowest applicable context: the associated mesh when available, otherwise the appropriate extruder, mesh group or scene. The feature's extruder is not necessarily the currently selected extruder.
 
-The wiki describes scope flags as permissions to override settings and notes that `settable_per_meshgroup` is currently unused by Cura. The ownership mapping above is CuraEngine contributor guidance; it does not imply that every value is physically present in that object's settings map. Inspect the effective properties and inherited definitions; do not assume an omitted property is explicitly false.
+Retrieving a higher-scope setting from a lower-scope context is safe and allowed. `Settings::get` handles parent lookup; a value absent locally but present in its parent is normal. Do not add presence checks, fallback values or ownership validation for normal inheritance.
 
-## Interpreting properties
+## Values and units
 
-- Check `description`, `type` and `unit` before choosing a C++ type or converting units.
-- Distinguish `value` expressions from `default_value` literals. Cura resolves expressions; do not add a Python-expression evaluator to CuraEngine.
-- Inspect `resolve` and `limit_to_extruder` when determining effective values.
-- `enabled` controls whether a setting can be shown to the user; it is not by itself an engine runtime enable switch.
-- `minimum_value` and `maximum_value` describe frontend validation, while the corresponding warning properties describe warnings. Neither substitutes for required enforcement in generated output.
-- Follow nested `children` and relevant inherited printer/extruder definitions to find feature-specific settings and overrides.
+CuraEngine receives a flattened list of fully resolved values at mesh, extruder and global contexts. The engine does not need to interpret `value` versus `default_value`, `enabled`, expression resolution or `children`. Values and limits in the definitions are guidance for understanding a setting and checking consistency, not instructions to reproduce frontend processing.
+
+- Check `description`, `type` and `unit` before retrieving or converting a value.
+- Whenever applicable, use the specific engine types: `coord_t`, `Velocity`, `Acceleration`, `LayerIndex`, `AngleDegrees`, `AngleRadians`, `Ratio`, `Duration`, `Temperature`, etc.
+- The same setting retrieved through different `Settings::get<T>` specializations can have different units. For example, `get<double>` returns a distance in millimeters, while `get<coord_t>` converts that distance to integer micrometers. Verify the specialization in `src/settings/Settings.cpp` instead of assuming a type change is unit-neutral.
 
 For example, `machine_max_feedrate_e` is filament speed in **mm/s**, whereas `material_max_flowrate` is volumetric flow in **mm³/s**. They are not interchangeable, and a volumetric G-code flavor requires appropriate unit conversion.
-
-## Check the engine lookup
-
-Before changing a settings read, inspect `Settings::get` in `src/settings/Settings.cpp`: local values are checked first, then extruder limiting, then parent settings. Compare existing callers and path configurations with the definition's scope. If definitions, caller context or the requested behavior leave a decision unresolved, ask rather than inventing a fallback.

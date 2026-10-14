@@ -6,6 +6,20 @@
 namespace cura
 {
 
+SpeedDerivatives::SpeedDerivatives() = default;
+
+SpeedDerivatives::SpeedDerivatives(const Velocity& speed, const Acceleration& acceleration, const Velocity& jerk)
+    : speed(speed)
+    , acceleration(acceleration)
+    , jerk(jerk)
+{
+}
+
+SpeedDerivatives::SpeedDerivatives(const SpeedDerivatives& derivatives, const Velocity& speed)
+    : SpeedDerivatives(speed, derivatives.acceleration, derivatives.jerk)
+{
+}
+
 void SpeedDerivatives::smoothSpeed(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer_nr)
 {
     const auto max_speed_layer = static_cast<double>(max_speed_layer_nr);
