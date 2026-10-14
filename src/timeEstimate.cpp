@@ -4,6 +4,7 @@
 #include "timeEstimate.h"
 
 #include <algorithm>
+#include <limits>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -54,10 +55,27 @@ void TimeEstimateCalculator::setMaxXyJerk(const Velocity& jerk)
     max_xy_jerk = jerk;
 }
 
+void TimeEstimateCalculator::setMaxZJerk(const Velocity& jerk)
+{
+    max_z_jerk = jerk;
+}
+
+void TimeEstimateCalculator::setMaxEJerk(const Velocity& jerk)
+{
+    max_e_jerk = jerk;
+}
+
+void TimeEstimateCalculator::setAxisAccelerations(const Acceleration& z, const Acceleration& e)
+{
+    max_acceleration[Z_AXIS] = z;
+    max_acceleration[E_AXIS] = e;
+}
+
 void TimeEstimateCalculator::reset()
 {
     extra_time = 0.0;
     blocks.clear();
+    stalled_features_.fill(false);
 }
 
 // Calculates the maximum allowable speed at this point when you must be able to reach target_velocity using the
@@ -175,6 +193,13 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     {
         return;
     }
+    if (feedrate <= 0.0)
+    {
+        stalled_features_[static_cast<size_t>(feature)] = true;
+        currentPosition = newPos;
+        previous_nominal_feedrate = 0.0;
+        return;
+    }
     if (feedrate < minimumfeedrate)
     {
         feedrate = minimumfeedrate;
@@ -215,21 +240,32 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     {
         if (block.acceleration * (block.absDelta[n] / block.distance) > max_acceleration[n])
         {
-            block.acceleration = max_acceleration[n];
+            block.acceleration = max_acceleration[n] / (block.absDelta[n] / block.distance);
         }
     }
 
-    Velocity vmax_junction{ max_xy_jerk / 2.0 };
+    if (block.nominal_feedrate <= 0.0 || block.acceleration <= 0.0)
+    {
+        stalled_features_[static_cast<size_t>(feature)] = true;
+        currentPosition = newPos;
+        previous_nominal_feedrate = 0.0;
+        return;
+    }
+    Velocity vmax_junction = block.nominal_feedrate;
     Ratio vmax_junction_factor{ 1.0 };
-    if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2.0)
+    const double xy_ratio = std::hypot(block.delta[X_AXIS], block.delta[Y_AXIS]) / block.distance;
+    if (xy_ratio > 0.0)
     {
-        vmax_junction = std::min(vmax_junction, Velocity{ max_z_jerk / 2.0 });
+        vmax_junction = std::min(vmax_junction, Velocity{ max_xy_jerk / (2.0 * xy_ratio) });
     }
-    if (current_abs_feedrate[E_AXIS] > max_e_jerk / 2.0)
+    if (block.absDelta[Z_AXIS] > 0.0)
     {
-        vmax_junction = std::min(vmax_junction, Velocity{ max_e_jerk / 2.0 });
+        vmax_junction = std::min(vmax_junction, Velocity{ max_z_jerk * block.distance / (2.0 * block.absDelta[Z_AXIS]) });
     }
-    vmax_junction = std::min(vmax_junction, block.nominal_feedrate);
+    if (block.absDelta[E_AXIS] > 0.0)
+    {
+        vmax_junction = std::min(vmax_junction, Velocity{ max_e_jerk * block.distance / (2.0 * block.absDelta[E_AXIS]) });
+    }
     const Velocity safe_speed = vmax_junction;
 
     if ((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
@@ -286,6 +322,13 @@ std::vector<Duration> TimeEstimateCalculator::calculate()
         totals[static_cast<unsigned char>(block.feature)] += accelerationTimeFromDistance(block.initial_feedrate, block.accelerate_until, block.acceleration);
         totals[static_cast<unsigned char>(block.feature)] += plateau_distance / block.nominal_feedrate;
         totals[static_cast<unsigned char>(block.feature)] += accelerationTimeFromDistance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
+    }
+    for (size_t feature = 0; feature < stalled_features_.size(); ++feature)
+    {
+        if (stalled_features_[feature])
+        {
+            totals[feature] = std::numeric_limits<double>::infinity();
+        }
     }
     return totals;
 }

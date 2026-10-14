@@ -3,6 +3,8 @@
 
 #include "gcode_export/gcodeExport.h" // The unit under test.
 
+#include <cmath>
+
 #include <gtest/gtest.h>
 
 #include "Application.h" // To set up a slice with settings.
@@ -56,6 +58,7 @@ public:
         gcode.current_jerk_ = -1.0;
         gcode.is_z_hopped_ = 0;
         gcode.setFlavor(EGCodeFlavor::MARLIN);
+        gcode.current_speed_ = 1.0;
         gcode.bed_temperature_ = 0;
         gcode.initial_bed_temp_ = 0;
         gcode.total_bounding_box_ = AABB3D();
@@ -67,6 +70,34 @@ public:
 
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
+        Settings& settings = Application::getInstance().current_slice_->scene.settings;
+        settings.add("acceleration_enabled", "false");
+        settings.add("jerk_enabled", "false");
+        settings.add("acceleration_travel_enabled", "true");
+        settings.add("jerk_travel_enabled", "true");
+        settings.add("machine_max_feedrate_x", "1000");
+        settings.add("machine_max_feedrate_y", "1000");
+        settings.add("machine_max_feedrate_z", "40");
+        settings.add("machine_max_feedrate_e", "1000");
+        settings.add("machine_max_acceleration_x", "10000");
+        settings.add("machine_max_acceleration_y", "10000");
+        settings.add("machine_max_acceleration_z", "100");
+        settings.add("machine_max_acceleration_e", "10000");
+        settings.add("machine_max_jerk_xy", "20");
+        settings.add("machine_max_jerk_z", "0.4");
+        settings.add("machine_max_jerk_e", "5");
+        settings.add("machine_minimum_feedrate", "0");
+        settings.add("machine_acceleration", "1000");
+        settings.add("speed_travel", "100");
+        settings.add("speed_z_hop", "1");
+        settings.add("acceleration_travel", "1000");
+        settings.add("acceleration_print", "500");
+        settings.add("jerk_travel", "20");
+        settings.add("jerk_print", "10");
+        settings.add("retraction_retract_speed", "50");
+        settings.add("retraction_prime_speed", "50");
+        settings.add("material_max_flowrate", "1000");
+        settings.add("layer_height", "0.2");
         mock_communication = std::make_shared<MockCommunication>();
         Application::getInstance().communication_ = mock_communication;
     }
@@ -86,6 +117,89 @@ public:
         gcode.prepareNewFixedGCodePart();
         return output_;
     }
+
+    Settings& motionSettings()
+    {
+        return Application::getInstance().current_slice_->scene.settings;
+    }
+
+    ExtruderTrain& motionExtruder()
+    {
+        auto& scene = Application::getInstance().current_slice_->scene;
+        if (scene.extruders.empty())
+        {
+            scene.extruders.emplace_back(0, &scene.settings);
+        }
+        return scene.extruders.front();
+    }
+
+    void prepareMotion(double filament_area = 2.0)
+    {
+        motionExtruder();
+        gcode.current_position_ = Point3LL(0, 0, 0);
+        gcode.current_layer_z_ = 0;
+        gcode.extruder_attr_[0].filament_area_ = filament_area;
+        gcode.extruder_attr_[0].machine_firmware_retract_ = false;
+        gcode.extruder_attr_[0].last_retraction_prime_speed_ = 50.0;
+        gcode.estimate_calculator_.setFirmwareDefaults(motionSettings());
+        gcode.estimate_calculator_.setPosition(TimeEstimateCalculator::Position(0, 0, 0, 0));
+    }
+
+    void stationaryPrime(double volume, bool relative = false)
+    {
+        gcode.relative_extrusion_ = relative;
+        gcode.addExtraPrimeAmount(volume);
+        gcode.writeUnretractionAndPrime();
+    }
+
+    void useFirmwareRetraction()
+    {
+        gcode.extruder_attr_[0].machine_firmware_retract_ = true;
+    }
+
+    std::vector<Duration> estimateMotion()
+    {
+        return gcode.estimate_calculator_.calculate();
+    }
+
+    void checkCompensationReset(bool relative, bool volumetric)
+    {
+        prepareMotion();
+        gcode.relative_extrusion_ = relative;
+        if (volumetric)
+        {
+            gcode.setFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
+        }
+        gcode.setFlowRateExtrusionSettings(10.0, 1.0);
+        gcode.writeExtrusion(Point3LL(1000, 0, 0), { 2.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
+        output();
+        output_.str("");
+        gcode.estimate_calculator_.reset();
+
+        gcode.resetExtrusionValue();
+        EXPECT_DOUBLE_EQ(gcode.getTotalFilamentUsed(0), 2.0);
+        RetractionConfig config{};
+        config.distance = 1.0;
+        config.speed = 50.0;
+        config.primeSpeed = 50.0;
+        gcode.writeRetraction(config, true);
+        const std::string reset_command = relative ? "" : "G92 E0\n";
+        EXPECT_EQ(output().str(), reset_command + (volumetric ? "G1 F3000 E-2\n" : "G1 F3000 E-1\n"));
+
+        TimeEstimateCalculator reference;
+        reference.setFirmwareDefaults(motionSettings());
+        reference.setPosition(TimeEstimateCalculator::Position(1.0, 0.0, 0.0, 0.0));
+        reference.plan(TimeEstimateCalculator::Position(1.0, 0.0, 0.0, -1.0), 50.0, PrintFeatureType::StationaryRetractUnretract);
+        const size_t feature = static_cast<size_t>(PrintFeatureType::StationaryRetractUnretract);
+        EXPECT_DOUBLE_EQ(static_cast<double>(estimateMotion()[feature]), static_cast<double>(reference.calculate()[feature]));
+
+        output_.str("");
+        gcode.writeTravel(Point3LL(2000, 0, 0), { 2.0, 1000.0, 20.0 });
+        EXPECT_EQ(output().str(), "G0 F120 X2 Y0.00\n");
+        output_.str("");
+        gcode.writeUnretractionAndPrime();
+        EXPECT_EQ(output().str(), relative ? (volumetric ? "G1 F3000 E2\n" : "G1 F3000 E1\n") : "G1 F3000 E0\n");
+    }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
 
@@ -103,19 +217,17 @@ TEST_F(GCodeExportTest, CommentSimple)
 
 TEST_F(GCodeExportTest, CommentMultiLine)
 {
-    gcode.writeComment(
-        "If you catch a chinchilla in Chile\n"
-        "And cut off its beard, willy-nilly\n"
-        "You can honestly say\n"
-        "You made on that day\n"
-        "A Chilean chinchilla's chin chilly");
+    gcode.writeComment("If you catch a chinchilla in Chile\n"
+                       "And cut off its beard, willy-nilly\n"
+                       "You can honestly say\n"
+                       "You made on that day\n"
+                       "A Chilean chinchilla's chin chilly");
     EXPECT_EQ(
-        std::string(
-            ";If you catch a chinchilla in Chile\n"
-            ";And cut off its beard, willy-nilly\n"
-            ";You can honestly say\n"
-            ";You made on that day\n"
-            ";A Chilean chinchilla's chin chilly\n"),
+        std::string(";If you catch a chinchilla in Chile\n"
+                    ";And cut off its beard, willy-nilly\n"
+                    ";You can honestly say\n"
+                    ";You made on that day\n"
+                    ";A Chilean chinchilla's chin chilly\n"),
         output().str())
         << "Each line must be preceded by a semicolon.";
 }
@@ -126,10 +238,9 @@ TEST_F(GCodeExportTest, CommentMultiple)
     gcode.writeComment("Very very frightening me");
     gcode.writeComment(" - Galileo (1638)");
     EXPECT_EQ(
-        std::string(
-            ";Thunderbolt and lightning\n"
-            ";Very very frightening me\n"
-            "; - Galileo (1638)\n"),
+        std::string(";Thunderbolt and lightning\n"
+                    ";Very very frightening me\n"
+                    "; - Galileo (1638)\n"),
         output().str())
         << "Semicolon before each line, and newline in between.";
 }
@@ -490,7 +601,7 @@ TEST_F(GCodeExportTest, WriteZHopStartZero)
 
 TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 {
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, &motionSettings());
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
@@ -501,13 +612,13 @@ TEST_F(GCodeExportTest, WriteZHopStartDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopStartCustomSpeed)
 {
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, &motionSettings());
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     constexpr coord_t hop_height = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
-    gcode.writeZhopStart(hop_height, speed);
+    gcode.writeZhopStart(hop_height, SpeedDerivatives{ speed, 1000.0, 20.0 });
     EXPECT_EQ(std::string("G1 F240 Z5\n"), output().str()) << "Custom provided speed should be used.";
 }
 
@@ -520,7 +631,7 @@ TEST_F(GCodeExportTest, WriteZHopEndZero)
 
 TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 {
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, &motionSettings());
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1"); // 60mm/min.
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
@@ -531,18 +642,19 @@ TEST_F(GCodeExportTest, WriteZHopEndDefaultSpeed)
 
 TEST_F(GCodeExportTest, WriteZHopEndCustomSpeed)
 {
-    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, nullptr);
+    Application::getInstance().current_slice_->scene.extruders.emplace_back(0, &motionSettings());
     Application::getInstance().current_slice_->scene.extruders[gcode.current_extruder_].settings_.add("speed_z_hop", "1");
     Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("layer_height", "0.2");
     gcode.current_layer_z_ = 2000;
     gcode.is_z_hopped_ = 3000;
     constexpr Velocity speed{ 4.0 }; // 240 mm/min.
-    gcode.writeZhopEnd(speed);
+    gcode.writeZhopEnd(SpeedDerivatives{ speed, 1000.0, 20.0 });
     EXPECT_EQ(std::string("G1 F240 Z2\n"), output().str()) << "Custom provided speed should be used.";
 }
 
 TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 {
+    motionExtruder();
     gcode.current_position_ = Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.use_extruder_offset_to_offset_coords_ = false;
@@ -575,6 +687,7 @@ TEST_F(GCodeExportTest, insertWipeScriptSingleMove)
 
 TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
 {
+    motionExtruder();
     gcode.current_position_ = Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.use_extruder_offset_to_offset_coords_ = false;
@@ -613,6 +726,7 @@ TEST_F(GCodeExportTest, insertWipeScriptMultipleMoves)
 
 TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
 {
+    motionExtruder();
     gcode.current_position_ = Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.use_extruder_offset_to_offset_coords_ = false;
@@ -644,6 +758,7 @@ TEST_F(GCodeExportTest, insertWipeScriptOptionalDelay)
 
 TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
 {
+    motionExtruder();
     gcode.current_position_ = Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.current_e_value_ = 100;
@@ -691,6 +806,7 @@ TEST_F(GCodeExportTest, insertWipeScriptRetractionEnable)
 
 TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
 {
+    motionExtruder();
     gcode.current_position_ = Point3LL(1000, 1000, 1000);
     gcode.current_layer_z_ = 1000;
     gcode.use_extruder_offset_to_offset_coords_ = false;
@@ -724,5 +840,454 @@ TEST_F(GCodeExportTest, insertWipeScriptHopEnable)
     std::getline(output(), token, '\n');
     EXPECT_EQ(std::string(";WIPE_SCRIPT_END"), token) << "Wipe script should always end with tag.";
 }
+TEST_F(GCodeExportTest, SpatialControlsAreExporterGated)
+{
+    prepareMotion();
+    motionSettings().add("machine_max_feedrate_x", "90");
+    motionSettings().add("machine_max_feedrate_y", "30");
+    motionSettings().add("machine_max_feedrate_z", "5");
+    motionSettings().add("material_max_flowrate", "2");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 100.0, 9000.0, 50.0 });
+    gcode.writeExtrusion(Point3LL(2000, 0, 0), { 100.0, 9000.0, 50.0 }, 1.0, PrintFeatureType::Infill);
+    gcode.writeZhopStart(1000, SpeedDerivatives{ 100.0, 9000.0, 50.0 });
+    stationaryPrime(4.0);
+    const std::string result = output().str();
+    EXPECT_NE(result.find("G0 F1800 X1 Y0.00"), std::string::npos);
+    EXPECT_NE(result.find("G1 F120 X2 Y0.00 E0.5"), std::string::npos);
+    EXPECT_NE(result.find("G1 F300 Z1"), std::string::npos);
+    EXPECT_EQ(result.find("M201"), std::string::npos);
+    EXPECT_EQ(result.find("M202"), std::string::npos);
+    EXPECT_EQ(result.find("M204"), std::string::npos);
+    EXPECT_EQ(result.find("M205"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, AccelerationAndJerkControlsAreIndependent)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_enabled", "true");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 30.0, 700.0, 12.0 });
+    const std::string acceleration_only = output().str();
+    EXPECT_NE(acceleration_only.find("M204 S700"), std::string::npos);
+    EXPECT_EQ(acceleration_only.find("M205"), std::string::npos);
+    output_.str("");
+    motionSettings().add("acceleration_enabled", "false");
+    motionSettings().add("jerk_enabled", "true");
+    gcode.writeTravel(Point3LL(2000, 0, 0), { 30.0, 800.0, 11.0 });
+    const std::string jerk_only = output().str();
+    EXPECT_EQ(jerk_only.find("M201"), std::string::npos);
+    EXPECT_EQ(jerk_only.find("M204"), std::string::npos);
+    EXPECT_NE(jerk_only.find("M205 X11 Y11"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, AsymmetricXYAndExactZLimits)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_enabled", "true");
+    motionSettings().add("jerk_enabled", "true");
+    motionSettings().add("machine_max_feedrate_x", "90");
+    motionSettings().add("machine_max_feedrate_y", "30");
+    motionSettings().add("machine_max_feedrate_z", "5");
+    motionSettings().add("machine_max_acceleration_x", "700");
+    motionSettings().add("machine_max_acceleration_y", "300");
+    motionSettings().add("machine_max_acceleration_z", "20");
+    motionSettings().add("machine_max_jerk_xy", "12");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 100.0, 9000.0, 50.0 });
+    gcode.writeTravel(Point3LL(1000, 0, 1000), { 100.0, 9000.0, 50.0 });
+    // One micron of X motion is not an exact Z-only movement.
+    gcode.writeTravel(Point3LL(1001, 0, 2000), { 100.0, 9000.0, 50.0 });
+    const std::string result = output().str();
+    EXPECT_NE(result.find("G0 F1800 X1 Y0.00"), std::string::npos);
+    EXPECT_NE(result.find("G0 F300 Z1"), std::string::npos);
+    EXPECT_NE(result.find("G0 F1800 X1.001 Y0.00 Z2"), std::string::npos);
+    EXPECT_NE(result.find("M204 S300"), std::string::npos);
+    EXPECT_NE(result.find("M204 S20"), std::string::npos);
+    EXPECT_NE(result.find("M205 X12 Y12"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, ZeroMachineLimitIsNotUnlimited)
+{
+    prepareMotion();
+    motionSettings().add("machine_max_feedrate_y", "0");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 });
+    EXPECT_NE(output().str().find("G0 F0 X1 Y0.00"), std::string::npos);
+    EXPECT_TRUE(std::isinf(static_cast<double>(estimateMotion()[static_cast<size_t>(PrintFeatureType::MoveUnretracted)])));
+}
+
+TEST_F(GCodeExportTest, PrintingUsesMaterialAndFilamentLimits)
+{
+    prepareMotion();
+    motionExtruder().settings_.add("material_max_flowrate", "8");
+    // A MeshGroup override must not override the extruder's material setting.
+    Application::getInstance().current_slice_->scene.current_mesh_group->settings.add("material_max_flowrate", "1000");
+    motionSettings().add("machine_max_feedrate_e", "3");
+    gcode.writeExtrusion(Point3LL(10000, 0, 0), { 100.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill);
+    EXPECT_NE(output().str().find("G1 F180 X10 Y0.00 E10"), std::string::npos);
+    motionSettings().add("machine_max_feedrate_e", "100");
+    gcode.writeExtrusion(Point3LL(20000, 0, 0), { 100.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill);
+    EXPECT_NE(output().str().find("G1 F240 X20 Y0.00 E20"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, SpatialFilamentDerivativesAreScaled)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_enabled", "true");
+    motionSettings().add("jerk_enabled", "true");
+    motionSettings().add("machine_max_feedrate_e", "4");
+    motionSettings().add("machine_max_acceleration_e", "100");
+    motionSettings().add("machine_max_jerk_e", "2");
+    gcode.writeExtrusion(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 }, 4.0, PrintFeatureType::Infill);
+    const std::string result = output().str();
+    EXPECT_NE(result.find("M204 S50"), std::string::npos);
+    EXPECT_NE(result.find("M201 Z100 E100"), std::string::npos);
+    EXPECT_NE(result.find("M205 X1 Y1"), std::string::npos);
+    EXPECT_NE(result.find("G1 F120 X1 Y0.00 E2"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, AxisLimitsAndHeadAccelerationAreRestored)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_enabled", "true");
+    motionSettings().add("jerk_enabled", "true");
+    gcode.writeTravel(Point3LL(0, 0, 1000), { 10.0, 5.0, 0.1 });
+    stationaryPrime(2.0);
+    gcode.writeTravel(Point3LL(1000, 0, 1000), { 30.0, 800.0, 12.0 });
+    const std::string result = output().str();
+    EXPECT_NE(result.find("M201 Z5 E10000"), std::string::npos);
+    EXPECT_NE(result.find("M205 Z0.1 E5"), std::string::npos);
+    EXPECT_NE(result.find("M201 Z100 E10000"), std::string::npos);
+    EXPECT_NE(result.find("M205 Z0.4 E5"), std::string::npos);
+    EXPECT_NE(result.find("M204 R10000"), std::string::npos);
+    EXPECT_NE(result.find("M204 S800"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, TravelRetractAndPrimeIgnoreMaterialCap)
+{
+    prepareMotion();
+    motionSettings().add("material_max_flowrate", "0");
+    motionSettings().add("machine_max_feedrate_e", "5");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 }, 10.0);
+    gcode.writeTravel(Point3LL(2000, 0, 0), { 100.0, 1000.0, 20.0 }, 0.0);
+    const std::string result = output().str();
+    EXPECT_NE(result.find("G0 F30 X1 Y0.00 E-10"), std::string::npos);
+    EXPECT_NE(result.find("G0 X2 Y0.00 E0"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, StationaryRetractAndPrimeIgnoreMaterialCap)
+{
+    prepareMotion();
+    motionSettings().add("material_max_flowrate", "0");
+    motionSettings().add("machine_max_feedrate_e", "5");
+    RetractionConfig config{};
+    config.distance = 2.0;
+    config.speed = 100.0;
+    config.primeSpeed = 100.0;
+    gcode.writeRetraction(config, true);
+    stationaryPrime(4.0);
+    const std::string result = output().str();
+    EXPECT_NE(result.find("G1 F300 E-2"), std::string::npos);
+    EXPECT_NE(result.find("G1 F300 E2"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, StationaryTravelRetractionUsesFilamentSpeed)
+{
+    prepareMotion();
+    motionSettings().add("machine_max_feedrate_e", "5");
+    gcode.writeTravel(Point3LL(0, 0, 0), { 100.0, 1000.0, 20.0 }, 2.0);
+    EXPECT_EQ(output().str(), "G1 F300 E-2\n");
+}
+
+TEST_F(GCodeExportTest, VolumetricCoordinatesDoNotScaleStationaryFeedrate)
+{
+    prepareMotion(4.0);
+    gcode.setFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
+    motionSettings().add("machine_max_feedrate_e", "5");
+    motionSettings().add("material_max_flowrate", "0");
+    stationaryPrime(8.0);
+    EXPECT_EQ(output().str(), "G1 F300 E8\n");
+    output_.str("");
+    stationaryPrime(8.0, true);
+    EXPECT_EQ(output().str(), "G1 F300 E8\n");
+}
+
+TEST_F(GCodeExportTest, VolumetricPrintingConvertsFilamentLimit)
+{
+    prepareMotion(4.0);
+    gcode.setFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
+    motionSettings().add("machine_max_feedrate_e", "5");
+    gcode.writeExtrusion(Point3LL(10000, 0, 0), { 100.0, 1000.0, 20.0 }, 8.0, PrintFeatureType::Infill);
+    EXPECT_NE(output().str().find("G1 F150 X10 Y0.00 E80"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, CompensationUsesCappedFilamentFlow)
+{
+    prepareMotion(4.0);
+    motionSettings().add("machine_max_feedrate_e", "5");
+    gcode.setFlowRateExtrusionSettings(10.0, 1.0);
+    gcode.writeExtrusion(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 }, 4.0, PrintFeatureType::Infill, true);
+    const std::string result = output().str();
+    // v * (1 + v) <= 5, including the first compensation offset.
+    EXPECT_LE(gcode.getCurrentSpeed() * (1.0 + gcode.getCurrentSpeed()), 5.0);
+    EXPECT_NE(result.find(";FLOW_RATE_COMPENSATED_OFFSET"), std::string::npos);
+    EXPECT_GT(gcode.getCurrentSpeed(), 1.7);
+}
+
+TEST_F(GCodeExportTest, CompensationCancellationPreservesLogicalExtrusion)
+{
+    prepareMotion();
+    gcode.setFlowRateExtrusionSettings(10.0, 1.0);
+    gcode.writeExtrusion(Point3LL(1000, 0, 0), { 2.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
+    output();
+    output_.str("");
+    gcode.writeExtrusion(Point3LL(2000, 0, 0), { 1.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
+    EXPECT_DOUBLE_EQ(gcode.getCurrentExtrudedVolume(), 4.0);
+    EXPECT_EQ(output().str(), ";FLOW_RATE_COMPENSATED_OFFSET = 1.000000\nG1 F60 X2 Y0.00\n");
+    output_.str("");
+    gcode.writeTravel(Point3LL(3000, 0, 0), { 1.0, 1000.0, 20.0 });
+    gcode.writeExtrusion(Point3LL(4000, 0, 0), { 1.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
+    EXPECT_EQ(output().str(), "G0 X3 Y0.00\nG1 X4 Y0.00 E4\n");
+    EXPECT_DOUBLE_EQ(gcode.getCurrentExtrudedVolume(), 6.0);
+}
+
+TEST_F(GCodeExportTest, RelativeCompensationCancellationPreservesLogicalExtrusion)
+{
+    prepareMotion();
+    stationaryPrime(0.0, true);
+    gcode.setFlowRateExtrusionSettings(10.0, 1.0);
+    gcode.writeExtrusion(Point3LL(1000, 0, 0), { 2.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
+    output();
+    output_.str("");
+    gcode.writeExtrusion(Point3LL(2000, 0, 0), { 1.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
+    EXPECT_DOUBLE_EQ(gcode.getCurrentExtrudedVolume(), 4.0);
+    EXPECT_EQ(output().str(), ";FLOW_RATE_COMPENSATED_OFFSET = 1.000000\nG1 F60 X2 Y0.00\n");
+    output_.str("");
+    gcode.writeExtrusion(Point3LL(3000, 0, 0), { 1.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
+    EXPECT_EQ(output().str(), "G1 X3 Y0.00 E1\n");
+}
+
+TEST_F(GCodeExportTest, ResetRebasesCompensationAndEstimator)
+{
+    checkCompensationReset(false, false);
+}
+
+TEST_F(GCodeExportTest, RelativeResetRebasesCompensationAndEstimator)
+{
+    checkCompensationReset(true, false);
+}
+
+TEST_F(GCodeExportTest, VolumetricResetRebasesCompensationAndEstimator)
+{
+    checkCompensationReset(false, true);
+}
+
+TEST_F(GCodeExportTest, RelativeVolumetricResetRebasesCompensationAndEstimator)
+{
+    checkCompensationReset(true, true);
+}
+
+TEST_F(GCodeExportTest, ToolSwitchRebasesCompensationAndEstimator)
+{
+    prepareMotion();
+    auto& scene = Application::getInstance().current_slice_->scene;
+    scene.extruders.emplace_back(1, &scene.settings);
+    for (auto& train : scene.extruders)
+    {
+        train.settings_.add("machine_extruder_prestart_code", "");
+        train.settings_.add("machine_extruder_start_code", "");
+        train.settings_.add("machine_extruder_end_code", "");
+        train.settings_.add("machine_extruder_start_code_duration", "0");
+        train.settings_.add("machine_extruder_end_code_duration", "0");
+        train.settings_.add("machine_extruder_change_duration", "0");
+        train.settings_.add("retraction_enable", "false");
+    }
+    gcode.setFilamentDiameter(1, 2000);
+    gcode.setFlowRateExtrusionSettings(10.0, 1.0);
+    gcode.writeExtrusion(Point3LL(1000, 0, 0), { 2.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
+    output();
+    output_.str("");
+    RetractionConfig config{};
+    config.distance = 1.0;
+    config.speed = 50.0;
+    gcode.switchExtruder(1, config);
+    gcode.writeRetraction(config, true);
+    EXPECT_EQ(output().str(), "G92 E0\nT1\nG92 E0\nG1 F3000 E-1\n");
+    EXPECT_DOUBLE_EQ(gcode.getTotalFilamentUsed(0), 2.0);
+}
+
+TEST_F(GCodeExportTest, TravelFlagsSelectIndependentDerivatives)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_travel_enabled", "false");
+    motionSettings().add("jerk_travel_enabled", "true");
+    const SpeedDerivatives first = gcode.getTravelDerivatives(motionExtruder().settings_);
+    EXPECT_EQ(first.acceleration, 500.0);
+    EXPECT_EQ(first.jerk, 20.0);
+    motionSettings().add("acceleration_travel_enabled", "true");
+    motionSettings().add("jerk_travel_enabled", "false");
+    const SpeedDerivatives second = gcode.getTravelDerivatives(motionExtruder().settings_);
+    EXPECT_EQ(second.acceleration, 1000.0);
+    EXPECT_EQ(second.jerk, 10.0);
+}
+
+TEST_F(GCodeExportTest, SpecialTravelPreservesSelectedLayerAndDestinationDerivatives)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_travel_enabled", "false");
+    motionSettings().add("jerk_travel_enabled", "false");
+    gcode.setTravelDerivatives({ 80.0, 430.0, 7.3 });
+    const auto derivatives = gcode.getTravelDerivatives(motionExtruder().settings_, 12.0);
+    EXPECT_EQ(derivatives.speed, 12.0);
+    EXPECT_EQ(derivatives.acceleration, 430.0);
+    EXPECT_EQ(derivatives.jerk, 7.3);
+}
+
+TEST_F(GCodeExportTest, RepRapAndCheetahAxisJerkUnits)
+{
+    prepareMotion();
+    motionSettings().add("jerk_enabled", "true");
+    gcode.setFlavor(EGCodeFlavor::REPRAP);
+    gcode.writeTravel(Point3LL(0, 0, 1000), { 10.0, 100.0, 0.3 });
+    EXPECT_NE(output().str().find("M566 Z18 E300"), std::string::npos);
+    output_.str("");
+    gcode.setFlavor(EGCodeFlavor::CHEETAH);
+    gcode.writeTravel(Point3LL(0, 0, 2000), { 10.0, 100.0, 0.2 });
+    EXPECT_NE(output().str().find("M215 Z200 E5000"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, FirmwareRetractionRemainsAMacro)
+{
+    prepareMotion();
+    useFirmwareRetraction();
+    RetractionConfig config{};
+    config.distance = 2.0;
+    config.speed = 100.0;
+    gcode.writeRetraction(config, true);
+    EXPECT_EQ(output().str(), "G10\n");
+}
+
+TEST_F(GCodeExportTest, PostPrimeZCorrectionHasExplicitBoundedFeedrate)
+{
+    prepareMotion();
+    gcode.setFlavor(EGCodeFlavor::GRIFFIN);
+    motionExtruder().settings_.add("prime_blob_enable", "false");
+    motionSettings().add("machine_max_feedrate_z", "5");
+    gcode.writePrimeTrain({ 100.0, 1000.0, 20.0 });
+    EXPECT_EQ(output().str(), "G280 S1\nG0 F300 Z0.00\n");
+}
+
+TEST_F(GCodeExportTest, BFBFeedrateIsCapped)
+{
+    prepareMotion(4.0);
+    gcode.setFlavor(EGCodeFlavor::BFB);
+    motionSettings().add("machine_max_feedrate_y", "30");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 });
+    EXPECT_NE(output().str().find("G1 X1 Y0.00 Z0.00 F1800"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, SplitHopRetractionAndPrimingUseMachineELimits)
+{
+    prepareMotion();
+    motionSettings().add("material_max_flowrate", "0");
+    motionSettings().add("machine_max_feedrate_e", "5");
+    gcode.writeZhopStart(1000, SpeedDerivatives{ 100.0, 1000.0, 20.0 }, 10.0, 0.5);
+    gcode.writeZhopEnd(SpeedDerivatives{ 100.0, 1000.0, 20.0 }, 0, 0.0, 0.5);
+    const std::string result = output().str();
+    EXPECT_NE(result.find("G1 F15 Z0.5 E-10"), std::string::npos);
+    EXPECT_NE(result.find("G1 F2400 Z1"), std::string::npos);
+    EXPECT_NE(result.find("G1 F15 Z0.00 E0"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, StationaryPrimingUsesOnlyMachineEDerivatives)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_enabled", "true");
+    motionSettings().add("jerk_enabled", "true");
+    motionSettings().add("machine_max_feedrate_e", "5");
+    motionSettings().add("machine_max_acceleration_e", "300");
+    motionSettings().add("machine_max_jerk_e", "0.5");
+    stationaryPrime(4.0);
+    const std::string result = output().str();
+    EXPECT_NE(result.find("M201 Z100 E300"), std::string::npos);
+    EXPECT_NE(result.find("M204 R300"), std::string::npos);
+    EXPECT_NE(result.find("M205 Z0.4 E0.5"), std::string::npos);
+    EXPECT_EQ(result.find("M205 X"), std::string::npos);
+    EXPECT_NE(result.find("G1 F300 E2"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, ManufacturerCodeIsUnchangedAndInvalidatesMotionCache)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_enabled", "true");
+    motionSettings().add("jerk_enabled", "true");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 30.0, 700.0, 12.0 });
+    output();
+    output_.str("");
+    const std::string manufacturer_code = "M204 S9000\nM205 X99\nG1 F9999\n";
+    gcode.writeRaw(manufacturer_code);
+    gcode.writeTravel(Point3LL(2000, 0, 0), { 30.0, 700.0, 12.0 });
+    const std::string result = output().str();
+    EXPECT_EQ(result.substr(0, manufacturer_code.size()), manufacturer_code);
+    EXPECT_NE(result.find("M204 S700"), std::string::npos);
+    EXPECT_NE(result.find("M205 X12 Y12"), std::string::npos);
+    EXPECT_NE(result.find("G0 F1800 X2 Y0.00"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, RepRapStationaryPrimingRestoresPrintAndTravelModes)
+{
+    prepareMotion();
+    gcode.setFlavor(EGCodeFlavor::REPRAP);
+    motionSettings().add("acceleration_enabled", "true");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 30.0, 700.0, 12.0 });
+    stationaryPrime(4.0);
+    gcode.writeExtrusion(Point3LL(2000, 0, 0), { 30.0, 500.0, 10.0 }, 1.0, PrintFeatureType::Infill);
+    const std::string result = output().str();
+    EXPECT_NE(result.find("M204 T700"), std::string::npos);
+    EXPECT_NE(result.find("M204 P10000"), std::string::npos);
+    EXPECT_NE(result.find("M204 P500"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, BFBPrintingUsesMaterialCapAndBoundedRPM)
+{
+    prepareMotion(4.0);
+    gcode.setFlavor(EGCodeFlavor::BFB);
+    motionSettings().add("material_max_flowrate", "1");
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 });
+    gcode.writeExtrusion(Point3LL(11000, 0, 0), { 100.0, 1000.0, 20.0 }, 0.4, PrintFeatureType::Infill);
+    const std::string result = output().str();
+    EXPECT_NE(result.find("M108 S3.7"), std::string::npos);
+    EXPECT_NE(result.find("M101"), std::string::npos);
+    EXPECT_LE(gcode.getCurrentSpeed(), 2.5);
+    EXPECT_GT(gcode.getCurrentSpeed(), 2.4);
+}
+
+TEST_F(GCodeExportTest, FractionalFilamentAccelerationRemainsNonzero)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_enabled", "true");
+    motionSettings().add("machine_max_acceleration_e", "0.1");
+    gcode.writeExtrusion(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 }, 4.0, PrintFeatureType::Infill);
+    EXPECT_NE(output().str().find("M204 S0.05"), std::string::npos);
+    EXPECT_NE(output().str().find("M201 Z100 E0.1"), std::string::npos);
+}
+
+TEST_F(GCodeExportTest, LegacyFlavorsDoNotReceiveUnsupportedMotionCommands)
+{
+    prepareMotion();
+    motionSettings().add("acceleration_enabled", "true");
+    motionSettings().add("jerk_enabled", "true");
+    motionSettings().add("machine_max_feedrate_y", "30");
+    coord_t x = 1000;
+    for (const EGCodeFlavor flavor : { EGCodeFlavor::MAKERBOT, EGCodeFlavor::MACH3 })
+    {
+        output_.str("");
+        gcode.setFlavor(flavor);
+        gcode.writeTravel(Point3LL(x, 0, 0), { 100.0, 1000.0, 20.0 });
+        EXPECT_NE(output().str().find("G0 F1800"), std::string::npos);
+        EXPECT_EQ(output().str().find("M201"), std::string::npos);
+        EXPECT_EQ(output().str().find("M204"), std::string::npos);
+        EXPECT_EQ(output().str().find("M205"), std::string::npos);
+        x += 1000;
+    }
+}
+
 } // namespace cura
 // NOLINTEND(*-magic-numbers)

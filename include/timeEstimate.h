@@ -4,6 +4,7 @@
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
 
+#include <array>
 #include <stdint.h>
 #include <unordered_map>
 #include <vector>
@@ -96,6 +97,7 @@ private:
     Position currentPosition;
 
     std::vector<Block> blocks;
+    std::array<bool, static_cast<size_t>(PrintFeatureType::NumPrintFeatureTypes)> stalled_features_{};
 
 public:
     /*!
@@ -108,6 +110,9 @@ public:
     void addTime(const Duration& time);
     void setAcceleration(const Acceleration& acc); //!< Set the default acceleration to \p acc
     void setMaxXyJerk(const Velocity& jerk); //!< Set the max xy jerk to \p jerk
+    void setMaxZJerk(const Velocity& jerk);
+    void setMaxEJerk(const Velocity& jerk);
+    void setAxisAccelerations(const Acceleration& z, const Acceleration& e);
 
     void reset();
 

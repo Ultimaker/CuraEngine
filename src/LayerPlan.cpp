@@ -3041,7 +3041,9 @@ void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, cons
 
 void LayerPlan::writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset, const std::optional<double> retract_distance)
 {
-    gcode.writeTravel(position + Point3LL(0, 0, z_ + path_z_offset), speed, retract_distance);
+    auto derivatives = output_derivatives_;
+    derivatives.speed = speed;
+    gcode.writeTravel(position + Point3LL(0, 0, z_ + path_z_offset), derivatives, retract_distance);
 }
 
 void LayerPlan::writeExtrusionRelativeZ(
@@ -3067,7 +3069,9 @@ void LayerPlan::writeExtrusionRelativeZ(
         thickness_factor = 1.0;
     }
 
-    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm * thickness_factor, feature, update_extrusion_offset);
+    auto derivatives = output_derivatives_;
+    derivatives.speed = speed;
+    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), derivatives, extrusion_mm3_per_mm * thickness_factor, feature, update_extrusion_offset);
 }
 
 void LayerPlan::addLinesMonotonic(
@@ -3599,9 +3603,10 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
     // flow-rate compensation
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
+    const Settings& global_settings = Application::getInstance().current_slice_->scene.settings;
     gcode.setFlowRateExtrusionSettings(
-        mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"),
-        mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
+        global_settings.get<double>("flow_rate_max_extrusion_offset"),
+        global_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
 
     static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) };
     if (layer_nr_ == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed"))
@@ -3625,15 +3630,55 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
     std::optional<GCodePathConfig> last_extrusion_config = std::nullopt; // used to check whether we need to insert a TYPE comment in the gcode.
 
     size_t extruder_nr = gcode.getExtruderNr();
-    const bool acceleration_enabled = mesh_group_settings.get<bool>("acceleration_enabled");
-    const bool acceleration_travel_enabled = mesh_group_settings.get<bool>("acceleration_travel_enabled");
-    const bool jerk_enabled = mesh_group_settings.get<bool>("jerk_enabled");
-    const bool jerk_travel_enabled = mesh_group_settings.get<bool>("jerk_travel_enabled");
+    const Settings& scene_settings = Application::getInstance().current_slice_->scene.settings;
+    const bool acceleration_travel_enabled = scene_settings.get<bool>("acceleration_travel_enabled");
+    const bool jerk_travel_enabled = scene_settings.get<bool>("jerk_travel_enabled");
     std::shared_ptr<const SliceMeshStorage> current_mesh;
 
     for (size_t extruder_plan_idx = 0; extruder_plan_idx < extruder_plans_.size(); extruder_plan_idx++)
     {
         ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
+
+        auto destination_after_plan = next_layer_acc_jerk_;
+        for (size_t next_plan_idx = extruder_plan_idx + 1; next_plan_idx < extruder_plans_.size(); ++next_plan_idx)
+        {
+            const auto& next_paths = extruder_plans_[next_plan_idx].paths_;
+            const auto next_extrusion = ranges::find_if(
+                next_paths,
+                [](const GCodePath& path)
+                {
+                    return ! path.isTravelPath();
+                });
+            if (next_extrusion != next_paths.end())
+            {
+                destination_after_plan = std::make_pair(next_extrusion->config.getAcceleration(), next_extrusion->config.getJerk());
+                break;
+            }
+        }
+        auto starting_destination = destination_after_plan;
+        const auto first_extrusion = ranges::find_if(
+            extruder_plan.paths_,
+            [](const GCodePath& path)
+            {
+                return ! path.isTravelPath();
+            });
+        if (first_extrusion != extruder_plan.paths_.end())
+        {
+            starting_destination = std::make_pair(first_extrusion->config.getAcceleration(), first_extrusion->config.getJerk());
+        }
+        auto starting_travel = configs_storage_.travel_config_per_extruder[extruder_plan.extruder_nr_].speed_derivatives;
+        if (starting_destination.has_value())
+        {
+            if (! acceleration_travel_enabled)
+            {
+                starting_travel.acceleration = starting_destination->first;
+            }
+            if (! jerk_travel_enabled)
+            {
+                starting_travel.jerk = starting_destination->second;
+            }
+        }
+        gcode.setTravelDerivatives(starting_travel);
 
         auto get_retraction_config = [&extruder_nr, this](std::shared_ptr<const SliceMeshStorage>& mesh) -> std::optional<const RetractionAndWipeConfig*>
         {
@@ -3758,7 +3803,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             if (path.perform_prime)
             {
-                gcode.writePrimeTrain(extruder.settings_.get<Velocity>("speed_travel"));
+                gcode.writePrimeTrain(gcode.getTravelDerivatives(extruder.settings_));
                 // Don't update cumulative path time, as ComputeNaiveTimeEstimates also doesn't.
                 gcode.writeRetraction(retraction_config->retraction_config);
             }
@@ -3776,7 +3821,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
             // In some cases we want to find the next non-travel move.
             size_t next_extrusion_idx = path_idx + 1;
-            if ((acceleration_enabled && ! acceleration_travel_enabled) || (jerk_enabled && ! jerk_travel_enabled))
+            if (path.isTravelPath() && (! acceleration_travel_enabled || ! jerk_travel_enabled))
             {
                 while (next_extrusion_idx < paths.size() && paths[next_extrusion_idx].config.isTravelPath())
                 {
@@ -3784,57 +3829,40 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 }
             }
 
-            if (acceleration_enabled)
+            output_derivatives_ = path.config.speed_derivatives;
+            if (path.isTravelPath())
             {
-                if (path.config.isTravelPath())
+                std::optional<std::pair<Acceleration, Velocity>> destination = destination_after_plan;
+                if (! destination.has_value() && last_extrusion_config.has_value())
                 {
-                    if (acceleration_travel_enabled)
-                    {
-                        gcode.writeTravelAcceleration(path.config.getAcceleration());
-                    }
-                    else
-                    {
-                        // Use the acceleration of the first non-travel move *after* the travel.
-                        if (next_extrusion_idx >= paths.size()) // Only travel moves for the remainder of the layer.
-                        {
-                            if (static_cast<bool>(next_layer_acc_jerk_))
-                            {
-                                gcode.writeTravelAcceleration(next_layer_acc_jerk_->first);
-                            } // If the next layer has no extruded move, just keep the old acceleration. Should be very rare to have an empty layer.
-                        }
-                        else
-                        {
-                            gcode.writeTravelAcceleration(paths[next_extrusion_idx].config.getAcceleration());
-                        }
-                    }
+                    destination = std::make_pair(last_extrusion_config->getAcceleration(), last_extrusion_config->getJerk());
                 }
-                else
+                if (next_extrusion_idx < paths.size())
                 {
-                    gcode.writePrintAcceleration(path.config.getAcceleration());
+                    destination = std::make_pair(paths[next_extrusion_idx].config.getAcceleration(), paths[next_extrusion_idx].config.getJerk());
                 }
-            }
-            if (jerk_enabled)
-            {
-                if (jerk_travel_enabled)
+                if (destination.has_value())
                 {
-                    gcode.writeJerk(path.config.getJerk());
-                }
-                else
-                {
-                    // Use the jerk of the first non-travel move *after* the travel.
-                    if (next_extrusion_idx >= paths.size()) // Only travel moves for the remainder of the layer.
+                    if (! acceleration_travel_enabled)
                     {
-                        if (static_cast<bool>(next_layer_acc_jerk_))
-                        {
-                            gcode.writeJerk(next_layer_acc_jerk_->second);
-                        } // If the next layer has no extruded move, just keep the old jerk. Should be very rare to have an empty layer.
+                        output_derivatives_.acceleration = destination->first;
                     }
-                    else
+                    if (! jerk_travel_enabled)
                     {
-                        gcode.writeJerk(paths[next_extrusion_idx].config.getJerk());
+                        output_derivatives_.jerk = destination->second;
                     }
                 }
             }
+            auto hop_derivatives = path.isTravelPath() ? output_derivatives_ : configs_storage_.travel_config_per_extruder[extruder_nr].speed_derivatives;
+            if (! acceleration_travel_enabled)
+            {
+                hop_derivatives.acceleration = output_derivatives_.acceleration;
+            }
+            if (! jerk_travel_enabled)
+            {
+                hop_derivatives.jerk = output_derivatives_.jerk;
+            }
+            gcode.setTravelDerivatives(hop_derivatives);
 
             std::optional<TravelAntiOozing> retraction_amounts;
             std::optional<TravelAntiOozing> priming_amounts;
@@ -3877,7 +3905,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 {
                     gcode.writeZhopStart(
                         z_hop_height,
-                        0.0,
+                        std::nullopt,
                         retraction_amounts.has_value() ? std::make_optional(retraction_amounts->z_hop.amount) : std::nullopt,
                         retraction_amounts.has_value() ? retraction_amounts->z_hop.ratio : 0.0_r);
                     z_hop_height = retraction_config->retraction_config.zHop; // back to normal z hop
@@ -3926,7 +3954,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 && (path_idx > 0 || layer_nr_ > 0))
             {
                 // First move to desired height to then make a plain horizontal move
-                gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), speed);
+                auto derivatives = output_derivatives_;
+                derivatives.speed = speed;
+                gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), derivatives);
             }
 
             if (path.config.isTravelPath())
@@ -3936,7 +3966,9 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
                     Point3LL current_position = gcode.getPosition();
                     current_position.z_ = final_travel_z_;
-                    gcode.writeTravel(current_position, extruder.settings_.get<Velocity>("speed_z_hop"));
+                    auto derivatives = output_derivatives_;
+                    derivatives.speed = extruder.settings_.get<Velocity>("speed_z_hop");
+                    gcode.writeTravel(current_position, derivatives);
 
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
                     path.z_offset = final_travel_z_ - z_;
@@ -3995,7 +4027,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
                         const double extrude_speed = speed * path.speed_back_pressure_factor;
                         writeExtrusionRelativeZ(gcode, pt, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type, update_extrusion_offset);
-                        sendLineTo(path, pt, extrude_speed);
+                        sendLineTo(path, pt, gcode.getCurrentSpeed());
 
                         prev_point = pt;
                     }
@@ -4028,7 +4060,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                         p0 = p1_2d;
 
                         const coord_t z_offset = end_layer ? layer_thickness_ / 2 : std::round(layer_thickness_ * length / totalLength);
-                        const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
+                        output_derivatives_ = spiral_path.config.speed_derivatives;
+                        const double extrude_speed = spiral_path.config.getSpeed() * spiral_path.speed_factor * spiral_path.speed_back_pressure_factor;
                         writeExtrusionRelativeZ(
                             gcode,
                             p1,
@@ -4037,7 +4070,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                             spiral_path.getExtrusionMM3perMM(),
                             spiral_path.config.type,
                             update_extrusion_offset);
-                        sendLineTo(spiral_path, Point3LL(p1.x_, p1.y_, z_offset), extrude_speed, layer_thickness_);
+                        sendLineTo(spiral_path, Point3LL(p1.x_, p1.y_, z_offset), gcode.getCurrentSpeed(), layer_thickness_);
                     }
                 };
 
@@ -4169,13 +4202,13 @@ bool LayerPlan::writePathWithCoasting(
             insertTempOnTime(time, path_idx);
 
             writeExtrusionRelativeZ(gcode, path.points[point_idx], extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
-            sendLineTo(path, path.points[point_idx], extrude_speed);
+            sendLineTo(path, path.points[point_idx], gcode.getCurrentSpeed());
 
             previous_position = path.points[point_idx];
         }
 
         writeExtrusionRelativeZ(gcode, path_coasting.coasting_start_pos, extrude_speed, path.z_offset, path.getExtrusionMM3perMM(), path.config.type);
-        sendLineTo(path, path_coasting.coasting_start_pos, extrude_speed);
+        sendLineTo(path, path_coasting.coasting_start_pos, gcode.getCurrentSpeed());
     }
 
     // write coasting path
