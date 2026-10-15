@@ -173,7 +173,6 @@ private:
                                 //!< encoded in the gcode)
     Velocity current_speed_; //!< The current speed (F values / 60) in mm/s
     double current_bfb_rpm_{ -1.0 }; //!< Last BFB extruder RPM command; negative means unknown.
-    std::optional<SpeedDerivatives> travel_derivatives_; //!< Selected layer/destination travel context for implicit hops and special travel.
     Acceleration current_z_acceleration_{ -1.0 }; //!< Last emitted Z-axis acceleration limit; negative means unknown.
     Acceleration current_e_acceleration_{ -1.0 }; //!< Last emitted E-axis acceleration limit; negative means unknown.
     Velocity current_z_jerk_{ -1.0 }; //!< Last emitted Z-axis jerk limit; negative means unknown.
@@ -407,8 +406,6 @@ public:
     SpeedDerivatives getTravelDerivatives(const ExtruderTrain& extruder, const std::optional<Velocity>& speed = std::nullopt) const;
 
     Velocity getCurrentSpeed() const;
-
-    void setTravelDerivatives(const SpeedDerivatives& derivatives);
 
     //! Restore machine defaults through the same enable flags and axis limits as regular moves.
     void resetMotionSettings();

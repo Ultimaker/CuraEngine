@@ -1188,17 +1188,95 @@ TEST_F(GCodeExportTest, TravelFlagsSelectIndependentDerivatives)
     EXPECT_EQ(second.jerk, 10.0);
 }
 
-TEST_F(GCodeExportTest, SpecialTravelPreservesSelectedLayerAndDestinationDerivatives)
+TEST_F(GCodeExportTest, SpecialTravelOverridesOnlyCachedSpeed)
 {
     prepareMotion();
     motionSettings().add("acceleration_travel_enabled", "false");
     motionSettings().add("jerk_travel_enabled", "false");
     refreshMotionSettings();
-    gcode.setTravelDerivatives({ 80.0, 430.0, 7.3 });
+    gcode.writeTravel(Point3LL(1000, 0, 0), { 80.0, 430.0, 7.3 });
     const SpeedDerivatives derivatives = gcode.getTravelDerivatives(motionExtruder(), 12.0);
     EXPECT_EQ(derivatives.speed, 12.0);
-    EXPECT_EQ(derivatives.acceleration, 430.0);
-    EXPECT_EQ(derivatives.jerk, 7.3);
+    EXPECT_EQ(derivatives.acceleration, 500.0);
+    EXPECT_EQ(derivatives.jerk, 10.0);
+}
+
+TEST_F(GCodeExportTest, ImplicitHopAndWipeUseActiveExtruderCachedDefaults)
+{
+    prepareMotion();
+    addPreSetupSettings();
+    Scene& scene = Application::getInstance().current_slice_->scene;
+    scene.extruders.emplace_back(1, &scene.settings);
+    motionSettings().add("acceleration_enabled", "true");
+    motionSettings().add("jerk_enabled", "true");
+    motionSettings().add("machine_max_acceleration_z", "2000");
+    motionSettings().add("machine_max_jerk_z", "30");
+    scene.extruders[1].settings_.add("acceleration_print", "600");
+    scene.extruders[1].settings_.add("acceleration_travel", "1200");
+    scene.extruders[1].settings_.add("jerk_print", "11");
+    scene.extruders[1].settings_.add("jerk_travel", "18");
+    scene.extruders[1].settings_.add("speed_z_hop", "2");
+    gcode.preSetup(0);
+
+    WipeScriptConfig wipe{};
+    wipe.hop_enable = true;
+    wipe.hop_amount = 1000;
+    wipe.hop_speed = 3.0;
+    wipe.brush_pos_x = 5000;
+    wipe.repeat_count = 1;
+    wipe.move_distance = 1000;
+    wipe.move_speed = 12.0;
+    const RetractionConfig no_retraction{};
+    for (const bool travel_acceleration : { false, true })
+    {
+        for (const bool travel_jerk : { false, true })
+        {
+            motionSettings().add("acceleration_travel_enabled", travel_acceleration ? "true" : "false");
+            motionSettings().add("jerk_travel_enabled", travel_jerk ? "true" : "false");
+            refreshMotionSettings();
+            for (const size_t extruder_nr : { 0U, 1U })
+            {
+                SCOPED_TRACE(testing::Message() << travel_acceleration << ", " << travel_jerk << ", extruder " << extruder_nr);
+                gcode.switchExtruder(extruder_nr, no_retraction);
+                gcode.writeTravel(Point3LL(1000, 0, 0), { 80.0, 430.0, 7.3 });
+                const std::string ordinary = output().str();
+                EXPECT_NE(ordinary.find("M204 S430\n"), std::string::npos);
+                EXPECT_NE(ordinary.find("M205 X7.3 Y7.3\n"), std::string::npos);
+                output_.str("");
+
+                const std::string acceleration = extruder_nr == 0 ? (travel_acceleration ? "1000" : "500") : (travel_acceleration ? "1200" : "600");
+                const std::string jerk = extruder_nr == 0 ? (travel_jerk ? "20" : "10") : (travel_jerk ? "18" : "11");
+                gcode.writeZhopStart(1000);
+                const std::string hop = output().str();
+                EXPECT_NE(hop.find("M204 S" + acceleration + "\n"), std::string::npos);
+                EXPECT_NE(hop.find("M205 Z" + jerk + " E5\n"), std::string::npos);
+                EXPECT_NE(hop.find(extruder_nr == 0 ? "G1 F60 Z1\n" : "G1 F120 Z1\n"), std::string::npos);
+                output_.str("");
+
+                gcode.writeTravel(Point3LL(2000, 0, 1000), { 80.0, 420.0, 7.2 });
+                output();
+                output_.str("");
+                gcode.writeZhopEnd();
+                const std::string unhop = output().str();
+                EXPECT_NE(unhop.find("M204 S" + acceleration + "\n"), std::string::npos);
+                EXPECT_NE(unhop.find("M205 Z" + jerk + " E5\n"), std::string::npos);
+                output_.str("");
+
+                gcode.writeTravel(Point3LL(3000, 0, 0), { 80.0, 410.0, 7.1 });
+                output();
+                output_.str("");
+                gcode.insertWipeScript(wipe);
+                const std::string result = output().str();
+                EXPECT_NE(result.find("M204 S" + acceleration + "\n"), std::string::npos);
+                EXPECT_NE(result.find("M205 Z" + jerk + " E5\n"), std::string::npos);
+                EXPECT_NE(result.find("M205 X" + jerk + " Y" + jerk + "\n"), std::string::npos);
+                EXPECT_NE(result.find("G1 F180 Z1\n"), std::string::npos);
+                EXPECT_NE(result.find("G0 F720 X5 Y0.00\n"), std::string::npos);
+                EXPECT_EQ(result.find("M204 S410\n"), std::string::npos);
+                output_.str("");
+            }
+        }
+    }
 }
 
 TEST_F(GCodeExportTest, RepRapAndCheetahAxisJerkUnits)
@@ -1393,12 +1471,12 @@ TEST_F(GCodeExportTest, MotionCachesLoadAfterConstructionAndRefreshForSequential
     EXPECT_EQ(fresh.getCurrentSpeed(), 2.0);
 
     RetractionConfig no_retraction{};
-    fresh.setTravelDerivatives({ 10.0, 123.0, 4.0 });
+    fresh.writeTravel(Point3LL(2500, 0, 0), { 10.0, 123.0, 4.0 });
     fresh.switchExtruder(1, no_retraction);
-    EXPECT_EQ(fresh.getTravelDerivatives(scene.extruders[1]).acceleration, 123.0);
+    EXPECT_EQ(fresh.getTravelDerivatives(scene.extruders[1]).acceleration, 1000.0);
     fresh.writeExtrusion(Point3LL(3000, 0, 0), { 100.0, 1000.0, 20.0 }, 1.0, PrintFeatureType::Infill);
     EXPECT_EQ(fresh.getCurrentSpeed(), 4.0);
-    fresh.setTravelDerivatives({ 10.0, 123.0, 4.0 });
+    fresh.writeTravel(Point3LL(3500, 0, 0), { 10.0, 123.0, 4.0 });
 
     scene.current_mesh_group = scene.mesh_groups.begin() + 1;
     scene.current_mesh_group->settings.add("machine_max_feedrate_y", "12");

@@ -3659,31 +3659,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 break;
             }
         }
-        std::optional<std::pair<Acceleration, Velocity>> starting_destination = destination_after_plan;
-        const std::vector<GCodePath>::iterator first_extrusion = ranges::find_if(
-            extruder_plan.paths_,
-            [](const GCodePath& path)
-            {
-                return ! path.isTravelPath();
-            });
-        if (first_extrusion != extruder_plan.paths_.end())
-        {
-            starting_destination = std::make_pair(first_extrusion->config.getAcceleration(), first_extrusion->config.getJerk());
-        }
-        SpeedDerivatives starting_travel = configs_storage_.travel_config_per_extruder[extruder_plan.extruder_nr_].speed_derivatives;
-        if (starting_destination.has_value())
-        {
-            if (! acceleration_travel_enabled)
-            {
-                starting_travel.acceleration = starting_destination->first;
-            }
-            if (! jerk_travel_enabled)
-            {
-                starting_travel.jerk = starting_destination->second;
-            }
-        }
-        // Tool switching may emit a hop or wipe before the first explicit travel path.
-        gcode.setTravelDerivatives(starting_travel);
 
         auto get_retraction_config = [&extruder_nr, this](std::shared_ptr<const SliceMeshStorage>& mesh) -> std::optional<const RetractionAndWipeConfig*>
         {
@@ -3858,17 +3833,6 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     }
                 }
             }
-            SpeedDerivatives hop_derivatives = path.isTravelPath() ? written_derivatives_ : configs_storage_.travel_config_per_extruder[extruder_nr].speed_derivatives;
-            if (! acceleration_travel_enabled)
-            {
-                hop_derivatives.acceleration = written_derivatives_.acceleration;
-            }
-            if (! jerk_travel_enabled)
-            {
-                hop_derivatives.jerk = written_derivatives_.jerk;
-            }
-            gcode.setTravelDerivatives(hop_derivatives);
-
             std::optional<TravelAntiOozing> retraction_amounts;
             std::optional<TravelAntiOozing> priming_amounts;
 

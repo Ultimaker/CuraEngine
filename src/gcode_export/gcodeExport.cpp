@@ -962,24 +962,17 @@ void GCodeExport::initializeMotionSettings()
     {
         extruder.initializeMotionSettings();
     }
-    travel_derivatives_.reset();
 }
 
 SpeedDerivatives GCodeExport::getTravelDerivatives(const ExtruderTrain& extruder, const std::optional<Velocity>& speed) const
 {
     const SpeedDerivatives& preset = extruder.getMotionSettings().travel;
-    const SpeedDerivatives& context = travel_derivatives_.has_value() ? *travel_derivatives_ : preset;
-    return SpeedDerivatives(context, speed.value_or(preset.speed));
+    return SpeedDerivatives(preset, speed.value_or(preset.speed));
 }
 
 Velocity GCodeExport::getCurrentSpeed() const
 {
     return current_speed_;
-}
-
-void GCodeExport::setTravelDerivatives(const SpeedDerivatives& derivatives)
-{
-    travel_derivatives_ = derivatives;
 }
 
 bool GCodeExport::supportsMotionControl() const
@@ -1173,7 +1166,6 @@ void GCodeExport::writeExtrusion(const Point2LL& p, const SpeedDerivatives& deri
 
 void GCodeExport::writeTravel(const Point3LL& p, const SpeedDerivatives& derivatives, const std::optional<double>& retract_distance)
 {
-    travel_derivatives_ = derivatives;
     if (flavor_ == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x_, p.y_, p.z_ + is_z_hopped_, derivatives, 0.0, PrintFeatureType::MoveUnretracted);
