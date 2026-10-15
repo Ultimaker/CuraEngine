@@ -97,6 +97,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     const Scene& scene = Application::getInstance().current_slice_->scene;
     std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
     setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
+    invalidateMotionState();
     use_extruder_offset_to_offset_coords_ = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
     ppr_enable_ = mesh_group->settings.get<bool>("ppr_enable");
@@ -398,11 +399,6 @@ Point2LL GCodeExport::getNozzleOffset(const int extruder_train) const
 
 void GCodeExport::setFlavor(const EGCodeFlavor& flavor)
 {
-    if (flavor_ != flavor)
-    {
-        // Motion commands and units differ by flavor; an old command cache cannot suppress the new flavor's commands.
-        invalidateMotionState();
-    }
     this->flavor_ = flavor;
     if (flavor == EGCodeFlavor::MACH3)
     {
@@ -967,7 +963,6 @@ void GCodeExport::initializeMotionSettings()
         extruder.initializeMotionSettings();
     }
     travel_derivatives_.reset();
-    invalidateMotionState();
 }
 
 SpeedDerivatives GCodeExport::getTravelDerivatives(const ExtruderTrain& extruder, const std::optional<Velocity>& speed) const

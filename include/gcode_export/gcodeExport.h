@@ -278,8 +278,6 @@ public:
 
     Point2LL getNozzleOffset(const int extruder_train) const;
 
-    void setFlavor(const EGCodeFlavor& flavor);
-
     EGCodeFlavor getFlavor() const;
 
     void setZ(int z);
@@ -562,6 +560,8 @@ private:
     bool supportsMotionControl() const;
 
     void initializeMotionSettings();
+
+    void setFlavor(const EGCodeFlavor& flavor);
 
     void invalidateMotionState();
 

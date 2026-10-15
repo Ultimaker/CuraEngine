@@ -43,6 +43,12 @@ public:
      */
     std::stringstream output_;
 
+    void selectFlavor(const EGCodeFlavor& flavor)
+    {
+        gcode.setFlavor(flavor);
+        gcode.invalidateMotionState();
+    }
+
     void SetUp() override
     {
         // Since GCodeExport doesn't support copying, we have to reset everything in-place.
@@ -150,6 +156,7 @@ public:
     void refreshMotionSettings()
     {
         gcode.initializeMotionSettings();
+        gcode.invalidateMotionState();
     }
 
     void addPreSetupSettings()
@@ -199,7 +206,7 @@ public:
         gcode.relative_extrusion_ = relative;
         if (volumetric)
         {
-            gcode.setFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
+            selectFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
         }
         gcode.setFlowRateExtrusionSettings(10.0, 1.0);
         gcode.writeExtrusion(Point3LL(1000, 0, 0), { 2.0, 1000.0, 20.0 }, 2.0, PrintFeatureType::Infill, true);
@@ -1046,7 +1053,7 @@ TEST_F(GCodeExportTest, StationaryTravelRetractionUsesFilamentSpeed)
 TEST_F(GCodeExportTest, VolumetricCoordinatesDoNotScaleStationaryFeedrate)
 {
     prepareMotion(4.0);
-    gcode.setFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
+    selectFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
     motionSettings().add("machine_max_feedrate_e", "5");
     motionSettings().add("material_max_flowrate", "0");
     refreshMotionSettings();
@@ -1060,7 +1067,7 @@ TEST_F(GCodeExportTest, VolumetricCoordinatesDoNotScaleStationaryFeedrate)
 TEST_F(GCodeExportTest, VolumetricPrintingConvertsFilamentLimit)
 {
     prepareMotion(4.0);
-    gcode.setFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
+    selectFlavor(EGCodeFlavor::MARLIN_VOLUMATRIC);
     motionSettings().add("machine_max_feedrate_e", "5");
     refreshMotionSettings();
     gcode.writeExtrusion(Point3LL(10000, 0, 0), { 100.0, 1000.0, 20.0 }, 8.0, PrintFeatureType::Infill);
@@ -1199,11 +1206,11 @@ TEST_F(GCodeExportTest, RepRapAndCheetahAxisJerkUnits)
     prepareMotion();
     motionSettings().add("jerk_enabled", "true");
     refreshMotionSettings();
-    gcode.setFlavor(EGCodeFlavor::REPRAP);
+    selectFlavor(EGCodeFlavor::REPRAP);
     gcode.writeTravel(Point3LL(0, 0, 1000), { 10.0, 100.0, 0.3 });
     EXPECT_NE(output().str().find("M566 Z18 E300"), std::string::npos);
     output_.str("");
-    gcode.setFlavor(EGCodeFlavor::CHEETAH);
+    selectFlavor(EGCodeFlavor::CHEETAH);
     gcode.writeTravel(Point3LL(0, 0, 2000), { 10.0, 100.0, 0.2 });
     EXPECT_NE(output().str().find("M215 Z200 E5000"), std::string::npos);
 }
@@ -1222,7 +1229,7 @@ TEST_F(GCodeExportTest, FirmwareRetractionRemainsAMacro)
 TEST_F(GCodeExportTest, PostPrimeZCorrectionHasExplicitBoundedFeedrate)
 {
     prepareMotion();
-    gcode.setFlavor(EGCodeFlavor::GRIFFIN);
+    selectFlavor(EGCodeFlavor::GRIFFIN);
     motionExtruder().settings_.add("prime_blob_enable", "false");
     motionSettings().add("machine_max_feedrate_z", "5");
     refreshMotionSettings();
@@ -1233,7 +1240,7 @@ TEST_F(GCodeExportTest, PostPrimeZCorrectionHasExplicitBoundedFeedrate)
 TEST_F(GCodeExportTest, BFBFeedrateIsCapped)
 {
     prepareMotion(4.0);
-    gcode.setFlavor(EGCodeFlavor::BFB);
+    selectFlavor(EGCodeFlavor::BFB);
     motionSettings().add("machine_max_feedrate_y", "30");
     refreshMotionSettings();
     gcode.writeTravel(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 });
@@ -1294,7 +1301,7 @@ TEST_F(GCodeExportTest, ManufacturerCodeIsUnchangedAndInvalidatesMotionCache)
 TEST_F(GCodeExportTest, RepRapStationaryPrimingRestoresPrintAndTravelModes)
 {
     prepareMotion();
-    gcode.setFlavor(EGCodeFlavor::REPRAP);
+    selectFlavor(EGCodeFlavor::REPRAP);
     motionSettings().add("acceleration_enabled", "true");
     refreshMotionSettings();
     gcode.writeTravel(Point3LL(1000, 0, 0), { 30.0, 700.0, 12.0 });
@@ -1309,7 +1316,7 @@ TEST_F(GCodeExportTest, RepRapStationaryPrimingRestoresPrintAndTravelModes)
 TEST_F(GCodeExportTest, BFBPrintingUsesMaterialCapAndCommandPrecision)
 {
     prepareMotion(4.0);
-    gcode.setFlavor(EGCodeFlavor::BFB);
+    selectFlavor(EGCodeFlavor::BFB);
     motionSettings().add("material_max_flowrate", "1");
     refreshMotionSettings();
     gcode.writeTravel(Point3LL(1000, 0, 0), { 100.0, 1000.0, 20.0 });
@@ -1342,7 +1349,7 @@ TEST_F(GCodeExportTest, LegacyFlavorsDoNotReceiveUnsupportedMotionCommands)
     for (const EGCodeFlavor flavor : { EGCodeFlavor::MAKERBOT, EGCodeFlavor::MACH3 })
     {
         output_.str("");
-        gcode.setFlavor(flavor);
+        selectFlavor(flavor);
         gcode.writeTravel(Point3LL(x, 0, 0), { 100.0, 1000.0, 20.0 });
         EXPECT_NE(output().str().find("G0 F1800"), std::string::npos);
         EXPECT_EQ(output().str().find("M201"), std::string::npos);
@@ -1375,6 +1382,7 @@ TEST_F(GCodeExportTest, MotionCachesLoadAfterConstructionAndRefreshForSequential
     scene.extruders[0].settings_.add("material_max_flowrate", "2");
     scene.extruders[1].settings_.add("material_max_flowrate", "4");
     fresh.preSetup(0);
+    EXPECT_EQ(fresh.getCurrentSpeed(), -1.0);
     EXPECT_EQ(fresh.getTravelDerivatives(scene.extruders[0]).speed, 80.0);
     EXPECT_EQ(fresh.getTravelDerivatives(scene.extruders[1]).speed, 60.0);
     EXPECT_EQ(fresh.getTravelDerivatives(scene.extruders[0]).acceleration, 222.0);
@@ -1400,6 +1408,7 @@ TEST_F(GCodeExportTest, MotionCachesLoadAfterConstructionAndRefreshForSequential
         extruder.settings_.setParent(&scene.current_mesh_group->settings);
     }
     fresh.preSetup(1);
+    EXPECT_EQ(fresh.getCurrentSpeed(), -1.0);
     EXPECT_EQ(fresh.getTravelDerivatives(scene.extruders[1]).acceleration, 345.0);
     EXPECT_EQ(fresh.getTravelDerivatives(scene.extruders[1]).speed, 60.0);
     EXPECT_EQ(fresh.getTravelDerivatives(scene.extruders[0]).acceleration, 222.0);
@@ -1430,7 +1439,7 @@ TEST_F(GCodeExportTest, FinalMotionResetRestoresDefaultsWithinMachineLimits)
     motionSettings().add("jerk_enabled", "true");
     motionSettings().add("machine_max_acceleration_y", "700");
     refreshMotionSettings();
-    gcode.setFlavor(EGCodeFlavor::REPRAP);
+    selectFlavor(EGCodeFlavor::REPRAP);
     gcode.writeTravel(Point3LL(0, 0, 1000), { 10.0, 5.0, 0.1 });
     output();
     output_.str("");
@@ -1463,7 +1472,7 @@ TEST_F(GCodeExportTest, MeshGroupControlOverridesGateHeadAxisAndFinalResetConsis
     EXPECT_FALSE(motionSettings().get<bool>("acceleration_enabled"));
     EXPECT_FALSE(motionSettings().get<bool>("jerk_enabled"));
     refreshMotionSettings();
-    gcode.setFlavor(EGCodeFlavor::REPRAP);
+    selectFlavor(EGCodeFlavor::REPRAP);
     gcode.writeTravel(Point3LL(1000, 0, 0), { 30.0, 700.0, 12.0 });
     gcode.writeExtrusion(Point3LL(2000, 0, 0), { 30.0, 500.0, 10.0 }, 1.0, PrintFeatureType::Infill);
     const std::string moves = output().str();
