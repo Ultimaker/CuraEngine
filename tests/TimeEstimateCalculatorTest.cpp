@@ -500,17 +500,18 @@ TEST_F(TimeEstimateCalculatorTest, SpatialEAccelerationUsesFilamentRatio)
     EXPECT_NEAR(filament_limited, calculator.calculate()[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
 }
 
-TEST_F(TimeEstimateCalculatorTest, ZeroFeedrateAndAccelerationDoNotProduceNaNEstimates)
+TEST_F(TimeEstimateCalculatorTest, ZeroFeedrateUsesMinimumFeedrate)
 {
+    always_50.add("machine_minimum_feedrate", "10");
+    calculator.setFirmwareDefaults(always_50);
     calculator.plan(TimeEstimateCalculator::Position(100, 0, 0, 0), 0.0, PrintFeatureType::Infill);
-    EXPECT_TRUE(std::isinf(static_cast<double>(calculator.calculate()[static_cast<size_t>(PrintFeatureType::Infill)])));
+    const double clamped_estimate = calculator.calculate()[static_cast<size_t>(PrintFeatureType::Infill)];
+    EXPECT_TRUE(std::isfinite(clamped_estimate));
+    EXPECT_GT(clamped_estimate, 0.0);
     calculator.reset();
     calculator.setPosition(TimeEstimateCalculator::Position(0, 0, 0, 0));
-    calculator.setAcceleration(0.0);
-    calculator.plan(TimeEstimateCalculator::Position(100, 0, 0, 0), 50.0, PrintFeatureType::Infill);
-    EXPECT_TRUE(std::isinf(static_cast<double>(calculator.calculate()[static_cast<size_t>(PrintFeatureType::Infill)])));
-    calculator.reset();
-    EXPECT_EQ(calculator.calculate()[static_cast<size_t>(PrintFeatureType::Infill)], 0.0);
+    calculator.plan(TimeEstimateCalculator::Position(100, 0, 0, 0), 10.0, PrintFeatureType::Infill);
+    EXPECT_NEAR(clamped_estimate, calculator.calculate()[static_cast<size_t>(PrintFeatureType::Infill)], EPSILON);
 }
 
 } // namespace cura

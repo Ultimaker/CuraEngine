@@ -4,7 +4,6 @@
 #include "timeEstimate.h"
 
 #include <algorithm>
-#include <limits>
 #include <math.h>
 #include <stdio.h>
 #include <string.h>
@@ -75,7 +74,6 @@ void TimeEstimateCalculator::reset()
 {
     extra_time = 0.0;
     blocks.clear();
-    stalled_features_.fill(false);
 }
 
 // Calculates the maximum allowable speed at this point when you must be able to reach target_velocity using the
@@ -193,13 +191,6 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     {
         return;
     }
-    if (feedrate <= 0.0)
-    {
-        stalled_features_[static_cast<size_t>(feature)] = true;
-        currentPosition = newPos;
-        previous_nominal_feedrate = 0.0;
-        return;
-    }
     if (feedrate < minimumfeedrate)
     {
         feedrate = minimumfeedrate;
@@ -244,13 +235,6 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
         }
     }
 
-    if (block.nominal_feedrate <= 0.0 || block.acceleration <= 0.0)
-    {
-        stalled_features_[static_cast<size_t>(feature)] = true;
-        currentPosition = newPos;
-        previous_nominal_feedrate = 0.0;
-        return;
-    }
     Velocity vmax_junction = block.nominal_feedrate;
     Ratio vmax_junction_factor{ 1.0 };
     const double xy_ratio = std::hypot(block.delta[X_AXIS], block.delta[Y_AXIS]) / block.distance;
@@ -322,13 +306,6 @@ std::vector<Duration> TimeEstimateCalculator::calculate()
         totals[static_cast<unsigned char>(block.feature)] += accelerationTimeFromDistance(block.initial_feedrate, block.accelerate_until, block.acceleration);
         totals[static_cast<unsigned char>(block.feature)] += plateau_distance / block.nominal_feedrate;
         totals[static_cast<unsigned char>(block.feature)] += accelerationTimeFromDistance(block.final_feedrate, (block.distance - block.decelerate_after), block.acceleration);
-    }
-    for (size_t feature = 0; feature < stalled_features_.size(); ++feature)
-    {
-        if (stalled_features_[feature])
-        {
-            totals[feature] = std::numeric_limits<double>::infinity();
-        }
     }
     return totals;
 }

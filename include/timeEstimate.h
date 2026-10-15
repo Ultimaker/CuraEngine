@@ -4,7 +4,6 @@
 #ifndef TIME_ESTIMATE_H
 #define TIME_ESTIMATE_H
 
-#include <array>
 #include <stdint.h>
 #include <unordered_map>
 #include <vector>
@@ -97,8 +96,6 @@ private:
     Position currentPosition;
 
     std::vector<Block> blocks;
-    std::array<bool, static_cast<size_t>(PrintFeatureType::NumPrintFeatureTypes)>
-        stalled_features_{}; //!< Features with nonzero moves blocked by non-positive speed or acceleration; their duration is infinite.
 
 public:
     /*!
