@@ -18,6 +18,7 @@
 #include "gcode_export/GCodePartType.h"
 #include "gcode_export/ResolvingExtruderContext.h"
 #include "geometry/Point2LL.h"
+#include "pathPlanning/SpeedDerivatives.h"
 #include "settings/EnumSettings.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
 #include "settings/types/LayerIndex.h"
@@ -32,6 +33,7 @@ namespace cura
 {
 
 class RetractionConfig;
+class ExtruderTrain;
 class SliceDataStorage;
 class GCodePart;
 class GcodeTemplateResolver;
@@ -75,6 +77,18 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, insertWipeScriptHopEnable);
 #endif
 private:
+    struct MotionSettings
+    {
+        SpeedDerivatives xy; //!< Combined conservative X/Y feedrate, acceleration and jerk limits.
+        SpeedDerivatives z; //!< Z-axis feedrate, acceleration and jerk limits.
+        SpeedDerivatives e; //!< E-axis limits in filament mm, independent of the G-code coordinate units.
+        Acceleration default_acceleration; //!< Machine acceleration restored at the end of the print.
+        bool acceleration_enabled; //!< Whether exporter-generated acceleration commands are enabled.
+        bool jerk_enabled; //!< Whether exporter-generated jerk commands are enabled.
+    };
+
+    std::optional<MotionSettings> motion_settings_; //!< Loaded in preSetup, never while the slice's settings are still unavailable.
+
     struct ExtruderTrainAttributes
     {
         bool is_primed_; //!< Whether this extruder has currently already been primed in this print
@@ -147,16 +161,22 @@ private:
     std::string new_line_;
     std::ostream* output_stream_;
 
-    double current_e_value_; //!< The last E value written to gcode (in mm or mm^3)
+    double current_e_value_; //!< The logical E coordinate, excluding flow-rate compensation (in mm or mm^3)
 
     // flow-rate compensation
-    double current_e_offset_; //!< Offset to compensate for flow rate (mm or mm^3)
-    double max_extrusion_offset_; //!< 0 to turn it off, normally 4
-    double extrusion_offset_factor_; //!< default 1
+    double current_e_offset_{ 0.0 }; //!< Offset to compensate for flow rate (mm or mm^3)
+    double emitted_e_offset_{ 0.0 }; //!< Compensation included in the last emitted E coordinate.
+    double max_extrusion_offset_{ 0.0 }; //!< 0 to turn it off, normally 4
+    double extrusion_offset_factor_{ 0.0 }; //!< default 1
 
     Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is
                                 //!< encoded in the gcode)
     Velocity current_speed_; //!< The current speed (F values / 60) in mm/s
+    double current_bfb_rpm_{ -1.0 }; //!< Last BFB extruder RPM command; negative means unknown.
+    Acceleration current_z_acceleration_{ -1.0 }; //!< Last emitted Z-axis acceleration limit; negative means unknown.
+    Acceleration current_e_acceleration_{ -1.0 }; //!< Last emitted E-axis acceleration limit; negative means unknown.
+    Velocity current_z_jerk_{ -1.0 }; //!< Last emitted Z-axis jerk limit; negative means unknown.
+    Velocity current_e_jerk_{ -1.0 }; //!< Last emitted E-axis jerk limit; negative means unknown.
     Acceleration current_print_acceleration_; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate
                                               //!< travel acceleration)
     Acceleration
@@ -180,7 +200,7 @@ private:
     size_t current_extruder_;
     std::map<size_t, double> current_fans_speeds_; //!< Current fan speed, by fan index. No value means the speed has never been set yet.
     size_t fans_count_{ 0 };
-    EGCodeFlavor flavor_;
+    EGCodeFlavor flavor_{ EGCodeFlavor::MARLIN };
 
     std::vector<Duration> total_print_times_; //!< The total estimated print time in seconds for each feature
     TimeEstimateCalculator estimate_calculator_;
@@ -257,7 +277,6 @@ public:
 
     Point2LL getNozzleOffset(const int extruder_train) const;
 
-    void setFlavor(EGCodeFlavor flavor);
     EGCodeFlavor getFlavor() const;
 
     void setZ(int z);
@@ -333,8 +352,6 @@ public:
 
     void writeLine(const std::string& line);
 
-    void writeRaw(const std::string& gcode);
-
     /*!
      * Reset the current_e_value to prevent too high E values.
      *
@@ -348,29 +365,29 @@ public:
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
      *
      * \param p location to go to
-     * \param speed movement speed
+     * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      */
-    void writeTravel(const Point2LL& p, const Velocity& speed);
+    void writeTravel(const Point2LL& p, const SpeedDerivatives& derivatives);
 
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
      *
      * \param p location to go to
-     * \param speed movement speed
+     * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const Point2LL& p, const SpeedDerivatives& derivatives, double extrusion_mm3_per_mm, const PrintFeatureType& feature, bool update_extrusion_offset = false);
 
     /*!
      * Go to a X/Y location with the z-hopped Z value
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
      *
      * \param p location to go to
-     * \param speed movement speed
+     * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      *  \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
+    void writeTravel(const Point3LL& p, const SpeedDerivatives& derivatives, const std::optional<double>& retract_distance = std::nullopt);
 
     /*!
      * Go to a X/Y location with the extrusion Z
@@ -380,11 +397,18 @@ public:
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
      *
      * \param p location to go to
-     * \param speed movement speed
+     * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      * \param feature the feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
      */
-    void writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset = false);
+    void writeExtrusion(const Point3LL& p, const SpeedDerivatives& derivatives, double extrusion_mm3_per_mm, const PrintFeatureType& feature, bool update_extrusion_offset = false);
+
+    SpeedDerivatives getTravelDerivatives(const ExtruderTrain& extruder, const std::optional<Velocity>& speed = std::nullopt) const;
+
+    Velocity getCurrentSpeed() const;
+
+    //! Restore machine defaults through the same enable flags and axis limits as regular moves.
+    void resetMotionSettings();
 
     /*!
      * Initialize the extruder trains.
@@ -458,10 +482,10 @@ private:
      * \param x build plate x
      * \param y build plate y
      * \param z build plate z
-     * \param speed movement speed
+     * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      * \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
+    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const SpeedDerivatives& derivatives, const std::optional<double>& retract_distance = std::nullopt);
 
     /*!
      * Perform un-z-hop
@@ -472,7 +496,7 @@ private:
      * \param x build plate x
      * \param y build plate y
      * \param z build plate z
-     * \param speed movement speed
+     * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      * \param extrusion_mm3_per_mm flow
      * \param feature the print feature that's currently printing
      * \param update_extrusion_offset whether to update the extrusion offset to match the current flow rate
@@ -481,7 +505,7 @@ private:
         const coord_t x,
         const coord_t y,
         const coord_t z,
-        const Velocity& speed,
+        const SpeedDerivatives& derivatives,
         const double extrusion_mm3_per_mm,
         const PrintFeatureType& feature,
         const bool update_extrusion_offset = false);
@@ -497,7 +521,7 @@ private:
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
     void writeFXYZE(
-        const Velocity& speed,
+        const SpeedDerivatives& derivatives,
         const coord_t x,
         const coord_t y,
         const coord_t z,
@@ -510,11 +534,33 @@ private:
      * \param x build plate x
      * \param y build plate y
      * \param z build plate z
-     * \param speed movement speed
+     * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      * \param extrusion_mm3_per_mm flow
      * \param feature print feature to track print time for
      */
-    void writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature);
+    void writeMoveBFB(const int x, const int y, const int z, const SpeedDerivatives& derivatives, double extrusion_mm3_per_mm, const PrintFeatureType& feature);
+    SpeedDerivatives prepareMove(
+        const Point3LL& target,
+        const SpeedDerivatives& requested,
+        double filament_per_mm,
+        double volume_per_mm,
+        bool travel,
+        bool emit = true,
+        bool force_z_only = false);
+
+    Velocity prepareStationaryExtrusion(const Velocity& speed);
+
+    void writeStationaryExtrusion(double delta_e, const Velocity& speed);
+
+    void writeAxisLimits(const Acceleration& z_acceleration, const Acceleration& e_acceleration, const Velocity& z_jerk, const Velocity& e_jerk);
+
+    bool supportsMotionControl() const;
+
+    void initializeMotionSettings();
+
+    void setFlavor(const EGCodeFlavor& flavor);
+
+    void invalidateMotionState();
 
     /*!
      * Set bed temperature for the initial layer. Called by 'processInitialLayerTemperatures'.
@@ -546,11 +592,11 @@ private:
 
     /*!
      * Start or end a z hop
-     * \param speed The speed used for moving, or 0 to take the default speed
+     * \param derivatives Optional motion derivatives; otherwise use the selected travel context and configured hop speed.
      * \param height The actual height to be reached, relative to the current layer height
      * \param retract_distance The absolute retraction distance to be reached while doing the z-hop move, or nullopt to leave it unchanged
      */
-    void writeZhop(Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
+    void writeZhop(const std::optional<SpeedDerivatives>& derivatives = std::nullopt, const coord_t height = 0, const std::optional<double>& retract_distance = std::nullopt);
 
     static PrintFeatureType
         sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
@@ -583,22 +629,30 @@ public:
      * Start a z hop with the given \p hop_height.
      *
      * \param hop_height The height to move above the current layer.
-     * \param speed The speed used for moving.
+     * \param derivatives Optional motion derivatives; otherwise use the selected travel context and configured hop speed.
      * \param retract_distance The absolute retract distance to be reached during the z-hop move, or nullopt to leave it unchanged
      * \param retract_ratio This is the ratio of the complete z-hop move that should be used to process the retraction. If >0 and <1 then the z-hop move
      *                      will actually be split in two part, one with retraction and one without.
      */
-    void writeZhopStart(const coord_t hop_height, Velocity speed = 0.0, std::optional<double> retract_distance = std::nullopt, const Ratio& retract_ratio = 0.0_r);
+    void writeZhopStart(
+        const coord_t hop_height,
+        const std::optional<SpeedDerivatives>& derivatives = std::nullopt,
+        const std::optional<double>& retract_distance = std::nullopt,
+        const Ratio& retract_ratio = 0.0_r);
 
     /*!
      * End a z hop: go back to the layer height
      *
-     * \param speed The speed used for moving.
+     * \param derivatives Optional motion derivatives; otherwise use the selected travel context and configured hop speed.
      * \param prime_distance The absolute prime distance to be reached during the z-hop move, or nullopt to leave it unchanged
      * \param prime_ratio This is the ratio of the complete z-hop move that should be used to process the priming. If >0 and <1 then the z-hop move
      *                    will actually be split in two part, one without priming and one with.
      */
-    void writeZhopEnd(Velocity speed = 0.0, const coord_t height = 0, const std::optional<double> prime_distance = std::nullopt, const Ratio& prime_ratio = 0.0_r);
+    void writeZhopEnd(
+        const std::optional<SpeedDerivatives>& derivatives = std::nullopt,
+        const coord_t height = 0,
+        const std::optional<double>& prime_distance = std::nullopt,
+        const Ratio& prime_ratio = 0.0_r);
 
     /*!
      * Start the new_extruder:
@@ -624,8 +678,6 @@ public:
      */
     void switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop = 0);
 
-    void writeCode(const std::string& str);
-
     /*!
      * Write a piece of resolvable GCode while temporarily ensuring absolute extrusion mode.
      * If relative extrusion mode is active, this will:
@@ -647,9 +699,9 @@ public:
     /*!
      * Write the gcode for priming the current extruder train so that it can be used.
      *
-     * \param travel_speed The travel speed when priming involves a movement
+     * \param derivatives The motion derivatives when priming involves a movement.
      */
-    void writePrimeTrain(const Velocity& travel_speed);
+    void writePrimeTrain(const SpeedDerivatives& derivatives);
 
     /*!
      * \brief Write a set fan speed command, if different from the actual speed
@@ -689,6 +741,7 @@ public:
     /*!
      * Write the command for setting the acceleration for print moves to a specific value
      */
+private:
     void writePrintAcceleration(const Acceleration& acceleration);
 
     /*!
@@ -701,8 +754,10 @@ public:
      */
     void writeJerk(const Velocity& jerk);
 
+public:
     /*!
-     * Set member variables using the settings in \p settings.
+     * Refresh machine limits and every extruder's motion presets from the loaded settings of the current mesh group.
+     * Call before emitting G-code for each mesh group; constructors intentionally do not access settings.
      */
     void preSetup(const size_t start_extruder);
 

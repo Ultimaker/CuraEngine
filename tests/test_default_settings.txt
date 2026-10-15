@@ -1264,3 +1264,4 @@ skin_support_density=100
 skin_support=False
 skin_support_fan_speed=100
 skin_support_interlace_lines=True
+material_max_flowrate=16

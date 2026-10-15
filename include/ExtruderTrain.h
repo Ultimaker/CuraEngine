@@ -4,6 +4,9 @@
 #ifndef EXTRUDER_TRAIN_H
 #define EXTRUDER_TRAIN_H
 
+#include <optional>
+
+#include "pathPlanning/SpeedDerivatives.h"
 #include "settings/Settings.h"
 
 namespace cura
@@ -12,6 +15,19 @@ namespace cura
 class ExtruderTrain
 {
 public:
+    struct MotionSettings
+    {
+        SpeedDerivatives travel; //!< Default travel derivatives, including the print fallback when separate travel controls are disabled.
+        Velocity hop_speed; //!< Configured Z-hop speed in mm/s.
+        double max_flowrate; //!< Maximum printing flow in mm^3/s; does not limit retraction or priming.
+    };
+
+    //! Refresh after loading settings, and before generating each mesh group's G-code.
+    void initializeMotionSettings();
+
+    //! Require explicitly initialized presets; never fall back to unconfigured limits.
+    const MotionSettings& getMotionSettings() const;
+
     /*
      * \brief Creates a new extruder. This extruder will have no settings but
      * inherits everything from the global settings.
@@ -30,6 +46,9 @@ public:
      * tool we must switch.
      */
     const size_t extruder_nr_;
+
+private:
+    std::optional<MotionSettings> motion_settings_; //!< Presets are unavailable until settings have been loaded explicitly.
 };
 
 } // namespace cura

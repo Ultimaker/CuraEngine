@@ -54,6 +54,22 @@ void TimeEstimateCalculator::setMaxXyJerk(const Velocity& jerk)
     max_xy_jerk = jerk;
 }
 
+void TimeEstimateCalculator::setMaxZJerk(const Velocity& jerk)
+{
+    max_z_jerk = jerk;
+}
+
+void TimeEstimateCalculator::setMaxEJerk(const Velocity& jerk)
+{
+    max_e_jerk = jerk;
+}
+
+void TimeEstimateCalculator::setAxisAccelerations(const Acceleration& z, const Acceleration& e)
+{
+    max_acceleration[Z_AXIS] = z;
+    max_acceleration[E_AXIS] = e;
+}
+
 void TimeEstimateCalculator::reset()
 {
     extra_time = 0.0;
@@ -215,21 +231,25 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     {
         if (block.acceleration * (block.absDelta[n] / block.distance) > max_acceleration[n])
         {
-            block.acceleration = max_acceleration[n];
+            block.acceleration = max_acceleration[n] / (block.absDelta[n] / block.distance);
         }
     }
 
-    Velocity vmax_junction{ max_xy_jerk / 2.0 };
+    Velocity vmax_junction = block.nominal_feedrate;
     Ratio vmax_junction_factor{ 1.0 };
-    if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2.0)
+    const double xy_ratio = std::hypot(block.delta[X_AXIS], block.delta[Y_AXIS]) / block.distance;
+    if (xy_ratio > 0.0)
     {
-        vmax_junction = std::min(vmax_junction, Velocity{ max_z_jerk / 2.0 });
+        vmax_junction = std::min(vmax_junction, Velocity{ max_xy_jerk / (2.0 * xy_ratio) });
     }
-    if (current_abs_feedrate[E_AXIS] > max_e_jerk / 2.0)
+    if (block.absDelta[Z_AXIS] > 0.0)
     {
-        vmax_junction = std::min(vmax_junction, Velocity{ max_e_jerk / 2.0 });
+        vmax_junction = std::min(vmax_junction, Velocity{ max_z_jerk * block.distance / (2.0 * block.absDelta[Z_AXIS]) });
     }
-    vmax_junction = std::min(vmax_junction, block.nominal_feedrate);
+    if (block.absDelta[E_AXIS] > 0.0)
+    {
+        vmax_junction = std::min(vmax_junction, Velocity{ max_e_jerk * block.distance / (2.0 * block.absDelta[E_AXIS]) });
+    }
     const Velocity safe_speed = vmax_junction;
 
     if ((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))

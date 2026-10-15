@@ -151,6 +151,7 @@ private:
     bool first_travel_destination_is_inside_; //!< Whether the destination of the first planned travel move is inside a layer part
     std::optional<std::pair<Acceleration, Velocity>> first_extrusion_acc_jerk_; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
     std::optional<std::pair<Acceleration, Velocity>> next_layer_acc_jerk_; //!< If there is a next layer, the first acceleration and jerk it starts with.
+    SpeedDerivatives written_derivatives_; //!< Derivatives selected for the current output path, including destination-based travel overrides.
     bool was_inside_; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside_; //!< Whether the destination of the next planned travel move is inside a layer part
     Shape comb_boundary_minimum_; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
@@ -1054,7 +1055,7 @@ private:
         const Point3LL& position,
         const Velocity& speed,
         const coord_t path_z_offset,
-        const std::optional<double> retract_distance = std::nullopt);
+        const std::optional<double>& retract_distance = std::nullopt);
 
     /*!
      * \brief Write an extrusion move and properly apply the various Z offsets
@@ -1072,7 +1073,7 @@ private:
         const Velocity& speed,
         const coord_t path_z_offset,
         double extrusion_mm3_per_mm,
-        PrintFeatureType feature,
+        const PrintFeatureType& feature,
         bool update_extrusion_offset = false);
 
     /*!

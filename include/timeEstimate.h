@@ -109,6 +109,12 @@ public:
     void setAcceleration(const Acceleration& acc); //!< Set the default acceleration to \p acc
     void setMaxXyJerk(const Velocity& jerk); //!< Set the max xy jerk to \p jerk
 
+    void setMaxZJerk(const Velocity& jerk);
+
+    void setMaxEJerk(const Velocity& jerk);
+
+    void setAxisAccelerations(const Acceleration& z, const Acceleration& e);
+
     void reset();
 
     std::vector<Duration> calculate();

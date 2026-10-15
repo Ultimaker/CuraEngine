@@ -131,7 +131,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
     {
         // Setting first travel move of the first extruder to the machine start position
         Point3LL p(extruder_settings.get<coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
-        gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"));
+        gcode.writeTravel(p, gcode.getTravelDerivatives(Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()]));
     }
 
     calculateExtruderOrderPerLayer(storage);
@@ -558,9 +558,10 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.setZ(max_object_height + MM2INT(5));
 
     Application::getInstance().communication_->sendCurrentPosition(gcode.getPositionXY());
-    gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_z_hop"));
+    const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()];
+    gcode.writeTravel(gcode.getPositionXY(), gcode.getTravelDerivatives(extruder, extruder.getMotionSettings().hop_speed));
     Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
-    gcode.writeTravel(start_pos, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
+    gcode.writeTravel(start_pos, gcode.getTravelDerivatives(extruder));
 
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
@@ -4227,7 +4228,8 @@ void FffGcodeWriter::finalize()
     {
         gcode.setZ(max_object_height + MM2INT(5));
         Application::getInstance().communication_->sendCurrentPosition(gcode.getPosition());
-        gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_z_hop"));
+        const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()];
+        gcode.writeTravel(gcode.getPositionXY(), gcode.getTravelDerivatives(extruder, extruder.getMotionSettings().hop_speed));
     }
     // Write the current extruder's end G-code
     const Scene& scene = Application::getInstance().current_slice_->scene;
@@ -4250,15 +4252,7 @@ void FffGcodeWriter::finalize()
     }
 
     Application::getInstance().communication_->sendSliceUUID(slice_uuid);
-    if (mesh_group_settings.get<bool>("acceleration_enabled"))
-    {
-        gcode.writePrintAcceleration(mesh_group_settings.get<Acceleration>("machine_acceleration"));
-        gcode.writeTravelAcceleration(mesh_group_settings.get<Acceleration>("machine_acceleration"));
-    }
-    if (mesh_group_settings.get<bool>("jerk_enabled"))
-    {
-        gcode.writeJerk(mesh_group_settings.get<Velocity>("machine_max_jerk_xy"));
-    }
+    gcode.resetMotionSettings();
 
     // Replace the setting tokens in start and end g-code.
     // Use values from the first used extruder by default so we get the expected temperatures
@@ -4282,7 +4276,7 @@ void FffGcodeWriter::finalize()
     gcode.sendFinalGCode();
     /*
     the profile string below can be executed since the M25 doesn't end the gcode on an UMO and when printing via USB.
-    gcode.writeCode("M25 ;Stop reading from this point on.");
+    gcode.writeLine("M25 ;Stop reading from this point on.");
     gcode.writeComment("Cura profile string:");
     gcode.writeComment(FffProcessor::getInstance()->getAllLocalSettingsString() + FffProcessor::getInstance()->getProfileString());
     */

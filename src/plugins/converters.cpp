@@ -465,8 +465,7 @@ gcode_paths_modify_request::value_type
         .line_width = path.line_width(),
         .layer_thickness = path.layer_thickness(),
         .flow = path.flow_ratio(),
-        .speed_derivatives
-        = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
+        .speed_derivatives = SpeedDerivatives{ path.speed_derivatives().velocity(), path.speed_derivatives().acceleration(), path.speed_derivatives().jerk() },
         .is_bridge_path = path.is_bridge_path(),
         .fan_speed = path.fan_speed(),
         .temperature_delta = path.temperature_delta(),
