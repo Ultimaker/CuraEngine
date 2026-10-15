@@ -1107,7 +1107,7 @@ std::optional<ClosestPointPolygon> PolygonUtils::getNextParallelIntersection(con
 }
 
 
-bool PolygonUtils::polygonCollidesWithLineSegment(const Point2LL from, const Point2LL to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
+bool PolygonUtils::polygonCollidesWithLineSegment(const Point2LL& from, const Point2LL& to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result)
 {
     bool ret = false;
     Point2LL diff = to - from;
@@ -1149,7 +1149,7 @@ bool PolygonUtils::polygonCollidesWithLineSegment(
     const Polygon& poly,
     const Point2LL& transformed_startPoint,
     const Point2LL& transformed_endPoint,
-    PointMatrix transformation_matrix)
+    const PointMatrix& transformation_matrix)
 {
     Point2LL p0 = transformation_matrix.apply(poly.back());
     for (Point2LL p1_ : poly)
@@ -1164,22 +1164,11 @@ bool PolygonUtils::polygonCollidesWithLineSegment(
     return false;
 }
 
-bool PolygonUtils::polygonCollidesWithLineSegment(const Polygon& poly, const Point2LL& startPoint, const Point2LL& endPoint)
-{
-    Point2LL diff = endPoint - startPoint;
-
-    PointMatrix transformation_matrix = PointMatrix(diff);
-    Point2LL transformed_startPoint = transformation_matrix.apply(startPoint);
-    Point2LL transformed_endPoint = transformation_matrix.apply(endPoint);
-
-    return PolygonUtils::polygonCollidesWithLineSegment(poly, transformed_startPoint, transformed_endPoint, transformation_matrix);
-}
-
 bool PolygonUtils::polygonCollidesWithLineSegment(
     const Shape& polys,
     const Point2LL& transformed_startPoint,
     const Point2LL& transformed_endPoint,
-    PointMatrix transformation_matrix)
+    const PointMatrix& transformation_matrix)
 {
     for (const Polygon& poly : polys)
     {
@@ -1195,7 +1184,6 @@ bool PolygonUtils::polygonCollidesWithLineSegment(
 
     return false;
 }
-
 
 bool PolygonUtils::polygonCollidesWithLineSegment(const Shape& polys, const Point2LL& startPoint, const Point2LL& endPoint)
 {

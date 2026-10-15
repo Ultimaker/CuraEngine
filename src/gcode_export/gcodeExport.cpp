@@ -1772,19 +1772,8 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
         {
             return { (should_scale_zero_to_one ? static_cast<uint8_t>(2) : static_cast<uint8_t>(1)), (should_scale_zero_to_one ? value : value * 255.0) / 100.0 };
         };
-        bool write_value = true;
-        std::ostringstream new_value;
         const auto num_new_val = scale_zero_to_one_optional(speed);
-        new_value << num_new_val;
-        const std::string new_value_str = new_value.str();
-        if (current_fan_speed.has_value())
-        {
-            std::ostringstream old_value;
-            old_value << scale_zero_to_one_optional(current_fan_speed.value());
-            write_value = new_value_str != old_value.str();
-        }
-
-        if (write_value)
+        if (! (current_fan_speed.has_value() && PrecisionedDouble::equalGivenPrecision(scale_zero_to_one_optional(current_fan_speed.value()), num_new_val)))
         {
             if (num_new_val.wouldWriteZero())
             {
@@ -1793,7 +1782,7 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
             }
             else
             {
-                *output_stream_ << "M106 S" << new_value_str;
+                *output_stream_ << "M106 S" << num_new_val;
             }
 
             if (fan_number)

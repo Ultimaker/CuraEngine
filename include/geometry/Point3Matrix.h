@@ -25,15 +25,15 @@ public:
      */
     explicit Point3Matrix(const PointMatrix& b)
     {
-        matrix.at(0) = b.matrix.at(0);
-        matrix.at(1) = b.matrix.at(1);
-        matrix.at(2) = 0;
-        matrix.at(3) = b.matrix.at(2);
-        matrix.at(4) = b.matrix.at(3);
-        matrix.at(5) = 0;
-        matrix.at(6) = 0;
-        matrix.at(7) = 0;
-        matrix.at(8) = 1;
+        matrix[0] = b.matrix[0];
+        matrix[1] = b.matrix[1];
+        matrix[2] = 0;
+        matrix[3] = b.matrix[2];
+        matrix[4] = b.matrix[3];
+        matrix[5] = 0;
+        matrix[6] = 0;
+        matrix[7] = 0;
+        matrix[8] = 1;
     }
 
     Point3Matrix(Point3Matrix&& point3_matrix) = default;
@@ -48,9 +48,9 @@ public:
         const auto x = static_cast<double>(p.x_);
         const auto y = static_cast<double>(p.y_);
         const auto z = static_cast<double>(p.z_);
-        return { std::llrint(x * matrix.at(0) + y * matrix.at(1) + z * matrix.at(2)),
-                 std::llrint(x * matrix.at(3) + y * matrix.at(4) + z * matrix.at(5)),
-                 std::llrint(x * matrix.at(6) + y * matrix.at(7) + z * matrix.at(8)) };
+        return { std::llrint(x * matrix[0] + y * matrix[1] + z * matrix[2]),
+                 std::llrint(x * matrix[3] + y * matrix[4] + z * matrix[5]),
+                 std::llrint(x * matrix[6] + y * matrix[7] + z * matrix[8]) };
     }
 
     /*!
@@ -65,22 +65,22 @@ public:
     static Point3Matrix translate(const Point2LL& p)
     {
         Point3Matrix ret; // uniform matrix
-        ret.matrix.at(2) = static_cast<double>(p.X);
-        ret.matrix.at(5) = static_cast<double>(p.Y);
+        ret.matrix[2] = static_cast<double>(p.X);
+        ret.matrix[5] = static_cast<double>(p.Y);
         return ret;
     }
 
     [[nodiscard]] Point3Matrix compose(const Point3Matrix& b) const
     {
         Point3Matrix ret;
-        for (int outx = 0; outx < 3; outx++)
+        for (size_t outx = 0; outx < 3; outx++)
         {
-            for (int outy = 0; outy < 3; outy++)
+            for (size_t outy = 0; outy < 3; outy++)
             {
-                ret.matrix.at(outy * 3 + outx) = 0;
-                for (int in = 0; in < 3; in++)
+                ret.matrix[outy * 3 + outx] = 0;
+                for (size_t in = 0; in < 3; in++)
                 {
-                    ret.matrix.at(outy * 3 + outx) += matrix.at(outy * 3 + in) * b.matrix.at(in * 3 + outx);
+                    ret.matrix[outy * 3 + outx] += matrix[outy * 3 + in] * b.matrix[in * 3 + outx];
                 }
             }
         }
