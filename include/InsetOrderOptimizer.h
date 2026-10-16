@@ -84,8 +84,9 @@ public:
      * Odd walls should always go after their enclosing wall polygons.
      *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
+     * \param inner_outer_inner Sandwich order: deeper walls (third and up) from the inside out, then the outer wall, then the second wall. Overrides outer_to_inner.
      */
-    static value_type getRegionOrder(const std::vector<ExtrusionLine>& input, const bool outer_to_inner);
+    static value_type getRegionOrder(const std::vector<ExtrusionLine>& input, const bool outer_to_inner, const bool inner_outer_inner = false);
 
     /*!
      * Get the order constraints of the insets when printing walls per inset.
@@ -94,8 +95,9 @@ public:
      * Odd walls should always go after their enclosing wall polygons.
      *
      * \param outer_to_inner Whether the wall polygons with a lower inset_idx should go before those with a higher one.
+     * \param inner_outer_inner Sandwich order: deeper walls (third and up) from the inside out, then the outer wall, then the second wall. Overrides outer_to_inner.
      */
-    static value_type getInsetOrder(const auto& input, const bool outer_to_inner);
+    static value_type getInsetOrder(const auto& input, const bool outer_to_inner, const bool inner_outer_inner = false);
 
     /*! Get the start position of the planned paths, or nullopt if optimize() has not been called yet or the paths are empty */
     std::optional<Point2LL> getStartPosition() const;

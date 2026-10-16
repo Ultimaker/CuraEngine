@@ -245,6 +245,12 @@ enum class InsetDirection
     OUTSIDE_IN,
 
     /*!
+     * Sandwich order: the third wall and all deeper walls are printed first from the inside out, then the outermost wall, then the second wall.
+     * With only two walls this is outside in. Only applies when all walls use the same extruder.
+     */
+    INNER_OUTER_INNER,
+
+    /*!
      * If the innermost wall is a central wall, it is printed last. Otherwise
      * prints the same as inside out.
      */

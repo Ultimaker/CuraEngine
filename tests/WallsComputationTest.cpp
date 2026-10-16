@@ -3,7 +3,10 @@
 
 #include "WallsComputation.h" //Unit under test.
 
+#include <set>
 #include <unordered_set>
+#include <utility>
+#include <vector>
 
 #include <range/v3/view/join.hpp>
 #include <scripta/logger.h>
@@ -226,6 +229,54 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
         has_order_info.emplace(to);
     }
     EXPECT_EQ(has_order_info.size(), n_paths) << "Every path should have order information.";
+}
+
+/*!
+ * Tests the order constraints of the inner/outer/inner wall ordering. The third wall and the ones deeper inside print
+ * first, from the inside out, then the outer wall, then the second wall.
+ */
+TEST_F(WallsComputationTest, WallOrderInnerOuterInner)
+{
+    // For each number of walls: the pairs of (wall that has to be printed first, wall that has to follow it), by wall index
+    // where 0 is the outer wall.
+    const std::vector<std::pair<size_t, std::set<std::pair<size_t, size_t>>>> expected_order_per_wall_count = {
+        { 2, { { 0, 1 } } },
+        { 3, { { 2, 0 }, { 0, 1 } } },
+        { 4, { { 3, 2 }, { 2, 0 }, { 0, 1 } } },
+        { 5, { { 4, 3 }, { 3, 2 }, { 2, 0 }, { 0, 1 } } },
+    };
+
+    for (const auto& [wall_count, expected_order] : expected_order_per_wall_count)
+    {
+        settings.add("wall_line_count", std::to_string(wall_count));
+        SliceLayer layer;
+        layer.parts.emplace_back();
+        SliceLayerPart& part = layer.parts.back();
+        part.outline.push_back(square_shape);
+
+        walls_computation.generateWalls(&layer, SectionType::WALL);
+
+        std::vector<ExtrusionLine> all_paths;
+        for (auto& line : part.wall_toolpaths | ranges::views::join)
+        {
+            all_paths.emplace_back(line);
+        }
+        ASSERT_EQ(all_paths.size(), wall_count) << "A square has one closed wall per wall line.";
+
+        // The outside-in flag has no say when the inner/outer/inner order is requested.
+        for (const bool outer_to_inner : { false, true })
+        {
+            constexpr bool inner_outer_inner = true;
+            const auto order = InsetOrderOptimizer::getRegionOrder(all_paths, outer_to_inner, inner_outer_inner);
+
+            std::set<std::pair<size_t, size_t>> actual_order;
+            for (const auto& [first, second] : order)
+            {
+                actual_order.emplace(first->inset_idx_, second->inset_idx_);
+            }
+            EXPECT_EQ(actual_order, expected_order) << "Wrong wall order with " << wall_count << " walls (outer to inner flag: " << outer_to_inner << ").";
+        }
+    }
 }
 
 } // namespace cura

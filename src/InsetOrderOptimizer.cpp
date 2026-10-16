@@ -94,8 +94,10 @@ void InsetOrderOptimizer::optimize()
     const auto pack_by_inset = ! settings_.get<bool>("optimize_wall_printing_order");
     const auto inset_direction = settings_.get<InsetDirection>((layer_nr_ == 0) ? "initial_layer_inset_direction" : "inset_direction");
 
-    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
     const bool use_one_extruder = wall_0_extruder_nr_ == wall_x_extruder_nr_;
+    // Inner/outer/inner only makes sense when one extruder prints all walls; otherwise fall back to the default inside out order.
+    const bool inner_outer_inner = inset_direction == InsetDirection::INNER_OUTER_INNER && use_one_extruder;
+    const bool outer_to_inner = inset_direction == InsetDirection::OUTSIDE_IN;
     const bool current_extruder_is_wall_x = wall_x_extruder_nr_ == extruder_nr_;
 
     const bool reverse = shouldReversePath(use_one_extruder, current_extruder_is_wall_x, outer_to_inner);
@@ -103,11 +105,12 @@ void InsetOrderOptimizer::optimize()
     walls_to_be_added_ = getWallsToBeAdded(reverse, use_one_extruder);
 
     const std::unordered_multimap<const ExtrusionLine*, const ExtrusionLine*> order
-        = pack_by_inset ? getInsetOrder(walls_to_be_added_, outer_to_inner) : getRegionOrder(walls_to_be_added_, outer_to_inner);
+        = pack_by_inset ? getInsetOrder(walls_to_be_added_, outer_to_inner, inner_outer_inner) : getRegionOrder(walls_to_be_added_, outer_to_inner, inner_outer_inner);
 
     constexpr bool detect_loops = false;
     constexpr Shape* combing_boundary = nullptr;
-    const auto group_outer_walls = settings_.get<bool>("group_outer_walls");
+    // Grouping assumes the outer walls are at the start or end of the order, which doesn't hold for inner/outer/inner.
+    const auto group_outer_walls = settings_.get<bool>("group_outer_walls") && ! inner_outer_inner;
     // When we alternate walls, also alternate the direction at which the first wall starts in.
     // On even layers we start with normal direction, on odd layers with inverted direction.
     path_optimizer_ = std::make_shared<PathOrderOptimizer<const ExtrusionLine*>>(
@@ -326,7 +329,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
     return closest_junction_idx + 1;
 }
 
-InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::vector<ExtrusionLine>& extrusion_lines, const bool outer_to_inner, const bool inner_outer_inner)
 {
     if (extrusion_lines.empty())
     {
@@ -436,13 +439,33 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
     for (const ExtrusionLine* outer_wall : outer_walls)
     {
         const std::function<void(const ExtrusionLine*, const ExtrusionLine*)> set_order_constraints
-            = [&order, &closest_outer_wall_line, &outer_wall, &outer_to_inner](const auto& current_line, const auto& parent_line)
+            = [&order, &closest_outer_wall_line, &min_depth, &outer_wall, &outer_to_inner, &inner_outer_inner](const auto& current_line, const auto& parent_line)
         {
             // if the closest
             if (closest_outer_wall_line[current_line] == outer_wall && parent_line != nullptr)
             {
+                if (inner_outer_inner)
+                {
+                    // Wanted order: innermost wall ... wall 3, wall 2, wall 0 (outer), wall 1.
+                    const unsigned int depth = min_depth[current_line];
+                    if (depth == 1)
+                    {
+                        // Outer wall before the second wall.
+                        order.insert(std::make_pair(parent_line, current_line));
+                    }
+                    else if (depth == 2)
+                    {
+                        // Third wall before the outer wall, which is not adjacent to it, so link to the outer wall directly.
+                        order.insert(std::make_pair(current_line, outer_wall));
+                    }
+                    else
+                    {
+                        // Remaining walls go from the inside out.
+                        order.insert(std::make_pair(current_line, parent_line));
+                    }
+                }
                 // flip the key values if we want to print from inner to outer walls
-                if (outer_to_inner)
+                else if (outer_to_inner)
                 {
                     order.insert(std::make_pair(parent_line, current_line));
                 }
@@ -472,7 +495,7 @@ std::optional<Point2LL> InsetOrderOptimizer::getStartPosition() const
     return vert_data.at(first_path.start_vertex_);
 }
 
-InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner)
+InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& input, const bool outer_to_inner, const bool inner_outer_inner)
 {
     value_type order;
 
@@ -506,11 +529,28 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getInsetOrder(const auto& i
             {
                 const ExtrusionLine* before = inner_line;
                 const ExtrusionLine* after = line;
-                if (outer_to_inner)
+                // Inner/outer/inner prints the innermost wall ... wall 3, wall 2, wall 0 (outer), wall 1.
+                // So the outer wall goes before wall 1, and wall 2 only gets linked to the outer wall (below).
+                if (inner_outer_inner && inset_idx == 1)
+                {
+                    continue;
+                }
+                if (outer_to_inner || (inner_outer_inner && inset_idx == 0))
                 {
                     std::swap(before, after);
                 }
                 order.emplace(before, after);
+            }
+        }
+    }
+    if (inner_outer_inner && walls_by_inset.size() > 2)
+    {
+        // The third wall is not adjacent to the outer wall, so make it come before the outer wall directly.
+        for (const ExtrusionLine* outer_line : walls_by_inset[0])
+        {
+            for (const ExtrusionLine* third_line : walls_by_inset[2])
+            {
+                order.emplace(third_line, outer_line);
             }
         }
     }
