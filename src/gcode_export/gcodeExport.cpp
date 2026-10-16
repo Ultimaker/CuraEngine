@@ -1140,6 +1140,123 @@ void GCodeExport::writeExtrusion(
     writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
 
+bool GCodeExport::supportsArcMoves() const
+{
+    switch (flavor_)
+    {
+    case EGCodeFlavor::MARLIN:
+    case EGCodeFlavor::MARLIN_VOLUMATRIC:
+    case EGCodeFlavor::REPETIER:
+    case EGCodeFlavor::REPRAP:
+        return true;
+    default:
+        return false;
+    }
+}
+
+void GCodeExport::writeExtrusionArc(
+    const Point3LL& end,
+    const double center_x,
+    const double center_y,
+    const bool clockwise,
+    const double arc_length_mm,
+    const Velocity& speed,
+    const double extrusion_mm3_per_mm,
+    const PrintFeatureType feature,
+    const bool update_extrusion_offset)
+{
+    const Point3LL start = current_position_;
+    if (start == end || arc_length_mm <= 0.0)
+    {
+        return;
+    }
+
+    const double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
+
+    if (is_z_hopped_ > 0)
+    {
+        writeZhopEnd();
+    }
+
+    writeUnretractionAndPrime();
+
+    // flow rate compensation, the same as for a straight move
+    double extrusion_offset = 0;
+    extrusion_offset = speed * extrusion_mm3_per_mm * extrusion_offset_factor_;
+    if (extrusion_offset > max_extrusion_offset_)
+    {
+        extrusion_offset = max_extrusion_offset_;
+    }
+    if (update_extrusion_offset && (extrusion_offset != current_e_offset_))
+    {
+        current_e_offset_ = extrusion_offset;
+        *output_stream_ << ";FLOW_RATE_COMPENSATED_OFFSET = " << current_e_offset_ << new_line_;
+    }
+
+    extruder_attr_[current_extruder_].last_e_value_after_wipe_ += extrusion_per_mm * arc_length_mm;
+    const double start_e_value = current_e_value_;
+    const double new_e_value = current_e_value_ + extrusion_per_mm * arc_length_mm;
+
+    const Point2LL gcode_end = getGcodePos(end.x_, end.y_, current_extruder_);
+    *output_stream_ << (clockwise ? "G2" : "G3");
+    if (current_speed_ != speed)
+    {
+        *output_stream_ << " F" << PrecisionedDouble{ 1, speed * 60 };
+        current_speed_ = speed;
+    }
+    *output_stream_ << " X" << MMtoStream{ gcode_end.X } << " Y" << MMtoStream{ gcode_end.Y };
+    // I and J are the offset from the start point to the centre, which does not depend on the extruder offset.
+    *output_stream_ << " I" << PrecisionedDouble{ 3, (center_x - static_cast<double>(start.x_)) / 1000.0 } << " J"
+                    << PrecisionedDouble{ 3, (center_y - static_cast<double>(start.y_)) / 1000.0 };
+    if (new_e_value + current_e_offset_ != current_e_value_)
+    {
+        const double output_e = (relative_extrusion_) ? new_e_value + current_e_offset_ - current_e_value_ : new_e_value + current_e_offset_;
+        *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
+        current_e_value_ = new_e_value;
+    }
+    *output_stream_ << new_line_;
+
+    // Bounding box: the end points and the extremes of the circle that the arc passes through.
+    const double radius = std::hypot(static_cast<double>(start.x_) - center_x, static_cast<double>(start.y_) - center_y);
+    const double start_angle = std::atan2(static_cast<double>(start.y_) - center_y, static_cast<double>(start.x_) - center_x);
+    const double sweep = arc_length_mm * 1000.0 / radius;
+    const auto include_point = [this, end](const double x, const double y)
+    {
+        const Point2LL gcode_pos = getGcodePos(std::llround(x), std::llround(y), current_extruder_);
+        total_bounding_box_.include(Point3LL(gcode_pos.X, gcode_pos.Y, end.z_));
+    };
+    include_point(static_cast<double>(start.x_), static_cast<double>(start.y_));
+    include_point(static_cast<double>(end.x_), static_cast<double>(end.y_));
+    for (int quadrant = 0; quadrant < 4; ++quadrant)
+    {
+        const double angle = quadrant * std::numbers::pi / 2.0;
+        double travelled = clockwise ? start_angle - angle : angle - start_angle;
+        while (travelled < 0)
+        {
+            travelled += 2.0 * std::numbers::pi;
+        }
+        if (travelled < sweep)
+        {
+            include_point(center_x + radius * std::cos(angle), center_y + radius * std::sin(angle));
+        }
+    }
+
+    // Plan the move for the time estimate as a few chords, so that the time reflects the curved path.
+    constexpr double chord_angle = std::numbers::pi / 6.0;
+    const int chord_count = std::max(1, static_cast<int>(std::ceil(sweep / chord_angle)));
+    for (int i = 1; i <= chord_count; ++i)
+    {
+        const double fraction = static_cast<double>(i) / chord_count;
+        const double angle = start_angle + (clockwise ? -sweep : sweep) * fraction;
+        const double x = (i == chord_count) ? static_cast<double>(end.x_) : center_x + radius * std::cos(angle);
+        const double y = (i == chord_count) ? static_cast<double>(end.y_) : center_y + radius * std::sin(angle);
+        const double e = start_e_value + (new_e_value - start_e_value) * fraction;
+        estimate_calculator_.plan(TimeEstimateCalculator::Position(x / 1000.0, y / 1000.0, INT2MM(end.z_), eToMm(e)), speed, feature);
+    }
+
+    current_position_ = end;
+}
+
 void GCodeExport::writeFXYZE(
     const Velocity& speed,
     const coord_t x,
