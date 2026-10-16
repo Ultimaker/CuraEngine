@@ -8,6 +8,7 @@
 #include <unordered_map>
 #include <vector>
 
+#include "CombinedAxis.h"
 #include "PrintFeature.h"
 #include "settings/types/Duration.h" //Print time estimates.
 #include "settings/types/Ratio.h"
@@ -85,9 +86,7 @@ private:
     Velocity minimumfeedrate = 0.01;
     Acceleration acceleration = 3000.0;
     Acceleration max_acceleration[NUM_AXIS] = { 9000.0, 9000.0, 100.0, 10000.0 };
-    Velocity max_xy_jerk = 20.0;
-    Velocity max_z_jerk = 0.4;
-    Velocity max_e_jerk = 5.0;
+    std::array<Velocity, CombinedAxis::Count> max_jerk_ = { 20.0, 0.4, 5.0 };
     Duration extra_time = 0.0;
 
     Position previous_feedrate;
@@ -107,11 +106,7 @@ public:
     void plan(Position newPos, Velocity feedRate, PrintFeatureType feature);
     void addTime(const Duration& time);
     void setAcceleration(const Acceleration& acc); //!< Set the default acceleration to \p acc
-    void setMaxXyJerk(const Velocity& jerk); //!< Set the max xy jerk to \p jerk
-
-    void setMaxZJerk(const Velocity& jerk);
-
-    void setMaxEJerk(const Velocity& jerk);
+    void setMaxJerk(const Velocity& jerk, CombinedAxis::Enum axis);
 
     void setAxisAccelerations(const Acceleration& z, const Acceleration& e);
 

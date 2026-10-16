@@ -13,6 +13,8 @@
 #include <sstream> // for stream.str()
 #include <stdio.h>
 
+#include "Axis.h"
+#include "CombinedAxis.h"
 #include "PrintInformation.h"
 #include "TravelAntiOozing.h"
 #include "gcode_export/GCodePartType.h"
@@ -77,18 +79,6 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, insertWipeScriptHopEnable);
 #endif
 private:
-    struct MotionSettings
-    {
-        SpeedDerivatives xy; //!< Combined conservative X/Y feedrate, acceleration and jerk limits.
-        SpeedDerivatives z; //!< Z-axis feedrate, acceleration and jerk limits.
-        SpeedDerivatives e; //!< E-axis limits in filament mm, independent of the G-code coordinate units.
-        Acceleration default_acceleration; //!< Machine acceleration restored at the end of the print.
-        bool acceleration_enabled; //!< Whether exporter-generated acceleration commands are enabled.
-        bool jerk_enabled; //!< Whether exporter-generated jerk commands are enabled.
-    };
-
-    std::optional<MotionSettings> motion_settings_; //!< Loaded in preSetup, never while the slice's settings are still unavailable.
-
     struct ExtruderTrainAttributes
     {
         bool is_primed_; //!< Whether this extruder has currently already been primed in this print
@@ -153,6 +143,8 @@ private:
         }
     };
 
+    using MotionSettings = std::array<SpeedDerivatives, CombinedAxis::Count>;
+
     ExtruderTrainAttributes extruder_attr_[MAX_EXTRUDERS];
     bool use_extruder_offset_to_offset_coords_;
     std::string machine_name_;
@@ -171,17 +163,13 @@ private:
 
     Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is
                                 //!< encoded in the gcode)
-    Velocity current_speed_; //!< The current speed (F values / 60) in mm/s
+    Velocity current_speed_; //!< The current speed (F values / 60) in mm/s, shared for all axes; negative means unknown.
     double current_bfb_rpm_{ -1.0 }; //!< Last BFB extruder RPM command; negative means unknown.
-    Acceleration current_z_acceleration_{ -1.0 }; //!< Last emitted Z-axis acceleration limit; negative means unknown.
-    Acceleration current_e_acceleration_{ -1.0 }; //!< Last emitted E-axis acceleration limit; negative means unknown.
-    Velocity current_z_jerk_{ -1.0 }; //!< Last emitted Z-axis jerk limit; negative means unknown.
-    Velocity current_e_jerk_{ -1.0 }; //!< Last emitted E-axis jerk limit; negative means unknown.
-    Acceleration current_print_acceleration_; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate
-                                              //!< travel acceleration)
+    std::array<Acceleration, CombinedAxis::Count> current_acceleration_; //!< Last emitted accelerations, par axis; negative means unknown.
+    std::array<Velocity, CombinedAxis::Count> current_jerk_; //!< Last emitted jerks, par axis; negative means unknown.
     Acceleration
         current_travel_acceleration_; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
-    Velocity current_jerk_; //!< The current jerk in the XY direction (in mm/s^3)
+
 
     AABB3D total_bounding_box_; //!< The bounding box of all g-code.
 
@@ -219,6 +207,10 @@ private:
 
     std::vector<std::shared_ptr<GCodePart>> gcode_parts_; //!< List of GCode pieces that will be exported at the end
     std::shared_ptr<GcodeTemplateResolver> template_resolver_; //!< Object used to resolved the formulae of the dynamic GCode pieces
+
+    MotionSettings motion_limits_; //!< Physical motion limits the printer can handle
+    bool acceleration_enabled_{ false }; //!< Whether exporter-generated acceleration commands are enabled.
+    bool jerk_enabled_{ false }; //!< Whether exporter-generated jerk commands are enabled.
 
 protected:
     /*!
@@ -367,7 +359,7 @@ public:
      * \param p location to go to
      * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      */
-    void writeTravel(const Point2LL& p, const SpeedDerivatives& derivatives);
+    void writeTravel(const Point2LL& p, const MotionSettings& motion_settings);
 
     /*!
      * Coordinates are build plate coordinates, which might be offsetted when extruder offsets are encoded in the gcode.
@@ -485,7 +477,7 @@ private:
      * \param derivatives Requested speed, acceleration and jerk before exporter limits.
      * \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const SpeedDerivatives& derivatives, const std::optional<double>& retract_distance = std::nullopt);
+    void writeTravel(const coord_t x, const coord_t y, const coord_t z, const MotionSettings& motion_settings, const std::optional<double>& retract_distance = std::nullopt);
 
     /*!
      * Perform un-z-hop
@@ -521,7 +513,7 @@ private:
      * It updates \ref GCodeExport::currentPosition, \ref GCodeExport::current_e_value and \ref GCodeExport::currentSpeed
      */
     void writeFXYZE(
-        const SpeedDerivatives& derivatives,
+        const Velocity& speed,
         const coord_t x,
         const coord_t y,
         const coord_t z,
@@ -539,20 +531,42 @@ private:
      * \param feature print feature to track print time for
      */
     void writeMoveBFB(const int x, const int y, const int z, const SpeedDerivatives& derivatives, double extrusion_mm3_per_mm, const PrintFeatureType& feature);
-    SpeedDerivatives prepareMove(
-        const Point3LL& target,
-        const SpeedDerivatives& requested,
-        double filament_per_mm,
-        double volume_per_mm,
-        bool travel,
-        bool emit = true,
-        bool force_z_only = false);
+
+    /*!
+     * Prepares a move to the target position: calculate the final speed, acceleration and jerk, applies acceleration and jerk and return the proper speed
+     * @param target The target position
+     * @param requested The requested speed, acceleration, and jerk
+     * @param filament_per_mm The amount of filament per millimeter
+     * @param volume_per_mm The volume per millimeter
+     * @param is_travel Whether the move is a travel move
+     * @param emit Whether to emit the move
+     * @param force_z_only Whether to force the move to be Z-only
+     * @return The capped velocity to be applied
+     */
+    // Velocity prepareMove(
+    //     const Point3LL& target,
+    //     const SpeedDerivatives& requested,
+    //     double filament_per_mm,
+    //     double volume_per_mm,
+    //     const bool is_travel,
+    //     const bool emit = true,
+    //     const bool force_z_only = false);
+
+    struct PreparedMove
+    {
+        Velocity speed;
+        std::array<std::optional<double>, Axis::Count> values; // Potential values to be written on each axis, XYZ are absolute but E is relative
+    };
+
+    std::optional<PreparedMove> prepareMove(const Point3LL& destination, const double e_delta, const MotionSettings& motion_settings, const bool is_travel);
+
+    void writePreparedMoveFXYZE(const PreparedMove& prepared_move, const PrintFeatureType move_type);
 
     Velocity prepareStationaryExtrusion(const Velocity& speed);
 
     void writeStationaryExtrusion(double delta_e, const Velocity& speed);
 
-    void writeAxisLimits(const Acceleration& z_acceleration, const Acceleration& e_acceleration, const Velocity& z_jerk, const Velocity& e_jerk);
+    // void writeAxisLimits(const Acceleration& z_acceleration, const Acceleration& e_acceleration, const Velocity& z_jerk, const Velocity& e_jerk);
 
     bool supportsMotionControl() const;
 
@@ -742,17 +756,12 @@ public:
      * Write the command for setting the acceleration for print moves to a specific value
      */
 private:
-    void writePrintAcceleration(const Acceleration& acceleration);
-
-    /*!
-     * Write the command for setting the acceleration for travel moves to a specific value
-     */
-    void writeTravelAcceleration(const Acceleration& acceleration);
+    void writeAcceleration(const Acceleration& acceleration, const CombinedAxis::Enum axis, const bool is_travel);
 
     /*!
      * Write the command for setting the jerk to a specific value
      */
-    void writeJerk(const Velocity& jerk);
+    void writeJerk(const std::vector<std::tuple<Velocity, CombinedAxis::Enum>>& jerk_values);
 
 public:
     /*!

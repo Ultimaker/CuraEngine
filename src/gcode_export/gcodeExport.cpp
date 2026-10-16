@@ -12,6 +12,7 @@
 #include <regex>
 
 #include <fmt/chrono.h>
+#include <range/v3/algorithm/count_if.hpp>
 #include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
@@ -62,10 +63,8 @@ GCodeExport::GCodeExport()
 
     total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
-    current_speed_ = 1.0;
-    current_print_acceleration_ = -1.0;
+    invalidateMotionState();
     current_travel_acceleration_ = -1.0;
-    current_jerk_ = -1.0;
 
     is_z_hopped_ = 0;
     setFlavor(EGCodeFlavor::MARLIN);
@@ -948,16 +947,17 @@ void GCodeExport::initializeMotionSettings()
 {
     Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& settings = scene.current_mesh_group->settings;
-    motion_settings_ = MotionSettings{
-        { std::min(settings.get<Velocity>("machine_max_feedrate_x"), settings.get<Velocity>("machine_max_feedrate_y")),
-          std::min(settings.get<Acceleration>("machine_max_acceleration_x"), settings.get<Acceleration>("machine_max_acceleration_y")),
-          settings.get<Velocity>("machine_max_jerk_xy") },
-        { settings.get<Velocity>("machine_max_feedrate_z"), settings.get<Acceleration>("machine_max_acceleration_z"), settings.get<Velocity>("machine_max_jerk_z") },
-        { settings.get<Velocity>("machine_max_feedrate_e"), settings.get<Acceleration>("machine_max_acceleration_e"), settings.get<Velocity>("machine_max_jerk_e") },
-        settings.get<Acceleration>("machine_acceleration"),
-        settings.get<bool>("acceleration_enabled"),
-        settings.get<bool>("jerk_enabled")
+    motion_limits_ = {
+        SpeedDerivatives{ std::min(settings.get<Velocity>("machine_max_feedrate_x"), settings.get<Velocity>("machine_max_feedrate_y")),
+                          std::min(settings.get<Acceleration>("machine_max_acceleration_x"), settings.get<Acceleration>("machine_max_acceleration_y")),
+                          settings.get<Velocity>("machine_max_jerk_xy") },
+        SpeedDerivatives{ settings.get<Velocity>("machine_max_feedrate_z"),
+                          settings.get<Acceleration>("machine_max_acceleration_z"),
+                          settings.get<Velocity>("machine_max_jerk_z") },
+        SpeedDerivatives{ settings.get<Velocity>("machine_max_feedrate_e"), settings.get<Acceleration>("machine_max_acceleration_e"), settings.get<Velocity>("machine_max_jerk_e") }
     };
+    acceleration_enabled_ = settings.get<bool>("acceleration_enabled");
+    jerk_enabled_ = settings.get<bool>("jerk_enabled");
     for (ExtruderTrain& extruder : scene.extruders)
     {
         extruder.initializeMotionSettings();
@@ -982,82 +982,255 @@ bool GCodeExport::supportsMotionControl() const
 
 void GCodeExport::resetMotionSettings()
 {
-    const MotionSettings& settings = motion_settings_.value();
-    writeAxisLimits(settings.z.acceleration, settings.e.acceleration, settings.z.jerk, settings.e.jerk);
-    if (settings.acceleration_enabled)
-    {
-        const Acceleration acceleration = std::min(settings.default_acceleration, settings.xy.acceleration);
-        writePrintAcceleration(acceleration);
-        writeTravelAcceleration(acceleration);
-    }
-    if (settings.jerk_enabled)
-    {
-        writeJerk(settings.xy.jerk);
-    }
+    const auto default_acceleration = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<Acceleration>("machine_acceleration");
+    const Acceleration acceleration = std::min(default_acceleration, motion_limits_[CombinedAxis::XY].acceleration);
+
+    constexpr bool is_travel = true;
+    writeAcceleration(acceleration, CombinedAxis::XY, is_travel);
+
+    constexpr bool is_not_travel = false;
+    writeAcceleration(acceleration, CombinedAxis::XY, is_not_travel);
+
+    writeJerk(
+        { { motion_limits_[CombinedAxis::XY].jerk, CombinedAxis::XY },
+          { motion_limits_[CombinedAxis::Z].jerk, CombinedAxis::Z },
+          { motion_limits_[CombinedAxis::E].jerk, CombinedAxis::E } });
 }
 
-SpeedDerivatives
-    GCodeExport::prepareMove(const Point3LL& target, const SpeedDerivatives& requested, double filament_per_mm, double volume_per_mm, bool travel, bool emit, bool force_z_only)
+// Velocity GCodeExport::prepareMove(
+//     const Point3LL& target,
+//     const SpeedDerivatives& requested,
+//     double filament_per_mm,
+//     const double volume_per_mm,
+//     const bool is_travel,
+//     const bool emit,
+//     const bool force_z_only)
+// {
+//     SpeedDerivatives derivatives = requested;
+//     const bool z_only = force_z_only || (target.x_ == current_position_.x_ && target.y_ == current_position_.y_ && target.z_ != current_position_.z_);
+//     const SpeedDerivatives& limits = z_only ? motion_limits_.z : motion_limits_.xy;
+//     derivatives.speed = std::min(derivatives.speed, limits.speed);
+//     derivatives.acceleration = std::min(derivatives.acceleration, limits.acceleration);
+//     derivatives.jerk = std::min(derivatives.jerk, limits.jerk);
+//     filament_per_mm = std::abs(filament_per_mm);
+//
+//     if (filament_per_mm > 0.0)
+//     {
+//         derivatives.speed = std::min<double>(derivatives.speed, motion_limits_.e.speed / filament_per_mm);
+//         if (acceleration_enabled_)
+//         {
+//             derivatives.acceleration = std::min<double>(derivatives.acceleration, motion_limits_.e.acceleration / filament_per_mm);
+//         }
+//         if (jerk_enabled_)
+//         {
+//             derivatives.jerk = std::min<double>(derivatives.jerk, motion_limits_.e.jerk / filament_per_mm);
+//         }
+//     }
+//
+//     if (! is_travel && volume_per_mm > 0.0)
+//     {
+//         const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
+//         derivatives.speed = std::min<double>(derivatives.speed, extruder.getMotionSettings().max_flowrate / volume_per_mm);
+//     }
+//
+//     if (! emit)
+//     {
+//         return derivatives.speed;
+//     }
+//
+//     const Acceleration z_acceleration = z_only ? derivatives.acceleration : motion_limits_.z.acceleration;
+//     const Acceleration e_acceleration = filament_per_mm > 0.0 ? derivatives.acceleration * filament_per_mm : motion_limits_.e.acceleration;
+//     const Velocity z_jerk = z_only ? derivatives.jerk : motion_limits_.z.jerk;
+//     const Velocity e_jerk = filament_per_mm > 0.0 ? derivatives.jerk * filament_per_mm : motion_limits_.e.jerk;
+//
+//     writeAxisLimits(z_acceleration, e_acceleration, z_jerk, e_jerk);
+//
+//     if (is_travel)
+//     {
+//         writeTravelAcceleration(derivatives.acceleration);
+//     }
+//     else
+//     {
+//         writePrintAcceleration(derivatives.acceleration);
+//     }
+//
+//     if (! z_only)
+//     {
+//         writeJerk({ { derivatives.jerk, CombinedAxis::XY }, { derivatives.jerk, CombinedAxis::Z }, { derivatives.jerk, CombinedAxis::E } });
+//     }
+//
+//     return derivatives.speed;
+// }
+
+std::optional<GCodeExport::PreparedMove> GCodeExport::prepareMove(const Point3LL& destination, const double e_delta, const MotionSettings& motion_settings, const bool is_travel)
 {
-    SpeedDerivatives derivatives = requested;
-    const MotionSettings& settings = motion_settings_.value();
-    const bool z_only = force_z_only || (target.x_ == current_position_.x_ && target.y_ == current_position_.y_ && target.z_ != current_position_.z_);
-    const SpeedDerivatives& limits = z_only ? settings.z : settings.xy;
+    const Point3LL extruder_destination{ getGcodePos(destination.x_, destination.y_, current_extruder_), destination.z_ };
+    const Point3LL translation{ extruder_destination - current_position_ };
+    const std::array<bool, Axis::Count> has_delta{ translation.x_ != 0, translation.y_ != 0, translation.z_ != 0, ! is_zero(e_delta) };
+    const std::array<bool, CombinedAxis::Count> has_delta_combined{ has_delta[Axis::X] != 0 || has_delta[Axis::Y] != 0, has_delta[Axis::Z] != 0, has_delta[Axis::E] };
+    const size_t count_deltas = ranges::count_if(
+        has_delta_combined,
+        [](const bool axis_has_delta)
+        {
+            return axis_has_delta;
+        });
+
+    if (count_deltas == 0)
+    {
+        // Absolutely nothing to do: skip
+        return {};
+    }
+
+    total_bounding_box_.include(extruder_destination);
+
+    CombinedAxis::Enum main_axis;
+    if (has_delta_combined[CombinedAxis::E] && ! has_delta_combined[CombinedAxis::Z] && ! has_delta_combined[CombinedAxis::XY])
+    {
+        // Pure retraction/unretraction move: use the settings of the E axis
+        main_axis = CombinedAxis::E;
+    }
+    else if (has_delta_combined[CombinedAxis::Z] && ! has_delta_combined[CombinedAxis::XY])
+    {
+        // Pure Z move: use the settings of the Z axis
+        main_axis = CombinedAxis::Z;
+    }
+    else
+    {
+        // Any other case: use the settings of the XY axis
+        main_axis = CombinedAxis::XY;
+    }
+
+#warning also handle the max_flowrate, which is different from the max_feedrate
+
+    SpeedDerivatives derivatives = motion_settings[main_axis];
+    const SpeedDerivatives& limits = motion_limits_[main_axis];
     derivatives.speed = std::min(derivatives.speed, limits.speed);
     derivatives.acceleration = std::min(derivatives.acceleration, limits.acceleration);
     derivatives.jerk = std::min(derivatives.jerk, limits.jerk);
-    filament_per_mm = std::abs(filament_per_mm);
-    if (filament_per_mm > 0.0)
+
+    if (count_deltas > 1)
     {
-        derivatives.speed = std::min<double>(derivatives.speed, settings.e.speed / filament_per_mm);
-        if (settings.acceleration_enabled)
+        // Make sure the speed imposed by the main axis doesn't go over the limits for the secondary axes
+        const double main_axis_duration = std::abs(translation[main_axis]) / derivatives.speed;
+        std::optional<double> minimum_secondary_duration;
+        for (const CombinedAxis::Enum axis : CombinedAxis::All)
         {
-            derivatives.acceleration = std::min<double>(derivatives.acceleration, settings.e.acceleration / filament_per_mm);
+            if (! has_delta_combined[axis] || axis == main_axis)
+            {
+                continue;
+            }
+
+            // This is not perfectly accurate since we neglect the acceleration, but it should take us close enough to be acceptable
+            const double minimum_axis_duration = std::abs(translation[axis]) / motion_limits_[axis].speed;
+            if (! minimum_secondary_duration.has_value() || minimum_axis_duration > minimum_secondary_duration.value())
+            {
+                minimum_secondary_duration = minimum_axis_duration;
+            }
         }
-        if (settings.jerk_enabled)
+
+        const double duration_ratio = minimum_secondary_duration.value() / main_axis_duration;
+        if (duration_ratio > 1.0)
         {
-            derivatives.jerk = std::min<double>(derivatives.jerk, settings.e.jerk / filament_per_mm);
-        }
-    }
-    if (! travel && volume_per_mm > 0.0)
-    {
-        const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
-        derivatives.speed = std::min<double>(derivatives.speed, extruder.getMotionSettings().max_flowrate / volume_per_mm);
-    }
-    if (! emit)
-    {
-        return derivatives;
-    }
-    const Acceleration z_acceleration = z_only ? derivatives.acceleration : settings.z.acceleration;
-    const Acceleration e_acceleration = filament_per_mm > 0.0 ? derivatives.acceleration * filament_per_mm : settings.e.acceleration;
-    const Velocity z_jerk = z_only ? derivatives.jerk : settings.z.jerk;
-    const Velocity e_jerk = filament_per_mm > 0.0 ? derivatives.jerk * filament_per_mm : settings.e.jerk;
-    writeAxisLimits(z_acceleration, e_acceleration, z_jerk, e_jerk);
-    if (settings.acceleration_enabled)
-    {
-        if (travel)
-        {
-            writeTravelAcceleration(derivatives.acceleration);
-        }
-        else
-        {
-            writePrintAcceleration(derivatives.acceleration);
+            derivatives.speed /= duration_ratio;
         }
     }
-    if (settings.jerk_enabled && ! z_only)
+
     {
-        writeJerk(derivatives.jerk);
+        std::vector<std::tuple<Velocity, CombinedAxis::Enum>> jerk_per_axis;
+        for (const CombinedAxis::Enum axis : CombinedAxis::All)
+        {
+            if (has_delta_combined[axis])
+            {
+                jerk_per_axis.emplace_back(motion_settings[axis].jerk, axis);
+            }
+        }
+        writeJerk(jerk_per_axis);
     }
-    return derivatives;
+
+    writeAcceleration(derivatives.acceleration, main_axis, is_travel);
+
+    PreparedMove prepared_move;
+    prepared_move.speed = derivatives.speed;
+
+    for (const Axis::Enum axis : Axis::All)
+    {
+        // This is done intentionally to include both X and Y in case of a change in either of them.
+        // To prevent any potential issues with machines with custom FW or processing scripts that require both X and Y to be present for a move, even if only one of them is
+        // changing.
+        if (has_delta[axis] || (axis == Axis::X && has_delta[Axis::Y]) || (axis == Axis::Y && has_delta[Axis::X]))
+        {
+            prepared_move.values[axis] = axis == Axis::E ? e_delta : extruder_destination[axis];
+        }
+    }
+
+    return prepared_move;
+}
+
+void GCodeExport::writePreparedMoveFXYZE(const PreparedMove& prepared_move, const PrintFeatureType move_type)
+{
+    if (current_speed_ != prepared_move.speed)
+    {
+        *output_stream_ << " F" << PrecisionedDouble{ 1, prepared_move.speed * 60 };
+        current_speed_ = prepared_move.speed;
+    }
+
+    for (const Axis::Enum axis : Axis::All)
+    {
+        if (prepared_move.values[axis].has_value())
+        {
+            *output_stream_ << " " << axis_char_[axis] << MMtoStream{ prepared_move.values[axis].value() };
+        }
+    }
+
+    if (prepared_move.values[Axis::X].has_value() || prepared_move.values[Axis::Y].has_value())
+    {
+        *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
+    }
+
+    if (z != current_position_.z_)
+    {
+        any_written = true;
+        *output_stream_ << " Z" << MMtoStream{ z };
+    }
+
+    if (retraction_amounts.has_value())
+    {
+        if (retraction_amounts->has_retraction())
+        {
+            any_written = true;
+            writeRawRetract(retraction_amounts.value());
+        }
+    }
+    else
+    {
+        if (e + current_e_offset_ != current_e_value_ + emitted_e_offset_)
+        {
+            any_written = true;
+            const double output_e = (relative_extrusion_) ? e + current_e_offset_ - current_e_value_ - emitted_e_offset_ : e + current_e_offset_;
+            *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
+        }
+        current_e_value_ = e;
+        emitted_e_offset_ = current_e_offset_;
+    }
+
+    if (! any_written)
+    {
+        // Just write XY in case absolutely nothing else changed.
+        *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
+        spdlog::warn("No axis-value (F,X,Y,Z,E) changed, but write-move requested; outputting XY anyway.\n");
+    }
+    *output_stream_ << new_line_;
+
+    current_position_ = Point3LL(x, y, z);
+    estimate_calculator_.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(current_e_value_ + emitted_e_offset_)), speed, feature);
 }
 
 Velocity GCodeExport::prepareStationaryExtrusion(const Velocity& speed)
 {
-    const MotionSettings& settings = motion_settings_.value();
-    const Acceleration e_acceleration = settings.e.acceleration;
-    writeAxisLimits(settings.z.acceleration, e_acceleration, settings.z.jerk, settings.e.jerk);
+    const Acceleration e_acceleration = motion_limits_.e.acceleration;
+    writeAxisLimits(motion_limits_.z.acceleration, e_acceleration, motion_limits_.z.jerk, motion_limits_.e.jerk);
     // Marlin uses a separate retract acceleration; other flavors use their E-axis maximum.
-    if (settings.acceleration_enabled)
+    if (acceleration_enabled_)
     {
         if (flavor_ == EGCodeFlavor::ULTIGCODE || flavor_ == EGCodeFlavor::GRIFFIN)
         {
@@ -1073,20 +1246,20 @@ Velocity GCodeExport::prepareStationaryExtrusion(const Velocity& speed)
         }
         estimate_calculator_.setAcceleration(e_acceleration);
     }
-    return std::min(speed, settings.e.speed);
+    return std::min(speed, motion_limits_.e.speed);
 }
 
 void GCodeExport::invalidateMotionState()
 {
+    for (CombinedAxis::Enum axis : { CombinedAxis::XY, CombinedAxis::Z, CombinedAxis::E })
+    {
+        current_acceleration_[axis] = -1.0;
+        current_jerk_[axis] = -1.0;
+    }
+
     current_speed_ = -1.0;
     current_bfb_rpm_ = -1.0;
-    current_print_acceleration_ = -1.0;
     current_travel_acceleration_ = -1.0;
-    current_jerk_ = -1.0;
-    current_z_acceleration_ = -1.0;
-    current_e_acceleration_ = -1.0;
-    current_z_jerk_ = -1.0;
-    current_e_jerk_ = -1.0;
 }
 
 void GCodeExport::writeStationaryExtrusion(double delta_e, const Velocity& requested_speed)
@@ -1104,56 +1277,55 @@ void GCodeExport::writeStationaryExtrusion(double delta_e, const Velocity& reque
         PrintFeatureType::StationaryRetractUnretract);
 }
 
-void GCodeExport::writeAxisLimits(const Acceleration& z_acceleration, const Acceleration& e_acceleration, const Velocity& z_jerk, const Velocity& e_jerk)
-{
-    const MotionSettings& settings = motion_settings_.value();
-    if (settings.acceleration_enabled)
-    {
-        if (current_z_acceleration_ != z_acceleration || current_e_acceleration_ != e_acceleration)
-        {
-            if (supportsMotionControl())
-            {
-                *output_stream_ << "M201 Z" << PrecisionedDouble{ 0, z_acceleration } << " E" << PrecisionedDouble{ 0, e_acceleration } << new_line_;
-                if (flavor_ == EGCodeFlavor::REPETIER)
-                {
-                    *output_stream_ << "M202 Z" << PrecisionedDouble{ 0, z_acceleration } << " E" << PrecisionedDouble{ 0, e_acceleration } << new_line_;
-                }
-            }
-            current_z_acceleration_ = z_acceleration;
-            current_e_acceleration_ = e_acceleration;
-        }
-        estimate_calculator_.setAxisAccelerations(z_acceleration, e_acceleration);
-    }
-    if (settings.jerk_enabled)
-    {
-        if (current_z_jerk_ != z_jerk || current_e_jerk_ != e_jerk)
-        {
-            switch (flavor_)
-            {
-            case EGCodeFlavor::REPRAP:
-                *output_stream_ << "M566 Z" << PrecisionedDouble{ 2, z_jerk * 60 } << " E" << PrecisionedDouble{ 2, e_jerk * 60 } << new_line_;
-                break;
-            case EGCodeFlavor::REPETIER:
-                *output_stream_ << "M207 Z" << PrecisionedDouble{ 2, z_jerk } << " E" << PrecisionedDouble{ 2, e_jerk } << new_line_;
-                break;
-            case EGCodeFlavor::CHEETAH:
-                *output_stream_ << "M215 Z" << PrecisionedDouble{ 2, z_jerk * 1000 } << " E" << PrecisionedDouble{ 2, e_jerk * 1000 } << new_line_;
-                break;
-            case EGCodeFlavor::BFB:
-            case EGCodeFlavor::MAKERBOT:
-            case EGCodeFlavor::MACH3:
-                break;
-            default:
-                *output_stream_ << "M205 Z" << PrecisionedDouble{ 2, z_jerk } << " E" << PrecisionedDouble{ 2, e_jerk } << new_line_;
-                break;
-            }
-            current_z_jerk_ = z_jerk;
-            current_e_jerk_ = e_jerk;
-        }
-        estimate_calculator_.setMaxZJerk(flavor_ == EGCodeFlavor::CHEETAH ? Velocity{ z_jerk / 200 } : z_jerk);
-        estimate_calculator_.setMaxEJerk(flavor_ == EGCodeFlavor::CHEETAH ? Velocity{ e_jerk / 200 } : e_jerk);
-    }
-}
+// void GCodeExport::writeAxisLimits(const Acceleration& z_acceleration, const Acceleration& e_acceleration, const Velocity& z_jerk, const Velocity& e_jerk)
+// {
+//     if (acceleration_enabled_)
+//     {
+//         if (current_acceleration_[CombinedAxis::Z] != z_acceleration || current_acceleration_[CombinedAxis::E] != e_acceleration)
+//         {
+//             if (supportsMotionControl())
+//             {
+//                 *output_stream_ << "M201 Z" << PrecisionedDouble{ 0, z_acceleration } << " E" << PrecisionedDouble{ 0, e_acceleration } << new_line_;
+//                 if (flavor_ == EGCodeFlavor::REPETIER)
+//                 {
+//                     *output_stream_ << "M202 Z" << PrecisionedDouble{ 0, z_acceleration } << " E" << PrecisionedDouble{ 0, e_acceleration } << new_line_;
+//                 }
+//             }
+//             current_acceleration_[CombinedAxis::Z] = z_acceleration;
+//             current_acceleration_[CombinedAxis::E] = e_acceleration;
+//         }
+//         estimate_calculator_.setAxisAccelerations(z_acceleration, e_acceleration);
+//     }
+//     if (jerk_enabled_)
+//     {
+//         if (current_jerk_[CombinedAxis::Z] != z_jerk || current_jerk_[CombinedAxis::E] != e_jerk)
+//         {
+//             switch (flavor_)
+//             {
+//             case EGCodeFlavor::REPRAP:
+//                 *output_stream_ << "M566 Z" << PrecisionedDouble{ 2, z_jerk * 60 } << " E" << PrecisionedDouble{ 2, e_jerk * 60 } << new_line_;
+//                 break;
+//             case EGCodeFlavor::REPETIER:
+//                 *output_stream_ << "M207 Z" << PrecisionedDouble{ 2, z_jerk } << " E" << PrecisionedDouble{ 2, e_jerk } << new_line_;
+//                 break;
+//             case EGCodeFlavor::CHEETAH:
+//                 *output_stream_ << "M215 Z" << PrecisionedDouble{ 2, z_jerk * 1000 } << " E" << PrecisionedDouble{ 2, e_jerk * 1000 } << new_line_;
+//                 break;
+//             case EGCodeFlavor::BFB:
+//             case EGCodeFlavor::MAKERBOT:
+//             case EGCodeFlavor::MACH3:
+//                 break;
+//             default:
+//                 *output_stream_ << "M205 Z" << PrecisionedDouble{ 2, z_jerk } << " E" << PrecisionedDouble{ 2, e_jerk } << new_line_;
+//                 break;
+//             }
+//             current_jerk_[CombinedAxis::Z] = z_jerk;
+//             current_jerk_[CombinedAxis::E] = e_jerk;
+//         }
+//         estimate_calculator_.setMaxZJerk(flavor_ == EGCodeFlavor::CHEETAH ? Velocity{ z_jerk / 200 } : z_jerk);
+//         estimate_calculator_.setMaxEJerk(flavor_ == EGCodeFlavor::CHEETAH ? Velocity{ e_jerk / 200 } : e_jerk);
+//     }
+// }
 
 void GCodeExport::writeTravel(const Point2LL& p, const SpeedDerivatives& derivatives)
 {
@@ -1200,15 +1372,15 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Spee
     }
 
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
-    SpeedDerivatives capped = prepareMove(Point3LL(x, y, z), derivatives, eToMm(extrusion_per_mm), extrusion_mm3_per_mm, extrusion_mm3_per_mm == 0.0, false);
+    Velocity capped_speed = prepareMove(Point3LL(x, y, z), derivatives, eToMm(extrusion_per_mm), extrusion_mm3_per_mm, extrusion_mm3_per_mm == 0.0, false);
 
     Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
 
     // For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
-    double rpm = extrusion_per_mm * capped.speed * 60;
+    double rpm = extrusion_per_mm * capped_speed * 60;
     const double mm_per_rpm = 4.0; // All BFB machines have 4mm per RPM extrusion.
     rpm /= mm_per_rpm;
-    const Velocity speed = prepareMove(Point3LL(x, y, z), capped, eToMm(extrusion_per_mm), extrusion_mm3_per_mm, extrusion_mm3_per_mm == 0.0).speed;
+    const Velocity speed = prepareMove(Point3LL(x, y, z), capped_speed, eToMm(extrusion_per_mm), extrusion_mm3_per_mm, extrusion_mm3_per_mm == 0.0);
     const double fspeed = speed * 60;
     if (rpm > 0)
     {
@@ -1249,7 +1421,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Spee
         feature);
 }
 
-void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const SpeedDerivatives& derivatives, const std::optional<double>& retract_distance)
+void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const MotionSettings& derivatives, const std::optional<double>& retract_distance)
 {
     const ExtruderTrainAttributes& extruder_attr = extruder_attr_[current_extruder_];
     std::optional<RetractionAmounts> retraction_amounts
@@ -1259,17 +1431,6 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     {
         return;
     }
-    const double distance = (Point3LL(x, y, z) - current_position_).vSizeMM();
-    if (distance == 0.0 && retraction_amounts.has_value())
-    {
-        const Settings& settings = Application::getInstance().current_slice_->scene.extruders[current_extruder_].settings_;
-        writeStationaryExtrusion(retraction_amounts->diff_e, settings.get<Velocity>(retraction_amounts->diff_e < 0.0 ? "retraction_retract_speed" : "retraction_prime_speed"));
-        extruder_attr_[current_extruder_].retraction_e_amount_current_ = retraction_amounts->new_e;
-        return;
-    }
-    const double filament_per_mm = retraction_amounts.has_value() ? eToMm(retraction_amounts->diff_e) / distance : 0.0;
-    const SpeedDerivatives capped = prepareMove(Point3LL(x, y, z), derivatives, filament_per_mm, 0.0, true);
-    const Velocity speed = capped.speed;
 
 #ifdef ASSERT_INSANE_OUTPUT
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
@@ -1278,10 +1439,17 @@ void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z,
     assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
 #endif // ASSERT_INSANE_OUTPUT
 
-    const PrintFeatureType travel_move_type = sendTravel(Point3LL(x, y, z), speed, extruder_attr, retraction_amounts);
+    constexpr bool is_travel = true;
+    const std::optional<PreparedMove> prepared_move = prepareMove(Point3LL(x, y, z), 0.0, derivatives, is_travel);
+    if (! prepared_move.has_value())
+    {
+        return;
+    }
+
+    const PrintFeatureType travel_move_type = sendTravel(Point3LL(x, y, z), prepared_move->velocity, extruder_attr, retraction_amounts);
 
     *output_stream_ << "G0";
-    writeFXYZE(capped, x, y, z, current_e_value_, travel_move_type, retraction_amounts);
+    writePreparedMoveXYFZE(prepared_move.value());
 }
 
 void GCodeExport::writeExtrusion(
@@ -1299,7 +1467,7 @@ void GCodeExport::writeExtrusion(
     }
 
 #ifdef ASSERT_INSANE_OUTPUT
-    assert(derivatives.speed < 1000 && derivatives.speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
+    assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
     assert(current_position_ != no_point3);
     assert(Point3LL(x, y, z) != no_point3);
     assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
@@ -1337,50 +1505,17 @@ void GCodeExport::writeExtrusion(
     const double diff_length = diff.vSizeMM();
 
     writeUnretractionAndPrime();
-    if (diff_length == 0.0)
+
+    // flow rate compensation
+    double extrusion_offset = 0;
+    if (diff_length)
     {
-        return;
-    }
-    SpeedDerivatives capped = prepareMove(Point3LL(x, y, z), derivatives, eToMm(extrusion_per_mm), extrusion_mm3_per_mm, false, false);
-    const auto offset_at_speed = [&](double speed)
-    {
-        return update_extrusion_offset ? mmToE(std::min(speed * eToMm(extrusion_per_mm) * extrusion_offset_factor_, max_extrusion_offset_)) : current_e_offset_;
-    };
-    const auto filament_per_mm_at_speed = [&](double speed)
-    {
-        return eToMm(extrusion_per_mm * diff_length + offset_at_speed(speed) - emitted_e_offset_) / diff_length;
-    };
-    const Scene& scene = Application::getInstance().current_slice_->scene;
-    const double max_filament_speed = motion_settings_.value().e.speed;
-    const double max_volume_speed = scene.extruders[current_extruder_].getMotionSettings().max_flowrate;
-    const auto within_limits = [&](double speed)
-    {
-        const double filament_speed = filament_per_mm_at_speed(speed) * speed;
-        return std::abs(filament_speed) <= max_filament_speed && std::max(0.0, filament_speed) * extruder_attr_[current_extruder_].filament_area_ <= max_volume_speed;
-    };
-    if (! within_limits(capped.speed))
-    {
-        double lower = 0.0;
-        double upper = capped.speed;
-        for (size_t iteration = 0; iteration < 60; ++iteration)
+        extrusion_offset = speed * extrusion_mm3_per_mm * extrusion_offset_factor_;
+        if (extrusion_offset > max_extrusion_offset_)
         {
-            const double middle = (lower + upper) / 2.0;
-            if (within_limits(middle))
-            {
-                lower = middle;
-            }
-            else
-            {
-                upper = middle;
-            }
+            extrusion_offset = max_extrusion_offset_;
         }
-        capped.speed = lower;
     }
-    const double filament_per_mm = filament_per_mm_at_speed(capped.speed);
-    const double extrusion_offset = offset_at_speed(capped.speed);
-    capped.acceleration = derivatives.acceleration;
-    capped.jerk = derivatives.jerk;
-    capped = prepareMove(Point3LL(x, y, z), capped, filament_per_mm, std::max(0.0, filament_per_mm) * extruder_attr_[current_extruder_].filament_area_, false);
     // write new value of extrusion_offset, which will be remembered.
     if (update_extrusion_offset && (extrusion_offset != current_e_offset_))
     {
@@ -1392,11 +1527,11 @@ void GCodeExport::writeExtrusion(
     const double new_e_value = current_e_value_ + extrusion_per_mm * diff_length;
 
     *output_stream_ << "G1";
-    writeFXYZE(capped, x, y, z, new_e_value, feature);
+    writeFXYZE(speed, x, y, z, new_e_value, feature);
 }
 
 void GCodeExport::writeFXYZE(
-    const SpeedDerivatives& derivatives,
+    const Velocity& speed,
     const coord_t x,
     const coord_t y,
     const coord_t z,
@@ -1404,7 +1539,6 @@ void GCodeExport::writeFXYZE(
     const PrintFeatureType& feature,
     const std::optional<RetractionAmounts>& retraction_amounts)
 {
-    const Velocity speed = derivatives.speed;
     bool any_written = false;
 
     if (current_speed_ != speed)
@@ -1661,14 +1795,12 @@ void GCodeExport::writeZhop(const std::optional<SpeedDerivatives>& requested, co
         }
         return;
     }
-    const SpeedDerivatives capped
-        = prepareMove(Point3LL(current_position_.x_, current_position_.y_, target_z), derivatives, eToMm(retraction_amounts.diff_e) / distance, 0.0, true);
-    const Velocity speed = capped.speed;
+    const Velocity speed = prepareMove(Point3LL(current_position_.x_, current_position_.y_, target_z), derivatives, eToMm(retraction_amounts.diff_e) / distance, 0.0, true);
 
     const PrintFeatureType travel_move_type = sendTravel(Point3LL(current_position_.x_, current_position_.y_, target_z), speed, extruder_attr, retraction_amounts);
 
     *output_stream_ << "G1";
-    writeFXYZE(capped, current_position_.x_, current_position_.y_, target_z, current_e_value_, travel_move_type, retraction_amounts);
+    writeFXYZE(speed, current_position_.x_, current_position_.y_, target_z, current_e_value_, travel_move_type, retraction_amounts);
 
     total_bounding_box_.includeZ(target_z);
 }
@@ -1959,9 +2091,9 @@ void GCodeExport::writePrimeTrain(const SpeedDerivatives& derivatives)
         {
             // Can't output via 'writeTravel', since if this is needed, the value saved for 'current height' will not be correct.
             // For similar reasons, this isn't written to the front-end via command-socket.
-            const SpeedDerivatives correction = prepareMove(current_position_, derivatives, 0.0, 0.0, true, true, true);
-            *output_stream_ << "G0 F" << PrecisionedDouble{ 1, correction.speed * 60 } << " Z" << MMtoStream{ getPositionZ() } << new_line_;
-            current_speed_ = correction.speed;
+            const Velocity correction_speed = prepareMove(current_position_, derivatives, 0.0, 0.0, true, true, true);
+            *output_stream_ << "G0 F" << PrecisionedDouble{ 1, correction_speed * 60 } << " Z" << MMtoStream{ getPositionZ() } << new_line_;
+            current_speed_ = correction_speed;
         }
     }
     else
@@ -2176,101 +2308,130 @@ void GCodeExport::writeBuildVolumeTemperatureCommand(const Temperature& temperat
     *output_stream_ << PrecisionedDouble{ 1, temperature } << new_line_;
 }
 
-void GCodeExport::writePrintAcceleration(const Acceleration& acceleration)
+void GCodeExport::writeAcceleration(const Acceleration& acceleration, const CombinedAxis::Enum axis, const bool is_travel)
 {
-    if (! motion_settings_.value().acceleration_enabled || ! supportsMotionControl())
+    if (! acceleration_enabled_ || ! supportsMotionControl())
     {
         return;
     }
-    switch (getFlavor())
+
+    estimate_calculator_.setAcceleration(acceleration);
+
+    if (acceleration == current_acceleration_[axis])
+    {
+        return;
+    }
+
+    current_acceleration_[axis] = acceleration;
+
+    std::vector<std::string> emit_axis;
+    switch (flavor_)
     {
     case EGCodeFlavor::REPETIER:
-        if (current_print_acceleration_ != acceleration)
+        *output_stream_ << (is_travel ? "M202" : "M201");
+        if (axis == CombinedAxis::XY)
         {
-            *output_stream_ << "M201 X" << PrecisionedDouble{ 0, acceleration } << " Y" << PrecisionedDouble{ 0, acceleration } << new_line_;
+            emit_axis.emplace_back("X");
+            emit_axis.emplace_back("Y");
         }
+        // Other axes are not supported
         break;
     case EGCodeFlavor::REPRAP:
-        if (current_print_acceleration_ != acceleration)
-        {
-            *output_stream_ << "M204 P" << PrecisionedDouble{ 0, acceleration } << new_line_;
-        }
+        *output_stream_ << "M204";
+        emit_axis.emplace_back(is_travel ? "T" : "P");
         break;
     default:
-        // MARLIN, etc. only have one acceleration for both print and travel
-        if (current_print_acceleration_ != acceleration)
-        {
-            *output_stream_ << "M204 S" << PrecisionedDouble{ 0, acceleration } << new_line_;
-        }
+        // MARLIN, etc. only have one acceleration for both print and travel, and on no specific axis
+        *output_stream_ << "M204";
+        emit_axis.emplace_back("S");
         break;
     }
-    current_print_acceleration_ = acceleration;
-    estimate_calculator_.setAcceleration(acceleration);
-}
 
-void GCodeExport::writeTravelAcceleration(const Acceleration& acceleration)
-{
-    if (! motion_settings_.value().acceleration_enabled || ! supportsMotionControl())
+    if (emit_axis.empty())
     {
         return;
     }
-    switch (getFlavor())
+
+    for (const std::string& axis_name : emit_axis)
     {
-    case EGCodeFlavor::REPETIER:
-        if (current_travel_acceleration_ != acceleration)
-        {
-            *output_stream_ << "M202 X" << PrecisionedDouble{ 0, acceleration } << " Y" << PrecisionedDouble{ 0, acceleration } << new_line_;
-        }
-        break;
-    case EGCodeFlavor::REPRAP:
-        if (current_travel_acceleration_ != acceleration)
-        {
-            *output_stream_ << "M204 T" << PrecisionedDouble{ 0, acceleration } << new_line_;
-        }
-        break;
-    default:
-        // MARLIN, etc. only have one acceleration for both print and travel
-        writePrintAcceleration(acceleration);
-        break;
+        *output_stream_ << " " << axis_name << PrecisionedDouble{ 2, acceleration };
     }
-    current_travel_acceleration_ = acceleration;
-    estimate_calculator_.setAcceleration(acceleration);
+    *output_stream_ << new_line_;
 }
 
-void GCodeExport::writeJerk(const Velocity& jerk)
+void GCodeExport::writeJerk(const std::vector<std::tuple<Velocity, CombinedAxis::Enum>>& jerk_values)
 {
-    if (! motion_settings_.value().jerk_enabled || ! supportsMotionControl())
+    if (! jerk_enabled_ || ! supportsMotionControl())
     {
         return;
     }
-    if (current_jerk_ != jerk)
-    {
-        switch (getFlavor())
-        {
-        case EGCodeFlavor::REPETIER:
-            *output_stream_ << "M207 X" << PrecisionedDouble{ 2, jerk } << new_line_;
-            break;
-        case EGCodeFlavor::REPRAP:
-            *output_stream_ << "M566 X" << PrecisionedDouble{ 2, jerk * 60 } << " Y" << PrecisionedDouble{ 2, jerk * 60 } << new_line_;
-            break;
-        case EGCodeFlavor::CHEETAH:
-            *output_stream_ << "M215 X" << PrecisionedDouble{ 2, jerk * 1000 } << " Y" << PrecisionedDouble{ 2, jerk * 1000 } << new_line_;
-            break;
-        default:
-            *output_stream_ << "M205 X" << PrecisionedDouble{ 2, jerk } << " Y" << PrecisionedDouble{ 2, jerk } << new_line_;
-            break;
-        }
-        current_jerk_ = jerk;
 
+    std::vector<std::tuple<std::string, Velocity>> emit_axis;
+    for (const auto& [jerk, axis] : jerk_values)
+    {
         if (getFlavor() == EGCodeFlavor::CHEETAH)
         {
-            estimate_calculator_.setMaxXyJerk(jerk / 200);
+            estimate_calculator_.setMaxJerk(jerk / 200, axis);
         }
         else
         {
-            estimate_calculator_.setMaxXyJerk(jerk);
+            estimate_calculator_.setMaxJerk(jerk, axis);
+        }
+
+        if (current_jerk_[axis] == jerk)
+        {
+            continue;
+        }
+
+        current_jerk_[axis] = jerk;
+
+        switch (axis)
+        {
+        case CombinedAxis::XY:
+            emit_axis.emplace_back("X", jerk);
+            if (flavor_ != EGCodeFlavor::REPETIER)
+            {
+                emit_axis.emplace_back("Y", jerk);
+            }
+            break;
+        case CombinedAxis::Z:
+            emit_axis.emplace_back("Z", jerk);
+            break;
+        case CombinedAxis::E:
+            emit_axis.emplace_back("E", jerk);
+            break;
         }
     }
+
+    if (emit_axis.empty())
+    {
+        return;
+    }
+
+    int multiplier = 1;
+    switch (getFlavor())
+    {
+    case EGCodeFlavor::REPETIER:
+        *output_stream_ << "M207";
+        break;
+    case EGCodeFlavor::REPRAP:
+        *output_stream_ << "M566";
+        multiplier = 60;
+        break;
+    case EGCodeFlavor::CHEETAH:
+        *output_stream_ << "M215";
+        multiplier = 1000;
+        break;
+    default:
+        *output_stream_ << "M205";
+        break;
+    }
+
+    for (const auto& [axis_name, jerk] : emit_axis)
+    {
+        *output_stream_ << " " << axis_name << PrecisionedDouble{ 2, jerk * multiplier };
+    }
+    *output_stream_ << new_line_;
 }
 
 void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_info)

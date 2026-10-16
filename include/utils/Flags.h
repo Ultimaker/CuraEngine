@@ -18,7 +18,53 @@ class Flags
 public:
     using enum_int_type = std::underlying_type_t<EnumClass>;
 
-public:
+    /*!
+     * Iterates over the set bits, from least significant to most significant.
+     * Each dereference returns a single-bit enum value.
+     */
+    class Iterator
+    {
+        using unsigned_type = std::make_unsigned_t<enum_int_type>;
+
+    public:
+        using iterator_category = std::forward_iterator_tag;
+        using value_type = EnumClass;
+        using difference_type = std::ptrdiff_t;
+        using pointer = void;
+        using reference = EnumClass;
+
+        constexpr Iterator() = default;
+
+        explicit constexpr Iterator(const enum_int_type value)
+            : remaining_(static_cast<unsigned_type>(value))
+        {
+        }
+
+        constexpr EnumClass operator*() const
+        {
+            const auto bit = static_cast<unsigned_type>(remaining_ & static_cast<unsigned_type>(unsigned_type{ 0 } - remaining_));
+            return static_cast<EnumClass>(bit);
+        }
+
+        constexpr Iterator& operator++()
+        {
+            remaining_ &= static_cast<unsigned_type>(remaining_ - 1);
+            return *this;
+        }
+
+        constexpr Iterator operator++(int)
+        {
+            const auto previous = *this;
+            ++*this;
+            return previous;
+        }
+
+        constexpr bool operator==(const Iterator& other) const = default;
+
+    private:
+        unsigned_type remaining_{ 0 };
+    };
+
     Flags() = default;
 
     constexpr Flags(const EnumClass value)
@@ -38,7 +84,7 @@ public:
         return *this & value;
     }
 
-    Flags operator|(const Flags& other) const
+    constexpr Flags operator|(const Flags& other) const
     {
         return Flags(static_cast<EnumClass>(value_ | other.value_));
     }
@@ -56,6 +102,16 @@ public:
     bool operator==(const Flags& other) const
     {
         return value_ == other.value_;
+    }
+
+    constexpr Iterator begin() const
+    {
+        return Iterator(value_);
+    }
+
+    constexpr Iterator end() const
+    {
+        return Iterator();
     }
 
 private:
