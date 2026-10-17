@@ -3,6 +3,8 @@
 
 #include "LayerPlanBuffer.h"
 
+#include <algorithm>
+
 #include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
 
@@ -123,6 +125,21 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         spdlog::warn("Layer {} is empty (or it has empty extruder plans). Temperature control and cross layer travel moves might suffer!", newest_layer->layer_nr_);
         return;
     }
+
+    const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
+    Velocity fastest_hop_speed{ 0.0 };
+    for (const ExtruderPlan& plan : newest_layer->extruder_plans_)
+    {
+        fastest_hop_speed = std::max(fastest_hop_speed, extruders[plan.extruder_nr_].settings_.get<Velocity>("speed_z_hop"));
+    }
+    const size_t first_extruder = newest_layer->extruder_plans_.front().extruder_nr_;
+    const WipeScriptConfig& wipe_config = newest_layer->storage_.retraction_wipe_config_per_extruder[first_extruder].wipe_config;
+    // A layer-start wipe can replace the pending hop at its own speed.
+    if (wipe_config.clean_between_layers && wipe_config.hop_enable)
+    {
+        fastest_hop_speed = std::max(fastest_hop_speed, wipe_config.hop_speed);
+    }
+    prev_layer->next_layer_hop_return_ = LayerPlan::NextLayerHopReturn{ fastest_hop_speed, newest_layer->z_ };
 
     Point2LL first_location_new_layer = new_layer_destination_state->first;
 

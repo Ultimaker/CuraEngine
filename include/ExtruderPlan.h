@@ -37,6 +37,7 @@ class ExtruderPlan
     friend class LayerPlanBuffer;
     friend class LayerPlan;
 #ifdef BUILD_TESTS
+    friend class LayerPlanTest;
     friend class ExtruderPlanPathsParameterizedTest;
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated);
     FRIEND_TEST(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull);
