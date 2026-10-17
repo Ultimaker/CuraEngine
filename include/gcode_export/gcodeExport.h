@@ -73,6 +73,7 @@ class GCodeExport : public NoCopy
     FRIEND_TEST(GCodeExportTest, insertWipeScriptOptionalDelay);
     FRIEND_TEST(GCodeExportTest, insertWipeScriptRetractionEnable);
     FRIEND_TEST(GCodeExportTest, insertWipeScriptHopEnable);
+    FRIEND_TEST(LayerPlanTest, TravelRetractionUsesActiveExtruderAfterToolChange);
 #endif
 private:
     struct ExtruderTrainAttributes
