@@ -1,12 +1,17 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
+#include <cstdint>
 #include <filesystem>
+#include <fstream>
 #include <numbers>
+#include <random>
+#include <string>
 
 #include <gtest/gtest.h>
 
 #include "Application.h" // To set up a slice with settings.
+#include "MeshGroup.h"
 #include "Slice.h" // To set up a scene to slice.
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" // Creating polygons to compare to sliced layers.
@@ -176,6 +181,97 @@ TEST_F(SlicePhaseTest, Cylinder1000)
             EXPECT_LE(PolygonUtils::relativeHammingDistance(layer.polygons_, circles), 0.002);
         }
     }
+}
+
+namespace
+{
+void writeBinaryTriangle(const std::filesystem::path& path)
+{
+    std::ofstream out(path, std::ios::binary);
+    char header[80] = {};
+    header[0] = 'x'; // Binary STL must not start with "solid".
+    out.write(header, sizeof(header));
+    const uint32_t face_count = 1;
+    out.write(reinterpret_cast<const char*>(&face_count), sizeof(face_count));
+    const float triangle[12] = { 0.0F, 0.0F, 1.0F, 0.0F, 0.0F, 0.0F, 10.0F, 0.0F, 0.0F, 0.0F, 10.0F, 0.0F };
+    out.write(reinterpret_cast<const char*>(triangle), sizeof(triangle));
+    const uint16_t attribute = 0;
+    out.write(reinterpret_cast<const char*>(&attribute), sizeof(attribute));
+}
+
+void writeUvSidecar(const std::filesystem::path& path, const float value)
+{
+    std::ofstream out(path, std::ios::binary);
+    const uint32_t vertex_count = 3;
+    out.write(reinterpret_cast<const char*>(&vertex_count), sizeof(vertex_count));
+    const float coordinates[6] = { value, 0.0F, value, 0.0F, value, 0.0F };
+    out.write(reinterpret_cast<const char*>(coordinates), sizeof(coordinates));
+}
+} // namespace
+
+TEST_F(SlicePhaseTest, StlUvSidecarLoadsFromModelDirectory)
+{
+    const std::filesystem::path original_cwd = std::filesystem::current_path();
+    const std::filesystem::path temp_dir = std::filesystem::absolute(std::filesystem::temp_directory_path());
+    std::filesystem::path fixture_dir;
+    std::random_device random;
+    for (int attempt = 0; attempt < 32; ++attempt)
+    {
+        const std::filesystem::path candidate = temp_dir / ("curaengine-2380-uv-sidecar-" + std::to_string(random()));
+        if (std::filesystem::create_directory(candidate))
+        {
+            fixture_dir = candidate;
+            break;
+        }
+    }
+    ASSERT_FALSE(fixture_dir.empty()) << "Could not create a unique UV sidecar test directory";
+
+    struct Cleanup
+    {
+        std::filesystem::path original_cwd;
+        std::filesystem::path fixture_dir;
+        ~Cleanup()
+        {
+            std::error_code error;
+            std::filesystem::current_path(original_cwd, error);
+            if (error)
+            {
+                ADD_FAILURE() << "Failed to restore working directory: " << error.message();
+                return;
+            }
+            std::filesystem::remove_all(fixture_dir, error);
+            if (error)
+            {
+                ADD_FAILURE() << "Failed to remove UV sidecar test directory: " << error.message();
+            }
+        }
+    } cleanup{ original_cwd, fixture_dir };
+
+    const std::filesystem::path model_dir = fixture_dir / "model";
+    const std::filesystem::path decoy_dir = fixture_dir / "cwd";
+    const std::filesystem::path model_path = model_dir / "sidecar_uv_probe.stl";
+    const std::filesystem::path sidecar_path = model_dir / "sidecar_uv_probe.uv";
+    const std::filesystem::path decoy_path = decoy_dir / "sidecar_uv_probe.uv";
+    std::filesystem::create_directories(model_dir);
+    std::filesystem::create_directories(decoy_dir);
+    writeBinaryTriangle(model_path);
+    writeUvSidecar(sidecar_path, 0.25F);
+    writeUvSidecar(decoy_path, 0.75F);
+
+    Scene& scene = Application::getInstance().current_slice_->scene;
+    MeshGroup& mesh_group = scene.mesh_groups.back();
+    std::filesystem::current_path(decoy_dir);
+    const bool loaded_model = loadMeshIntoMeshGroup(&mesh_group, model_path, Matrix4x3D(), scene.settings);
+    std::filesystem::current_path(cleanup.original_cwd);
+    ASSERT_TRUE(loaded_model);
+    ASSERT_EQ(mesh_group.meshes.size(), 1);
+    const Mesh& loaded = mesh_group.meshes.front();
+    EXPECT_EQ(loaded.mesh_name_, "sidecar_uv_probe");
+    ASSERT_FALSE(loaded.faces_.empty());
+    ASSERT_TRUE(loaded.faces_.front().uv_coordinates_[0].has_value());
+    EXPECT_FLOAT_EQ(loaded.faces_.front().uv_coordinates_[0]->x_, 0.25F);
+    EXPECT_FLOAT_EQ(loaded.faces_.front().uv_coordinates_[1]->x_, 0.25F);
+    EXPECT_FLOAT_EQ(loaded.faces_.front().uv_coordinates_[2]->x_, 0.25F);
 }
 
 } // namespace cura
