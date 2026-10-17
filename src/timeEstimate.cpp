@@ -39,6 +39,11 @@ void TimeEstimateCalculator::setPosition(Position newPos)
     currentPosition = newPos;
 }
 
+void TimeEstimateCalculator::resetExtrusionValue()
+{
+    currentPosition[E_AXIS] = 0.0;
+}
+
 void TimeEstimateCalculator::addTime(const Duration& time)
 {
     extra_time += time;
