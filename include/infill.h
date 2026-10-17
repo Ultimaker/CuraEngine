@@ -430,6 +430,14 @@ private:
     void generateGyroidInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons);
 
     /*!
+     * Generate a bone-like (trabecular) infill
+     * \param result_polylines (output) The resulting polylines
+     * \param result_polygons (output) The resulting polygons; the pattern gives its closed loops as polylines, so this stays empty.
+     * \param settings The settings that shape the structure (bone_*).
+     */
+    void generateBoneInfill(const Shape& outline, OpenLinesSet& result_polylines, Shape& result_polygons, const Settings& settings);
+
+    /*!
      * Generate honeycomb infill
      * \param result_polylines (output) The resulting polylines
      * \param result_polygons (output) The resulting polygons, if zigzagging accidentally happened to connect lines in a circle.

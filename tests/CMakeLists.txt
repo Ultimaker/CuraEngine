@@ -6,6 +6,7 @@ include(GoogleTest)
 
 set(TESTS_SRC_BASE
         AntiOozeAmountsTest
+        BoneInfillTest
         ClipperTest
         ExtruderPlanTest
         FffGcodeWriterTest
