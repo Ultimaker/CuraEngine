@@ -723,7 +723,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             constexpr auto enable_travel_optimization = false;
             constexpr auto always_retract = ForceRetract::AUTOMATIC;
             constexpr auto reverse_order = false;
-            constexpr OverrideAreas override_areas;
+            const OverrideAreas override_areas;
 
             gcode_layer.addLinesByOptimizer(
                 raft_lines,
@@ -886,7 +886,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr auto enable_travel_optimization = false;
         constexpr auto always_retract = ForceRetract::AUTOMATIC;
         constexpr auto reverse_order = false;
-        constexpr OverrideAreas override_areas;
+        const OverrideAreas override_areas;
 
         gcode_layer.addLinesByOptimizer(
             raft_lines,
@@ -1061,7 +1061,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             constexpr auto enable_travel_optimization = false;
             constexpr auto always_retract = ForceRetract::AUTOMATIC;
             constexpr auto reverse_order = false;
-            constexpr OverrideAreas override_areas;
+            const OverrideAreas override_areas;
 
             if (monotonic)
             {
@@ -1760,7 +1760,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     const std::optional<Point2LL> start_near_location = std::nullopt;
     constexpr bool scarf_seam = true;
     constexpr bool smooth_speed = true;
-    constexpr OverrideAreas override_areas;
+    const OverrideAreas override_areas;
 
     gcode_layer.addPolygonsByOptimizer(
         polygons,
@@ -2080,7 +2080,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
                 constexpr Ratio flow_ratio = 1.0_r;
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-                constexpr OverrideAreas override_areas;
+                const OverrideAreas override_areas;
                 const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
                 gcode_layer.addLinesByOptimizer(
@@ -3828,7 +3828,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
             const bool alternate_inset_direction = infill_extruder.settings_.get<bool>("material_alternate_walls");
             const bool alternate_layer_print_direction = alternate_inset_direction && gcode_layer.getLayerNr() % 2 == 1;
-            constexpr OverrideAreas override_areas;
+            const OverrideAreas override_areas;
 
             if (! support_polygons.empty())
             {

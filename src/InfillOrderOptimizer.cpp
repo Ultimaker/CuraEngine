@@ -453,7 +453,7 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
         wipe_dist = 0;
     }
 
-    constexpr OverrideAreas override_areas;
+    const OverrideAreas override_areas;
     layer_plan.addLinesByOptimizer(
         lines,
         mesh_config.infill_config[0],
@@ -487,7 +487,7 @@ void InfillOrderOptimizer::addSkinSupportLinesToLayer(
     const auto skin_support_fan_speed = settings.get<bool>("cool_fan_enabled") ? settings.get<double>("skin_support_fan_speed") : GCodePathConfig::FAN_SPEED_DEFAULT;
     constexpr SpaceFillType skin_support_space_fill_type = SpaceFillType::Lines;
     constexpr coord_t skin_support_wipe_dist = 0;
-    constexpr OverrideAreas override_areas;
+    const OverrideAreas override_areas;
     const auto skin_support_interlace_lines = settings.get<bool>("skin_support_interlace_lines");
     if (skin_support_interlace_lines)
     {
