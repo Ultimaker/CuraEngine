@@ -754,7 +754,9 @@ void SkeletalTrapezoidation::filterCentral(coord_t max_length)
 {
     for (edge_t& edge : graph_.edges_)
     {
-        if (isEndOfCentral(edge) && edge.to_->isLocalMaximum() && ! edge.to_->isLocalMaximum())
+        // Start only at an end that is not a strict local maximum. Equidistant neighbors still count as that maximum.
+        // The recursive walk itself refuses to clear an edge that arrives at a local maximum.
+        if (isEndOfCentral(edge) && ! edge.to_->isLocalMaximum(true))
         {
             filterCentral(edge.twin_, 0, max_length);
         }
