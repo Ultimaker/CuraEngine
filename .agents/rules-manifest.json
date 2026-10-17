@@ -1,0 +1,7 @@
+{
+  "rules": {
+    "10-file-size-and-decomposition-rules.md": "8507d1340c99931cd3f57756299999ddf620c0e51c5ac6bf090ff11e6075c941",
+    "12-ai-context-exclusion-rules.md": "dc3997cdaf749718dc3986453d72b889655f55b15f781f4042fc1b551269d946",
+    "14-complexity-budget-rules.md": "b5612f673f2c2c0cff73cac180e4b99cfab9a8bc5bd7536f177a83b34f8f605e"
+  }
+}

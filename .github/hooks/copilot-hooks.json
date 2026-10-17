@@ -1,0 +1,37 @@
+{
+  "version": 1,
+  "hooks": {
+    "preToolUse": [
+      {
+        "type": "command",
+        "bash": "python .agents/hooks/pretool_guard.py",
+        "powershell": "py -3 .agents/hooks/pretool_guard.py",
+        "timeoutSec": 15
+      },
+
+      {
+        "type": "command",
+        "bash": "python .agents/hooks/block_name_matched_kill.py",
+        "powershell": "py -3 .agents/hooks/block_name_matched_kill.py",
+        "timeoutSec": 10
+      },
+
+      {
+        "type": "command",
+        "bash": "python .agents/hooks/suggest-skills.py --pre-edit",
+        "powershell": "py -3 .agents/hooks/suggest-skills.py --pre-edit",
+        "timeoutSec": 15
+      }
+
+    ],
+    "postToolUse": [
+      {
+        "type": "command",
+        "bash": "python .agents/hooks/post_edit_check.py",
+        "powershell": "py -3 .agents/hooks/post_edit_check.py",
+        "timeoutSec": 60
+      }
+
+    ]
+  }
+}

@@ -1,0 +1,82 @@
+# .aiignore — files that must not be fed to an AI model
+#
+# This file is the SINGLE SOURCE OF TRUTH for AI context exclusion in this
+# repository. Edit it here, then run:
+#
+#     python3 .agents/hooks/compile_aiignore.py
+#
+# which translates these patterns into the mechanism each agent platform
+# actually honours (.ignore for ripgrep-based search, deny rules for Claude
+# Code and OpenCode, and a paste-ready list for GitHub Copilot's org-level
+# content exclusion). No platform reads .aiignore directly.
+#
+# Syntax is .gitignore syntax.
+
+# Secrets and credentials
+# Never let key material or tokens enter a model context window.
+*.pem
+*.key
+*.p12
+*.pfx
+*.jks
+*.keystore
+id_rsa
+id_ecdsa
+id_ed25519
+*.gpg
+*.asc
+.env
+.env.*
+.env-*
+.env_*
+!.env.example
+!.env-example
+*.tfvars
+.netrc
+.npmrc
+credentials.json
+service-account*.json
+**/secrets/**
+
+# Third-party code and SDKs
+# Not ours to change; reading it wastes context and invites edits to vendored trees.
+vendor/
+third_party/
+node_modules/
+
+# Build output and caches
+# Generated artefacts carry no design intent.
+build/
+dist/
+out/
+target/
+.venv/
+venv/
+__pycache__/
+*.o
+*.a
+*.so
+*.dylib
+*.dll
+*.exe
+.mypy_cache/
+.pytest_cache/
+.ruff_cache/
+
+# Large or binary payloads
+# High token cost, near-zero reasoning value.
+*.stl
+*.3mf
+*.ufp
+*.obj
+*.step
+*.stp
+uv.lock
+poetry.lock
+
+# Personal and customer data
+# Privacy: log dumps and captures routinely contain PII.
+**/*.log
+**/logdump*/**
+**/customer-data/**
+**/pii/**

@@ -1,0 +1,12 @@
+---
+name: review-and-change-quality
+description: Review changed behavior and observable risks, not generic style advice or repository-wide speculation.
+trigger: always_on
+---
+# CuraEngine change and review quality
+
+For GitHub Copilot reviews, follow `.github/skills/code-review/SKILL.md` first. Review only changed lines and their directly affected callers, with a reproducible failure path and a concrete fix. Read the current complete diff before commenting: do not request a fix already made in the same PR. Prefer fewer high-confidence findings to speculative modernization comments. Do not repeat clang-format or clang-tidy output: `.github/workflows/lint-formatter.yml` and `.github/workflows/lint-tidier.yml` already own it. A review must never edit code or claim that local agent hooks ran in a GitHub-hosted review.
+
+Check correctness at the relevant boundary: geometry units (including squared distances) and Clipper topology, first-iteration state in scoring loops, settings inheritance, slicing/layer notification order, deterministic multithreading, and the Cura/libArcus/plugin protocol. `coord_t` often represents micrometres, but also holds counts and squared values; determine the actual unit from the operation. When a change modifies `Cura.proto`, plugin RPCs, exported package files, or setting names, identify downstream consumers and the corresponding compatibility check. Request a test for a plausible regression at the narrowest existing seam (geometry/unit, `MockCommunication`, slicing integration), not blanket coverage for every changed line. Cite the relevant code and test by path. Compare algorithmic work against existing range-v3, Clipper, Boost, fmt, and Conan-managed utilities before recommending another implementation.
+
+The repository targets C++20. Never require C++23-only APIs or generic "almost-always-auto". Honor the team's preference for `for` loops where they clarify traversal, but do not flag a condition-driven `while` loop solely for its syntax. Prefer return-value error handling in new code; exceptions remain part of established settings/CLI and plugin contracts, so assess actual failure propagation (`src/settings/Settings.cpp`, `src/communication/CommandLine.cpp`, `include/plugins/pluginproxy.h`). Guidance from `cpp-pro` is constrained by this repository's compiler baseline and ownership semantics. This is a desktop backend, not firmware: it emits G-code rather than dispatching printer M/G commands.

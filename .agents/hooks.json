@@ -1,0 +1,52 @@
+{
+  "safety-and-compliance": {
+    "PreToolUse": [
+      {
+        "matcher": "run_command|write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/pretool_guard.py",
+            "timeout": 15
+          }
+        ]
+      },
+
+      {
+        "matcher": "run_command",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/block_name_matched_kill.py",
+            "timeout": 10
+          }
+        ]
+      },
+
+      {
+        "matcher": "run_command|write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/suggest-skills.py --pre-edit",
+            "timeout": 15
+          }
+        ]
+      }
+
+    ],
+    "PostToolUse": [
+      {
+        "matcher": "write_to_file|replace_file_content|multi_replace_file_content",
+        "hooks": [
+          {
+            "type": "command",
+            "command": "python hooks/post_edit_check.py",
+            "timeout": 60
+          }
+        ]
+      }
+
+    ]
+  }
+}
