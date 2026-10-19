@@ -991,10 +991,9 @@ void GCodeExport::resetMotionSettings()
     constexpr bool is_not_travel = false;
     writeAcceleration(acceleration, CombinedAxis::XY, is_not_travel);
 
-    writeJerk(
-        { { motion_limits_[CombinedAxis::XY].jerk, CombinedAxis::XY },
-          { motion_limits_[CombinedAxis::Z].jerk, CombinedAxis::Z },
-          { motion_limits_[CombinedAxis::E].jerk, CombinedAxis::E } });
+    writeJerk({ { motion_limits_[CombinedAxis::XY].jerk, CombinedAxis::XY },
+                { motion_limits_[CombinedAxis::Z].jerk, CombinedAxis::Z },
+                { motion_limits_[CombinedAxis::E].jerk, CombinedAxis::E } });
 }
 
 // Velocity GCodeExport::prepareMove(
