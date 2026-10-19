@@ -152,6 +152,8 @@ set(engine_SRCS # Except main.cpp.
         src/progress/Progress.cpp
         src/progress/ProgressStageEstimator.cpp
 
+        src/seam/seam.cpp
+
         src/settings/AdaptiveLayerHeights.cpp
         src/settings/FlowTempGraph.cpp
         src/settings/MeshPathConfigs.cpp

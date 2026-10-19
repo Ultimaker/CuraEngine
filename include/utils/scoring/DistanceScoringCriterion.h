@@ -24,8 +24,11 @@ public:
         YOnly, // Only difference on Y coordinate
     };
 
+    static constexpr DistanceType default_distance_type{ DistanceType::Euclidian };
+    static constexpr double default_distance_divider{ 20.0 };
+
 private:
-    const Point2LL& target_pos_;
+    const std::vector<Point2LL> target_positions_;
     const DistanceType distance_type_;
 
     /*!
@@ -37,9 +40,15 @@ private:
 public:
     explicit DistanceScoringCriterion(
         const PointsSet& points,
-        const Point2LL& target_pos,
-        DistanceType distance_type = DistanceType::Euclidian,
-        const double distance_divider = 20.0);
+        const Point2LL& target_position,
+        const DistanceType distance_type = default_distance_type,
+        const double distance_divider = default_distance_divider);
+
+    explicit DistanceScoringCriterion(
+        const PointsSet& points,
+        const std::vector<Point2LL>& target_positions,
+        const DistanceType distance_type = default_distance_type,
+        const double distance_divider = default_distance_divider);
 
     virtual double computeScore(const Point2LL& candidate_position) const override;
 };
