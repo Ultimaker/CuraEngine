@@ -952,9 +952,37 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
         ranges::stable_sort(intersections);
 
         // Calculate whether this area is under the segment start
-        constexpr bool border_result = true;
-        const Point2LL first_subsegment_average_pos = get_position(intersections.empty() ? 0.5 : intersections.front() * 0.5).toPoint2LL();
-        if (override_area.area.inside(first_subsegment_average_pos, border_result))
+        std::optional<bool> start_inside;
+        if (intersections.empty())
+        {
+            // We have no intersection, use the middle position of the segment which should be the furthest away from the borders
+            start_inside = override_area.area.insideWithoutBorder(get_position(0.5).toPoint2LL());
+        }
+        else
+        {
+            // Loop through all the sections of the segments until we find one that is not on the border
+            for (auto iterator = intersections.begin(); iterator <= intersections.end(); ++iterator)
+            {
+                const float section_start{ iterator == intersections.begin() ? 0.0f : *(iterator - 1) };
+                const float section_end{ iterator == intersections.end() ? 1.0f : *iterator };
+                const float section_middle{ (section_start + section_end) * 0.5f };
+                const std::optional<bool> section_inside{ override_area.area.insideWithoutBorder(get_position(section_middle).toPoint2LL()) };
+                if (section_inside.has_value())
+                {
+                    // The middle of this section is not on the border, se we can deduce whether the start of the segment is inside or outside
+                    start_inside = std::distance(intersections.begin(), iterator) % 2 == 0 ? *section_inside : ! *section_inside;
+                    break;
+                }
+            }
+        }
+
+        if (! start_inside.has_value())
+        {
+            // Looks like the whole segment lies on the border of the area, so we consider it fully outside and don't keep the intersections
+            continue;
+        }
+
+        if (*start_inside)
         {
             areas_under_segments.set(index);
         }
