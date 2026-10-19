@@ -1,3 +1,4 @@
+material_max_flowrate=16
 bridge_skin_material_flow_3=110
 speed_wall_0=20
 infill_wipe_dist=0

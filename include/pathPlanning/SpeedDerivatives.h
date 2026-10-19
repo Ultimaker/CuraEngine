@@ -12,6 +12,13 @@ namespace cura
 
 struct SpeedDerivatives
 {
+    SpeedDerivatives();
+
+    SpeedDerivatives(const Velocity& speed, const Acceleration& acceleration, const Velocity& jerk);
+
+    //! Copy acceleration and jerk while replacing the requested speed.
+    SpeedDerivatives(const SpeedDerivatives& derivatives, const Velocity& speed);
+
     Velocity speed{}; //!< movement speed (mm/s)
     Acceleration acceleration{}; //!< acceleration of head movement (mm/s^2)
     Velocity jerk{}; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)

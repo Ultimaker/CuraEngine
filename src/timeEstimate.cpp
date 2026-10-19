@@ -26,9 +26,9 @@ void TimeEstimateCalculator::setFirmwareDefaults(const Settings& settings)
     max_acceleration[Y_AXIS] = settings.get<Acceleration>("machine_max_acceleration_y");
     max_acceleration[Z_AXIS] = settings.get<Acceleration>("machine_max_acceleration_z");
     max_acceleration[E_AXIS] = settings.get<Acceleration>("machine_max_acceleration_e");
-    max_xy_jerk = settings.get<Velocity>("machine_max_jerk_xy");
-    max_z_jerk = settings.get<Velocity>("machine_max_jerk_z");
-    max_e_jerk = settings.get<Velocity>("machine_max_jerk_e");
+    max_jerk_[CombinedAxis::XY] = settings.get<Velocity>("machine_max_jerk_xy");
+    max_jerk_[CombinedAxis::Z] = settings.get<Velocity>("machine_max_jerk_z");
+    max_jerk_[CombinedAxis::E] = settings.get<Velocity>("machine_max_jerk_e");
     minimumfeedrate = settings.get<Velocity>("machine_minimum_feedrate");
     acceleration = settings.get<Acceleration>("machine_acceleration");
 }
@@ -49,9 +49,15 @@ void TimeEstimateCalculator::setAcceleration(const Acceleration& acc)
     acceleration = acc;
 }
 
-void TimeEstimateCalculator::setMaxXyJerk(const Velocity& jerk)
+void TimeEstimateCalculator::setMaxJerk(const Velocity& jerk, CombinedAxis::Enum axis)
 {
-    max_xy_jerk = jerk;
+    max_jerk_[axis] = jerk;
+}
+
+void TimeEstimateCalculator::setAxisAccelerations(const Acceleration& z, const Acceleration& e)
+{
+    max_acceleration[Z_AXIS] = z;
+    max_acceleration[E_AXIS] = e;
 }
 
 void TimeEstimateCalculator::reset()
@@ -215,40 +221,44 @@ void TimeEstimateCalculator::plan(Position newPos, Velocity feedrate, PrintFeatu
     {
         if (block.acceleration * (block.absDelta[n] / block.distance) > max_acceleration[n])
         {
-            block.acceleration = max_acceleration[n];
+            block.acceleration = max_acceleration[n] / (block.absDelta[n] / block.distance);
         }
     }
 
-    Velocity vmax_junction{ max_xy_jerk / 2.0 };
+    Velocity vmax_junction = block.nominal_feedrate;
     Ratio vmax_junction_factor{ 1.0 };
-    if (current_abs_feedrate[Z_AXIS] > max_z_jerk / 2.0)
+    const double xy_ratio = std::hypot(block.delta[X_AXIS], block.delta[Y_AXIS]) / block.distance;
+    if (xy_ratio > 0.0)
     {
-        vmax_junction = std::min(vmax_junction, Velocity{ max_z_jerk / 2.0 });
+        vmax_junction = std::min(vmax_junction, Velocity{ max_jerk_[CombinedAxis::XY] / (2.0 * xy_ratio) });
     }
-    if (current_abs_feedrate[E_AXIS] > max_e_jerk / 2.0)
+    if (block.absDelta[Z_AXIS] > 0.0)
     {
-        vmax_junction = std::min(vmax_junction, Velocity{ max_e_jerk / 2.0 });
+        vmax_junction = std::min(vmax_junction, Velocity{ max_jerk_[CombinedAxis::Z] * block.distance / (2.0 * block.absDelta[Z_AXIS]) });
     }
-    vmax_junction = std::min(vmax_junction, block.nominal_feedrate);
+    if (block.absDelta[E_AXIS] > 0.0)
+    {
+        vmax_junction = std::min(vmax_junction, Velocity{ max_jerk_[CombinedAxis::E] * block.distance / (2.0 * block.absDelta[E_AXIS]) });
+    }
     const Velocity safe_speed = vmax_junction;
 
     if ((blocks.size() > 0) && (previous_nominal_feedrate > 0.0001))
     {
         const Velocity xy_jerk = sqrt(square(current_feedrate[X_AXIS] - previous_feedrate[X_AXIS]) + square(current_feedrate[Y_AXIS] - previous_feedrate[Y_AXIS]));
         vmax_junction = block.nominal_feedrate;
-        if (xy_jerk > max_xy_jerk)
+        if (xy_jerk > max_jerk_[CombinedAxis::XY])
         {
-            vmax_junction_factor = Ratio(max_xy_jerk / xy_jerk);
+            vmax_junction_factor = Ratio(max_jerk_[CombinedAxis::XY] / xy_jerk);
         }
         const double z_jerk = std::abs(current_feedrate[Z_AXIS] - previous_feedrate[Z_AXIS]);
-        if (z_jerk > max_z_jerk)
+        if (z_jerk > max_jerk_[CombinedAxis::Z])
         {
-            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_z_jerk / z_jerk));
+            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_jerk_[CombinedAxis::Z] / z_jerk));
         }
         const double e_jerk = std::abs(current_feedrate[E_AXIS] - previous_feedrate[E_AXIS]);
-        if (e_jerk > max_e_jerk)
+        if (e_jerk > max_jerk_[CombinedAxis::E])
         {
-            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_e_jerk / e_jerk));
+            vmax_junction_factor = std::min(vmax_junction_factor, Ratio(max_jerk_[CombinedAxis::E] / e_jerk));
         }
         vmax_junction = std::min(previous_nominal_feedrate, Velocity{ vmax_junction * vmax_junction_factor }); // Limit speed to max previous speed
     }
