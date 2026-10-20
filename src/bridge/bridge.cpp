@@ -234,9 +234,17 @@ std::optional<AngleDegrees> bridgeAngle(
             angle_candidates.push_back(angle);
         }
         BestElementFinder best_angle_finder;
-        BestElementFinder::CriteriaPass criteria_pass;
-        criteria_pass.criteria.emplace_back(std::make_shared<LineAnchoringScoringCriterion>(angle_candidates, skin_outline, supported_regions, line_width));
-        best_angle_finder.appendCriteriaPass(criteria_pass);
+
+        // First pass tries to find the angle that maximizes the number of properly bridging line, i.e. anchored on both sides
+        // Give some threshold so that we keep a few candidates that are close to the best one
+        constexpr double outsider_delta_threshold{ 0.01 };
+        best_angle_finder.appendSingleCriterionPass(
+            std::make_shared<LineAnchoringScoringCriterion>(angle_candidates, skin_outline, supported_regions, line_width),
+            outsider_delta_threshold);
+
+        // Second pass takes the remaining best candidates from first pass, and tries to see if some of them maximize the alignment with the outline
+        best_angle_finder.appendSingleCriterionPass(std::make_shared<AlignShapeScoringCriterion>(angle_candidates, skin_outline, supported_regions));
+
         best_angle_index = best_angle_finder.findBestElement(angle_candidates.size());
     }
 
@@ -251,10 +259,7 @@ std::optional<AngleDegrees> bridgeAngle(
             angle_candidates.push_back(angle);
         }
         BestElementFinder best_angle_refiner;
-        BestElementFinder::CriteriaPass criteria_pass_refiner;
-        criteria_pass_refiner.criteria.emplace_back(std::make_shared<AlignShapeScoringCriterion>(angle_candidates, skin_outline, supported_regions));
-        best_angle_refiner.appendCriteriaPass(criteria_pass_refiner);
-
+        best_angle_refiner.appendSingleCriterionPass(std::make_shared<AlignShapeScoringCriterion>(angle_candidates, skin_outline, supported_regions));
         best_angle_index = best_angle_refiner.findBestElement(angle_candidates.size());
     }
 

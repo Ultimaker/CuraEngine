@@ -71,13 +71,14 @@ std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates
         }
 
         // Skip candidates that have a score too far from the actual best one
+        const double best_score = best_candidate_iterator->score;
         const double delta_threshold = criteria_pass.outsider_delta_threshold + std::numeric_limits<double>::epsilon();
         end = std::remove_if(
             begin,
             end,
-            [&best_candidate_iterator, &delta_threshold](const Candidate& candidate)
+            [&best_score, &delta_threshold](const Candidate& candidate)
             {
-                return best_candidate_iterator->score - candidate.score > delta_threshold;
+                return best_score - candidate.score > delta_threshold;
             });
 
         if (std::distance(begin, end) == 1)
