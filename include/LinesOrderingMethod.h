@@ -1,8 +1,7 @@
 // Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef LINES_ORDERING_METHOD_H
-#define LINES_ORDERING_METHOD_H
+#pragma once
 
 
 namespace cura
@@ -16,5 +15,3 @@ enum class LinesOrderingMethod
 };
 
 } // namespace cura
-
-#endif

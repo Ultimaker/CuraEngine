@@ -1,8 +1,7 @@
 // Copyright (c) 2026 UltiMaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FORCERETRACT_H
-#define FORCERETRACT_H
+#pragma once
 
 namespace cura
 {
@@ -18,5 +17,3 @@ enum class ForceRetract
 };
 
 } // namespace cura
-
-#endif

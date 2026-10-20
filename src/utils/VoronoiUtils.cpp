@@ -10,7 +10,7 @@
 
 #include "geometry/PointMatrix.h"
 #include "geometry/conversions/Point2D_Point2LL.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
 namespace cura

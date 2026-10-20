@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_PARTS_VIEW_H
-#define GEOMETRY_PARTS_VIEW_H
+#pragma once
 
 #include <vector>
 
@@ -64,5 +63,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // GEOMETRY_PARTS_VIEW_H

@@ -2,6 +2,10 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeSupportTipGenerator.h"
+#include "SliceMeshStorage.h"
+#include "utils/ClosestPoint.h"
+#include "utils/GivenDistPoint.h"
+#include "FakeRoofArea.h"
 
 #include <chrono>
 #include <cstdio>
@@ -18,11 +22,12 @@
 #include "TreeSupportUtils.h"
 #include "geometry/OpenPolyline.h"
 #include "infill/SierpinskiFillProvider.h"
-#include "settings/EnumSettings.h"
+#include "settings/EFillMethod.h"
+#include "settings/SupportDistPriority.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
-#include "utils/polygonUtils.h" //For moveInside.
+#include "utils/PolygonUtils.h" //For moveInside.
 
 
 namespace cura

@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SIMPLIFY_H
-#define UTILS_SIMPLIFY_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
@@ -326,5 +325,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // UTILS_SIMPLIFY_H

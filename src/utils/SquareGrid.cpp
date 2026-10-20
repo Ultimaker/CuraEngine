@@ -3,7 +3,7 @@
 
 #include "utils/SquareGrid.h"
 
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 using namespace cura;
 

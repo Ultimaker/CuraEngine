@@ -3,7 +3,7 @@
 
 #include "infill/LightningDistanceField.h" //Class we're implementing.
 
-#include "utils/polygonUtils.h" //For spreadDotsArea helper function.
+#include "utils/PolygonUtils.h" //For spreadDotsArea helper function.
 
 namespace cura
 {

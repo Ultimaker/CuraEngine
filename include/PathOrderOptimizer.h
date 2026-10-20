@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATHORDEROPTIMIZER_H
-#define PATHORDEROPTIMIZER_H
+#pragma once
 
 #include <numbers>
 #include <unordered_set>
@@ -19,12 +18,13 @@
 
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
-#include "path_ordering.h"
-#include "settings/EnumSettings.h" //To get the seam settings.
+#include "PathOrdering.h"
+#include "settings/EZSeamType.h"
+#include "settings/EZSeamCornerPrefType.h" //To get the seam settings.
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
-#include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
+#include "utils/LinearAlg2D.h" //To find the angle of corners to hide seams.
 #include "utils/math.h"
-#include "utils/polygonUtils.h"
+#include "utils/PolygonUtils.h"
 #include "utils/scoring/BestElementFinder.h"
 #include "utils/scoring/CornerScoringCriterion.h"
 #include "utils/scoring/DistanceScoringCriterion.h"
@@ -923,5 +923,3 @@ template<typename Path>
 const std::unordered_multimap<Path, Path> PathOrderOptimizer<Path>::no_order_requirements_;
 
 } // namespace cura
-
-#endif // PATHORDEROPTIMIZER_H

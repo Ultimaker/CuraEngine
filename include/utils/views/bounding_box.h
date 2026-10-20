@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_VIEWS_BOUNDING_BOX_H
-#define UTILS_VIEWS_BOUNDING_BOX_H
+#pragma once
 
 #include <type_traits>
 
@@ -37,5 +36,3 @@ constexpr auto bounding_box(auto&& proj)
     return convert<AABB>(std::forward<decltype(proj)>(proj));
 }
 } // namespace cura::views
-
-#endif // UTILS_VIEWS_BOUNDING_BOX_H

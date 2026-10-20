@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_CONCEPTS_GRAPH_H
-#define UTILS_CONCEPTS_GRAPH_H
+#pragma once
 
 #include "utils/types/generic.h"
 
@@ -36,5 +35,3 @@ concept setable = nodeable<typename T::key_type>
 
 // clang-format off
 } // namespace cura
-
-#endif // UTILS_CONCEPTS_GRAPH_H

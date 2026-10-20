@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PRIME_TOWER_H
-#define PRIME_TOWER_H
+#pragma once
 
 #include <map>
 #include <vector>
@@ -10,10 +9,9 @@
 #include "ExtruderUse.h"
 #include "geometry/ClosedLinesSet.h"
 #include "geometry/Polygon.h"
-#include "settings/EnumSettings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/LayerVector.h"
-#include "utils/polygonUtils.h"
+#include "utils/PolygonUtils.h"
 
 namespace cura
 {
@@ -230,5 +228,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // PRIME_TOWER_H

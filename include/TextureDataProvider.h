@@ -1,13 +1,13 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef TEXTUREDATAPROVIDER_H
-#define TEXTUREDATAPROVIDER_H
+#pragma once
 
 #include <memory>
 #include <optional>
 
-#include "TextureDataMapping.h"
+#include "TextureBitField.h"
+#include "TextureArea.h"
 #include "geometry/Point2LL.h"
 
 namespace cura
@@ -45,4 +45,3 @@ private:
 };
 
 } // namespace cura
-#endif // TEXTUREDATAPROVIDER_H

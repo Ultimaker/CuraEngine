@@ -4,7 +4,9 @@
 #include "settings/Settings.h"
 
 #include <cctype>
+#include <cmath>
 #include <cstdio>
+#include <cstdlib>
 #include <fstream>
 #include <numbers>
 #include <regex> // regex parsing for temp flow graph
@@ -21,16 +23,37 @@
 #include "Slice.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "settings/EnumSettings.h"
+#include "geometry/Matrix4x3D.h"
+#include "settings/BrimLocation.h"
+#include "settings/BuildPlateShape.h"
+#include "settings/CombingMode.h"
+#include "settings/CoolDuringExtruderSwitch.h"
+#include "settings/DraftShieldHeightLimitation.h"
+#include "settings/EFillMethod.h"
+#include "settings/EGCodeFlavor.h"
+#include "settings/EPlatformAdhesion.h"
+#include "settings/ESupportStructure.h"
+#include "settings/ESupportType.h"
+#include "settings/ESurfaceMode.h"
+#include "settings/EZSeamCornerPrefType.h"
+#include "settings/EZSeamType.h"
+#include "settings/FillPerimeterGapMode.h"
+#include "settings/InfillStartEndPreference.h"
+#include "settings/InsetDirection.h"
+#include "settings/PrimeTowerMode.h"
+#include "settings/RetractBeforeOuterWall.h"
+#include "settings/SlicingTolerance.h"
+#include "settings/SupportDistPriority.h"
 #include "settings/FlowTempGraph.h"
-#include "settings/types/Angle.h"
+#include "settings/types/Acceleration.h"
+#include "settings/types/AngleDegrees.h"
+#include "settings/types/AngleRadians.h"
 #include "settings/types/Duration.h" //For duration and time settings.
 #include "settings/types/LayerIndex.h" //For layer index settings.
 #include "settings/types/Ratio.h" //For ratio settings and percentages.
 #include "settings/types/Temperature.h" //For temperature settings.
 #include "settings/types/Velocity.h" //For velocity settings.
-#include "utils/Matrix4x3D.h"
-#include "utils/string.h" //For Escaped.
+#include "utils/Escaped.h"
 #include "utils/types/string_switch.h" //For string switch.
 
 namespace cura

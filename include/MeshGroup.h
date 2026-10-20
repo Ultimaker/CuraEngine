@@ -1,12 +1,11 @@
 // Copyright (C) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef MESH_GROUP_H
-#define MESH_GROUP_H
+#pragma once
 
 #include <filesystem>
 
-#include "mesh.h"
+#include "Mesh.h"
 #include "utils/NoCopy.h"
 
 namespace cura
@@ -70,5 +69,3 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const std::filesystem::path& fi
 bool loadMeshOBJ(Mesh* mesh, const std::string& filename, const Matrix4x3D& matrix);
 
 } // namespace cura
-
-#endif // MESH_GROUP_H

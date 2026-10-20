@@ -2,8 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
-#ifndef UTILS_SPARSE_LINE_GRID_H
-#define UTILS_SPARSE_LINE_GRID_H
+#pragma once
 
 #include <cassert>
 #include <functional>
@@ -185,5 +184,3 @@ void SGI_THIS::debugTest()
 #undef SGI_THIS
 
 } // namespace cura
-
-#endif // UTILS_SPARSE_LINE_GRID_H

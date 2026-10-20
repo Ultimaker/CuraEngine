@@ -1,11 +1,10 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_TYPES_GET_H
-#define UTILS_TYPES_GET_H
+#pragma once
 
 #include "utils/types/arachne.h"
-#include "utils/types/char_range_literal.h"
+#include "utils/types/CharRangeLiteral.h"
 #include "utils/types/geometry.h"
 
 namespace std
@@ -144,6 +143,3 @@ constexpr auto& get(cura::utils::junction auto& junction) noexcept
 }
 
 } // namespace std
-
-
-#endif // UTILS_TYPES_GET_H

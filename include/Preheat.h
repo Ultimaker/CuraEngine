@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PREHEAT_H
-#define PREHEAT_H
+#pragma once
 
 #include <algorithm> // max
 #include <cassert>
@@ -110,5 +109,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // PREHEAT_H

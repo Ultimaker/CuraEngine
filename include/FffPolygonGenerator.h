@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FFF_POLYGON_GENERATOR_H
-#define FFF_POLYGON_GENERATOR_H
+#pragma once
 
 #include "settings/types/LayerIndex.h"
 #include "utils/NoCopy.h"
@@ -174,5 +173,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // FFF_POLYGON_GENERATOR_H

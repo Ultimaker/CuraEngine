@@ -2,8 +2,7 @@
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 //UnionFind's base structure is released under CC0. See https://github.com/Ghostkeeper/Hattusa
 
-#ifndef UNIONFIND_H
-#define UNIONFIND_H
+#pragma once
 
 #include <assert.h>
 #include <limits> //To get the max size_t as invalid value for the result of find().
@@ -212,5 +211,3 @@ private:
 };
 
 }
-
-#endif /* UNIONFIND_H */

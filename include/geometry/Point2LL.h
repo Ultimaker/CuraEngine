@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef GEOMETRY_POINT2LL_H
-#define GEOMETRY_POINT2LL_H
+#pragma once
 
 /**
 The integer point classes are used as soon as possible and represent microns in 2D or 3D space.
@@ -15,7 +14,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 #include <numbers>
 #include <polyclipping/clipper.hpp>
 
-#include "settings/types/Angle.h"
+#include "settings/types/AngleDegrees.h"
+#include "settings/types/AngleRadians.h"
 #include "utils/Coord_t.h"
 #include "utils/types/generic.h"
 
@@ -259,5 +259,3 @@ inline bool operator<(const IntPoint& lhs, const IntPoint& rhs)
     return lhs.X < rhs.X || (lhs.X == rhs.X && lhs.Y < rhs.Y);
 }
 } // namespace ClipperLib
-
-#endif // GEOMETRY_POINT2LL_H

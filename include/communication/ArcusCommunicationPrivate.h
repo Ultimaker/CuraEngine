@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef ARCUSCOMMUNICATIONPRIVATE_H
-#define ARCUSCOMMUNICATIONPRIVATE_H
+#pragma once
 #ifdef ARCUS
 
 #include <sstream> //For ostringstream.
@@ -81,4 +80,3 @@ private:
 } // namespace cura
 
 #endif // ARCUS
-#endif // ARCUSCOMMUNICATIONPRIVATE_H

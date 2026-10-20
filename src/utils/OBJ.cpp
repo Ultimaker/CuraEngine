@@ -9,8 +9,10 @@
 #include <range/v3/algorithm/find.hpp>
 #include <spdlog/spdlog.h>
 
-#include "mesh.h"
-#include "utils/Point3D.h"
+#include "Mesh.h"
+#include "MeshFace.h"
+#include "MeshVertex.h"
+#include "geometry/Point3D.h"
 #include "utils/VoxelGrid.h"
 
 namespace cura

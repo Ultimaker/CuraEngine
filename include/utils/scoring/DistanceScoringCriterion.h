@@ -1,8 +1,7 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef DISTANCESCORINGCRITERION_H
-#define DISTANCESCORINGCRITERION_H
+#pragma once
 
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
@@ -45,5 +44,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // DISTANCESCORINGCRITERION_H

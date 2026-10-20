@@ -1,8 +1,7 @@
 // Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_MESH_UTILS_H
-#define UTILS_MESH_UTILS_H
+#pragma once
 
 #include <filesystem>
 #include <optional>
@@ -59,5 +58,3 @@ void loadTextureFromString(const std::string& texture_str, Mesh& mesh);
 } // namespace MeshUtils
 
 } // namespace cura
-
-#endif

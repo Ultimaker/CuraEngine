@@ -2,8 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
-#ifndef UTILS_EXTRUSION_JUNCTION_H
-#define UTILS_EXTRUSION_JUNCTION_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 
@@ -56,4 +55,3 @@ inline const Point2LL& make_point(const ExtrusionJunction& ej)
 using LineJunctions = std::vector<ExtrusionJunction>; //<! The junctions along a line without further information. See \ref ExtrusionLine for a more extensive class.
 
 } // namespace cura
-#endif // UTILS_EXTRUSION_JUNCTION_H

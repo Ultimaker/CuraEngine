@@ -9,9 +9,10 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"
+#include "settings/types/AngleDegrees.h"
 #include "utils/AABB.h"
 #include "utils/OpenPolylineStitcher.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 namespace cura
 {

@@ -9,18 +9,17 @@
 #include <numbers>
 
 #include "Application.h"
+#include "Mesh.h"
+#include "MeshFace.h"
+#include "MeshVertex.h"
+#include "MeshGroup.h"
 #include "Slice.h"
-#include "settings/EnumSettings.h"
-#include "settings/types/Angle.h"
-#include "utils/Point3D.h"
+#include "geometry/Point3D.h"
+#include "settings/SlicingTolerance.h"
+#include "settings/types/AngleRadians.h"
 
 namespace cura
 {
-
-AdaptiveLayer::AdaptiveLayer(const coord_t layer_height)
-    : layer_height_{ layer_height }
-{
-}
 
 AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup)
     : base_layer_height_{ base_layer_height }

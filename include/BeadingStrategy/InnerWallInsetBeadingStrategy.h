@@ -1,8 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INNER_WALL_INSET_BEADING_STRATEGY_H
-#define INNER_WALL_INSET_BEADING_STRATEGY_H
+#pragma once
 
 #include "BeadingStrategy.h"
 
@@ -32,4 +31,3 @@ private:
     coord_t inner_wall_offset_;
 };
 } // namespace cura
-#endif // INNER_WALL_INSET_BEADING_STRATEGY_H

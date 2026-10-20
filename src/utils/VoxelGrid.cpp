@@ -7,8 +7,8 @@
 #include <spdlog/spdlog.h>
 
 #include "utils/AABB3D.h"
-#include "utils/PlanarPolygon3LL.h"
-#include "utils/Segment3LL.h"
+#include "geometry/PlanarPolygon3LL.h"
+#include "geometry/Segment3LL.h"
 
 
 namespace cura

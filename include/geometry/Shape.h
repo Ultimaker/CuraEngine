@@ -1,12 +1,12 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_SHAPE_H
-#define GEOMETRY_SHAPE_H
+#pragma once
 
 #include "geometry/LinesSet.h"
 #include "geometry/Polygon.h"
-#include "settings/types/Angle.h"
+#include "settings/types/AngleDegrees.h"
+#include "settings/types/AngleRadians.h"
 
 namespace cura
 {
@@ -293,5 +293,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // GEOMETRY_SHAPE_H

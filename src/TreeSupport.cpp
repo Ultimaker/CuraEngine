@@ -2,6 +2,8 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeSupport.h"
+#include "SliceDataStorage.h"
+#include "SliceMeshStorage.h"
 
 #include <chrono>
 #include <fstream>
@@ -21,21 +23,22 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
+#include "AreaSupport.h" //For precomputeCrossInfillTree
 #include "Slice.h" // Technically needed to get 'has paint-on support' from the Application.
+#include "TreeSupportBaseCircle.h"
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
-#include "infill.h"
+#include "infill/Infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
-#include "settings/EnumSettings.h"
-#include "support.h" //For precomputeCrossInfillTree
+#include "settings/ESupportStructure.h"
 #include "utils/OBJ.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
-#include "utils/polygonUtils.h" //For moveInside.
-#include "utils/section_type.h"
+#include "utils/PolygonUtils.h" //For moveInside.
+#include "utils/SectionType.h"
 
 namespace cura
 {

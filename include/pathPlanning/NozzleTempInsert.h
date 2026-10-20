@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATH_PLANNING_NOZZLE_TEMP_INSERT_H
-#define PATH_PLANNING_NOZZLE_TEMP_INSERT_H
+#pragma once
 
 #include <compare>
 #include <cstddef>
@@ -43,5 +42,3 @@ struct NozzleTempInsert
 };
 
 } // namespace cura
-
-#endif // PATH_PLANNING_NOZZLE_TEMP_INSERT_H

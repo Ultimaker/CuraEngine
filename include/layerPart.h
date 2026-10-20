@@ -1,8 +1,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef LAYERPART_H
-#define LAYERPART_H
+#pragma once
 
 /*
 The layer-part creation step is the first step in creating actual useful data for 3D printing.
@@ -42,5 +41,3 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
 }//namespace cura
-
-#endif//LAYERPART_H

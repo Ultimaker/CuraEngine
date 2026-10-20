@@ -8,28 +8,15 @@
 #include "geometry/OpenPolyline.h"
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
 #include "utils/SparsePointGridInclusive.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 using namespace cura;
 
 coord_t LightningLayer::getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location)
 {
     return vSize(boundary_loc - unsupported_location);
-}
-
-Point2LL GroundingLocation::p() const
-{
-    if (tree_node != nullptr)
-    {
-        return tree_node->getLocation();
-    }
-    else
-    {
-        assert(boundary_location);
-        return boundary_location->p();
-    }
 }
 
 void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)

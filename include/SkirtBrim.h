@@ -1,14 +1,13 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SKIRT_BRIM_H
-#define SKIRT_BRIM_H
+#pragma once
 
 #include <variant>
 
 #include "ExtruderTrain.h"
-#include "settings/EnumSettings.h"
-#include "sliceDataStorage.h"
+#include "settings/EPlatformAdhesion.h"
+#include "SliceDataStorage.h"
 #include "utils/Coord_t.h"
 
 namespace cura
@@ -245,5 +244,3 @@ public:
     void generateSupportBrim();
 };
 } // namespace cura
-
-#endif // SKIRT_BRIM_H

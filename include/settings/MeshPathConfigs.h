@@ -1,16 +1,18 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SETTINGS_TYPES_MESHPATHCONFIGS_H
-#define SETTINGS_TYPES_MESHPATHCONFIGS_H
+#pragma once
+
+#include <vector>
 
 #include "GCodePathConfig.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
 
 namespace cura
 {
+class SliceMeshStorage;
+
 struct MeshPathConfigs
 {
     GCodePathConfig inset0_config{};
@@ -36,5 +38,3 @@ struct MeshPathConfigs
 };
 
 } // namespace cura
-
-#endif // SETTINGS_TYPES_MESHPATHCONFIGS_H

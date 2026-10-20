@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_POLYGON_CONNECTOR_H
-#define UTILS_POLYGON_CONNECTOR_H
+#pragma once
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //To allow tests to use protected members.
@@ -11,8 +10,8 @@
 
 #include "geometry/Point2LL.h"
 #include "geometry/Polygon.h"
-#include "linearAlg2D.h"
-#include "polygonUtils.h"
+#include "LinearAlg2D.h"
+#include "PolygonUtils.h"
 #include "settings/types/Ratio.h"
 #include "utils/math.h"
 
@@ -763,6 +762,3 @@ protected:
 
 
 } // namespace cura
-
-
-#endif // UTILS_POLYGON_CONNECTOR_H

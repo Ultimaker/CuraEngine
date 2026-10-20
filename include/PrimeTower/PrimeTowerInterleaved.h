@@ -1,8 +1,7 @@
 // Copyright (c) 2024 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PRIME_TOWER_INTERLEAVED_H
-#define PRIME_TOWER_INTERLEAVED_H
+#pragma once
 
 #include "PrimeTower/PrimeTower.h"
 
@@ -36,5 +35,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif // PRIME_TOWER_INTERLEAVED_H

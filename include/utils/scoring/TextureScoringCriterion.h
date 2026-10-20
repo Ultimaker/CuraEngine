@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef TEXTURESCORINGCRITERION_H
-#define TEXTURESCORINGCRITERION_H
+#pragma once
 
 #include <memory>
 
@@ -28,5 +27,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // TEXTURESCORINGCRITERION_H

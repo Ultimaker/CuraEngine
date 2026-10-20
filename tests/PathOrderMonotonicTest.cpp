@@ -15,8 +15,8 @@
 #include "ReadTestPolygons.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
-#include "infill.h"
-#include "slicer.h"
+#include "infill/Infill.h"
+#include "Slicer.h"
 #include "utils/Coord_t.h"
 #include "utils/math.h"
 

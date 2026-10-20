@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_GYROIDINFILL_H
-#define INFILL_GYROIDINFILL_H
+#pragma once
 
 #include "infill/AbstractLinesInfill.h"
 
@@ -38,5 +37,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif

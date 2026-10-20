@@ -1,8 +1,7 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef DURATION_H
-#define DURATION_H
+#pragma once
 
 #include <ostream>
 
@@ -104,5 +103,3 @@ inline Duration operator*(const double lhs, const Duration& rhs)
 }
 
 } // namespace cura
-
-#endif // DURATION_H

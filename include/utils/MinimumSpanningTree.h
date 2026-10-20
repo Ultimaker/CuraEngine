@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef MINIMUMSPANNINGTREE_H
-#define MINIMUMSPANNINGTREE_H
+#pragma once
 
 #include <unordered_map>
 #include <unordered_set>
@@ -79,5 +78,3 @@ private:
 };
 
 } // namespace cura
-
-#endif /* MINIMUMSPANNINGTREE_H */

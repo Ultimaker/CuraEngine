@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_MATH_H
-#define UTILS_MATH_H
+#pragma once
 
 #include <cmath>
 #include <cstdint>
@@ -161,4 +160,3 @@ template<utils::numeric T>
 }
 
 } // namespace cura
-#endif // UTILS_MATH_H

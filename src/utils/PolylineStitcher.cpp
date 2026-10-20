@@ -8,7 +8,8 @@
 #include "geometry/OpenPolyline.h"
 #include "utils/ExtrusionLineStitcher.h"
 #include "utils/OpenPolylineStitcher.h"
-#include "utils/PolygonsPointIndex.h"
+#include "utils/PathsPointIndex.h"
+#include "utils/PathsPointIndexLocator.h"
 
 namespace cura
 {

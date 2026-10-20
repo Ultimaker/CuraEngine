@@ -9,7 +9,7 @@
 #include "bridge/SegmentOverlappingData.h"
 #include "bridge/SegmentOverlappingType.h"
 #include "geometry/PointMatrix.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/math.h"
 
 

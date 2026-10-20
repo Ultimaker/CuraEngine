@@ -1,15 +1,15 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef LIGHTNING_GENERATOR_H
-#define LIGHTNING_GENERATOR_H
+#pragma once
 
 #include <functional>
 #include <memory>
 #include <vector>
 
-#include "../utils/polygonUtils.h"
+#include "../utils/PolygonUtils.h"
 #include "LightningLayer.h"
+#include "settings/types/AngleRadians.h"
 
 namespace cura
 {
@@ -153,5 +153,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif // LIGHTNING_GENERATOR_H

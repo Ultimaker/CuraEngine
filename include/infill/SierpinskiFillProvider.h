@@ -2,13 +2,12 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_SIERPINSKI_FILL_PROVIDER_H
-#define INFILL_SIERPINSKI_FILL_PROVIDER_H
+#pragma once
 
 #include <optional>
 
 #include "SierpinskiFill.h"
-#include "../settings/EnumSettings.h" //For EFillMethod.
+#include "../settings/EFillMethod.h" //For EFillMethod.
 
 namespace cura
 {
@@ -54,6 +53,3 @@ protected:
     FractalConfig getFractalConfig(const AABB3D aabb_3d, coord_t min_line_distance);
 };
 } // namespace cura
-
-
-#endif // INFILL_SIERPINSKI_FILL_PROVIDER_H

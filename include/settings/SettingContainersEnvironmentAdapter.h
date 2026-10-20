@@ -1,8 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SETTINGS_SETTINGCONTAINERENVIRONMENTADAPTER_H
-#define SETTINGS_SETTINGCONTAINERENVIRONMENTADAPTER_H
+#pragma once
 
 #include <cura-formulae-engine/ast/ast.h>
 
@@ -35,5 +34,3 @@ private:
 };
 
 } // namespace cura
-
-#endif

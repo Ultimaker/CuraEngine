@@ -5,8 +5,7 @@
  *  @brief Defines geometric concepts like Point2D, Point3D, Segment etc.
  */
 
-#ifndef UTILS_TYPES_GEOMETRY_H
-#define UTILS_TYPES_GEOMETRY_H
+#pragma once
 
 #include "utils/types/generic.h"
 
@@ -152,5 +151,3 @@ concept segment_range = ranges::range<T> && requires(T segment_range)
 };
 // clang-format on
 } // namespace cura::utils
-
-#endif // UTILS_TYPES_GEOMETRY_H

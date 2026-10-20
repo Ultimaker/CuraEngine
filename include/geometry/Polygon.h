@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_POLYGON_H
-#define GEOMETRY_POLYGON_H
+#pragma once
 
 #include "geometry/ClosedPolyline.h"
 
@@ -201,5 +200,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // GEOMETRY_POLYGON_H

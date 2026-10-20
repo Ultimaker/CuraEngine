@@ -1,10 +1,10 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef ZSEAMCONFIG_H
-#define ZSEAMCONFIG_H
+#pragma once
 
-#include "EnumSettings.h" //For EZSeamType and EZSeamCornerPrefType.
+#include "settings/EZSeamCornerPrefType.h"
+#include "settings/EZSeamType.h"
 #include "geometry/Point2LL.h" //To store the preferred seam position.
 
 namespace cura
@@ -57,5 +57,3 @@ struct ZSeamConfig
 };
 
 } // namespace cura
-
-#endif // ZSEAMCONFIG_H

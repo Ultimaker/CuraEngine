@@ -1,8 +1,7 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef LIGHTNING_DISTANCE_FIELD_H
-#define LIGHTNING_DISTANCE_FIELD_H
+#pragma once
 
 #include "../utils/SquareGrid.h" //Tracking for each location the distance to overhang.
 #include "geometry/Polygon.h" //Using outlines to fill and tracking overhang.
@@ -120,5 +119,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif // LIGHTNING_DISTANCE_FIELD_H

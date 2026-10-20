@@ -1,8 +1,7 @@
 // Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_VOXELGRID_H
-#define UTILS_VOXELGRID_H
+#pragma once
 
 #include <execution>
 
@@ -10,7 +9,7 @@
 
 #include "Coord_t.h"
 #include "geometry/Triangle3LL.h"
-#include "utils/Point3D.h"
+#include "geometry/Point3D.h"
 
 
 namespace cura
@@ -166,5 +165,3 @@ inline std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
 }
 
 } // namespace cura
-
-#endif

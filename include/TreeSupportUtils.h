@@ -1,24 +1,25 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef TREESUPPORTTUTILS_H
-#define TREESUPPORTTUTILS_H
+#pragma once
 
 #include <spdlog/spdlog.h>
 
 #include "TreeModelVolumes.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportElement.h"
-#include "TreeSupportEnums.h"
+#include "AvoidanceType.h"
+#include "InterfacePreference.h"
+#include "RestPreference.h"
 #include "TreeSupportSettings.h"
 #include "boost/functional/hash.hpp" // For combining hashes
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
-#include "infill.h"
+#include "infill/Infill.h"
 #include "polyclipping/clipper.hpp"
-#include "settings/EnumSettings.h"
-#include "sliceDataStorage.h"
+#include "settings/EFillMethod.h"
+#include "SliceDataStorage.h"
 #include "utils/Coord_t.h"
 
 namespace cura
@@ -352,5 +353,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // TREESUPPORTTUTILS_H

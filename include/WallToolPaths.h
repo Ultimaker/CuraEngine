@@ -1,14 +1,13 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_WALLTOOLPATHS_H
-#define CURAENGINE_WALLTOOLPATHS_H
+#pragma once
 
 #include "WallToolPathGenerator.h"
 #include "geometry/Polygon.h"
 #include "settings/Settings.h"
 #include "utils/ExtrusionLine.h"
-#include "utils/section_type.h"
+#include "utils/SectionType.h"
 
 namespace cura
 {
@@ -168,5 +167,3 @@ private:
     const WallToolPathGenerator generator_{ WallToolPathGenerator::Arachne };
 };
 } // namespace cura
-
-#endif // CURAENGINE_WALLTOOLPATHS_H

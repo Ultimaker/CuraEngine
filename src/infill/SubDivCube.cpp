@@ -8,10 +8,10 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "settings/types/Angle.h" //For the infill angle.
-#include "sliceDataStorage.h"
+#include "settings/types/AngleDegrees.h" //For the infill angle.
+#include "SliceDataStorage.h"
 #include "utils/math.h"
-#include "utils/polygonUtils.h"
+#include "utils/PolygonUtils.h"
 
 #define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 // 1 / sqrt(2)
 #define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 // 1 / sqrt(3)

@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SKELETAL_TRAPEZOIDATION_H
-#define SKELETAL_TRAPEZOIDATION_H
+#pragma once
 
 #include <memory> // smart pointers
 #include <unordered_map>
@@ -21,7 +20,7 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/PolygonsSegmentIndex.h"
 #include "utils/VoronoiUtils.h"
-#include "utils/section_type.h"
+#include "utils/SectionType.h"
 
 namespace cura
 {
@@ -638,4 +637,3 @@ protected:
 };
 
 } // namespace cura
-#endif // VORONOI_QUADRILATERALIZATION_H

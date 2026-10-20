@@ -27,7 +27,9 @@
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
 #include "settings/Settings.h"
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
 
 
 constexpr std::string_view USAGE = R"(Stress Benchmark.

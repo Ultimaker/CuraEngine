@@ -1,8 +1,7 @@
 // Copyright (c) 2024 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATH_ADAPTER_H
-#define PATH_ADAPTER_H
+#pragma once
 
 #include <stddef.h>
 
@@ -59,5 +58,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // PATH_ADAPTER_H

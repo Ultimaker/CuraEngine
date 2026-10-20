@@ -2,14 +2,13 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
-#ifndef UTILS_EXTRUSION_SEGMENT_H
-#define UTILS_EXTRUSION_SEGMENT_H
+#pragma once
 
 #include <numbers>
 
 #include "ExtrusionJunction.h"
 #include "geometry/Polygon.h"
-#include "polygonUtils.h"
+#include "PolygonUtils.h"
 
 namespace cura
 {
@@ -82,4 +81,3 @@ public:
 
 
 } // namespace cura
-#endif // UTILS_EXTRUSION_SEGMENT_H

@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef POINT2D_H
-#define POINT2D_H
+#pragma once
 
 #include <cmath>
 #include <optional>
@@ -100,4 +99,3 @@ inline Point2D lerp(const Point2D& a, const Point2D& b, const double t)
 }
 
 } // namespace cura
-#endif // POINT2D_H

@@ -1,22 +1,22 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODE_WRITER_H
-#define GCODE_WRITER_H
+#pragma once
 
 #include <optional>
+#include "settings/EFillMethod.h"
 
 #include "ExtruderUse.h"
-#include "FanSpeedLayerTime.h"
+#include "FanSpeedLayerTimeSettings.h"
 #include "GCodePathConfig.h"
 #include "LayerPlan.h"
 #include "LayerPlanBuffer.h"
 #include "LinesOrderingMethod.h"
 #include "PrintInformation.h"
-#include "gcode_export/gcodeExport.h"
+#include "gcode_export/GCodeExport.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
-#include "utils/gettime.h"
+#include "utils/TimeKeeper.h"
 
 namespace cura
 {
@@ -781,5 +781,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // GCODE_WRITER_H

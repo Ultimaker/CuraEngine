@@ -1,15 +1,16 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SETTINGS_PATH_CONFIGS_H
-#define SETTINGS_PATH_CONFIGS_H
+#pragma once
 
+#include <cstddef>
 #include <vector>
 
 #include "GCodePathConfig.h"
 #include "pathPlanning/SpeedDerivatives.h"
 #include "settings/MeshPathConfigs.h"
 #include "settings/types/LayerIndex.h"
+#include "settings/types/Ratio.h"
 #include "utils/Coord_t.h"
 
 namespace cura
@@ -65,5 +66,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // SETTINGS_PATH_CONFIGS_H

@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef BRIDGE_BRIDGE_H
-#define BRIDGE_BRIDGE_H
+#pragma once
 
 #include <optional>
 #include <tuple>
@@ -68,5 +67,3 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     const unsigned layer_nr);
 
 } // namespace cura
-
-#endif

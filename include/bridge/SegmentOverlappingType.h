@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef BRIDGE_SEGMENTOVERLAPPINGTYPE_H
-#define BRIDGE_SEGMENTOVERLAPPINGTYPE_H
+#pragma once
 
 namespace cura
 {
@@ -17,5 +16,3 @@ enum class SegmentOverlappingType
 };
 
 } // namespace cura
-
-#endif

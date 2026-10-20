@@ -1,15 +1,16 @@
 //Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef WIPE_SCRIPT_CONFIG_H
-#define WIPE_SCRIPT_CONFIG_H
+#pragma once
+
+#include <cstddef>
 
 #include "utils/Coord_t.h"
 #include "RetractionConfig.h"
 #include "settings/types/Duration.h"
 #include "settings/types/Velocity.h"
 
-namespace cura 
+namespace cura
 {
 
 struct WipeScriptConfig
@@ -31,16 +32,4 @@ struct WipeScriptConfig
     bool clean_between_layers; // whether to include nozzle wipe g-code between layers
 };
 
-struct RetractionAndWipeConfig
-{
-    WipeScriptConfig wipe_config;
-
-    RetractionConfig retraction_config;
-    coord_t retraction_hop_after_extruder_switch;
-    double switch_extruder_extra_prime_amount;
-    RetractionConfig extruder_switch_retraction_config;
-};
-
 }//namespace cura
-
-#endif // WIPE_SCRIPT_CONFIG_H

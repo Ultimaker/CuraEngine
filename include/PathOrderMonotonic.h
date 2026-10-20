@@ -1,15 +1,14 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATHORDERMONOTONIC_H
-#define PATHORDERMONOTONIC_H
+#pragma once
 
 #include <cmath> //For std::sin() and std::cos().
 #include <deque>
 
 #include "PathOrder.h"
 #include "geometry/Point2D.h"
-#include "path_ordering.h"
+#include "PathOrdering.h"
 
 namespace cura
 {
@@ -221,5 +220,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // PATHORDERMONOTONIC_H

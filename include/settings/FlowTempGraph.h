@@ -1,8 +1,7 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FLOW_TEMP_GRAPH
-#define FLOW_TEMP_GRAPH
+#pragma once
 
 #include <cassert>
 #include <vector>
@@ -46,5 +45,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // FLOW_TEMP_GRAPH

@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "GCodePathConfig.h"
+#include "settings/types/Acceleration.h"
 
 #include "geometry/Point2LL.h" // INT2MM
 

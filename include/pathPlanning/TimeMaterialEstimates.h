@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATH_PLANNING_TIME_MATERIAL_ESTIMATES_H
-#define PATH_PLANNING_TIME_MATERIAL_ESTIMATES_H
+#pragma once
 
 namespace cura
 {
@@ -82,5 +81,3 @@ struct TimeMaterialEstimates
 };
 
 } // namespace cura
-
-#endif // PATH_PLANNING_TIME_MATERIAL_ESTIMATES_H

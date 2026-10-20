@@ -1,14 +1,14 @@
 // Copyright (c) 2024 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef INSET_ORDER_OPTIMIZER_H
-#define INSET_ORDER_OPTIMIZER_H
+#pragma once
 
 #include <unordered_set>
+#include "settings/RetractBeforeOuterWall.h"
 
-#include "OverrideAreas.h"
+#include "OverrideArea.h"
 #include "settings/ZSeamConfig.h"
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
 
 namespace cura
 {
@@ -175,5 +175,3 @@ private:
     std::vector<ExtrusionLine> getWallsToBeAdded(const bool reverse, const bool use_one_extruder);
 };
 } // namespace cura
-
-#endif // INSET_ORDER_OPTIMIZER_H

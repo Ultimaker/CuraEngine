@@ -2,6 +2,9 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlanBuffer.h"
+#include "settings/InsetDirection.h"
+#include "settings/RetractBeforeOuterWall.h"
+#include "SliceMeshStorage.h"
 
 #include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
@@ -12,7 +15,7 @@
 #include "LayerPlan.h"
 #include "Slice.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
-#include "gcode_export/gcodeExport.h"
+#include "gcode_export/GCodeExport.h"
 
 namespace cura
 {

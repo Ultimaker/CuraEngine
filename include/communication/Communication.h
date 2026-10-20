@@ -1,11 +1,10 @@
 //  Copyright (c) 2018-2022 Ultimaker B.V.
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef COMMUNICATION_H
-#define COMMUNICATION_H
+#pragma once
 
 #include "PrintInformation.h"
-#include "PrintSegmentAttributes.h"
+#include "PrintSegmentAttribute.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
@@ -140,5 +139,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // COMMUNICATION_H

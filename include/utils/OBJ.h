@@ -1,15 +1,14 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef OBJ_H
-#define OBJ_H
+#pragma once
 
 #include <optional>
 
 #include "NoCopy.h"
 #include "SVG.h"
-#include "utils/Point2F.h"
-#include "utils/Point3D.h"
+#include "geometry/Point2F.h"
+#include "geometry/Point3D.h"
 
 namespace cura
 {
@@ -70,4 +69,3 @@ private:
 };
 
 } // namespace cura
-#endif // SVG_H

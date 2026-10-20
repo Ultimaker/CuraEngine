@@ -1,8 +1,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SLICEDATASTRUCT_H
-#define SLICEDATASTRUCT_H
+#pragma once
 #ifdef ARCUS
 
 #include <memory> //To store pointers to slice data.
@@ -44,4 +43,3 @@ public:
 }
 
 #endif //ARCUS
-#endif //SLICEDATASTRUCT_H

@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef BRIDGE_SEGMENTOVERLAPPINGDATA_H
-#define BRIDGE_SEGMENTOVERLAPPINGDATA_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
@@ -48,5 +47,3 @@ struct SegmentOverlappingData
 };
 
 } // namespace cura
-
-#endif

@@ -6,7 +6,7 @@
 #include <algorithm>
 
 #include "utils/Simplify.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 namespace cura
 {

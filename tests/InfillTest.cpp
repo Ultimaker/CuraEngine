@@ -1,7 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "infill.h"
+#include "infill/Infill.h"
 
 #include <filesystem>
 #include <utility>
@@ -13,7 +13,7 @@
 
 #include "ReadTestPolygons.h"
 #include "geometry/OpenPolyline.h"
-#include "slicer.h"
+#include "Slicer.h"
 #include "utils/Coord_t.h"
 
 // #define TEST_INFILL_SVG_OUTPUT

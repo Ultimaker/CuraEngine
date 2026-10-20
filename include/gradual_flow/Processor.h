@@ -1,13 +1,13 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GRADUAL_FLOW_PROCESSOR_H
-#define GRADUAL_FLOW_PROCESSOR_H
+#pragma once
 
 #include "Application.h"
 #include "LayerPlan.h"
 #include "Scene.h"
 #include "gradual_flow/FlowLimitedPath.h"
+#include "gradual_flow/GCodeState.h"
 
 namespace cura::gradual_flow::Processor
 {
@@ -97,5 +97,3 @@ void process(std::vector<GCodePath>& extruder_plan_paths, const size_t extruder_
     }
 }
 } // namespace cura::gradual_flow::Processor
-
-#endif // GRADUAL_FLOW_PROCESSOR_H

@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_POLYLINE_STITCHER_H
-#define UTILS_POLYLINE_STITCHER_H
+#pragma once
 
 #include <cassert>
 
@@ -71,4 +70,3 @@ private:
 };
 
 } // namespace cura
-#endif // UTILS_POLYLINE_STITCHER_H

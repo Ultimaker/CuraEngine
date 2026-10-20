@@ -1,8 +1,9 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_AABB_H
-#define UTILS_AABB_H
+#pragma once
+
+#include "settings/types/AngleRadians.h"
 
 #include <initializer_list>
 
@@ -129,4 +130,3 @@ public:
 };
 
 } // namespace cura
-#endif // UTILS_AABB_H

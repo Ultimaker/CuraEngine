@@ -1,8 +1,7 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_DATE_H
-#define UTILS_DATE_H
+#pragma once
 
 #include <string>
 
@@ -29,5 +28,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // UTILS_DATE_H

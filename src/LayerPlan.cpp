@@ -2,6 +2,12 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlan.h"
+#include "settings/CombingMode.h"
+#include "SliceMeshStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "RetractionAndWipeConfig.h"
+#include "FanSpeedLayerTimeSettings.h"
 
 #include <algorithm>
 #include <cstring>
@@ -33,16 +39,16 @@
 #include "gradual_flow/Processor.h"
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
-#include "plugins/slots.h"
-#include "raft.h" // getTotalExtraLayers
+#include "plugins/Slots.h"
+#include "Raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
 #include "utils/Simplify.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/math.h"
-#include "utils/polygonUtils.h"
-#include "utils/section_type.h"
+#include "utils/PolygonUtils.h"
+#include "utils/SectionType.h"
 
 namespace cura
 {

@@ -9,7 +9,7 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/LinesSet.h"
-#include "infill.h"
+#include "infill/Infill.h"
 
 namespace cura
 {

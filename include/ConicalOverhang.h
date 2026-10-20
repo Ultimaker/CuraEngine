@@ -2,8 +2,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CONICAL_OVERHANG_H
-#define CONICAL_OVERHANG_H
+#pragma once
 
 namespace cura {
 
@@ -27,5 +26,3 @@ public:
 };
 
 }//namespace cura
-
-#endif // CONICAL_OVERHANG_H

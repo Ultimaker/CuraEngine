@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATH_PLANNING_COMB_PATH_H
-#define PATH_PLANNING_COMB_PATH_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 
@@ -16,5 +15,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // PATH_PLANNING_COMB_PATH_H

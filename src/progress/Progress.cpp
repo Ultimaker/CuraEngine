@@ -12,7 +12,7 @@
 
 #include "Application.h" //To get the communication channel to send progress through.
 #include "communication/Communication.h" //To send progress through the communication channel.
-#include "utils/gettime.h"
+#include "utils/TimeKeeper.h"
 
 namespace cura
 {

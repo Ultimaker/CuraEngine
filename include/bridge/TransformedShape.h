@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef BRIDGE_TRANSFORMEDSHAPE_H
-#define BRIDGE_TRANSFORMEDSHAPE_H
+#pragma once
 
 #include "bridge/TransformedSegment.h"
 #include "geometry/PointMatrix.h"
@@ -75,5 +74,3 @@ private:
 };
 
 } // namespace cura
-
-#endif

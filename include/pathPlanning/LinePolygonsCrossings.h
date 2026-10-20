@@ -1,13 +1,12 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
-#define PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H
+#pragma once
 
 #include "CombPath.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
-#include "utils/polygonUtils.h"
+#include "utils/PolygonUtils.h"
 
 namespace cura
 {
@@ -161,5 +160,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // PATH_PLANNING_LINE_POLYGONS_CROSSINGS_H

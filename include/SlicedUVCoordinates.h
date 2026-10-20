@@ -1,13 +1,12 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SLICEDUVCOORDINATES_H
-#define SLICEDUVCOORDINATES_H
+#pragma once
 
 #include <optional>
 
 #include "geometry/Point2LL.h"
-#include "utils/Point2F.h"
+#include "geometry/Point2F.h"
 #include "utils/SparsePointGridInclusive.h"
 
 namespace cura
@@ -37,4 +36,3 @@ private:
 };
 
 } // namespace cura
-#endif // SLICEDUVCOORDINATES_H

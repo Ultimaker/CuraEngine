@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef EXTRUDERUSE_H
-#define EXTRUDERUSE_H
+#pragma once
 
 #include <stddef.h>
 
@@ -18,4 +17,3 @@ struct ExtruderUse
 };
 
 } // namespace cura
-#endif // EXTRUDERUSE_H

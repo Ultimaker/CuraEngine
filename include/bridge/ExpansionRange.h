@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef BRIDGE_EXPANSIONRANGE_H
-#define BRIDGE_EXPANSIONRANGE_H
+#pragma once
 
 #include <optional>
 
@@ -135,5 +134,3 @@ private:
 };
 
 } // namespace cura
-
-#endif

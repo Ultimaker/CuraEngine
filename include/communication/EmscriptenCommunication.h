@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef EMSCRIPTENCOMMUNICATION_H
-#define EMSCRIPTENCOMMUNICATION_H
+#pragma once
 #ifdef __EMSCRIPTEN__
 
 #include "communication/CommandLine.h"
@@ -55,4 +54,3 @@ public:
 } // namespace cura
 
 #endif // __EMSCRIPTEN__
-#endif // EMSCRIPTENCOMMUNICATION_H

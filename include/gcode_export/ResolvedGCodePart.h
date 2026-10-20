@@ -1,14 +1,13 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_RESOLVEDGCODEPART_H
-#define GCODEEXPORT_RESOLVEDGCODEPART_H
+#pragma once
 
 #include <memory>
 #include <unordered_map>
 
 #include "gcode_export/GCodePart.h"
-#include "gcode_export/ResolvingExtruderContext.h"
+#include "gcode_export/DynamicExtruderContext.h"
 
 namespace CuraFormulaeEngine::eval
 {
@@ -48,5 +47,3 @@ private:
 };
 
 } // namespace cura
-
-#endif

@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef LIGHTNING_LAYER_H
-#define LIGHTNING_LAYER_H
+#pragma once
 
 #include <list>
 #include <memory>
@@ -10,21 +9,15 @@
 #include <vector>
 
 #include "geometry/LinesSet.h"
+#include "infill/GroundingLocation.h"
 #include "infill/LightningTreeNode.h"
 #include "utils/SquareGrid.h"
-#include "utils/polygonUtils.h"
+#include "utils/PolygonUtils.h"
 
 namespace cura
 {
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 using SparseLightningTreeNodeGrid = SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>;
-
-struct GroundingLocation
-{
-    LightningTreeNodeSPtr tree_node; //!< not null if the gounding location is on a tree
-    std::optional<ClosestPointPolygon> boundary_location; //!< in case the gounding location is on the boundary
-    Point2LL p() const;
-};
 
 /*!
  * A layer of the lightning fill.
@@ -76,5 +69,3 @@ public:
     void fillLocator(SparseLightningTreeNodeGrid& tree_node_locator);
 };
 } // namespace cura
-
-#endif // LIGHTNING_LAYER_H

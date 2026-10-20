@@ -21,7 +21,10 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" //To create example polygons.
 #include "settings/Settings.h" //Settings to generate walls with.
-#include "sliceDataStorage.h" //Sl
+#include "SliceDataStorage.h" //Sl
+#include "Mesh.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura

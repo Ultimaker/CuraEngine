@@ -1,10 +1,10 @@
 // Copyright (c) 2026 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef INFILL_ORDER_OPTIMIZER_H
-#define INFILL_ORDER_OPTIMIZER_H
+#pragma once
 
 #include <optional>
+#include "settings/EFillMethod.h"
 #include <unordered_map>
 
 #include "utils/ExtrusionLine.h"
@@ -166,5 +166,3 @@ private:
     std::vector<InfillPart> infill_parts_;
 };
 } // namespace cura
-
-#endif // INSET_ORDER_OPTIMIZER_H
