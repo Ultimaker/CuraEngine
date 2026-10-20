@@ -175,6 +175,7 @@ std::tuple<coord_t, coord_t>
             }
             else if (leaving_skin)
             {
+                score_anchored_segment = false;
                 bridge_status = BridgeStatus::Outside;
             }
             break;
