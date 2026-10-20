@@ -15,6 +15,8 @@
 
 #include "Application.h"
 #include "ExtruderTrain.h"
+#include "Mesh.h"
+#include "MeshGroup.h"
 #include "Slice.h"
 #include "settings/types/LayerIndex.h"
 #include "geometry/Matrix4x3D.h" //To convert vertices to integer-points.

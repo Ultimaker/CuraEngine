@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlan.h"
+#include "ZHopAntiOozing.h"
 #include "settings/CombingMode.h"
 #include "SliceMeshStorage.h"
 #include "SliceLayer.h"

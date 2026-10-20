@@ -6,6 +6,7 @@
 #include <iterator> // advance
 
 #include "geometry/OpenPolyline.h"
+#include "infill/GroundingLocation.h"
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
 #include "SliceDataStorage.h"

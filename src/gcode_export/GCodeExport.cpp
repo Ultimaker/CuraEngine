@@ -2,6 +2,9 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "gcode_export/GCodeExport.h"
+#include "ZHopAntiOozing.h"
+#include "utils/MMtoStream.h"
+#include "utils/PrecisionedDouble.h"
 #include "settings/EGCodeFlavor.h"
 #include "settings/CoolDuringExtruderSwitch.h"
 #include "ExtruderPrintInformation.h"

@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "utils/DilationKernel.h"
+
 #include <cassert>
 #include <unordered_set>
 #include <vector>

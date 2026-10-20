@@ -8,7 +8,12 @@
 #include "Slice.h"
 #include "infill/LightningLayer.h"
 #include "infill/LightningTreeNode.h"
-#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SupportInfillPart.h"
+#include "SupportLayer.h"
+#include "SupportStorage.h"
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/LinearAlg2D.h"
 

@@ -9,7 +9,10 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 #include "settings/types/AngleDegrees.h" //For the infill angle.
-#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "settings/Settings.h"
 #include "utils/math.h"
 #include "utils/PolygonUtils.h"
 

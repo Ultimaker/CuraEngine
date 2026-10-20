@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <execution>
+#include "utils/OccupiedPosition.h"
 #include "settings/SlicingTolerance.h"
 #include "MeshFace.h"
 #include "MeshVertex.h"

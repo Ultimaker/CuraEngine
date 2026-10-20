@@ -15,6 +15,7 @@
 #include "PrintInformation.h"
 #include "ExtruderPrintInformation.h"
 #include "TravelAntiOozing.h"
+#include "ZHopAntiOozing.h"
 #include "gcode_export/GCodePartType.h"
 #include "gcode_export/DynamicExtruderContext.h"
 #include "geometry/Point2LL.h"

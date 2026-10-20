@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "FffGcodeWriter.h"
+#include "utils/SparsePointGridInclusiveElem.h"
 #include "settings/EFillMethod.h"
 #include "settings/EPlatformAdhesion.h"
 #include "settings/ESupportStructure.h"

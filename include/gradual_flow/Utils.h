@@ -20,7 +20,7 @@ namespace cura::gradual_flow::utils
  *
  * \return A tuple containing the RGB values in range [0, 255]
  */
-inline std::tuple<int, int, int> hsvToRgb(double H, double S, double V)
+std::tuple<int, int, int> hsvToRgb(double H, double S, double V)
 {
     // Code taken from https://www.codespeedy.com/hsv-to-rgb-in-cpp/ and slightly modified
     if (H > 360. || H < 0. || S > 100. || S < 0. || V > 100. || V < 0.)

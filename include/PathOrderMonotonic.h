@@ -3,6 +3,8 @@
 
 #pragma once
 
+#include "utils/SparsePointGridInclusiveElem.h"
+
 #include <cmath> //For std::sin() and std::cos().
 #include <deque>
 
