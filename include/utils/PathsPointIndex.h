@@ -164,4 +164,3 @@ struct hash<cura::PolygonsPointIndex>
     }
 };
 } // namespace std
-
