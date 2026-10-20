@@ -73,18 +73,19 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{
-        .z_offset = z_offset,
-        .config = config,
-        .mesh = current_mesh_,
-        .space_fill_type = space_fill_type,
-        .flow = flow,
-        .width_factor = width_factor,
-        .spiralize = spiralize,
-        .speed_factor = speed_factor,
-        .travel_to_z = travel_to_z,
-        .print_attributes = print_attributes,
-    });
+    paths.emplace_back(
+        GCodePath{
+            .z_offset = z_offset,
+            .config = config,
+            .mesh = current_mesh_,
+            .space_fill_type = space_fill_type,
+            .flow = flow,
+            .width_factor = width_factor,
+            .spiralize = spiralize,
+            .speed_factor = speed_factor,
+            .travel_to_z = travel_to_z,
+            .print_attributes = print_attributes,
+        });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -944,7 +945,7 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
 
     // Pre-calculate the intersections of the segment with all regions
     std::vector<std::vector<float>> override_areas_intersections(override_areas.size());
-    boost::dynamic_bitset areas_under_segments(override_areas.size()); // Stack of the areas currently under the part of the segment
+    boost::dynamic_bitset initial_areas_under_segments(override_areas.size()); // Stack of the areas currently under the part of the segment
     for (const auto& [index, override_area] : override_areas | ranges::views::enumerate)
     {
         // Ignore intersections very close to the tips
@@ -984,12 +985,13 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
 
         if (*start_inside)
         {
-            areas_under_segments.set(index);
+            initial_areas_under_segments.set(index);
         }
 
         override_areas_intersections[index] = std::move(intersections);
     }
 
+    boost::dynamic_bitset areas_under_segments = initial_areas_under_segments;
     const auto get_topmost_area = [&areas_under_segments]() -> std::optional<size_t>
     {
         size_t current = areas_under_segments.find_first();
@@ -1065,8 +1067,15 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
         {
             // We have a complex intersection, possibly involving multiple areas, so just recalculate the full stack of underneath areas just after the intersection
             const Point2LL position_after_intersection = get_position(furthest_group_intersection + epsilon_factor).toPoint2LL();
+            areas_under_segments = initial_areas_under_segments;
             for (const auto& [override_area_index, override_area] : override_areas | ranges::views::enumerate)
             {
+                if (override_areas_intersections[override_area_index].empty())
+                {
+                    // This area has no intersection with the segment, so it is either fully inside or outside => skip and keep the initial state
+                    continue;
+                }
+
                 constexpr bool border_result = true;
                 areas_under_segments.set(override_area_index, override_area.area.inside(position_after_intersection, border_result));
             }
