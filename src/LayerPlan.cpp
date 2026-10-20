@@ -961,16 +961,16 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
         else
         {
             // Loop through all the sections of the segments until we find one that is not on the border
-            for (auto iterator = intersections.begin(); iterator <= intersections.end(); ++iterator)
+            for (size_t section_index = 0; section_index <= intersections.size(); ++section_index)
             {
-                const float section_start{ iterator == intersections.begin() ? 0.0f : *(iterator - 1) };
-                const float section_end{ iterator == intersections.end() ? 1.0f : *iterator };
+                const float section_start{ section_index == 0 ? 0.0f : intersections[section_index - 1] };
+                const float section_end{ section_index == intersections.size() ? 1.0f : intersections[section_index] };
                 const float section_middle{ (section_start + section_end) * 0.5f };
                 const std::optional<bool> section_inside{ override_area.area.insideWithoutBorder(get_position(section_middle).toPoint2LL()) };
                 if (section_inside.has_value())
                 {
-                    // The middle of this section is not on the border, se we can deduce whether the start of the segment is inside or outside
-                    start_inside = std::distance(intersections.begin(), iterator) % 2 == 0 ? *section_inside : ! *section_inside;
+                    // The middle of this section is not on the border, so we can deduce whether the start of the segment is inside or outside
+                    start_inside = section_index % 2 == 0 ? *section_inside : ! *section_inside;
                     break;
                 }
             }
