@@ -14,10 +14,11 @@
 
 #include <spdlog/spdlog.h>
 
-#include "TextureDataMapping.h"
-#include "mesh.h"
-#include "utils/Point2F.h"
-#include "utils/Point3D.h"
+#include "Image.h"
+#include "TextureBitField.h"
+#include "Mesh.h"
+#include "geometry/Point2F.h"
+#include "geometry/Point3D.h"
 
 
 namespace cura::MeshUtils

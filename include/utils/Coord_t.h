@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_COORD_T_H
-#define UTILS_COORD_T_H
+#pragma once
 
 
 // Include Clipper to get the ClipperLib::IntPoint definition, which we reuse as Point definition.
@@ -83,6 +82,3 @@ template<utils::floating_point FactorType>
 }
 
 } // namespace cura
-
-
-#endif // UTILS_COORD_T_H

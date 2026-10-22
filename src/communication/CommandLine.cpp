@@ -27,9 +27,10 @@
 #include "Application.h" //To get the extruders for material estimates.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice and get time estimates.
+#include "Mesh.h"
 #include "MeshGroup.h"
 #include "Slice.h"
-#include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
+#include "geometry/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
 #include "utils/format/filesystem_path.h"
 #include "utils/views/split_paths.h"
 

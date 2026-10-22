@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef REDISTRIBUTE_DISTRIBUTED_BEADING_STRATEGY_H
-#define REDISTRIBUTE_DISTRIBUTED_BEADING_STRATEGY_H
+#pragma once
 
 #include "../settings/types/Ratio.h"
 #include "BeadingStrategy.h"
@@ -89,4 +88,3 @@ protected:
 };
 
 } // namespace cura
-#endif // INWARD_DISTRIBUTED_BEADING_STRATEGY_H

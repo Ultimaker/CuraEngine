@@ -1,21 +1,20 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef TREESUPPORT_H
-#define TREESUPPORT_H
+#pragma once
 
+#include <map>
+#include <memory>
+#include <set>
+#include <unordered_map>
 #include <utility>
+#include <vector>
 
+#include "FakeRoofArea.h"
 #include "TreeModelVolumes.h"
-#include "TreeSupportBaseCircle.h"
 #include "TreeSupportElement.h"
-#include "TreeSupportEnums.h"
 #include "TreeSupportSettings.h"
-#include "boost/functional/hash.hpp" // For combining hashes
 #include "geometry/Polygon.h"
-#include "polyclipping/clipper.hpp"
-#include "settings/EnumSettings.h"
-#include "sliceDataStorage.h"
 #include "utils/Coord_t.h"
 #include "utils/SparsePointGridInclusive.h"
 
@@ -23,6 +22,9 @@ namespace cura
 {
 
 class OBJ;
+class AABB;
+class SliceDataStorage;
+class SliceMeshStorage;
 class TimeKeeper;
 
 // The various stages of the process can be weighted differently in the progress bar.
@@ -50,31 +52,6 @@ constexpr coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect
 
 using PropertyAreasUnordered = std::unordered_map<TreeSupportElement::Ptr, Shape>;
 using PropertyAreas = std::map<TreeSupportElement::Ptr, Shape>;
-
-struct FakeRoofArea
-{
-    FakeRoofArea(Shape area, coord_t line_distance, bool fractional)
-        : area_(area)
-        , line_distance_(line_distance)
-        , fractional_(fractional)
-    {
-    }
-    /*!
-     * \brief Area that should be a fake roof.
-     */
-    Shape area_;
-
-    /*!
-     * \brief Distance between support lines
-     */
-    coord_t line_distance_;
-
-    /*!
-     * \brief If the area should be added as a fractional support area.
-     */
-    bool fractional_;
-};
-
 
 /*!
  * \brief Generates a tree structure to support your models.
@@ -374,6 +351,3 @@ private:
 
 
 } // namespace cura
-
-
-#endif /* TREESUPPORT_H */

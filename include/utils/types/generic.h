@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_GENERIC_H
-#define CURAENGINE_GENERIC_H
+#pragma once
 
 #include <concepts>
 #include <functional>
@@ -70,5 +69,3 @@ concept multipliable = requires(T a, T b)
     { a * b };
 };
 } // namespace cura::utils
-
-#endif // CURAENGINE_GENERIC_H

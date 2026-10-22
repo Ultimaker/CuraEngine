@@ -1,8 +1,7 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATH_PLANNING_COMB_H
-#define PATH_PLANNING_COMB_H
+#pragma once
 
 #include <limits> // To find the maximum for coord_t.
 #include <memory> // shared_ptr
@@ -11,7 +10,7 @@
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
 #include "settings/types/LayerIndex.h" // To store the layer on which we comb.
-#include "utils/polygonUtils.h"
+#include "utils/PolygonUtils.h"
 
 namespace cura
 {
@@ -260,5 +259,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // PATH_PLANNING_COMB_H

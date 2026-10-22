@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SKELETAL_TRAPEZOIDATION_EDGE_H
-#define SKELETAL_TRAPEZOIDATION_EDGE_H
+#pragma once
 
 #include <cassert>
 #include <list>
@@ -138,4 +137,3 @@ private:
 
 
 } // namespace cura
-#endif // SKELETAL_TRAPEZOIDATION_EDGE_H

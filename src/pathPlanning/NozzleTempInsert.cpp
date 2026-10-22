@@ -3,7 +3,7 @@
 
 #include "pathPlanning/NozzleTempInsert.h"
 
-#include "gcode_export/gcodeExport.h"
+#include "gcode_export/GCodeExport.h"
 
 namespace cura
 {

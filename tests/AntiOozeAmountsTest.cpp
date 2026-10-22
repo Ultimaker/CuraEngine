@@ -6,6 +6,7 @@
 #include <gtest/gtest.h>
 
 #include "ExtruderTrain.h"
+#include "RetractionAndWipeConfig.h"
 #include "LayerPlan.h"
 
 namespace cura

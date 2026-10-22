@@ -5,7 +5,8 @@
 
 #include <numbers>
 
-#include "settings/types/Angle.h"
+#include "settings/types/AngleDegrees.h"
+#include "settings/types/AngleRadians.h"
 
 
 namespace cura

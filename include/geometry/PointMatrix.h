@@ -1,8 +1,7 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef GEOMETRY_POINT_MATRIX_H
-#define GEOMETRY_POINT_MATRIX_H
+#pragma once
 
 #include <array>
 
@@ -43,4 +42,3 @@ public:
 };
 
 } // namespace cura
-#endif // GEOMETRY_POINT_MATRIX_H

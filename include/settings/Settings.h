@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SETTINGS_SETTINGS_H
-#define SETTINGS_SETTINGS_H
+#pragma once
 
 #ifndef CURA_ENGINE_VERSION
 #define CURA_ENGINE_VERSION "main"
@@ -132,5 +131,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // SETTINGS_SETTINGS_H

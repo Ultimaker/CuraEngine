@@ -3,13 +3,14 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "ConicalOverhang.h"
+#include "SlicerLayer.h"
 
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
-#include "mesh.h"
-#include "settings/types/Angle.h" //To process the overhang angle.
+#include "Mesh.h"
+#include "settings/types/AngleRadians.h" //To process the overhang angle.
 #include "settings/types/LayerIndex.h"
-#include "slicer.h"
+#include "Slicer.h"
 #include "utils/Simplify.h" //Simplifying at every step to prevent getting lots of vertices from all the insets.
 
 namespace cura

@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SVG_H
-#define SVG_H
+#pragma once
 
 #include <stdio.h> // for file output
 #include <variant>
@@ -395,4 +394,3 @@ void SVG::printf(const char* txt, Args&&... args) const
 }
 
 } // namespace cura
-#endif // SVG_H

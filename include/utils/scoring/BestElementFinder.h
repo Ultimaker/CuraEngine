@@ -1,8 +1,7 @@
 // Copyright (c) 2024 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SCORING_BESTCANDIDATEFINDER_H
-#define UTILS_SCORING_BESTCANDIDATEFINDER_H
+#pragma once
 
 #include <algorithm>
 #include <memory>
@@ -85,4 +84,3 @@ public:
 };
 
 } // namespace cura
-#endif // UTILS_SCORING_BESTCANDIDATEFINDER_H

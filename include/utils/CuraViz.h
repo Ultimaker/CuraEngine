@@ -1,8 +1,7 @@
 // Copyright (c) 2026 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CURAVIZ_H
-#define CURAVIZ_H
+#pragma once
 #ifdef ENABLE_CURAVIZ
 
 #include <boost/asio/io_context.hpp>
@@ -119,5 +118,4 @@ private:
 };
 
 } // namespace cura
-#endif
 #endif

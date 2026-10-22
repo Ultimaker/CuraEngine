@@ -1,10 +1,9 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef VELOCITY_H
-#define VELOCITY_H
+#pragma once
 
-#include "utils/types/numeric_facade.h"
+#include "utils/types/NumericFacade.h"
 
 namespace cura
 {
@@ -23,15 +22,4 @@ struct Velocity : public utils::NumericFacade<double>
         : base_type{ base } {};
 };
 
-struct Acceleration : public utils::NumericFacade<double>
-{
-    using base_type = utils::NumericFacade<double>;
-    using base_type::NumericFacade;
-
-    constexpr Acceleration(const base_type& base) noexcept
-        : base_type{ base } {};
-};
-
 } // namespace cura
-
-#endif // VELOCITY_H

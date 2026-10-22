@@ -2,6 +2,8 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PrimeTower/PrimeTower.h"
+#include "settings/PrimeTowerMode.h"
+#include "SupportLayer.h"
 
 #include <algorithm>
 #include <limits>
@@ -16,10 +18,10 @@
 #include "PrimeTower/PrimeTowerNormal.h"
 #include "Scene.h"
 #include "Slice.h"
-#include "gcode_export/gcodeExport.h"
-#include "infill.h"
-#include "raft.h"
-#include "sliceDataStorage.h"
+#include "gcode_export/GCodeExport.h"
+#include "infill/Infill.h"
+#include "Raft.h"
+#include "SliceDataStorage.h"
 
 
 namespace cura

@@ -2,8 +2,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_DENSITY_PROVIDER_H
-#define INFILL_DENSITY_PROVIDER_H
+#pragma once
 
 namespace cura
 {
@@ -28,6 +27,3 @@ public:
 };
 
 } // namespace cura
-
-
-#endif // INFILL_DENSITY_PROVIDER_H

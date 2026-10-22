@@ -1,15 +1,14 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PROGRESS_H
-#define PROGRESS_H
+#pragma once
 
 #include <array>
 #include <optional>
 #include <string>
 #include <string_view>
 
-#include "utils/gettime.h"
+#include "utils/TimeKeeper.h"
 
 namespace cura
 {
@@ -100,4 +99,3 @@ public:
 
 
 } // namespace cura
-#endif // PROGRESS_H

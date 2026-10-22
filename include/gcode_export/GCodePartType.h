@@ -1,8 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_GCODEPARTTYPE_H
-#define GCODEEXPORT_GCODEPARTTYPE_H
+#pragma once
 
 namespace cura
 {
@@ -16,5 +15,3 @@ enum class GCodePartType
 };
 
 } // namespace cura
-
-#endif

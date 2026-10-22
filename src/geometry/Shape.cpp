@@ -2,6 +2,8 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "geometry/Shape.h"
+#include "settings/types/AngleDegrees.h"
+#include "settings/types/AngleRadians.h"
 
 #include <algorithm>
 #include <cstddef>
@@ -33,7 +35,7 @@
 #include "settings/types/Ratio.h"
 #include "utils/AABB.h"
 #include "utils/OpenPolylineStitcher.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 namespace cura
 {

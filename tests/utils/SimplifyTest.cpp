@@ -8,7 +8,7 @@
 #include <gtest/gtest.h>
 
 #include "utils/Coord_t.h"
-#include "utils/polygonUtils.h" // Helper functions for testing deviation.
+#include "utils/PolygonUtils.h" // Helper functions for testing deviation.
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura

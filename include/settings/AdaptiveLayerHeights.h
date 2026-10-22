@@ -1,35 +1,18 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef ADAPTIVELAYERHEIGHTS_H
-#define ADAPTIVELAYERHEIGHTS_H
+#pragma once
 
-#include "MeshGroup.h"
+#include <cstddef>
+#include <vector>
+
+#include "settings/AdaptiveLayer.h"
 #include "utils/Coord_t.h"
 
 namespace cura
 {
 
-class AdaptiveLayer
-{
-public:
-    /*!
-     * Height of the layer in microns.
-     */
-    coord_t layer_height_;
-
-    /*!
-     * The absolute z position of the layer.
-     */
-    coord_t z_position_;
-
-    /*!
-     * Temperature to use for this layer.
-     */
-    int temperature_;
-
-    explicit AdaptiveLayer(const coord_t layer_height);
-};
+class MeshGroup;
 
 /**
  * Adaptive layer heights calculates the desired layer heights depending mesh.
@@ -119,5 +102,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // ADAPTIVELAYERHEIGHTS_H

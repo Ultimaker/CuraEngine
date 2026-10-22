@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef TREEMODELVOLUMES_H
-#define TREEMODELVOLUMES_H
+#pragma once
 
 #include <future>
 #include <mutex>
@@ -10,9 +9,10 @@
 #include <unordered_map>
 #include <unordered_set>
 
-#include "TreeSupportEnums.h"
+#include "AvoidanceType.h"
+#include "InterfacePreference.h"
+#include "RestPreference.h"
 #include "geometry/Shape.h"
-#include "settings/EnumSettings.h" //To store whether X/Y or Z distance gets priority.
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
 #include "utils/PairHash.h"
 #include "utils/Simplify.h"
@@ -527,5 +527,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // TREEMODELVOLUMES_H

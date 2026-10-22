@@ -10,8 +10,8 @@
 #include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
-#include "settings/types/Angle.h"
-#include "utils/linearAlg2D.h"
+#include "settings/types/AngleRadians.h"
+#include "utils/LinearAlg2D.h"
 
 namespace cura
 {

@@ -1,18 +1,15 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GRADUAL_FLOW_UTILS_H
-#define GRADUAL_FLOW_UTILS_H
+#pragma once
+
+#include <cmath>
+#include <stdexcept>
+#include <tuple>
 
 
 namespace cura::gradual_flow::utils
 {
-
-enum Direction
-{
-    Forward,
-    Backward,
-};
 
 /*
  * \brief Converts HSV values to RGB values.
@@ -81,5 +78,3 @@ std::tuple<int, int, int> hsvToRgb(double H, double S, double V)
 }
 
 } // namespace cura::gradual_flow::utils
-
-#endif // GRADUAL_FLOW_UTILS_H

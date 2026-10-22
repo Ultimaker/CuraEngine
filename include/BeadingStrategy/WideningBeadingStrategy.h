@@ -1,8 +1,7 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef WIDENING_BEADING_STRATEGY_H
-#define WIDENING_BEADING_STRATEGY_H
+#pragma once
 
 #include "BeadingStrategy.h"
 
@@ -43,4 +42,3 @@ protected:
 };
 
 } // namespace cura
-#endif // WIDENING_BEADING_STRATEGY_H

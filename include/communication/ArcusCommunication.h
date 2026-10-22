@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef ARCUSCOMMUNICATION_H
-#define ARCUSCOMMUNICATION_H
+#pragma once
 #ifdef ARCUS
 
 #ifdef BUILD_TESTS
@@ -188,4 +187,3 @@ private:
 } // namespace cura
 
 #endif // ARCUS
-#endif // ARCUSCOMMUNICATION_H

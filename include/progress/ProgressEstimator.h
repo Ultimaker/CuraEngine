@@ -1,8 +1,7 @@
 //Copyright (c) 2020 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PROGRESS_PROGRESS_ESTIMATOR_H
-#define PROGRESS_PROGRESS_ESTIMATOR_H
+#pragma once
 
 #include <vector>
 
@@ -27,5 +26,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // PROGRESS_PROGRESS_ESTIMATOR_H

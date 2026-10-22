@@ -15,11 +15,13 @@
 
 #include "Application.h"
 #include "ExtruderTrain.h"
+#include "Mesh.h"
+#include "MeshGroup.h"
 #include "Slice.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/Matrix4x3D.h" //To convert vertices to integer-points.
+#include "geometry/Matrix4x3D.h" //To convert vertices to integer-points.
 #include "utils/MeshUtils.h"
-#include "utils/Point3F.h" //To accept vertices (which are provided in floating point).
+#include "geometry/Point3F.h" //To accept vertices (which are provided in floating point).
 
 namespace cura
 {

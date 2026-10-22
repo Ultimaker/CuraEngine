@@ -14,7 +14,7 @@
 #include <filesystem>
 
 #ifdef ENABLE_PLUGINS
-#include "plugins/slots.h"
+#include "plugins/Slots.h"
 #include <grpcpp/create_channel.h>
 #endif
 

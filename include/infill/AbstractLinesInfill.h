@@ -1,8 +1,7 @@
 // Copyright (c) 2025 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_ABSTRACTLINESINFILL_H
-#define INFILL_ABSTRACTLINESINFILL_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
@@ -87,5 +86,3 @@ private:
 };
 
 } // namespace cura
-
-#endif

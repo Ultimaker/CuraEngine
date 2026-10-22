@@ -2,6 +2,8 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Mold.h"
+#include "Mesh.h"
+#include "SlicerLayer.h"
 
 #include <numbers>
 
@@ -12,8 +14,8 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
-#include "slicer.h"
+#include "SliceDataStorage.h"
+#include "Slicer.h"
 
 namespace cura
 {

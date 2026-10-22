@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef RETRACTION_CONFIG_H
-#define RETRACTION_CONFIG_H
+#pragma once
 
 #include "settings/types/Ratio.h"
 #include "settings/types/Velocity.h"
@@ -32,5 +31,3 @@ public:
 
 
 } // namespace cura
-
-#endif // RETRACTION_CONFIG_H

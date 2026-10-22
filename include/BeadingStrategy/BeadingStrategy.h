@@ -1,14 +1,13 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef BEADING_STRATEGY_H
-#define BEADING_STRATEGY_H
+#pragma once
 
 #include <memory>
 #include <numbers>
 
 #include "geometry/Point2LL.h"
-#include "settings/types/Angle.h"
+#include "settings/types/AngleRadians.h"
 #include "settings/types/Ratio.h" //For the wall transition threshold.
 
 namespace cura
@@ -123,4 +122,3 @@ protected:
 using BeadingStrategyPtr = std::unique_ptr<BeadingStrategy>;
 
 } // namespace cura
-#endif // BEADING_STRATEGY_H

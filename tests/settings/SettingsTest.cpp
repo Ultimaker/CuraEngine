@@ -12,16 +12,17 @@
 #include "Application.h" //To test extruder train settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "settings/EnumSettings.h"
+#include "settings/EFillMethod.h"
 #include "settings/FlowTempGraph.h"
-#include "settings/types/Angle.h"
+#include "settings/types/AngleDegrees.h"
+#include "settings/types/AngleRadians.h"
 #include "settings/types/Duration.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h"
 #include "settings/types/Velocity.h"
 #include "utils/Coord_t.h"
-#include "utils/Matrix4x3D.h" //Testing matrix transformation settings.
+#include "geometry/Matrix4x3D.h" //Testing matrix transformation settings.
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura

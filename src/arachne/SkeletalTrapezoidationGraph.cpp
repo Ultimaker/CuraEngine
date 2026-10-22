@@ -9,7 +9,7 @@
 
 #include "arachne/STHalfEdge.h"
 #include "arachne/STHalfEdgeNode.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
 namespace cura

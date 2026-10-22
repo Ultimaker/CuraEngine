@@ -3,6 +3,7 @@
 
 #include "TreeSupportElement.h"
 
+#include "TreeSupportBaseCircle.h"
 #include "utils/OBJ.h"
 
 

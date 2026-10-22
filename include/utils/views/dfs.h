@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_DFS_SORT_H
-#define CURAENGINE_DFS_SORT_H
+#pragma once
 
 #include <range/v3/algorithm/contains.hpp>
 #include <range/v3/view/subrange.hpp>
@@ -87,5 +86,3 @@ constexpr void dfs_depth_state(const Node& current_node, const Graph& graph, std
 }
 
 } // namespace cura::actions
-
-#endif // CURAENGINE_DFS_SORT_H

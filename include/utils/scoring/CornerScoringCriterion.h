@@ -1,12 +1,11 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CORNERSCORINGCRITERION_H
-#define CORNERSCORINGCRITERION_H
+#pragma once
 
 #include <stddef.h>
 
-#include "settings/EnumSettings.h"
+#include "settings/EZSeamCornerPrefType.h"
 #include "utils/Coord_t.h"
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
@@ -61,5 +60,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // CORNERSCORINGCRITERION_H

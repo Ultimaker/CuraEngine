@@ -1,13 +1,12 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FFF_PROCESSOR_H
-#define FFF_PROCESSOR_H
+#pragma once
 
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
 #include "utils/NoCopy.h"
-#include "utils/gettime.h"
+#include "utils/TimeKeeper.h"
 
 
 namespace cura
@@ -54,5 +53,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // FFF_PROCESSOR_H

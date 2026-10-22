@@ -1,16 +1,20 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef TREESUPPORTSETTINGS_H
-#define TREESUPPORTSETTINGS_H
+#pragma once
 
 #include <functional>
 
 #include "TreeSupportElement.h"
-#include "TreeSupportEnums.h"
-#include "settings/EnumSettings.h"
+#include "AvoidanceType.h"
+#include "InterfacePreference.h"
+#include "RestPreference.h"
+#include "settings/EFillMethod.h"
+#include "settings/ESupportType.h"
+#include "settings/SupportDistPriority.h"
 #include "settings/Settings.h"
-#include "settings/types/Angle.h"
+#include "settings/types/AngleDegrees.h"
+#include "settings/types/AngleRadians.h"
 #include "settings/types/Ratio.h"
 #include "utils/Coord_t.h"
 #include "utils/Simplify.h"
@@ -541,4 +545,3 @@ public:
     }
 };
 } // namespace cura
-#endif // TREESUPPORTSETTINGS_H

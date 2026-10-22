@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Scene.h"
+#include "Mesh.h"
 
 #include <fmt/chrono.h>
 #include <spdlog/spdlog.h>
@@ -10,7 +11,7 @@
 #include "FffProcessor.h" //To start a slice.
 #include "communication/Communication.h" //To flush g-code and layer view when we're done.
 #include "progress/Progress.h"
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
 
 namespace cura
 {

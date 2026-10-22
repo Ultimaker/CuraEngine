@@ -1,13 +1,12 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef WALLS_COMPUTATION_H
-#define WALLS_COMPUTATION_H
+#pragma once
 
 #include "settings/Settings.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "utils/section_type.h"
+#include "utils/SectionType.h"
 
 namespace cura
 {
@@ -72,5 +71,3 @@ private:
     void generateSpiralInsets(SliceLayerPart* part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
 };
 } // namespace cura
-
-#endif // WALLS_COMPUTATION_H

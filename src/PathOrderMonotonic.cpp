@@ -2,6 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathOrderMonotonic.h"
+#include "utils/SparsePointGridInclusiveElem.h"
 
 #include <unordered_map> //To track monotonic sequences.
 #include <unordered_set> //To track starting points of monotonic sequences.

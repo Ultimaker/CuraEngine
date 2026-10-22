@@ -1,10 +1,10 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATHPLANNING_SPEEDDERIVATIVES_H
-#define PATHPLANNING_SPEEDDERIVATIVES_H
+#pragma once
 
 #include "settings/types/LayerIndex.h"
+#include "settings/types/Acceleration.h"
 #include "settings/types/Velocity.h"
 
 namespace cura
@@ -34,5 +34,3 @@ struct SpeedDerivatives
 };
 
 } // namespace cura
-
-#endif // PATHPLANNING_SPEEDDERIVATIVES_H

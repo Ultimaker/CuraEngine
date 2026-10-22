@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
-#define INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H
+#pragma once
 
 #include <vector>
 
@@ -212,6 +211,3 @@ protected:
 };
 
 } // namespace cura
-
-
-#endif // INFILL_ZIGZAG_CONNECTOR_PROCESSOR_H

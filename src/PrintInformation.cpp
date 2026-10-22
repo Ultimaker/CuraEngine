@@ -4,7 +4,6 @@
 #include "PrintInformation.h"
 
 #include "LayerPlan.h"
-#include "sliceDataStorage.h"
 
 
 void cura::PrintInformation::updateWithLayer(const LayerPlan* layer_plan)

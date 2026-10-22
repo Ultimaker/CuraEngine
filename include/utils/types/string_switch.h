@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_TYPES_STRING_SWITCH_H
-#define UTILS_TYPES_STRING_SWITCH_H
+#pragma once
 
 #include <string_view>
 
@@ -37,5 +36,3 @@ constexpr inline auto operator""_sw(const char* str, size_t len)
 
 
 } // namespace cura::utils
-
-#endif // UTILS_TYPES_STRING_SWITCH_H

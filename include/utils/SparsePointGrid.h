@@ -2,8 +2,7 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SPARSE_POINT_GRID_H
-#define UTILS_SPARSE_POINT_GRID_H
+#pragma once
 
 #include <cassert>
 #include <unordered_map>
@@ -102,5 +101,3 @@ const ElemT* SGI_THIS::getAnyNearby(const Point2LL& query_pt, coord_t radius)
 #undef SGI_THIS
 
 } // namespace cura
-
-#endif // UTILS_SPARSE_POINT_GRID_H

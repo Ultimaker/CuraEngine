@@ -2,6 +2,26 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "FffGcodeWriter.h"
+#include "utils/SparsePointGridInclusiveElem.h"
+#include "settings/EFillMethod.h"
+#include "settings/EPlatformAdhesion.h"
+#include "settings/ESupportStructure.h"
+#include "settings/EZSeamType.h"
+#include "settings/EZSeamCornerPrefType.h"
+#include "settings/ESurfaceMode.h"
+#include "settings/DraftShieldHeightLimitation.h"
+#include "settings/InfillStartEndPreference.h"
+#include "settings/RetractBeforeOuterWall.h"
+#include "Mesh.h"
+#include "SliceMeshStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SkinPart.h"
+#include "SupportLayer.h"
+#include "SupportStorage.h"
+#include "RetractionAndWipeConfig.h"
+#include "FanSpeedLayerTimeSettings.h"
+#include "settings/types/Acceleration.h"
 
 #include <algorithm>
 #include <cura-formulae-engine/eval.h>
@@ -31,15 +51,15 @@
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
-#include "infill.h"
+#include "infill/Infill.h"
 #include "progress/Progress.h"
-#include "raft.h"
+#include "Raft.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/math.h"
-#include "utils/orderOptimizer.h"
-#include "utils/polygonUtils.h"
+#include "utils/OrderOptimizer.h"
+#include "utils/PolygonUtils.h"
 
 namespace cura
 {

@@ -1,12 +1,11 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATHORDER_H
-#define PATHORDER_H
+#pragma once
 
-#include "path_ordering.h"
+#include "PathOrdering.h"
 #include "settings/ZSeamConfig.h" //To get the seam settings.
-#include "utils/polygonUtils.h"
+#include "utils/PolygonUtils.h"
 
 namespace cura
 {
@@ -136,5 +135,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif // PATHORDER_H

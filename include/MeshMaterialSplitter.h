@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef MESH_MATERIAL_SPLITTER_H
-#define MESH_MATERIAL_SPLITTER_H
+#pragma once
 
 namespace cura
 {
@@ -22,5 +21,3 @@ void makePaintingModifierMeshes(MeshGroup* meshgroup);
 } // namespace MeshMaterialSplitter
 
 } // namespace cura
-
-#endif // MESH_MATERIAL_SPLITTER_H

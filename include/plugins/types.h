@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PLUGINS_TYPES_H
-#define PLUGINS_TYPES_H
+#pragma once
 
 #include <grpcpp/support/string_ref.h>
 #include <memory>
@@ -74,4 +73,3 @@ struct formatter<grpc::string_ref>
 };
 
 } // namespace fmt
-#endif // PLUGINS_TYPES_H

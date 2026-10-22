@@ -2,10 +2,12 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "ExtruderPlan.h"
+#include "SliceMeshStorage.h"
+#include "FanSpeedLayerTimeSettings.h"
 
 #include <range/v3/algorithm/any_of.hpp>
 
-#include "gcode_export/gcodeExport.h"
+#include "gcode_export/GCodeExport.h"
 
 
 namespace cura

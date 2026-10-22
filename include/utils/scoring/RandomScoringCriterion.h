@@ -1,8 +1,7 @@
 // Copyright (c) 2021 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef RANDOMSCORINGCRITERION_H
-#define RANDOMSCORINGCRITERION_H
+#pragma once
 
 #include <stddef.h>
 
@@ -23,5 +22,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // RANDOMSCORINGCRITERION_H

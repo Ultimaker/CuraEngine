@@ -2,8 +2,7 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 
-#ifndef UTILS_VORONOI_UTILS_H
-#define UTILS_VORONOI_UTILS_H
+#pragma once
 
 #include <vector>
 
@@ -108,5 +107,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif // UTILS_VORONOI_UTILS_H

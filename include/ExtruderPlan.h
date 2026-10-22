@@ -1,10 +1,9 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef EXTRUDERPLAN_H
-#define EXTRUDERPLAN_H
+#pragma once
 
-#include "FanSpeedLayerTime.h"
+#include "FanSpeedLayerTimeSettings.h"
 #include "RetractionConfig.h"
 #include "geometry/Point2LL.h"
 #include "pathPlanning/GCodePath.h"
@@ -27,6 +26,7 @@ namespace cura
 class LayerPlanBuffer;
 class LayerPlan;
 class GCodeExport;
+class SliceMeshStorage;
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
  *
@@ -226,5 +226,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // EXTRUDERPLAN_H

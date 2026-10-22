@@ -1,9 +1,10 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef LAYERINDEX_H
-#define LAYERINDEX_H
+#pragma once
 
+#include <cstddef>
+#include <cstdint>
 #include <functional>
 
 #include <fmt/format.h>
@@ -221,5 +222,3 @@ struct hash<cura::LayerIndex>
     }
 };
 } // namespace std
-
-#endif // LAYERINDEX_H

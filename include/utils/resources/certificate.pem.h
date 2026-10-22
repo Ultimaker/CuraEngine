@@ -1,5 +1,4 @@
-#ifndef CERTIFICATE_H
-#define CERTIFICATE_H
+#pragma once
 
 // FIXME: Move out of the source code even though this is the public key
 
@@ -45,5 +44,3 @@ c3dQRszg9OTAyUwNKQEAuZ9II/cCpLyE+GbnqRdkErHgO7kiKQ==
 )#";
 
 } // namespace cura::utils::resources
-
-#endif // CERTIFICATE_H

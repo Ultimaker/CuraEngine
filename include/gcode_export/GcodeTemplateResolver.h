@@ -1,8 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODETEMPLATERESOLVER_H
-#define GCODETEMPLATERESOLVER_H
+#pragma once
 
 #include <optional>
 #include <string>
@@ -10,7 +9,7 @@
 
 #include <boost/regex.hpp>
 
-#include "gcode_export/ResolvingExtruderContext.h"
+#include "gcode_export/DynamicExtruderContext.h"
 
 namespace CuraFormulaeEngine
 {
@@ -118,5 +117,3 @@ private:
 };
 
 } // namespace cura
-
-#endif

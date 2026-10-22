@@ -1,12 +1,11 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_POLYGONS_SEGMENT_INDEX_H
-#define UTILS_POLYGONS_SEGMENT_INDEX_H
+#pragma once
 
 #include <vector>
 
-#include "PolygonsPointIndex.h"
+#include "PathsPointIndex.h"
 
 namespace cura
 {
@@ -27,6 +26,3 @@ public:
 
 
 } // namespace cura
-
-
-#endif // UTILS_POLYGONS_SEGMENT_INDEX_H

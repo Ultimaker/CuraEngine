@@ -1,19 +1,13 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_SEGMENT_ITERATOR_H
-#define GEOMETRY_SEGMENT_ITERATOR_H
+#pragma once
 
 #include "geometry/Point2LL.h"
+#include "geometry/ConstnessType.h"
 
 namespace cura
 {
-
-enum class ConstnessType
-{
-    Const,
-    Modifiable,
-};
 
 /*! @brief Custom iterator to loop over the segments of a polyline/polygon */
 template<ConstnessType IsConst>
@@ -93,5 +87,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // GEOMETRY_SEGMENT_ITERATOR_H

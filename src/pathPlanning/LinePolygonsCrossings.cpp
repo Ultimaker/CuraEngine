@@ -5,7 +5,7 @@
 
 #include <algorithm>
 
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
 
 namespace cura
 {

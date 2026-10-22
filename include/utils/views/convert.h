@@ -1,8 +1,7 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_VIEWS_CONVERT_H
-#define UTILS_VIEWS_CONVERT_H
+#pragma once
 
 #include <type_traits>
 
@@ -37,5 +36,3 @@ constexpr auto convert(auto&& proj)
     return ranges::make_view_closure(ranges::views::transform([proj](auto item) { return V { std::invoke(proj, item) }; }));
 }
 } // namespace cura::views
-
-#endif // UTILS_VIEWS_CONVERT_H

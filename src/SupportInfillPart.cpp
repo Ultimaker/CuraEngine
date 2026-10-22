@@ -3,7 +3,7 @@
 
 #include "SupportInfillPart.h"
 
-#include "support.h"
+#include "AreaSupport.h"
 
 using namespace cura;
 

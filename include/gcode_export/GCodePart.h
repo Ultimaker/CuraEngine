@@ -1,8 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_GCODEPART_H
-#define GCODEEXPORT_GCODEPART_H
+#pragma once
 
 #include <string>
 
@@ -36,5 +35,3 @@ private:
 };
 
 } // namespace cura
-
-#endif

@@ -3,13 +3,21 @@
 
 #include "settings/PathConfigStorage.h"
 
+#include <algorithm>
+#include <memory>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
+#include "MeshGroup.h"
+#include "PrintFeatureType.h"
 #include "Slice.h"
-#include "raft.h"
-#include "settings/EnumSettings.h" //For EPlatformAdhesion.
+#include "Raft.h"
+#include "settings/EPlatformAdhesion.h"
 #include "settings/Settings.h" // MAX_INFILL_COMBINE
-#include "sliceDataStorage.h" // SliceDataStorage
+#include "settings/types/Acceleration.h"
+#include "settings/types/Velocity.h"
+#include "SliceDataStorage.h" // SliceDataStorage
+#include "SliceMeshStorage.h"
 
 namespace cura
 {

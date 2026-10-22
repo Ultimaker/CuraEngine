@@ -3,7 +3,7 @@
 #include <range/v3/algorithm/stable_sort.hpp>
 
 #include "bridge/TransformedShape.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 
 namespace cura

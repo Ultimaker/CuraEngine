@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_AABB3D_H
-#define UTILS_AABB3D_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 #include "geometry/Point3LL.h"
@@ -116,4 +115,3 @@ struct AABB3D
 };
 
 } // namespace cura
-#endif // UTILS_AABB3D_H

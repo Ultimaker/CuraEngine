@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_PAIRHASH_H
-#define UTILS_PAIRHASH_H
+#pragma once
 
 #include <bitset>
 #include <utility>
@@ -20,5 +19,3 @@ struct hash<std::pair<S, T>>
 };
 
 } // namespace std
-
-#endif // UTILS_PAIRHASH_H

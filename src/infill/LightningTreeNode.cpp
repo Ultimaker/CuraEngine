@@ -4,7 +4,7 @@
 #include "infill/LightningTreeNode.h"
 
 #include "geometry/OpenLinesSet.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 using namespace cura;
 

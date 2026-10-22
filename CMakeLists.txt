@@ -56,19 +56,19 @@ set(engine_SRCS # Except main.cpp.
         src/FffPolygonGenerator.cpp
         src/FffProcessor.cpp
         src/GCodePathConfig.cpp
-        src/infill.cpp
+        src/infill/Infill.cpp
         src/InfillOrderOptimizer.cpp
         src/InsetOrderOptimizer.cpp
         src/InterlockingGenerator.cpp
         src/layerPart.cpp
         src/LayerPlan.cpp
         src/LayerPlanBuffer.cpp
-        src/mesh.cpp
+        src/Mesh.cpp
         src/MeshGroup.cpp
         src/MeshMaterialSplitter.cpp
         src/Mold.cpp
-        src/multiVolumes.cpp
-        src/path_ordering.cpp
+        src/MultiVolumes.cpp
+        src/PathOrdering.cpp
         src/PathAdapter.cpp
         src/PathOrderMonotonic.cpp
         src/Preheat.cpp
@@ -76,16 +76,22 @@ set(engine_SRCS # Except main.cpp.
         src/PrimeTower/PrimeTower.cpp
         src/PrimeTower/PrimeTowerNormal.cpp
         src/PrimeTower/PrimeTowerInterleaved.cpp
-        src/raft.cpp
+        src/Raft.cpp
         src/Scene.cpp
-        src/skin.cpp
+        src/SkinInfillAreaComputation.cpp
         src/SkirtBrim.cpp
         src/SupportInfillPart.cpp
+        src/SupportLayer.cpp
+        src/SupportStorage.cpp
         src/Slice.cpp
-        src/sliceDataStorage.cpp
-        src/slicer.cpp
-        src/support.cpp
-        src/timeEstimate.cpp
+        src/SliceLayer.cpp
+        src/SliceLayerPart.cpp
+        src/SliceMeshStorage.cpp
+        src/SliceDataStorage.cpp
+        src/Slicer.cpp
+        src/SlicerLayer.cpp
+        src/AreaSupport.cpp
+        src/TimeEstimateCalculator.cpp
         src/SlicedUVCoordinates.cpp
         src/TextureDataProvider.cpp
         src/TopSurface.cpp
@@ -125,7 +131,7 @@ set(engine_SRCS # Except main.cpp.
         src/communication/EmscriptenCommunication.cpp
         src/communication/Listener.cpp
 
-        src/gcode_export/gcodeExport.cpp
+        src/gcode_export/GCodeExport.cpp
         src/gcode_export/FixedGCodePart.cpp
         src/gcode_export/ResolvedGCodePart.cpp
         src/gcode_export/GcodeTemplateResolver.cpp
@@ -143,6 +149,7 @@ set(engine_SRCS # Except main.cpp.
         src/infill/SierpinskiFillProvider.cpp
         src/infill/SubDivCube.cpp
         src/infill/GyroidInfill.cpp
+        src/infill/GroundingLocation.cpp
 
         src/pathPlanning/Comb.cpp
         src/pathPlanning/GCodePath.cpp
@@ -150,11 +157,23 @@ set(engine_SRCS # Except main.cpp.
         src/pathPlanning/NozzleTempInsert.cpp
         src/pathPlanning/SpeedDerivatives.cpp
 
-        src/plugins/converters.cpp
+        src/plugins/broadcast_settings_request.cpp
+        src/plugins/empty.cpp
+        src/plugins/gcode_paths_modify_request.cpp
+        src/plugins/gcode_paths_modify_response.cpp
+        src/plugins/handshake_request.cpp
+        src/plugins/handshake_response.cpp
+        src/plugins/infill_generate_request.cpp
+        src/plugins/infill_generate_response.cpp
+        src/plugins/postprocess_request.cpp
+        src/plugins/postprocess_response.cpp
+        src/plugins/simplify_request.cpp
+        src/plugins/simplify_response.cpp
 
         src/progress/Progress.cpp
         src/progress/ProgressStageEstimator.cpp
 
+        src/settings/AdaptiveLayer.cpp
         src/settings/AdaptiveLayerHeights.cpp
         src/settings/FlowTempGraph.cpp
         src/settings/MeshPathConfigs.cpp
@@ -166,24 +185,26 @@ set(engine_SRCS # Except main.cpp.
         src/utils/AABB.cpp
         src/utils/AABB3D.cpp
         src/utils/channel.cpp
-        src/utils/Segment3LL.cpp
+        src/geometry/Segment3LL.cpp
         src/utils/CuraViz.cpp
         src/utils/Date.cpp
+        src/utils/DilationKernel.cpp
         src/utils/ExtrusionJunction.cpp
         src/utils/ExtrusionLine.cpp
         src/utils/ExtrusionSegment.cpp
-        src/utils/gettime.cpp
-        src/utils/linearAlg2D.cpp
+        src/utils/TimeKeeper.cpp
+        src/utils/LinearAlg2D.cpp
         src/utils/ListPolyIt.cpp
-        src/utils/Matrix4x3D.cpp
+        src/geometry/Matrix4x3D.cpp
         src/utils/MeshUtils.cpp
         src/utils/MinimumSpanningTree.cpp
         src/utils/OBJ.cpp
-        src/utils/PlanarPolygon3LL.cpp
+        src/geometry/PlanarPolygon3LL.cpp
         src/utils/PolygonConnector.cpp
-        src/utils/PolygonsPointIndex.cpp
+        src/utils/PathsPointIndex.cpp
+        src/utils/PolygonsPointIndexSegmentLocator.cpp
         src/utils/PolygonsSegmentIndex.cpp
-        src/utils/polygonUtils.cpp
+        src/utils/PolygonUtils.cpp
         src/utils/PolylineStitcher.cpp
         src/utils/Simplify.cpp
         src/utils/SVG.cpp

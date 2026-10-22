@@ -1,8 +1,9 @@
 // Copyright (c) 2022 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INTERLOCKING_GENERATOR_H
-#define INTERLOCKING_GENERATOR_H
+#pragma once
+
+#include "utils/DilationKernel.h"
 
 #include <cassert>
 #include <unordered_set>
@@ -176,5 +177,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif // INTERLOCKING_GENERATOR_H

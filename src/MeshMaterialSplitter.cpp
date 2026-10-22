@@ -2,6 +2,10 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <execution>
+#include "utils/OccupiedPosition.h"
+#include "settings/SlicingTolerance.h"
+#include "MeshFace.h"
+#include "MeshVertex.h"
 #include <unordered_set>
 
 #include <boost/unordered/concurrent_flat_map.hpp>
@@ -20,12 +24,12 @@
 #include "geometry/Shape.h"
 #include "geometry/Triangle2F.h"
 #include "geometry/Triangle3LL.h"
-#include "mesh.h"
+#include "Mesh.h"
 #include "progress/Progress.h"
-#include "slicer.h"
+#include "Slicer.h"
 #include "utils/MeshUtils.h"
 #include "utils/OpenPolylineStitcher.h"
-#include "utils/Point3D.h"
+#include "geometry/Point3D.h"
 #include "utils/Simplify.h"
 #include "utils/SpatialLookup.h"
 #include "utils/ThreadPool.h"

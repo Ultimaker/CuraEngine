@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef TOPSURFACE_H
-#define TOPSURFACE_H
+#pragma once
 
 #include "GCodePathConfig.h"
 #include "geometry/Shape.h"
@@ -59,5 +58,3 @@ public:
 };
 
 } // namespace cura
-
-#endif /* TOPSURFACE_H */

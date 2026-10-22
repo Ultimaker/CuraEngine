@@ -1,6 +1,5 @@
 // Copyright (c) 2019 Ultimaker B.V.
-#ifndef TOOLPATH_VISUALIZER_H
-#define TOOLPATH_VISUALIZER_H
+#pragma once
 
 #include "ExtrusionSegment.h"
 #include "SVG.h"
@@ -33,4 +32,3 @@ private:
 };
 
 } // namespace cura
-#endif // TOOLPATH_VISUALIZER_H

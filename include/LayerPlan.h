@@ -1,23 +1,24 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef LAYER_PLAN_H
-#define LAYER_PLAN_H
+#pragma once
 
 #include "ExtruderPlan.h"
-#include "FanSpeedLayerTime.h"
+#include "SliceLayerPart.h"
+#include "settings/types/Acceleration.h"
+#include "FanSpeedLayerTimeSettings.h"
 #include "InsetOrderOptimizer.h"
-#include "OverrideAreas.h"
+#include "OverrideArea.h"
 #include "PathOrderOptimizer.h"
 #include "SpaceFillType.h"
-#include "gcode_export/gcodeExport.h"
+#include "gcode_export/GCodeExport.h"
 #include "geometry/LinesSet.h"
 #include "geometry/MendedShape.h"
 #include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
 #include "pathPlanning/TimeMaterialEstimates.h"
-#include "raft.h"
+#include "Raft.h"
 #include "settings/PathConfigStorage.h"
 #include "settings/types/LayerIndex.h"
 #include "utils/ExtrusionJunction.h"
@@ -39,6 +40,8 @@ namespace cura
 
 class Comb;
 class SliceDataStorage;
+class SliceMeshStorage;
+struct RetractionAndWipeConfig;
 class LayerPlanBuffer;
 class STHalfEdge;
 
@@ -1372,5 +1375,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // LAYER_PLAN_H

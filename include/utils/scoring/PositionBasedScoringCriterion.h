@@ -1,8 +1,7 @@
 // Copyright (c) 2025 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef POSITIONBASEDSCORINGCRITERION_H
-#define POSITIONBASEDSCORINGCRITERION_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 #include "utils/scoring/ScoringCriterion.h"
@@ -34,5 +33,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif // POSITIONBASEDSCORINGCRITERION_H

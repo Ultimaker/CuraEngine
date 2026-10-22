@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef BEADING_STRATEGY_FACTORY_H
-#define BEADING_STRATEGY_FACTORY_H
+#pragma once
 
 #include <numbers>
 
@@ -33,4 +32,3 @@ public:
 };
 
 } // namespace cura
-#endif // BEADING_STRATEGY_FACTORY_H

@@ -5,7 +5,7 @@
 
 #include <vector>
 
-#include "settings/types/Angle.h"
+#include "settings/types/AngleDegrees.h"
 #include "utils/scoring/ScoringCriterion.h"
 
 namespace cura

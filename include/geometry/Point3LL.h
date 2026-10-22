@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef GEOMETRY_POINT3LL_H
-#define GEOMETRY_POINT3LL_H
+#pragma once
 
 #include <cassert>
 #include <cmath> //For sqrt.
@@ -217,6 +216,3 @@ struct hash<cura::Point3LL>
     }
 };
 } // namespace std
-
-
-#endif // GEOMETRY_POINT3LL_H

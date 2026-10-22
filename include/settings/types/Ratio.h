@@ -1,10 +1,9 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef RATIO_H
-#define RATIO_H
+#pragma once
 
-#include "utils/types/numeric_facade.h"
+#include "utils/types/NumericFacade.h"
 
 
 namespace cura
@@ -38,5 +37,3 @@ constexpr Ratio operator""_r(const long double ratio)
 }
 
 } // namespace cura
-
-#endif // RATIO_H

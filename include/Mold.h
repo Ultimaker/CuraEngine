@@ -1,8 +1,7 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef MOLD_H
-#define MOLD_H
+#pragma once
 
 #include <vector>
 
@@ -40,5 +39,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // MOLD_H

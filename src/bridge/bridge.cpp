@@ -2,6 +2,10 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "bridge/bridge.h"
+#include "SliceMeshStorage.h"
+#include "SliceLayerPart.h"
+#include "SkinPart.h"
+#include "SupportLayer.h"
 
 #include <range/v3/algorithm/reverse.hpp>
 
@@ -14,11 +18,11 @@
 #include "bridge/TransformedShape.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
-#include "settings/EnumSettings.h"
+#include "settings/EFillMethod.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
 #include "utils/AABB.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/math.h"
 #include "utils/scoring/BestElementFinder.h"
 #include "utils/types/geometry.h"

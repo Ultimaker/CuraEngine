@@ -1,8 +1,7 @@
 //Copyright (c) 2018 Ultimaker B.V.
 //CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SCENE_H
-#define SCENE_H
+#pragma once
 
 #include "ExtruderTrain.h" //To store the extruders in the scene.
 #include "MeshGroup.h" //To store the mesh groups in the scene.
@@ -84,5 +83,3 @@ private:
 };
 
 } //namespace cura
-
-#endif //SCENE_H

@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_MIXED_LINES_SET_H
-#define GEOMETRY_MIXED_LINES_SET_H
+#pragma once
 
 #include <memory>
 
@@ -99,5 +98,3 @@ public:
 };
 
 } // namespace cura
-
-#endif // GEOMETRY_MIXED_LINES_SET_H

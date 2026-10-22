@@ -1,8 +1,7 @@
 // Copyright (c) 2020 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef OUTER_WALL_INSET_BEADING_STRATEGY_H
-#define OUTER_WALL_INSET_BEADING_STRATEGY_H
+#pragma once
 
 #include "BeadingStrategy.h"
 
@@ -32,4 +31,3 @@ private:
     coord_t outer_wall_offset_;
 };
 } // namespace cura
-#endif // OUTER_WALL_INSET_BEADING_STRATEGY_H

@@ -12,9 +12,9 @@
 #include "Slice.h"
 #include "pathPlanning/CombPaths.h"
 #include "pathPlanning/LinePolygonsCrossings.h"
-#include "sliceDataStorage.h"
-#include "utils/PolygonsPointIndex.h"
-#include "utils/linearAlg2D.h"
+#include "SliceDataStorage.h"
+#include "utils/PathsPointIndex.h"
+#include "utils/LinearAlg2D.h"
 
 namespace cura
 {

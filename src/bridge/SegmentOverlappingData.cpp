@@ -4,7 +4,7 @@
 #include "bridge/SegmentOverlappingData.h"
 
 #include "bridge/TransformedSegment.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 
 namespace cura

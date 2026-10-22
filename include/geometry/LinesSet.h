@@ -1,14 +1,14 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_LINES_SET_H
-#define GEOMETRY_LINES_SET_H
+#pragma once
 
 #include <vector>
 
 #include <range/v3/view/drop.hpp>
 
 #include "geometry/Point2LL.h"
+#include "geometry/CheckNonEmptyParam.h"
 
 namespace cura
 {
@@ -17,13 +17,6 @@ class Shape;
 class OpenLinesSet;
 class PointMatrix;
 class Point3Matrix;
-
-enum class CheckNonEmptyParam
-{
-    OnlyIfValid,
-    OnlyIfNotEmpty,
-    EvenIfEmpty
-};
 
 /*!
  * \brief Base class for all geometry containers representing a set of polylines.
@@ -297,5 +290,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // GEOMETRY_LINES_SET_H

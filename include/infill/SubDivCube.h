@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef INFILL_SUBDIVCUBE_H
-#define INFILL_SUBDIVCUBE_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 #include "geometry/Point3LL.h"
@@ -108,4 +107,3 @@ private:
 };
 
 } // namespace cura
-#endif // INFILL_SUBDIVCUBE_H

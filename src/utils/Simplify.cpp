@@ -11,7 +11,7 @@
 #include "geometry/OpenPolyline.h"
 #include "settings/Settings.h" //To load the parameters from a Settings object.
 #include "utils/ExtrusionLine.h"
-#include "utils/linearAlg2D.h" //To calculate line deviations and intersecting lines.
+#include "utils/LinearAlg2D.h" //To calculate line deviations and intersecting lines.
 
 namespace cura
 {

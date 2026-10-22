@@ -1,8 +1,7 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef LIGHTNING_TREE_NODE_H
-#define LIGHTNING_TREE_NODE_H
+#pragma once
 
 #include <functional>
 #include <memory>
@@ -12,7 +11,7 @@
 #include "geometry/LinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "utils/polygonUtils.h"
+#include "utils/PolygonUtils.h"
 
 namespace cura
 {
@@ -273,5 +272,3 @@ protected:
 };
 
 } // namespace cura
-
-#endif // LIGHTNING_TREE_NODE_H

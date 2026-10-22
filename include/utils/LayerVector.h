@@ -1,12 +1,11 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_LAYER_VECTOR_H
-#define UTILS_LAYER_VECTOR_H
+#pragma once
 
 #include <vector>
 
-#include "raft.h"
+#include "Raft.h"
 #include "settings/types/LayerIndex.h"
 
 namespace cura
@@ -230,5 +229,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // UTILS_LAYER_VECTOR_H

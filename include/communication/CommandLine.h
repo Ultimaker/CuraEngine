@@ -1,8 +1,7 @@
 // Copyright (c) 2024 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef COMMANDLINE_H
-#define COMMANDLINE_H
+#pragma once
 
 #include <filesystem>
 #include <fstream>
@@ -204,5 +203,3 @@ private:
 };
 
 } // namespace cura
-
-#endif // COMMANDLINE_H

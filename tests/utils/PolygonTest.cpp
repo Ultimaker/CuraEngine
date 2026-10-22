@@ -14,8 +14,8 @@
 #include "geometry/SingleShape.h"
 #include "utils/Coord_t.h"
 #include "utils/SVG.h" // helper functions
-#include "utils/linearAlg2D.h"
-#include "utils/polygonUtils.h" // helper functions
+#include "utils/LinearAlg2D.h"
+#include "utils/PolygonUtils.h" // helper functions
 
 // NOLINTBEGIN(*-magic-numbers)
 namespace cura

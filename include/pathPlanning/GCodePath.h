@@ -1,22 +1,22 @@
 // Copyright (c) 2023 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATH_PLANNING_G_CODE_PATH_H
-#define PATH_PLANNING_G_CODE_PATH_H
+#pragma once
 
 #include <memory>
 #include <vector>
 
 #include "GCodePathConfig.h"
-#include "PrintSegmentAttributes.h"
+#include "PrintSegmentAttribute.h"
 #include "SpaceFillType.h"
 #include "TimeMaterialEstimates.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "SliceDataStorage.h"
 
 namespace cura
 {
+class SliceMeshStorage;
 
 /*!
  * A class for representing a planned path.
@@ -90,5 +90,3 @@ struct GCodePath
 };
 
 } // namespace cura
-
-#endif // PATH_PLANNING_G_CODE_PATH_H

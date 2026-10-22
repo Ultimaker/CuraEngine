@@ -2,50 +2,20 @@
 // Copyright (c) 2018 Ultimaker B.V.
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SPARSE_POINT_GRID_INCLUSIVE_H
-#define UTILS_SPARSE_POINT_GRID_INCLUSIVE_H
+#pragma once
 
 #include <cassert>
 #include <unordered_map>
 #include <vector>
 
 #include "SparsePointGrid.h"
+#include "Locatoror.h"
+#include "SparsePointGridInclusiveElem.h"
 #include "geometry/Point2LL.h"
 
 namespace cura
 {
 
-
-namespace SparsePointGridInclusiveImpl
-{
-
-template<class Val>
-struct SparsePointGridInclusiveElem
-{
-    SparsePointGridInclusiveElem()
-    {
-    }
-
-    SparsePointGridInclusiveElem(const Point2LL& point_, const Val& val_)
-        : point(point_)
-        , val(val_)
-    {
-    }
-
-    Point2LL point;
-    Val val;
-};
-
-template<class T>
-struct Locatoror
-{
-    Point2LL operator()(const SparsePointGridInclusiveElem<T>& elem)
-    {
-        return elem.point;
-    }
-};
-
-} // namespace SparsePointGridInclusiveImpl
 
 /*! \brief Sparse grid which can locate spatially nearby values efficiently.
  *
@@ -123,5 +93,3 @@ std::vector<Val> SG_THIS::getNearbyVals(const Point2LL& query_pt, coord_t radius
 #undef SG_THIS
 
 } // namespace cura
-
-#endif // UTILS_SPARSE_POINT_GRID_INCLUSIVE_H

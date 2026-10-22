@@ -28,13 +28,13 @@
 #include "Application.h" //To get and set the current slice command.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice.
-#include "PrintFeature.h"
+#include "PrintFeatureType.h"
 #include "Slice.h" //To process slices.
 #include "communication/ArcusCommunicationPrivate.h" //Our PIMPL.
 #include "communication/Listener.h" //To listen to the Arcus socket.
 #include "communication/SliceDataStruct.h" //To store sliced layer data.
 #include "geometry/Polygon.h"
-#include "plugins/slots.h"
+#include "plugins/Slots.h"
 #include "settings/types/LayerIndex.h" //To point to layers.
 #include "settings/types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
