@@ -3,15 +3,13 @@
 
 #include "infill/LightningLayer.h" //The class we're implementing.
 
-#include <iterator> // advance
-
-#include "geometry/OpenPolyline.h"
+#include "SliceDataStorage.h"
+#include "geometry/OpenLinesSet.h"
 #include "infill/GroundingLocation.h"
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
-#include "SliceDataStorage.h"
-#include "utils/SparsePointGridInclusive.h"
 #include "utils/LinearAlg2D.h"
+#include "utils/SparsePointGridInclusive.h"
 
 using namespace cura;
 

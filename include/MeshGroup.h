@@ -6,12 +6,12 @@
 #include <filesystem>
 
 #include "Mesh.h"
-#include "utils/NoCopy.h"
 
 namespace cura
 {
 
 class Matrix4x3D;
+struct Ratio;
 
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.

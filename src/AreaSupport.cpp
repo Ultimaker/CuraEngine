@@ -2,11 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "AreaSupport.h"
-#include "SliceMeshStorage.h"
-#include "SliceLayer.h"
-#include "SliceLayerPart.h"
-#include "SupportLayer.h"
-#include "SlicerLayer.h"
 
 #include <cmath> // sqrt, round
 #include <deque>
@@ -28,26 +23,32 @@
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
+#include "Raft.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
+#include "SupportLayer.h"
 #include "arachne/SkeletalTrapezoidation.h"
+#include "geometry/ClosedLinesSet.h"
 #include "infill/Infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
-#include "Raft.h"
+#include "settings/BuildPlateShape.h"
 #include "settings/EFillMethod.h"
 #include "settings/EPlatformAdhesion.h"
-#include "settings/ESupportType.h"
 #include "settings/ESupportStructure.h"
-#include "settings/BuildPlateShape.h"
+#include "settings/ESupportType.h"
 #include "settings/SupportDistPriority.h" //For EFillMethod.
 #include "settings/types/AngleRadians.h" //To compute overhang distance from the angle.
 #include "settings/types/Ratio.h"
-#include "SliceDataStorage.h"
-#include "Slicer.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
-#include "utils/LinearAlg2D.h"
 #include "utils/math.h"
 
 namespace cura
@@ -736,9 +737,10 @@ Shape AreaSupport::join(const SliceDataStorage& storage, const Shape& supportLay
             break;
         case EPlatformAdhesion::RAFT:
         {
-            adhesion_size = std::max({ mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
-                                       mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
+            adhesion_size = std::max(
+                { mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_.get<coord_t>("raft_base_margin"),
+                  mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_.get<coord_t>("raft_interface_margin"),
+                  mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_.get<coord_t>("raft_surface_margin") });
             break;
         }
         case EPlatformAdhesion::NONE:
@@ -1045,22 +1047,24 @@ Shape AreaSupport::generateVaryingXYDisallowedArea(const SliceMeshStorage& stora
     if (layer_idx_below != layer_idx)
     {
         const auto layer_below = simplify.polygon(storage.layers[layer_idx_below].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
-            .support_distance = support_distance_bot,
-            .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
-            .layer_delta = layer_below,
-        });
+        z_distances_layer_deltas.emplace_back(
+            z_delta_poly_t{
+                .support_distance = support_distance_bot,
+                .delta_z = -static_cast<double>(layer_index_offset * layer_thickness),
+                .layer_delta = layer_below,
+            });
     }
 
     const LayerIndex layer_idx_above{ std::min(LayerIndex{ layer_idx + layer_index_offset }, LayerIndex{ storage.layers.size() - 1 }) };
     if (layer_idx_above != layer_idx)
     {
         const auto layer_above = simplify.polygon(storage.layers[layer_idx_above].getOutlines().offset(-close_dist).offset(close_dist));
-        z_distances_layer_deltas.emplace_back(z_delta_poly_t{
-            .support_distance = support_distance_top,
-            .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
-            .layer_delta = layer_above,
-        });
+        z_distances_layer_deltas.emplace_back(
+            z_delta_poly_t{
+                .support_distance = support_distance_top,
+                .delta_z = static_cast<double>(layer_index_offset * layer_thickness),
+                .layer_delta = layer_above,
+            });
     }
 
     // Initialize the offset_dist_at_point map with all the points in the current layer.

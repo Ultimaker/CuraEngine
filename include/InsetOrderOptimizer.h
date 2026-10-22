@@ -4,11 +4,11 @@
 #pragma once
 
 #include <unordered_set>
-#include "settings/RetractBeforeOuterWall.h"
 
 #include "OverrideArea.h"
-#include "settings/ZSeamConfig.h"
 #include "SliceDataStorage.h"
+#include "settings/RetractBeforeOuterWall.h"
+#include "settings/ZSeamConfig.h"
 
 namespace cura
 {
@@ -16,6 +16,7 @@ namespace cura
 class LayerPlan;
 template<class T>
 class PathOrderOptimizer;
+class TextureDataProvider;
 
 class InsetOrderOptimizer
 {

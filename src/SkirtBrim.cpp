@@ -2,24 +2,26 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SkirtBrim.h"
-#include "SupportLayer.h"
 
 #include <range/v3/algorithm/remove_if.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
+#include "AreaSupport.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "SupportLayer.h"
+#include "geometry/ClosedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
-#include "settings/EPlatformAdhesion.h"
 #include "settings/BrimLocation.h"
+#include "settings/EPlatformAdhesion.h"
 #include "settings/types/Ratio.h"
-#include "SliceDataStorage.h"
-#include "AreaSupport.h"
 #include "utils/MixedPolylineStitcher.h"
-#include "utils/Simplify.h"
 #include "utils/PolygonUtils.h"
+#include "utils/Simplify.h"
 
 namespace cura
 {

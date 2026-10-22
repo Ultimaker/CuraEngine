@@ -3,6 +3,7 @@
 #pragma once
 
 #include <cmath>
+#include <mutex>
 
 #include <range/v3/view/iota.hpp>
 
