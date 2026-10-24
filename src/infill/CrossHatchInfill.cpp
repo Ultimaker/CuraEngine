@@ -9,10 +9,36 @@
 #include <utility>
 
 #include "geometry/OpenLinesSet.h"
+#include "geometry/Shape.h"
 #include "utils/AABB.h"
+#include "utils/OpenPolylineStitcher.h"
 
 namespace cura
 {
+
+void CrossHatchInfill::generateInfill(
+    OpenLinesSet& result_polylines,
+    Shape& result_polygons,
+    const bool zig_zaggify,
+    const coord_t line_distance,
+    const Shape& in_outline,
+    const coord_t z,
+    const coord_t line_width,
+    const AngleDegrees& rotation) const
+{
+    OpenLinesSet generated_lines;
+    Shape generated_polygons;
+    AbstractLinesInfill::generateInfill(generated_lines, generated_polygons, zig_zaggify, line_distance, in_outline, z, line_width, rotation);
+    for (const Polygon& polygon : generated_polygons)
+    {
+        generated_lines.push_back(polygon.toPseudoOpenPolyline());
+    }
+    // Boundary connections and rotation both round to integer coordinates.
+    // Clip again in the original frame so a rounded connector cannot cut into
+    // a hole or notch. Keep existing islands in the output untouched.
+    const OpenLinesSet clipped_lines = in_outline.intersection(generated_lines, false, 0, false);
+    OpenPolylineStitcher::stitch(clipped_lines, result_polylines, result_polygons, 1);
+}
 
 OpenLinesSet CrossHatchInfill::generateParallelLines(const coord_t line_distance, const AABB& bounding_box, const coord_t z, const coord_t line_width) const
 {
@@ -22,12 +48,19 @@ OpenLinesSet CrossHatchInfill::generateParallelLines(const coord_t line_distance
     }
 
     const double density = std::clamp(static_cast<double>(line_width) / line_distance, 0.0, 1.0);
-    // Transition layers contain more material than straight layers. Match the
-    // spacing compensation used by the original Cross Hatch implementation.
-    const coord_t spacing = std::max(line_width, static_cast<coord_t>(std::llrint(line_distance * (density < 0.999 ? 1.08 : 1.0))));
     const double repeat_ratio = density < 0.3 ? std::clamp(1.0 - std::exp(-5.0 * density), 0.2, 1.0) : 1.0;
+    // Spread the change over enough height that even relatively thick layers
+    // can follow the shared diagonals without stepping outside the line width.
+    constexpr double transition_ratio = 0.8;
+    // A transition's path length, relative to a straight line, is
+    // p/2 + sqrt(1 - p + p*p/2). Its mean over p in [0, 1] is given below.
+    // Compensate for that extra length over the complete repeat/transition
+    // cycle, so the continuous transition preserves the requested density.
+    const double mean_transition_length = 0.75 + std::asinh(1.0) / (2.0 * std::sqrt(2.0));
+    const double spacing_factor = (repeat_ratio + transition_ratio * mean_transition_length) / (repeat_ratio + transition_ratio);
+    const coord_t spacing = std::max(line_width, static_cast<coord_t>(std::llrint(line_distance * spacing_factor)));
     const double repeat_height = spacing * repeat_ratio;
-    const double transition_height = spacing * 0.4;
+    const double transition_height = spacing * transition_ratio;
     const double half_period = repeat_height + transition_height;
     const double shifted_z = z + repeat_height / 2.0 + transition_height;
     double phase = std::fmod(shifted_z, 2.0 * half_period);
@@ -44,14 +77,17 @@ OpenLinesSet CrossHatchInfill::generateParallelLines(const coord_t line_distance
         const double fraction = transition_z / transition_height;
         if (fraction < 0.5)
         {
-            progress = (fraction + 0.1) * 2.0;
+            progress = fraction * 2.0;
         }
         else
         {
-            progress = (1.1 - fraction) * 2.0;
+            progress = (1.0 - fraction) * 2.0;
             vertical = ! vertical;
         }
     }
+    // At progress 1 the two orientations share the same 45-degree diagonals.
+    // Overshooting this value displaces those diagonals by a fraction of the
+    // cell size, leaving inter-layer gaps that grow as density decreases.
 
     // Anchor to a shared grid, rather than each island's bounding box, so that
     // splitting an infill region cannot move the pattern between layers.
@@ -73,7 +109,7 @@ OpenLinesSet CrossHatchInfill::generateParallelLines(const coord_t line_distance
     {
         OpenPolyline line;
         const coord_t y = row * spacing;
-        if (transition_z < 0)
+        if (progress == 0)
         {
             line.push_back(to_world(-spacing, y));
             line.push_back(to_world(width + spacing, y));
@@ -90,7 +126,11 @@ OpenLinesSet CrossHatchInfill::generateParallelLines(const coord_t line_distance
             {
                 for (const auto& [x_offset, y_offset] : cycle)
                 {
-                    line.push_back(to_world(column * period + shift + x_offset, y + y_offset));
+                    const Point2LL point = to_world(column * period + shift + x_offset, y + y_offset);
+                    if (line.empty() || line.back() != point)
+                    {
+                        line.push_back(point);
+                    }
                 }
             }
         }
