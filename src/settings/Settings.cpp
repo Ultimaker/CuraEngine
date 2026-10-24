@@ -444,6 +444,8 @@ EFillMethod Settings::get<EFillMethod>(const std::string& key) const
         return EFillMethod::HONEYCOMB;
     case "octagon"_sw:
         return EFillMethod::OCTAGON;
+    case "crosshatch"_sw:
+        return EFillMethod::CROSSHATCH;
     case "plugin"_sw:
         return EFillMethod::PLUGIN;
     default:
