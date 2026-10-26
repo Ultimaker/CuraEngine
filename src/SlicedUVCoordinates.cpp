@@ -23,6 +23,7 @@ SlicedUVCoordinates::SlicedUVCoordinates(const std::vector<SlicerSegment>& segme
             segments_.push_back(Segment{ segment.start, segment.end, segment.uv_start.value(), segment.uv_end.value() });
         }
     }
+    segments_.shrink_to_fit();
 }
 
 std::optional<Point2F> SlicedUVCoordinates::getClosestUVCoordinates(const Point2LL& position) const

@@ -211,8 +211,7 @@ bool loadMeshSTL_binary(Mesh* mesh, const fs::path& filename, const Matrix4x3D& 
     // For each face read:
     // float(x,y,z) = normal, float(X,Y,Z)*3 = vertexes, uint16_t = flags
     //  Every Face is 50 Bytes: Normal(3*float), Vertices(9*float), 2 Bytes Spacer
-    mesh->faces_.reserve(face_count);
-    mesh->vertices_.reserve(face_count);
+    mesh->reserve(face_count);
 
     size_t vertex_index = 0;
     for (size_t i = 0; i < face_count; i++)
@@ -581,7 +580,7 @@ bool loadMeshIntoMeshGroup(MeshGroup* meshgroup, const fs::path& filename, const
         spdlog::info("loading '{}' took {}", filename.string(), std::chrono::duration<double>(load_timer.restart()));
 
         mesh.mesh_name_ = base_filename;
-        meshgroup->meshes.push_back(mesh);
+        meshgroup->meshes.push_back(std::move(mesh));
     }
 
     return load_success;

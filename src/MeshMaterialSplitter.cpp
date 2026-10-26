@@ -813,8 +813,43 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
     return result;
 }
 
+bool hasPaintedSeam(const Mesh& mesh)
+{
+    if (mesh.texture_ == nullptr || mesh.texture_data_mapping_ == nullptr || ! mesh.texture_data_mapping_->contains("seam"))
+    {
+        return false;
+    }
+
+    const TextureDataProvider texture_data_provider(nullptr, mesh.texture_, mesh.texture_data_mapping_);
+    const size_t width = mesh.texture_->getWidth();
+    const size_t height = mesh.texture_->getHeight();
+    for (size_t y = 0; y < height; ++y)
+    {
+        for (size_t x = 0; x < width; ++x)
+        {
+            const std::optional<uint32_t> value = texture_data_provider.getValue(x, y, "seam");
+            if (value.has_value() && (value.value() == static_cast<uint32_t>(TextureArea::Preferred) || value.value() == static_cast<uint32_t>(TextureArea::Avoid)))
+            {
+                return true;
+            }
+        }
+    }
+
+    return false;
+}
+
 void makePaintingModifierMeshes(MeshGroup* meshgroup)
 {
+    std::unordered_set<const Mesh*> painted_meshes;
+    for (const Mesh& mesh : meshgroup->meshes)
+    {
+        if (hasPaintedSeam(mesh))
+        {
+            meshgroup->has_painted_seam = true;
+            painted_meshes.insert(&mesh);
+        }
+    }
+
     const std::vector<MeshGeneratorData> mesh_generation_data = makeInitialMeshesGenerationData(meshgroup);
     size_t delta_iterations = 0;
     const size_t total_estimated_iterations = ranges::accumulate(
@@ -835,13 +870,22 @@ void makePaintingModifierMeshes(MeshGroup* meshgroup)
         const auto texture_data_provider = std::make_shared<TextureDataProvider>(nullptr, mesh.texture_, mesh.texture_data_mapping_);
         const auto material_mod_meshes{ makeMaterialModifierMeshes(mesh_data, texture_data_provider, delta_iterations, total_estimated_iterations) };
         const auto support_mod_meshes{ makeSupportModifierMeshes(mesh_data.mesh, mesh_data.bounding_box, texture_data_provider) };
-        meshgroup->has_painted_support |= ! support_mod_meshes.empty();
+        const bool mesh_has_painted_extruder = ! material_mod_meshes.empty();
+        const bool mesh_has_painted_support = ! support_mod_meshes.empty();
+        meshgroup->has_painted_extruder |= mesh_has_painted_extruder;
+        meshgroup->has_painted_support |= mesh_has_painted_support;
+        if (mesh_has_painted_extruder || mesh_has_painted_support)
+        {
+            painted_meshes.insert(&mesh);
+        }
         ranges::move(material_mod_meshes, std::back_inserter(modifier_meshes));
         ranges::move(support_mod_meshes, std::back_inserter(modifier_meshes));
 
         delta_iterations += mesh_data.estimated_material_iterations;
         spdlog::info("Painting mesh-modifier generation for {} took {} seconds", mesh.mesh_name_, timer.elapsed().count());
     }
+
+    meshgroup->painted_mesh_count += static_cast<uint32_t>(painted_meshes.size());
 
     // Add meshes to group afterwards to avoid re-allocating the meshes in the vector
     ranges::move(modifier_meshes, std::back_inserter(meshgroup->meshes));

@@ -4,6 +4,7 @@
 #ifndef MESH_GROUP_H
 #define MESH_GROUP_H
 
+#include <cstdint>
 #include <filesystem>
 
 #include "mesh.h"
@@ -38,6 +39,9 @@ public:
     std::vector<Mesh> meshes;
     Settings settings;
     bool has_painted_support = false;
+    bool has_painted_extruder = false;
+    bool has_painted_seam = false;
+    uint32_t painted_mesh_count = 0;
 
     Point3LL min() const; //! minimal corner of bounding box
     Point3LL max() const; //! maximal corner of bounding box

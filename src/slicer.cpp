@@ -743,6 +743,16 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     makeBasicPolygonLoops(open_polylines);
 
+    if (mesh->texture_ && mesh->texture_data_mapping_)
+    {
+        sliced_uv_coordinates_ = std::make_shared<SlicedUVCoordinates>(segments_);
+    }
+
+    // Release the segment list and face-to-segment map early to save memory during polygon stitching and simplification.
+    decltype(face_idx_to_segment_idx_)().swap(face_idx_to_segment_idx_);
+    segments_.clear();
+    segments_.shrink_to_fit();
+
     connectOpenPolylines(open_polylines);
 
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in
@@ -798,11 +808,6 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     open_polylines_.erase(itPolylines, open_polylines_.end());
 
     open_polylines_.removeDegenerateVerts();
-
-    sliced_uv_coordinates_ = std::make_shared<SlicedUVCoordinates>(segments_);
-
-    // Clear the segment list to save memory, it is no longer needed after this point.
-    segments_.clear();
 }
 
 Slicer::Slicer(
@@ -832,9 +837,10 @@ Slicer::Slicer(
         mesh->settings_.get<coord_t>("layer_0_z_overlap"),
         Raft::getFillerLayerCount());
 
-    std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
-
-    buildSegments(*mesh, zbbox, slicing_tolerance, layers);
+    {
+        const std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
+        buildSegments(*mesh, zbbox, slicing_tolerance, layers);
+    }
 
     spdlog::info("Slice of mesh took {}", std::chrono::duration<double>(slice_timer.restart()));
 
@@ -969,7 +975,7 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
                 }
 
                 // store the segments per layer
-                layer.face_idx_to_segment_idx_.insert(std::make_pair(face_idx, layer.segments_.size()));
+                layer.face_idx_to_segment_idx_.emplace(face_idx, layer.segments_.size());
                 s.faceIndex = face_idx;
                 s.endOtherFaceIdx = face.connected_face_index_[end_edge_idx];
                 s.addedToPolygon = false;

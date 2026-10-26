@@ -61,17 +61,29 @@ void Mesh::addFace(
     vertices_[face.vertex_index_[2]].connected_faces_.push_back(idx);
 }
 
+void Mesh::reserve(size_t face_count)
+{
+    faces_.reserve(face_count);
+    const size_t estimated_vertex_count = face_count / 2 + 2;
+    vertices_.reserve(estimated_vertex_count);
+    vertex_hash_map_.reserve(estimated_vertex_count);
+}
+
 void Mesh::clear()
 {
     faces_.clear();
+    faces_.shrink_to_fit();
     vertices_.clear();
-    vertex_hash_map_.clear();
+    vertices_.shrink_to_fit();
+    decltype(vertex_hash_map_)().swap(vertex_hash_map_);
 }
 
 void Mesh::finish()
 {
     // Finish up the mesh, clear the vertex_hash_map, as it's no longer needed from this point on and uses quite a bit of memory.
-    vertex_hash_map_.clear();
+    decltype(vertex_hash_map_)().swap(vertex_hash_map_);
+    faces_.shrink_to_fit();
+    vertices_.shrink_to_fit();
 
     // For each face, store which other face is connected with it.
     for (unsigned int i = 0; i < faces_.size(); i++)
@@ -128,16 +140,17 @@ bool Mesh::isModelMesh() const
 
 int Mesh::findIndexOfVertex(const Point3LL& v)
 {
-    uint32_t hash = pointHash(v);
+    const uint32_t hash = pointHash(v);
+    auto& bucket = vertex_hash_map_[hash];
 
-    for (unsigned int idx = 0; idx < vertex_hash_map_[hash].size(); idx++)
+    for (const uint32_t vertex_idx : bucket)
     {
-        if ((vertices_[vertex_hash_map_[hash][idx]].p_ - v).testLength(vertex_meld_distance))
+        if ((vertices_[vertex_idx].p_ - v).testLength(vertex_meld_distance))
         {
-            return vertex_hash_map_[hash][idx];
+            return vertex_idx;
         }
     }
-    vertex_hash_map_[hash].push_back(vertices_.size());
+    bucket.push_back(vertices_.size());
     vertices_.emplace_back(v);
 
     aabb_.include(v);
@@ -171,6 +184,7 @@ See <a href="http://stackoverflow.com/questions/14066933/direct-way-of-computing
 */
 int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVertexIdx) const
 {
+    int first_candidate = -1;
     std::vector<int> candidateFaces; // in case more than two faces meet at an edge, multiple candidates are generated
     for (int f : vertices_[idx0].connected_faces_) // search through all faces connected to the first vertex and find those that are also connected to the second
     {
@@ -182,10 +196,24 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
             || faces_[f].vertex_index_[1] == idx1 // && faces[f].vertex_index[2] == idx0
             || faces_[f].vertex_index_[2] == idx1 // && faces[f].vertex_index[0] == idx0
         )
-            candidateFaces.push_back(f);
+        {
+            if (first_candidate == -1)
+            {
+                first_candidate = f;
+            }
+            else if (candidateFaces.empty())
+            {
+                candidateFaces.push_back(first_candidate);
+                candidateFaces.push_back(f);
+            }
+            else
+            {
+                candidateFaces.push_back(f);
+            }
+        }
     }
 
-    if (candidateFaces.size() == 0)
+    if (first_candidate == -1)
     {
         spdlog::debug("Couldn't find face connected to face {}", notFaceIdx);
         if (! has_disconnected_faces)
@@ -195,9 +223,9 @@ int Mesh::getFaceIdxWithPoints(int idx0, int idx1, int notFaceIdx, int notFaceVe
         has_disconnected_faces = true;
         return -1;
     }
-    if (candidateFaces.size() == 1)
+    if (candidateFaces.empty())
     {
-        return candidateFaces[0];
+        return first_candidate;
     }
 
 
