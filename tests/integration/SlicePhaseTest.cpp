@@ -7,10 +7,13 @@
 #include <gtest/gtest.h>
 
 #include "Application.h" // To set up a slice with settings.
+#include "MeshMaterialSplitter.h"
 #include "Slice.h" // To set up a scene to slice.
 #include "SlicedUVCoordinates.h"
+#include "communication/CommandLine.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" // Creating polygons to compare to sliced layers.
+#include "progress/Progress.h"
 #include "slicer.h" // Starts the slicing phase that we want to test.
 #include "utils/Coord_t.h"
 #include "utils/Matrix4x3D.h" // To load STL files.
@@ -31,6 +34,8 @@ class SlicePhaseTest : public testing::Test
     {
         // Start the thread pool
         Application::getInstance().startThreadPool();
+        Progress::init();
+        Application::getInstance().communication_ = std::make_shared<CommandLine>();
 
         // Set up a scene so that we may request settings.
         Application::getInstance().current_slice_ = std::make_shared<Slice>(1);
@@ -154,6 +159,12 @@ TEST_F(SlicePhaseTest, TexturedCubeUVAndCleanup)
     cube_mesh.texture_ = std::make_shared<Image>(2, 2, 1, std::vector<uint8_t>{ 0, 1, 2, 3 });
     cube_mesh.texture_data_mapping_ = std::make_shared<TextureDataMapping>(TextureDataMapping{ { "seam", TextureBitField{ 0, 2 } } });
 
+    MeshMaterialSplitter::makePaintingModifierMeshes(&mesh_group);
+    EXPECT_EQ(mesh_group.painted_mesh_count, 1U);
+    EXPECT_TRUE(mesh_group.has_painted_seam);
+    EXPECT_FALSE(mesh_group.has_painted_support);
+    EXPECT_FALSE(mesh_group.has_painted_extruder);
+
     const auto layer_thickness = scene.settings.get<coord_t>("layer_height");
     const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
     constexpr bool variable_layer_height = false;
@@ -177,6 +188,7 @@ TEST_F(SlicePhaseTest, TexturedCubeUVAndCleanup)
         EXPECT_TRUE(layer.segments_.empty());
         EXPECT_EQ(layer.segments_.capacity(), 0U);
         EXPECT_TRUE(layer.face_idx_to_segment_idx_.empty());
+        EXPECT_EQ(layer.face_idx_to_segment_idx_.bucket_count(), decltype(layer.face_idx_to_segment_idx_)().bucket_count());
         ASSERT_NE(layer.sliced_uv_coordinates_, nullptr);
 
         const std::optional<Point2F> corner_uv = layer.sliced_uv_coordinates_->getClosestUVCoordinates(Point2LL(0, 0));
@@ -189,6 +201,53 @@ TEST_F(SlicePhaseTest, TexturedCubeUVAndCleanup)
         EXPECT_FLOAT_EQ(edge_uv->x_, expected_uv.x_);
         EXPECT_FLOAT_EQ(edge_uv->y_, expected_uv.y_);
     }
+}
+
+TEST_F(SlicePhaseTest, PaintFeaturesTelemetry)
+{
+    Scene& scene = Application::getInstance().current_slice_->scene;
+    scene.settings.add("extruder_nr", "0");
+    scene.settings.add("multi_material_paint_depth", "2.0");
+    scene.settings.add("multi_material_paint_resolution", "2.0");
+    scene.settings.add("support_paint_resolution", "2.0");
+    scene.extruders.emplace_back(1, &scene.settings);
+
+    MeshGroup& mesh_group = scene.mesh_groups.back();
+    const Matrix4x3D transformation;
+    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").string().c_str(), transformation, scene.settings));
+    ASSERT_EQ(mesh_group.meshes.size(), 1U);
+    Mesh& cube_mesh = mesh_group.meshes[0];
+
+    const Point2F expected_uv(0.25f, 0.75f);
+    for (MeshFace& face : cube_mesh.faces_)
+    {
+        face.uv_coordinates_[0] = expected_uv;
+        face.uv_coordinates_[1] = expected_uv;
+        face.uv_coordinates_[2] = expected_uv;
+    }
+    // First verify that a mapped texture containing only default/neutral values (0) does not report any painted features.
+    cube_mesh.texture_ = std::make_shared<Image>(2, 2, 1, std::vector<uint8_t>(4, 0U));
+    cube_mesh.texture_data_mapping_ = std::make_shared<TextureDataMapping>(TextureDataMapping{
+        { "support", TextureBitField{ 0, 1 } },
+        { "extruder", TextureBitField{ 2, 3 } },
+        { "seam", TextureBitField{ 4, 5 } },
+    });
+
+    MeshMaterialSplitter::makePaintingModifierMeshes(&mesh_group);
+    EXPECT_EQ(mesh_group.painted_mesh_count, 0U);
+    EXPECT_FALSE(mesh_group.has_painted_support);
+    EXPECT_FALSE(mesh_group.has_painted_extruder);
+    EXPECT_FALSE(mesh_group.has_painted_seam);
+
+    // Paint value: bits 0..1 = support (1 = enforce support), bits 2..3 = extruder (1 = extruder 1), bits 4..5 = seam (1)
+    constexpr uint8_t painted_pixel = static_cast<uint8_t>(1U | (1U << 2U) | (1U << 4U));
+    cube_mesh.texture_ = std::make_shared<Image>(2, 2, 1, std::vector<uint8_t>(4, painted_pixel));
+
+    MeshMaterialSplitter::makePaintingModifierMeshes(&mesh_group);
+    EXPECT_EQ(mesh_group.painted_mesh_count, 1U);
+    EXPECT_TRUE(mesh_group.has_painted_support);
+    EXPECT_TRUE(mesh_group.has_painted_extruder);
+    EXPECT_TRUE(mesh_group.has_painted_seam);
 }
 
 TEST_F(SlicePhaseTest, Cylinder1000)

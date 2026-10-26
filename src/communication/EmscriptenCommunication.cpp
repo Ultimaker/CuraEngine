@@ -113,6 +113,23 @@ std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cu
 
     // Set CuraEngine information
     rapidjson::Value slicer_info_json(rapidjson::kObjectType);
+    bool has_painted_support = false;
+    bool has_painted_extruder = false;
+    bool has_painted_seam = false;
+    uint32_t painted_mesh_count = 0;
+    for (const MeshGroup& mesh_group : scene.mesh_groups)
+    {
+        has_painted_support |= mesh_group.has_painted_support;
+        has_painted_extruder |= mesh_group.has_painted_extruder;
+        has_painted_seam |= mesh_group.has_painted_seam;
+        painted_mesh_count += mesh_group.painted_mesh_count;
+    }
+    rapidjson::Value paint_features_json(rapidjson::kObjectType);
+    paint_features_json.AddMember("has_painted_support", has_painted_support, allocator);
+    paint_features_json.AddMember("has_painted_extruder", has_painted_extruder, allocator);
+    paint_features_json.AddMember("has_painted_seam", has_painted_seam, allocator);
+    paint_features_json.AddMember("painted_mesh_count", painted_mesh_count, allocator);
+    slicer_info_json.AddMember("paint_features", paint_features_json, allocator);
     doc.AddMember("slicer_info", slicer_info_json, allocator);
 
     // Serialize the JSON document to a string
