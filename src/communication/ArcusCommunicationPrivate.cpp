@@ -5,6 +5,8 @@
 
 #include "communication/ArcusCommunicationPrivate.h"
 
+#include <array>
+#include <cstring>
 #include <fstream>
 #include <png.h>
 #include <rapidjson/document.h>
@@ -130,21 +132,27 @@ void ArcusCommunication::Private::readMeshGroupMessage(const proto::ObjectList& 
         ExtruderTrain& extruder = mesh.settings_.get<ExtruderTrain&>("extruder_nr"); // Set the parent setting to the correct extruder.
         mesh.settings_.setParent(&extruder.settings_);
 
+        mesh.reserve(face_count);
+        const char* raw_vertices = object.vertices().data();
+        const bool has_uv = object.uv_coordinates().size() >= face_count * bytes_per_uv;
+        const char* raw_uv_coordinates = has_uv ? object.uv_coordinates().data() : nullptr;
+
         for (size_t face = 0; face < face_count; face++)
         {
-            const std::string data = object.vertices().substr(face * bytes_per_face, bytes_per_face);
-            const Point3F* float_vertices = reinterpret_cast<const Point3F*>(data.data());
-            const std::string uv_coordinates_str = object.uv_coordinates().empty() ? "" : object.uv_coordinates().substr(face * bytes_per_uv, bytes_per_uv);
-            const Point2F* uv_coordinates_data = uv_coordinates_str.empty() ? nullptr : reinterpret_cast<const Point2F*>(uv_coordinates_str.data());
+            std::array<Point3F, 3> float_vertices{};
+            std::memcpy(float_vertices.data(), raw_vertices + face * bytes_per_face, bytes_per_face);
 
-            Point3LL verts[3];
-            verts[0] = matrix.apply(float_vertices[0].toPoint3d());
-            verts[1] = matrix.apply(float_vertices[1].toPoint3d());
-            verts[2] = matrix.apply(float_vertices[2].toPoint3d());
+            const std::array<Point3LL, 3> verts{
+                matrix.apply(float_vertices[0].toPoint3d()),
+                matrix.apply(float_vertices[1].toPoint3d()),
+                matrix.apply(float_vertices[2].toPoint3d()),
+            };
 
-            std::optional<Point2F> uv_coordinates[3];
-            if (uv_coordinates_data)
+            std::array<std::optional<Point2F>, 3> uv_coordinates{};
+            if (raw_uv_coordinates != nullptr)
             {
+                std::array<Point2F, 3> uv_coordinates_data{};
+                std::memcpy(uv_coordinates_data.data(), raw_uv_coordinates + face * bytes_per_uv, bytes_per_uv);
                 uv_coordinates[0] = uv_coordinates_data[0];
                 uv_coordinates[1] = uv_coordinates_data[1];
                 uv_coordinates[2] = uv_coordinates_data[2];
