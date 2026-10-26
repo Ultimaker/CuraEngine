@@ -5,6 +5,7 @@
 #include <atomic>
 #include <fstream> // ifstream.good()
 #include <map> // multimap (ordered map allowing duplicate keys)
+#include <memory>
 #include <numeric>
 
 #include <spdlog/spdlog.h>
@@ -127,7 +128,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
     }
 
     // variable layers
-    AdaptiveLayerHeights* adaptive_layer_heights = nullptr;
+    std::unique_ptr<AdaptiveLayerHeights> adaptive_layer_heights;
     const bool use_variable_layer_heights = mesh_group_settings.get<bool>("adaptive_layer_height_enabled");
 
     if (use_variable_layer_heights)
@@ -137,7 +138,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         const auto variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
         const auto adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
         adaptive_layer_heights
-            = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, meshgroup);
+            = std::make_unique<AdaptiveLayerHeights>(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, meshgroup);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -202,7 +203,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         return true; // This is NOT an error state!
     }
 
+    std::vector<std::unique_ptr<Slicer>> owned_slicers;
+    owned_slicers.reserve(meshgroup->meshes.size());
     std::vector<Slicer*> slicerList;
+    slicerList.reserve(meshgroup->meshes.size());
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
@@ -216,10 +220,13 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
 
         const SlicingTolerance slicing_tolerance = mesh.settings_.get<SlicingTolerance>("slicing_tolerance");
 
-        Slicer* slicer
-            = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness);
+        owned_slicers.push_back(
+            std::make_unique<
+                Slicer>(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness));
+        slicerList.push_back(owned_slicers.back().get());
 
-        slicerList.push_back(slicer);
+        // Clear the mesh face and vertex data immediately after slicing this mesh to reduce peak memory across multi-mesh scenes.
+        mesh.clear();
 
         Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
@@ -293,6 +300,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
         if (is_support_modifier && ! mesh.settings_.get<bool>("support_mesh"))
         {
             storage.meshes.pop_back();
+            owned_slicers[meshIdx].reset();
+            slicerList[meshIdx] = nullptr;
             continue;
         }
 
@@ -342,7 +351,8 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
             }
         }
 
-        delete slicerList[meshIdx];
+        owned_slicers[meshIdx].reset();
+        slicerList[meshIdx] = nullptr;
 
         Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
     }

@@ -8,6 +8,7 @@
 
 #include "Application.h" // To set up a slice with settings.
 #include "Slice.h" // To set up a scene to slice.
+#include "SlicedUVCoordinates.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" // Creating polygons to compare to sliced layers.
 #include "slicer.h" // Starts the slicing phase that we want to test.
@@ -99,6 +100,10 @@ TEST_F(SlicePhaseTest, Cube)
     for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
     {
         const SlicerLayer& layer = slicer.layers[layer_nr];
+        EXPECT_EQ(layer.sliced_uv_coordinates_, nullptr);
+        EXPECT_TRUE(layer.segments_.empty());
+        EXPECT_EQ(layer.segments_.capacity(), 0U);
+        EXPECT_TRUE(layer.face_idx_to_segment_idx_.empty());
         EXPECT_EQ(layer.polygons_.size(), 1);
         if (layer.polygons_.size() == 1)
         {
@@ -126,6 +131,63 @@ TEST_F(SlicePhaseTest, Cube)
                 }
             }
         }
+    }
+}
+
+TEST_F(SlicePhaseTest, TexturedCubeUVAndCleanup)
+{
+    Scene& scene = Application::getInstance().current_slice_->scene;
+    MeshGroup& mesh_group = scene.mesh_groups.back();
+
+    const Matrix4x3D transformation;
+    ASSERT_TRUE(loadMeshIntoMeshGroup(&mesh_group, std::filesystem::path(__FILE__).parent_path().append("resources/cube.stl").string().c_str(), transformation, scene.settings));
+    ASSERT_EQ(mesh_group.meshes.size(), 1U);
+    Mesh& cube_mesh = mesh_group.meshes[0];
+
+    const Point2F expected_uv(0.25f, 0.75f);
+    for (MeshFace& face : cube_mesh.faces_)
+    {
+        face.uv_coordinates_[0] = expected_uv;
+        face.uv_coordinates_[1] = expected_uv;
+        face.uv_coordinates_[2] = expected_uv;
+    }
+    cube_mesh.texture_ = std::make_shared<Image>(2, 2, 1, std::vector<uint8_t>{ 0, 1, 2, 3 });
+    cube_mesh.texture_data_mapping_ = std::make_shared<TextureDataMapping>(TextureDataMapping{ { "seam", TextureBitField{ 0, 2 } } });
+
+    const auto layer_thickness = scene.settings.get<coord_t>("layer_height");
+    const auto initial_layer_thickness = scene.settings.get<coord_t>("layer_height_0");
+    constexpr bool variable_layer_height = false;
+    constexpr std::vector<AdaptiveLayer>* variable_layer_height_values = nullptr;
+    const size_t num_layers = (cube_mesh.getAABB().max_.z_ - initial_layer_thickness) / layer_thickness + 1;
+    Slicer slicer(&cube_mesh, layer_thickness, num_layers, variable_layer_height, variable_layer_height_values, SlicingTolerance::MIDDLE, initial_layer_thickness);
+
+    // Clear the mesh geometry after slicing (as FffPolygonGenerator::sliceModel does) and verify UV lookups and texture metadata remain valid.
+    cube_mesh.clear();
+    EXPECT_TRUE(cube_mesh.faces_.empty());
+    EXPECT_EQ(cube_mesh.faces_.capacity(), 0U);
+    EXPECT_TRUE(cube_mesh.vertices_.empty());
+    EXPECT_EQ(cube_mesh.vertices_.capacity(), 0U);
+    EXPECT_NE(cube_mesh.texture_, nullptr);
+    EXPECT_NE(cube_mesh.texture_data_mapping_, nullptr);
+
+    ASSERT_EQ(slicer.layers.size(), num_layers);
+    for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
+    {
+        const SlicerLayer& layer = slicer.layers[layer_nr];
+        EXPECT_TRUE(layer.segments_.empty());
+        EXPECT_EQ(layer.segments_.capacity(), 0U);
+        EXPECT_TRUE(layer.face_idx_to_segment_idx_.empty());
+        ASSERT_NE(layer.sliced_uv_coordinates_, nullptr);
+
+        const std::optional<Point2F> corner_uv = layer.sliced_uv_coordinates_->getClosestUVCoordinates(Point2LL(0, 0));
+        ASSERT_TRUE(corner_uv.has_value());
+        EXPECT_FLOAT_EQ(corner_uv->x_, expected_uv.x_);
+        EXPECT_FLOAT_EQ(corner_uv->y_, expected_uv.y_);
+
+        const std::optional<Point2F> edge_uv = layer.sliced_uv_coordinates_->getClosestUVCoordinates(Point2LL(5000, 0));
+        ASSERT_TRUE(edge_uv.has_value());
+        EXPECT_FLOAT_EQ(edge_uv->x_, expected_uv.x_);
+        EXPECT_FLOAT_EQ(edge_uv->y_, expected_uv.y_);
     }
 }
 
@@ -167,6 +229,10 @@ TEST_F(SlicePhaseTest, Cylinder1000)
     for (size_t layer_nr = 0; layer_nr < num_layers; layer_nr++)
     {
         const SlicerLayer& layer = slicer.layers[layer_nr];
+        EXPECT_EQ(layer.sliced_uv_coordinates_, nullptr);
+        EXPECT_TRUE(layer.segments_.empty());
+        EXPECT_EQ(layer.segments_.capacity(), 0U);
+        EXPECT_TRUE(layer.face_idx_to_segment_idx_.empty());
         EXPECT_EQ(layer.polygons_.size(), 1);
         if (layer.polygons_.size() == 1)
         {

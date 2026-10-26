@@ -4,13 +4,16 @@
 #ifdef __EMSCRIPTEN__
 #include "communication/EmscriptenCommunication.h"
 
+#include <array>
 #include <emscripten.h>
 #include <rapidjson/document.h>
 #include <rapidjson/stringbuffer.h>
 #include <rapidjson/writer.h>
+#include <string_view>
+#include <utility>
 
 #include <fmt/format.h>
-#include <range/v3/algorithm/contains.hpp>
+#include <range/v3/algorithm/find.hpp>
 #include <range/v3/iterator/operations.hpp>
 #include <spdlog/spdlog.h>
 
@@ -26,26 +29,32 @@ EmscriptenCommunication::EmscriptenCommunication(const std::vector<std::string>&
     : CommandLine(arguments)
 {
     spdlog::info("Emscripten communication initialized");
-    if (auto progress_flag = ranges::find(arguments_, "--progress_cb"); progress_flag != arguments_.end())
+    if (auto progress_flag = ranges::find(arguments_, "--progress_cb"); progress_flag != arguments_.end() && ranges::next(progress_flag) != arguments_.end())
     {
         progress_handler_ = *ranges::next(progress_flag);
     }
-    if (auto slice_info_flag = ranges::find(arguments_, "--slice_info_cb"); slice_info_flag != arguments_.end())
+    if (auto slice_info_flag = ranges::find(arguments_, "--slice_info_cb"); slice_info_flag != arguments_.end() && ranges::next(slice_info_flag) != arguments_.end())
     {
         slice_info_handler_ = *ranges::next(slice_info_flag);
     }
-    if (auto engine_info_flag = ranges::find(arguments_, "--engine_info_cb"); engine_info_flag != arguments_.end())
+    if (auto engine_info_flag = ranges::find(arguments_, "--engine_info_cb"); engine_info_flag != arguments_.end() && ranges::next(engine_info_flag) != arguments_.end())
     {
         engine_info_handler_ = *ranges::next(engine_info_flag);
     }
 
-    auto engine_info = createEngineInfoMessage();
-    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
+    if (! engine_info_handler_.empty())
+    {
+        auto engine_info = createEngineInfoMessage();
+        emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", engine_info_handler_, engine_info).c_str());
+    }
 }
 
 void EmscriptenCommunication::sendProgress(double progress) const
 {
-    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", progress_handler_, progress).c_str());
+    if (! progress_handler_.empty())
+    {
+        emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", progress_handler_, progress).c_str());
+    }
 }
 
 std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information)
@@ -61,24 +70,26 @@ std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cu
     doc.AddMember(slice_uuid, uuid, allocator);
 
     // Set the time estimates
+    static constexpr std::array<std::pair<std::string_view, PrintFeatureType>, 14> feature_types{ {
+        { "infill", PrintFeatureType::Infill },
+        { "skin", PrintFeatureType::Skin },
+        { "support", PrintFeatureType::Support },
+        { "inner_wall", PrintFeatureType::InnerWall },
+        { "move_combing", PrintFeatureType::MoveUnretracted },
+        { "move_retraction", PrintFeatureType::MoveRetracted },
+        { "outer_wall", PrintFeatureType::OuterWall },
+        { "prime_tower", PrintFeatureType::PrimeTower },
+        { "skirt_brim", PrintFeatureType::SkirtBrim },
+        { "support_infill", PrintFeatureType::SupportInfill },
+        { "support_interface", PrintFeatureType::SupportInterface },
+        { "move_while_retracting", PrintFeatureType::MoveWhileRetracting },
+        { "move_while_unretracting", PrintFeatureType::MoveWhileUnretracting },
+        { "stationary_retract_unretract", PrintFeatureType::StationaryRetractUnretract },
+    } };
     rapidjson::Value time_estimates_json(rapidjson::kObjectType);
-    for (const auto& [feature, duration_idx] :
-         std::vector<std::tuple<std::string, PrintFeatureType>>{ { "infill", PrintFeatureType::Infill },
-                                                                 { "skin", PrintFeatureType::Skin },
-                                                                 { "support", PrintFeatureType::Support },
-                                                                 { "inner_wall", PrintFeatureType::InnerWall },
-                                                                 { "move_combing", PrintFeatureType::MoveUnretracted },
-                                                                 { "move_retraction", PrintFeatureType::MoveRetracted },
-                                                                 { "outer_wall", PrintFeatureType::OuterWall },
-                                                                 { "prime_tower", PrintFeatureType::PrimeTower },
-                                                                 { "skirt_brim", PrintFeatureType::SkirtBrim },
-                                                                 { "support_infill", PrintFeatureType::SupportInfill },
-                                                                 { "support_interface", PrintFeatureType::SupportInterface },
-                                                                 { "move_while_retracting", PrintFeatureType::MoveWhileRetracting },
-                                                                 { "move_while_unretracting", PrintFeatureType::MoveWhileUnretracting },
-                                                                 { "stationary_retract_unretract", PrintFeatureType::StationaryRetractUnretract } })
+    for (const auto& [feature, duration_idx] : feature_types)
     {
-        rapidjson::Value feature_time(feature.c_str(), allocator);
+        rapidjson::Value feature_time(rapidjson::StringRef(feature.data(), feature.size()));
         rapidjson::Value feature_duration(time_estimates[static_cast<unsigned char>(duration_idx)]);
         time_estimates_json.AddMember(feature_time, feature_duration, allocator);
     }
@@ -88,12 +99,13 @@ std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cu
     rapidjson::Value material_estimates_json(rapidjson::kObjectType);
     const Scene& scene = Application::getInstance().current_slice_->scene;
 
-    for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
+    for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
     {
         const std::optional<ExtruderPrintInformation>& extruder_info = print_information.extruders_info[extruder_nr];
         const double value = extruder_info.has_value() ? extruder_info->filament_length : 0.0;
         spdlog::info("Extruder {} used {} [mm] of filament", extruder_nr, value);
-        rapidjson::Value extruder_id(fmt::format("{}", extruder_nr).c_str(), allocator);
+        const std::string extruder_id_str = fmt::format("{}", extruder_nr);
+        rapidjson::Value extruder_id(extruder_id_str.c_str(), static_cast<rapidjson::SizeType>(extruder_id_str.size()), allocator);
         rapidjson::Value extruder_material_estimate(value);
         material_estimates_json.AddMember(extruder_id, extruder_material_estimate, allocator);
     }
@@ -101,7 +113,6 @@ std::string EmscriptenCommunication::createSliceInfoMessage(const std::vector<cu
 
     // Set CuraEngine information
     rapidjson::Value slicer_info_json(rapidjson::kObjectType);
-    rapidjson::Value slicer_version(CURA_ENGINE_VERSION, allocator);
     doc.AddMember("slicer_info", slicer_info_json, allocator);
 
     // Serialize the JSON document to a string
@@ -137,9 +148,12 @@ std::string EmscriptenCommunication::createEngineInfoMessage()
 
 void EmscriptenCommunication::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
 {
-    auto slice_info = createSliceInfoMessage(time_estimates, print_information);
-    emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", slice_info_handler_, slice_info).c_str());
-};
+    if (! slice_info_handler_.empty())
+    {
+        auto slice_info = createSliceInfoMessage(time_estimates, print_information);
+        emscripten_run_script(fmt::format("globalThis[\"{}\"]({})", slice_info_handler_, slice_info).c_str());
+    }
+}
 
 } // namespace cura
 

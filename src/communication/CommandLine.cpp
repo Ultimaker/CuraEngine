@@ -367,7 +367,7 @@ void CommandLine::sliceNext()
                     argument = arguments_[argument_index];
                     const fs::path settings_path(argument);
                     const fs::path settings_folder(settings_path.parent_path());
-                    const auto settings = readResolvedJsonValues(settings_path);
+                    auto settings = readResolvedJsonValues(settings_path);
 
                     if (! settings.has_value())
                     {
@@ -386,23 +386,23 @@ void CommandLine::sliceNext()
                     container_setting_map model_settings;
                     std::unordered_map<std::string, std::string> limit_to_extruder;
 
-                    for (const auto& [key, values] : settings.value())
+                    for (auto& [key, values] : settings.value())
                     {
                         if (key == global_identifier)
                         {
-                            global_settings = values;
+                            global_settings = std::move(values);
                         }
                         else if (key.starts_with(extruder_identifier))
                         {
-                            extruder_settings[key] = values;
+                            extruder_settings.emplace(key, std::move(values));
                         }
                         else if (key == limit_to_extruder_identifier)
                         {
-                            limit_to_extruder = values;
+                            limit_to_extruder = std::move(values);
                         }
                         else
                         {
-                            model_settings[key] = values;
+                            model_settings.emplace(key, std::move(values));
                         }
                     }
 
@@ -727,7 +727,7 @@ std::optional<container_setting_map> CommandLine::readResolvedJsonValues(const r
                 spdlog::warn("Unrecognized data type in JSON setting {}", resolved_value->name.GetString());
                 continue;
             }
-            values.emplace(resolved_value->name.GetString(), value_string);
+            values.emplace(resolved_value->name.GetString(), std::move(value_string));
         }
         result.emplace(resolved_key->name.GetString(), std::move(values));
     }
