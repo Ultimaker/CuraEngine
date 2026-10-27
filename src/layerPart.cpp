@@ -2,16 +2,16 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
-#include "SliceMeshStorage.h"
-#include "SliceLayer.h"
-#include "SlicerLayer.h"
 
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceMeshStorage.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
 #include "geometry/OpenPolyline.h"
 #include "progress/Progress.h"
 #include "settings/ESurfaceMode.h" //For ESurfaceMode.
 #include "settings/Settings.h"
-#include "SliceDataStorage.h"
-#include "Slicer.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/Simplify.h" //Simplifying the layers after creating them.
 #include "utils/ThreadPool.h"

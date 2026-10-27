@@ -2,10 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "InfillOrderOptimizer.h"
-#include "settings/EFillMethod.h"
-#include "settings/EZSeamType.h"
-#include "settings/InfillStartEndPreference.h"
-#include "SliceMeshStorage.h"
 
 #include <range/v3/algorithm/all_of.hpp>
 #include <range/v3/algorithm/any_of.hpp>
@@ -13,7 +9,11 @@
 #include <range/v3/algorithm/sort.hpp>
 
 #include "LayerPlan.h"
+#include "SliceMeshStorage.h"
 #include "geometry/OpenLinesSet.h"
+#include "settings/EFillMethod.h"
+#include "settings/EZSeamType.h"
+#include "settings/InfillStartEndPreference.h"
 
 
 namespace cura

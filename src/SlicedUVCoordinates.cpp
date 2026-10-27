@@ -2,10 +2,10 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SlicedUVCoordinates.h"
-#include "utils/SparsePointGridInclusiveElem.h"
-#include "SlicerSegment.h"
 
 #include "Slicer.h"
+#include "SlicerSegment.h"
+#include "utils/SparsePointGridInclusiveElem.h"
 
 namespace cura
 {

@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "geometry/Point2LL.h"
 #include "geometry/ConstnessType.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

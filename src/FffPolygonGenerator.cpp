@@ -2,23 +2,24 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
-#include "settings/EFillMethod.h"
-#include "settings/EPlatformAdhesion.h"
-#include "settings/ESurfaceMode.h"
-#include "settings/DraftShieldHeightLimitation.h"
-#include "settings/SlicingTolerance.h"
-#include "Mesh.h"
-#include "SliceMeshStorage.h"
-#include "SliceLayer.h"
-#include "SliceLayerPart.h"
-#include "SupportLayer.h"
-#include "SlicerLayer.h"
 #include <atomic>
 #include <fstream> // ifstream.good()
 #include <map> // multimap (ordered map allowing duplicate keys)
 #include <numeric>
 
 #include <spdlog/spdlog.h>
+
+#include "Mesh.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SlicerLayer.h"
+#include "SupportLayer.h"
+#include "settings/DraftShieldHeightLimitation.h"
+#include "settings/EFillMethod.h"
+#include "settings/EPlatformAdhesion.h"
+#include "settings/ESurfaceMode.h"
+#include "settings/SlicingTolerance.h"
 
 // Code smell: Order of the includes is important here, probably due to some forward declarations which might be masking some undefined behaviours
 // clang-format off

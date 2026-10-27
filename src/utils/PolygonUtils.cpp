@@ -2,7 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/PolygonUtils.h"
-#include "settings/types/AngleRadians.h"
 
 #include <array>
 #include <list>
@@ -17,8 +16,9 @@
 #include "geometry/PointMatrix.h"
 #include "geometry/SingleShape.h"
 #include "infill/Infill.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "settings/types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
+#include "utils/SparsePointGridInclusive.h"
 
 #ifdef DEBUG
 #include <spdlog/spdlog.h>

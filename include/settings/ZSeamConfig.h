@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include "geometry/Point2LL.h" //To store the preferred seam position.
 #include "settings/EZSeamCornerPrefType.h"
 #include "settings/EZSeamType.h"
-#include "geometry/Point2LL.h" //To store the preferred seam position.
 
 namespace cura
 {

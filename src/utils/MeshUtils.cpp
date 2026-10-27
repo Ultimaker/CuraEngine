@@ -15,8 +15,8 @@
 #include <spdlog/spdlog.h>
 
 #include "Image.h"
-#include "TextureBitField.h"
 #include "Mesh.h"
+#include "TextureBitField.h"
 #include "geometry/Point2F.h"
 #include "geometry/Point3D.h"
 

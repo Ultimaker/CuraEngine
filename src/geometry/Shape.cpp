@@ -2,14 +2,15 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "geometry/Shape.h"
-#include "settings/types/AngleDegrees.h"
-#include "settings/types/AngleRadians.h"
 
 #include <algorithm>
 #include <cstddef>
 #include <mapbox/geometry/wagyu/wagyu.hpp>
 #include <numeric>
 #include <unordered_set>
+
+#include "settings/types/AngleDegrees.h"
+#include "settings/types/AngleRadians.h"
 
 #ifdef BUILD_TESTS
 #include <boost/geometry/geometries/point_xy.hpp>
@@ -34,8 +35,8 @@
 #include "geometry/SingleShape.h"
 #include "settings/types/Ratio.h"
 #include "utils/AABB.h"
-#include "utils/OpenPolylineStitcher.h"
 #include "utils/LinearAlg2D.h"
+#include "utils/OpenPolylineStitcher.h"
 
 namespace cura
 {

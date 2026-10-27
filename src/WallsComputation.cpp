@@ -2,8 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallsComputation.h"
-#include "SliceLayer.h"
-#include "SliceLayerPart.h"
 
 #include <fstream>
 #include <iostream>
@@ -17,9 +15,11 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
 #include "WallToolPaths.h"
 #include "settings/types/Ratio.h"
-#include "SliceDataStorage.h"
 #include "utils/Simplify.h" // We're simplifying the spiralized insets.
 
 namespace cura

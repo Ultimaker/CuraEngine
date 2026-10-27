@@ -2,7 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/AABB.h"
-#include "settings/types/AngleRadians.h"
 
 #include <algorithm>
 #include <limits>
@@ -10,6 +9,7 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
+#include "settings/types/AngleRadians.h"
 #include "utils/LinearAlg2D.h"
 
 namespace cura
@@ -68,24 +68,26 @@ coord_t AABB::distanceSquared(const Point2LL& p) const
     const Point2LL a = Point2LL(max_.X, min_.Y);
     const Point2LL b = Point2LL(min_.X, max_.Y);
     return (contains(p) ? -1 : 1)
-         * std::min({ LinearAlg2D::getDist2FromLineSegment(min_, a, p),
-                      LinearAlg2D::getDist2FromLineSegment(a, max_, p),
-                      LinearAlg2D::getDist2FromLineSegment(max_, b, p),
-                      LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
+         * std::min(
+               { LinearAlg2D::getDist2FromLineSegment(min_, a, p),
+                 LinearAlg2D::getDist2FromLineSegment(a, max_, p),
+                 LinearAlg2D::getDist2FromLineSegment(max_, b, p),
+                 LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
 }
 
 coord_t AABB::distanceSquared(const AABB& other) const
 {
-    return std::min({
-        distanceSquared(other.min_),
-        other.distanceSquared(min_),
-        distanceSquared(other.max_),
-        other.distanceSquared(max_),
-        distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
-        other.distanceSquared(Point2LL(max_.X, min_.Y)),
-        distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
-        other.distanceSquared(Point2LL(min_.X, max_.Y)),
-    });
+    return std::min(
+        {
+            distanceSquared(other.min_),
+            other.distanceSquared(min_),
+            distanceSquared(other.max_),
+            other.distanceSquared(max_),
+            distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
+            other.distanceSquared(Point2LL(max_.X, min_.Y)),
+            distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
+            other.distanceSquared(Point2LL(min_.X, max_.Y)),
+        });
 }
 
 void AABB::calculate(const Shape& shape)

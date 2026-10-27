@@ -2,26 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "FffGcodeWriter.h"
-#include "utils/SparsePointGridInclusiveElem.h"
-#include "settings/EFillMethod.h"
-#include "settings/EPlatformAdhesion.h"
-#include "settings/ESupportStructure.h"
-#include "settings/EZSeamType.h"
-#include "settings/EZSeamCornerPrefType.h"
-#include "settings/ESurfaceMode.h"
-#include "settings/DraftShieldHeightLimitation.h"
-#include "settings/InfillStartEndPreference.h"
-#include "settings/RetractBeforeOuterWall.h"
-#include "Mesh.h"
-#include "SliceMeshStorage.h"
-#include "SliceLayer.h"
-#include "SliceLayerPart.h"
-#include "SkinPart.h"
-#include "SupportLayer.h"
-#include "SupportStorage.h"
-#include "RetractionAndWipeConfig.h"
-#include "FanSpeedLayerTimeSettings.h"
-#include "settings/types/Acceleration.h"
 
 #include <algorithm>
 #include <cura-formulae-engine/eval.h>
@@ -39,12 +19,22 @@
 
 #include "Application.h"
 #include "ExtruderTrain.h"
+#include "FanSpeedLayerTimeSettings.h"
 #include "FffProcessor.h"
 #include "InfillOrderOptimizer.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
+#include "Mesh.h"
 #include "PrimeTower/PrimeTower.h"
+#include "Raft.h"
+#include "RetractionAndWipeConfig.h"
+#include "SkinPart.h"
 #include "Slice.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SupportLayer.h"
+#include "SupportStorage.h"
 #include "WallToolPaths.h"
 #include "bridge/bridge.h"
 #include "communication/Communication.h" //To send layer view data.
@@ -53,13 +43,23 @@
 #include "geometry/PointMatrix.h"
 #include "infill/Infill.h"
 #include "progress/Progress.h"
-#include "Raft.h"
-#include "utils/Simplify.h" //Removing micro-segments created by offsetting.
-#include "utils/ThreadPool.h"
+#include "settings/DraftShieldHeightLimitation.h"
+#include "settings/EFillMethod.h"
+#include "settings/EPlatformAdhesion.h"
+#include "settings/ESupportStructure.h"
+#include "settings/ESurfaceMode.h"
+#include "settings/EZSeamCornerPrefType.h"
+#include "settings/EZSeamType.h"
+#include "settings/InfillStartEndPreference.h"
+#include "settings/RetractBeforeOuterWall.h"
+#include "settings/types/Acceleration.h"
 #include "utils/LinearAlg2D.h"
-#include "utils/math.h"
 #include "utils/OrderOptimizer.h"
 #include "utils/PolygonUtils.h"
+#include "utils/Simplify.h" //Removing micro-segments created by offsetting.
+#include "utils/SparsePointGridInclusiveElem.h"
+#include "utils/ThreadPool.h"
+#include "utils/math.h"
 
 namespace cura
 {

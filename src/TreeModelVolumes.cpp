@@ -2,25 +2,25 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeModelVolumes.h"
-#include "settings/ESupportType.h"
-#include "settings/ESurfaceMode.h"
-#include "settings/SupportDistPriority.h"
-#include "SliceMeshStorage.h"
-#include "SliceLayer.h"
-#include "TreeSupportSettings.h"
 
 #include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/iota.hpp>
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
-#include "PrimeTower/PrimeTower.h"
-#include "TreeSupport.h"
 #include "AvoidanceType.h"
 #include "InterfacePreference.h"
+#include "PrimeTower/PrimeTower.h"
 #include "RestPreference.h"
-#include "progress/Progress.h"
 #include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceMeshStorage.h"
+#include "TreeSupport.h"
+#include "TreeSupportSettings.h"
+#include "progress/Progress.h"
+#include "settings/ESupportType.h"
+#include "settings/ESurfaceMode.h"
+#include "settings/SupportDistPriority.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 

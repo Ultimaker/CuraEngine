@@ -1,8 +1,8 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
-#ifdef ARCUS //Extends from Arcus::SocketListener, so only compile if we're using libArcus.
+#ifdef ARCUS // Extends from Arcus::SocketListener, so only compile if we're using libArcus.
 
 #include <Arcus/SocketListener.h> //The class we're extending from.
 
@@ -32,6 +32,6 @@ public:
     void error(const Arcus::Error& error) override;
 };
 
-} //namespace cura
+} // namespace cura
 
-#endif //ARCUS
+#endif // ARCUS

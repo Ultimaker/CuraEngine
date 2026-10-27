@@ -64,8 +64,7 @@ template<typename Tp>
 concept numeric = std::is_arithmetic_v<std::remove_cvref_t<Tp>>;
 
 template<typename T>
-concept multipliable = requires(T a, T b)
-{
+concept multipliable = requires(T a, T b) {
     { a * b };
 };
 } // namespace cura::utils

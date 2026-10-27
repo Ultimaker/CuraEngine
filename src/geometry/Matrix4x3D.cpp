@@ -4,8 +4,8 @@
 #include "geometry/Matrix4x3D.h" //The definitions we're implementing.
 
 #include "geometry/Point2LL.h" //Conversion directly into integer-based coordinates.
-#include "settings/types/Ratio.h" //Scale factor.
 #include "geometry/Point3D.h" //This matrix gets applied to floating point coordinates.
+#include "settings/types/Ratio.h" //Scale factor.
 
 namespace cura
 {

@@ -13,12 +13,12 @@
 #include <spdlog/spdlog.h>
 
 #include "Mesh.h"
-#include "geometry/SingleShape.h"
 #include "Raft.h"
+#include "geometry/Point3D.h"
+#include "geometry/SingleShape.h"
 #include "settings/AdaptiveLayer.h"
 #include "settings/EPlatformAdhesion.h"
 #include "settings/types/LayerIndex.h"
-#include "geometry/Point3D.h"
 #include "utils/SectionType.h"
 #include "utils/ThreadPool.h"
 #include "utils/TimeKeeper.h"

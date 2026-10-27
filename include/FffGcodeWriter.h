@@ -4,7 +4,6 @@
 #pragma once
 
 #include <optional>
-#include "settings/EFillMethod.h"
 
 #include "ExtruderUse.h"
 #include "FanSpeedLayerTimeSettings.h"
@@ -14,6 +13,7 @@
 #include "LinesOrderingMethod.h"
 #include "PrintInformation.h"
 #include "gcode_export/GCodeExport.h"
+#include "settings/EFillMethod.h"
 #include "utils/LayerVector.h"
 #include "utils/NoCopy.h"
 #include "utils/TimeKeeper.h"

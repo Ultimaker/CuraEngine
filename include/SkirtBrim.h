@@ -6,8 +6,8 @@
 #include <variant>
 
 #include "ExtruderTrain.h"
-#include "settings/EPlatformAdhesion.h"
 #include "SliceDataStorage.h"
+#include "settings/EPlatformAdhesion.h"
 #include "utils/Coord_t.h"
 
 namespace cura

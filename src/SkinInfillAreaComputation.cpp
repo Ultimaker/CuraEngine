@@ -2,10 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SkinInfillAreaComputation.h"
-#include "SliceMeshStorage.h"
-#include "SliceLayer.h"
-#include "SliceLayerPart.h"
-#include "SkinPart.h"
 
 #include <cmath> // std::ceil
 
@@ -15,16 +11,20 @@
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
+#include "SkinPart.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
 #include "WallToolPaths.h"
 #include "infill/Infill.h"
 #include "settings/EFillMethod.h" //For EFillMethod.
 #include "settings/types/AngleRadians.h" //For the infill support angle.
 #include "settings/types/Ratio.h"
-#include "SliceDataStorage.h"
+#include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
 #include "utils/math.h"
-#include "utils/PolygonUtils.h"
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 

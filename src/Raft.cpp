@@ -10,8 +10,8 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "settings/EPlatformAdhesion.h" //For EPlatformAdhesion.
 #include "SliceDataStorage.h"
+#include "settings/EPlatformAdhesion.h" //For EPlatformAdhesion.
 #include "utils/math.h"
 
 namespace cura

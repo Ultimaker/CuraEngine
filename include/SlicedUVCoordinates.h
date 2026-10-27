@@ -5,8 +5,8 @@
 
 #include <optional>
 
-#include "geometry/Point2LL.h"
 #include "geometry/Point2F.h"
+#include "geometry/Point2LL.h"
 #include "utils/SparsePointGridInclusive.h"
 
 namespace cura

@@ -7,8 +7,8 @@
 
 #include <range/v3/view/drop.hpp>
 
-#include "geometry/Point2LL.h"
 #include "geometry/CheckNonEmptyParam.h"
+#include "geometry/Point2LL.h"
 
 namespace cura
 {

@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "utils/types/arachne.h"
 #include "utils/types/CharRangeLiteral.h"
+#include "utils/types/arachne.h"
 #include "utils/types/geometry.h"
 
 namespace std

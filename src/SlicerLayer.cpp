@@ -2,9 +2,10 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SlicerLayer.h"
-#include "Mesh.h"
 
 #include <algorithm> // remove_if
+
+#include "Mesh.h"
 #include "SlicedUVCoordinates.h"
 #include "geometry/OpenPolyline.h"
 #include "settings/ESurfaceMode.h"

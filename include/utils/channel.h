@@ -4,11 +4,11 @@
 #pragma once
 
 #ifdef ENABLE_PLUGINS
-#include "utils/ChannelSetupConfiguration.h"
-
 #include <grpcpp/create_channel.h>
 #include <memory>
 #include <string>
+
+#include "utils/ChannelSetupConfiguration.h"
 
 #ifndef ENABLE_REMOTE_PLUGINS
 #define ENABLE_REMOTE_PLUGINS false

@@ -10,11 +10,11 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
 #include "pathPlanning/CombPaths.h"
 #include "pathPlanning/LinePolygonsCrossings.h"
-#include "SliceDataStorage.h"
-#include "utils/PathsPointIndex.h"
 #include "utils/LinearAlg2D.h"
+#include "utils/PathsPointIndex.h"
 
 namespace cura
 {

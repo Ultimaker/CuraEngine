@@ -2,18 +2,18 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "MultiVolumes.h"
-#include "Mesh.h"
-#include "SlicerLayer.h"
 
 #include <algorithm>
 
 #include "Application.h"
+#include "Mesh.h"
 #include "Slice.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "settings/ESurfaceMode.h"
 #include "settings/types/LayerIndex.h"
-#include "Slicer.h"
 #include "utils/OpenPolylineStitcher.h"
 
 namespace cura

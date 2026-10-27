@@ -2,11 +2,11 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "geometry/MendedShape.h"
-#include "settings/types/AngleRadians.h"
 
+#include "settings/types/AngleRadians.h"
+#include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
 #include "utils/actions/smooth_fn.h"
-#include "utils/PolygonUtils.h"
 
 using namespace cura;
 

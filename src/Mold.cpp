@@ -2,20 +2,20 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Mold.h"
-#include "Mesh.h"
-#include "SlicerLayer.h"
 
 #include <numbers>
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
+#include "Mesh.h"
 #include "Scene.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
-#include "SliceDataStorage.h"
-#include "Slicer.h"
 
 namespace cura
 {

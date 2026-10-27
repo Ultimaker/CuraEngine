@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "settings/types/LayerIndex.h"
 #include "settings/types/Acceleration.h"
+#include "settings/types/LayerIndex.h"
 #include "settings/types/Velocity.h"
 
 namespace cura

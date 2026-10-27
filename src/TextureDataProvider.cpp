@@ -2,12 +2,12 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TextureDataProvider.h"
-#include "TextureBitField.h"
-#include "TextureArea.h"
-#include "Image.h"
 
-#include "SlicedUVCoordinates.h"
+#include "Image.h"
 #include "Mesh.h"
+#include "SlicedUVCoordinates.h"
+#include "TextureArea.h"
+#include "TextureBitField.h"
 
 namespace cura
 {

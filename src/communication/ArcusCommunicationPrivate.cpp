@@ -18,10 +18,10 @@
 #include "Mesh.h"
 #include "MeshGroup.h"
 #include "Slice.h"
-#include "settings/types/LayerIndex.h"
 #include "geometry/Matrix4x3D.h" //To convert vertices to integer-points.
-#include "utils/MeshUtils.h"
 #include "geometry/Point3F.h" //To accept vertices (which are provided in floating point).
+#include "settings/types/LayerIndex.h"
+#include "utils/MeshUtils.h"
 
 namespace cura
 {

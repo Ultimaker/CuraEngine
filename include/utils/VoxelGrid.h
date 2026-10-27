@@ -8,8 +8,8 @@
 #include <boost/unordered/concurrent_flat_map.hpp>
 
 #include "Coord_t.h"
-#include "geometry/Triangle3LL.h"
 #include "geometry/Point3D.h"
+#include "geometry/Triangle3LL.h"
 
 
 namespace cura

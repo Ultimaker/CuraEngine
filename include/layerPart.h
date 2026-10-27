@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
 
@@ -40,4 +40,4 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
  */
 void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer);
 
-}//namespace cura
+} // namespace cura

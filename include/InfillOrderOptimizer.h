@@ -4,9 +4,9 @@
 #pragma once
 
 #include <optional>
-#include "settings/EFillMethod.h"
 #include <unordered_map>
 
+#include "settings/EFillMethod.h"
 #include "utils/ExtrusionLine.h"
 
 namespace cura

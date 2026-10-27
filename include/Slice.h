@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
 
@@ -55,7 +55,7 @@ private:
     /*
      * \brief Disallow copying slice objects.
      */
-    Slice& operator =(const Slice& other) = delete;
+    Slice& operator=(const Slice& other) = delete;
 };
 
-} //namespace cura
+} // namespace cura

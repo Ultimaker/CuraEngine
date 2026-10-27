@@ -1,14 +1,14 @@
-//Copyright (c) 2020 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2020 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
 
 #include <cstddef>
 
-#include "utils/Coord_t.h"
 #include "RetractionConfig.h"
 #include "settings/types/Duration.h"
 #include "settings/types/Velocity.h"
+#include "utils/Coord_t.h"
 
 namespace cura
 {
@@ -32,4 +32,4 @@ struct WipeScriptConfig
     bool clean_between_layers; // whether to include nozzle wipe g-code between layers
 };
 
-}//namespace cura
+} // namespace cura

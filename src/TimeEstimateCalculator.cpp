@@ -2,7 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TimeEstimateCalculator.h"
-#include "settings/types/Acceleration.h"
 
 #include <algorithm>
 #include <math.h>
@@ -10,6 +9,7 @@
 #include <string.h>
 
 #include "settings/Settings.h"
+#include "settings/types/Acceleration.h"
 #include "utils/math.h"
 
 namespace cura

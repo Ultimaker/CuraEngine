@@ -35,7 +35,7 @@ std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](c
     }
     return neighbours;
 };
-}
+} // namespace details
 
 template<utils::nodeable Node, typename State, utils::graphable Graph>
 constexpr void

@@ -6,8 +6,8 @@
 #include <memory>
 #include <optional>
 
-#include "TextureBitField.h"
 #include "TextureArea.h"
+#include "TextureBitField.h"
 #include "geometry/Point2LL.h"
 
 namespace cura

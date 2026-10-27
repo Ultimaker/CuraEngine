@@ -2,8 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "InterlockingGenerator.h"
-#include "utils/DilationKernel.h"
-#include "SlicerLayer.h"
 
 #include <algorithm> // max
 
@@ -14,11 +12,13 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
 #include "geometry/PointMatrix.h"
 #include "settings/types/LayerIndex.h"
-#include "Slicer.h"
-#include "utils/VoxelUtils.h"
+#include "utils/DilationKernel.h"
 #include "utils/PolygonUtils.h"
+#include "utils/VoxelUtils.h"
 
 namespace cura
 {

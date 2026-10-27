@@ -7,8 +7,8 @@
 #include <numbers>
 
 #include "ExtrusionJunction.h"
-#include "geometry/Polygon.h"
 #include "PolygonUtils.h"
+#include "geometry/Polygon.h"
 
 namespace cura
 {

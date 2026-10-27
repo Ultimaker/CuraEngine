@@ -3,11 +3,10 @@
 
 #pragma once
 
-#include "settings/types/AngleRadians.h"
-
 #include <initializer_list>
 
 #include "geometry/Point2LL.h"
+#include "settings/types/AngleRadians.h"
 
 namespace cura
 {

@@ -2,12 +2,12 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathOrdering.h" //The definitions we're implementing here.
-#include "SliceLayerPart.h"
-#include "SkinPart.h"
 
+#include "SkinPart.h"
+#include "SliceDataStorage.h" //For SliceLayerPart.
+#include "SliceLayerPart.h"
 #include "WallToolPaths.h"
 #include "geometry/OpenPolyline.h"
-#include "SliceDataStorage.h" //For SliceLayerPart.
 
 namespace cura
 {

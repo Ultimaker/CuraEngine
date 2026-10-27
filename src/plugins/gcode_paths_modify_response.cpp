@@ -10,8 +10,8 @@
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
 
-#include "pathPlanning/SpeedDerivatives.h"
 #include "SliceMeshStorage.h"
+#include "pathPlanning/SpeedDerivatives.h"
 
 namespace cura::plugins
 {

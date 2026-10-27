@@ -5,8 +5,8 @@
 
 #include <spdlog/spdlog.h>
 
-#include "TextureDataProvider.h"
 #include "TextureArea.h"
+#include "TextureDataProvider.h"
 
 
 namespace cura

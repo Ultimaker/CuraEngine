@@ -6,8 +6,8 @@
 #include <memory>
 #include <unordered_map>
 
-#include "gcode_export/GCodePart.h"
 #include "gcode_export/DynamicExtruderContext.h"
+#include "gcode_export/GCodePart.h"
 
 namespace CuraFormulaeEngine::eval
 {

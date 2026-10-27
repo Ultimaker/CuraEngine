@@ -2,16 +2,16 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TopSurface.h"
-#include "settings/EFillMethod.h"
-#include "settings/EZSeamType.h"
-#include "settings/EZSeamCornerPrefType.h"
-#include "SliceMeshStorage.h"
 
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
+#include "SliceDataStorage.h"
+#include "SliceMeshStorage.h"
 #include "geometry/OpenPolyline.h"
 #include "infill/Infill.h"
-#include "SliceDataStorage.h"
+#include "settings/EFillMethod.h"
+#include "settings/EZSeamCornerPrefType.h"
+#include "settings/EZSeamType.h"
 
 namespace cura
 {

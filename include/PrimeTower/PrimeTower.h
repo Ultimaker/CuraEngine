@@ -141,7 +141,8 @@ public:
         size_t extruder_nr,
         size_t last_extruder,
         const SliceDataStorage& storage,
-        const LayerIndex& layer_nr) const = 0;
+        const LayerIndex& layer_nr) const
+        = 0;
 
     /*!
      * \brief This method has to be called once the extruders use for each layer have been calculated. From this point,

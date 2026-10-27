@@ -1,5 +1,5 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2018 Ultimaker B.V.
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
 
@@ -79,7 +79,7 @@ private:
     /*
      * \brief You are not allowed to copy by assignment either.
      */
-    Scene& operator =(const Scene&) = delete;
+    Scene& operator=(const Scene&) = delete;
 };
 
-} //namespace cura
+} // namespace cura

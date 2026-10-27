@@ -2,9 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlanBuffer.h"
-#include "settings/InsetDirection.h"
-#include "settings/RetractBeforeOuterWall.h"
-#include "SliceMeshStorage.h"
 
 #include <range/v3/algorithm/find_if.hpp>
 #include <spdlog/spdlog.h>
@@ -14,8 +11,11 @@
 #include "FffProcessor.h"
 #include "LayerPlan.h"
 #include "Slice.h"
+#include "SliceMeshStorage.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
 #include "gcode_export/GCodeExport.h"
+#include "settings/InsetDirection.h"
+#include "settings/RetractBeforeOuterWall.h"
 
 namespace cura
 {
@@ -198,20 +198,22 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, c
         if (acc_time >= time_before_extruder_plan_end)
         {
             constexpr bool wait = false;
-            extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                                 .extruder = extruder_nr,
-                                                                 .temperature = temp,
-                                                                 .wait = wait,
-                                                                 .time_after_path_start = acc_time - time_before_extruder_plan_end });
+            extruder_plan_before.insertCommand(
+                NozzleTempInsert{ .path_idx = path_idx,
+                                  .extruder = extruder_nr,
+                                  .temperature = temp,
+                                  .wait = wait,
+                                  .time_after_path_start = acc_time - time_before_extruder_plan_end });
             return;
         }
     }
     constexpr bool wait = false;
     constexpr size_t path_idx = 0;
-    extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                         .extruder = extruder_nr,
-                                                         .temperature = temp,
-                                                         .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
+    extruder_plan_before.insertCommand(
+        NozzleTempInsert{ .path_idx = path_idx,
+                          .extruder = extruder_nr,
+                          .temperature = temp,
+                          .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
 }
 
 Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)

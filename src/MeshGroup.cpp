@@ -2,7 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "MeshGroup.h"
-#include "Mesh.h"
 
 #include <filesystem>
 #include <fstream>
@@ -22,13 +21,14 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
-#include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
+#include "Mesh.h"
 #include "geometry/Matrix4x3D.h" //To transform the input meshes for shrinkage compensation and to align in command line mode.
-#include "utils/MeshUtils.h"
 #include "geometry/Point2F.h"
 #include "geometry/Point3F.h" //To accept incoming meshes with floating point vertices.
-#include "utils/TimeKeeper.h"
+#include "settings/types/Ratio.h" //For the shrinkage percentage and scale factor.
+#include "utils/MeshUtils.h"
 #include "utils/SectionType.h"
+#include "utils/TimeKeeper.h"
 #include "utils/string.h"
 
 

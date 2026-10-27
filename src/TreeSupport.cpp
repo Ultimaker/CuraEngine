@@ -2,8 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeSupport.h"
-#include "SliceDataStorage.h"
-#include "SliceMeshStorage.h"
 
 #include <chrono>
 #include <fstream>
@@ -25,6 +23,8 @@
 #include "Application.h" //To get settings.
 #include "AreaSupport.h" //For precomputeCrossInfillTree
 #include "Slice.h" // Technically needed to get 'has paint-on support' from the Application.
+#include "SliceDataStorage.h"
+#include "SliceMeshStorage.h"
 #include "TreeSupportBaseCircle.h"
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
@@ -33,12 +33,12 @@
 #include "progress/Progress.h"
 #include "settings/ESupportStructure.h"
 #include "utils/OBJ.h"
+#include "utils/PolygonUtils.h" //For moveInside.
+#include "utils/SectionType.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
-#include "utils/PolygonUtils.h" //For moveInside.
-#include "utils/SectionType.h"
 
 namespace cura
 {
@@ -2257,15 +2257,16 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
                     Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              support_layer_storage[layer_idx],
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              true)
-                                                              .offset(config.support_line_width / 2));
+                    tree_lines = tree_lines.unionPolygons(
+                        TreeSupportUtils::generateSupportInfillLines(
+                            support_layer_storage[layer_idx],
+                            config,
+                            false,
+                            layer_idx,
+                            config.support_line_distance,
+                            storage.support.cross_fill_provider,
+                            true)
+                            .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }

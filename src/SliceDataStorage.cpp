@@ -2,7 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SliceDataStorage.h"
-#include "SliceMeshStorage.h"
 
 #include <numbers>
 
@@ -11,6 +10,7 @@
 #include "PrimeTower/PrimeTower.h"
 #include "Raft.h"
 #include "Slice.h"
+#include "SliceMeshStorage.h"
 #include "geometry/OpenPolyline.h"
 #include "settings/BuildPlateShape.h"
 #include "settings/EPlatformAdhesion.h"

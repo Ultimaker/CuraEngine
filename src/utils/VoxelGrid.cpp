@@ -6,9 +6,9 @@
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 
-#include "utils/AABB3D.h"
 #include "geometry/PlanarPolygon3LL.h"
 #include "geometry/Segment3LL.h"
+#include "utils/AABB3D.h"
 
 
 namespace cura
