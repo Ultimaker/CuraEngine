@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "../settings/types/Ratio.h"
 #include "BeadingStrategy.h"
+#include "settings/types/Ratio.h"
 
 namespace cura
 {

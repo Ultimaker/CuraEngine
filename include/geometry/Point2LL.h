@@ -11,7 +11,6 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 
 #include <cmath>
 #include <limits>
-#include <numbers>
 #include <polyclipping/clipper.hpp>
 
 #include "settings/types/AngleDegrees.h"

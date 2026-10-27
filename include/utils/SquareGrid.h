@@ -3,10 +3,7 @@
 
 #pragma once
 
-#include <cassert>
 #include <functional>
-#include <unordered_map>
-#include <vector>
 
 #include "geometry/Point2LL.h"
 

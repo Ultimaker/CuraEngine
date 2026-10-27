@@ -4,9 +4,7 @@
 #pragma once
 
 #include <agrpc/asio_grpc.hpp>
-#include <range/v3/utility/semiregular_box.hpp>
 
-#include "cura/plugins/slots/broadcast/v0/broadcast.grpc.pb.h"
 #include "plugins/broadcast_settings_request.h"
 #include "plugins/broadcast_stub.h"
 #include "plugins/is_broadcast_channel.h"

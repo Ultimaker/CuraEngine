@@ -6,7 +6,6 @@
 #include <fmt/format.h>
 
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/types.h"
 
 namespace cura::plugins::v0
 {

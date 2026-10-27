@@ -4,7 +4,6 @@
 #pragma once
 
 #include <functional>
-#include <unordered_set>
 
 #include "geometry/Point3LL.h"
 #include "geometry/Polygon.h"

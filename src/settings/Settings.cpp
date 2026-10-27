@@ -21,9 +21,9 @@
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "geometry/Matrix4x3D.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "geometry/Matrix4x3D.h"
 #include "settings/BrimLocation.h"
 #include "settings/BuildPlateShape.h"
 #include "settings/CombingMode.h"
@@ -44,7 +44,6 @@
 #include "settings/RetractBeforeOuterWall.h"
 #include "settings/SlicingTolerance.h"
 #include "settings/SupportDistPriority.h"
-#include "settings/FlowTempGraph.h"
 #include "settings/types/Acceleration.h"
 #include "settings/types/AngleDegrees.h"
 #include "settings/types/AngleRadians.h"
@@ -240,54 +239,6 @@ DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std
     default:
         return DraftShieldHeightLimitation::FULL;
     }
-}
-
-template<>
-FlowTempGraph Settings::get<FlowTempGraph>(const std::string& key) const
-{
-    std::string value_string = get<std::string>(key);
-
-    FlowTempGraph result;
-    if (value_string.empty())
-    {
-        return result; // Empty at this point.
-    }
-    /* Match with:
-     * - the last opening bracket '['
-     * - then a bunch of characters until the first comma
-     * - a comma
-     * - a bunch of characters until the first closing bracket ']'.
-     * This matches with any substring which looks like "[ 124.512 , 124.1 ]".
-     */
-    std::regex regex("(\\[([^,\\[]*),([^,\\]]*)\\])");
-
-    // Default constructor = end-of-sequence:
-    std::regex_token_iterator<std::string::iterator> rend;
-
-    const int submatches[] = { 1, 2, 3 }; // Match whole pair, first number and second number of a pair.
-    std::regex_token_iterator<std::string::iterator> match_iter(value_string.begin(), value_string.end(), regex, submatches);
-    while (match_iter != rend)
-    {
-        match_iter++; // Match the whole pair.
-        if (match_iter == rend)
-        {
-            break;
-        }
-        std::string first_substring = *match_iter++;
-        std::string second_substring = *match_iter++;
-        try
-        {
-            double first = std::stod(first_substring);
-            double second = std::stod(second_substring);
-            result.data_.emplace_back(first, second);
-        }
-        catch (const std::invalid_argument& e)
-        {
-            spdlog::error("Couldn't read 2D graph element [{},{}] in setting {}. Ignored.", first_substring, second_substring, key);
-        }
-    }
-
-    return result;
 }
 
 template<>

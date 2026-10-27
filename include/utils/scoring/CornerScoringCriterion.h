@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <stddef.h>
-
 #include "settings/EZSeamCornerPrefType.h"
 #include "utils/Coord_t.h"
 #include "utils/scoring/PositionBasedScoringCriterion.h"

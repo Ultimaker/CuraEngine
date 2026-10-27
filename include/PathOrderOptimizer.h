@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <numbers>
 #include <unordered_set>
 
 #include <range/v3/algorithm/max_element.hpp>
@@ -16,15 +15,14 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
+#include "PathOrdering.h"
 #include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
 #include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
-#include "PathOrdering.h"
-#include "settings/EZSeamType.h"
 #include "settings/EZSeamCornerPrefType.h" //To get the seam settings.
+#include "settings/EZSeamType.h"
 #include "settings/ZSeamConfig.h" //To read the seam configuration.
-#include "utils/LinearAlg2D.h" //To find the angle of corners to hide seams.
-#include "utils/math.h"
 #include "utils/PolygonUtils.h"
+#include "utils/SparsePointGridInclusive.h"
 #include "utils/scoring/BestElementFinder.h"
 #include "utils/scoring/CornerScoringCriterion.h"
 #include "utils/scoring/DistanceScoringCriterion.h"

@@ -5,8 +5,6 @@
 
 #include <numbers>
 
-#include <range/v3/range/concepts.hpp>
-
 #include "WallToolPathGenerator.h"
 #include "geometry/LinesSet.h"
 #include "geometry/Point2LL.h"

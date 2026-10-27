@@ -3,12 +3,9 @@
 
 #pragma once
 
-#include <cstdint>
 #include <optional>
 
 #include <boost/geometry/algorithms/comparable_distance.hpp>
-#include <boost/geometry/core/cs.hpp>
-#include <boost/geometry/geometries/register/point.hpp>
 #include <boost/geometry/index/rtree.hpp>
 
 #include "utils/OccupiedPosition.h"

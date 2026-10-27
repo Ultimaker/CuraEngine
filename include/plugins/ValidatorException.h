@@ -9,10 +9,8 @@
 #include <fmt/format.h>
 
 #include "plugins/Validator.h"
-#include "plugins/metadata.h"
 #include "plugins/plugin_metadata.h"
 #include "plugins/slot_metadata.h"
-#include "plugins/types.h"
 
 namespace cura::plugins::exceptions
 {
@@ -22,17 +20,18 @@ class ValidatorException : public std::exception
 
 public:
     ValidatorException(const auto& validator, const slot_metadata& slot_info) noexcept
-        : msg_(fmt::format("Failed to validation plugin on Slot '{}'", slot_info.slot_id)){};
+        : msg_(fmt::format("Failed to validation plugin on Slot '{}'", slot_info.slot_id)) {};
 
     ValidatorException(const auto& validator, const slot_metadata& slot_info, const plugin_metadata& plugin_info) noexcept
-        : msg_(fmt::format(
-              "Failed to validate plugin '{}-{}' running at [{}] for slot '{}', version '{}' incompatible with plugin specified slot-version-range '{}'.",
-              plugin_info.plugin_name,
-              plugin_info.plugin_version,
-              plugin_info.peer,
-              slot_info.slot_id,
-              slot_info.version,
-              plugin_info.slot_version_range))
+        : msg_(
+              fmt::format(
+                  "Failed to validate plugin '{}-{}' running at [{}] for slot '{}', version '{}' incompatible with plugin specified slot-version-range '{}'.",
+                  plugin_info.plugin_name,
+                  plugin_info.plugin_version,
+                  plugin_info.peer,
+                  slot_info.slot_id,
+                  slot_info.version,
+                  plugin_info.slot_version_range))
     {
     }
 

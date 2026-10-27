@@ -7,6 +7,7 @@
 #include <unordered_set>
 
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
 #include <scripta/logger.h>
@@ -15,9 +16,9 @@
 #include "ExtruderTrain.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "utils/ExtrusionLineStitcher.h"
+#include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
 #include "utils/actions/smooth_fn.h"
-#include "utils/PolygonUtils.h"
 
 namespace cura
 {

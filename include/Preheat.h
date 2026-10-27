@@ -3,11 +3,7 @@
 
 #pragma once
 
-#include <algorithm> // max
-#include <cassert>
-
 #include "settings/types/Duration.h"
-#include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h"
 
 namespace cura

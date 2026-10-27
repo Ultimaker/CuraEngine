@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <cstddef>
 #include <vector>
 
 #include "settings/AdaptiveLayer.h"

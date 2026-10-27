@@ -14,7 +14,6 @@
 #include "PathsPointIndex.h"
 #include "PolygonsPointIndexSegmentLocator.h"
 #include "SparseLineGrid.h"
-#include "SparsePointGridInclusive.h"
 #include "geometry/Polygon.h"
 #include "settings/types/AngleRadians.h"
 

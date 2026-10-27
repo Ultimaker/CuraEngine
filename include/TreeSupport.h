@@ -14,7 +14,6 @@
 #include "TreeModelVolumes.h"
 #include "TreeSupportElement.h"
 #include "TreeSupportSettings.h"
-#include "geometry/Polygon.h"
 #include "utils/Coord_t.h"
 #include "utils/SparsePointGridInclusive.h"
 

@@ -38,7 +38,6 @@ struct NozzleTempInsert
      * \param gcode The actual gcode writer
      */
     void write(GCodeExport& gcode);
-
 };
 
 } // namespace cura

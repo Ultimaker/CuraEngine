@@ -9,7 +9,6 @@
 
 #include "ExtrusionLine.h"
 #include "geometry/Point2LL.h"
-#include "geometry/Point3LL.h"
 
 namespace cura_viz
 {
@@ -26,6 +25,7 @@ class OpenLinesSet;
 class MixedLinesSet;
 class Shape;
 class Polyline;
+class Point3LL;
 
 /*!
  * Interface to send internal CuraEngine data to an external visualization tool. All the public methods are static and can be used directly, without

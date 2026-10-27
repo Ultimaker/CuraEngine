@@ -3,12 +3,9 @@
 
 #pragma once
 
-#include <optional>
-
-#include "settings/types/Acceleration.h"
-
 #include "PrintFeatureType.h"
 #include "pathPlanning/SpeedDerivatives.h"
+#include "settings/types/Acceleration.h"
 #include "settings/types/Ratio.h"
 #include "settings/types/Temperature.h"
 #include "settings/types/Velocity.h"

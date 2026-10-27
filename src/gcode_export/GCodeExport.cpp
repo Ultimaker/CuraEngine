@@ -2,13 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "gcode_export/GCodeExport.h"
-#include "ZHopAntiOozing.h"
-#include "utils/MMtoStream.h"
-#include "utils/PrecisionedDouble.h"
-#include "settings/EGCodeFlavor.h"
-#include "settings/CoolDuringExtruderSwitch.h"
-#include "ExtruderPrintInformation.h"
-#include "settings/types/Acceleration.h"
 
 #include <cassert>
 #include <chrono>
@@ -20,23 +13,31 @@
 
 #include <fmt/chrono.h>
 #include <range/v3/algorithm/find_if.hpp>
+#include <range/v3/view/enumerate.hpp>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To send layer view data.
+#include "ExtruderPrintInformation.h"
 #include "ExtruderTrain.h"
 #include "PrintFeatureType.h"
 #include "RetractionConfig.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
 #include "TravelAntiOozing.h"
 #include "WipeScriptConfig.h"
+#include "ZHopAntiOozing.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "gcode_export/FixedGCodePart.h"
 #include "gcode_export/GcodeTemplateResolver.h"
 #include "gcode_export/ResolvedGCodePart.h"
 #include "plugins/Slots.h"
+#include "settings/CoolDuringExtruderSwitch.h"
+#include "settings/EGCodeFlavor.h"
+#include "settings/types/Acceleration.h"
 #include "settings/types/LayerIndex.h"
-#include "SliceDataStorage.h"
 #include "utils/Date.h"
+#include "utils/MMtoStream.h"
+#include "utils/PrecisionedDouble.h"
 #include "utils/ThreadPool.h"
 #include "utils/math.h"
 #include "utils/string.h" // MMtoStream, PrecisionedDouble

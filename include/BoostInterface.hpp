@@ -4,10 +4,8 @@
 #pragma once
 
 #include <boost/polygon/polygon.hpp>
-#include <boost/polygon/voronoi.hpp>
 
 #include "geometry/Point2LL.h"
-#include "geometry/Polygon.h"
 #include "utils/PolygonsSegmentIndex.h"
 
 

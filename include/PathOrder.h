@@ -5,7 +5,6 @@
 
 #include "PathOrdering.h"
 #include "settings/ZSeamConfig.h" //To get the seam settings.
-#include "utils/PolygonUtils.h"
 
 namespace cura
 {

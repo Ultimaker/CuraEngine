@@ -5,21 +5,15 @@
 
 #include <spdlog/spdlog.h>
 
+#include "SliceDataStorage.h"
 #include "TreeModelVolumes.h"
-#include "TreeSupportBaseCircle.h"
-#include "TreeSupportElement.h"
-#include "AvoidanceType.h"
-#include "InterfacePreference.h"
-#include "RestPreference.h"
 #include "TreeSupportSettings.h"
-#include "boost/functional/hash.hpp" // For combining hashes
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "infill/Infill.h"
 #include "polyclipping/clipper.hpp"
 #include "settings/EFillMethod.h"
-#include "SliceDataStorage.h"
 #include "utils/Coord_t.h"
 
 namespace cura

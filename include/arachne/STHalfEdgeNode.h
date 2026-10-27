@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <optional>
-
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 

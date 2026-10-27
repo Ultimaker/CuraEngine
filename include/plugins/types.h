@@ -4,8 +4,6 @@
 #pragma once
 
 #include <grpcpp/support/string_ref.h>
-#include <memory>
-#include <tuple>
 
 #include <fmt/format.h>
 
@@ -51,7 +49,7 @@ struct formatter<cura::plugins::v0::SlotID>
     }
 
     template<typename ParseContext>
-    auto parse(ParseContext& ctx)
+    constexpr auto parse(ParseContext& ctx)
     {
         return ctx.begin();
     }

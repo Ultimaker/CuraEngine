@@ -9,7 +9,6 @@
 
 #include "WallToolPaths.h"
 #include "cura/plugins/slots/infill/v0/generate.pb.h"
-#include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Shape.h"
 #include "plugins/converter.h"

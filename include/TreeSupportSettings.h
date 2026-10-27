@@ -5,14 +5,13 @@
 
 #include <functional>
 
-#include "TreeSupportElement.h"
-#include "AvoidanceType.h"
 #include "InterfacePreference.h"
 #include "RestPreference.h"
+#include "TreeSupportElement.h"
 #include "settings/EFillMethod.h"
 #include "settings/ESupportType.h"
-#include "settings/SupportDistPriority.h"
 #include "settings/Settings.h"
+#include "settings/SupportDistPriority.h"
 #include "settings/types/AngleDegrees.h"
 #include "settings/types/AngleRadians.h"
 #include "settings/types/Ratio.h"

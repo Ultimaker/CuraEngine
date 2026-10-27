@@ -2,9 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "InsetOrderOptimizer.h"
-#include "settings/EZSeamType.h"
-#include "settings/InsetDirection.h"
-#include "settings/RetractBeforeOuterWall.h"
 
 #include <functional>
 #include <tuple>
@@ -27,7 +24,10 @@
 #include "FffGcodeWriter.h"
 #include "ForceRetract.h"
 #include "LayerPlan.h"
-#include "utils/views/convert.h"
+#include "settings/EZSeamType.h"
+#include "settings/InsetDirection.h"
+#include "settings/RetractBeforeOuterWall.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/views/dfs.h"
 
 namespace rg = ranges;

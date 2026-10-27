@@ -7,13 +7,9 @@
 #include <functional>
 #include <grpcpp/channel.h>
 #include <memory>
-#include <optional>
-
-#include <boost/asio/use_awaitable.hpp>
 
 #include "plugins/PluginProxy.h"
 #include "plugins/Validator.h"
-#include "plugins/types.h"
 #include "utils/types/CharRangeLiteral.h"
 
 namespace cura::plugins

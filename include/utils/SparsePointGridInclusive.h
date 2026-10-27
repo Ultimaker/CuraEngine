@@ -4,12 +4,11 @@
 
 #pragma once
 
-#include <cassert>
 #include <unordered_map>
 #include <vector>
 
-#include "SparsePointGrid.h"
 #include "Locatoror.h"
+#include "SparsePointGrid.h"
 #include "SparsePointGridInclusiveElem.h"
 #include "geometry/Point2LL.h"
 

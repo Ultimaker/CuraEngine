@@ -6,7 +6,7 @@
 
 #include <list>
 
-#include "../utils/AABB.h"
+#include "utils/AABB.h"
 
 namespace cura
 {

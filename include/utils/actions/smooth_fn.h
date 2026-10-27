@@ -3,14 +3,11 @@
 
 #pragma once
 
-#include <functional>
 #include <limits>
 
 #include <range/v3/action/remove_if.hpp>
 #include <range/v3/functional/bind_back.hpp>
-#include <range/v3/iterator/concepts.hpp>
 #include <range/v3/iterator/operations.hpp>
-#include <range/v3/range_fwd.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/concat.hpp>
 #include <range/v3/view/single.hpp>
@@ -55,13 +52,13 @@ struct smooth_fn
     }
 
     template<class Rng>
-    requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>> &&(
-        utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)constexpr auto
-        operator()(
-            Rng&& rng,
-            const utils::integral auto fluid_motion_shift_distance,
-            const utils::integral auto fluid_motion_small_distance,
-            const utils::floating_point auto fluid_motion_angle) const
+        requires ranges::forward_range<Rng> && ranges::sized_range<Rng> && ranges::erasable_range<Rng, ranges::iterator_t<Rng>, ranges::sentinel_t<Rng>>
+              && (utils::point2d<ranges::range_value_t<Rng>> || utils::junctions<Rng>)
+    constexpr auto operator()(
+        Rng&& rng,
+        const utils::integral auto fluid_motion_shift_distance,
+        const utils::integral auto fluid_motion_small_distance,
+        const utils::floating_point auto fluid_motion_angle) const
     {
         const auto size = ranges::distance(rng) - 1;
         if (size < 4)
@@ -124,14 +121,14 @@ private:
      *
      */
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     inline constexpr auto cosAngle(Point& a, Point& b, Point& c) const noexcept
     {
         return cosAngle(a, b, c, dist(a, b), dist(b, c));
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     inline constexpr auto cosAngle(Point& a, Point& b, Point& c, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
     {
         return cosAngle(a, b, b, c, ab_magnitude, bc_magnitude);
@@ -155,14 +152,14 @@ private:
      *
      */
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     inline constexpr auto cosAngle(Point& a, Point& b, Point& c, Point& d) const noexcept
     {
         return cosAngle(a, b, c, d, dist(a, b), dist(c, d));
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     inline constexpr auto
         cosAngle(Point& a, Point& b, Point& c, Point& d, const utils::floating_point auto ab_magnitude, const utils::floating_point auto bc_magnitude) const noexcept
     {
@@ -182,14 +179,14 @@ private:
      *
      */
     template<class Vector>
-    requires utils::point2d<Vector> || utils::junction<Vector>
+        requires utils::point2d<Vector> || utils::junction<Vector>
     inline constexpr auto cosAngle(Vector& a, Vector& b) const noexcept
     {
         return cosAngle<Point2LL>(a, b, magnitude(a), magnitude(b));
     }
 
     template<class Vector>
-    requires utils::point2d<Vector> || utils::junction<Vector>
+        requires utils::point2d<Vector> || utils::junction<Vector>
     inline constexpr auto cosAngle(Vector& a, Vector& b, const utils::floating_point auto a_magnitude, const utils::floating_point auto b_magnitude) const noexcept
     {
         if (a_magnitude <= std::numeric_limits<decltype(a_magnitude)>::epsilon() || b_magnitude <= std::numeric_limits<decltype(b_magnitude)>::epsilon())
@@ -200,14 +197,14 @@ private:
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     inline constexpr Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance) const noexcept
     {
         return shiftPointTowards(p0, p1, move_distance, dist(p0, p1));
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     inline constexpr Point shiftPointTowards(Point& p0, Point& p1, const utils::numeric auto move_distance, const utils::floating_point auto p0p1_distance) const noexcept
     {
         using coord_type = std::remove_cvref_t<decltype(std::get<"X">(p0))>;
@@ -219,7 +216,7 @@ private:
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     inline constexpr utils::floating_point auto dist(Point& point_0, Point& point_1) const noexcept
     {
         Point vector = { std::get<"X">(point_1) - std::get<"X">(point_0), std::get<"Y">(point_1) - std::get<"Y">(point_0) };
@@ -227,28 +224,28 @@ private:
     }
 
     template<class Vector>
-    requires utils::point2d<Vector> || utils::junction<Vector>
+        requires utils::point2d<Vector> || utils::junction<Vector>
     inline constexpr utils::floating_point auto magnitude(Vector& v) const noexcept
     {
         return std::hypot(std::get<"X">(v), std::get<"Y">(v));
     }
 
     template<class Vector>
-    requires utils::point2d<Vector> || utils::junction<Vector>
+        requires utils::point2d<Vector> || utils::junction<Vector>
     inline constexpr auto dotProduct(Vector& point_0, Vector& point_1) const noexcept
     {
         return std::get<"X">(point_0) * std::get<"X">(point_1) + std::get<"Y">(point_0) * std::get<"Y">(point_1);
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     constexpr bool isSmooth(Point& a, Point& b, Point& c, Point& d, const utils::floating_point auto fluid_motion_angle) const noexcept
     {
         return isSmooth(a, b, c, d, fluid_motion_angle, dist(a, b), dist(b, c), dist(c, d));
     }
 
     template<class Point>
-    requires utils::point2d<Point> || utils::junction<Point>
+        requires utils::point2d<Point> || utils::junction<Point>
     constexpr bool isSmooth(
         Point& a,
         Point& b,

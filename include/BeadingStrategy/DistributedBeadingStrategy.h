@@ -3,8 +3,8 @@
 
 #pragma once
 
-#include "../settings/types/Ratio.h" // For the wall transition threshold.
 #include "BeadingStrategy.h"
+#include "settings/types/Ratio.h" // For the wall transition threshold.
 
 namespace cura
 {

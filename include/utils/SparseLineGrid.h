@@ -6,7 +6,6 @@
 
 #include <cassert>
 #include <functional>
-#include <unordered_map>
 #include <vector>
 
 #include "SVG.h" // debug

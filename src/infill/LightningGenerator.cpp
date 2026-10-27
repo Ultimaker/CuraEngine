@@ -3,19 +3,22 @@
 
 #include "infill/LightningGenerator.h"
 
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/reverse.hpp>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "infill/LightningLayer.h"
-#include "infill/LightningTreeNode.h"
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
 #include "SliceMeshStorage.h"
 #include "SupportInfillPart.h"
 #include "SupportLayer.h"
 #include "SupportStorage.h"
-#include "utils/SparsePointGridInclusive.h"
+#include "infill/LightningLayer.h"
+#include "infill/LightningTreeNode.h"
 #include "utils/LinearAlg2D.h"
+#include "utils/SparsePointGridInclusive.h"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees

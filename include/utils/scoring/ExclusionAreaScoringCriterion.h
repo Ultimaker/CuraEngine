@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <stddef.h>
-
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
 namespace cura

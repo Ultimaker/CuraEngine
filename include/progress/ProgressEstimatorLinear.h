@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <vector>
-
 #include "ProgressEstimator.h"
 
 namespace cura

@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <stddef.h>
-
 #include "utils/scoring/ScoringCriterion.h"
 
 namespace cura

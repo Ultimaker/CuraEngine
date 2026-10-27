@@ -3,14 +3,12 @@
 
 #pragma once
 
-#include "utils/DilationKernel.h"
-
-#include <cassert>
 #include <unordered_set>
 #include <vector>
 
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
+#include "utils/DilationKernel.h"
 #include "utils/VoxelUtils.h"
 
 namespace cura

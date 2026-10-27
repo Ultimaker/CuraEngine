@@ -16,7 +16,6 @@
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
 #endif
 
-#include <limits>
 #include <list>
 #include <optional>
 #include <vector>

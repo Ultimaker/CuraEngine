@@ -5,13 +5,8 @@
 
 #include <semver.hpp>
 
-#include <fmt/format.h>
-#include <spdlog/spdlog.h>
-
-#include "plugins/metadata.h"
 #include "plugins/plugin_metadata.h"
 #include "plugins/slot_metadata.h"
-#include "plugins/types.h"
 
 namespace cura::plugins
 {

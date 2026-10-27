@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include "../utils/macros.h"
 #include "BeadingStrategy.h"
 
 namespace cura

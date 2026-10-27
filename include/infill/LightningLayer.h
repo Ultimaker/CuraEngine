@@ -3,19 +3,18 @@
 
 #pragma once
 
-#include <list>
 #include <memory>
-#include <unordered_map>
 #include <vector>
 
 #include "geometry/LinesSet.h"
 #include "infill/GroundingLocation.h"
 #include "infill/LightningTreeNode.h"
-#include "utils/SquareGrid.h"
 #include "utils/PolygonUtils.h"
 
 namespace cura
 {
+template<class Val>
+class SparsePointGridInclusive;
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 using SparseLightningTreeNodeGrid = SparsePointGridInclusive<std::weak_ptr<LightningTreeNode>>;
 

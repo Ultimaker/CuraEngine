@@ -3,13 +3,10 @@
 
 #pragma once
 
-#include <functional>
-#include <memory>
 #include <vector>
 
 #include "../utils/PolygonUtils.h"
 #include "LightningLayer.h"
-#include "settings/types/AngleRadians.h"
 
 namespace cura
 {

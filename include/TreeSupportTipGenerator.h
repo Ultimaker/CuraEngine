@@ -3,19 +3,12 @@
 
 #pragma once
 
+#include "SliceDataStorage.h"
 #include "TreeModelVolumes.h"
 #include "TreeSupport.h"
-#include "TreeSupportBaseCircle.h"
 #include "TreeSupportElement.h"
-#include "AvoidanceType.h"
-#include "InterfacePreference.h"
-#include "RestPreference.h"
 #include "TreeSupportSettings.h"
-#include "boost/functional/hash.hpp" // For combining hashes
-#include "geometry/LinesSet.h"
-#include "geometry/Polygon.h"
 #include "polyclipping/clipper.hpp"
-#include "SliceDataStorage.h"
 #include "utils/Coord_t.h"
 
 namespace cura

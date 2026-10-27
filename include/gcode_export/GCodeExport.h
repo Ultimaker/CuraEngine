@@ -13,19 +13,17 @@
 #include <stdio.h>
 
 #include "PrintInformation.h"
-#include "ExtruderPrintInformation.h"
-#include "TravelAntiOozing.h"
+#include "TimeEstimateCalculator.h"
 #include "ZHopAntiOozing.h"
-#include "gcode_export/GCodePartType.h"
 #include "gcode_export/DynamicExtruderContext.h"
+#include "gcode_export/GCodePartType.h"
 #include "geometry/Point2LL.h"
 #include "settings/EGCodeFlavor.h"
-#include "settings/types/Acceleration.h"
 #include "settings/Settings.h" //For MAX_EXTRUDERS.
+#include "settings/types/Acceleration.h"
 #include "settings/types/LayerIndex.h"
 #include "settings/types/Temperature.h" //Bed temperature.
 #include "settings/types/Velocity.h"
-#include "TimeEstimateCalculator.h"
 #include "utils/AABB3D.h" //To track the used build volume for the Griffin header.
 #include "utils/NoCopy.h"
 #include "utils/string.h"
@@ -38,6 +36,7 @@ class SliceDataStorage;
 class GCodePart;
 class GcodeTemplateResolver;
 struct WipeScriptConfig;
+struct ExtruderPrintInformation;
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
 //   Any customizations on GCodes flavors are done in this class.

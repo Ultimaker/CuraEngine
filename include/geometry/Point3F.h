@@ -3,12 +3,7 @@
 
 #pragma once
 
-#include <math.h>
-#include <stdint.h>
-
 #include "geometry/Point3D.h"
-#include "geometry/Point2LL.h"
-
 
 namespace cura
 {

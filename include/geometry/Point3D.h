@@ -3,9 +3,7 @@
 
 #pragma once
 
-#include <compare>
 #include <math.h>
-#include <stdint.h>
 
 #include "geometry/Point3LL.h"
 

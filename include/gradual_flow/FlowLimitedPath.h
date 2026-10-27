@@ -7,12 +7,7 @@
 #include <vector>
 
 #include <fmt/format.h>
-#include <range/v3/all.hpp>
-#include <range/v3/range/conversion.hpp>
-#include <range/v3/view/take.hpp>
-#include <spdlog/spdlog.h>
 
-#include "geometry/PointsSet.h"
 #include "gradual_flow/Direction.h"
 #include "gradual_flow/Utils.h"
 #include "pathPlanning/GCodePath.h"

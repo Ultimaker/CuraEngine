@@ -2,34 +2,37 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlan.h"
-#include "ZHopAntiOozing.h"
-#include "settings/CombingMode.h"
-#include "SliceMeshStorage.h"
-#include "SliceLayer.h"
-#include "SliceLayerPart.h"
-#include "RetractionAndWipeConfig.h"
-#include "FanSpeedLayerTimeSettings.h"
 
 #include <algorithm>
-#include <cstring>
 #include <numeric>
 #include <optional>
 
 #include <boost/dynamic_bitset.hpp>
-#include <boost/mpl/distance.hpp>
 #include <boost/range/distance.hpp>
+#include <range/v3/algorithm/find_if.hpp>
 #include <range/v3/algorithm/max_element.hpp>
+#include <range/v3/algorithm/stable_sort.hpp>
+#include <range/v3/numeric/accumulate.hpp>
+#include <range/v3/view/sliding.hpp>
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To communicate layer view data.
 #include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
+#include "FanSpeedLayerTimeSettings.h"
 #include "PathAdapter.h"
 #include "PathOrderMonotonic.h" //Monotonic ordering of skin lines.
+#include "Raft.h" // getTotalExtraLayers
+#include "RetractionAndWipeConfig.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
 #include "TravelAntiOozing.h"
 #include "WipeScriptConfig.h"
+#include "ZHopAntiOozing.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "arachne/SkeletalTrapezoidationGraph.h"
 #include "bridge/bridge.h"
@@ -41,15 +44,14 @@
 #include "pathPlanning/Comb.h"
 #include "pathPlanning/CombPaths.h"
 #include "plugins/Slots.h"
-#include "Raft.h" // getTotalExtraLayers
 #include "range/v3/view/chunk_by.hpp"
+#include "settings/CombingMode.h"
 #include "settings/types/Ratio.h"
-#include "SliceDataStorage.h"
-#include "utils/Simplify.h"
 #include "utils/LinearAlg2D.h"
-#include "utils/math.h"
 #include "utils/PolygonUtils.h"
 #include "utils/SectionType.h"
+#include "utils/Simplify.h"
+#include "utils/math.h"
 
 namespace cura
 {
@@ -81,18 +83,19 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{
-        .z_offset = z_offset,
-        .config = config,
-        .mesh = current_mesh_,
-        .space_fill_type = space_fill_type,
-        .flow = flow,
-        .width_factor = width_factor,
-        .spiralize = spiralize,
-        .speed_factor = speed_factor,
-        .travel_to_z = travel_to_z,
-        .print_attributes = print_attributes,
-    });
+    paths.emplace_back(
+        GCodePath{
+            .z_offset = z_offset,
+            .config = config,
+            .mesh = current_mesh_,
+            .space_fill_type = space_fill_type,
+            .flow = flow,
+            .width_factor = width_factor,
+            .spiralize = spiralize,
+            .speed_factor = speed_factor,
+            .travel_to_z = travel_to_z,
+            .print_attributes = print_attributes,
+        });
 
     GCodePath* ret = &paths.back();
     return ret;

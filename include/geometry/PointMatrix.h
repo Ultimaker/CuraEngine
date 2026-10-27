@@ -7,7 +7,6 @@
 
 #include "geometry/Point2LL.h"
 
-
 namespace cura
 {
 

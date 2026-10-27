@@ -3,8 +3,6 @@
 
 #pragma once
 
-#include <cassert>
-#include <cstddef>
 #include <memory>
 #ifndef __EMSCRIPTEN__
 #include <oneapi/tbb/global_control.h>

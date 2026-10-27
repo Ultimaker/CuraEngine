@@ -3,6 +3,9 @@
 
 #pragma once
 
+#include <range/v3/view/drop_while.hpp>
+#include <range/v3/view/take.hpp>
+
 #include "Application.h"
 #include "LayerPlan.h"
 #include "Scene.h"

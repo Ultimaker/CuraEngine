@@ -14,13 +14,12 @@
 #include "SkeletalTrapezoidationGraph.h"
 #include "SkeletalTrapezoidationJoint.h"
 #include "geometry/MendedShape.h"
-#include "geometry/Polygon.h"
 #include "settings/types/Ratio.h"
 #include "utils/ExtrusionJunction.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/PolygonsSegmentIndex.h"
-#include "utils/VoronoiUtils.h"
 #include "utils/SectionType.h"
+#include "utils/VoronoiUtils.h"
 
 namespace cura
 {

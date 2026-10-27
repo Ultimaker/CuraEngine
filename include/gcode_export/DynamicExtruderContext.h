@@ -3,7 +3,6 @@
 
 #pragma once
 
-#include <stddef.h>
 #include <variant>
 
 namespace cura

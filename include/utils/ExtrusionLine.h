@@ -6,10 +6,6 @@
 
 #include <algorithm>
 
-#include <range/v3/view/enumerate.hpp>
-#include <range/v3/view/reverse.hpp>
-#include <range/v3/view/sliding.hpp>
-
 #include "ExtrusionJunction.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"

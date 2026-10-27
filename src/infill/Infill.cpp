@@ -2,8 +2,6 @@
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/Infill.h"
-#include "settings/EFillMethod.h"
-#include "SliceMeshStorage.h"
 
 #include <algorithm> //For std::sort.
 #include <functional>
@@ -14,6 +12,8 @@
 #include <scripta/logger.h>
 #include <spdlog/spdlog.h>
 
+#include "SliceDataStorage.h"
+#include "SliceMeshStorage.h"
 #include "WallToolPaths.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "geometry/OpenPolyline.h"
@@ -27,14 +27,13 @@
 #include "infill/SierpinskiFill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/SubDivCube.h"
-#include "infill/UniformDensityProvider.h"
 #include "plugins/Slots.h"
-#include "SliceDataStorage.h"
+#include "settings/EFillMethod.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/PolygonConnector.h"
 #include "utils/Simplify.h"
 #include "utils/UnionFind.h"
-#include "utils/LinearAlg2D.h"
 
 /*!
  * Function which returns the scanline_idx for a given x coordinate

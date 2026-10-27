@@ -29,10 +29,7 @@
 #include "plugins/broadcast_rpc.h"
 #include "plugins/handshake_request.h"
 #include "plugins/handshake_response.h"
-#include "plugins/metadata.h"
-#include "utils/format/thread_id.h"
 #include "utils/types/CharRangeLiteral.h"
-#include "utils/types/generic.h"
 #if __has_include(<coroutine>)
 #include <coroutine>
 #elif __has_include(<experimental/coroutine>)

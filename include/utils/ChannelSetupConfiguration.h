@@ -13,7 +13,6 @@ namespace cura::utils
 
 struct ChannelSetupConfiguration
 {
-public:
     std::string host;
     uint64_t port;
     uint64_t shibolet = 0UL; // TODO: Either get from startup (server would receive this as well) or remove completely.

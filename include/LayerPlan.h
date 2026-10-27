@@ -4,31 +4,27 @@
 #pragma once
 
 #include "ExtruderPlan.h"
-#include "SliceLayerPart.h"
-#include "settings/types/Acceleration.h"
 #include "FanSpeedLayerTimeSettings.h"
 #include "InsetOrderOptimizer.h"
 #include "OverrideArea.h"
 #include "PathOrderOptimizer.h"
+#include "Raft.h"
+#include "SliceLayerPart.h"
 #include "SpaceFillType.h"
 #include "gcode_export/GCodeExport.h"
-#include "geometry/LinesSet.h"
 #include "geometry/MendedShape.h"
 #include "geometry/Polygon.h"
 #include "pathPlanning/GCodePath.h"
 #include "pathPlanning/NozzleTempInsert.h"
-#include "pathPlanning/TimeMaterialEstimates.h"
-#include "Raft.h"
 #include "settings/PathConfigStorage.h"
+#include "settings/types/Acceleration.h"
 #include "settings/types/LayerIndex.h"
-#include "utils/ExtrusionJunction.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
 #endif
 
 #include <functional>
-#include <limits>
 #include <memory>
 #include <optional>
 #include <vector>
@@ -44,6 +40,7 @@ class SliceMeshStorage;
 struct RetractionAndWipeConfig;
 class LayerPlanBuffer;
 class STHalfEdge;
+class TravelAntiOozing;
 
 template<typename PathType>
 class PathAdapter;

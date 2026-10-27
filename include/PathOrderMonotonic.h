@@ -3,17 +3,19 @@
 
 #pragma once
 
-#include "utils/SparsePointGridInclusiveElem.h"
-
 #include <cmath> //For std::sin() and std::cos().
 #include <deque>
 
 #include "PathOrder.h"
-#include "geometry/Point2D.h"
 #include "PathOrdering.h"
+#include "geometry/Point2D.h"
+#include "utils/SparsePointGridInclusiveElem.h"
 
 namespace cura
 {
+
+template<class Val>
+class SparsePointGridInclusive;
 
 /*!
  * Class that orders paths monotonically.

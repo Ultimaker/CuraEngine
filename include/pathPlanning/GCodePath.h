@@ -8,11 +8,10 @@
 
 #include "GCodePathConfig.h"
 #include "PrintSegmentAttribute.h"
+#include "SliceDataStorage.h"
 #include "SpaceFillType.h"
 #include "TimeMaterialEstimates.h"
-#include "geometry/Point2LL.h"
 #include "settings/types/Ratio.h"
-#include "SliceDataStorage.h"
 
 namespace cura
 {

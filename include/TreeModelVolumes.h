@@ -10,7 +10,6 @@
 #include <unordered_set>
 
 #include "AvoidanceType.h"
-#include "InterfacePreference.h"
 #include "RestPreference.h"
 #include "geometry/Shape.h"
 #include "settings/types/LayerIndex.h" //Part of the RadiusLayerPair.
