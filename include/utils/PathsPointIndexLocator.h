@@ -20,6 +20,4 @@ struct PathsPointIndexLocator
     }
 };
 
-using PolygonsPointIndexLocator = PathsPointIndexLocator<Shape>;
-
 } // namespace cura
