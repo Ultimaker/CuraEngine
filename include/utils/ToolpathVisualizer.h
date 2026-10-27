@@ -1,4 +1,4 @@
-// Copyright (c) 2019 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 #pragma once
 
 #include "ExtrusionSegment.h"

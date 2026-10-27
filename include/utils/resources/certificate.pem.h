@@ -1,3 +1,6 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #pragma once
 
 // FIXME: Move out of the source code even though this is the public key

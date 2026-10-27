@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "PrintFeatureType.h" //We get time estimates per print feature.
@@ -27,7 +27,7 @@ public:
     TimeEstimateCalculator calculator;
 
     /*
-     * Firmware settings that the Ultimaker 3 has in its Marlin version.
+     * Firmware settings that the UltiMaker 3 has in its Marlin version.
      *
      * This functions as a real-world case.
      */

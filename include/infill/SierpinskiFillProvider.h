@@ -1,5 +1,5 @@
-// Copyright (C) 2017 Tim Kuipers
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (C) 2026 Tim Kuipers
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once

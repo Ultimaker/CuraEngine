@@ -1,4 +1,4 @@
-// Copyright (C) 2020 Ultimaker B.V.
+// Copyright (C) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #pragma once
