@@ -21,7 +21,7 @@ These rules apply both when writing and when reviewing C++ code in CuraEngine. T
   * Files should be placed in a folder where they logically make sense. Files at the root are allowed only for global processing functions.
 * All member variables of a class should be private.
 * Make use of explicitly defined types as much as possible.
-* Each structure, class and enumeration should have their own dedicated header and cpp file. Empty files don't make sense and create confusion. Aliases and trivial definitions can remain attached to their associated struct/class.
+* Non-nested structures, classes and enumerations should have a dedicated header, subject to the closely related type exceptions above. Add a matching `.cpp` file only when there is out-of-line implementation; do not create empty files. Aliases and trivial definitions can remain attached to their associated struct/class.
 * All the headers and cpp files names should match exactly the name of the type, case-sensitively. For instance, the GCodeExport class should be in the GCodeExport.h header and its code in GCodeExport.cpp. When a header only defines a namespace without types, the header should have the name of the namespace, and all the functions declared under the namespace are to be declared together.
 * Place all the files in their appropriate folder. When creating multiple types that belong together and don't fit in an existing folder, a new folder should be created.
 * Creating types that are local and nested to a class/function is allowed and encouraged when it improves the readability.
