@@ -10,7 +10,7 @@ Use this skill when working on settings in CuraEngine, especially when their mea
 ## Authoritative references
 
 Refer to the skill declared in Cura for a global understanding of what they mean:
-* https://raw.githubusercontent.com/Ultimaker/Cura/refs/heads/main/.github/skills/settings-definitions/
+* https://raw.githubusercontent.com/Ultimaker/Cura/refs/heads/main/.github/skills/settings-definitions/SKILL.md
 
 ## Settings ownership and movement context
 
