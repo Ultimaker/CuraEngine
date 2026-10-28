@@ -3738,6 +3738,8 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
 
         const std::vector<PathCoasting> coasting_per_path = calculatePathsCoasting(extruder.settings_, paths, gcode.getPosition());
 
+        std::shared_ptr<const SliceMeshStorage> skippable_mesh = nullptr;
+
         for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
             // Fire any inserts that became overdue during the previous path, using the total
@@ -3748,6 +3750,13 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             GCodePath& path = paths[path_idx];
 
             assert(! path.points.empty());
+
+            if (skippable_mesh && skippable_mesh != path.mesh)
+            {
+                gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
+                gcode.resetExtrusionValue();
+                skippable_mesh = nullptr;
+            }
 
             // If travel paths have a non default fan speed for some reason set it as fan speed as such modification could be made by a plugin.
             if (! path.isTravelPath() || path.fan_speed >= 0)
@@ -3892,9 +3901,16 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                     }
                 }
             }
-            const auto& extruder_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type != path.config.type);
-            if (! path.config.isTravelPath() && extruder_changed)
+
+            const auto& feature_type_changed = ! last_extrusion_config.has_value() || (last_extrusion_config.value().type != path.config.type);
+            if (! path.config.isTravelPath() && feature_type_changed)
             {
+                if (skippable_mesh == nullptr && path.mesh)
+                {
+                    gcode.writeComment(fmt::format("TAG:SKIPPABLE.START='{}'", path.mesh->mesh_name));
+                    skippable_mesh = path.mesh;
+                }
+
                 gcode.writeTypeComment(path.config.type);
                 if (path.config.isBridgePath())
                 {
@@ -4060,6 +4076,12 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
                 path_idx--; // the last path_idx didnt spiralize, so it's not part of the current spiralize path
             }
         } // paths for this extruder /\  .
+
+        if (skippable_mesh)
+        {
+            gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
+            gcode.resetExtrusionValue();
+        }
 
         if (extruder.settings_.get<bool>("cool_lift_head") && extruder_plan.extra_time_ > 0.0)
         {
