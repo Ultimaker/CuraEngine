@@ -9,18 +9,8 @@ Use this skill when working on settings in CuraEngine, especially when their mea
 
 ## Authoritative references
 
-Settings definitions are maintained in the public **Ultimaker/Cura** repository, not CuraEngine:
-
-- Base printer settings: https://github.com/Ultimaker/Cura/blob/main/resources/definitions/fdmprinter.def.json
-- Raw base definitions: https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmprinter.def.json
-- Base extruder settings: https://github.com/Ultimaker/Cura/blob/main/resources/definitions/fdmextruder.def.json
-- Raw base extruder definitions: https://raw.githubusercontent.com/Ultimaker/Cura/main/resources/definitions/fdmextruder.def.json
-- Setting Properties documentation: https://github.com/Ultimaker/Cura/wiki/Setting-Properties
-- Raw wiki fallback: https://raw.githubusercontent.com/wiki/Ultimaker/Cura/Setting-Properties.md
-
-Read the Setting Properties documentation alongside the definitions. Use the Cura revision relevant to the task; if using `main`, state that explicitly rather than assuming it matches a particular CuraEngine release. If access fails, notify the user and ask for the relevant definitions instead of guessing.
-
-Use only these two base definition files for engine settings guidance, not printer-specific profiles.
+Refer to the skill declared in Cura for a global understanding of what they mean:
+* https://raw.githubusercontent.com/Ultimaker/Cura/refs/heads/main/.github/skills/settings-definitions/
 
 ## Settings ownership and movement context
 
