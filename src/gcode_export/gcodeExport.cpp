@@ -713,6 +713,15 @@ void GCodeExport::resetExtrusionValue()
     extruder_attr_[current_extruder_].retraction_e_amount_at_e_start_ = extruder_attr_[current_extruder_].retraction_e_amount_current_;
 }
 
+void GCodeExport::writeCurrentExtrusionValue()
+{
+    if (relative_extrusion_)
+    {
+        return;
+    }
+    *output_stream_ << "G92 " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, current_e_value_ } << new_line_;
+}
+
 bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, const size_t start_extruder_nr)
 {
     bool should_prime_extruder = true;

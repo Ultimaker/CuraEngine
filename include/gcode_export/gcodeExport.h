@@ -342,6 +342,14 @@ public:
      */
     void resetExtrusionValue();
 
+    /*!
+     * Forces extrusion axis to be at the current extrusion-value in the output (useful for skippable parts).
+     *
+     * Outputs absolutely nothing in relative mode, and only is only actually useful even in absolute mode right after
+     * any part of gcode that can potentially be skipped, to not have to change any subsequent E-values.
+     */
+    void writeCurrentExtrusionValue();
+
     void writeDelay(const Duration& time_amount);
 
     /*!

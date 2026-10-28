@@ -3754,7 +3754,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
             if (skippable_mesh && skippable_mesh != path.mesh)
             {
                 gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
-                gcode.resetExtrusionValue();
+                gcode.writeCurrentExtrusionValue();
                 skippable_mesh = nullptr;
             }
 
@@ -4080,7 +4080,7 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         if (skippable_mesh)
         {
             gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
-            gcode.resetExtrusionValue();
+            gcode.writeCurrentExtrusionValue();
         }
 
         if (extruder.settings_.get<bool>("cool_lift_head") && extruder_plan.extra_time_ > 0.0)
