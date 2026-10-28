@@ -9,8 +9,8 @@ Use this skill when working on settings in CuraEngine, especially when their mea
 
 ## Authoritative references
 
-Refer to Cura's base settings definitions for their descriptions and properties:
-* https://raw.githubusercontent.com/Ultimaker/Cura/refs/heads/main/resources/definitions/fdmprinter.def.json
+Refer to the skill declared in Cura for a global understanding of what they mean:
+* https://raw.githubusercontent.com/Ultimaker/Cura/refs/heads/main/.github/skills/settings-definitions/
 
 ## Settings ownership and movement context
 
