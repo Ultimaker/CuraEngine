@@ -1,16 +1,24 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/LightningGenerator.h"
 
+#include <range/v3/view/enumerate.hpp>
+#include <range/v3/view/reverse.hpp>
+
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SupportInfillPart.h"
+#include "SupportLayer.h"
+#include "SupportStorage.h"
 #include "infill/LightningLayer.h"
 #include "infill/LightningTreeNode.h"
-#include "sliceDataStorage.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/SparsePointGridInclusive.h"
-#include "utils/linearAlg2D.h"
 
 /* Possible future tasks/optimizations,etc.:
  * - Improve connecting heuristic to favor connecting to shorter trees
@@ -26,7 +34,12 @@
  * - Move more complex computations from LightningGenerator constructor to elsewhere.
  */
 
-using namespace cura;
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::infill
+{
 
 LightningGenerator::LightningGenerator(const SliceMeshStorage& mesh)
 {
@@ -182,3 +195,5 @@ void LightningGenerator::generateTrees(const coord_t infill_wall_thickness, cons
         }
     }
 }
+
+} // namespace curaengine::infill

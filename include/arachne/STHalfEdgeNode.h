@@ -1,15 +1,12 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SKELETAL_TRAPEZOIDATION_EDGE_NODE_H
-#define SKELETAL_TRAPEZOIDATION_EDGE_NODE_H
-
-#include <optional>
+#pragma once
 
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationJoint.h"
 
-namespace cura
+namespace curaengine::arachne
 {
 
 class SkeletalTrapezoidationJoint;
@@ -26,10 +23,10 @@ class STHalfEdgeNode
 
 public:
     node_data_t data_;
-    Point2LL p_;
+    geometry::Point2LL p_;
     edge_t* incident_edge_ = nullptr;
 
-    STHalfEdgeNode(const SkeletalTrapezoidationJoint& data, const Point2LL& p);
+    STHalfEdgeNode(const SkeletalTrapezoidationJoint& data, const geometry::Point2LL& p);
 
     bool isMultiIntersection();
 
@@ -43,5 +40,4 @@ public:
     bool isLocalMaximum(bool strict = false) const;
 };
 
-} // namespace cura
-#endif
+} // namespace curaengine::arachne

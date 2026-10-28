@@ -8,7 +8,10 @@
 #include "geometry/conversions/Point2D_Point2LL.h"
 #include "utils/AABB.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
+namespace curaengine::infill
 {
 
 RegularNGonalInfill::RegularNGonalInfill(RegularNGonType type)
@@ -108,12 +111,12 @@ OpenLinesSet RegularNGonalInfill::generateRegularNGonalLines(
 std::array<RegularNGonalInfill::SegmentsPattern, 2>
     RegularNGonalInfill::generatePatterns(const double segment_up_length, const double segment_right_x, const double segment_right_y, const coord_t absolute_delta_x)
 {
-    const Point2LL segment_up = toPoint2LL(Point2D(0, segment_up_length));
-    const Point2LL segment_right = toPoint2LL(Point2D(segment_right_x, segment_right_y));
+    const Point2LL segment_up = geometry::conversions::toPoint2LL(Point2D(0, segment_up_length));
+    const Point2LL segment_right = geometry::conversions::toPoint2LL(Point2D(segment_right_x, segment_right_y));
     const Point2LL segment_left(-segment_right.X, segment_right.Y);
 
     return { SegmentsPattern{ .segments = { segment_up, segment_left, segment_up, segment_right }, .delta_x = -absolute_delta_x },
              SegmentsPattern{ .segments = { segment_up, segment_right, segment_up, segment_left }, .delta_x = absolute_delta_x } };
 }
 
-} // namespace cura
+} // namespace curaengine::infill

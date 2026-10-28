@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallToolPaths.h"
@@ -7,19 +7,26 @@
 #include <unordered_set>
 
 #include <range/v3/range/conversion.hpp>
+#include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/transform.hpp>
 #include <scripta/logger.h>
 
-#include "BeadingStrategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "arachne/SkeletalTrapezoidation.h"
+#include "beading_strategy/BeadingStrategyFactory.h"
 #include "utils/ExtrusionLineStitcher.h"
+#include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
-#include "utils/actions/smooth.h"
-#include "utils/polygonUtils.h"
+#include "utils/actions/smooth_fn.h"
 
-namespace cura
+using namespace curaengine::arachne;
+using namespace curaengine::beading_strategy;
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 WallToolPaths::WallToolPaths(
@@ -495,4 +502,4 @@ bool WallToolPaths::removeEmptyToolPaths(std::vector<VariableWidthLines>& toolpa
     return toolpaths.empty();
 }
 
-} // namespace cura
+} // namespace curaengine

@@ -1,12 +1,11 @@
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_DATE_H
-#define UTILS_DATE_H
+#pragma once
 
 #include <string>
 
-namespace cura
+namespace curaengine::utils
 {
 
 /*!
@@ -28,6 +27,4 @@ private:
     Date(); //!< Simple constructor initializing all to -1
 };
 
-} // namespace cura
-
-#endif // UTILS_DATE_H
+} // namespace curaengine::utils

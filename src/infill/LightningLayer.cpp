@@ -1,35 +1,25 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/LightningLayer.h" //The class we're implementing.
 
-#include <iterator> // advance
-
-#include "geometry/OpenPolyline.h"
+#include "SliceDataStorage.h"
+#include "geometry/OpenLinesSet.h"
+#include "infill/GroundingLocation.h"
 #include "infill/LightningDistanceField.h"
 #include "infill/LightningTreeNode.h"
-#include "sliceDataStorage.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/SparsePointGridInclusive.h"
-#include "utils/linearAlg2D.h"
 
-using namespace cura;
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
+namespace curaengine::infill
+{
 
 coord_t LightningLayer::getWeightedDistance(const Point2LL& boundary_loc, const Point2LL& unsupported_location)
 {
-    return vSize(boundary_loc - unsupported_location);
-}
-
-Point2LL GroundingLocation::p() const
-{
-    if (tree_node != nullptr)
-    {
-        return tree_node->getLocation();
-    }
-    else
-    {
-        assert(boundary_location);
-        return boundary_location->p();
-    }
+    return geometry::vSize(boundary_loc - unsupported_location);
 }
 
 void LightningLayer::fillLocator(SparseLightningTreeNodeGrid& tree_node_locator)
@@ -89,7 +79,7 @@ GroundingLocation LightningLayer::getBestGroundingLocation(
 {
     ClosestPointPolygon cpp = PolygonUtils::findClosest(unsupported_location, current_outlines);
     Point2LL node_location = cpp.p();
-    const coord_t within_dist = vSize(node_location - unsupported_location);
+    const coord_t within_dist = geometry::vSize(node_location - unsupported_location);
 
     PolygonsPointIndex dummy;
 
@@ -233,3 +223,5 @@ OpenLinesSet LightningLayer::convertToLines(const Shape& limit_to_outline, const
 
     return result_lines;
 }
+
+} // namespace curaengine::infill

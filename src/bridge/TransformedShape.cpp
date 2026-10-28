@@ -6,7 +6,9 @@
 #include "geometry/Shape.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::bridge
 {
 
 TransformedShape::TransformedShape(const PointMatrix& matrix)
@@ -54,7 +56,7 @@ void TransformedShape::addPolygon(const Polygon& polygon, const bool filter_out_
 void TransformedShape::addSegment(const Point2LL& start, const Point2LL& end, const bool filter_out_horizontal)
 {
     TransformedSegment segment(start, end, matrix_);
-    if (filter_out_horizontal && fuzzy_equal(segment.minY(), segment.maxY()))
+    if (filter_out_horizontal && utils::fuzzy_equal(segment.minY(), segment.maxY()))
     {
         return;
     }
@@ -64,4 +66,4 @@ void TransformedShape::addSegment(const Point2LL& start, const Point2LL& end, co
     segments_.push_back(std::move(segment));
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

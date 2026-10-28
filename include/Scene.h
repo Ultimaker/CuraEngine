@@ -1,14 +1,13 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SCENE_H
-#define SCENE_H
+#pragma once
 
 #include "ExtruderTrain.h" //To store the extruders in the scene.
 #include "MeshGroup.h" //To store the mesh groups in the scene.
-#include "settings/Settings.h" //To store the global settings.
+#include "Settings.h" //To store the global settings.
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -80,9 +79,7 @@ private:
     /*
      * \brief You are not allowed to copy by assignment either.
      */
-    Scene& operator =(const Scene&) = delete;
+    Scene& operator=(const Scene&) = delete;
 };
 
-} //namespace cura
-
-#endif //SCENE_H
+} // namespace curaengine

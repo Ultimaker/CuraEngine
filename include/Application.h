@@ -1,11 +1,8 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef APPLICATION_H
-#define APPLICATION_H
+#pragma once
 
-#include <cassert>
-#include <cstddef>
 #include <memory>
 #ifndef __EMSCRIPTEN__
 #include <oneapi/tbb/global_control.h>
@@ -15,11 +12,21 @@
 #include "utils/NoCopy.h"
 
 
-namespace cura
+namespace curaengine::communication
 {
 class Communication;
-class Slice;
+}
+
+namespace curaengine::utils
+{
 class ThreadPool;
+}
+
+namespace curaengine
+{
+
+class Slice;
+
 
 struct PluginSetupConfiguration;
 
@@ -30,7 +37,7 @@ struct PluginSetupConfiguration;
  * maintains communication with other applications and uses that to schedule
  * slices.
  */
-class Application : NoCopy
+class Application : utils::NoCopy
 {
 public:
     /*
@@ -42,7 +49,7 @@ public:
      * can assume that it is safe to access this without checking whether it is
      * initialised.
      */
-    std::shared_ptr<Communication> communication_;
+    std::shared_ptr<communication::Communication> communication_;
 
     /*
      * \brief The slice that is currently ongoing.
@@ -54,7 +61,7 @@ public:
     /*!
      * \brief ThreadPool with lifetime tied to Application
      */
-    ThreadPool* thread_pool_ = nullptr;
+    utils::ThreadPool* thread_pool_ = nullptr;
 
     /*! Controller used to set the maximum number of threads used by the OneTBB library */
 #ifndef __EMSCRIPTEN__
@@ -159,6 +166,4 @@ private:
     void registerPlugins(const PluginSetupConfiguration& plugins_config);
 };
 
-} // namespace cura
-
-#endif // APPLICATION_H
+} // namespace curaengine

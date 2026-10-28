@@ -1,16 +1,15 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_MATH_H
-#define UTILS_MATH_H
+#pragma once
 
 #include <cmath>
 #include <cstdint>
 
-#include "utils/types/generic.h"
+#include "types/generic.h"
 
 
-namespace cura
+namespace curaengine::utils
 {
 
 /**
@@ -20,7 +19,7 @@ namespace cura
  * @param a The value to be squared.
  * @return T The square of the input value.
  */
-template<utils::multipliable T>
+template<types::multipliable T>
 [[nodiscard]] constexpr T square(const T& a)
 {
     return a * a;
@@ -116,7 +115,7 @@ template<utils::multipliable T>
  *       up to the caller to clamp the result if required
  * \note The range_min value may be greater than the range_max, inverting the interpolation logic
  */
-template<utils::numeric T>
+template<types::numeric T>
 [[nodiscard]] inline double inverse_lerp(T range_min, T range_max, T value)
 {
     if (range_min == range_max)
@@ -130,21 +129,21 @@ template<utils::numeric T>
 /*!
  * \brief Get a random floating point number in the range [0.0, 1.0]
  */
-template<utils::floating_point T>
+template<types::floating_point T>
 [[nodiscard]] inline T randf()
 {
     return static_cast<T>(std::rand()) / static_cast<T>(RAND_MAX);
 }
 
 /*! \brief Check if a value is very close to 0 */
-template<utils::floating_point T>
+template<types::floating_point T>
 [[nodiscard]] bool is_zero(T value, T epsilon = std::numeric_limits<T>::epsilon() * 100.0)
 {
     return std::abs(value) < epsilon;
 }
 
 /*! \brief Check if two values are very close to each other */
-template<utils::floating_point T>
+template<types::floating_point T>
 [[nodiscard]] bool fuzzy_equal(T value1, T value2, T epsilon = std::numeric_limits<T>::epsilon() * 100.0)
 {
     return std::abs(value1 - value2) <= epsilon;
@@ -154,11 +153,10 @@ template<utils::floating_point T>
  * Calculates the sign of a numeric value, 1 if positive and -1 if negative
  * @note 0 is also considered as positive
  */
-template<utils::numeric T>
+template<types::numeric T>
 [[nodiscard]] int8_t sign(T value)
 {
     return std::signbit(value) ? -1 : 1;
 }
 
-} // namespace cura
-#endif // UTILS_MATH_H
+} // namespace curaengine::utils

@@ -1,8 +1,7 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODETEMPLATERESOLVER_H
-#define GCODETEMPLATERESOLVER_H
+#pragma once
 
 #include <optional>
 #include <string>
@@ -10,7 +9,7 @@
 
 #include <boost/regex.hpp>
 
-#include "gcode_export/ResolvingExtruderContext.h"
+#include "gcode_export/DynamicExtruderContext.h"
 
 namespace CuraFormulaeEngine
 {
@@ -29,7 +28,7 @@ class LocalEnvironment;
 } // namespace CuraFormulaeEngine
 
 
-namespace cura
+namespace curaengine::gcode_export
 {
 
 /*!
@@ -117,6 +116,4 @@ private:
     std::map<std::optional<size_t>, std::shared_ptr<CuraFormulaeEngine::env::Environment>> environment_adapters_;
 };
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::gcode_export

@@ -1,4 +1,4 @@
-// Copyright (c) 2026 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "InfillOrderOptimizer.h"
@@ -9,11 +9,21 @@
 #include <range/v3/algorithm/sort.hpp>
 
 #include "LayerPlan.h"
+#include "SliceMeshStorage.h"
 #include "geometry/OpenLinesSet.h"
+#include "types/EFillMethod.h"
+#include "types/EZSeamType.h"
+#include "types/InfillStartEndPreference.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
+using types::operator""_r;
+
 
 InfillOrderOptimizer::InfillOrderOptimizer()
 {
@@ -553,7 +563,7 @@ bool InfillOrderOptimizer::isCloserTo(
     {
         for (const auto& [point_index, point] : line | ranges::views::enumerate)
         {
-            const coord_t distance_squared = vSize2(point - location);
+            const coord_t distance_squared = geometry::vSize2(point - location);
             if (! closest_point.has_value() || distance_squared < closest_distance_squared)
             {
                 closer_found = true;
@@ -566,4 +576,4 @@ bool InfillOrderOptimizer::isCloserTo(
     return closer_found;
 }
 
-} // namespace cura
+} // namespace curaengine

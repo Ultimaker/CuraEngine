@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "arachne/STHalfEdge.h"
@@ -6,9 +6,11 @@
 #include <spdlog/spdlog.h>
 
 #include "arachne/STHalfEdgeNode.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
-namespace cura
+using namespace curaengine::utils;
+
+namespace curaengine::arachne
 {
 
 STHalfEdge::STHalfEdge(const SkeletalTrapezoidationEdge& data)
@@ -111,7 +113,7 @@ std::optional<coord_t> STHalfEdge::distToGoUp() const
     }
     if (ret)
     {
-        ret = *ret + vSize(to_->p_ - from_->p_);
+        ret = *ret + geometry::vSize(to_->p_ - from_->p_);
     }
     return ret;
 }
@@ -130,4 +132,4 @@ STHalfEdge* STHalfEdge::getNextUnconnected()
     return result->twin_;
 }
 
-} // namespace cura
+} // namespace curaengine::arachne

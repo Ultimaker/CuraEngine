@@ -1,15 +1,19 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef POSITIONBASEDSCORINGCRITERION_H
-#define POSITIONBASEDSCORINGCRITERION_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 #include "utils/scoring/ScoringCriterion.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 class PointsSet;
+}
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Abstract criterion that will give a score according to the position of the point
@@ -17,22 +21,20 @@ class PointsSet;
 class PositionBasedScoringCriterion : public ScoringCriterion
 {
 private:
-    const PointsSet& points_;
+    const geometry::PointsSet& points_;
 
 public:
-    explicit PositionBasedScoringCriterion(const PointsSet& points);
+    explicit PositionBasedScoringCriterion(const geometry::PointsSet& points);
 
     virtual double computeScore(const size_t candidate_index) const override;
 
-    virtual double computeScore(const Point2LL& candidate_position) const;
+    virtual double computeScore(const geometry::Point2LL& candidate_position) const;
 
 protected:
-    const PointsSet& getPoints() const
+    const geometry::PointsSet& getPoints() const
     {
         return points_;
     }
 };
 
-} // namespace cura
-
-#endif // POSITIONBASEDSCORINGCRITERION_H
+} // namespace curaengine::utils::scoring

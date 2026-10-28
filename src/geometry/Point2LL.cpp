@@ -5,7 +5,7 @@
 
 #include "geometry/Point3LL.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 Point2LL operator+(const Point2LL& p2, const Point3LL& p3)
@@ -42,4 +42,4 @@ Point2LL operator-(const Point2LL& p2, const Point3LL& p3)
     return { p2.X - p3.x_, p2.Y - p3.y_ };
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

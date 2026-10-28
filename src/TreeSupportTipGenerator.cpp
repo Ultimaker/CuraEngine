@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "TreeSupportTipGenerator.h"
@@ -15,17 +15,28 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
+#include "FakeRoofArea.h"
+#include "SliceMeshStorage.h"
+#include "TreeSupportBaseCircle.h"
 #include "TreeSupportUtils.h"
 #include "geometry/OpenPolyline.h"
 #include "infill/SierpinskiFillProvider.h"
-#include "settings/EnumSettings.h"
+#include "types/EFillMethod.h"
+#include "types/SupportDistPriority.h"
+#include "utils/ClosestPoint.h"
+#include "utils/GivenDistPoint.h"
+#include "utils/PolygonUtils.h" //For moveInside.
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
-#include "utils/polygonUtils.h" //For moveInside.
 
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::infill;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, TreeModelVolumes& volumes_s)
@@ -35,7 +46,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     , minimum_support_area_(mesh.settings.get<double>("minimum_support_area"))
     , minimum_roof_area_(! use_fake_roof_ ? mesh.settings.get<double>("minimum_roof_area") : std::max(SUPPORT_TREE_MINIMUM_FAKE_ROOF_AREA, minimum_support_area_))
     , support_roof_layers_(
-          mesh.settings.get<bool>("support_roof_enable") ? round_divide(mesh.settings.get<coord_t>("support_roof_height"), config_.layer_height)
+          mesh.settings.get<bool>("support_roof_enable") ? utils::round_divide(mesh.settings.get<coord_t>("support_roof_height"), config_.layer_height)
           : use_fake_roof_                               ? SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS
                                                          : 0)
     , connect_length_(
@@ -70,7 +81,7 @@ TreeSupportTipGenerator::TreeSupportTipGenerator(const SliceMeshStorage& mesh, T
     }
     else
     {
-        max_overhang_insert_lag_ = std::max((size_t)round_up_divide(config_.xy_distance, max_overhang_speed / 2), 2 * config_.z_distance_top_layers);
+        max_overhang_insert_lag_ = std::max((size_t)utils::round_up_divide(config_.xy_distance, max_overhang_speed / 2), 2 * config_.z_distance_top_layers);
         // ^^^ Cap for how much layer below the overhang a new support point may be added, as other than with regular support every new inserted point may cause extra material and
         // time cost.
         //     Could also be an user setting or differently calculated. Idea is that if an overhang does not turn valid in double the amount of layers a slope of support angle
@@ -285,11 +296,11 @@ OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLi
                 {
                     for (auto [inner_idx, p_b] : part | ranges::views::enumerate | ranges::views::drop_last(1))
                     {
-                        if (vSize2(p_a - p_b) > max_dist2_between_vertices)
+                        if (geometry::vSize2(p_a - p_b) > max_dist2_between_vertices)
                         {
                             optimal_start_index = idx;
                             optimal_end_index = inner_idx;
-                            max_dist2_between_vertices = vSize2(p_a - p_b);
+                            max_dist2_between_vertices = geometry::vSize2(p_a - p_b);
                         }
                     }
                 }
@@ -304,7 +315,7 @@ OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLi
                 Point2LL current_point = part[0];
                 line.push_back(part[0]);
 
-                bool should_add_endpoint = min_points > 1 || vSize2(part[0] - part[optimal_end_index]) > (current_distance * current_distance);
+                bool should_add_endpoint = min_points > 1 || geometry::vSize2(part[0] - part[optimal_end_index]) > (current_distance * current_distance);
                 bool added_endpoint = ! should_add_endpoint; // If no endpoint should be added all endpoints are already added.
 
                 size_t current_index = 0;
@@ -332,7 +343,7 @@ OpenLinesSet TreeSupportTipGenerator::ensureMaximumDistancePolyline(const OpenLi
                     {
                         for (Point2LL p : line)
                         {
-                            min_distance_to_existing_point_sqd = std::min(min_distance_to_existing_point_sqd, vSize2(p - next_point.location));
+                            min_distance_to_existing_point_sqd = std::min(min_distance_to_existing_point_sqd, geometry::vSize2(p - next_point.location));
                         }
                     }
                     if (! enforce_distance || min_distance_to_existing_point_sqd >= (current_distance * current_distance))
@@ -413,7 +424,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
     std::mutex critical;
 
     // this is ugly, but as far as i can see there is not way to ensure a parallel_for loop is calculated for each iteration up to a certain point before it continues;
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         1,
         mesh.overhang_areas.size() - z_distance_delta_,
         [&](const LayerIndex layer_idx)
@@ -455,7 +466,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
             }
         });
 
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         result.size(),
         [&](const LayerIndex layer_idx)
@@ -464,7 +475,7 @@ void TreeSupportTipGenerator::dropOverhangAreas(const SliceMeshStorage& mesh, st
         });
 }
 
-void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& mesh)
+void TreeSupportTipGenerator::calculateRoofAreas(const SliceMeshStorage& mesh)
 {
     std::vector<Shape> potential_support_roofs(mesh.overhang_areas.size(), Shape());
     std::mutex critical_potential_support_roofs;
@@ -475,7 +486,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
         dropOverhangAreas(mesh, dropped_overhangs, true);
     }
 
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         mesh.overhang_areas.size() - z_distance_delta_,
         [&](const LayerIndex layer_idx)
@@ -543,7 +554,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             }
         });
 
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         potential_support_roofs.size(),
         [&](const LayerIndex layer_idx)
@@ -562,7 +573,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
 
     std::vector<Shape> additional_support_roofs(mesh.overhang_areas.size(), Shape());
 
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         potential_support_roofs.size(),
         [&](const LayerIndex layer_idx)
@@ -613,7 +624,7 @@ void TreeSupportTipGenerator::calculateRoofAreas(const cura::SliceMeshStorage& m
             }
         });
 
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         additional_support_roofs.size(),
         [&](const LayerIndex layer_idx)
@@ -798,7 +809,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
     SliceDataStorage& storage,
     std::vector<Shape>& additional_support_areas)
 {
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         move_bounds.size(),
         [&](const LayerIndex layer_idx)
@@ -824,7 +835,7 @@ void TreeSupportTipGenerator::removeUselessAddedPoints(
                         // Remove branches should have interface above them, but dont. Should never happen.
                         if (roof_on_layer_above.empty()
                             || (! roof_on_layer_above.inside(elem->result_on_layer_)
-                                && vSize2(from - elem->result_on_layer_) > config_.getRadius(0) * config_.getRadius(0) + FUDGE_LENGTH * FUDGE_LENGTH))
+                                && geometry::vSize2(from - elem->result_on_layer_) > config_.getRadius(0) * config_.getRadius(0) + FUDGE_LENGTH * FUDGE_LENGTH))
                         {
                             to_be_removed.emplace_back(elem);
                             spdlog::warn("Removing already placed tip that should have roof above it?");
@@ -851,8 +862,9 @@ void TreeSupportTipGenerator::generateTips(
 {
     std::vector<std::set<TreeSupportElement::Ptr>> new_tips(move_bounds.size());
 
-    const coord_t circle_length_to_half_linewidth_change
-        = config_.min_radius < config_.support_line_width ? config_.min_radius / 2 : sqrt(square(config_.min_radius) - square(config_.min_radius - config_.support_line_width / 2));
+    const coord_t circle_length_to_half_linewidth_change = config_.min_radius < config_.support_line_width
+                                                             ? config_.min_radius / 2
+                                                             : sqrt(utils::square(config_.min_radius) - utils::square(config_.min_radius - config_.support_line_width / 2));
     // ^^^ As r*r=x*x+y*y (circle equation): If a circle with center at (0,0) the top most point is at (0,r) as in y=r. This calculates how far one has to move on the x-axis so
     // that y=r-support_line_width/2.
     //     In other words how far does one need to move on the x-axis to be support_line_width/2 away from the circle line. As a circle is round this length is identical for every
@@ -867,7 +879,7 @@ void TreeSupportTipGenerator::generateTips(
         calculateRoofAreas(mesh);
     }
 
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         1,
         mesh.overhang_areas.size() - z_distance_delta_,
         [&](const LayerIndex layer_idx)
@@ -1139,7 +1151,7 @@ void TreeSupportTipGenerator::generateTips(
             }
         });
 
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         support_roof_drawn_.size(),
         [&](const LayerIndex layer_idx)
@@ -1210,4 +1222,4 @@ void TreeSupportTipGenerator::generateTips(
 }
 
 
-} // namespace cura
+} // namespace curaengine

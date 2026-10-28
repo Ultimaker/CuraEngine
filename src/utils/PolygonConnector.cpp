@@ -1,12 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/PolygonConnector.h"
 
 #include "utils/AABB.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 PolygonConnector::PolygonConnector(const coord_t line_width)
@@ -92,7 +94,7 @@ bool PolygonConnector::isClosed(Polygon&) const
 
 bool PolygonConnector::isClosed(ExtrusionLine& polygonal) const
 {
-    return vSize2(polygonal.front() - polygonal.back()) < 25;
+    return geometry::vSize2(polygonal.front() - polygonal.back()) < 25;
 }
 
 template<>
@@ -105,4 +107,4 @@ ExtrusionLine PolygonConnector::createEmpty<ExtrusionLine>() const
     return result; // No copy, via RVO.
 }
 
-} // namespace cura
+} // namespace curaengine::utils

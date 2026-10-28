@@ -1,14 +1,17 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/scoring/TextureScoringCriterion.h"
 
 #include <spdlog/spdlog.h>
 
+#include "TextureArea.h"
 #include "TextureDataProvider.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils::scoring
 {
 
 TextureScoringCriterion::TextureScoringCriterion(const PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name)
@@ -37,4 +40,4 @@ double TextureScoringCriterion::computeScore(const Point2LL& candidate_position)
     return 0.5;
 }
 
-} // namespace cura
+} // namespace curaengine::utils::scoring

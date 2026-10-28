@@ -7,7 +7,11 @@
 #include "bridge/TransformedShape.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::bridge
 {
 
 AlignShapeScoringCriterion::AlignShapeScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions)
@@ -50,4 +54,4 @@ double AlignShapeScoringCriterion::computeScore(const TransformedShape& transfor
     return score;
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

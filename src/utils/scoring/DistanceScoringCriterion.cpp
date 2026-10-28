@@ -6,7 +6,9 @@
 #include "geometry/PointsSet.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils::scoring
 {
 
 DistanceScoringCriterion::DistanceScoringCriterion(const PointsSet& points, const Point2LL& target_pos, DistanceType distance_type, const double distance_divider)
@@ -24,7 +26,7 @@ double DistanceScoringCriterion::computeScore(const Point2LL& candidate_position
     {
     case DistanceType::Euclidian:
         // Use actual (non-squared) distance to ensure a proper scoring distribution
-        distance = vSizeMM(candidate_position - target_pos_);
+        distance = geometry::vSizeMM(candidate_position - target_pos_);
         break;
     case DistanceType::XOnly:
         distance = INT2MM(std::abs(candidate_position.X - target_pos_.X));
@@ -38,4 +40,4 @@ double DistanceScoringCriterion::computeScore(const Point2LL& candidate_position
     return 1.0 / (1.0 + (distance / distance_divider_));
 }
 
-} // namespace cura
+} // namespace curaengine::utils::scoring

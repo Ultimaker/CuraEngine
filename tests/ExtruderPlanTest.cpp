@@ -6,11 +6,14 @@
 #include <gtest/gtest.h>
 
 #include "LayerPlan.h" //Code under test.
-#include "pathPlanning/SpeedDerivatives.h"
+#include "path_planning/SpeedDerivatives.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
+using ::curaengine::types::operator""_r;
+
+
 /*!
  * A fixture containing some sets of GCodePaths to test with.
  */
@@ -22,12 +25,12 @@ public:
      * One path with 5 vertices printing a 1000x1000 micron square starting from
      * 0,0.
      */
-    std::vector<GCodePath> square;
+    std::vector<::curaengine::path_planning::GCodePath> square;
 
     /*!
      * Three lines side by side, with two travel moves in between.
      */
-    std::vector<GCodePath> lines;
+    std::vector<::curaengine::path_planning::GCodePath> lines;
 
     /*!
      * Three lines side by side with travel moves in between, but adjusted flow.
@@ -36,7 +39,7 @@ public:
      * The second line gets 80% flow.
      * The third line gets 40% flow.
      */
-    std::vector<GCodePath> decreasing_flow;
+    std::vector<::curaengine::path_planning::GCodePath> decreasing_flow;
 
     /*!
      * Three lines side by side with their speed factors adjusted.
@@ -45,7 +48,7 @@ public:
      * The second line gets 80% speed.
      * The third line gets 40% speed.
      */
-    std::vector<GCodePath> decreasing_speed;
+    std::vector<::curaengine::path_planning::GCodePath> decreasing_speed;
 
     /*!
      * A series of paths with variable line width.
@@ -53,7 +56,7 @@ public:
      * This one has no travel moves in between.
      * The last path gets a width of 0.
      */
-    std::vector<GCodePath> variable_width;
+    std::vector<::curaengine::path_planning::GCodePath> variable_width;
 
     /*!
      * Configuration to print extruded paths with in the fixture.
@@ -76,19 +79,19 @@ public:
                                             .line_width = 400,
                                             .layer_thickness = 100,
                                             .flow = 1.0_r,
-                                            .speed_derivatives = SpeedDerivatives{ .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
+                                            .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = 50.0, .acceleration = 1000.0, .jerk = 10.0 } })
         , travel_config(GCodePathConfig{ .type = PrintFeatureType::MoveUnretracted,
                                          .line_width = 0,
                                          .layer_thickness = 100,
                                          .flow = 0.0_r,
-                                         .speed_derivatives = SpeedDerivatives{ .speed = 120.0, .acceleration = 5000.0, .jerk = 30.0 } })
+                                         .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = 120.0, .acceleration = 5000.0, .jerk = 30.0 } })
     {
         std::shared_ptr<SliceMeshStorage> mesh = nullptr;
-        constexpr Ratio flow_1 = 1.0_r;
-        constexpr Ratio width_1 = 1.0_r;
+        constexpr ::curaengine::types::Ratio flow_1 = 1.0_r;
+        constexpr ::curaengine::types::Ratio width_1 = 1.0_r;
         constexpr bool no_spiralize = false;
-        constexpr Ratio speed_1 = 1.0_r;
-        square.assign({ GCodePath{ .config = extrusion_config,
+        constexpr ::curaengine::types::Ratio speed_1 = 1.0_r;
+        square.assign({ ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                    .mesh = mesh,
                                    .space_fill_type = SpaceFillType::PolyLines,
                                    .flow = flow_1,
@@ -96,174 +99,174 @@ public:
                                    .spiralize = no_spiralize,
                                    .speed_factor = speed_1 } });
 
-        square.back().points = { Point2LL(0, 0), Point2LL(1000, 0), Point2LL(1000, 1000), Point2LL(0, 1000), Point2LL(0, 0) };
+        square.back().points = { ::curaengine::geometry::Point2LL(0, 0), ::curaengine::geometry::Point2LL(1000, 0), ::curaengine::geometry::Point2LL(1000, 1000), ::curaengine::geometry::Point2LL(0, 1000), ::curaengine::geometry::Point2LL(0, 0) };
 
-        lines.assign({ GCodePath{ .config = extrusion_config,
+        lines.assign({ ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                   .mesh = mesh,
                                   .space_fill_type = SpaceFillType::Lines,
                                   .flow = flow_1,
                                   .width_factor = width_1,
                                   .spiralize = no_spiralize,
                                   .speed_factor = speed_1 },
-                       GCodePath{ .config = travel_config,
+                       ::curaengine::path_planning::GCodePath{ .config = travel_config,
                                   .mesh = mesh,
                                   .space_fill_type = SpaceFillType::Lines,
                                   .flow = flow_1,
                                   .width_factor = width_1,
                                   .spiralize = no_spiralize,
                                   .speed_factor = speed_1 },
-                       GCodePath{ .config = extrusion_config,
+                       ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                   .mesh = mesh,
                                   .space_fill_type = SpaceFillType::Lines,
                                   .flow = flow_1,
                                   .width_factor = width_1,
                                   .spiralize = no_spiralize,
                                   .speed_factor = speed_1 },
-                       GCodePath{ .config = travel_config,
+                       ::curaengine::path_planning::GCodePath{ .config = travel_config,
                                   .mesh = mesh,
                                   .space_fill_type = SpaceFillType::Lines,
                                   .flow = flow_1,
                                   .width_factor = width_1,
                                   .spiralize = no_spiralize,
                                   .speed_factor = speed_1 },
-                       GCodePath{ .config = extrusion_config,
+                       ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                   .mesh = mesh,
                                   .space_fill_type = SpaceFillType::Lines,
                                   .flow = flow_1,
                                   .width_factor = width_1,
                                   .spiralize = no_spiralize,
                                   .speed_factor = speed_1 } });
-        lines[0].points = { Point2LL(0, 0), Point2LL(1000, 0) };
-        lines[1].points = { Point2LL(1000, 0), Point2LL(1000, 400) };
-        lines[2].points = { Point2LL(1000, 400), Point2LL(0, 400) };
-        lines[3].points = { Point2LL(0, 400), Point2LL(0, 800) };
-        lines[4].points = { Point2LL(0, 800), Point2LL(1000, 800) };
+        lines[0].points = { ::curaengine::geometry::Point2LL(0, 0), ::curaengine::geometry::Point2LL(1000, 0) };
+        lines[1].points = { ::curaengine::geometry::Point2LL(1000, 0), ::curaengine::geometry::Point2LL(1000, 400) };
+        lines[2].points = { ::curaengine::geometry::Point2LL(1000, 400), ::curaengine::geometry::Point2LL(0, 400) };
+        lines[3].points = { ::curaengine::geometry::Point2LL(0, 400), ::curaengine::geometry::Point2LL(0, 800) };
+        lines[4].points = { ::curaengine::geometry::Point2LL(0, 800), ::curaengine::geometry::Point2LL(1000, 800) };
 
-        constexpr Ratio flow_12 = 1.2_r;
-        constexpr Ratio flow_08 = 0.8_r;
-        constexpr Ratio flow_04 = 0.4_r;
-        decreasing_flow.assign({ GCodePath{ .config = extrusion_config,
+        constexpr ::curaengine::types::Ratio flow_12 = 1.2_r;
+        constexpr ::curaengine::types::Ratio flow_08 = 0.8_r;
+        constexpr ::curaengine::types::Ratio flow_04 = 0.4_r;
+        decreasing_flow.assign({ ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                             .mesh = mesh,
                                             .space_fill_type = SpaceFillType::Lines,
                                             .flow = flow_12,
                                             .width_factor = width_1,
                                             .spiralize = no_spiralize,
                                             .speed_factor = speed_1 },
-                                 GCodePath{ .config = travel_config,
+                                 ::curaengine::path_planning::GCodePath{ .config = travel_config,
                                             .mesh = mesh,
                                             .space_fill_type = SpaceFillType::Lines,
                                             .flow = flow_1,
                                             .width_factor = width_1,
                                             .spiralize = no_spiralize,
                                             .speed_factor = speed_1 },
-                                 GCodePath{ .config = extrusion_config,
+                                 ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                             .mesh = mesh,
                                             .space_fill_type = SpaceFillType::Lines,
                                             .flow = flow_08,
                                             .width_factor = width_1,
                                             .spiralize = no_spiralize,
                                             .speed_factor = speed_1 },
-                                 GCodePath{ .config = travel_config,
+                                 ::curaengine::path_planning::GCodePath{ .config = travel_config,
                                             .mesh = mesh,
                                             .space_fill_type = SpaceFillType::Lines,
                                             .flow = flow_1,
                                             .width_factor = width_1,
                                             .spiralize = no_spiralize,
                                             .speed_factor = speed_1 },
-                                 GCodePath{ .config = extrusion_config,
+                                 ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                             .mesh = mesh,
                                             .space_fill_type = SpaceFillType::Lines,
                                             .flow = flow_04,
                                             .width_factor = width_1,
                                             .spiralize = no_spiralize,
                                             .speed_factor = speed_1 } });
-        decreasing_flow[0].points = { Point2LL(0, 0), Point2LL(1000, 0) };
-        decreasing_flow[1].points = { Point2LL(1000, 0), Point2LL(1000, 400) };
-        decreasing_flow[2].points = { Point2LL(1000, 400), Point2LL(0, 400) };
-        decreasing_flow[3].points = { Point2LL(0, 400), Point2LL(0, 800) };
-        decreasing_flow[4].points = { Point2LL(0, 800), Point2LL(1000, 800) };
+        decreasing_flow[0].points = { ::curaengine::geometry::Point2LL(0, 0), ::curaengine::geometry::Point2LL(1000, 0) };
+        decreasing_flow[1].points = { ::curaengine::geometry::Point2LL(1000, 0), ::curaengine::geometry::Point2LL(1000, 400) };
+        decreasing_flow[2].points = { ::curaengine::geometry::Point2LL(1000, 400), ::curaengine::geometry::Point2LL(0, 400) };
+        decreasing_flow[3].points = { ::curaengine::geometry::Point2LL(0, 400), ::curaengine::geometry::Point2LL(0, 800) };
+        decreasing_flow[4].points = { ::curaengine::geometry::Point2LL(0, 800), ::curaengine::geometry::Point2LL(1000, 800) };
 
-        constexpr Ratio speed_12 = 1.2_r;
-        constexpr Ratio speed_08 = 0.8_r;
-        constexpr Ratio speed_04 = 0.4_r;
-        decreasing_speed.assign({ GCodePath{ .config = extrusion_config,
+        constexpr ::curaengine::types::Ratio speed_12 = 1.2_r;
+        constexpr ::curaengine::types::Ratio speed_08 = 0.8_r;
+        constexpr ::curaengine::types::Ratio speed_04 = 0.4_r;
+        decreasing_speed.assign({ ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                              .mesh = mesh,
                                              .space_fill_type = SpaceFillType::Lines,
                                              .flow = flow_1,
                                              .width_factor = width_1,
                                              .spiralize = no_spiralize,
                                              .speed_factor = speed_12 },
-                                  GCodePath{ .config = travel_config,
+                                  ::curaengine::path_planning::GCodePath{ .config = travel_config,
                                              .mesh = mesh,
                                              .space_fill_type = SpaceFillType::Lines,
                                              .flow = flow_1,
                                              .width_factor = width_1,
                                              .spiralize = no_spiralize,
                                              .speed_factor = speed_1 },
-                                  GCodePath{ .config = extrusion_config,
+                                  ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                              .mesh = mesh,
                                              .space_fill_type = SpaceFillType::Lines,
                                              .flow = flow_1,
                                              .width_factor = width_1,
                                              .spiralize = no_spiralize,
                                              .speed_factor = speed_08 },
-                                  GCodePath{ .config = travel_config,
+                                  ::curaengine::path_planning::GCodePath{ .config = travel_config,
                                              .mesh = mesh,
                                              .space_fill_type = SpaceFillType::Lines,
                                              .flow = flow_1,
                                              .width_factor = width_1,
                                              .spiralize = no_spiralize,
                                              .speed_factor = speed_1 },
-                                  GCodePath{ .config = extrusion_config,
+                                  ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                                              .mesh = mesh,
                                              .space_fill_type = SpaceFillType::Lines,
                                              .flow = flow_1,
                                              .width_factor = width_1,
                                              .spiralize = no_spiralize,
                                              .speed_factor = speed_04 } });
-        decreasing_speed[0].points = { Point2LL(0, 0), Point2LL(1000, 0) };
-        decreasing_speed[1].points = { Point2LL(1000, 0), Point2LL(1000, 400) };
-        decreasing_speed[2].points = { Point2LL(1000, 400), Point2LL(0, 400) };
-        decreasing_speed[3].points = { Point2LL(0, 400), Point2LL(0, 800) };
-        decreasing_speed[4].points = { Point2LL(0, 800), Point2LL(1000, 800) };
+        decreasing_speed[0].points = { ::curaengine::geometry::Point2LL(0, 0), ::curaengine::geometry::Point2LL(1000, 0) };
+        decreasing_speed[1].points = { ::curaengine::geometry::Point2LL(1000, 0), ::curaengine::geometry::Point2LL(1000, 400) };
+        decreasing_speed[2].points = { ::curaengine::geometry::Point2LL(1000, 400), ::curaengine::geometry::Point2LL(0, 400) };
+        decreasing_speed[3].points = { ::curaengine::geometry::Point2LL(0, 400), ::curaengine::geometry::Point2LL(0, 800) };
+        decreasing_speed[4].points = { ::curaengine::geometry::Point2LL(0, 800), ::curaengine::geometry::Point2LL(1000, 800) };
 
         variable_width.assign({
-            GCodePath{ .config = extrusion_config,
+            ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                        .mesh = mesh,
                        .space_fill_type = SpaceFillType::Lines,
                        .flow = flow_1,
                        .width_factor = width_1,
                        .spiralize = no_spiralize,
                        .speed_factor = speed_1 },
-            GCodePath{ .config = extrusion_config,
+            ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                        .mesh = mesh,
                        .space_fill_type = SpaceFillType::Lines,
                        .flow = 0.8_r,
                        .width_factor = width_1,
                        .spiralize = no_spiralize,
                        .speed_factor = speed_1 },
-            GCodePath{ .config = extrusion_config,
+            ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                        .mesh = mesh,
                        .space_fill_type = SpaceFillType::Lines,
                        .flow = 0.6_r,
                        .width_factor = width_1,
                        .spiralize = no_spiralize,
                        .speed_factor = speed_1 },
-            GCodePath{ .config = extrusion_config,
+            ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                        .mesh = mesh,
                        .space_fill_type = SpaceFillType::Lines,
                        .flow = 0.4_r,
                        .width_factor = width_1,
                        .spiralize = no_spiralize,
                        .speed_factor = speed_1 },
-            GCodePath{ .config = extrusion_config,
+            ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                        .mesh = mesh,
                        .space_fill_type = SpaceFillType::Lines,
                        .flow = 0.2_r,
                        .width_factor = width_1,
                        .spiralize = no_spiralize,
                        .speed_factor = speed_1 },
-            GCodePath{ .config = extrusion_config,
+            ::curaengine::path_planning::GCodePath{ .config = extrusion_config,
                        .mesh = mesh,
                        .space_fill_type = SpaceFillType::Lines,
                        .flow = 0.0_r,
@@ -271,12 +274,12 @@ public:
                        .spiralize = no_spiralize,
                        .speed_factor = speed_1 },
         });
-        variable_width[0].points = { Point2LL(0, 0), Point2LL(1000, 0) };
-        variable_width[1].points = { Point2LL(1000, 0), Point2LL(2000, 0) };
-        variable_width[2].points = { Point2LL(2000, 0), Point2LL(3000, 0) };
-        variable_width[3].points = { Point2LL(3000, 0), Point2LL(4000, 0) };
-        variable_width[4].points = { Point2LL(4000, 0), Point2LL(5000, 0) };
-        variable_width[5].points = { Point2LL(5000, 0), Point2LL(6000, 0) };
+        variable_width[0].points = { ::curaengine::geometry::Point2LL(0, 0), ::curaengine::geometry::Point2LL(1000, 0) };
+        variable_width[1].points = { ::curaengine::geometry::Point2LL(1000, 0), ::curaengine::geometry::Point2LL(2000, 0) };
+        variable_width[2].points = { ::curaengine::geometry::Point2LL(2000, 0), ::curaengine::geometry::Point2LL(3000, 0) };
+        variable_width[3].points = { ::curaengine::geometry::Point2LL(3000, 0), ::curaengine::geometry::Point2LL(4000, 0) };
+        variable_width[4].points = { ::curaengine::geometry::Point2LL(4000, 0), ::curaengine::geometry::Point2LL(5000, 0) };
+        variable_width[5].points = { ::curaengine::geometry::Point2LL(5000, 0), ::curaengine::geometry::Point2LL(6000, 0) };
     }
 };
 // NOLINTEND(misc-non-private-member-variables-in-classes)
@@ -287,7 +290,7 @@ static ExtruderPlanTestPathCollection path_collection;
  * Tests in this class get parameterized with a vector of GCodePaths to put in
  * the extruder plan, and an extruder plan to put it in.
  */
-class ExtruderPlanPathsParameterizedTest : public testing::TestWithParam<std::vector<GCodePath>>
+class ExtruderPlanPathsParameterizedTest : public testing::TestWithParam<std::vector<::curaengine::path_planning::GCodePath>>
 {
 public:
     /*!
@@ -323,12 +326,12 @@ public:
      * \param path The path to calculate the flow rate of.
      * \return The flow rate, in cubic millimeters per second.
      */
-    [[nodiscard]] static double calculatePathWidth(const GCodePath& path)
+    [[nodiscard]] static double calculatePathWidth(const ::curaengine::path_planning::GCodePath& path)
     {
         return path.getExtrusionMM3perMM() / path.config.getFlowRatio() / path.flow * path.config.getSpeed() * path.speed_back_pressure_factor;
     }
 
-    [[nodiscard]] static bool shouldCountPath(const GCodePath& path)
+    [[nodiscard]] static bool shouldCountPath(const ::curaengine::path_planning::GCodePath& path)
     {
         return path.flow > 0.0 && path.width_factor > 0.0 && path.config.getFlowRatio() > 0.0 && path.config.getLineWidth() > 0 && ! path.config.isTravelPath()
             && ! path.config.isBridgePath();
@@ -373,9 +376,9 @@ public:
 TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationZeroIsUncompensated)
 {
     extruder_plan.paths_ = GetParam();
-    std::vector<Ratio> original_widths;
-    std::vector<Ratio> original_speeds;
-    for (const GCodePath& path : extruder_plan.paths_)
+    std::vector<::curaengine::types::Ratio> original_widths;
+    std::vector<::curaengine::types::Ratio> original_speeds;
+    for (const ::curaengine::path_planning::GCodePath& path : extruder_plan.paths_)
     {
         original_widths.push_back(path.width_factor);
         original_speeds.push_back(path.speed_factor);
@@ -403,7 +406,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
     auto first_extrusion = std::find_if(
         extruder_plan.paths_.begin(),
         extruder_plan.paths_.end(),
-        [&](GCodePath& path)
+        [&](::curaengine::path_planning::GCodePath& path)
         {
             return shouldCountPath(path);
         });
@@ -414,7 +417,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationFull)
     // All flow rates must be equal to this one.
     const double first_flow_mm3_per_sec = calculatePathWidth(*first_extrusion);
 
-    for (GCodePath& path : extruder_plan.paths_)
+    for (::curaengine::path_planning::GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -435,7 +438,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
 
     // Calculate what the flow rates were originally.
     std::vector<double> original_flows;
-    for (GCodePath& path : extruder_plan.paths_)
+    for (::curaengine::path_planning::GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -450,7 +453,7 @@ TEST_P(ExtruderPlanPathsParameterizedTest, BackPressureCompensationHalf)
 
     // Calculate the new flow rates.
     std::vector<double> new_flows;
-    for (GCodePath& path : extruder_plan.paths_)
+    for (::curaengine::path_planning::GCodePath& path : extruder_plan.paths_)
     {
         if (! shouldCountPath(path))
         {
@@ -482,5 +485,5 @@ TEST_F(ExtruderPlanTest, BackPressureCompensationEmptyPlan)
 
     EXPECT_TRUE(extruder_plan.paths_.empty()) << "The paths in the extruder plan should remain empty. Also it shouldn't crash.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

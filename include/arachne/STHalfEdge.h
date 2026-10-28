@@ -1,14 +1,13 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SKELETAL_TRAPEZOIDATION_HALF_EDGE_H
-#define SKELETAL_TRAPEZOIDATION_HALF_EDGE_H
+#pragma once
 
 #include <optional>
 
 #include "arachne/SkeletalTrapezoidationEdge.h"
 
-namespace cura
+namespace curaengine::arachne
 {
 
 class SkeletalTrapezoidationJoint;
@@ -52,10 +51,9 @@ public:
      *
      * If we can go up then the distance includes the length of the \param edge
      */
-    std::optional<coord_t> distToGoUp() const;
+    std::optional<utils::coord_t> distToGoUp() const;
 
     STHalfEdge* getNextUnconnected();
 };
 
-} // namespace cura
-#endif
+} // namespace curaengine::arachne

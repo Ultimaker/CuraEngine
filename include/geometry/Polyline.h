@@ -1,18 +1,22 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_POLYLINE_H
-#define GEOMETRY_POLYLINE_H
+#pragma once
 
 #include "geometry/PointsSet.h"
 #include "geometry/SegmentIterator.h"
 
-namespace cura
+namespace curaengine::types
+{
+class AngleRadians;
+}
+
+namespace curaengine::geometry
 {
 
 template<class LineType>
 class LinesSet;
-class AngleRadians;
+
 class OpenPolyline;
 class OpenLinesSet;
 
@@ -128,9 +132,9 @@ public:
         return ClipperLib::Orientation(getPoints());
     }
 
-    [[nodiscard]] coord_t length() const;
+    [[nodiscard]] utils::coord_t length() const;
 
-    [[nodiscard]] bool shorterThan(const coord_t check_length) const;
+    [[nodiscard]] bool shorterThan(const utils::coord_t check_length) const;
 
     /*!
      * Adds a point to this set, but only if it forms a proper new segment i.r.t the current points in the set
@@ -154,7 +158,7 @@ public:
         ClipperLib::ReversePath(getPoints());
     }
 
-    void removeColinearEdges(const AngleRadians max_deviation_angle);
+    void removeColinearEdges(const types::AngleRadians max_deviation_angle);
 
     /*!
      * Removes consecutive line segments with same orientation and changes this polygon.
@@ -177,9 +181,7 @@ public:
      * \param allowed_error_distance_squared The square of the distance of the middle point to the line segment of the consecutive and previous point for which the middle point is
      removed
      */
-    void simplify(const coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const coord_t allowed_error_distance_squared = 25);
+    void simplify(const utils::coord_t smallest_line_segment_squared = MM2INT(0.01) * MM2INT(0.01), const utils::coord_t allowed_error_distance_squared = 25);
 };
 
-} // namespace cura
-
-#endif // GEOMETRY_POLYLINE_H
+} // namespace curaengine::geometry

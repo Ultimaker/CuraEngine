@@ -3,11 +3,16 @@
 
 #include "geometry/MendedShape.h"
 
+#include "types/AngleRadians.h"
+#include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
-#include "utils/actions/smooth.h"
-#include "utils/polygonUtils.h"
+#include "utils/actions/smooth_fn.h"
 
-using namespace cura;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::geometry
+{
 
 MendedShape::MendedShape(const Settings* settings, const SectionType section_type, const Shape* shape)
     : settings_(settings)
@@ -41,7 +46,7 @@ const Shape& MendedShape::getShape() const
             if (settings_->get<bool>("meshfix_fluid_motion_enabled") && section_type_ != SectionType::SUPPORT)
             {
                 // No need to smooth support walls
-                auto smoother = actions::smooth(*settings_);
+                auto smoother = utils::actions::smooth(*settings_);
                 for (Polygon& polygon : mended_shape)
                 {
                     polygon.setPoints(smoother(polygon.getPoints()));
@@ -67,3 +72,5 @@ const Shape& MendedShape::getShape() const
 
     return *mended_shape_;
 }
+
+} // namespace curaengine::geometry

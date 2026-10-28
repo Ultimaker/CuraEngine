@@ -1,15 +1,13 @@
-// Copyright (c) 2024 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SCORING_BESTCANDIDATEFINDER_H
-#define UTILS_SCORING_BESTCANDIDATEFINDER_H
+#pragma once
 
-#include <algorithm>
 #include <memory>
 #include <optional>
 #include <vector>
 
-namespace cura
+namespace curaengine::utils::scoring
 {
 class ScoringCriterion;
 
@@ -84,5 +82,4 @@ public:
     [[nodiscard]] std::optional<size_t> findBestElement(const size_t candidates_count);
 };
 
-} // namespace cura
-#endif // UTILS_SCORING_BESTCANDIDATEFINDER_H
+} // namespace curaengine::utils::scoring

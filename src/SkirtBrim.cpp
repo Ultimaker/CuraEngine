@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "SkirtBrim.h"
@@ -7,19 +7,27 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h"
+#include "AreaSupport.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "SupportLayer.h"
+#include "geometry/ClosedLinesSet.h"
+#include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
-#include "settings/EnumSettings.h"
-#include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
-#include "support.h"
+#include "types/BrimLocation.h"
+#include "types/EPlatformAdhesion.h"
+#include "types/Ratio.h"
 #include "utils/MixedPolylineStitcher.h"
+#include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"
-#include "utils/polygonUtils.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 SkirtBrim::SkirtBrim(SliceDataStorage& storage)
@@ -773,4 +781,4 @@ void SkirtBrim::generateSupportBrim()
     }
 }
 
-} // namespace cura
+} // namespace curaengine

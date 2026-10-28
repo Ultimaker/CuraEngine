@@ -1,14 +1,13 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_FIXEDGCODEPART_H
-#define GCODEEXPORT_FIXEDGCODEPART_H
+#pragma once
 
 #include <sstream>
 
 #include "gcode_export/GCodePart.h"
 
-namespace cura
+namespace curaengine::gcode_export
 {
 
 /*! \brief Contains pieces of GCode that are fixed string */
@@ -27,6 +26,4 @@ private:
     std::ostringstream stream_;
 };
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::gcode_export

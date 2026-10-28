@@ -1,17 +1,19 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef EXCLUSIONAREASCORINGCRITERION_H
-#define EXCLUSIONAREASCORINGCRITERION_H
-
-#include <stddef.h>
+#pragma once
 
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 class PointsSet;
 class Shape;
+} // namespace curaengine::geometry
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Criterion that will give a score according to whether the point is located inside or outside of an exclusion area.
@@ -20,14 +22,12 @@ class Shape;
 class ExclusionAreaScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
-    const Shape& exclusion_area_;
+    const geometry::Shape& exclusion_area_;
 
 public:
-    explicit ExclusionAreaScoringCriterion(const PointsSet& points, const Shape& exclusion_area);
+    explicit ExclusionAreaScoringCriterion(const geometry::PointsSet& points, const geometry::Shape& exclusion_area);
 
-    virtual double computeScore(const Point2LL& candidate_position) const override;
+    virtual double computeScore(const geometry::Point2LL& candidate_position) const override;
 };
 
-} // namespace cura
-
-#endif // EXCLUSIONAREASCORINGCRITERION_H
+} // namespace curaengine::utils::scoring

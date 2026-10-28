@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #ifndef CURAENGINE_INFILL_BENCHMARK_H
@@ -9,35 +9,35 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/LinesSet.h"
-#include "infill.h"
+#include "infill/Infill.h"
 
-namespace cura
+namespace curaengine
 {
 class InfillTest : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    Shape square_shape;
-    Shape ff_holes;
+    geometry::Shape square_shape;
+    geometry::Shape ff_holes;
 
 
-    std::vector<ExtrusionLine> all_paths;
+    std::vector<utils::ExtrusionLine> all_paths;
 
 
-    Shape outline_polygons;
-    EFillMethod pattern{ EFillMethod::LINES };
+    geometry::Shape outline_polygons;
+    types::EFillMethod pattern{ types::EFillMethod::LINES };
     bool zig_zagify{ true };
     bool connect_polygons{ true };
-    coord_t line_distance{ 800 };
+    utils::coord_t line_distance{ 800 };
 
-    coord_t INFILL_LINE_WIDTH = 350;
-    coord_t INFILL_OVERLAP = 0;
+    utils::coord_t INFILL_LINE_WIDTH = 350;
+    utils::coord_t INFILL_OVERLAP = 0;
     size_t INFILL_MULTIPLIER = 1;
-    AngleDegrees FILL_ANGLE = 0.;
-    coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
-    coord_t SHIFT = 0;
-    coord_t MAX_RESOLUTION = 10;
-    coord_t MAX_DEVIATION = 5;
+    types::AngleDegrees FILL_ANGLE = 0.;
+    utils::coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
+    utils::coord_t SHIFT = 0;
+    utils::coord_t MAX_RESOLUTION = 10;
+    utils::coord_t MAX_DEVIATION = 5;
 
     void SetUp(const ::benchmark::State& state)
     {
@@ -97,7 +97,7 @@ public:
 
 BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 {
-    Infill infill(
+    infill::Infill infill(
         pattern,
         zig_zagify,
         connect_polygons,
@@ -114,13 +114,13 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 
     for (auto _ : st)
     {
-        std::vector<VariableWidthLines> result_paths;
-        Shape result_polygons;
-        OpenLinesSet result_lines;
-        infill.generate(result_paths, result_polygons, result_lines, settings, 0, SectionType::INFILL, nullptr, nullptr);
+        std::vector<utils::VariableWidthLines> result_paths;
+        geometry::Shape result_polygons;
+        geometry::OpenLinesSet result_lines;
+        infill.generate(result_paths, result_polygons, result_lines, settings, 0, utils::SectionType::INFILL, nullptr, nullptr);
     }
 }
 
 BENCHMARK_REGISTER_F(InfillTest, Infill_generate_connect)->ArgsProduct({ { true, false }, { 400, 800, 1200 } })->Unit(benchmark::kMillisecond);
-} // namespace cura
+} // namespace curaengine
 #endif // CURAENGINE_INFILL_BENCHMARK_H

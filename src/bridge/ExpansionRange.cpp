@@ -7,7 +7,9 @@
 #include "bridge/SegmentOverlappingData.h"
 
 
-namespace cura
+using namespace curaengine::utils;
+
+namespace curaengine::bridge
 {
 
 std::optional<SegmentOverlapping> ExpansionRange::calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const
@@ -31,4 +33,4 @@ std::optional<SegmentOverlapping> ExpansionRange::calculateOverlapping(const Tra
     return SegmentOverlapping{ TransformedSegment::makeNonIntersectingOverlapping(overlap_top, overlap_bottom), overlapping.makeOtherOverlappingPart() };
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

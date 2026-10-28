@@ -7,7 +7,7 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 MixedLinesSet ClosedLinesSet::intersection(const Shape& shape) const
@@ -48,4 +48,4 @@ MixedLinesSet ClosedLinesSet::intersection(const Shape& shape) const
     return MixedLinesSet(std::move(ret));
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

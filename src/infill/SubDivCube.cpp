@@ -1,24 +1,31 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "infill/SubDivCube.h"
 
 #include <functional>
 
+#include "Settings.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "settings/types/Angle.h" //For the infill angle.
-#include "sliceDataStorage.h"
+#include "types/AngleDegrees.h" //For the infill angle.
+#include "utils/PolygonUtils.h"
 #include "utils/math.h"
-#include "utils/polygonUtils.h"
 
 #define ONE_OVER_SQRT_2 0.7071067811865475244008443621048490392848359376884740 // 1 / sqrt(2)
 #define ONE_OVER_SQRT_3 0.577350269189625764509148780501957455647601751270126876018 // 1 / sqrt(3)
 #define ONE_OVER_SQRT_6 0.408248290463863016366214012450981898660991246776111688072 // 1 / sqrt(6)
 #define SQRT_TWO_THIRD 0.816496580927726032732428024901963797321982493552223376144 // sqrt(2 / 3)
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::infill
 {
 
 std::vector<SubDivCube::CubeProperties> SubDivCube::cube_properties_per_recursion_step_;
@@ -35,7 +42,8 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill
     const AngleDegrees infill_angle = (! infill_angles.empty()) ? infill_angles[0] : AngleDegrees(0);
 
     const coord_t furthest_dist_from_origin = std::sqrt(
-        square(mesh.settings.get<coord_t>("machine_height")) + square(mesh.settings.get<coord_t>("machine_depth") / 2) + square(mesh.settings.get<coord_t>("machine_width") / 2));
+        utils::square(mesh.settings.get<coord_t>("machine_height")) + utils::square(mesh.settings.get<coord_t>("machine_depth") / 2)
+        + utils::square(mesh.settings.get<coord_t>("machine_width") / 2));
     const coord_t max_side_length = furthest_dist_from_origin * 2;
 
     size_t curr_recursion_depth = 0;
@@ -241,7 +249,7 @@ coord_t SubDivCube::distanceFromPointToMesh(SliceMeshStorage& mesh, const LayerI
     bool inside = collide.inside(centerpoint);
     ClosestPointPolygon border_point = PolygonUtils::moveInside2(collide, centerpoint);
     Point2LL diff = border_point.location_ - location;
-    *distance2 = vSize2(diff);
+    *distance2 = geometry::vSize2(diff);
     if (inside)
     {
         return 1;
@@ -287,4 +295,4 @@ void SubDivCube::addLineAndCombine(OpenLinesSet& group, Point2LL from, Point2LL 
     group.addSegment(from, to);
 }
 
-} // namespace cura
+} // namespace curaengine::infill

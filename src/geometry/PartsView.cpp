@@ -9,7 +9,7 @@
 #include "geometry/Polygon.h"
 #include "geometry/SingleShape.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 size_t PartsView::getPartContaining(size_t poly_idx, size_t* boundary_poly_idx) const
@@ -60,4 +60,4 @@ SingleShape PartsView::assemblePartContaining(size_t poly_idx, size_t* boundary_
     return ret;
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

@@ -26,7 +26,11 @@
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
-namespace cura
+using namespace curaengine::communication;
+using namespace curaengine::progress;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 Application::Application()
@@ -144,11 +148,13 @@ void Application::printHelp() const
     fmt::print("  -o <output_file>\n\tSpecify a file to which to write the generated gcode.\n");
     fmt::print("\n");
     fmt::print("The settings are appended to the last supplied object:\n");
-    fmt::print("CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
-               "settings] \n\t--next [next group settings]\n\t... etc.\n");
+    fmt::print(
+        "CuraEngine slice [general settings] \n\t-g [current group settings] \n\t-e0 [extruder train 0 settings] \n\t-l obj_inheriting_from_last_extruder_train.stl [object "
+        "settings] \n\t--next [next group settings]\n\t... etc.\n");
     fmt::print("\n");
-    fmt::print("In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
-               "paths delimited by a (semi-)colon.\n");
+    fmt::print(
+        "In order to load machine definitions from custom locations, you need to create the environment variable CURA_ENGINE_SEARCH_PATH, which should contain all search "
+        "paths delimited by a (semi-)colon.\n");
     fmt::print("\n");
 }
 
@@ -241,17 +247,17 @@ void Application::run(const size_t argc, char** argv)
     }
 
 #ifdef ARCUS
-    if (stringcasecompare(argv[1], "connect") == 0)
+    if (utils::stringcasecompare(argv[1], "connect") == 0)
     {
         connect();
     }
     else
 #endif // ARCUS
-        if (stringcasecompare(argv[1], "slice") == 0)
+        if (utils::stringcasecompare(argv[1], "slice") == 0)
         {
             slice();
         }
-        else if (stringcasecompare(argv[1], "help") == 0)
+        else if (utils::stringcasecompare(argv[1], "help") == 0)
         {
             printHelp();
         }
@@ -309,4 +315,4 @@ void Application::startThreadPool(int nworkers)
     thread_pool_ = new ThreadPool(nthreads);
 }
 
-} // namespace cura
+} // namespace curaengine

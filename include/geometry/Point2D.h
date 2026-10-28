@@ -1,15 +1,14 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef POINT2D_H
-#define POINT2D_H
+#pragma once
 
 #include <cmath>
 #include <optional>
 
 #include "utils/math.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class Point2D
@@ -46,7 +45,7 @@ public:
     std::optional<Point2D> vNormalized() const
     {
         const double size = vSize();
-        if (is_zero(size))
+        if (utils::is_zero(size))
         {
             return std::nullopt;
         }
@@ -99,5 +98,4 @@ inline Point2D lerp(const Point2D& a, const Point2D& b, const double t)
     return Point2D(std::lerp(a.x(), b.x(), t), std::lerp(a.y(), b.y(), t));
 }
 
-} // namespace cura
-#endif // POINT2D_H
+} // namespace curaengine::geometry

@@ -1,12 +1,11 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_CLOSED_POLYLINE_H
-#define GEOMETRY_CLOSED_POLYLINE_H
+#pragma once
 
 #include "geometry/Polyline.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class OpenPolyline;
@@ -149,6 +148,4 @@ public:
     void shiftVerticesToStartPoint(const size_t start_index);
 };
 
-} // namespace cura
-
-#endif // GEOMETRY_CLOSED_POLYLINE_H
+} // namespace curaengine::geometry

@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "InterlockingGenerator.h"
@@ -12,13 +12,19 @@
 
 #include "Application.h"
 #include "Slice.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
 #include "geometry/PointMatrix.h"
-#include "settings/types/LayerIndex.h"
-#include "slicer.h"
+#include "types/LayerIndex.h"
+#include "utils/DilationKernel.h"
+#include "utils/PolygonUtils.h"
 #include "utils/VoxelUtils.h"
-#include "utils/polygonUtils.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 // TODO: optimization: only go up to the min layer count + a couple of layers instead of max_layer_count
@@ -341,4 +347,4 @@ void InterlockingGenerator::applyMicrostructureToOutlines(const std::unordered_s
     }
 }
 
-} // namespace cura
+} // namespace curaengine

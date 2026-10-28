@@ -1,13 +1,16 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "bridge/SegmentOverlappingData.h"
 
 #include "bridge/TransformedSegment.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
+namespace curaengine::bridge
 {
 
 SegmentOverlappingData::SegmentOverlappingData(
@@ -34,4 +37,4 @@ TransformedSegment SegmentOverlappingData::makeOtherOverlappingPart() const
     return TransformedSegment(Point2LL(other_x_min, y_min), Point2LL(other_x_max, y_max));
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

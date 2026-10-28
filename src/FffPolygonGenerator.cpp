@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <algorithm>
@@ -9,28 +9,40 @@
 
 #include <spdlog/spdlog.h>
 
+#include "Mesh.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SlicerLayer.h"
+#include "SupportLayer.h"
+#include "types/DraftShieldHeightLimitation.h"
+#include "types/EFillMethod.h"
+#include "types/EPlatformAdhesion.h"
+#include "types/ESurfaceMode.h"
+#include "types/SlicingTolerance.h"
+
 // Code smell: Order of the includes is important here, probably due to some forward declarations which might be masking some undefined behaviours
 // clang-format off
 #include "Application.h"
 #include "ConicalOverhang.h"
 #include "ExtruderTrain.h"
 #include "FffPolygonGenerator.h"
-#include "infill.h"
+#include "infill/Infill.h"
 #include "InterlockingGenerator.h"
 #include "layerPart.h"
 #include "MeshGroup.h"
-#include "MeshMaterialSplitter.h"
+#include "mesh_material_splitter/MeshMaterialSplitter.h"
 #include "Mold.h"
-#include "multiVolumes.h"
-#include "PrintFeature.h"
-#include "raft.h"
-#include "skin.h"
+#include "MultiVolumes.h"
+#include "PrintFeatureType.h"
+#include "Raft.h"
+#include "SkinInfillAreaComputation.h"
 #include "SkirtBrim.h"
 #include "Slice.h"
 #include "TextureDataProvider.h"
-#include "sliceDataStorage.h"
-#include "slicer.h"
-#include "support.h"
+#include "SliceDataStorage.h"
+#include "Slicer.h"
+#include "AreaSupport.h"
 #include "TopSurface.h"
 #include "TreeSupport.h"
 #include "WallsComputation.h"
@@ -44,25 +56,32 @@
 #include "progress/ProgressEstimator.h"
 #include "progress/ProgressEstimatorLinear.h"
 #include "progress/ProgressStageEstimator.h"
-#include "settings/AdaptiveLayerHeights.h"
-#include "settings/types/Angle.h"
-#include "settings/types/LayerIndex.h"
+#include "types/AdaptiveLayerHeights.h"
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
+#include "types/LayerIndex.h"
 #include "utils/algorithm.h"
 #include "utils/ThreadPool.h"
-#include "utils/gettime.h"
+#include "utils/TimeKeeper.h"
 #include "utils/math.h"
-#include "PrimeTower/PrimeTower.h"
+#include "prime_tower/PrimeTower.h"
 #include "geometry/OpenPolyline.h"
 #include "utils/Simplify.h"
 // clang-format on
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::infill;
+using namespace curaengine::progress;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 
 bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    MeshMaterialSplitter::makePaintingModifierMeshes(meshgroup);
+    mesh_material_splitter::makePaintingModifierMeshes(meshgroup);
 
     if (! sliceModel(meshgroup, timeKeeper, storage))
     {
@@ -161,7 +180,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 }
                 else
                 {
-                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(utils::round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
                 }
                 break;
             case SlicingTolerance::EXCLUSIVE:
@@ -169,7 +188,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 int new_slice_layer_count = 0;
                 if (mesh_height >= initial_layer_thickness) // If less than the initial layer thickness, leave it at 0.
                 {
-                    new_slice_layer_count = static_cast<int>(floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
+                    new_slice_layer_count = static_cast<int>(utils::floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
                 }
                 if (new_slice_layer_count > 0) // If there is at least one layer already, then...
                 {
@@ -186,7 +205,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeepe
                 }
                 else
                 {
-                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(utils::ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
                 }
                 break;
             default:
@@ -508,7 +527,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     } guarded_progress = { inset_skin_progress_estimate };
 
     // walls
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         mesh_layer_count,
         [&](size_t layer_number)
@@ -551,7 +570,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     }
 
     guarded_progress.reset();
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         mesh_layer_count,
         [&](size_t layer_number)
@@ -946,7 +965,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         }
     }
 
-    storage.max_print_height_order = order(max_print_height_per_extruder);
+    storage.max_print_height_order = utils::order(max_print_height_per_extruder);
     if (extruder_count >= 2)
     {
         int second_highest_extruder = storage.max_print_height_order[extruder_count - 2];
@@ -1158,21 +1177,21 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 
                         // 'a' is the (next) new point between p0 and p1
                         const Point2LL p0p1 = p1.p_ - p0->p_;
-                        const int64_t p0p1_size = vSize(p0p1);
+                        const int64_t p0p1_size = geometry::vSize(p0p1);
                         int64_t p0pa_dist = dist_left_over;
                         if (p0pa_dist >= p0p1_size)
                         {
                             const Point2LL p = p1.p_ - (p0p1 / 2);
-                            const double width = (p1.w_ * vSize(p1.p_ - p) + p0->w_ * vSize(p0->p_ - p)) / p0p1_size;
+                            const double width = (p1.w_ * geometry::vSize(p1.p_ - p) + p0->w_ * geometry::vSize(p0->p_ - p)) / p0p1_size;
                             result.emplace_back(p, width, p1.perimeter_index_);
                         }
                         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                         {
                             const int r = rand() % (fuzziness * 2) - fuzziness;
-                            const Point2LL perp_to_p0p1 = turn90CCW(p0p1);
-                            const Point2LL fuzz = normal(perp_to_p0p1, r);
-                            const Point2LL pa = p0->p_ + normal(p0p1, p0pa_dist);
-                            const double width = (p1.w_ * vSize(p1.p_ - pa) + p0->w_ * vSize(p0->p_ - pa)) / p0p1_size;
+                            const Point2LL perp_to_p0p1 = geometry::turn90CCW(p0p1);
+                            const Point2LL fuzz = geometry::normal(perp_to_p0p1, r);
+                            const Point2LL pa = p0->p_ + geometry::normal(p0p1, p0pa_dist);
+                            const double width = (p1.w_ * geometry::vSize(p1.p_ - pa) + p0->w_ * geometry::vSize(p0->p_ - pa)) / p0p1_size;
                             result.emplace_back(pa + fuzz, width, p1.perimeter_index_);
                         }
                         // p0pa_dist > p0p1_size now because we broke out of the for-loop
@@ -1210,4 +1229,4 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
 }
 
 
-} // namespace cura
+} // namespace curaengine

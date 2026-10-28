@@ -1,4 +1,4 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/MeshUtils.h"
@@ -14,13 +14,16 @@
 
 #include <spdlog/spdlog.h>
 
-#include "TextureDataMapping.h"
-#include "mesh.h"
-#include "utils/Point2F.h"
-#include "utils/Point3D.h"
+#include "Image.h"
+#include "Mesh.h"
+#include "TextureBitField.h"
+#include "geometry/Point2F.h"
+#include "geometry/Point3D.h"
 
 
-namespace cura::MeshUtils
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 std::optional<Point3D> getBarycentricCoordinates(const Point3LL& point, const Triangle3LL& triangle)
@@ -261,4 +264,4 @@ void loadTextureFromString(const std::string& texture_str, Mesh& mesh)
     loadTextureFromPngData(texture_data, mesh, "network data", false);
 }
 
-} // namespace cura::MeshUtils
+} // namespace curaengine::utils

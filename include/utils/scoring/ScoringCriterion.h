@@ -1,12 +1,11 @@
-// Copyright (c) 2024 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SCORING_SCORINGCRITERION_H
-#define UTILS_SCORING_SCORINGCRITERION_H
+#pragma once
 
-#include <stddef.h>
+#include <cstddef>
 
-namespace cura
+namespace curaengine::utils::scoring
 {
 
 /*!
@@ -29,6 +28,4 @@ public:
     virtual double computeScore(const size_t candidate_index) const = 0;
 };
 
-} // namespace cura
-
-#endif // UTILS_SCORING_SCORINGCRITERION_H
+} // namespace curaengine::utils::scoring

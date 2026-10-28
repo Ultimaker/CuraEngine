@@ -1,13 +1,12 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_CLOSED_LINES_SET_H
-#define GEOMETRY_CLOSED_LINES_SET_H
+#pragma once
 
 #include "geometry/ClosedPolyline.h"
 #include "geometry/LinesSet.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class MixedLinesSet;
@@ -41,6 +40,4 @@ public:
     [[nodiscard]] MixedLinesSet difference(const Shape& shape) const;
 };
 
-} // namespace cura
-
-#endif // GEOMETRY_CLOSED_LINES_SET_H
+} // namespace curaengine::geometry

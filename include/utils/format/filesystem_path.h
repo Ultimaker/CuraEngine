@@ -1,8 +1,7 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef CURAENGINE_INCLUDE_UTILS_FORMAT_FILESYSTEM_PATH_H
-#define CURAENGINE_INCLUDE_UTILS_FORMAT_FILESYSTEM_PATH_H
+#pragma once
 
 #include <cstdlib>
 #include <filesystem>
@@ -43,5 +42,3 @@ inline std::string fmt::formatter<std::filesystem::path>::USERNAME = std::getenv
 #endif
 
 } // namespace fmt
-
-#endif // CURAENGINE_INCLUDE_UTILS_FORMAT_FILESYSTEM_PATH_H

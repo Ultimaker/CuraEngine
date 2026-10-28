@@ -1,24 +1,28 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef ARCUSCOMMUNICATIONPRIVATE_H
-#define ARCUSCOMMUNICATIONPRIVATE_H
+#pragma once
 #ifdef ARCUS
 
 #include <sstream> //For ostringstream.
 
 #include "ArcusCommunication.h" //We're adding a subclass to this.
 #include "SliceDataStruct.h"
-#include "settings/types/LayerIndex.h"
+#include "types/LayerIndex.h"
 
-namespace cura
+namespace curaengine
+{
+class Mesh;
+class ArcusCommunicationPrivateTest;
+} // namespace curaengine
+
+namespace curaengine::communication
 {
 
-class Mesh;
 
 class ArcusCommunication::Private
 {
-    friend class ArcusCommunicationPrivateTest;
+    friend class ::curaengine::ArcusCommunicationPrivateTest;
 
 public:
     Private();
@@ -28,7 +32,7 @@ public:
      * \param layer_nr The layer number to get the optimised layer data for.
      * \return The optimised layer data for that layer.
      */
-    std::shared_ptr<proto::LayerOptimized> getOptimizedLayerById(LayerIndex::value_type layer_nr);
+    std::shared_ptr<::cura::proto::LayerOptimized> getOptimizedLayerById(types::LayerIndex::value_type layer_nr);
 
     /*
      * Reads the global settings from a Protobuf message.
@@ -36,24 +40,24 @@ public:
      * The global settings are stored in the current scene.
      * \param global_settings_message The global settings message.
      */
-    void readGlobalSettingsMessage(const proto::SettingList& global_settings_message);
+    void readGlobalSettingsMessage(const ::cura::proto::SettingList& global_settings_message);
 
-    void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<proto::Extruder>& extruder_messages);
+    void readExtruderSettingsMessage(const google::protobuf::RepeatedPtrField<::cura::proto::Extruder>& extruder_messages);
 
     /*
      * \brief Reads a Protobuf message describing a mesh group.
      *
      * This gets the vertex data from the message as well as the settings.
      */
-    void readMeshGroupMessage(const proto::ObjectList& mesh_group_message);
+    void readMeshGroupMessage(const ::cura::proto::ObjectList& mesh_group_message);
 
     Arcus::Socket* socket; //!< Socket to send data to.
     size_t object_count; //!< Number of objects that need to be sliced.
     std::string temp_gcode_file; //!< Temporary buffer for the g-code.
     std::ostringstream gcode_output_stream; //!< The stream to write g-code to.
 
-    SliceDataStruct<cura::proto::Layer> sliced_layers;
-    SliceDataStruct<cura::proto::LayerOptimized> optimized_layers;
+    SliceDataStruct<::cura::proto::Layer> sliced_layers;
+    SliceDataStruct<::cura::proto::LayerOptimized> optimized_layers;
 
     int last_sent_progress; //!< Last sent progress promille (1/1000th). Used to not send duplicate messages with the same promille.
 
@@ -78,7 +82,6 @@ private:
     static void loadTextureData(const std::string& texture_str, Mesh& mesh);
 };
 
-} // namespace cura
+} // namespace curaengine::communication
 
 #endif // ARCUS
-#endif // ARCUSCOMMUNICATIONPRIVATE_H

@@ -1,8 +1,7 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_STRING_H
-#define UTILS_STRING_H
+#pragma once
 
 #include <cmath>
 #include <cstdio> // snprintf
@@ -14,7 +13,7 @@
 #include <boost/archive/iterators/transform_width.hpp>
 #include <spdlog/spdlog.h>
 
-namespace cura
+namespace curaengine::utils
 {
 
 // c++11 no longer supplies a strcasecmp, so define our own version.
@@ -126,20 +125,6 @@ static inline void writeInt2mm(const int32_t coord, std::ostream& ss)
 }
 
 /*!
- * Struct to make it possible to inline calls to writeInt2mm with writing other stuff to the output stream
- */
-struct MMtoStream
-{
-    int64_t value; //!< The coord in micron
-
-    friend inline std::ostream& operator<<(std::ostream& out, const MMtoStream precision_and_input)
-    {
-        writeInt2mm(precision_and_input.value, out);
-        return out;
-    }
-};
-
-/*!
  * Efficient writing of a double to a stringstream
  *
  * writes with \p precision digits after the decimal dot, but removes trailing zeros
@@ -190,89 +175,4 @@ static inline void writeDoubleToStream(const uint8_t precision, const double coo
     ss << buffer;
 }
 
-/*!
- * Struct to make it possible to inline calls to writeDoubleToStream with writing other stuff to the output stream
- */
-struct PrecisionedDouble
-{
-    uint8_t precision; //!< Number of digits after the decimal mark with which to convert to string
-    double value; //!< The double value
-
-    bool wouldWriteZero() const
-    {
-        return (std::abs(value) * std::pow(10.0, precision)) < 1.0;
-    }
-
-    static bool equalGivenPrecision(const PrecisionedDouble& a, const PrecisionedDouble& b)
-    {
-        // We expect the 'value's here to be in the hundereds or thousands or so at max, so this implementation should be OK.
-        return (a.value == b.value) || (std::round(a.value * std::pow(10, a.precision)) == std::round(b.value * std::pow(10, b.precision)));
-    }
-
-    friend inline std::ostream& operator<<(std::ostream& out, const PrecisionedDouble precision_and_input)
-    {
-        writeDoubleToStream(precision_and_input.precision, precision_and_input.value, out);
-        return out;
-    }
-};
-
-/*!
- * Struct for writing a string to a stream in an escaped form
- */
-struct Escaped
-{
-    const char* str;
-
-    /*!
-     * Streaming function which replaces escape sequences with extra slashes
-     */
-    friend inline std::ostream& operator<<(std::ostream& os, const Escaped& e)
-    {
-        for (const char* char_p = e.str; *char_p != '\0'; char_p++)
-        {
-            switch (*char_p)
-            {
-            case '\a':
-                os << "\\a";
-                break;
-            case '\b':
-                os << "\\b";
-                break;
-            case '\f':
-                os << "\\f";
-                break;
-            case '\n':
-                os << "\\n";
-                break;
-            case '\r':
-                os << "\\r";
-                break;
-            case '\t':
-                os << "\\t";
-                break;
-            case '\v':
-                os << "\\v";
-                break;
-            case '\\':
-                os << "\\\\";
-                break;
-            case '\'':
-                os << "\\'";
-                break;
-            case '\"':
-                os << "\\\"";
-                break;
-            case '\?':
-                os << "\\\?";
-                break;
-            default:
-                os << *char_p;
-            }
-        }
-        return os;
-    }
-};
-
-} // namespace cura
-
-#endif // UTILS_STRING_H
+} // namespace curaengine::utils

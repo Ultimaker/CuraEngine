@@ -3,7 +3,9 @@
 
 #include "geometry/Point3LL.h" //The headers we're implementing.
 
-namespace cura
+using namespace curaengine::utils;
+
+namespace curaengine::geometry
 {
 
 Point3LL::Point3LL(const Point2LL& point, const coord_t z)
@@ -85,4 +87,4 @@ Point3LL Point3LL::resized(coord_t length) const
     return ((*this) * length) / actual_length;
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

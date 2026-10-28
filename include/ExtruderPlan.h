@@ -1,32 +1,36 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef EXTRUDERPLAN_H
-#define EXTRUDERPLAN_H
+#pragma once
 
-#include "FanSpeedLayerTime.h"
+#include "FanSpeedLayerTimeSettings.h"
 #include "RetractionConfig.h"
 #include "geometry/Point2LL.h"
-#include "pathPlanning/GCodePath.h"
-#include "pathPlanning/NozzleTempInsert.h"
-#include "pathPlanning/TimeMaterialEstimates.h"
-#include "settings/types/LayerIndex.h"
-#include "settings/types/Ratio.h"
+#include "path_planning/GCodePath.h"
+#include "path_planning/NozzleTempInsert.h"
+#include "path_planning/TimeMaterialEstimates.h"
+#include "types/LayerIndex.h"
+#include "types/Ratio.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
 #endif
 
-#include <limits>
 #include <list>
 #include <optional>
 #include <vector>
 
-namespace cura
+namespace curaengine::gcode_export
+{
+class GCodeExport;
+}
+
+namespace curaengine
 {
 class LayerPlanBuffer;
 class LayerPlan;
-class GCodeExport;
+
+class SliceMeshStorage;
 /*!
  * An extruder plan contains all planned paths (GCodePath) pertaining to a single extruder train.
  *
@@ -63,15 +67,15 @@ public:
      */
     ExtruderPlan(
         const size_t extruder,
-        const LayerIndex layer_nr,
+        const types::LayerIndex layer_nr,
         const bool is_initial_layer,
         const bool is_raft_layer,
-        const coord_t layer_thickness,
+        const utils::coord_t layer_thickness,
         const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
         const RetractionConfig& retraction_config);
 
 
-    void insertCommand(NozzleTempInsert&& insert);
+    void insertCommand(path_planning::NozzleTempInsert&& insert);
 
     /*!
      * Insert the inserts into gcode which should be inserted before \p path_idx
@@ -82,7 +86,7 @@ public:
      *        than the current path_idx are considered overdue and will be fired unconditionally. Inserts whose path_idx
      *        equals the current path_idx are fired only once cumulative_path_time reaches their time_after_path_start.
      */
-    void handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time);
+    void handleInserts(const size_t path_idx, gcode_export::GCodeExport& gcode, const double cumulative_path_time);
 
     /*!
      * Insert all remaining temp inserts into gcode, to be called at the end of an extruder plan
@@ -93,7 +97,7 @@ public:
      *
      * \param gcode The gcode exporter to which to write the temperature command.
      */
-    void handleAllRemainingInserts(GCodeExport& gcode);
+    void handleAllRemainingInserts(gcode_export::GCodeExport& gcode);
 
     /*!
      * Applying fan speed changes for minimal layer times.
@@ -101,7 +105,7 @@ public:
      * \param minTime Maximum minimum layer time for all extruders in this layer
      * \param time_other_extr_plans The time spent on the other extruder plans in this layer
      */
-    void processFanSpeedForMinimalLayerTime(Duration maximum_cool_min_layer_time, double time_other_extr_plans);
+    void processFanSpeedForMinimalLayerTime(types::Duration maximum_cool_min_layer_time, double time_other_extr_plans);
 
     /*!
      * Applying fan speed changes for the first layers.
@@ -126,7 +130,7 @@ public:
      *
      * \param The amount of back-pressure compensation as a ratio. 'Applying' a value of 0 is a no-op.
      */
-    void applyBackPressureCompensation(const Ratio back_pressure_compensation);
+    void applyBackPressureCompensation(const types::Ratio back_pressure_compensation);
 
     /*!
      * Gets the mesh being printed first on this plan
@@ -142,24 +146,24 @@ public:
      *       move happens to be an extrusion move and the start position is the outermost of the bounding box, it will not be accounted
      *       for and the bounding box will be approximate.
      */
-    AABB calculateExtrusionBoundingBox() const;
+    utils::AABB calculateExtrusionBoundingBox() const;
 
-    coord_t calculateMaxOverhangLength() const;
+    utils::coord_t calculateMaxOverhangLength() const;
 
 private:
-    LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
+    types::LayerIndex layer_nr_{ 0 }; //!< The layer number at which we are currently printing.
     bool is_initial_layer_{ false }; //!< Whether this extruder plan is printed on the very first layer (which might be raft)
     bool is_raft_layer_{ false }; //!< Whether this is a layer which is part of the raft
 
-    coord_t layer_thickness_{ 200 }; //!< The thickness of this layer in Z-direction
+    utils::coord_t layer_thickness_{ 200 }; //!< The thickness of this layer in Z-direction
 
     FanSpeedLayerTimeSettings fan_speed_layer_time_settings_{}; //!< The fan speed and layer time settings used to limit this extruder plan
 
     RetractionConfig retraction_config_{}; //!< The retraction settings for the extruder of this plan
 
 
-    std::vector<GCodePath> paths_; //!< The paths planned for this extruder
-    std::list<NozzleTempInsert> inserts_; //!< The nozzle temperature command inserts, to be inserted in between segments
+    std::vector<path_planning::GCodePath> paths_; //!< The paths planned for this extruder
+    std::list<path_planning::NozzleTempInsert> inserts_; //!< The nozzle temperature command inserts, to be inserted in between segments
     double heated_pre_travel_time_{ 0.0 }; //!< The time at the start of this ExtruderPlan during which the head travels and has a temperature of initial_print_temperature
 
     /*!
@@ -177,11 +181,12 @@ private:
     double required_start_temperature_{ -1.0 };
     std::optional<double> extrusion_temperature_{}; //!< The normal temperature for printing this extruder plan. That start and end of this extruder plan may deviate
                                                     //!< because of the initial and final print temp (none if extruder plan has no extrusion moves)
-    std::optional<std::list<NozzleTempInsert>::iterator> extrusion_temperature_command_{}; //!< The command to heat from the printing temperature of this extruder plan to the
-                                                                                           //!< printing temperature of the next extruder plan (if it has the same extruder).
+    std::optional<std::list<path_planning::NozzleTempInsert>::iterator>
+        extrusion_temperature_command_{}; //!< The command to heat from the printing temperature of this extruder plan to the
+                                          //!< printing temperature of the next extruder plan (if it has the same extruder).
     std::optional<double> prev_extruder_standby_temp_{}; //!< The temperature to which to set the previous extruder. Not used if the previous extruder plan was the same extruder.
 
-    TimeMaterialEstimates estimates_{}; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
+    path_planning::TimeMaterialEstimates estimates_{}; //!< Accumulated time and material estimates for all planned paths within this extruder plan.
     double slowest_path_speed_{ 0.0 };
 
     double extra_time_{ 0.0 }; //!< Extra waiting time at the and of this extruder plan, so that the filament can cool
@@ -208,12 +213,12 @@ private:
     /*!
      * @return The time needed for (un)retract the path
      */
-    double getRetractTime(const GCodePath& path);
+    double getRetractTime(const path_planning::GCodePath& path);
 
     /*!
      * @return distance between p0 and p1 as well as the time spend on the segment
      */
-    std::pair<double, double> getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path) const;
+    std::pair<double, double> getPointToPointTime(const geometry::Point3LL& p0, const geometry::Point3LL& p1, const path_planning::GCodePath& path) const;
 
     /*!
      * Compute naive time estimates (without accounting for slow down at corners etc.) and naive material estimates.
@@ -222,9 +227,7 @@ private:
      * \param starting_position The position the head was in before starting this layer
      * \return the total estimates of this layer
      */
-    TimeMaterialEstimates computeNaiveTimeEstimates(Point2LL starting_position);
+    path_planning::TimeMaterialEstimates computeNaiveTimeEstimates(geometry::Point2LL starting_position);
 };
 
-} // namespace cura
-
-#endif // EXTRUDERPLAN_H
+} // namespace curaengine

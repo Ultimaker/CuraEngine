@@ -1,23 +1,35 @@
-//  Copyright (c) 2018-2022 Ultimaker B.V.
+//  Copyright (c) 2026 UltiMaker
 //  CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef COMMUNICATION_H
-#define COMMUNICATION_H
+#pragma once
 
 #include "PrintInformation.h"
-#include "PrintSegmentAttributes.h"
+#include "PrintSegmentAttribute.h"
 #include "geometry/Point2LL.h"
-#include "settings/types/LayerIndex.h"
-#include "settings/types/Velocity.h"
+#include "types/LayerIndex.h"
+#include "types/Velocity.h"
 
-namespace cura
+namespace curaengine
 {
-// Some forward declarations to increase compilation speed.
 enum class PrintFeatureType : unsigned char;
+class ExtruderTrain;
+} // namespace curaengine
+
+namespace curaengine::geometry
+{
 class Shape;
 class Polygon;
-class ExtruderTrain;
+} // namespace curaengine::geometry
+
+namespace curaengine::types
+{
 struct Duration;
+}
+
+namespace curaengine::communication
+{
+// Some forward declarations to increase compilation speed.
+
 
 /*
  * An abstract class to provide a common interface for all methods of
@@ -53,7 +65,7 @@ public:
      * \param z The z-coordinate of the top side of the layer.
      * \param thickness The thickness of the layer.
      */
-    virtual void sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness) = 0;
+    virtual void sendLayerComplete(const types::LayerIndex::value_type& layer_nr, const utils::coord_t& z, const utils::coord_t& thickness) = 0;
 
     /*
      * \brief Send a line to the user to visualise.
@@ -70,10 +82,10 @@ public:
      */
     virtual void sendLineTo(
         const PrintFeatureType& type,
-        const Point3LL& to,
-        const coord_t& line_width,
-        const coord_t& line_thickness,
-        const Velocity& velocity,
+        const geometry::Point3LL& to,
+        const utils::coord_t& line_width,
+        const utils::coord_t& line_thickness,
+        const types::Velocity& velocity,
         const PrintSegmentAttributes& print_attributes = {})
         = 0;
 
@@ -83,7 +95,7 @@ public:
      * This may indicate the starting position (or any other jump in the path).
      * \param position The current position to start the next line at.
      */
-    virtual void sendCurrentPosition(const Point3LL& position) = 0;
+    virtual void sendCurrentPosition(const geometry::Point3LL& position) = 0;
 
     /*
      * \brief Set which extruder is being used for the following calls to
@@ -97,7 +109,7 @@ public:
      * \param layer_nr The index of the layer to send data for. This is zero-
      * indexed but may be negative for raft layers.
      */
-    virtual void setLayerForSend(const LayerIndex::value_type& layer_nr) = 0;
+    virtual void setLayerForSend(const types::LayerIndex::value_type& layer_nr) = 0;
 
     /*
      * \brief Send the sliced layer data through this communication after the
@@ -113,7 +125,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    virtual void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const = 0;
+    virtual void sendPrintInformation(const std::vector<types::Duration>& time_estimates, const PrintInformation& print_information) const = 0;
 
     /* \brief Sends a piece of GCode that is ready to be exported */
     virtual void sendGCodePart(const std::string& gcode_part) = 0;
@@ -139,6 +151,4 @@ public:
     virtual void sliceNext() = 0;
 };
 
-} // namespace cura
-
-#endif // COMMUNICATION_H
+} // namespace curaengine::communication

@@ -1,15 +1,18 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_UNIFORM_DENSITY_PROVIDER_H
-#define INFILL_UNIFORM_DENSITY_PROVIDER_H
+#pragma once
 
 #include "DensityProvider.h"
 
-namespace cura
+namespace curaengine::utils
+{
+struct AABB3D;
+}
+
+namespace curaengine::infill
 {
 
-struct AABB3D;
 
 class UniformDensityProvider : public DensityProvider
 {
@@ -23,7 +26,7 @@ public:
     {
     }
 
-    virtual double operator()(const AABB3D&) const
+    virtual double operator()(const utils::AABB3D&) const
     {
         return density_;
     }
@@ -32,7 +35,4 @@ protected:
     double density_;
 };
 
-} // namespace cura
-
-
-#endif // INFILL_UNIFORM_DENSITY_PROVIDER_H
+} // namespace curaengine::infill

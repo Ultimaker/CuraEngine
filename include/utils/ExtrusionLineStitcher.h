@@ -1,16 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_EXTRUSION_LINE_STITCHER_H
-#define UTILS_EXTRUSION_LINE_STITCHER_H
+#pragma once
 
 #include "PolylineStitcher.h"
 #include "utils/ExtrusionLine.h"
 
-namespace cura
+namespace curaengine::utils
 {
 
 using ExtrusionLineStitcher = PolylineStitcher<VariableWidthLines, VariableWidthLines, ExtrusionLine, ExtrusionJunction>;
 
-} // namespace cura
-#endif // UTILS_EXTRUSION_LINE_STITCHER_H
+} // namespace curaengine::utils

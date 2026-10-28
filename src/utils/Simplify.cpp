@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/Simplify.h"
@@ -6,14 +6,16 @@
 #include <limits>
 #include <queue> //Priority queue to prioritise removing unimportant vertices.
 
+#include "Settings.h" //To load the parameters from a Settings object.
 #include "geometry/ClosedPolyline.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenPolyline.h"
-#include "settings/Settings.h" //To load the parameters from a Settings object.
 #include "utils/ExtrusionLine.h"
-#include "utils/linearAlg2D.h" //To calculate line deviations and intersecting lines.
+#include "utils/LinearAlg2D.h" //To calculate line deviations and intersecting lines.
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 Simplify::Simplify(const coord_t max_resolution, const coord_t max_deviation, const coord_t max_area_deviation)
@@ -184,9 +186,9 @@ coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const Extrus
      * weighted-average width for the entire extrusion line.
      *
      * */
-    const coord_t ab_length = vSize(vertex - before);
-    const coord_t bc_length = vSize(after - vertex);
-    const coord_t ac_length = vSize(after - before);
+    const coord_t ab_length = geometry::vSize(vertex - before);
+    const coord_t bc_length = geometry::vSize(after - vertex);
+    const coord_t ac_length = geometry::vSize(after - before);
     if (ab_length == 0 || ac_length == 0 || bc_length == 0)
     {
         return 0; // Either of the line segments is zero, so the deviation of one of the line segments doesn't matter (not printed). So effectively there is no deviation.
@@ -220,7 +222,7 @@ bool Simplify::detectSmall(const Polygonal& polygon, const coord_t& min_size) co
         const auto a = getPosition(polygon[0]);
         const auto b = getPosition(polygon[1]);
         const auto c = getPosition(polygon[polygon.size() - 1]);
-        if (std::max(std::max(vSize2(b - a), vSize2(c - a)), vSize2(c - b)) < min_resolution * min_resolution)
+        if (std::max(std::max(geometry::vSize2(b - a), geometry::vSize2(c - a)), geometry::vSize2(c - b)) < min_resolution * min_resolution)
         {
             // ... unless they are degenetate.
             return true;
@@ -331,7 +333,7 @@ coord_t Simplify::importance(const Polygonal& polygon, const std::vector<bool>& 
     {
         return deviation2;
     }
-    if (vSize2(before - vertex) > max_resolution_ * max_resolution_ && vSize2(after - vertex) > max_resolution_ * max_resolution_)
+    if (geometry::vSize2(before - vertex) > max_resolution_ * max_resolution_ && geometry::vSize2(after - vertex) > max_resolution_ * max_resolution_)
     {
         return std::numeric_limits<coord_t>::max(); // Long line segments, no need to remove this one.
     }
@@ -354,8 +356,8 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
     const Point2LL& vertex_position = getPosition(polygon[vertex]);
     const Point2LL& before_position = getPosition(polygon[before]);
     const Point2LL& after_position = getPosition(polygon[after]);
-    const coord_t length2_before = vSize2(vertex_position - before_position);
-    const coord_t length2_after = vSize2(vertex_position - after_position);
+    const coord_t length2_before = geometry::vSize2(vertex_position - before_position);
+    const coord_t length2_after = geometry::vSize2(vertex_position - after_position);
 
     if (length2_before <= max_resolution_ * max_resolution_ && length2_after <= max_resolution_ * max_resolution_) // Both adjacent line segments are short.
     {
@@ -411,4 +413,4 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
 template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
 template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
 
-} // namespace cura
+} // namespace curaengine::utils

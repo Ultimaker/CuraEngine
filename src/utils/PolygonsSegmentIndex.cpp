@@ -3,7 +3,9 @@
 
 #include "utils/PolygonsSegmentIndex.h"
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 PolygonsSegmentIndex::PolygonsSegmentIndex()
@@ -26,4 +28,4 @@ Point2LL PolygonsSegmentIndex::to() const
     return PolygonsSegmentIndex::next().p();
 }
 
-} // namespace cura
+} // namespace curaengine::utils

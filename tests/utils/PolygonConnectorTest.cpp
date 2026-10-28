@@ -11,24 +11,24 @@
 #include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 // NOLINTBEGIN(misc-non-private-member-variables-in-classes)
 class PolygonConnectorTest : public testing::Test
 {
 public:
-    Polygon test_square;
-    Polygon test_square_around; // Larger, around the first square.
-    Polygon test_square_adjacent; // Next to the first square.
-    Polygon test_triangle;
-    Polygon test_circle;
-    Polygon test_convex_shape;
-    Shape test_shapes; // All above polygons! As well as an inset of 100 microns of them.
+    ::curaengine::geometry::Polygon test_square;
+    ::curaengine::geometry::Polygon test_square_around; // Larger, around the first square.
+    ::curaengine::geometry::Polygon test_square_adjacent; // Next to the first square.
+    ::curaengine::geometry::Polygon test_triangle;
+    ::curaengine::geometry::Polygon test_circle;
+    ::curaengine::geometry::Polygon test_convex_shape;
+    ::curaengine::geometry::Shape test_shapes; // All above polygons! As well as an inset of 100 microns of them.
 
-    PolygonConnector* pc;
-    Shape connected_polygons;
-    std::vector<VariableWidthLines> connected_paths;
+    ::curaengine::utils::PolygonConnector* pc;
+    ::curaengine::geometry::Shape connected_polygons;
+    std::vector<::curaengine::utils::VariableWidthLines> connected_paths;
 
     virtual void SetUp() override
     {
@@ -47,8 +47,8 @@ public:
         test_square_adjacent.emplace_back(2100, 1200);
         test_square_adjacent.emplace_back(1100, 1200);
 
-        constexpr coord_t line_width = 100;
-        pc = new PolygonConnector(line_width);
+        constexpr ::curaengine::utils::coord_t line_width = 100;
+        pc = new ::curaengine::utils::PolygonConnector(line_width);
     }
 
     void TearDown() override
@@ -66,17 +66,17 @@ public:
  */
 TEST_F(PolygonConnectorTest, getBridgeNestedSquares)
 {
-    std::vector<Polygon> to_connect({ test_square_around });
-    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+    std::vector<::curaengine::geometry::Polygon> to_connect({ test_square_around });
+    std::optional<::curaengine::utils::PolygonConnector::PolygonBridge<::curaengine::geometry::Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     ASSERT_NE(bridge, std::nullopt) << "The two polygons are nested simply, so they are definitely positioned closely enough to bridge. They are also wide enough.";
 
-    EXPECT_EQ(vSize(bridge->a_.from_point_ - bridge->a_.to_point_), 100) << "The polygons are 100 units spaced out concentrically, so this is the shortest possible bridge.";
-    EXPECT_EQ(vSize(bridge->b_.from_point_ - bridge->b_.to_point_), 100) << "The second bridge should also be equally short in this case.";
-    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a_.from_point_, bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 100 * 100)
+    EXPECT_EQ(::curaengine::geometry::vSize(bridge->a_.from_point_ - bridge->a_.to_point_), 100) << "The polygons are 100 units spaced out concentrically, so this is the shortest possible bridge.";
+    EXPECT_EQ(::curaengine::geometry::vSize(bridge->b_.from_point_ - bridge->b_.to_point_), 100) << "The second bridge should also be equally short in this case.";
+    EXPECT_EQ(::curaengine::utils::LinearAlg2D::getDist2BetweenLineSegments(bridge->a_.from_point_, bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 100 * 100)
         << "The bridges should be spaced 1 line width (100 units) apart.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b_.from_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b_.to_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(bridge->b_.from_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(bridge->b_.to_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
 }
 
 /*!
@@ -87,17 +87,17 @@ TEST_F(PolygonConnectorTest, getBridgeNestedSquares)
  */
 TEST_F(PolygonConnectorTest, getBridgeAdjacentSquares)
 {
-    std::vector<Polygon> to_connect({ test_square_adjacent });
-    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+    std::vector<::curaengine::geometry::Polygon> to_connect({ test_square_adjacent });
+    std::optional<::curaengine::utils::PolygonConnector::PolygonBridge<::curaengine::geometry::Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     ASSERT_NE(bridge, std::nullopt) << "The two polygons are adjacent, spaced closely enough to bridge and with enough room.";
 
-    EXPECT_EQ(vSize(bridge->a_.from_point_ - bridge->a_.to_point_), 100) << "The polygons are 100 units spaced apart, so this is the shortest possible bridge.";
-    EXPECT_EQ(vSize(bridge->b_.from_point_ - bridge->b_.to_point_), 100) << "The second bridge should also be equally short in this case.";
-    EXPECT_EQ(LinearAlg2D::getDist2BetweenLineSegments(bridge->a_.from_point_, bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 100 * 100)
+    EXPECT_EQ(::curaengine::geometry::vSize(bridge->a_.from_point_ - bridge->a_.to_point_), 100) << "The polygons are 100 units spaced apart, so this is the shortest possible bridge.";
+    EXPECT_EQ(::curaengine::geometry::vSize(bridge->b_.from_point_ - bridge->b_.to_point_), 100) << "The second bridge should also be equally short in this case.";
+    EXPECT_EQ(::curaengine::utils::LinearAlg2D::getDist2BetweenLineSegments(bridge->a_.from_point_, bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 100 * 100)
         << "The bridges should be spaced 1 line width (100 units) apart.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b_.from_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
-    EXPECT_LT(LinearAlg2D::pointIsLeftOfLine(bridge->b_.to_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(bridge->b_.from_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
+    EXPECT_LT(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(bridge->b_.to_point_, bridge->a_.from_point_, bridge->a_.to_point_), 0) << "Connection B should be to the right of connection A.";
 }
 
 /*!
@@ -106,24 +106,24 @@ TEST_F(PolygonConnectorTest, getBridgeAdjacentSquares)
  */
 TEST_F(PolygonConnectorTest, getBridgeClosest)
 {
-    Polygon adjacent_slanted; // A polygon that's adjacent to the first square, but tilted such that the vertex at [1100,200] is definitely
+    ::curaengine::geometry::Polygon adjacent_slanted; // A polygon that's adjacent to the first square, but tilted such that the vertex at [1100,200] is definitely
                               // the closest.
     adjacent_slanted.emplace_back(1100, 200);
     adjacent_slanted.emplace_back(2100, 200);
     adjacent_slanted.emplace_back(2140, 1200);
     adjacent_slanted.emplace_back(1140, 1200);
-    std::vector<Polygon> to_connect({ adjacent_slanted });
+    std::vector<::curaengine::geometry::Polygon> to_connect({ adjacent_slanted });
 
-    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+    std::optional<::curaengine::utils::PolygonConnector::PolygonBridge<::curaengine::geometry::Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     ASSERT_NE(bridge, std::nullopt) << "The two polygons are adjacent and spaced closely enough to bridge along their entire side, even with the slant.";
 
-    EXPECT_EQ(bridge->b_.from_point_, Point2LL(1000, 200))
+    EXPECT_EQ(bridge->b_.from_point_, ::curaengine::geometry::Point2LL(1000, 200))
         << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
-    EXPECT_EQ(bridge->b_.to_point_, Point2LL(1100, 200))
+    EXPECT_EQ(bridge->b_.to_point_, ::curaengine::geometry::Point2LL(1100, 200))
         << "The closest connection is [1000,200] -> [1100,200]. There is no space to the right of that, so bridge B should be there.";
-    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a_.from_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
-    EXPECT_GT(LinearAlg2D::pointIsLeftOfLine(bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
+    EXPECT_GT(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(bridge->a_.from_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
+    EXPECT_GT(::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(bridge->a_.to_point_, bridge->b_.from_point_, bridge->b_.to_point_), 0) << "Connection A should be to the left of connection B.";
 }
 
 /*!
@@ -131,14 +131,14 @@ TEST_F(PolygonConnectorTest, getBridgeClosest)
  */
 TEST_F(PolygonConnectorTest, getBridgeTooFar)
 {
-    Polygon too_far; // More than 1.5 line width away.
+    ::curaengine::geometry::Polygon too_far; // More than 1.5 line width away.
     too_far.emplace_back(1200, 0);
     too_far.emplace_back(2200, 0);
     too_far.emplace_back(2200, 1000);
     too_far.emplace_back(1200, 1000);
-    std::vector<Polygon> to_connect({ too_far });
+    std::vector<::curaengine::geometry::Polygon> to_connect({ too_far });
 
-    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+    std::optional<::curaengine::utils::PolygonConnector::PolygonBridge<::curaengine::geometry::Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     EXPECT_EQ(bridge, std::nullopt)
         << "The two polygons are 200 units apart where they are closest, which is more than 1.5 times the line width (100), so they can't be connected.";
@@ -153,14 +153,14 @@ TEST_F(PolygonConnectorTest, getBridgeTooFar)
  */
 TEST_F(PolygonConnectorTest, getBridgeTooNarrow)
 {
-    Polygon too_narrow;
+    ::curaengine::geometry::Polygon too_narrow;
     too_narrow.emplace_back(1100, 400);
     too_narrow.emplace_back(2100, 400);
     too_narrow.emplace_back(2100, 480); // Less than 100 units wide.
     too_narrow.emplace_back(1100, 480);
-    std::vector<Polygon> to_connect({ too_narrow });
+    std::vector<::curaengine::geometry::Polygon> to_connect({ too_narrow });
 
-    std::optional<PolygonConnector::PolygonBridge<Polygon>> bridge = pc->getBridge(test_square, to_connect);
+    std::optional<::curaengine::utils::PolygonConnector::PolygonBridge<::curaengine::geometry::Polygon>> bridge = pc->getBridge(test_square, to_connect);
 
     EXPECT_EQ(bridge, std::nullopt)
         << "Where the two polygons are adjacent is only 80 units wide. This is not enough to create a bridge with the connecting lines spaced 1 line width (100 units) apart.";
@@ -173,18 +173,18 @@ TEST_F(PolygonConnectorTest, getBridgeTooNarrow)
  */
 TEST_F(PolygonConnectorTest, connectFourNested)
 {
-    Shape connecting;
+    ::curaengine::geometry::Shape connecting;
     connecting.push_back(test_square_around); // 1200-wide square.
     connecting.push_back(test_square); // 1000-wide square.
     connecting.push_back(test_square.offset(-100)); // 800-wide square.
     connecting.push_back(test_square.offset(-200)); // 600-wide square.
 
     pc->add(connecting);
-    Shape output_polygons;
-    std::vector<VariableWidthLines> output_paths;
+    ::curaengine::geometry::Shape output_polygons;
+    std::vector<::curaengine::utils::VariableWidthLines> output_paths;
     pc->connect(output_polygons, output_paths);
 
     EXPECT_EQ(output_polygons.size(), 1) << "All four polygons should've gotten connected into 1 single polygon.";
 }
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

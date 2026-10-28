@@ -1,7 +1,7 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#include "settings/Settings.h" //The class under test.
+#include "Settings.h" //The class under test.
 
 #include <cmath>
 #include <memory> //For shared_ptr.
@@ -12,19 +12,20 @@
 #include "Application.h" //To test extruder train settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "settings/EnumSettings.h"
+#include "types/EFillMethod.h"
 #include "settings/FlowTempGraph.h"
-#include "settings/types/Angle.h"
-#include "settings/types/Duration.h"
-#include "settings/types/LayerIndex.h"
-#include "settings/types/Ratio.h"
-#include "settings/types/Temperature.h"
-#include "settings/types/Velocity.h"
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
+#include "types/Duration.h"
+#include "types/LayerIndex.h"
+#include "types/Ratio.h"
+#include "types/Temperature.h"
+#include "types/Velocity.h"
 #include "utils/Coord_t.h"
-#include "utils/Matrix4x3D.h" //Testing matrix transformation settings.
+#include "geometry/Matrix4x3D.h" //Testing matrix transformation settings.
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -104,66 +105,66 @@ TEST_F(SettingsTest, AddSettingExtruderTrain)
 TEST_F(SettingsTest, AddSettingLayerIndex)
 {
     settings.add("test_setting", "4");
-    EXPECT_EQ(LayerIndex(3), settings.get<LayerIndex>("test_setting")) << "LayerIndex settings start counting from 0, so subtract one.";
+    EXPECT_EQ(::curaengine::types::LayerIndex(3), settings.get<::curaengine::types::LayerIndex>("test_setting")) << "LayerIndex settings start counting from 0, so subtract one.";
 }
 
 TEST_F(SettingsTest, AddSettingLayerIndexNegative)
 {
     settings.add("test_setting", "-10");
-    EXPECT_EQ(LayerIndex(-11), settings.get<LayerIndex>("test_setting")) << "LayerIndex settings still subtract 1 even in negative layers.";
+    EXPECT_EQ(::curaengine::types::LayerIndex(-11), settings.get<::curaengine::types::LayerIndex>("test_setting")) << "LayerIndex settings still subtract 1 even in negative layers.";
 }
 
 TEST_F(SettingsTest, AddSettingCoordT)
 {
     settings.add("test_setting",
                  "8589934.592"); // 2^33 microns, so this MUST be a 64-bit integer! (Or at least 33-bit, but those don't exist.)
-    EXPECT_EQ(coord_t(8589934592), settings.get<coord_t>("test_setting")) << "Coordinates must be entered in the setting as millimetres, but are converted to micrometres.";
+    EXPECT_EQ(::curaengine::utils::coord_t(8589934592), settings.get<::curaengine::utils::coord_t>("test_setting")) << "Coordinates must be entered in the setting as millimetres, but are converted to micrometres.";
 }
 
 TEST_F(SettingsTest, AddSettingAngleRadians)
 {
     settings.add("test_setting", "180");
-    EXPECT_DOUBLE_EQ(AngleRadians(std::numbers::pi), settings.get<AngleRadians>("test_setting")) << "180 degrees is 1 pi radians.";
+    EXPECT_DOUBLE_EQ(::curaengine::types::AngleRadians(std::numbers::pi), settings.get<::curaengine::types::AngleRadians>("test_setting")) << "180 degrees is 1 pi radians.";
 
     settings.add("test_setting", "810");
-    EXPECT_NEAR(AngleRadians(std::numbers::pi / 2.0), settings.get<AngleRadians>("test_setting"), 0.00000001)
+    EXPECT_NEAR(::curaengine::types::AngleRadians(std::numbers::pi / 2.0), settings.get<::curaengine::types::AngleRadians>("test_setting"), 0.00000001)
         << "810 degrees in clock arithmetic is 90 degrees, which is 0.5 pi radians.";
 }
 
 TEST_F(SettingsTest, AddSettingAngleDegrees)
 {
     settings.add("test_setting", "4442.4");
-    EXPECT_NEAR(AngleDegrees(122.4), settings.get<AngleDegrees>("test_setting"), 0.00000001) << "4320 is divisible by 360, so 4442.4 in clock arithmetic is 122.4 degrees.";
+    EXPECT_NEAR(::curaengine::types::AngleDegrees(122.4), settings.get<::curaengine::types::AngleDegrees>("test_setting"), 0.00000001) << "4320 is divisible by 360, so 4442.4 in clock arithmetic is 122.4 degrees.";
 }
 
 TEST_F(SettingsTest, AddSettingTemperature)
 {
     settings.add("test_setting", "245.5");
-    EXPECT_DOUBLE_EQ(Temperature(245.5), settings.get<Temperature>("test_setting"));
+    EXPECT_DOUBLE_EQ(::curaengine::types::Temperature(245.5), settings.get<::curaengine::types::Temperature>("test_setting"));
 }
 
 TEST_F(SettingsTest, AddSettingVelocity)
 {
     settings.add("test_setting", "12.345");
-    EXPECT_DOUBLE_EQ(Velocity{ 12.345 }, settings.get<Velocity>("test_setting"));
+    EXPECT_DOUBLE_EQ(::curaengine::types::Velocity{ 12.345 }, settings.get<::curaengine::types::Velocity>("test_setting"));
 
     settings.add("test_setting", "-78");
-    EXPECT_DOUBLE_EQ(Velocity{ -78.0 }, settings.get<Velocity>("test_setting"));
+    EXPECT_DOUBLE_EQ(::curaengine::types::Velocity{ -78.0 }, settings.get<::curaengine::types::Velocity>("test_setting"));
 }
 
 TEST_F(SettingsTest, AddSettingRatio)
 {
     settings.add("test_setting", "1.618");
-    EXPECT_DOUBLE_EQ(Ratio{ 0.01618 }, settings.get<Ratio>("test_setting")) << "With ratios, the input is interpreted in percentages.";
+    EXPECT_DOUBLE_EQ(::curaengine::types::Ratio{ 0.01618 }, settings.get<::curaengine::types::Ratio>("test_setting")) << "With ratios, the input is interpreted in percentages.";
 }
 
 TEST_F(SettingsTest, AddSettingDuration)
 {
     settings.add("test_setting", "1234.5678");
-    EXPECT_DOUBLE_EQ(Duration{ 1234.5678 }, settings.get<Duration>("test_setting"));
+    EXPECT_DOUBLE_EQ(::curaengine::types::Duration{ 1234.5678 }, settings.get<::curaengine::types::Duration>("test_setting"));
 
     settings.add("test_setting", "-1234.5678");
-    EXPECT_DOUBLE_EQ(Duration{ 0 }, settings.get<Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
+    EXPECT_DOUBLE_EQ(::curaengine::types::Duration{ 0 }, settings.get<::curaengine::types::Duration>("test_setting")) << "Negative duration doesn't exist, so it gets rounded to 0.";
 }
 
 TEST_F(SettingsTest, AddSettingFlowTempGraph)
@@ -187,7 +188,7 @@ TEST_F(SettingsTest, AddSettingFlowTempGraph)
 TEST_F(SettingsTest, AddSettingFMatrix3x3)
 {
     settings.add("test_setting", "[[1.0, 2.0, 3.3],[ 2 , 3.0 , 1.0],[3.0 ,1.0,2.0 ]]"); // Try various spacing and radixes.
-    auto float_matrix = settings.get<Matrix4x3D>("test_setting");
+    auto float_matrix = settings.get<::curaengine::geometry::Matrix4x3D>("test_setting");
 
     EXPECT_DOUBLE_EQ(1.0, float_matrix.m[0][0]);
     EXPECT_DOUBLE_EQ(2.0, float_matrix.m[1][0]);
@@ -259,14 +260,14 @@ TEST_F(SettingsTest, LimitToExtruder)
 TEST_F(SettingsTest, PluginExtendedEnum)
 {
     settings.add("infill_type", "PLUGIN::plugin_1::MOZAIC");
-    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::PLUGIN);
+    EXPECT_EQ(settings.get<::curaengine::types::EFillMethod>("infill_type"), ::curaengine::types::EFillMethod::PLUGIN);
 }
 
 TEST_F(SettingsTest, EnumStringSwitch)
 {
     settings.add("infill_type", "lightning");
-    EXPECT_EQ(settings.get<EFillMethod>("infill_type"), EFillMethod::LIGHTNING);
+    EXPECT_EQ(settings.get<::curaengine::types::EFillMethod>("infill_type"), ::curaengine::types::EFillMethod::LIGHTNING);
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

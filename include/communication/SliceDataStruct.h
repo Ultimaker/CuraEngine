@@ -1,25 +1,25 @@
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SLICEDATASTRUCT_H
-#define SLICEDATASTRUCT_H
+#pragma once
 #ifdef ARCUS
 
 #include <memory> //To store pointers to slice data.
 #include <unordered_map> //To store the slice data by layer.
 
-namespace cura
+namespace curaengine::communication
 {
 
 /*!
  * \brief A template structure used to store data to be sent to the front end.
  */
-template <typename T>
+template<typename T>
 class SliceDataStruct
 {
-    //You are not allowed to copy this data, so no copy constructor or assignment operator.
+    // You are not allowed to copy this data, so no copy constructor or assignment operator.
     SliceDataStruct(const SliceDataStruct&) = delete;
     SliceDataStruct& operator=(const SliceDataStruct&) = delete;
+
 public:
     /*
      * \brief Creates a new, empty structure with slice data.
@@ -28,7 +28,8 @@ public:
         : sliced_objects(0)
         , current_layer_count(0)
         , current_layer_offset(0)
-    { }
+    {
+    }
 
     size_t sliced_objects; //!< The number of sliced objects for this sliced object list.
 
@@ -41,7 +42,6 @@ public:
     std::unordered_map<int, std::shared_ptr<T>> slice_data;
 };
 
-}
+} // namespace curaengine::communication
 
-#endif //ARCUS
-#endif //SLICEDATASTRUCT_H
+#endif // ARCUS

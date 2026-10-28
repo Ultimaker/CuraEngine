@@ -1,18 +1,15 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef GEOMETRY_TRIANGLE3LL_H
-#define GEOMETRY_TRIANGLE3LL_H
+#pragma once
 
 #include <array>
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class Point3LL;
 
 using Triangle3LL = std::array<Point3LL, 3>;
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::geometry

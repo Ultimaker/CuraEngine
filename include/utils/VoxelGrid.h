@@ -1,19 +1,18 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_VOXELGRID_H
-#define UTILS_VOXELGRID_H
+#pragma once
 
 #include <execution>
 
 #include <boost/unordered/concurrent_flat_map.hpp>
 
 #include "Coord_t.h"
+#include "geometry/Point3D.h"
 #include "geometry/Triangle3LL.h"
-#include "utils/Point3D.h"
 
 
-namespace cura
+namespace curaengine::utils
 {
 
 struct AABB3D;
@@ -71,17 +70,17 @@ public:
      */
     explicit VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution);
 
-    const Point3D& getResolution() const
+    const geometry::Point3D& getResolution() const
     {
         return resolution_;
     }
 
-    Point3LL getSlicesCount() const
+    geometry::Point3LL getSlicesCount() const
     {
         return slices_count_;
     }
 
-    Point3D toGlobalCoordinates(const LocalCoordinates& position, const bool at_center = true) const;
+    geometry::Point3D toGlobalCoordinates(const LocalCoordinates& position, const bool at_center = true) const;
 
     void setOccupation(const LocalCoordinates& position, const uint8_t extruder_nr);
 
@@ -127,7 +126,7 @@ public:
 
     std::vector<LocalCoordinates> getVoxelsAround(const LocalCoordinates& point) const;
 
-    LocalCoordinates toLocalCoordinates(const Point3D& position) const;
+    LocalCoordinates toLocalCoordinates(const geometry::Point3D& position) const;
 
     uint16_t toLocalX(const double x) const;
 
@@ -151,12 +150,12 @@ public:
      * sub-shape, we calculate its bounding box in the Y axis, and iterate on all the Z "square tubes". For each tube we crop the edges again, and iterate over the Z bounding boxes
      * of the sub-sub-shape. Each iterated position is then considered as being traversed by the triangle.
      */
-    std::vector<LocalCoordinates> getTraversedVoxels(const Triangle3LL& triangle) const;
+    std::vector<LocalCoordinates> getTraversedVoxels(const geometry::Triangle3LL& triangle) const;
 
 private:
-    Point3D resolution_;
-    Point3D origin_;
-    Point3LL slices_count_;
+    geometry::Point3D resolution_;
+    geometry::Point3D origin_;
+    geometry::Point3LL slices_count_;
     boost::concurrent_flat_map<LocalCoordinates, uint8_t> occupied_voxels_;
 };
 
@@ -165,6 +164,4 @@ inline std::size_t hash_value(VoxelGrid::LocalCoordinates const& position)
     return boost::hash<uint64_t>()(position.key);
 }
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::utils

@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/PolylineStitcher.h"
@@ -8,9 +8,12 @@
 #include "geometry/OpenPolyline.h"
 #include "utils/ExtrusionLineStitcher.h"
 #include "utils/OpenPolylineStitcher.h"
-#include "utils/PolygonsPointIndex.h"
+#include "utils/PathsPointIndex.h"
+#include "utils/PathsPointIndexLocator.h"
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 template<>
@@ -100,6 +103,8 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
     coord_t max_stitch_distance,
     coord_t snap_distance)
 {
+    using geometry::make_point;
+
     if (lines.empty())
     {
         return;
@@ -160,12 +165,12 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
                          should_close](const PathsPointIndex<InputPaths>& nearby) -> bool
                         {
                             bool is_closing_segment = false;
-                            coord_t dist = vSize(nearby.p() - from);
+                            coord_t dist = geometry::vSize(nearby.p() - from);
                             if (dist > max_stitch_distance)
                             {
                                 return true; // keep looking
                             }
-                            if (vSize2(nearby.p() - make_point(chain.front())) < snap_distance * snap_distance)
+                            if (geometry::vSize2(nearby.p() - make_point(chain.front())) < snap_distance * snap_distance)
                             {
                                 if (chain_length + dist < 3 * max_stitch_distance // prevent closing of small poly, cause it might be able to continue making a larger polyline
                                     || chain.size() <= 2) // don't make 2 vert polygons
@@ -220,7 +225,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
                 }
 
 
-                coord_t segment_dist = vSize(make_point(chain.back()) - closest.p());
+                coord_t segment_dist = geometry::vSize(make_point(chain.back()) - closest.p());
                 assert(segment_dist <= max_stitch_distance + 10);
                 const size_t old_size = chain.size();
                 if (closest.point_idx_ == 0)
@@ -243,7 +248,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
                 }
                 for (size_t i = old_size; i < chain.size(); ++i) // Update chain length.
                 {
-                    chain_length += vSize(chain[i] - chain[i - 1]);
+                    chain_length += geometry::vSize(chain[i] - chain[i - 1]);
                 }
                 should_close = should_close & ! isOdd((*closest.polygons_)[closest.poly_idx_]); // If we connect an even to an odd line, we should no longer try to close it.
                 assert(! processed[closest.poly_idx_]);
@@ -294,4 +299,4 @@ template void PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point
     coord_t max_stitch_distance,
     coord_t snap_distance);
 
-} // namespace cura
+} // namespace curaengine::utils

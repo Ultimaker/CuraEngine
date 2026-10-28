@@ -17,7 +17,7 @@
 #include "utils/Coord_t.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 constexpr size_t GK_TEST_NUM_MESH_GROUPS = 1;
@@ -28,11 +28,11 @@ constexpr size_t GK_TEST_NUM_MESH_GROUPS = 1;
 class ArcusCommunicationPrivateTest : public testing::Test
 {
 public:
-    ArcusCommunication::Private* instance;
+    ::curaengine::communication::ArcusCommunication::Private* instance;
 
     void SetUp() override
     {
-        instance = new ArcusCommunication::Private();
+        instance = new ::curaengine::communication::ArcusCommunication::Private();
         instance->socket = new MockSocket();
         Application::getInstance().current_slice_ = std::make_shared<Slice>(GK_TEST_NUM_MESH_GROUPS);
     }
@@ -70,7 +70,7 @@ public:
 
             raw_settings.insert({ key, value });
 
-            cura::proto::Setting* entry = settings.add_settings();
+            ::cura::proto::Setting* entry = settings.add_settings();
             entry->set_name(key);
             entry->set_value(value);
         }
@@ -84,7 +84,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
 {
     // Read 'real-life' global settings from file:
 
-    cura::proto::SettingList global_settings;
+    ::cura::proto::SettingList global_settings;
     std::unordered_map<std::string, std::string> raw_settings;
     const auto settings_res = std::filesystem::path(__FILE__).parent_path().parent_path().append("test_global_settings.txt").string();
     loadTestSettings(settings_res, &global_settings, &raw_settings);
@@ -102,15 +102,15 @@ TEST_F(ArcusCommunicationPrivateTest, ReadGlobalSettingsMessage)
 
 TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
 {
-    google::protobuf::RepeatedPtrField<proto::Extruder> messages; // Construct a message.
+    google::protobuf::RepeatedPtrField<::cura::proto::Extruder> messages; // Construct a message.
 
     // Test with one extruder.
-    proto::Extruder* extruder_message = messages.Add();
+    ::cura::proto::Extruder* extruder_message = messages.Add();
     extruder_message->set_id(0);
 
     // Fill the extruder with settings.
-    proto::SettingList* extruder_settings = extruder_message->mutable_settings();
-    proto::Setting* setting = extruder_settings->add_settings();
+    ::cura::proto::SettingList* extruder_settings = extruder_message->mutable_settings();
+    ::cura::proto::Setting* setting = extruder_settings->add_settings();
     setting->set_name("test_setting");
     const std::string setting_value = "You put the 'sexy' in 'dyslexic'.";
     setting->set_value(setting_value);
@@ -125,21 +125,21 @@ TEST_F(ArcusCommunicationPrivateTest, ReadSingleExtruderSettingsMessage)
 
 TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
 {
-    google::protobuf::RepeatedPtrField<proto::Extruder> messages; // Construct a message.
+    google::protobuf::RepeatedPtrField<::cura::proto::Extruder> messages; // Construct a message.
 
     // Test with two extruders.
-    proto::Extruder* second_extruder = messages.Add(); // Out of order on purpose.
+    ::cura::proto::Extruder* second_extruder = messages.Add(); // Out of order on purpose.
     second_extruder->set_id(1);
-    proto::Extruder* first_extruder = messages.Add();
+    ::cura::proto::Extruder* first_extruder = messages.Add();
     first_extruder->set_id(0);
 
     // Give a different value for each extruder.
-    proto::SettingList* first_extruder_settings = first_extruder->mutable_settings();
-    proto::Setting* first_setting = first_extruder_settings->add_settings();
+    ::cura::proto::SettingList* first_extruder_settings = first_extruder->mutable_settings();
+    ::cura::proto::Setting* first_setting = first_extruder_settings->add_settings();
     first_setting->set_name("What extruder are you?");
     first_setting->set_value("First");
-    proto::SettingList* second_extruder_settings = second_extruder->mutable_settings();
-    proto::Setting* second_setting = second_extruder_settings->add_settings();
+    ::cura::proto::SettingList* second_extruder_settings = second_extruder->mutable_settings();
+    ::cura::proto::Setting* second_setting = second_extruder_settings->add_settings();
     second_setting->set_name("What extruder are you?");
     second_setting->set_value("Second");
 
@@ -155,7 +155,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMultiExtruderSettingsMessage)
 TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
 {
     // Setup:
-    cura::proto::ObjectList mesh_message;
+    ::cura::proto::ObjectList mesh_message;
     Application::getInstance().current_slice_->scene.extruders.push_back(ExtruderTrain(0, nullptr)); // We do need the extruder to be declared first
 
     // - Load 'global' settings:
@@ -164,7 +164,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     loadTestSettings(settings_res, &mesh_message, &raw_settings);
 
     // - Create mesh-message-mesh:
-    cura::proto::Object* mesh = mesh_message.add_objects();
+    ::cura::proto::Object* mesh = mesh_message.add_objects();
 
     // - - Read cube vertices from a test-file, then add to message:
     std::ifstream cube_verts_file(std::filesystem::path(__FILE__).parent_path().parent_path().append("cube_vertices.txt").string());
@@ -200,7 +200,7 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     };
     for (std::pair<std::string, std::string> key_value : mesh_settings)
     {
-        cura::proto::Setting* entry = mesh->add_settings();
+        ::cura::proto::Setting* entry = mesh->add_settings();
         entry->set_name(key_value.first);
         entry->set_value(key_value.second);
     }
@@ -223,18 +223,18 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     // Distances should be the same:
 
     // - First, collect AABBoxes:
-    std::array<coord_t, 3> raw_min_coords = { std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max() };
-    std::array<coord_t, 3> raw_max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
+    std::array<::curaengine::utils::coord_t, 3> raw_min_coords = { std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max() };
+    std::array<::curaengine::utils::coord_t, 3> raw_max_coords = { std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min() };
     const size_t num_vertex = raw_vertices.size();
     for (size_t i_coord = 0; i_coord < num_vertex; ++i_coord)
     {
-        auto micrometers = static_cast<coord_t>(std::llrintf(raw_vertices[i_coord] * 1000.F));
+        auto micrometers = static_cast<::curaengine::utils::coord_t>(std::llrintf(raw_vertices[i_coord] * 1000.F));
         raw_min_coords[i_coord % 3] = std::min(micrometers, raw_min_coords[i_coord % 3]);
         raw_max_coords[i_coord % 3] = std::max(micrometers, raw_max_coords[i_coord % 3]);
     }
 
-    std::array<coord_t, 3> min_coords = { std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max(), std::numeric_limits<coord_t>::max() };
-    std::array<coord_t, 3> max_coords = { std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min(), std::numeric_limits<coord_t>::min() };
+    std::array<::curaengine::utils::coord_t, 3> min_coords = { std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max(), std::numeric_limits<::curaengine::utils::coord_t>::max() };
+    std::array<::curaengine::utils::coord_t, 3> max_coords = { std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min() };
     for (const auto& vertex : vertices)
     {
         min_coords[0] = std::min(vertex.p_.x_, min_coords[0]);
@@ -252,5 +252,5 @@ TEST_F(ArcusCommunicationPrivateTest, ReadMeshGroupMessage)
     }
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

@@ -1,15 +1,14 @@
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef GEOMETRY_POINT3_MATRIX_H
-#define GEOMETRY_POINT3_MATRIX_H
+#pragma once
 
 #include <array>
 
 #include "geometry/Point3LL.h"
 #include "geometry/PointMatrix.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class Point3Matrix
@@ -88,5 +87,4 @@ public:
     }
 };
 
-} // namespace cura
-#endif // GEOMETRY_POINT3_MATRIX_H
+} // namespace curaengine::geometry

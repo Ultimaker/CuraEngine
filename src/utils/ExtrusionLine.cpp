@@ -1,14 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/ExtrusionLine.h"
 
 #include <algorithm>
 
+#include "utils/LinearAlg2D.h"
 #include "utils/Simplify.h"
-#include "utils/linearAlg2D.h"
 
-namespace cura
+namespace curaengine::utils
 {
 
 
@@ -22,12 +22,12 @@ coord_t ExtrusionLine::length() const
     ExtrusionJunction prev = junctions_.front();
     for (const ExtrusionJunction& next : junctions_)
     {
-        len += vSize(next.p_ - prev.p_);
+        len += geometry::vSize(next.p_ - prev.p_);
         prev = next;
     }
     if (is_closed_)
     {
-        len += vSize(front().p_ - back().p_);
+        len += geometry::vSize(front().p_ - back().p_);
     }
     return len;
 }
@@ -50,7 +50,7 @@ bool ExtrusionLine::shorterThan(const coord_t check_length) const
     int64_t length = 0;
     for (const ExtrusionJunction& p1 : (*this))
     {
-        length += vSize(*p0 - p1);
+        length += geometry::vSize(*p0 - p1);
         if (length >= check_length)
         {
             return false;
@@ -60,4 +60,4 @@ bool ExtrusionLine::shorterThan(const coord_t check_length) const
     return true;
 }
 
-} // namespace cura
+} // namespace curaengine::utils

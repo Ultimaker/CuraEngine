@@ -1,15 +1,14 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_LAYER_VECTOR_H
-#define UTILS_LAYER_VECTOR_H
+#pragma once
 
 #include <vector>
 
-#include "raft.h"
-#include "settings/types/LayerIndex.h"
+#include "Raft.h"
+#include "types/LayerIndex.h"
 
-namespace cura
+namespace curaengine::utils
 {
 
 /*!
@@ -94,22 +93,22 @@ public:
         return vector_.rend();
     }
 
-    const_reference operator[](const LayerIndex& pos) const
+    const_reference operator[](const types::LayerIndex& pos) const
     {
         return vector_[static_cast<size_t>(pos + delta_)];
     }
 
-    reference operator[](const LayerIndex& pos)
+    reference operator[](const types::LayerIndex& pos)
     {
         return vector_[static_cast<size_t>(pos + delta_)];
     }
 
-    const_reference at(const LayerIndex& pos) const
+    const_reference at(const types::LayerIndex& pos) const
     {
         return vector_.at(static_cast<size_t>(pos + delta_));
     }
 
-    reference at(const LayerIndex& pos)
+    reference at(const types::LayerIndex& pos)
     {
         return vector_.at(static_cast<size_t>(pos + delta_));
     }
@@ -124,9 +123,9 @@ public:
         return vector_.front();
     }
 
-    [[nodiscard]] const_iterator iterator_at(const LayerIndex& pos) const
+    [[nodiscard]] const_iterator iterator_at(const types::LayerIndex& pos) const
     {
-        LayerIndex::value_type index = pos + delta_;
+        types::LayerIndex::value_type index = pos + delta_;
         if (index >= 0 && static_cast<size_t>(index) < size())
         {
             return std::next(begin(), static_cast<difference_type>(index));
@@ -134,9 +133,9 @@ public:
         return end();
     }
 
-    [[nodiscard]] iterator iterator_at(const LayerIndex& pos)
+    [[nodiscard]] iterator iterator_at(const types::LayerIndex& pos)
     {
-        LayerIndex::value_type index = pos + delta_;
+        types::LayerIndex::value_type index = pos + delta_;
         if (index >= 0 && static_cast<size_t>(index) < size())
         {
             return std::next(begin(), static_cast<difference_type>(index));
@@ -149,9 +148,9 @@ public:
      * \param pos The position of the element to be retrieved
      * \return The element at the given position, or if there is none, a default-constructed value.
      */
-    value_type get(const LayerIndex& pos) const noexcept
+    value_type get(const types::LayerIndex& pos) const noexcept
     {
-        LayerIndex::value_type index = pos + delta_;
+        types::LayerIndex::value_type index = pos + delta_;
         if (index >= 0 && static_cast<size_t>(index) < size())
         {
             return vector_[static_cast<size_t>(index)];
@@ -159,22 +158,22 @@ public:
         return value_type{};
     }
 
-    [[nodiscard]] LayerIndex getLayer(const const_iterator& it) const
+    [[nodiscard]] types::LayerIndex getLayer(const const_iterator& it) const
     {
         return std::distance(begin(), it) - static_cast<difference_type>(delta_);
     }
 
-    [[nodiscard]] LayerIndex getLayer(const iterator& it) const
+    [[nodiscard]] types::LayerIndex getLayer(const iterator& it) const
     {
         return std::distance(begin(), it) - static_cast<difference_type>(delta_);
     }
 
-    [[nodiscard]] LayerIndex getLayer(const const_reverse_iterator& it) const
+    [[nodiscard]] types::LayerIndex getLayer(const const_reverse_iterator& it) const
     {
         return std::distance(it, rend()) - 1 - static_cast<difference_type>(delta_);
     }
 
-    [[nodiscard]] LayerIndex getLayer(const reverse_iterator& it) const
+    [[nodiscard]] types::LayerIndex getLayer(const reverse_iterator& it) const
     {
         return std::distance(it, rend()) - 1 - static_cast<difference_type>(delta_);
     }
@@ -229,6 +228,4 @@ private:
     size_t delta_{ 0 };
 };
 
-} // namespace cura
-
-#endif // UTILS_LAYER_VECTOR_H
+} // namespace curaengine::utils

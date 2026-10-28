@@ -1,8 +1,7 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef COMMANDLINE_H
-#define COMMANDLINE_H
+#pragma once
 
 #include <filesystem>
 #include <fstream>
@@ -15,9 +14,14 @@
 
 #include "Communication.h" //The class we're implementing.
 
-namespace cura
+namespace curaengine
 {
 class Settings;
+}
+
+namespace curaengine::communication
+{
+
 
 using setting_map = std::unordered_map<std::string, std::string>;
 using container_setting_map = std::unordered_map<std::string, setting_map>;
@@ -52,7 +56,7 @@ public:
      * The command line doesn't do anything with the current position so this is
      * ignored.
      */
-    void sendCurrentPosition(const Point3LL&) override;
+    void sendCurrentPosition(const geometry::Point3LL&) override;
 
     /*
      * \brief Indicate to the command line that we finished slicing.
@@ -74,14 +78,15 @@ public:
      * The command line doesn't do anything with that information so this is
      * ignored.
      */
-    void sendLayerComplete(const LayerIndex::value_type&, const coord_t&, const coord_t&) override;
+    void sendLayerComplete(const types::LayerIndex::value_type&, const utils::coord_t&, const utils::coord_t&) override;
 
     /*
      * \brief Send a line for display.
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType&, const Point3LL&, const coord_t&, const coord_t&, const Velocity&, const PrintSegmentAttributes&) override;
+    void sendLineTo(const PrintFeatureType&, const geometry::Point3LL&, const utils::coord_t&, const utils::coord_t&, const types::Velocity&, const PrintSegmentAttributes&)
+        override;
 
     /*
      * \brief Complete a layer to show it in layer view.
@@ -95,7 +100,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<types::Duration>& time_estimates, const PrintInformation& print_information) const override;
 
     /*
      * \brief Show an update of our slicing progress.
@@ -118,7 +123,7 @@ public:
      * This has no effect though because we don't shwo these three functions
      * because the command line doesn't show layer view.
      */
-    void setLayerForSend(const LayerIndex::value_type&) override;
+    void setLayerForSend(const types::LayerIndex::value_type&) override;
 
     /*
      * \brief Slice the next scene that the command line commands us to slice.
@@ -203,6 +208,4 @@ private:
     static std::optional<container_setting_map> readResolvedJsonValues(const rapidjson::Document& document);
 };
 
-} // namespace cura
-
-#endif // COMMANDLINE_H
+} // namespace curaengine::communication

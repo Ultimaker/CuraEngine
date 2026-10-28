@@ -1,16 +1,20 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef TEXTURESCORINGCRITERION_H
-#define TEXTURESCORINGCRITERION_H
+#pragma once
 
 #include <memory>
 
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace cura
+namespace curaengine
 {
 class TextureDataProvider;
+}
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Criterion that will give a score according to the data contained in the user-painted texture.
@@ -22,11 +26,9 @@ private:
     const std::string feature_name_;
 
 public:
-    explicit TextureScoringCriterion(const PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name);
+    explicit TextureScoringCriterion(const geometry::PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name);
 
-    virtual double computeScore(const Point2LL& candidate_position) const override;
+    virtual double computeScore(const geometry::Point2LL& candidate_position) const override;
 };
 
-} // namespace cura
-
-#endif // TEXTURESCORINGCRITERION_H
+} // namespace curaengine::utils::scoring

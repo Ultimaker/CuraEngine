@@ -1,20 +1,19 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef FFF_PROCESSOR_H
-#define FFF_PROCESSOR_H
+#pragma once
 
 #include "FffGcodeWriter.h"
 #include "FffPolygonGenerator.h"
 #include "utils/NoCopy.h"
-#include "utils/gettime.h"
+#include "utils/TimeKeeper.h"
 
 
-namespace cura
+namespace curaengine
 {
 
 // FusedFilamentFabrication processor. Singleton class
-class FffProcessor : public NoCopy
+class FffProcessor : public utils::NoCopy
 {
 private:
     /*!
@@ -45,7 +44,7 @@ public:
     /*!
      * The stop watch used to time how long the different stages take to compute.
      */
-    TimeKeeper time_keeper; // TODO: use singleton time keeper
+    utils::TimeKeeper time_keeper; // TODO: use singleton time keeper
 
     /*!
      * Add the end gcode and set all temperatures to zero.
@@ -53,6 +52,4 @@ public:
     void finalize();
 };
 
-} // namespace cura
-
-#endif // FFF_PROCESSOR_H
+} // namespace curaengine

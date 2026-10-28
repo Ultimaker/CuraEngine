@@ -1,18 +1,16 @@
-// Copyright (c) 2016 Scott Lenser
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2026 Scott Lenser
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SPARSE_POINT_GRID_H
-#define UTILS_SPARSE_POINT_GRID_H
+#pragma once
 
-#include <cassert>
 #include <unordered_map>
 #include <vector>
 
 #include "SparseGrid.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine::utils
 {
 
 /*! \brief Sparse grid which can locate spatially nearby elements efficiently.
@@ -51,7 +49,7 @@ public:
      * \param query_pt The point to query for an object nearby.
      * \param radius The radius of what is considered "nearby".
      */
-    const ElemT* getAnyNearby(const Point2LL& query_pt, coord_t radius);
+    const ElemT* getAnyNearby(const geometry::Point2LL& query_pt, coord_t radius);
 
 protected:
     using GridPoint = typename SparseGrid<ElemT>::GridPoint;
@@ -73,19 +71,19 @@ SGI_THIS::SparsePointGrid(coord_t cell_size, size_t elem_reserve, double max_loa
 SGI_TEMPLATE
 void SGI_THIS::insert(const Elem& elem)
 {
-    Point2LL loc = m_locator(elem);
+    geometry::Point2LL loc = m_locator(elem);
     GridPoint grid_loc = SparseGrid<ElemT>::toGridPoint(loc);
 
     SparseGrid<ElemT>::grid_.emplace(grid_loc, elem);
 }
 
 SGI_TEMPLATE
-const ElemT* SGI_THIS::getAnyNearby(const Point2LL& query_pt, coord_t radius)
+const ElemT* SGI_THIS::getAnyNearby(const geometry::Point2LL& query_pt, coord_t radius)
 {
     const ElemT* ret = nullptr;
     const std::function<bool(const ElemT&)>& process_func = [&ret, query_pt, radius, this](const ElemT& maybe_nearby)
     {
-        if (shorterThen(m_locator(maybe_nearby) - query_pt, radius))
+        if (geometry::shorterThen(m_locator(maybe_nearby) - query_pt, radius))
         {
             ret = &maybe_nearby;
             return false;
@@ -101,6 +99,4 @@ const ElemT* SGI_THIS::getAnyNearby(const Point2LL& query_pt, coord_t radius)
 #undef SGI_TEMPLATE
 #undef SGI_THIS
 
-} // namespace cura
-
-#endif // UTILS_SPARSE_POINT_GRID_H
+} // namespace curaengine::utils

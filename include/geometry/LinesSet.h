@@ -1,29 +1,22 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_LINES_SET_H
-#define GEOMETRY_LINES_SET_H
+#pragma once
 
 #include <vector>
 
 #include <range/v3/view/drop.hpp>
 
+#include "geometry/CheckNonEmptyParam.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class Shape;
 class OpenLinesSet;
 class PointMatrix;
 class Point3Matrix;
-
-enum class CheckNonEmptyParam
-{
-    OnlyIfValid,
-    OnlyIfNotEmpty,
-    EvenIfEmpty
-};
 
 /*!
  * \brief Base class for all geometry containers representing a set of polylines.
@@ -241,7 +234,7 @@ public:
     void removeAt(size_t index);
 
     /*! \brief Get the total length of all the lines */
-    [[nodiscard]] coord_t length() const;
+    [[nodiscard]] utils::coord_t length() const;
 
     void splitIntoSegments(OpenLinesSet& result) const;
     [[nodiscard]] OpenLinesSet splitIntoSegments() const;
@@ -249,7 +242,7 @@ public:
     /*! \brief Removes overlapping consecutive line segments which don't delimit a positive area */
     void removeDegenerateVerts();
 
-    [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(utils::coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     void translate(const Point2LL& delta);
 
@@ -296,6 +289,4 @@ private:
     bool checkAdd(const LineType& line, CheckNonEmptyParam check_non_empty);
 };
 
-} // namespace cura
-
-#endif // GEOMETRY_LINES_SET_H
+} // namespace curaengine::geometry

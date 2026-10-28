@@ -8,7 +8,7 @@
 #include <iomanip> // setw, setfill
 #include <sstream>
 
-namespace cura
+namespace curaengine::utils
 {
 
 Date::Date(int year, int month, int day)
@@ -49,4 +49,4 @@ Date Date::getDate()
 }
 
 
-} // namespace cura
+} // namespace curaengine::utils

@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "geometry/Polygon.h"
@@ -8,10 +8,14 @@
 
 #include "geometry/Point3Matrix.h"
 #include "geometry/Shape.h"
+#include "types/AngleDegrees.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/ListPolyIt.h"
-#include "utils/linearAlg2D.h"
 
-namespace cura
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::geometry
 {
 
 void Polygon::addPath(ClipperLib::Clipper& clipper, ClipperLib::PolyType poly_typ) const
@@ -601,4 +605,4 @@ Shape Polygon::offset(int distance, ClipperLib::JoinType join_type, double miter
     return Shape{ std::move(ret) };
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

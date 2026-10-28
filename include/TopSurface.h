@@ -1,13 +1,12 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef TOPSURFACE_H
-#define TOPSURFACE_H
+#pragma once
 
 #include "GCodePathConfig.h"
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine
 {
 
 class LayerPlan;
@@ -55,9 +54,7 @@ public:
     /*!
      * \brief The areas of top surface, for each layer.
      */
-    Shape areas;
+    geometry::Shape areas;
 };
 
-} // namespace cura
-
-#endif /* TOPSURFACE_H */
+} // namespace curaengine

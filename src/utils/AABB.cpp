@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/AABB.h"
@@ -9,9 +9,13 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "utils/linearAlg2D.h"
+#include "types/AngleRadians.h"
+#include "utils/LinearAlg2D.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+
+namespace curaengine::utils
 {
 
 
@@ -67,24 +71,26 @@ coord_t AABB::distanceSquared(const Point2LL& p) const
     const Point2LL a = Point2LL(max_.X, min_.Y);
     const Point2LL b = Point2LL(min_.X, max_.Y);
     return (contains(p) ? -1 : 1)
-         * std::min({ LinearAlg2D::getDist2FromLineSegment(min_, a, p),
-                      LinearAlg2D::getDist2FromLineSegment(a, max_, p),
-                      LinearAlg2D::getDist2FromLineSegment(max_, b, p),
-                      LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
+         * std::min(
+               { LinearAlg2D::getDist2FromLineSegment(min_, a, p),
+                 LinearAlg2D::getDist2FromLineSegment(a, max_, p),
+                 LinearAlg2D::getDist2FromLineSegment(max_, b, p),
+                 LinearAlg2D::getDist2FromLineSegment(b, min_, p) });
 }
 
 coord_t AABB::distanceSquared(const AABB& other) const
 {
-    return std::min({
-        distanceSquared(other.min_),
-        other.distanceSquared(min_),
-        distanceSquared(other.max_),
-        other.distanceSquared(max_),
-        distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
-        other.distanceSquared(Point2LL(max_.X, min_.Y)),
-        distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
-        other.distanceSquared(Point2LL(min_.X, max_.Y)),
-    });
+    return std::min(
+        {
+            distanceSquared(other.min_),
+            other.distanceSquared(min_),
+            distanceSquared(other.max_),
+            other.distanceSquared(max_),
+            distanceSquared(Point2LL(other.max_.X, other.min_.Y)),
+            other.distanceSquared(Point2LL(max_.X, min_.Y)),
+            distanceSquared(Point2LL(other.min_.X, other.max_.Y)),
+            other.distanceSquared(Point2LL(min_.X, max_.Y)),
+        });
 }
 
 void AABB::calculate(const Shape& shape)
@@ -233,14 +239,14 @@ std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape&
         const Point2LL& p2 = (*iterator).end;
 
         const auto x_hat = p2 - p1;
-        const auto length = vSize(x_hat);
+        const auto length = geometry::vSize(x_hat);
 
         if (length < 5)
         {
             continue;
         }
 
-        const auto y_hat = turn90CCW(x_hat);
+        const auto y_hat = geometry::turn90CCW(x_hat);
 
         AABB aabb;
 
@@ -248,8 +254,8 @@ std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape&
         for (const auto& p : shape[0])
         {
             Point2LL local_p = {
-                dot(p, x_hat) / length,
-                dot(p, y_hat) / length,
+                geometry::dot(p, x_hat) / length,
+                geometry::dot(p, y_hat) / length,
             };
             aabb.include(local_p);
         }
@@ -258,7 +264,7 @@ std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape&
         if (area < min_area)
         {
             min_area = area;
-            best_angle = angle_rad(x_hat);
+            best_angle = geometry::angle_rad(x_hat);
             best_aabb = aabb;
         }
     }
@@ -266,4 +272,4 @@ std::tuple<AABB, AngleRadians> AABB::minimumAreaOrientedBoundingBox(const Shape&
     return { best_aabb, best_angle };
 }
 
-} // namespace cura
+} // namespace curaengine::utils

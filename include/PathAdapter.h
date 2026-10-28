@@ -1,15 +1,14 @@
-// Copyright (c) 2024 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATH_ADAPTER_H
-#define PATH_ADAPTER_H
+#pragma once
 
 #include <stddef.h>
 
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine
 {
 
 /* Adapter class to allow extrusion-related functions to work with either an ExtrusionLine or a Polygon */
@@ -23,7 +22,7 @@ public:
      * \param fixed_line_width The fixed line width in case the stored path doesn't handle information about a variable
      *                         line width. Can be omitted otherwise.
      */
-    PathAdapter(const PathType& path, const coord_t fixed_line_width = 0)
+    PathAdapter(const PathType& path, const utils::coord_t fixed_line_width = 0)
         : path_(path)
         , fixed_line_width_(fixed_line_width)
     {
@@ -39,14 +38,14 @@ public:
         return path_.size();
     }
 
-    coord_t length() const
+    utils::coord_t length() const
     {
         return path_.length();
     }
 
-    const Point2LL& pointAt(size_t index) const;
+    const geometry::Point2LL& pointAt(size_t index) const;
 
-    coord_t lineWidthAt(size_t index) const;
+    utils::coord_t lineWidthAt(size_t index) const;
 
     const PathType& getPath() const
     {
@@ -55,9 +54,7 @@ public:
 
 private:
     const PathType& path_;
-    const coord_t fixed_line_width_;
+    const utils::coord_t fixed_line_width_;
 };
 
-} // namespace cura
-
-#endif // PATH_ADAPTER_H
+} // namespace curaengine

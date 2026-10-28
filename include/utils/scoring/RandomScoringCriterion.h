@@ -1,14 +1,11 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef RANDOMSCORINGCRITERION_H
-#define RANDOMSCORINGCRITERION_H
-
-#include <stddef.h>
+#pragma once
 
 #include "utils/scoring/ScoringCriterion.h"
 
-namespace cura
+namespace curaengine::utils::scoring
 {
 
 /*!
@@ -22,6 +19,4 @@ public:
     virtual double computeScore(const size_t candidate_index) const override;
 };
 
-} // namespace cura
-
-#endif // RANDOMSCORINGCRITERION_H
+} // namespace curaengine::utils::scoring

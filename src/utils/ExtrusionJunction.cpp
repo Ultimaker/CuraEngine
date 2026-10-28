@@ -3,7 +3,9 @@
 
 #include "utils/ExtrusionJunction.h"
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 bool ExtrusionJunction::operator==(const ExtrusionJunction& other) const
@@ -18,4 +20,4 @@ ExtrusionJunction::ExtrusionJunction(const Point2LL& p, const coord_t w, const c
 {
 }
 
-} // namespace cura
+} // namespace curaengine::utils

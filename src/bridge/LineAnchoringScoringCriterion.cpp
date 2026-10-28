@@ -1,12 +1,19 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
 #include "bridge/LineAnchoringScoringCriterion.h"
 
 #include <range/v3/algorithm/stable_sort.hpp>
 
 #include "bridge/TransformedShape.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::bridge
 {
 
 LineAnchoringScoringCriterion::LineAnchoringScoringCriterion(
@@ -105,7 +112,7 @@ std::tuple<coord_t, coord_t>
             const double next_intersection_skin_area = skin_outline_intersections.front();
             const double next_intersection_supported_area = supported_regions_intersections.front();
 
-            if (is_zero(next_intersection_skin_area - next_intersection_supported_area))
+            if (utils::is_zero(next_intersection_skin_area - next_intersection_supported_area))
             {
                 next_intersection_is_skin_area = true;
                 next_intersection_is_supported_area = true;
@@ -223,4 +230,4 @@ std::vector<coord_t> LineAnchoringScoringCriterion::shapeLineIntersections(const
     return intersections;
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

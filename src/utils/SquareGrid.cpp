@@ -1,11 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/SquareGrid.h"
 
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 
-using namespace cura;
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
+{
 
 
 SquareGrid::SquareGrid(coord_t cell_size)
@@ -33,13 +36,13 @@ SquareGrid::grid_coord_t SquareGrid::toGridCoord(const coord_t& coord) const
 }
 
 
-cura::Point2LL SquareGrid::toLowerCorner(const GridPoint& location) const
+Point2LL SquareGrid::toLowerCorner(const GridPoint& location) const
 {
-    return cura::Point2LL(toLowerCoord(location.X), toLowerCoord(location.Y));
+    return Point2LL(toLowerCoord(location.X), toLowerCoord(location.Y));
 }
 
 
-cura::coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord) const
+coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord) const
 {
     // This mapping via truncation results in the cells with
     // GridPoint.x==0 being twice as large and similarly for
@@ -191,3 +194,5 @@ coord_t SquareGrid::getCellSize() const
 {
     return cell_size_;
 }
+
+} // namespace curaengine::utils

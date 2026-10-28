@@ -1,18 +1,20 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CORNERSCORINGCRITERION_H
-#define CORNERSCORINGCRITERION_H
+#pragma once
 
-#include <stddef.h>
-
-#include "settings/EnumSettings.h"
+#include "types/EZSeamCornerPrefType.h"
 #include "utils/Coord_t.h"
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 class PointsSet;
+}
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Criterion that will give a score according to whether the point is creating a corner or lies on a flat line.
@@ -21,12 +23,12 @@ class PointsSet;
 class CornerScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
-    const EZSeamCornerPrefType corner_preference_;
+    const types::EZSeamCornerPrefType corner_preference_;
     std::vector<coord_t> segments_sizes_;
     coord_t total_length_{ 0 };
 
 public:
-    explicit CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference);
+    explicit CornerScoringCriterion(const geometry::PointsSet& points, const types::EZSeamCornerPrefType corner_preference);
 
     virtual double computeScore(const size_t candidate_index) const override;
 
@@ -57,9 +59,7 @@ private:
      * or negative to go backward
      * \return The position of the path a the given distance from the reference point
      */
-    Point2LL findNeighbourPoint(size_t vertex_index, coord_t distance) const;
+    geometry::Point2LL findNeighbourPoint(size_t vertex_index, coord_t distance) const;
 };
 
-} // namespace cura
-
-#endif // CORNERSCORINGCRITERION_H
+} // namespace curaengine::utils::scoring

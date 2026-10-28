@@ -10,11 +10,11 @@
 
 // NOTE: See the documentation in the header-file for an explanation of this simple file format.
 
-namespace cura
+namespace curaengine
 {
 // Read multiple files to the collection of polygons.
 // Returns boolean success/failure (read errors, not found, etc.).
-bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Shape>& polygons_out)
+bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<::curaengine::geometry::Shape>& polygons_out)
 {
     for (const std::string& filename : filenames)
     {
@@ -28,7 +28,7 @@ bool readTestPolygons(const std::vector<std::string>& filenames, std::vector<Sha
 
 // Read a single file to the collection of polygons.
 // Returns boolean success/failure (read errors, not found, etc.).
-bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_out)
+bool readTestPolygons(const std::string& filename, std::vector<::curaengine::geometry::Shape>& polygons_out)
 {
     FILE* handle = std::fopen(filename.c_str(), "r");
     if (! handle)
@@ -36,8 +36,8 @@ bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_
         return false;
     }
 
-    Polygon next_path;
-    Shape next_shape;
+    ::curaengine::geometry::Polygon next_path;
+    ::curaengine::geometry::Shape next_shape;
 
     char command = '_';
     int read = 0;
@@ -55,8 +55,8 @@ bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_
         switch (command)
         {
         case 'v': // read next coordinate
-            coord_t coord_x;
-            coord_t coord_y;
+            ::curaengine::utils::coord_t coord_x;
+            ::curaengine::utils::coord_t coord_y;
             read = std::fscanf(handle, " %lld %lld ", &coord_x, &coord_y);
             if (read == EOF || read <= 0)
             {
@@ -71,7 +71,7 @@ bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_
         case '#': // end of file
             if (! next_path.empty())
             {
-                next_shape.push_back(Polygon(next_path)); // copy and add
+                next_shape.push_back(::curaengine::geometry::Polygon(next_path)); // copy and add
                 next_path.clear();
             }
             if (command != 'x' && ! next_shape.empty())
@@ -87,4 +87,4 @@ bool readTestPolygons(const std::string& filename, std::vector<Shape>& polygons_
 
     return true;
 }
-} // namespace cura
+} // namespace curaengine

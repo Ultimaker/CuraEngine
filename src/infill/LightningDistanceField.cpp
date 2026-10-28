@@ -1,11 +1,14 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/LightningDistanceField.h" //Class we're implementing.
 
-#include "utils/polygonUtils.h" //For spreadDotsArea helper function.
+#include "utils/PolygonUtils.h" //For spreadDotsArea helper function.
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
+namespace curaengine::infill
 {
 
 constexpr coord_t radius_per_cell_size = 6; // The cell-size should be small compared to the radius, but not so small as to be inefficient.
@@ -21,7 +24,7 @@ LightningDistanceField::LightningDistanceField(const coord_t& radius, const Shap
     for (const auto& p : regular_dots)
     {
         const ClosestPointPolygon cpp = PolygonUtils::findClosest(p, current_outline);
-        const coord_t dist_to_boundary = vSize(p - cpp.p());
+        const coord_t dist_to_boundary = geometry::vSize(p - cpp.p());
         unsupported_points_.emplace_back(p, dist_to_boundary);
     }
     unsupported_points_.sort(
@@ -58,7 +61,7 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
         {
             std::list<UnsupCell>::iterator& list_it = it->second;
             UnsupCell& cell = *list_it;
-            if (shorterThen(cell.loc_ - added_leaf, supporting_radius_))
+            if (geometry::shorterThen(cell.loc_ - added_leaf, supporting_radius_))
             {
                 unsupported_points_.erase(list_it);
                 unsupported_points_grid_.erase(it);
@@ -69,8 +72,8 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
     const Point2LL a = to_node;
     const Point2LL b = added_leaf;
     Point2LL ab = b - a;
-    Point2LL ab_T = turn90CCW(ab);
-    Point2LL extent = normal(ab_T, supporting_radius_);
+    Point2LL ab_T = geometry::turn90CCW(ab);
+    Point2LL extent = geometry::normal(ab_T, supporting_radius_);
     // TODO: process cells only once; make use of PolygonUtils::spreadDotsArea
     grid_.processLineCells(
         std::make_pair(a + extent, a - extent),
@@ -82,4 +85,4 @@ void LightningDistanceField::update(const Point2LL& to_node, const Point2LL& add
     grid_.processNearby(added_leaf, supporting_radius_, process_func);
 }
 
-} // namespace cura
+} // namespace curaengine::infill

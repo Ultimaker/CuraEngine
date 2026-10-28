@@ -1,14 +1,17 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "geometry/PointMatrix.h"
 
 #include <numbers>
 
-#include "settings/types/Angle.h"
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
 
 
-namespace cura
+using namespace curaengine::types;
+
+namespace curaengine::geometry
 {
 
 PointMatrix::PointMatrix(double rotation)
@@ -74,4 +77,4 @@ PointMatrix PointMatrix::inverse() const
     return ret;
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

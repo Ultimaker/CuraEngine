@@ -1,14 +1,13 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_POLYLINE_STITCHER_H
-#define UTILS_POLYLINE_STITCHER_H
+#pragma once
 
 #include <cassert>
 
 #include "SparsePointGrid.h"
 
-namespace cura
+namespace curaengine::utils
 {
 
 template<class T>
@@ -70,5 +69,4 @@ private:
     static void pushToClosedResult(OutputPaths& result_polygons, const Path& polyline);
 };
 
-} // namespace cura
-#endif // UTILS_POLYLINE_STITCHER_H
+} // namespace curaengine::utils

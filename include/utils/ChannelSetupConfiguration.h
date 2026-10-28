@@ -1,0 +1,23 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher
+
+#pragma once
+
+#ifdef ENABLE_PLUGINS
+
+#include <cstdint>
+#include <string>
+
+namespace curaengine::utils
+{
+
+struct ChannelSetupConfiguration
+{
+    std::string host;
+    uint64_t port;
+    uint64_t shibolet = 0UL; // TODO: Either get from startup (server would receive this as well) or remove completely.
+};
+
+} // namespace curaengine::utils
+
+#endif // ENABLE_PLUGINS

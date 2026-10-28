@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "communication/CommandLine.h"
@@ -27,16 +27,21 @@
 #include "Application.h" //To get the extruders for material estimates.
 #include "ExtruderTrain.h"
 #include "FffProcessor.h" //To start a slice and get time estimates.
+#include "Mesh.h"
 #include "MeshGroup.h"
 #include "Slice.h"
-#include "utils/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
+#include "geometry/Matrix4x3D.h" //For the mesh_rotation_matrix setting.
 #include "utils/format/filesystem_path.h"
 #include "utils/views/split_paths.h"
 
 
 namespace fs = std::filesystem;
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::communication
 {
 
 CommandLine::CommandLine(const std::vector<std::string>& arguments)
@@ -46,7 +51,7 @@ CommandLine::CommandLine(const std::vector<std::string>& arguments)
 {
     if (auto search_paths = spdlog::details::os::getenv("CURA_ENGINE_SEARCH_PATH"); ! search_paths.empty())
     {
-        search_directories_ = search_paths | views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
+        search_directories_ = search_paths | utils::views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
     };
 }
 
@@ -87,7 +92,7 @@ void CommandLine::sendSliceUUID([[maybe_unused]] const std::string& slice_uuid) 
     // pass
 }
 
-void CommandLine::sendPrintInformation(const std::vector<cura::Duration>& time_estimates, const PrintInformation& print_information) const
+void CommandLine::sendPrintInformation(const std::vector<Duration>& time_estimates, const PrintInformation& print_information) const
 {
     double sum = ranges::accumulate(time_estimates, 0.0);
     spdlog::info("Total print time: {:3}", sum);
@@ -215,7 +220,7 @@ void CommandLine::sliceNext()
                         exit(1);
                     }
                     argument = arguments_[argument_index];
-                    search_directories_ = argument | views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
+                    search_directories_ = argument | utils::views::split_paths | ranges::to<std::vector<std::filesystem::path>>();
                     break;
                 }
                 case 'j':
@@ -747,4 +752,4 @@ std::string CommandLine::findDefinitionFile(const std::string& definition_id, co
     return {};
 }
 
-} // namespace cura
+} // namespace curaengine::communication

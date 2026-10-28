@@ -1,8 +1,7 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef SKELETAL_TRAPEZOIDATION_GRAPH_H
-#define SKELETAL_TRAPEZOIDATION_GRAPH_H
+#pragma once
 
 #include <list>
 
@@ -11,7 +10,7 @@
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine::arachne
 {
 
 class SkeletalTrapezoidationGraph
@@ -33,16 +32,16 @@ public:
      * |    | > Don't collapse this edge only.
      * o    o
      */
-    void collapseSmallEdges(coord_t snap_dist = 5);
+    void collapseSmallEdges(utils::coord_t snap_dist = 5);
 
-    void makeRib(edge_t*& prev_edge, Point2LL start_source_point, Point2LL end_source_point);
+    void makeRib(edge_t*& prev_edge, geometry::Point2LL start_source_point, geometry::Point2LL end_source_point);
 
     /*!
      * Insert a node into the graph and connect it to the input polygon using ribs
      *
      * \return the last edge which replaced [edge], which points to the same [to] node
      */
-    edge_t* insertNode(edge_t* edge, Point2LL mid, coord_t mide_node_bead_count);
+    edge_t* insertNode(edge_t* edge, geometry::Point2LL mid, utils::coord_t mide_node_bead_count);
 
     /*!
      * Return the first and last edge of the edges replacing \p edge pointing to the same node
@@ -50,8 +49,7 @@ public:
     std::pair<edge_t*, edge_t*> insertRib(edge_t& edge, node_t* mid_node);
 
 private:
-    std::pair<Point2LL, Point2LL> getSource(const edge_t& edge);
+    std::pair<geometry::Point2LL, geometry::Point2LL> getSource(const edge_t& edge);
 };
 
-} // namespace cura
-#endif
+} // namespace curaengine::arachne

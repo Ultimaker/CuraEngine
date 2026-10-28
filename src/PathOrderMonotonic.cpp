@@ -1,4 +1,4 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "PathOrderMonotonic.h"
@@ -7,8 +7,13 @@
 #include <unordered_set> //To track starting points of monotonic sequences.
 
 #include "geometry/OpenPolyline.h"
+#include "utils/SparsePointGridInclusive.h"
+#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 template<typename PathType>
@@ -120,19 +125,19 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
     polyline->start_vertex_ = 0;
     Point2LL first_endpoint = polyline->converted_->front();
     Point2LL last_endpoint = polyline->converted_->back();
-    std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance_);
+    std::vector<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance_);
     auto close_line_before = std::find_if(
         lines_before.begin(),
         lines_before.end(),
-        [first_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
+        [first_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
         {
             return canConnectToPolyline(first_endpoint, found_path);
         });
-    std::vector<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance_);
+    std::vector<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance_);
     auto close_line_after = std::find_if(
         lines_after.begin(),
         lines_after.end(),
-        [last_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
+        [last_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
         {
             return canConnectToPolyline(last_endpoint, found_path);
         });
@@ -149,7 +154,7 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
         close_line_before = std::find_if(
             lines_before.begin(),
             lines_before.end(),
-            [first_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
+            [first_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
             {
                 return canConnectToPolyline(first_endpoint, found_path);
             });
@@ -166,7 +171,7 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
         close_line_after = std::find_if(
             lines_after.begin(),
             lines_after.end(),
-            [last_endpoint](SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
+            [last_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
             {
                 return canConnectToPolyline(last_endpoint, found_path);
             });
@@ -387,8 +392,8 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
         for (auto iterator = lines_on_row_range.first; iterator != lines_on_row_range.second; ++iterator)
         {
             const Path* path = iterator->second;
-            const coord_t dist_start = vSize2(current_pos - path->converted_->front());
-            const coord_t dist_end = vSize2(current_pos - path->converted_->back());
+            const coord_t dist_start = geometry::vSize2(current_pos - path->converted_->front());
+            const coord_t dist_end = geometry::vSize2(current_pos - path->converted_->back());
             if (dist_start < closest_distance)
             {
                 closest_next_line_iterator = iterator;
@@ -435,4 +440,4 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
 template void PathOrderMonotonic<const Polyline*>::optimize();
 template void PathOrderMonotonic<const OpenPolyline*>::optimize();
 
-} // namespace cura
+} // namespace curaengine

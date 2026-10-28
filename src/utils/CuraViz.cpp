@@ -17,15 +17,17 @@
 #include <range/v3/view/map.hpp>
 
 #include "Application.h"
+#include "Settings.h"
 #include "Slice.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "settings/Settings.h"
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 CuraViz* CuraViz::instance_ = nullptr;
@@ -265,6 +267,6 @@ cura_viz::GeometricElement* CuraViz::MessageToSend::addGeometricElement(const st
     return element;
 }
 
-} // namespace cura
+} // namespace curaengine::utils
 
 #endif

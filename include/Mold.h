@@ -1,12 +1,11 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef MOLD_H
-#define MOLD_H
+#pragma once
 
 #include <vector>
 
-namespace cura
+namespace curaengine
 {
 
 class Slicer;
@@ -39,6 +38,4 @@ public:
 private:
 };
 
-} // namespace cura
-
-#endif // MOLD_H
+} // namespace curaengine

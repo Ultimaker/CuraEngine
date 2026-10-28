@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallsComputation.h"
@@ -15,13 +15,20 @@
 #include "Application.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
 #include "WallToolPaths.h"
-#include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "types/Ratio.h"
 #include "utils/Simplify.h" // We're simplifying the spiralized insets.
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
+
 
 WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
     : settings_(settings)
@@ -135,4 +142,4 @@ void WallsComputation::generateSpiralInsets(SliceLayerPart* part, coord_t line_w
     }
 }
 
-} // namespace cura
+} // namespace curaengine

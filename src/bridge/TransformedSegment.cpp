@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "bridge/TransformedSegment.h"
@@ -9,11 +9,14 @@
 #include "bridge/SegmentOverlappingData.h"
 #include "bridge/SegmentOverlappingType.h"
 #include "geometry/PointMatrix.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/math.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
+namespace curaengine::bridge
 {
 
 TransformedSegment::TransformedSegment(const Point2LL& start, const Point2LL& end, const PointMatrix& matrix)
@@ -67,7 +70,7 @@ std::optional<SegmentOverlapping> TransformedSegment::calculateOverlapping(const
         float intersection_infill_line;
         if (LinearAlg2D::segmentSegmentIntersection(start_, end_, other.start_, other.end_, intersection_segment, intersection_infill_line))
         {
-            const Point2LL intersection = lerp(start_, end_, intersection_segment);
+            const Point2LL intersection = geometry::lerp(start_, end_, intersection_segment);
             if (intersection.Y >= overlapping.y_max - EPSILON)
             {
                 // Intersection is very close from top, consider as if not intersecting
@@ -129,4 +132,4 @@ SegmentOverlappingType TransformedSegment::makeNonIntersectingOverlapping(const 
     }
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

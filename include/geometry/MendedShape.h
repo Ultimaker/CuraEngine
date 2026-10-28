@@ -1,16 +1,15 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_MENDEDSHAPE_H
-#define GEOMETRY_MENDEDSHAPE_H
+#pragma once
 
 #include <optional>
 
+#include "Settings.h"
 #include "geometry/Shape.h"
-#include "settings/Settings.h"
-#include "utils/section_type.h"
+#include "utils/SectionType.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 /*!
  * \brief A MendedShape is a wrapper class for a Shape,
@@ -31,15 +30,13 @@ class MendedShape
 {
 public:
     MendedShape() = default;
-    MendedShape(const Settings* settings, const SectionType section_type, const Shape* shape);
+    MendedShape(const Settings* settings, const utils::SectionType section_type, const Shape* shape);
     const Shape& getShape() const;
 
 protected:
     const Settings* settings_{ nullptr };
-    const SectionType section_type_{};
+    const utils::SectionType section_type_{};
     const Shape* shape_{ nullptr };
     std::optional<Shape> mended_shape_;
 };
-} // namespace cura
-
-#endif // GEOMETRY_MENDEDSHAPE_H
+} // namespace curaengine::geometry

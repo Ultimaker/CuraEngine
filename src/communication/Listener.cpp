@@ -3,12 +3,12 @@
 
 #ifdef ARCUS
 
+#include "communication/Listener.h"
+
 #include <Arcus/Error.h> //To process error codes.
 #include <spdlog/spdlog.h>
 
-#include "communication/Listener.h"
-
-namespace cura
+namespace curaengine::communication
 {
 
 void Listener::stateChanged(Arcus::SocketState)
@@ -33,6 +33,6 @@ void Listener::error(const Arcus::Error& error)
     }
 }
 
-} // namespace cura
+} // namespace curaengine::communication
 
 #endif // ARCUS

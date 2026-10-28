@@ -1,36 +1,36 @@
-// Copyright (c) 2017 Tim Kuipers
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 Tim Kuipers
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_IMAGE_BASED_DENSITY_PROVIDER_H
-#define INFILL_IMAGE_BASED_DENSITY_PROVIDER_H
+#pragma once
 
 #include "../utils/AABB.h"
 #include "DensityProvider.h"
 #include "geometry/Point3LL.h"
 
-namespace cura
+namespace curaengine::utils
+{
+struct AABB3D;
+}
+
+namespace curaengine::infill
 {
 
-struct AABB3D;
 
 class ImageBasedDensityProvider : public DensityProvider
 {
 public:
-    ImageBasedDensityProvider(const std::string filename, const AABB aabb);
+    ImageBasedDensityProvider(const std::string filename, const utils::AABB aabb);
 
     virtual ~ImageBasedDensityProvider();
 
-    virtual double operator()(const AABB3D& aabb) const;
+    virtual double operator()(const utils::AABB3D& aabb) const;
 
 protected:
-    Point3LL image_size; //!< dimensions of the image. Third dimension is the amount of channels.
+    geometry::Point3LL image_size; //!< dimensions of the image. Third dimension is the amount of channels.
     unsigned char* image = nullptr; //!< image data: rows of channel data per pixel.
 
-    AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
+    utils::AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
 };
 
-} // namespace cura
-
-
-#endif // INFILL_IMAGE_BASED_DENSITY_PROVIDER_H
+} // namespace curaengine::infill

@@ -1,29 +1,16 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_SPATIALLOOKUP_H
-#define UTILS_SPATIALLOOKUP_H
+#pragma once
 
-#include <cstdint>
 #include <optional>
 
 #include <boost/geometry/algorithms/comparable_distance.hpp>
-#include <boost/geometry/core/cs.hpp>
-#include <boost/geometry/geometries/register/point.hpp>
 #include <boost/geometry/index/rtree.hpp>
 
-#include "utils/Point3D.h"
+#include "utils/OccupiedPosition.h"
 
-/*! Utility structure to allow storing an occupation in a boost::geometry::index::rtree. It has to be defined outside any scope to be properly registered. */
-struct OccupiedPosition
-{
-    cura::Point3D position;
-    uint8_t occupation;
-};
-
-BOOST_GEOMETRY_REGISTER_POINT_3D_CONST(OccupiedPosition, double, boost::geometry::cs::cartesian, position.x_, position.y_, position.z_)
-
-namespace cura
+namespace curaengine::utils
 {
 
 class VoxelGrid;
@@ -40,7 +27,7 @@ public:
     SpatialLookup() = default;
 
     /*! Find the occupation that is closest to the given position */
-    std::optional<OccupiedPosition> findClosestOccupation(const Point3D& position) const;
+    std::optional<OccupiedPosition> findClosestOccupation(const geometry::Point3D& position) const;
 
     /*!
      * Make a spatial lookup based on the data stored in the given voxels grid
@@ -54,6 +41,4 @@ private:
     LookupTree lookup_tree_;
 };
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::utils

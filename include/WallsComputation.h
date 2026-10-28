@@ -1,15 +1,14 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef WALLS_COMPUTATION_H
-#define WALLS_COMPUTATION_H
+#pragma once
 
-#include "settings/Settings.h"
-#include "settings/types/LayerIndex.h"
+#include "Settings.h"
+#include "types/LayerIndex.h"
 #include "utils/Coord_t.h"
-#include "utils/section_type.h"
+#include "utils/SectionType.h"
 
-namespace cura
+namespace curaengine
 {
 
 class SliceLayer;
@@ -28,7 +27,7 @@ public:
      * \param settings The per-mesh settings object to get setting values from.
      * \param layer_nr The layer index that these walls are generated for.
      */
-    WallsComputation(const Settings& settings, const LayerIndex layer_nr);
+    WallsComputation(const Settings& settings, const types::LayerIndex layer_nr);
 
     /*!
      * \brief Generates the walls / inner area for all parts in a layer.
@@ -37,7 +36,7 @@ public:
      *
      * \param layer The layer for which to generate the walls and inner area.
      */
-    void generateWalls(SliceLayer* layer, SectionType section);
+    void generateWalls(SliceLayer* layer, utils::SectionType section);
 
 private:
     /*!
@@ -50,14 +49,14 @@ private:
     /*!
      * \brief The layer that these walls are generated for.
      */
-    const LayerIndex layer_nr_;
+    const types::LayerIndex layer_nr_;
 
     /*!
      * Generates the walls / inner area for a single layer part.
      *
      * \param part The part for which to generate the insets.
      */
-    void generateWalls(SliceLayerPart* part, SectionType section);
+    void generateWalls(SliceLayerPart* part, utils::SectionType section);
 
     /*!
      * Generates the outer inset / perimeter used in spiralize mode for a single layer part. The spiral inset is
@@ -69,8 +68,6 @@ private:
      * \param recompute_outline_based_on_outer_wall Whether we need to recompute the print outline according to the
      *        generated spiral inset.
      */
-    void generateSpiralInsets(SliceLayerPart* part, coord_t line_width_0, coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
+    void generateSpiralInsets(SliceLayerPart* part, utils::coord_t line_width_0, utils::coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
 };
-} // namespace cura
-
-#endif // WALLS_COMPUTATION_H
+} // namespace curaengine

@@ -33,7 +33,9 @@
 
 #include "Application.h"
 
-namespace cura
+using namespace curaengine;
+
+namespace curaengine
 {
 
 // Signal handler for a "floating point exception", which can also be integer division by zero errors.
@@ -44,7 +46,7 @@ void signal_FPE(int n)
     exit(1);
 }
 
-} // namespace cura
+} // namespace curaengine
 
 int main(int argc, char** argv)
 {
@@ -55,7 +57,7 @@ int main(int argc, char** argv)
 
 #ifndef DEBUG
     // Register the exception handling for arithmetic exceptions, this prevents the "something went wrong" dialog on windows to pop up on a division by zero.
-    signal(SIGFPE, cura::signal_FPE);
+    signal(SIGFPE, signal_FPE);
 #endif
     std::cerr << std::boolalpha;
 
@@ -91,7 +93,7 @@ int main(int argc, char** argv)
     }
 #endif
 
-    cura::Application::getInstance().run(argc, argv);
+    Application::getInstance().run(argc, argv);
 
 #ifdef SENTRY_URL
     if (const auto use_sentry = spdlog::details::os::getenv("USE_SENTRY"); ! use_sentry.empty() && use_sentry == "1")

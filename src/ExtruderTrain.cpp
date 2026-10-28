@@ -3,7 +3,7 @@
 
 #include "ExtruderTrain.h"
 
-namespace cura
+namespace curaengine
 {
 
 ExtruderTrain::ExtruderTrain(const size_t extruder_nr, Settings* parent_settings)
@@ -12,4 +12,4 @@ ExtruderTrain::ExtruderTrain(const size_t extruder_nr, Settings* parent_settings
     settings_.setParent(parent_settings);
 }
 
-} // namespace cura
+} // namespace curaengine

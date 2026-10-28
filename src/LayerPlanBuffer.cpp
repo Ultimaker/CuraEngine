@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "LayerPlanBuffer.h"
@@ -11,11 +11,20 @@
 #include "FffProcessor.h"
 #include "LayerPlan.h"
 #include "Slice.h"
+#include "SliceMeshStorage.h"
 #include "communication/Communication.h" //To flush g-code through the communication channel.
-#include "gcode_export/gcodeExport.h"
+#include "gcode_export/GCodeExport.h"
+#include "types/InsetDirection.h"
+#include "types/RetractBeforeOuterWall.h"
 
-namespace cura
+using namespace curaengine::gcode_export;
+using namespace curaengine::geometry;
+using namespace curaengine::path_planning;
+using namespace curaengine::types;
+
+namespace curaengine
 {
+using types::operator""_s;
 
 
 constexpr Duration LayerPlanBuffer::extra_preheat_time_;
@@ -195,20 +204,22 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, c
         if (acc_time >= time_before_extruder_plan_end)
         {
             constexpr bool wait = false;
-            extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                                 .extruder = extruder_nr,
-                                                                 .temperature = temp,
-                                                                 .wait = wait,
-                                                                 .time_after_path_start = acc_time - time_before_extruder_plan_end });
+            extruder_plan_before.insertCommand(
+                NozzleTempInsert{ .path_idx = path_idx,
+                                  .extruder = extruder_nr,
+                                  .temperature = temp,
+                                  .wait = wait,
+                                  .time_after_path_start = acc_time - time_before_extruder_plan_end });
             return;
         }
     }
     constexpr bool wait = false;
     constexpr size_t path_idx = 0;
-    extruder_plan_before.insertCommand(NozzleTempInsert{ .path_idx = path_idx,
-                                                         .extruder = extruder_nr,
-                                                         .temperature = temp,
-                                                         .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
+    extruder_plan_before.insertCommand(
+        NozzleTempInsert{ .path_idx = path_idx,
+                          .extruder = extruder_nr,
+                          .temperature = temp,
+                          .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
 }
 
 Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -383,7 +394,7 @@ void LayerPlanBuffer::insertInLayerTempCommands(ExtruderPlan& extruder_plan)
         }
 
         const Temperature path_temperature = normal_temperature + path.config.temperature_delta;
-        if (! fuzzy_equal(path_temperature.value, actual_temperature, 0.1))
+        if (! utils::fuzzy_equal(path_temperature.value, actual_temperature, 0.1))
         {
             constexpr bool wait = false;
             extruder_plan.insertCommand({ index, extruder_plan.extruder_nr_, path_temperature, wait });
@@ -656,4 +667,4 @@ void LayerPlanBuffer::insertTempCommands()
     }
 }
 
-} // namespace cura
+} // namespace curaengine

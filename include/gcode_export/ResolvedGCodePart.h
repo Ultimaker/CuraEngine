@@ -1,21 +1,20 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_RESOLVEDGCODEPART_H
-#define GCODEEXPORT_RESOLVEDGCODEPART_H
+#pragma once
 
 #include <memory>
 #include <unordered_map>
 
+#include "gcode_export/DynamicExtruderContext.h"
 #include "gcode_export/GCodePart.h"
-#include "gcode_export/ResolvingExtruderContext.h"
 
 namespace CuraFormulaeEngine::eval
 {
 struct Value;
 }
 
-namespace cura
+namespace curaengine::gcode_export
 {
 
 class GcodeTemplateResolver;
@@ -47,6 +46,4 @@ private:
     const std::unordered_map<std::string, CuraFormulaeEngine::eval::Value> extra_settings_;
 };
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::gcode_export

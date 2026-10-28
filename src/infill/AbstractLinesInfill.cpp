@@ -1,4 +1,4 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "infill/AbstractLinesInfill.h"
@@ -9,11 +9,16 @@
 #include "geometry/OpenLinesSet.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Shape.h"
+#include "types/AngleDegrees.h"
 #include "utils/AABB.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
-#include "utils/linearAlg2D.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::infill
 {
 
 void AbstractLinesInfill::generateInfill(
@@ -98,7 +103,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 }
             }
 
-            if (outline_point_index == 0 || vSize2(op0 - cur_point) > MM2INT(0.1))
+            if (outline_point_index == 0 || geometry::vSize2(op0 - cur_point) > MM2INT(0.1))
             {
                 // this is either the first outline point or it is another outline point that is not too close to cur_point
 
@@ -124,7 +129,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 double nearest_point_dist2 = std::numeric_limits<float>::infinity();
                 for (size_t pi = 0; pi < points_on_outline_chain_index.size(); ++pi)
                 {
-                    double dist2 = vSize2f(split_lines[points_on_outline_chain_index[pi]].chain[points_on_outline_point_index[pi]] - cur_point);
+                    double dist2 = geometry::vSize2f(split_lines[points_on_outline_chain_index[pi]].chain[points_on_outline_point_index[pi]] - cur_point);
                     if (dist2 < nearest_point_dist2)
                     {
                         nearest_point_dist2 = dist2;
@@ -137,7 +142,7 @@ OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_line
                 // make the chain end the current point and add it to the connector line
                 cur_point = split_lines[chain_index].chain[point_index];
 
-                if (drawing && connector_points.size() > 0 && vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
+                if (drawing && connector_points.size() > 0 && geometry::vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
                 {
                     // this chain end will be too close to the last connector point so throw away the last connector point
                     connector_points.pop_back();
@@ -256,4 +261,4 @@ OpenLinesSet AbstractLinesInfill::fitLines(const OpenLinesSet& raw_lines, const 
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine::infill

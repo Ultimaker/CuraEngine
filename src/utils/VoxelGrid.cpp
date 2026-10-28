@@ -1,4 +1,4 @@
-// Copyright (c) 2025 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/VoxelGrid.h"
@@ -6,12 +6,14 @@
 #include <range/v3/view/transform.hpp>
 #include <spdlog/spdlog.h>
 
+#include "geometry/PlanarPolygon3LL.h"
+#include "geometry/Segment3LL.h"
 #include "utils/AABB3D.h"
-#include "utils/PlanarPolygon3LL.h"
-#include "utils/Segment3LL.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 VoxelGrid::VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution)
@@ -209,4 +211,4 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const Tri
     return traversed_voxels;
 }
 
-} // namespace cura
+} // namespace curaengine::utils

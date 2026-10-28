@@ -1,11 +1,9 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef UTILS_FORMAT_THREAD_ID_H
-#define UTILS_FORMAT_THREAD_ID_H
+#pragma once
 
 #include <sstream>
-#include <string_view>
 #include <thread>
 
 #include <fmt/core.h>
@@ -25,4 +23,3 @@ struct formatter<std::thread::id> : formatter<string_view>
 };
 
 } // namespace fmt
-#endif // UTILS_FORMAT_THREAD_ID_H

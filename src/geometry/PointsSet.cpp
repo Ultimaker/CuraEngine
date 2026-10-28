@@ -6,7 +6,7 @@
 #include "geometry/Point3Matrix.h"
 #include "geometry/PointMatrix.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 PointsSet::PointsSet(const std::initializer_list<Point2LL>& initializer)
@@ -48,4 +48,4 @@ void PointsSet::translate(const Point2LL& translation)
     }
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

@@ -21,23 +21,31 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get settings.
+#include "AreaSupport.h" //For precomputeCrossInfillTree
 #include "Slice.h" // Technically needed to get 'has paint-on support' from the Application.
+#include "SliceDataStorage.h"
+#include "SliceMeshStorage.h"
+#include "TreeSupportBaseCircle.h"
 #include "TreeSupportTipGenerator.h"
 #include "TreeSupportUtils.h"
-#include "infill.h"
+#include "infill/Infill.h"
 #include "infill/SierpinskiFillProvider.h"
 #include "progress/Progress.h"
-#include "settings/EnumSettings.h"
-#include "support.h" //For precomputeCrossInfillTree
+#include "types/ESupportStructure.h"
 #include "utils/OBJ.h"
+#include "utils/PolygonUtils.h" //For moveInside.
+#include "utils/SectionType.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
 #include "utils/algorithm.h"
 #include "utils/math.h" //For round_up_divide and PI.
-#include "utils/polygonUtils.h" //For moveInside.
-#include "utils/section_type.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::progress;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 TreeSupport::TreeSupport(const SliceDataStorage& storage)
@@ -133,7 +141,7 @@ void TreeSupport::generateSupportAreas(SliceDataStorage& storage)
         TimeKeeper time_keeper;
 
         // get all already existing support areas and exclude them
-        cura::parallel_for<coord_t>(
+        utils::parallel_for<coord_t>(
             LayerIndex(0),
             LayerIndex(storage.support.supportLayers.size()),
             [&](const LayerIndex layer_idx)
@@ -214,8 +222,8 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
         const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
         const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
-        const size_t z_distance_top_layers = round_up_divide(z_distance_top,
-                                                             layer_height) + 1; // Support must always be 1 layer below overhang.
+        const size_t z_distance_top_layers = utils::round_up_divide(z_distance_top,
+                                                                    layer_height) + 1; // Support must always be 1 layer below overhang.
         if (mesh.overhang_areas.size() <= z_distance_top_layers)
         {
             continue;
@@ -508,7 +516,7 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
     // The rounding to 2^n is to ensure improved performance, as every iteration two buckets will be merged, halving the amount of buckets.
     // If halving would cause an uneven count, e.g. 3 Then bucket 0 and 1 would have to be merged, and in the next iteration the last remaining buckets. This is assumed to not be
     // optimal performance-wise.
-    const size_t max_bucket_count = std::pow(2, std::floor(std::log(round_up_divide(input_size, min_elements_per_bucket))));
+    const size_t max_bucket_count = std::pow(2, std::floor(std::log(utils::round_up_divide(input_size, min_elements_per_bucket))));
     int bucket_count = std::min(max_bucket_count, num_threads); // do not use more buckets than available threads.
 
     // To achieve that every element in a bucket is already correctly merged with other elements in this bucket
@@ -538,7 +546,7 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
     }
 
     // Precalculate the AABBs from the influence areas.
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         buckets_area.size() / 2,
         [&](size_t idx) // +=2 as in the beginning only uneven buckets will be filled
@@ -560,7 +568,7 @@ void TreeSupport::mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, Prope
         std::vector<PropertyAreasUnordered> insert_influence(buckets_area.size() / 2);
         std::vector<std::vector<TreeSupportElement::Ptr>> erase(buckets_area.size() / 2);
 
-        cura::parallel_for<size_t>(
+        utils::parallel_for<size_t>(
             0,
             (coord_t)buckets_area.size() / 2,
             [&](size_t bucket_pair_idx)
@@ -891,7 +899,7 @@ void TreeSupport::increaseAreas(
     const bool mergelayer)
 {
     std::mutex critical_sections;
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         last_layer.size(),
         [&](const size_t idx)
@@ -1025,7 +1033,7 @@ void TreeSupport::increaseAreas(
                 insertSetting(AreaIncreaseSettings(AvoidanceType::SLOW, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true); // Did we go through the hole.
                 // In many cases the definition of hole is overly restrictive, so to avoid unnecessary fast movement in the tip, it is ignored there for a bit.
                 // This CAN cause a branch to go though a hole it otherwise may have avoided.
-                if (elem->distance_to_top_ < round_up_divide(config.tip_layers, 2))
+                if (elem->distance_to_top_ < utils::round_up_divide(config.tip_layers, 2))
                 {
                     insertSetting(AreaIncreaseSettings(AvoidanceType::FAST, slow_speed, increase_radius, no_error, ! use_min_radius, ! move), true);
                 }
@@ -1087,7 +1095,7 @@ void TreeSupport::increaseAreas(
             // Check whether it is faster to calculate the area increased with the fast speed independently from the slow area, or time could be saved by reusing the slow area to
             // calculate the fast one. Calculated by comparing the steps saved when calculating independently with the saved steps when not.
             const bool offset_independent_faster = (radius / safe_movement_distance - (((config.maximum_move_distance + extra_speed) < (radius + safe_movement_distance)) ? 1 : 0))
-                                                 > (round_up_divide((extra_speed + extra_slow_speed + config.maximum_move_distance_slow), safe_movement_distance));
+                                                 > (utils::round_up_divide((extra_speed + extra_slow_speed + config.maximum_move_distance_slow), safe_movement_distance));
             for (AreaIncreaseSettings settings : order)
             {
                 if (settings.move_)
@@ -1648,7 +1656,7 @@ void TreeSupport::generateBranchAreas(
     const size_t progress_inserts_check_interval = std::max(linear_data.size() / progress_report_steps, size_t(1));
 
     std::mutex critical_sections;
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         linear_data.size(),
         [&](const size_t idx)
@@ -1688,7 +1696,7 @@ void TreeSupport::generateBranchAreas(
 
                 for (std::pair<Point2LL, coord_t> movement : movement_directions)
                 {
-                    max_speed_sqd = std::max(max_speed_sqd, vSize2(movement.first));
+                    max_speed_sqd = std::max(max_speed_sqd, geometry::vSize2(movement.first));
 
                     // Visualization: https://jsfiddle.net/0zvcq39L/2/
                     // Ovalizes the circle to an ellipse, that contains both old center and new target position.
@@ -1754,7 +1762,7 @@ void TreeSupport::generateBranchAreas(
                                 // Try a fuzzy inside as sometimes the point should be on the border, but is not because of rounding errors...
                                 Point2LL from = elem->result_on_layer_;
                                 PolygonUtils::moveInside(part, from, 0);
-                                if (vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
+                                if (geometry::vSize2(elem->result_on_layer_ - from) < (FUDGE_LENGTH * FUDGE_LENGTH) / 4)
                                 {
                                     polygons_with_correct_center = polygons_with_correct_center.unionPolygons(part);
                                 }
@@ -1796,7 +1804,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
         std::vector<std::pair<TreeSupportElement::Ptr, Shape>> processing;
         processing.insert(processing.end(), layer_tree_polygons[layer_idx].begin(), layer_tree_polygons[layer_idx].end());
         std::vector<std::vector<std::pair<TreeSupportElement::Ptr, Shape>>> update_next(processing.size()); // With this a lock can be avoided.
-        cura::parallel_for<size_t>(
+        utils::parallel_for<size_t>(
             0,
             processing.size(),
             [&](const size_t processing_idx)
@@ -1812,7 +1820,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
                         do_something = true;
                         max_outer_wall_distance = std::max(
                             max_outer_wall_distance,
-                            vSize(data_pair.first->result_on_layer_ - parent->result_on_layer_) - (config.getRadius(data_pair.first) - config.getRadius(parent)));
+                            geometry::vSize(data_pair.first->result_on_layer_ - parent->result_on_layer_) - (config.getRadius(data_pair.first) - config.getRadius(parent)));
                     }
                 }
                 max_outer_wall_distance
@@ -1855,7 +1863,7 @@ void TreeSupport::smoothBranchAreas(std::vector<std::unordered_map<TreeSupportEl
             processing.size(),
             std::pair<TreeSupportElement::Ptr, Shape>(nullptr, Shape())); // With this a lock can be avoided.
 
-        cura::parallel_for<size_t>(
+        utils::parallel_for<size_t>(
             0,
             processing.size(),
             [&](const size_t processing_idx)
@@ -1917,7 +1925,7 @@ void TreeSupport::smoothBranchSkeletons(std::vector<std::set<TreeSupportElement:
     // First go through every element and calculate their average position i.r.t their chain of children
     boost::concurrent_flat_map<TreeSupportElement::Ptr, Point2LL> smoothed_positions;
 
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         layer_tree_polygons.size(),
         [&layer_tree_polygons, &smooth_window, &smoothed_positions](const size_t layer_index)
@@ -1955,7 +1963,7 @@ void TreeSupport::dropNonGraciousAreas(
     std::vector<std::vector<std::pair<LayerIndex, Shape>>>& dropped_down_areas,
     const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order)
 {
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         linear_data.size(),
         [&](const size_t idx)
@@ -2012,7 +2020,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
     std::vector<Shape> support_holes(support_layer_storage.size(), Shape());
     // Extract all holes as polygon objects
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
@@ -2044,7 +2052,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
     std::vector<std::vector<Shape>> holeparts(support_layer_storage.size());
     // Split all holes into parts
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
@@ -2059,7 +2067,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
 
     // Figure out which hole rests on which other hole
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         1,
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
@@ -2159,7 +2167,7 @@ void TreeSupport::filterFloatingLines(std::vector<Shape>& support_layer_storage)
 
     // Check if holes are so close to each other that two lines will be printed directly next to each other, which is assumed stable (as otherwise the simulated support pattern
     // will not work correctly) and remove all remaining, invalid holes
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         1,
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
@@ -2204,7 +2212,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
 
     // Iterate over the generated circles in parallel and clean them up. Also add support floor.
     std::mutex critical_sections;
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
@@ -2254,15 +2262,16 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
                 case InterfacePreference::SUPPORT_LINES_OVERWRITE_INTERFACE:
                 {
                     Shape tree_lines;
-                    tree_lines = tree_lines.unionPolygons(TreeSupportUtils::generateSupportInfillLines(
-                                                              support_layer_storage[layer_idx],
-                                                              config,
-                                                              false,
-                                                              layer_idx,
-                                                              config.support_line_distance,
-                                                              storage.support.cross_fill_provider,
-                                                              true)
-                                                              .offset(config.support_line_width / 2));
+                    tree_lines = tree_lines.unionPolygons(
+                        TreeSupportUtils::generateSupportInfillLines(
+                            support_layer_storage[layer_idx],
+                            config,
+                            false,
+                            layer_idx,
+                            config.support_line_distance,
+                            storage.support.cross_fill_provider,
+                            true)
+                            .offset(config.support_line_width / 2));
                     storage.support.supportLayers[layer_idx].support_roof = storage.support.supportLayers[layer_idx].support_roof.difference(tree_lines);
                     // Do not draw roof where the tree is. I prefer it this way as otherwise the roof may cut of a branch from its support below.
                 }
@@ -2302,7 +2311,7 @@ void TreeSupport::finalizeInterfaceAndSupportAreas(
             }
         });
 
-    cura::parallel_for<coord_t>(
+    utils::parallel_for<coord_t>(
         0,
         support_layer_storage.size(),
         [&](const LayerIndex layer_idx)
@@ -2439,7 +2448,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
     }
 
     CenterGrid center_locator_per_layer(move_bounds.size());
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         center_locator_per_layer.size(),
         [&](const size_t layer_idx)
@@ -2465,7 +2474,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
         });
 
     // ensure all branch areas added as roof actually cause a roofline to generate. Else disable turning the branch to roof going down
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         layer_tree_polygons.size(),
         [&](const size_t layer_idx)
@@ -2494,7 +2503,7 @@ void TreeSupport::drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move
             }
         });
 
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         layer_tree_polygons.size(),
         [&](const size_t layer_idx)
@@ -2552,4 +2561,4 @@ void TreeSupport::saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>
     }
 }
 
-} // namespace cura
+} // namespace curaengine

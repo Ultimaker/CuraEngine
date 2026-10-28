@@ -1,0 +1,207 @@
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
+
+#pragma once
+
+#include <optional>
+
+#include "types/LayerIndex.h"
+#include "utils/Coord_t.h"
+
+namespace curaengine::geometry
+{
+class Shape;
+}
+
+namespace curaengine
+{
+
+
+class SkinPart;
+class SliceLayerPart;
+class SliceMeshStorage;
+
+/*!
+ * Class containing all skin and infill area computation functions
+ */
+class SkinInfillAreaComputation
+{
+public:
+    /*!
+     * \brief Initialize the parameters for skin and infill area computation.
+     *
+     * \param layer_nr The index of the layer for which to generate the skins
+     * and infill.
+     * \param mesh The storage where the layer outline information (input) is
+     * stored and where the skin insets and fill areas (output) are stored.
+     * \param process_infill Whether to process infill, i.e. whether there's a
+     * positive infill density or there are infill meshes modifying this mesh.
+     */
+    SkinInfillAreaComputation(const types::LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill);
+
+    /*!
+     * Generate the skin areas and its insets.
+     */
+    void generateSkinsAndInfill();
+
+    /*!
+     * \brief Combines the infill of multiple layers for a specified mesh.
+     *
+     * The infill layers are combined while the thickness of each layer is
+     * multiplied such that the infill should fill up again to the full height of
+     * all combined layers.
+     *
+     * \param mesh The mesh to combine the infill layers of.
+     */
+    static void combineInfillLayers(SliceMeshStorage& mesh);
+
+    /*!
+     * \brief Generate infill areas which cause a gradually less dense infill
+     * structure from top to bottom.
+     *
+     * The areas generated overlap, so that more dense infill adds on to less
+     * dense infill. That way you don't have infill lines which are broken when
+     * they cross a border between separated infill areas, if they would be as
+     * such.
+     *
+     * This function also guarantees that the
+     * SliceLayerPart::infill_area_per_combine_per_density is initialised with
+     * at least one item. The last item in the list will be equal to the
+     * infill_area after this function.
+     * \param mesh The mesh to generate the infill areas for.
+     */
+    static void generateGradualInfill(SliceMeshStorage& mesh);
+
+    /*!
+     * Limit the infill areas to places where they support internal overhangs.
+     *
+     * This function uses the part.infill_area and part.infill_area_own
+     * and computes a new part.infill_area_own
+     *
+     * \param mesh The mesh for which to recalculate the infill areas
+     */
+    static void generateInfillSupport(SliceMeshStorage& mesh);
+
+protected:
+    /*!
+     * Generate the skin areas (outlines) and the infill areas
+     */
+    void generateSkinAndInfillAreas();
+
+    /*!
+     * Generate the skin areas (outlines) of one part in a layer
+     *
+     * \param part The part for which to generate skins.
+     */
+    void generateSkinAndInfillAreas(SliceLayerPart& part);
+
+    /*!
+     * \brief Calculate the basic areas which have air above.
+     * \param part The part for which to compute the top skin areas.
+     * \param[in,out] upskin The areas of top skin to be updated by the layers
+     * above. The input is the area within the inner walls (or an empty Polygons
+     * object).
+     */
+    void calculateTopSkin(const SliceLayerPart& part, geometry::Shape& upskin);
+
+    /*!
+     * \brief Calculate the basic areas which have air below.
+     * \param part The part for which to compute the bottom skin areas.
+     * \param[in,out] downskin The areas of bottom skin to be updated by the
+     * layers above. The input is the area within the inner walls (or an empty
+     * Polygons object).
+     */
+    void calculateBottomSkin(const SliceLayerPart& part, geometry::Shape& downskin);
+
+    /*!
+     * Apply skin expansion:
+     * expand skins into infill area
+     * where the skin is broad enough
+     *
+     * \param original_outline The outline within which skin and infill lie (inner bounds of innermost walls)
+     * \param[in,out] upskin The top skin areas to grow
+     * \param[in,out] downskin The bottom skin areas to grow
+     */
+    void applySkinExpansion(const geometry::Shape& original_outline, geometry::Shape& upskin, geometry::Shape& downskin);
+
+    /*!
+     * Allow small gaps in infill areas to grow over infill areas. This helps keeping the skin areas consistent.
+     * @param skin[in, out] The skin area to be possibly expanded
+     * @param infill[in, out] The infill area to be possibly shrunk
+     */
+    void applySkinFillSmallInfillGaps(geometry::Shape& skin, geometry::Shape& infill) const;
+
+    /*!
+     * Generate infill of a given part
+     * \param[in,out] part The part where the wall information (input) is retrieved and
+     * where the infill areas (output) are stored.
+     * \param skin The skin areas on the layer of the \p part
+     */
+    void generateInfill(SliceLayerPart& part);
+
+    /*!
+     * Remove the areas which are 'directly' under/over air from the \ref SkinPart::inner_infill and
+     * save them in the \ref SkinPart::roofing_fill and \ref SkinPart::flooring_fill of the \p part.
+     *
+     * \param[in,out] part Where to get the SkinParts to get the outline info from and to store the roofing/flooring areas
+     */
+    void generateSkinRoofingFlooringFill(SliceLayerPart& part);
+
+    /*!
+     * Generate the top and bottom-most surfaces of the given \p part, i.e. the surfaces that have nothing above or below
+     */
+    void generateTopAndBottomMostSurfaces(SliceLayerPart& part);
+
+    /*!
+     * Helper function to calculate and return the areas which are 'directly' under air.
+     *
+     * \param part Where to get the SkinParts to get the outline info from
+     * \param roofing_layer_count The number of layers above the layer which we are looking into
+     */
+    geometry::Shape generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count);
+
+    /*!
+     * Helper function to calculate and return the areas which are 'directly' above air.
+     *
+     * \param part Where to get the SkinParts to get the outline info from
+     * \param flooring_layer_count The number of layers below the layer which we are looking into
+     * \return The area that contains mesh parts below, or nullopt if the build plate is below, which actually means everything is considered supported
+     */
+    std::optional<geometry::Shape> generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count);
+
+protected:
+    types::LayerIndex layer_nr_; //!< The index of the layer for which to generate the skins and infill.
+    SliceMeshStorage& mesh_; //!< The storage where the layer outline information (input) is stored and where the skin insets and fill areas (output) are stored.
+    size_t bottom_layer_count_; //!< The number of layers of bottom skin
+    size_t initial_bottom_layer_count_; //!< Whether to make bottom skin for the initial layer
+    size_t top_layer_count_; //!< The number of layers of top skin
+    size_t wall_line_count_; //!< The number of walls, i.e. the number of the wall from which to offset.
+    utils::coord_t skin_line_width_; //!< The line width of the skin.
+    size_t skin_inset_count_; //!< The number of perimeters to surround the skin
+    bool no_small_gaps_heuristic_; //!< A heuristic which assumes there will be no small gaps between bottom and top skin with a z size smaller than the skin size itself
+    bool process_infill_; //!< Whether to process infill, i.e. whether there's a positive infill density or there are infill meshes modifying this mesh.
+
+    utils::coord_t top_skin_preshrink_; //!< The top skin removal width, to remove thin strips of skin along nearly-vertical walls.
+    utils::coord_t bottom_skin_preshrink_; //!< The bottom skin removal width, to remove thin strips of skin along nearly-vertical walls.
+    utils::coord_t top_skin_expand_distance_; //!< The distance by which the top skins should be larger than the original top skins.
+    utils::coord_t bottom_skin_expand_distance_; //!< The distance by which the bottom skins should be larger than the original bottom skins.
+
+private:
+    static utils::coord_t
+        getSkinLineWidth(const SliceMeshStorage& mesh, const types::LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
+
+    /*!
+     * Helper function to get the outline of each part which might intersect
+     * with \p part_here in a different layer.
+     *
+     * This is used to determine where the air is on a different layer. Inner
+     * area that is close to air on a different layer (below air for top skin,
+     * above air for bottom skin) will be come skin. The rest will become
+     * infill.
+     * \param part_here The part for which to check.
+     * \param layer2_nr The layer index from which to gather the outlines.
+     */
+    geometry::Shape getOutlineOnLayer(const SliceLayerPart& part_here, const types::LayerIndex layer2_nr);
+};
+
+} // namespace curaengine

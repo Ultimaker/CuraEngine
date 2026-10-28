@@ -1,10 +1,8 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef PATHORDEROPTIMIZER_H
-#define PATHORDEROPTIMIZER_H
+#pragma once
 
-#include <numbers>
 #include <unordered_set>
 
 #include <range/v3/algorithm/max_element.hpp>
@@ -17,24 +15,26 @@
 #include <range/v3/view/reverse.hpp>
 #include <spdlog/spdlog.h>
 
-#include "pathPlanning/CombPath.h" //To calculate the combing distance if we want to use combing.
-#include "pathPlanning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
-#include "path_ordering.h"
-#include "settings/EnumSettings.h" //To get the seam settings.
-#include "settings/ZSeamConfig.h" //To read the seam configuration.
-#include "utils/linearAlg2D.h" //To find the angle of corners to hide seams.
-#include "utils/math.h"
-#include "utils/polygonUtils.h"
+#include "PathOrdering.h"
+#include "path_planning/CombPath.h" //To calculate the combing distance if we want to use combing.
+#include "path_planning/LinePolygonsCrossings.h" //To prevent calculating combing distances if we don't cross the combing borders.
+#include "types/EZSeamCornerPrefType.h" //To get the seam settings.
+#include "types/EZSeamType.h"
+#include "types/ZSeamConfig.h" //To read the seam configuration.
+#include "utils/PolygonUtils.h"
+#include "utils/SparsePointGridInclusive.h"
+#include "utils/actions/dfs.h"
 #include "utils/scoring/BestElementFinder.h"
 #include "utils/scoring/CornerScoringCriterion.h"
 #include "utils/scoring/DistanceScoringCriterion.h"
 #include "utils/scoring/ExclusionAreaScoringCriterion.h"
 #include "utils/scoring/RandomScoringCriterion.h"
 #include "utils/scoring/TextureScoringCriterion.h"
-#include "utils/views/dfs.h"
 
-namespace cura
+namespace curaengine
 {
+using utils::operator""_mu;
+
 
 /*!
  * Path order optimization class.
@@ -70,7 +70,7 @@ class PathOrderOptimizer
 public:
     using OrderablePath = PathOrdering<Path>;
     /* Areas defined here are not allowed to have the start the prints */
-    Shape disallowed_area_for_seams;
+    geometry::Shape disallowed_area_for_seams;
     /*!
      * After optimizing, this contains the paths that need to be printed in the
      * correct order.
@@ -90,12 +90,12 @@ public:
      * The location where the nozzle is assumed to start from before printing
      * these parts.
      */
-    Point2LL start_point_;
+    geometry::Point2LL start_point_;
 
     /*!
      * Seam settings.
      */
-    ZSeamConfig seam_config_;
+    types::ZSeamConfig seam_config_;
 
     static const std::unordered_multimap<Path, Path> no_order_requirements_;
 
@@ -120,16 +120,16 @@ public:
      * \param combing_boundary Boundary to avoid when making travel moves.
      */
     PathOrderOptimizer(
-        const Point2LL& start_point,
-        const ZSeamConfig seam_config = ZSeamConfig(),
+        const geometry::Point2LL& start_point,
+        const types::ZSeamConfig seam_config = types::ZSeamConfig(),
         const bool detect_loops = false,
-        const Shape* combing_boundary = nullptr,
+        const geometry::Shape* combing_boundary = nullptr,
         const bool reverse_direction = false,
         const std::unordered_multimap<Path, Path>& order_requirements = no_order_requirements_,
         const bool group_outer_walls = false,
-        const Shape& disallowed_areas_for_seams = {},
+        const geometry::Shape& disallowed_areas_for_seams = {},
         const bool use_shortest_for_inner_walls = false,
-        const Shape& overhang_areas = Shape(),
+        const geometry::Shape& overhang_areas = geometry::Shape(),
         const std::shared_ptr<TextureDataProvider>& texture_data_provider = nullptr,
         const bool prefer_longest_path_first = false)
         : start_point_(start_point)
@@ -207,7 +207,7 @@ public:
         {
             if (use_shortest_for_inner_walls_ && ! path.is_outer_wall)
             {
-                path.seam_config_ = ZSeamConfig(EZSeamType::SHORTEST);
+                path.seam_config_ = types::ZSeamConfig(types::EZSeamType::SHORTEST);
                 path.force_start_index_ = std::nullopt;
             }
             else
@@ -217,8 +217,8 @@ public:
         }
 
         // Add all vertices to a bucket grid so that we can find nearby endpoints quickly.
-        const coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
-        SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
+        const utils::coord_t snap_radius = 10_mu; // 0.01mm grid cells. Chaining only needs to consider polylines which are next to each other.
+        utils::SparsePointGridInclusive<size_t> line_bucket_grid(snap_radius);
         for (const auto& [i, path] : paths_ | ranges::views::enumerate)
         {
             if (path.converted_->empty())
@@ -227,7 +227,7 @@ public:
             }
             if (path.is_closed_)
             {
-                for (const Point2LL& point : *path.converted_)
+                for (const geometry::Point2LL& point : *path.converted_)
                 {
                     line_bucket_grid.insert(point, i); // Store by index so that we can also mark them down in the `picked` vector.
                 }
@@ -245,8 +245,8 @@ public:
         {
             for (auto& path : paths_)
             {
-                if (path.seam_config_.type_ == EZSeamType::RANDOM || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED
-                    || path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
+                if (path.seam_config_.type_ == types::EZSeamType::RANDOM || path.seam_config_.type_ == types::EZSeamType::USER_SPECIFIED
+                    || path.seam_config_.type_ == types::EZSeamType::SHARPEST_CORNER)
                 {
                     if (! path.is_closed_ || path.converted_->empty())
                     {
@@ -288,7 +288,7 @@ protected:
      * than this distance together will be considered to be coincident, closing
      * that polyline into a polygon.
      */
-    constexpr static coord_t _coincident_point_distance = 10;
+    constexpr static utils::coord_t _coincident_point_distance = 10;
 
     /*!
      * Bucket grid to store the locations of the combing boundary.
@@ -297,12 +297,12 @@ protected:
      * combing boundary. We only need to generate this mapping once for the
      * combing boundary, since the combing boundary can't change.
      */
-    std::unique_ptr<LocToLineGrid> combing_grid_;
+    std::unique_ptr<utils::LocToLineGrid> combing_grid_;
 
     /*!
      * Boundary to avoid when making travel moves.
      */
-    const Shape* combing_boundary_;
+    const geometry::Shape* combing_boundary_;
 
     /*!
      * Whether to check polylines to see if they are closed, before optimizing.
@@ -346,18 +346,18 @@ protected:
     /*!
      * Contains the overhang areas, where we would prefer not to place the start locations of walls
      */
-    const Shape overhang_areas_;
+    const geometry::Shape overhang_areas_;
 
     /*!
      * The texture may contain user-provided data for semi-manual seam placement
      */
     const std::shared_ptr<TextureDataProvider> texture_data_provider_;
 
-    std::vector<OrderablePath> getOptimizedOrder(SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
+    std::vector<OrderablePath> getOptimizedOrder(utils::SparsePointGridInclusive<size_t> line_bucket_grid, size_t snap_radius)
     {
         std::vector<OrderablePath> optimized_order; // To store our result in.
 
-        Point2LL current_position = start_point_;
+        geometry::Point2LL current_position = start_point_;
 
         std::unordered_map<OrderablePath*, bool> picked(paths_.size()); // Fixed size boolean flag for whether each path is already in the optimized vector.
 
@@ -440,7 +440,7 @@ protected:
         // We used a shared visited set between runs of dfs. This is for the case when we reverse the ordering tree.
         // In this case two roots can share the same children nodes, but we don't want to print them twice.
         std::unordered_set<Path> visited;
-        Point2LL current_position = start_point_;
+        geometry::Point2LL current_position = start_point_;
 
         std::function<std::vector<Path>(const Path, const std::unordered_multimap<Path, Path>&)> get_neighbours
             = [&current_position, &num_incoming_edges, this](const Path current_node, const std::unordered_multimap<Path, Path>& graph)
@@ -537,7 +537,7 @@ protected:
                 {
                     Path root = findBestPathVertices(current_position, roots);
                     roots.erase(root);
-                    actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                    utils::actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
                 }
 
                 // Add all outer walls
@@ -573,7 +573,7 @@ protected:
                 {
                     Path root_neighbour = findBestPathVertices(current_position, root_neighbours);
                     root_neighbours.erase(root_neighbour);
-                    actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                    utils::actions::dfs(root_neighbour, order_requirements, handle_node, visited, nullptr, get_neighbours);
                 }
             }
         }
@@ -584,7 +584,7 @@ protected:
                 Path root = findBestPathVertices(current_position, roots);
                 roots.erase(root);
 
-                actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
+                utils::actions::dfs(root, order_requirements, handle_node, visited, nullptr, get_neighbours);
             }
         }
 
@@ -609,7 +609,7 @@ protected:
         return reversed;
     }
 
-    Path findBestPathVertices(const Point2LL& start_position, const std::unordered_set<Path>& candidate_paths)
+    Path findBestPathVertices(const geometry::Point2LL& start_position, const std::unordered_set<Path>& candidate_paths)
     {
         std::vector<OrderablePath*> orderable_paths;
         orderable_paths.reserve(candidate_paths.size());
@@ -623,7 +623,7 @@ protected:
         return best_candidate->vertices_;
     }
 
-    OrderablePath* findBestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
+    OrderablePath* findBestPath(const geometry::Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
     {
         OrderablePath* best_candidate = prefer_longest_path_ ? findLongestPath(candidate_paths) : findClosestPath(start_position, candidate_paths);
         prefer_longest_path_ = false;
@@ -643,24 +643,24 @@ protected:
         return iterator == candidate_paths.end() ? nullptr : *iterator;
     }
 
-    OrderablePath* findClosestPath(const Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
+    OrderablePath* findClosestPath(const geometry::Point2LL& start_position, const std::vector<OrderablePath*>& candidate_paths)
     {
-        coord_t best_distance2 = std::numeric_limits<coord_t>::max();
+        utils::coord_t best_distance2 = std::numeric_limits<utils::coord_t>::max();
         OrderablePath* best_candidate = nullptr;
 
         for (OrderablePath* path : candidate_paths)
         {
             if (path->converted_->empty()) // No vertices in the path. Can't find the start position then or really plan it in. Put that at the end.
             {
-                if (best_distance2 == std::numeric_limits<coord_t>::max())
+                if (best_distance2 == std::numeric_limits<utils::coord_t>::max())
                 {
                     best_candidate = path;
                 }
                 continue;
             }
 
-            const bool precompute_start = path->seam_config_.type_ == EZSeamType::RANDOM || path->seam_config_.type_ == EZSeamType::USER_SPECIFIED
-                                       || path->seam_config_.type_ == EZSeamType::SHARPEST_CORNER;
+            const bool precompute_start = path->seam_config_.type_ == types::EZSeamType::RANDOM || path->seam_config_.type_ == types::EZSeamType::USER_SPECIFIED
+                                       || path->seam_config_.type_ == types::EZSeamType::SHARPEST_CORNER;
             if (! path->is_closed_ || ! precompute_start) // Find the start location unless we've already precomputed it.
             {
                 path->start_vertex_ = findStartLocation(*path, start_position);
@@ -669,8 +669,8 @@ protected:
                     path->backwards_ = path->start_vertex_ > 0;
                 }
             }
-            const Point2LL candidate_position = (*path->converted_)[path->start_vertex_];
-            coord_t distance2 = getDirectDistance(start_position, candidate_position);
+            const geometry::Point2LL candidate_position = (*path->converted_)[path->start_vertex_];
+            utils::coord_t distance2 = getDirectDistance(start_position, candidate_position);
             if (distance2 < best_distance2
                 && combing_boundary_) // If direct distance is longer than best combing distance, the combing distance can never be better, so only compute combing if necessary.
             {
@@ -713,7 +713,7 @@ protected:
         {
             if (! disallowed_area_for_seams.empty())
             {
-                Point2LL current_candidate = (path.converted_)->at(best_pos);
+                geometry::Point2LL current_candidate = (path.converted_)->at(best_pos);
                 if (disallowed_area_for_seams.inside(current_candidate, true))
                 {
                     size_t next_best_position = (path_size > best_pos + 1) ? best_pos + 1 : 0;
@@ -748,12 +748,12 @@ protected:
      * endpoints rather than
      * \return An index to a vertex in that path where printing must start.
      */
-    size_t findStartLocation(const OrderablePath& path, const Point2LL& target_pos)
+    size_t findStartLocation(const OrderablePath& path, const geometry::Point2LL& target_pos)
     {
         if (! path.is_closed_)
         {
             // For polylines, the seam settings are not applicable. Simply choose the position closest to target_pos then.
-            const coord_t back_distance
+            const utils::coord_t back_distance
                 = (combing_boundary_ == nullptr) ? getDirectDistance(path.converted_->back(), target_pos) : getCombingDistance(path.converted_->back(), target_pos);
             if (back_distance < getDirectDistance(path.converted_->front(), target_pos)
                 || (combing_boundary_
@@ -765,43 +765,44 @@ protected:
         }
 
         // Rest of the function only deals with (closed) polygons. We need to be able to find the seam location of those polygons.
-        const PointsSet& points = *path.converted_;
+        const geometry::PointsSet& points = *path.converted_;
 
         // ########## Step 1: define the main criteria to be applied and their weights
         // Standard weight for the "main" selection criterion, depending on the selected strategy. There should be
         // exactly one calculation using this criterion.
-        BestElementFinder best_candidate_finder;
-        BestElementFinder::CriteriaPass main_criteria_pass;
+        utils::scoring::BestElementFinder best_candidate_finder;
+        utils::scoring::BestElementFinder::CriteriaPass main_criteria_pass;
         main_criteria_pass.outsider_delta_threshold = 0.05;
 
         if (texture_data_provider_)
         {
-            BestElementFinder::WeighedCriterion texture_criterion;
-            texture_criterion.criterion = std::make_shared<TextureScoringCriterion>(points, texture_data_provider_, "seam");
+            utils::scoring::BestElementFinder::WeighedCriterion texture_criterion;
+            texture_criterion.criterion = std::make_shared<utils::scoring::TextureScoringCriterion>(points, texture_data_provider_, "seam");
             texture_criterion.weight = 5.0;
             main_criteria_pass.criteria.push_back(texture_criterion);
         }
 
-        BestElementFinder::WeighedCriterion main_criterion;
+        utils::scoring::BestElementFinder::WeighedCriterion main_criterion;
 
         if (path.force_start_index_.has_value()) // Handles EZSeamType::USER_SPECIFIED with "seam_on_vertex" disabled
         {
             // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
             constexpr double distance_divider = 1.0;
-            constexpr auto distance_type = DistanceScoringCriterion::DistanceType::Euclidian;
-            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
+            constexpr auto distance_type = utils::scoring::DistanceScoringCriterion::DistanceType::Euclidian;
+            main_criterion.criterion
+                = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
         }
-        else if (path.seam_config_.type_ == EZSeamType::SHORTEST || path.seam_config_.type_ == EZSeamType::USER_SPECIFIED)
+        else if (path.seam_config_.type_ == types::EZSeamType::SHORTEST || path.seam_config_.type_ == types::EZSeamType::USER_SPECIFIED)
         {
-            main_criterion.criterion = std::make_shared<DistanceScoringCriterion>(points, target_pos);
+            main_criterion.criterion = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, target_pos);
         }
-        else if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER && path.seam_config_.corner_pref_ != EZSeamCornerPrefType::PLUGIN)
+        else if (path.seam_config_.type_ == types::EZSeamType::SHARPEST_CORNER && path.seam_config_.corner_pref_ != types::EZSeamCornerPrefType::PLUGIN)
         {
-            main_criterion.criterion = std::make_shared<CornerScoringCriterion>(points, path.seam_config_.corner_pref_);
+            main_criterion.criterion = std::make_shared<utils::scoring::CornerScoringCriterion>(points, path.seam_config_.corner_pref_);
         }
-        else if (path.seam_config_.type_ == EZSeamType::RANDOM)
+        else if (path.seam_config_.type_ == types::EZSeamType::RANDOM)
         {
-            main_criterion.criterion = std::make_shared<RandomScoringCriterion>();
+            main_criterion.criterion = std::make_shared<utils::scoring::RandomScoringCriterion>();
         }
 
         if (main_criterion.criterion)
@@ -816,27 +817,29 @@ protected:
         // Second criterion with higher weight to avoid overhanging areas
         if (! overhang_areas_.empty())
         {
-            BestElementFinder::WeighedCriterion overhang_criterion;
+            utils::scoring::BestElementFinder::WeighedCriterion overhang_criterion;
             overhang_criterion.weight = 2.0;
-            overhang_criterion.criterion = std::make_shared<ExclusionAreaScoringCriterion>(points, overhang_areas_);
+            overhang_criterion.criterion = std::make_shared<utils::scoring::ExclusionAreaScoringCriterion>(points, overhang_areas_);
             main_criteria_pass.criteria.push_back(overhang_criterion);
         }
 
         best_candidate_finder.appendCriteriaPass(main_criteria_pass);
 
         // ########## Step 2: add fallback passes for criteria with very similar scores (e.g. corner on a cylinder)
-        if (path.seam_config_.type_ == EZSeamType::SHARPEST_CORNER)
+        if (path.seam_config_.type_ == types::EZSeamType::SHARPEST_CORNER)
         {
-            const AABB path_bounding_box(points);
+            const utils::AABB path_bounding_box(points);
 
             { // First fallback strategy is to take points on the back-most position
-                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::YOnly);
+                auto fallback_criterion
+                    = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, path_bounding_box.max_, utils::scoring::DistanceScoringCriterion::DistanceType::YOnly);
                 constexpr double outsider_delta_threshold = 0.01;
                 best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
             }
 
             { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-                auto fallback_criterion = std::make_shared<DistanceScoringCriterion>(points, path_bounding_box.max_, DistanceScoringCriterion::DistanceType::XOnly);
+                auto fallback_criterion
+                    = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, path_bounding_box.max_, utils::scoring::DistanceScoringCriterion::DistanceType::XOnly);
                 best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
             }
         }
@@ -858,9 +861,9 @@ protected:
      * \param b Another point, to compute distance to \ref a.
      * \return The distance between the two points.
      */
-    coord_t getDirectDistance(const Point2LL& a, const Point2LL& b) const
+    utils::coord_t getDirectDistance(const geometry::Point2LL& a, const geometry::Point2LL& b) const
     {
-        return vSize2(a - b);
+        return geometry::vSize2(a - b);
     }
 
     /*!
@@ -873,9 +876,9 @@ protected:
      * \param b Another point, to compute distance to \ref a.
      * \return The combing distance between the two points.
      */
-    coord_t getCombingDistance(const Point2LL& a, const Point2LL& b)
+    utils::coord_t getCombingDistance(const geometry::Point2LL& a, const geometry::Point2LL& b)
     {
-        if (! PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary_, a, b))
+        if (! utils::PolygonUtils::polygonCollidesWithLineSegment(*combing_boundary_, a, b))
         {
             return getDirectDistance(a, b); // No collision with any line. Just compute the direct distance then.
         }
@@ -889,21 +892,21 @@ protected:
 
         if (combing_grid_ == nullptr)
         {
-            constexpr coord_t grid_size = 2000; // 2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
-            combing_grid_ = PolygonUtils::createLocToLineGrid(*combing_boundary_, grid_size);
+            constexpr utils::coord_t grid_size = 2000; // 2mm grid cells. Smaller will use more memory, but reduce chance of unnecessary collision checks.
+            combing_grid_ = utils::PolygonUtils::createLocToLineGrid(*combing_boundary_, grid_size);
         }
 
-        CombPath comb_path; // Output variable.
-        constexpr coord_t rounding_error = -25;
-        constexpr coord_t tiny_travel_threshold = 0;
+        path_planning::CombPath comb_path; // Output variable.
+        constexpr utils::coord_t rounding_error = -25;
+        constexpr utils::coord_t tiny_travel_threshold = 0;
         constexpr bool fail_on_unavoidable_obstacles = false;
-        LinePolygonsCrossings::comb(*combing_boundary_, *combing_grid_, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
+        path_planning::LinePolygonsCrossings::comb(*combing_boundary_, *combing_grid_, a, b, comb_path, rounding_error, tiny_travel_threshold, fail_on_unavoidable_obstacles);
 
-        coord_t sum = 0;
-        Point2LL last_point = a;
-        for (const Point2LL& point : comb_path)
+        utils::coord_t sum = 0;
+        geometry::Point2LL last_point = a;
+        for (const geometry::Point2LL& point : comb_path)
         {
-            sum += vSize(point - last_point);
+            sum += geometry::vSize(point - last_point);
             last_point = point;
         }
         return sum * sum; // Squared distance, for fair comparison with direct distance.
@@ -915,13 +918,11 @@ protected:
         {
             return false;
         }
-        return vSize2(path.converted_->back() - path.converted_->front()) < _coincident_point_distance * _coincident_point_distance;
+        return geometry::vSize2(path.converted_->back() - path.converted_->front()) < _coincident_point_distance * _coincident_point_distance;
     }
 };
 
 template<typename Path>
 const std::unordered_multimap<Path, Path> PathOrderOptimizer<Path>::no_order_requirements_;
 
-} // namespace cura
-
-#endif // PATHORDEROPTIMIZER_H
+} // namespace curaengine

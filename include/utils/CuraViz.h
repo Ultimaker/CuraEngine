@@ -1,8 +1,7 @@
-// Copyright (c) 2026 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CURAVIZ_H
-#define CURAVIZ_H
+#pragma once
 #ifdef ENABLE_CURAVIZ
 
 #include <boost/asio/io_context.hpp>
@@ -10,7 +9,6 @@
 
 #include "ExtrusionLine.h"
 #include "geometry/Point2LL.h"
-#include "geometry/Point3LL.h"
 
 namespace cura_viz
 {
@@ -20,13 +18,18 @@ class Polyline2LL;
 class Segment2LL;
 } // namespace cura_viz
 
-namespace cura
+namespace curaengine::geometry
 {
-
 class OpenLinesSet;
 class MixedLinesSet;
 class Shape;
 class Polyline;
+class Point3LL;
+} // namespace curaengine::geometry
+
+namespace curaengine::utils
+{
+
 
 /*!
  * Interface to send internal CuraEngine data to an external visualization tool. All the public methods are static and can be used directly, without
@@ -57,23 +60,23 @@ class Polyline;
 class CuraViz
 {
 public:
-    static void send(const Point2LL& point, const std::string& name = "", const std::string& step_name = "");
+    static void send(const geometry::Point2LL& point, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const Point2LL& start, const Point2LL& end, const std::string& name = "", const std::string& step_name = "");
+    static void send(const geometry::Point2LL& start, const geometry::Point2LL& end, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const Point3LL& start, const Point3LL& end, const std::string& name = "", const std::string& step_name = "");
+    static void send(const geometry::Point3LL& start, const geometry::Point3LL& end, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const Polyline& line, const std::string& name = "", const std::string& step_name = "");
+    static void send(const geometry::Polyline& line, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const Shape& shape, const std::string& name = "", const std::string& step_name = "");
+    static void send(const geometry::Shape& shape, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const std::vector<Shape>& shapes, const std::string& name = "", const std::string& step_name = "");
+    static void send(const std::vector<geometry::Shape>& shapes, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const OpenLinesSet& lines, const std::string& name = "", const std::string& step_name = "");
+    static void send(const geometry::OpenLinesSet& lines, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const MixedLinesSet& lines_set, const std::string& name = "", const std::string& step_name = "");
+    static void send(const geometry::MixedLinesSet& lines_set, const std::string& name = "", const std::string& step_name = "");
 
-    static void send(const std::vector<MixedLinesSet>& lines_sets, const std::string& name = "", const std::string& step_name = "");
+    static void send(const std::vector<geometry::MixedLinesSet>& lines_sets, const std::string& name = "", const std::string& step_name = "");
 
     static void send(const std::vector<VariableWidthLines>& lines, const std::string& name = "", const std::string& step_name = "");
 
@@ -98,17 +101,17 @@ private:
 
     static CuraViz* getInstance();
 
-    static void setup(const Shape& shape, cura_viz::GeometricElement* element);
+    static void setup(const geometry::Shape& shape, cura_viz::GeometricElement* element);
 
-    static void setup(const MixedLinesSet& lines, cura_viz::GeometricElement* element);
+    static void setup(const geometry::MixedLinesSet& lines, cura_viz::GeometricElement* element);
 
-    static void setup(const Point2LL& point, cura_viz::GeometricElement* element);
+    static void setup(const geometry::Point2LL& point, cura_viz::GeometricElement* element);
 
-    static void setup(const Polyline& polyline, cura_viz::Polyline2LL* polyline_message);
+    static void setup(const geometry::Polyline& polyline, cura_viz::Polyline2LL* polyline_message);
 
     static void setup(const ExtrusionLine& line, cura_viz::Polyline2LL* polyline_message);
 
-    static void setup(const Point2LL& start, const Point2LL& end, cura_viz::Segment2LL* segment_message);
+    static void setup(const geometry::Point2LL& start, const geometry::Point2LL& end, cura_viz::Segment2LL* segment_message);
 
 private:
     static CuraViz* instance_;
@@ -118,6 +121,5 @@ private:
     boost::asio::ip::tcp::socket socket_;
 };
 
-} // namespace cura
-#endif
+} // namespace curaengine::utils
 #endif

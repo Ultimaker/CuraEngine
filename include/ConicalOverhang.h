@@ -1,11 +1,11 @@
-//Copyright (c) 2016 Tim Kuipers
-//Copyright (c) 2018 Ultimaker B.V.
-//CuraEngine is released under the terms of the AGPLv3 or higher.
+// Copyright (c) 2026 Tim Kuipers
+// Copyright (c) 2026 UltiMaker
+// CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef CONICAL_OVERHANG_H
-#define CONICAL_OVERHANG_H
+#pragma once
 
-namespace cura {
+namespace curaengine
+{
 
 class Mesh;
 class Slicer;
@@ -19,13 +19,11 @@ class ConicalOverhang
 public:
     /*!
      * Change the slice data such that the model becomes more printable
-     * 
+     *
      * \param[in,out] slicer The slice data.
      * \param mesh The mesh to get the settings from.
      */
     static void apply(Slicer* slicer, const Mesh& mesh);
 };
 
-}//namespace cura
-
-#endif // CONICAL_OVERHANG_H
+} // namespace curaengine

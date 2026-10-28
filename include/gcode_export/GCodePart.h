@@ -1,14 +1,13 @@
 // Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GCODEEXPORT_GCODEPART_H
-#define GCODEEXPORT_GCODEPART_H
+#pragma once
 
 #include <string>
 
 #include "gcode_export/GCodePartType.h"
 
-namespace cura
+namespace curaengine::gcode_export
 {
 
 /*! \brief Abstract class that is a container for pieces of GCode */
@@ -35,6 +34,4 @@ private:
     const GCodePartType type_;
 };
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::gcode_export

@@ -1,14 +1,17 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "layerPart.h"
 
+#include "Settings.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceMeshStorage.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
 #include "geometry/OpenPolyline.h"
 #include "progress/Progress.h"
-#include "settings/EnumSettings.h" //For ESurfaceMode.
-#include "settings/Settings.h"
-#include "sliceDataStorage.h"
-#include "slicer.h"
+#include "types/ESurfaceMode.h" //For ESurfaceMode.
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/Simplify.h" //Simplifying the layers after creating them.
 #include "utils/ThreadPool.h"
@@ -25,7 +28,11 @@ And all every bit inside a single part can be printed without the nozzle leaving
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
@@ -86,7 +93,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
 
-    cura::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         total_layers,
         [slicer, &mesh](size_t layer_nr)
@@ -107,4 +114,4 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     }
 }
 
-} // namespace cura
+} // namespace curaengine

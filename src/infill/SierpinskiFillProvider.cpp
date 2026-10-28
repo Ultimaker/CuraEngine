@@ -11,7 +11,11 @@
 #include "utils/AABB3D.h"
 #include "utils/math.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::infill
 {
 
 
@@ -90,4 +94,4 @@ SierpinskiFillProvider::FractalConfig SierpinskiFillProvider::getFractalConfig(c
 }
 
 
-} // namespace cura
+} // namespace curaengine::infill

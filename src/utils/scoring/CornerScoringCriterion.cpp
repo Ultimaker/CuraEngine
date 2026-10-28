@@ -1,14 +1,18 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "utils/scoring/CornerScoringCriterion.h"
 
 #include "geometry/PointsSet.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/math.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::utils::scoring
 {
 
 CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZSeamCornerPrefType corner_preference)
@@ -21,7 +25,7 @@ CornerScoringCriterion::CornerScoringCriterion(const PointsSet& points, const EZ
     {
         const Point2LL& here = getPoints().at(i);
         const Point2LL& next = getPoints().at((i + 1) % getPoints().size());
-        const coord_t segment_size = vSize(next - here);
+        const coord_t segment_size = geometry::vSize(next - here);
         segments_sizes_[i] = segment_size;
         total_length_ += segment_size;
     }
@@ -39,11 +43,11 @@ double CornerScoringCriterion::computeScore(const size_t candidate_index) const
     {
     case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER:
         // Give advantage to concave corners. More advantage for sharper corners.
-        score = cura::inverse_lerp(1.0, -1.0, corner_angle);
+        score = utils::inverse_lerp(1.0, -1.0, corner_angle);
         break;
     case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER:
         // Give advantage to convex corners. More advantage for sharper corners.
-        score = cura::inverse_lerp(-1.0, 1.0, corner_angle);
+        score = utils::inverse_lerp(-1.0, 1.0, corner_angle);
         break;
     case EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY:
         // Still give sharper corners more advantage.
@@ -116,4 +120,4 @@ Point2LL CornerScoringCriterion::findNeighbourPoint(size_t vertex_index, coord_t
     }
 }
 
-} // namespace cura
+} // namespace curaengine::utils::scoring

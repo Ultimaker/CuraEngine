@@ -12,12 +12,12 @@
 #include "communication/ArcusCommunicationPrivate.h" //To access the private fields of this communication class.
 #include "geometry/Polygon.h" //Create test shapes to send over the socket.
 #include "geometry/Shape.h"
-#include "settings/types/LayerIndex.h"
+#include "types/LayerIndex.h"
 #include "utils/Coord_t.h"
 #include "utils/string.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -29,22 +29,22 @@ class ArcusCommunicationTest : public testing::Test
 public:
     std::string ip;
     MockSocket* socket;
-    ArcusCommunication* ac;
+    ::curaengine::communication::ArcusCommunication* ac;
 
     // From PolygonConnectorTest
-    Polygon test_square;
-    Polygon test_square2; // larger and more to the right
-    Polygon test_triangle;
-    Polygon test_circle;
-    Polygon test_convex_shape;
+    ::curaengine::geometry::Polygon test_square;
+    ::curaengine::geometry::Polygon test_square2; // larger and more to the right
+    ::curaengine::geometry::Polygon test_triangle;
+    ::curaengine::geometry::Polygon test_circle;
+    ::curaengine::geometry::Polygon test_convex_shape;
 
-    Shape test_shapes; // all above polygons
+    ::curaengine::geometry::Shape test_shapes; // all above polygons
 
     void SetUp() override
     {
         ip = "0.0.0.0";
         socket = new MockSocket();
-        ac = new ArcusCommunication();
+        ac = new ::curaengine::communication::ArcusCommunication();
         ac->setSocketMock(socket);
 
         // from: PolygonConnectorTest
@@ -67,7 +67,7 @@ public:
 
         for (double a = 0; a < 1.0; a += .05)
         {
-            test_circle.push_back(Point2LL(2050, 2050) + Point2LL(std::cos(a * 2 * std::numbers::pi) * 500, std::sin(a * 2 * std::numbers::pi) * 500));
+            test_circle.push_back(::curaengine::geometry::Point2LL(2050, 2050) + ::curaengine::geometry::Point2LL(std::cos(a * 2 * std::numbers::pi) * 500, std::sin(a * 2 * std::numbers::pi) * 500));
         }
         test_shapes.push_back(test_circle);
 
@@ -104,7 +104,7 @@ TEST_F(ArcusCommunicationTest, SendGCodePartTest)
     ac->sendGCodePart(test_gcode);
 
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
-    const proto::GCodeLayer* message = dynamic_cast<proto::GCodeLayer*>(socket->sent_messages.back().get());
+    const ::cura::proto::GCodeLayer* message = dynamic_cast<::cura::proto::GCodeLayer*>(socket->sent_messages.back().get());
     EXPECT_EQ(test_gcode, message->data());
 }
 
@@ -123,11 +123,11 @@ TEST_F(ArcusCommunicationTest, SendFinishedSlicingTest)
 
 TEST_F(ArcusCommunicationTest, SendLayerComplete)
 {
-    const LayerIndex layer_nr = 10;
-    constexpr coord_t layer_z = 20;
-    constexpr coord_t layer_thickness = 30;
+    const ::curaengine::types::LayerIndex layer_nr = 10;
+    constexpr ::curaengine::utils::coord_t layer_z = 20;
+    constexpr ::curaengine::utils::coord_t layer_thickness = 30;
     ac->sendLayerComplete(layer_nr, layer_z, layer_thickness);
-    const std::shared_ptr<proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
+    const std::shared_ptr<::cura::proto::LayerOptimized> message = ac->private_data->getOptimizedLayerById(layer_nr);
     EXPECT_EQ(static_cast<google::protobuf::int32>(layer_nr), message->id()) << "getOptimizedLayerById() must return a layer with the correct ID.";
     EXPECT_EQ(static_cast<float>(layer_z), message->height());
     EXPECT_EQ(static_cast<float>(layer_thickness), message->thickness());
@@ -139,14 +139,14 @@ TEST_F(ArcusCommunicationTest, SendProgress)
 
     ac->sendProgress(10);
     ASSERT_EQ(size_t(1), socket->sent_messages.size());
-    auto* message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+    auto* message = dynamic_cast<::cura::proto::Progress*>(socket->sent_messages.back().get());
     EXPECT_EQ(float(5), message->amount());
 
     ac->sendProgress(50);
     ASSERT_EQ(size_t(2), socket->sent_messages.size());
-    message = dynamic_cast<proto::Progress*>(socket->sent_messages.back().get());
+    message = dynamic_cast<::cura::proto::Progress*>(socket->sent_messages.back().get());
     EXPECT_EQ(float(25), message->amount());
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

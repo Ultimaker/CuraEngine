@@ -1,13 +1,12 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef BRIDGE_SEGMENTOVERLAPPING_H
-#define BRIDGE_SEGMENTOVERLAPPING_H
+#pragma once
 
 #include "bridge/SegmentOverlappingType.h"
 #include "bridge/TransformedSegment.h"
 
-namespace cura
+namespace curaengine::bridge
 {
 
 struct SegmentOverlapping
@@ -16,6 +15,4 @@ struct SegmentOverlapping
     TransformedSegment other_overlapping_part;
 };
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::bridge

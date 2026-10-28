@@ -1,12 +1,11 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_SINGLE_SHAPE_H
-#define GEOMETRY_SINGLE_SHAPE_H
+#pragma once
 
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class Polygon;
@@ -39,6 +38,4 @@ public:
     [[nodiscard]] bool inside(const Point2LL& p, bool border_result = false) const;
 };
 
-} // namespace cura
-
-#endif // GEOMETRY_SINGLE_SHAPE_H
+} // namespace curaengine::geometry

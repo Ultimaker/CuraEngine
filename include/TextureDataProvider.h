@@ -1,21 +1,26 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef TEXTUREDATAPROVIDER_H
-#define TEXTUREDATAPROVIDER_H
+#pragma once
 
 #include <memory>
 #include <optional>
 
-#include "TextureDataMapping.h"
+#include "TextureArea.h"
+#include "TextureBitField.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine::geometry
+{
+class Point2F;
+}
+
+namespace curaengine
 {
 
 class Image;
 class SlicedUVCoordinates;
-class Point2F;
+
 
 class TextureDataProvider
 {
@@ -32,11 +37,11 @@ public:
 
     std::optional<uint32_t> getValue(const size_t pixel_x, const size_t pixel_y, const std::string& feature) const;
 
-    std::optional<uint32_t> getValue(const Point2F& uv_coordinates, const std::string& feature) const;
+    std::optional<uint32_t> getValue(const geometry::Point2F& uv_coordinates, const std::string& feature) const;
 
-    std::optional<uint32_t> getValue(const Point2LL& position, const std::string& feature) const;
+    std::optional<uint32_t> getValue(const geometry::Point2LL& position, const std::string& feature) const;
 
-    std::optional<TextureArea> getAreaPreference(const Point2LL& position, const std::string& feature) const;
+    std::optional<TextureArea> getAreaPreference(const geometry::Point2LL& position, const std::string& feature) const;
 
 private:
     std::shared_ptr<SlicedUVCoordinates> uv_coordinates_;
@@ -44,5 +49,4 @@ private:
     std::shared_ptr<TextureDataMapping> texture_data_mapping_;
 };
 
-} // namespace cura
-#endif // TEXTUREDATAPROVIDER_H
+} // namespace curaengine

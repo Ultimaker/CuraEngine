@@ -11,11 +11,13 @@
 
 #include "Application.h"
 #include "Slice.h"
-#include "settings/SettingContainersEnvironmentAdapter.h"
+#include "types/SettingContainersEnvironmentAdapter.h"
 
 namespace cfe = CuraFormulaeEngine;
 
-namespace cura
+using namespace curaengine::types;
+
+namespace curaengine::gcode_export
 {
 
 
@@ -314,4 +316,4 @@ std::string GcodeTemplateResolver::resolveGCodeTemplate(
     return output;
 }
 
-} // namespace cura
+} // namespace curaengine::gcode_export

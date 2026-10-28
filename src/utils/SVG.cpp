@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/SVG.h"
@@ -9,6 +9,7 @@
 #include <range/v3/to_container.hpp>
 #include <range/v3/view/c_str.hpp>
 #include <range/v3/view/concat.hpp>
+#include <range/v3/view/enumerate.hpp>
 #include <range/v3/view/join.hpp>
 #include <range/v3/view/take.hpp>
 #include <range/v3/view/transform.hpp>
@@ -24,7 +25,10 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/VoronoiUtils.h"
 
-namespace cura
+using namespace curaengine::arachne;
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 
@@ -502,7 +506,7 @@ void SVG::write(const STHalfEdge& edge, const STVisualAttributes& visual_attribu
         return;
     }
 
-    const std::optional<Point2D> direction = toPoint2D(Point2LL(edge.to_->p_ - edge.from_->p_)).vNormalized();
+    const std::optional<Point2D> direction = geometry::conversions::toPoint2D(Point2LL(edge.to_->p_ - edge.from_->p_)).vNormalized();
     if (! direction.has_value())
     {
         spdlog::warn("Invalid half edge, skipping");
@@ -510,14 +514,14 @@ void SVG::write(const STHalfEdge& edge, const STVisualAttributes& visual_attribu
     }
 
     const Point2D radial = direction->rotated90CCW();
-    const Point2LL delta_radial = toPoint2LL(radial * (visual_attributes.line.width * 0.65 / scale_));
-    const Point2LL size_reduction_axial = toPoint2LL(direction.value() * (visual_attributes.line.width * 4.0 / scale_));
+    const Point2LL delta_radial = geometry::conversions::toPoint2LL(radial * (visual_attributes.line.width * 0.65 / scale_));
+    const Point2LL size_reduction_axial = geometry::conversions::toPoint2LL(direction.value() * (visual_attributes.line.width * 4.0 / scale_));
 
     OpenPolyline edge_half_arrow;
     edge_half_arrow.push_back(edge.from_->p_ + size_reduction_axial + delta_radial);
     edge_half_arrow.push_back(edge.to_->p_ - size_reduction_axial + delta_radial);
 
-    const Point2LL tip_delta = toPoint2LL(-(direction.value() - radial) * (visual_attributes.line.width * 1.5 / scale_));
+    const Point2LL tip_delta = geometry::conversions::toPoint2LL(-(direction.value() - radial) * (visual_attributes.line.width * 1.5 / scale_));
     edge_half_arrow.push_back(edge_half_arrow.back() + tip_delta);
 
     write(edge_half_arrow, visual_attributes, flush);
@@ -557,12 +561,15 @@ void SVG::write(const ExtrusionLine& line, const SurfaceAttributes& visual_attri
 
         // Compute the corners of the trapezoid for this variable-width line segment.
         const Point2LL direction_vector = end_vertex.p_ - start_vertex.p_;
-        const Point2LL direction_left = turn90CCW(direction_vector);
+        const Point2LL direction_left = geometry::turn90CCW(direction_vector);
         const Point2LL direction_right = -direction_left; // Opposite of left.
-        const Point2D start_left = transformF(start_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
-        const Point2D start_right = transformF(start_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
-        const Point2D end_left = transformF(end_vertex.p_ + normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
-        const Point2D end_right = transformF(end_vertex.p_ + normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
+        const Point2D start_left
+            = transformF(start_vertex.p_ + geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D start_right
+            = transformF(start_vertex.p_ + geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D end_left = transformF(end_vertex.p_ + geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
+        const Point2D end_right
+            = transformF(end_vertex.p_ + geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
 
         fprintf(out_, "<polygon ");
         write(visual_attributes);
@@ -765,4 +772,4 @@ SVG::RgbColor SVG::makeRainbowColor(const size_t index, const size_t elementsCou
     return color;
 }
 
-} // namespace cura
+} // namespace curaengine::utils

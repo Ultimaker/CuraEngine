@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "progress/Progress.h"
@@ -12,9 +12,12 @@
 
 #include "Application.h" //To get the communication channel to send progress through.
 #include "communication/Communication.h" //To send progress through the communication channel.
-#include "utils/gettime.h"
+#include "utils/TimeKeeper.h"
 
-namespace cura
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::progress
 {
 std::array<double, N_PROGRESS_STAGES> Progress::accumulated_times = { -1 };
 double Progress::total_timing = -1;
@@ -86,4 +89,4 @@ void Progress::messageProgressLayer(const LayerIndex layer_nr, const size_t tota
     }
 }
 
-} // namespace cura
+} // namespace curaengine::progress

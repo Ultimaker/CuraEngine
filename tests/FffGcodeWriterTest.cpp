@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "FffGcodeWriter.h" //Unit under test.
@@ -20,11 +20,14 @@
 #include "arcus/MockCommunication.h" // To prevent calls to any missing Communication class.
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" //To create example polygons.
-#include "settings/Settings.h" //Settings to generate walls with.
-#include "sliceDataStorage.h" //Sl
+#include "Settings.h" //Settings to generate walls with.
+#include "SliceDataStorage.h" //Sl
+#include "Mesh.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 /*!
  * Fixture that provides a basis for testing wall computation.
@@ -35,9 +38,9 @@ public:
     Settings* settings;
     FffGcodeWriter fff_gcode_writer;
 
-    Shape outer_square;
+    ::curaengine::geometry::Shape outer_square;
     // Square that fits wholly inside the above square
-    Shape inner_square;
+    ::curaengine::geometry::Shape inner_square;
 
     DISABLED_FffGcodeWriterTest()
         : fff_gcode_writer()
@@ -85,10 +88,10 @@ public:
         RetractionConfig retraction_config;
         retraction_config.distance = settings->get<double>("retraction_amount");
         retraction_config.prime_volume = settings->get<double>("retraction_extra_prime_amount");
-        retraction_config.speed = settings->get<Velocity>("retraction_retract_speed");
-        retraction_config.primeSpeed = settings->get<Velocity>("retraction_prime_speed");
-        retraction_config.zHop = settings->get<coord_t>("retraction_hop");
-        retraction_config.retraction_min_travel_distance = settings->get<coord_t>("retraction_min_travel");
+        retraction_config.speed = settings->get<::curaengine::types::Velocity>("retraction_retract_speed");
+        retraction_config.primeSpeed = settings->get<::curaengine::types::Velocity>("retraction_prime_speed");
+        retraction_config.zHop = settings->get<::curaengine::utils::coord_t>("retraction_hop");
+        retraction_config.retraction_min_travel_distance = settings->get<::curaengine::utils::coord_t>("retraction_min_travel");
         retraction_config.retraction_extrusion_window = settings->get<double>("retraction_extrusion_window");
         retraction_config.retraction_count_max = settings->get<size_t>("retraction_count_max");
 
@@ -105,20 +108,20 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
 
     // Set the fan speed layer time settings (since the LayerPlan constructor copies these).
     FanSpeedLayerTimeSettings fan_settings;
-    fan_settings.cool_min_layer_time = settings->get<Duration>("cool_min_layer_time");
-    fan_settings.cool_min_layer_time_fan_speed_max = settings->get<Duration>("cool_min_layer_time_fan_speed_max");
-    fan_settings.cool_fan_speed_0 = settings->get<Ratio>("cool_fan_speed_0");
-    fan_settings.cool_fan_speed_min = settings->get<Ratio>("cool_fan_speed_min");
-    fan_settings.cool_fan_speed_max = settings->get<Ratio>("cool_fan_speed_max");
-    fan_settings.cool_min_speed = settings->get<Velocity>("cool_min_speed");
-    fan_settings.cool_fan_full_layer = settings->get<LayerIndex>("cool_fan_full_layer");
+    fan_settings.cool_min_layer_time = settings->get<::curaengine::types::Duration>("cool_min_layer_time");
+    fan_settings.cool_min_layer_time_fan_speed_max = settings->get<::curaengine::types::Duration>("cool_min_layer_time_fan_speed_max");
+    fan_settings.cool_fan_speed_0 = settings->get<::curaengine::types::Ratio>("cool_fan_speed_0");
+    fan_settings.cool_fan_speed_min = settings->get<::curaengine::types::Ratio>("cool_fan_speed_min");
+    fan_settings.cool_fan_speed_max = settings->get<::curaengine::types::Ratio>("cool_fan_speed_max");
+    fan_settings.cool_min_speed = settings->get<::curaengine::types::Velocity>("cool_min_speed");
+    fan_settings.cool_fan_full_layer = settings->get<::curaengine::types::LayerIndex>("cool_fan_full_layer");
 
     Mesh mesh(*settings);
 
     LayerPlan gcode_layer(*storage, 100, 10000, 100, 0, { fan_settings }, 20, 10, 5000);
     SliceMeshStorage mesh_storage(&mesh, 200);
     size_t extruder_nr = 0;
-    MeshPathConfigs mesh_config(mesh_storage, 10, 100, { 0.5 });
+    ::curaengine::types::MeshPathConfigs mesh_config(mesh_storage, 10, 100, { 0.5 });
     SliceLayerPart part;
 
     part.infill_area_per_combine_per_density = { { outer_square } };
@@ -146,15 +149,15 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     */
 
     // Test helper
-    auto checkPointIsPassed = [&](Point2LL p, coord_t margin) -> bool
+    auto checkPointIsPassed = [&](::curaengine::geometry::Point2LL p, ::curaengine::utils::coord_t margin) -> bool
     {
-        Point2LL last;
+        ::curaengine::geometry::Point2LL last;
         for (const auto& path : gcode_layer.extruder_plans_[0].paths_)
         {
             for (const auto& point : path.points)
             {
-                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(p, point.toPoint2LL(), last);
-                int64_t dist = vSize2(p - closest_here);
+                ::curaengine::geometry::Point2LL closest_here = ::curaengine::utils::LinearAlg2D::getClosestOnLineSegment(p, point.toPoint2LL(), last);
+                int64_t dist = ::curaengine::geometry::vSize2(p - closest_here);
 
                 if (dist < margin * margin)
                     return true;
@@ -201,5 +204,5 @@ TEST_F(DISABLED_FffGcodeWriterTest, SurfaceGetsExtraInfillLinesUnderIt)
     EXPECT_LE(ctr, 3) << "Selected points in the middle of the square should not be supported by sparse infill";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

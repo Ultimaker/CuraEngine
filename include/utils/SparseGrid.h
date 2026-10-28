@@ -1,11 +1,9 @@
-// Copyright (c) 2016 Scott Lenser
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 Scott Lenser
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SPARSE_GRID_H
-#define UTILS_SPARSE_GRID_H
+#pragma once
 
-#include <cassert>
 #include <functional>
 #include <unordered_map>
 #include <vector>
@@ -13,7 +11,7 @@
 #include "SquareGrid.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine::utils
 {
 
 /*! \brief Sparse grid which can locate spatially nearby elements efficiently.
@@ -80,7 +78,7 @@ public:
      * \param[in] radius The search radius.
      * \return Vector of elements found
      */
-    std::vector<Elem> getNearby(const Point2LL& query_pt, coord_t radius) const;
+    std::vector<Elem> getNearby(const geometry::Point2LL& query_pt, coord_t radius) const;
 
     static const std::function<bool(const Elem&)> no_precondition;
 
@@ -94,7 +92,7 @@ public:
      *    to be considered for output
      * \return True if and only if an object has been found within the radius.
      */
-    bool getNearest(const Point2LL& query_pt, coord_t radius, Elem& elem_nearest, const std::function<bool(const Elem& elem)> precondition = no_precondition) const;
+    bool getNearest(const geometry::Point2LL& query_pt, coord_t radius, Elem& elem_nearest, const std::function<bool(const Elem& elem)> precondition = no_precondition) const;
 
     /*! \brief Process elements from cells that might contain sought after points.
      *
@@ -109,7 +107,7 @@ public:
      *    called for each element in the cell. Processing stops if function returns false.
      * \return Whether we need to continue processing after this function
      */
-    bool processNearby(const Point2LL& query_pt, coord_t radius, const std::function<bool(const ElemT&)>& process_func) const;
+    bool processNearby(const geometry::Point2LL& query_pt, coord_t radius, const std::function<bool(const ElemT&)>& process_func) const;
 
     /*! \brief Process elements from cells that might contain sought after points along a line.
      *
@@ -121,7 +119,7 @@ public:
      *    called for each element in the cells. Processing stops if function returns false.
      * \return Whether we need to continue processing after this function
      */
-    bool processLine(const std::pair<Point2LL, Point2LL> query_line, const std::function<bool(const Elem&)>& process_elem_func) const;
+    bool processLine(const std::pair<geometry::Point2LL, geometry::Point2LL> query_line, const std::function<bool(const Elem&)>& process_elem_func) const;
 
 protected:
     /*! \brief Process elements from the cell indicated by \p grid_pt.
@@ -168,7 +166,7 @@ bool SGI_THIS::processFromCell(const GridPoint& grid_pt, const std::function<boo
 }
 
 SGI_TEMPLATE
-bool SGI_THIS::processNearby(const Point2LL& query_pt, coord_t radius, const std::function<bool(const Elem&)>& process_func) const
+bool SGI_THIS::processNearby(const geometry::Point2LL& query_pt, coord_t radius, const std::function<bool(const Elem&)>& process_func) const
 {
     return SquareGrid::processNearby(
         query_pt,
@@ -180,7 +178,7 @@ bool SGI_THIS::processNearby(const Point2LL& query_pt, coord_t radius, const std
 }
 
 SGI_TEMPLATE
-bool SGI_THIS::processLine(const std::pair<Point2LL, Point2LL> query_line, const std::function<bool(const Elem&)>& process_elem_func) const
+bool SGI_THIS::processLine(const std::pair<geometry::Point2LL, geometry::Point2LL> query_line, const std::function<bool(const Elem&)>& process_elem_func) const
 {
     const std::function<bool(const GridPoint&)> process_cell_func = [&process_elem_func, this](GridPoint grid_loc)
     {
@@ -190,7 +188,7 @@ bool SGI_THIS::processLine(const std::pair<Point2LL, Point2LL> query_line, const
 }
 
 SGI_TEMPLATE
-std::vector<typename SGI_THIS::Elem> SGI_THIS::getNearby(const Point2LL& query_pt, coord_t radius) const
+std::vector<typename SGI_THIS::Elem> SGI_THIS::getNearby(const geometry::Point2LL& query_pt, coord_t radius) const
 {
     std::vector<Elem> ret;
     const std::function<bool(const Elem&)> process_func = [&ret](const Elem& elem)
@@ -209,7 +207,7 @@ const std::function<bool(const typename SGI_THIS::Elem&)> SGI_THIS::no_precondit
 };
 
 SGI_TEMPLATE
-bool SGI_THIS::getNearest(const Point2LL& query_pt, coord_t radius, Elem& elem_nearest, const std::function<bool(const Elem& elem)> precondition) const
+bool SGI_THIS::getNearest(const geometry::Point2LL& query_pt, coord_t radius, Elem& elem_nearest, const std::function<bool(const Elem& elem)> precondition) const
 {
     bool found = false;
     int64_t best_dist2 = static_cast<int64_t>(radius) * radius;
@@ -219,7 +217,7 @@ bool SGI_THIS::getNearest(const Point2LL& query_pt, coord_t radius, Elem& elem_n
         {
             return true;
         }
-        int64_t dist2 = vSize2(elem.point - query_pt);
+        int64_t dist2 = geometry::vSize2(elem.point - query_pt);
         if (dist2 < best_dist2)
         {
             found = true;
@@ -235,6 +233,4 @@ bool SGI_THIS::getNearest(const Point2LL& query_pt, coord_t radius, Elem& elem_n
 #undef SGI_TEMPLATE
 #undef SGI_THIS
 
-} // namespace cura
-
-#endif // UTILS_SPARSE_GRID_H
+} // namespace curaengine::utils

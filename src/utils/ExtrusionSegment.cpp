@@ -9,7 +9,9 @@
 
 #include "utils/macros.h"
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 Shape ExtrusionSegment::toShape()
@@ -21,7 +23,7 @@ Shape ExtrusionSegment::toShape(bool reduced)
 {
     Shape ret;
     const Point2LL vec = to_.p_ - from_.p_;
-    const coord_t vec_length = vSize(vec);
+    const coord_t vec_length = geometry::vSize(vec);
 
     if (vec_length <= 0) // Don't even output the endcaps.
     {
@@ -143,7 +145,7 @@ std::vector<ExtrusionSegment> ExtrusionSegment::discretize(coord_t step_size)
     Point2LL a = from_.p_;
     Point2LL b = to_.p_;
     Point2LL ab = b - a;
-    coord_t ab_length = vSize(ab);
+    coord_t ab_length = geometry::vSize(ab);
     coord_t step_count = std::max(static_cast<coord_t>(1), (ab_length + step_size / 2) / step_size);
     std::vector<ExtrusionSegment> discretized;
     for (coord_t step = 0; step < step_count; step++)
@@ -156,4 +158,4 @@ std::vector<ExtrusionSegment> ExtrusionSegment::discretize(coord_t step_size)
     return discretized;
 }
 
-} // namespace cura
+} // namespace curaengine::utils

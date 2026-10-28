@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/VoronoiUtils.h"
@@ -10,10 +10,12 @@
 
 #include "geometry/PointMatrix.h"
 #include "geometry/conversions/Point2D_Point2LL.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 Point2LL VoronoiUtils::p(const vd_t::vertex_type* node)
@@ -25,12 +27,12 @@ bool VoronoiUtils::isSourcePoint(const Point2LL& p, const vd_t::cell_type& cell,
 {
     if (cell.contains_point())
     {
-        return shorterThen(p - getSourcePoint(cell, points, segments), snap_dist);
+        return geometry::shorterThen(p - getSourcePoint(cell, points, segments), snap_dist);
     }
     else
     {
         const Segment& segment = getSourceSegment(cell, points, segments);
-        return shorterThen(p - segment.from(), snap_dist) || shorterThen(p - segment.to(), snap_dist);
+        return geometry::shorterThen(p - segment.from(), snap_dist) || geometry::shorterThen(p - segment.to(), snap_dist);
     }
 }
 
@@ -38,7 +40,7 @@ coord_t VoronoiUtils::getDistance(const Point2LL& p, const vd_t::cell_type& cell
 {
     if (cell.contains_point())
     {
-        return vSize(p - getSourcePoint(cell, points, segments));
+        return geometry::vSize(p - getSourcePoint(cell, points, segments));
     }
     else
     {
@@ -127,18 +129,18 @@ std::vector<Point2LL> VoronoiUtils::discretizeParabola(const Point2LL& p, const 
     const Point2LL ab = b - a;
     const Point2LL as = s - a;
     const Point2LL ae = e - a;
-    const coord_t ab_size = vSize(ab);
-    const coord_t sx = dot(as, ab) / ab_size;
-    const coord_t ex = dot(ae, ab) / ab_size;
+    const coord_t ab_size = geometry::vSize(ab);
+    const coord_t sx = geometry::dot(as, ab) / ab_size;
+    const coord_t ex = geometry::dot(ae, ab) / ab_size;
     const coord_t sxex = ex - sx;
 
     const Point2LL ap = p - a;
-    const coord_t px = dot(ap, ab) / ab_size;
+    const coord_t px = geometry::dot(ap, ab) / ab_size;
 
     const Point2LL pxx = LinearAlg2D::getClosestOnLine(p, a, b);
     const Point2LL ppxx = pxx - p;
-    const coord_t d = vSize(ppxx);
-    const PointMatrix rot = PointMatrix(turn90CCW(ppxx));
+    const coord_t d = geometry::vSize(ppxx);
+    const PointMatrix rot = PointMatrix(geometry::turn90CCW(ppxx));
 
     if (d == 0)
     {
@@ -247,7 +249,7 @@ void VoronoiUtils::discretize(const Point2LL& point, const Segment& segment, con
     // the point with coordinates (0, 0) and the direction of the segment to
     // coincide the positive direction of the x-axis.
     const Point2LL segm_vec = segment.to() - segment.from();
-    const coord_t segment_length2 = vSize2(segm_vec);
+    const coord_t segment_length2 = geometry::vSize2(segm_vec);
 
     // Compute x-coordinates of the endpoints of the edge
     // in the transformed space.
@@ -258,8 +260,8 @@ void VoronoiUtils::discretize(const Point2LL& point, const Segment& segment, con
     // Parabola has next representation:
     // f(x) = ((x-rot_x)^2 + rot_y^2) / (2.0*rot_y).
     const Point2LL point_vec = point - segment.from();
-    const coord_t rot_x = dot(segm_vec, point_vec);
-    const coord_t rot_y = cross(segm_vec, point_vec);
+    const coord_t rot_x = geometry::dot(segm_vec, point_vec);
+    const coord_t rot_y = geometry::cross(segm_vec, point_vec);
 
     // Save the last point.
     const Point2LL last_point = (*discretization)[1];
@@ -285,8 +287,8 @@ void VoronoiUtils::discretize(const Point2LL& point, const Segment& segment, con
 
         // Compute maximum distance between the given parabolic arc
         // and line segment that discretize it.
-        coord_t dist = cross(mid_vec, new_vec);
-        dist = dist * dist / vSize2(new_vec); // TODO overflows!!!
+        coord_t dist = geometry::cross(mid_vec, new_vec);
+        dist = dist * dist / geometry::vSize2(new_vec); // TODO overflows!!!
         if (dist <= max_dist_transformed)
         {
             // Distance between parabola and line segment is less than max_dist.
@@ -317,9 +319,9 @@ double VoronoiUtils::getPointProjection(const Point2LL& point, const Segment& se
 {
     Point2LL segment_vec = segment.to() - segment.from();
     Point2LL point_vec = point - segment.from();
-    coord_t sqr_segment_length = vSize2(segment_vec);
-    coord_t vec_dot = dot(segment_vec, point_vec);
+    coord_t sqr_segment_length = geometry::vSize2(segment_vec);
+    coord_t vec_dot = geometry::dot(segment_vec, point_vec);
     return static_cast<double>(vec_dot) / sqr_segment_length;
 }
 
-} // namespace cura
+} // namespace curaengine::utils

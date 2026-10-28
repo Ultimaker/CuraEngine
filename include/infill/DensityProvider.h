@@ -1,14 +1,17 @@
-// Copyright (c) 2017 Tim Kuipers
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 Tim Kuipers
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef INFILL_DENSITY_PROVIDER_H
-#define INFILL_DENSITY_PROVIDER_H
+#pragma once
 
-namespace cura
+namespace curaengine::utils
+{
+struct AABB3D;
+}
+
+namespace curaengine::infill
 {
 
-struct AABB3D;
 
 /*!
  * Parent class of function objects which return the density required for a given region.
@@ -21,13 +24,10 @@ public:
     /*!
      * \return the approximate required density of a cube
      */
-    virtual double operator()(const AABB3D& aabb) const = 0;
+    virtual double operator()(const utils::AABB3D& aabb) const = 0;
     virtual ~DensityProvider()
     {
     }
 };
 
-} // namespace cura
-
-
-#endif // INFILL_DENSITY_PROVIDER_H
+} // namespace curaengine::infill

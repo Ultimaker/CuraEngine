@@ -1,17 +1,25 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_POLYGON_H
-#define GEOMETRY_POLYGON_H
+#pragma once
 
 #include "geometry/ClosedPolyline.h"
 
-namespace cura
+namespace curaengine::utils
+{
+class ListPolyIt;
+}
+
+namespace curaengine::types
+{
+class AngleDegrees;
+}
+
+namespace curaengine::geometry
 {
 
 class Shape;
-class ListPolyIt;
-class AngleDegrees;
+
 
 /*!
  * \brief A Polygon is a specific type of polyline, for which we consider that the "inside" part of
@@ -116,7 +124,7 @@ public:
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \param result The resulting polygon
      */
-    void smoothOutward(const AngleDegrees angle, int shortcut_length, Polygon& result) const;
+    void smoothOutward(const types::AngleDegrees angle, int shortcut_length, Polygon& result) const;
 
     /*!
      * Smooth out the polygon and store the result in \p result.
@@ -148,9 +156,9 @@ public:
         const Point2LL& p0,
         const Point2LL& p1,
         const Point2LL& p2,
-        const ListPolyIt& p0_it,
-        const ListPolyIt& p1_it,
-        const ListPolyIt& p2_it,
+        const utils::ListPolyIt& p0_it,
+        const utils::ListPolyIt& p1_it,
+        const utils::ListPolyIt& p2_it,
         const Point2LL& v10,
         const Point2LL& v12,
         const Point2LL& v02,
@@ -171,7 +179,7 @@ public:
      * \param shortcut_length The desired length ofthe shortcutting line
      * \return Whether this whole polygon whould be removed by the smoothing
      */
-    static bool smoothCornerComplex(const Point2LL& p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length);
+    static bool smoothCornerComplex(const Point2LL& p1, utils::ListPolyIt& p0_it, utils::ListPolyIt& p2_it, const int64_t shortcut_length);
 
     /*!
      * Try to take a step away from the corner point in order to take a bigger shortcut.
@@ -192,14 +200,12 @@ public:
     static void smoothOutwardStep(
         const Point2LL& p1,
         const int64_t shortcut_length2,
-        ListPolyIt& p0_it,
-        ListPolyIt& p2_it,
+        utils::ListPolyIt& p0_it,
+        utils::ListPolyIt& p2_it,
         bool& forward_is_blocked,
         bool& backward_is_blocked,
         bool& forward_is_too_far,
         bool& backward_is_too_far);
 };
 
-} // namespace cura
-
-#endif // GEOMETRY_POLYGON_H
+} // namespace curaengine::geometry

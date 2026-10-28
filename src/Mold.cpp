@@ -1,4 +1,4 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "Mold.h"
@@ -7,15 +7,21 @@
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
+#include "Mesh.h"
 #include "Scene.h"
 #include "Slice.h"
+#include "SliceDataStorage.h"
+#include "Slicer.h"
+#include "SlicerLayer.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Point2LL.h"
-#include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
-#include "slicer.h"
+#include "types/Ratio.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 void Mold::process(std::vector<Slicer*>& slicer_list)
@@ -123,4 +129,4 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
 }
 
 
-} // namespace cura
+} // namespace curaengine

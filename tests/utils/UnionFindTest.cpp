@@ -4,7 +4,7 @@
 #include "utils/UnionFind.h"
 #include <gtest/gtest.h>
 
-namespace cura
+namespace curaengine
 {
 
 /*
@@ -14,7 +14,7 @@ namespace cura
 class UnionFindTest : public testing::Test
 {
 public:
-    UnionFind<char> union_find;
+    ::curaengine::utils::UnionFind<char> union_find;
 };
 
 TEST_F(UnionFindTest, FindSimple)
@@ -110,4 +110,4 @@ TEST_F(UnionFindTest, UniteSets)
     ASSERT_EQ(b, c) << "A+B and C+D must now be in the same set.";
 }
 
-} // namespace cura
+} // namespace curaengine

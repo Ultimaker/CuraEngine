@@ -1,14 +1,13 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_MIXED_LINES_SET_H
-#define GEOMETRY_MIXED_LINES_SET_H
+#pragma once
 
 #include <memory>
 
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class ClosedPolyline;
@@ -46,7 +45,7 @@ public:
      * \return A shape containing the offsetted polylines. This may contain many unjoined polygons,
      *         but no overlapping ones.
      */
-    [[nodiscard]] Shape offset(coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(utils::coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     MixedLinesSet intersection(const Shape& shape) const;
 
@@ -95,9 +94,7 @@ public:
     void push_back(MixedLinesSet&& lines_set);
 
     /*! \brief Computes the total length of all the polylines in the set */
-    [[nodiscard]] coord_t length() const;
+    [[nodiscard]] utils::coord_t length() const;
 };
 
-} // namespace cura
-
-#endif // GEOMETRY_MIXED_LINES_SET_H
+} // namespace curaengine::geometry

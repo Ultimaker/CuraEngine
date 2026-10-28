@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include <csignal>
@@ -26,8 +26,10 @@
 #include "rapidjson/document.h"
 #include "rapidjson/stringbuffer.h"
 #include "rapidjson/writer.h"
-#include "settings/Settings.h"
-#include "sliceDataStorage.h"
+#include "Settings.h"
+#include "SliceDataStorage.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
 
 
 constexpr std::string_view USAGE = R"(Stress Benchmark.
@@ -55,7 +57,7 @@ struct Resource
         return wkt_file.stem().string();
     }
 
-    std::vector<cura::Shape> polygons() const
+    std::vector<::curaengine::geometry::Shape> polygons() const
     {
         using point_type = boost::geometry::model::d2::point_xy<double>;
         using polygon_type = boost::geometry::model::polygon<point_type>;
@@ -73,25 +75,25 @@ struct Resource
 
         boost::geometry::read_wkt(buffer.str(), boost_polygons);
 
-        std::vector<cura::Shape> polygons;
+        std::vector<::curaengine::geometry::Shape> polygons;
 
         for (const auto& boost_polygon : boost_polygons)
         {
-            cura::Shape polygon;
+            ::curaengine::geometry::Shape polygon;
 
-            cura::Polygon outer;
+            ::curaengine::geometry::Polygon outer;
             for (const auto& point : boost_polygon.outer())
             {
-                outer.push_back(cura::Point2LL(point.x(), point.y()));
+                outer.push_back(::curaengine::geometry::Point2LL(point.x(), point.y()));
             }
             polygon.push_back(outer);
 
             for (const auto& hole : boost_polygon.inners())
             {
-                cura::Polygon inner;
+                ::curaengine::geometry::Polygon inner;
                 for (const auto& point : hole)
                 {
-                    inner.push_back(cura::Point2LL(point.x(), point.y()));
+                    inner.push_back(::curaengine::geometry::Point2LL(point.x(), point.y()));
                 }
                 polygon.push_back(inner);
             }
@@ -101,9 +103,9 @@ struct Resource
         return polygons;
     }
 
-    cura::Settings settings() const
+    curaengine::Settings settings() const
     {
-        cura::Settings settings;
+        curaengine::Settings settings;
         std::ifstream file{ settings_file };
         if (! file)
         {
@@ -146,16 +148,16 @@ std::vector<Resource> getResources()
 
 void handleChildProcess(const auto& shapes, const auto& settings)
 {
-    cura::SliceLayer layer;
-    for (const cura::Shape& shape : shapes)
+    curaengine::SliceLayer layer;
+    for (const ::curaengine::geometry::Shape& shape : shapes)
     {
         layer.parts.emplace_back();
-        cura::SliceLayerPart& part = layer.parts.back();
+        curaengine::SliceLayerPart& part = layer.parts.back();
         part.outline.push_back(shape);
     }
-    cura::LayerIndex layer_idx(100);
-    cura::WallsComputation walls_computation(settings, layer_idx);
-    walls_computation.generateWalls(&layer, cura::SectionType::WALL);
+    ::curaengine::types::LayerIndex layer_idx(100);
+    curaengine::WallsComputation walls_computation(settings, layer_idx);
+    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
     exit(EXIT_SUCCESS);
 }
 

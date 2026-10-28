@@ -1,4 +1,4 @@
-// Copyright (c) 2023 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "WallsComputation.h" //Unit under test.
@@ -13,9 +13,11 @@
 #include "InsetOrderOptimizer.h" //Unit also under test.
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h" //To create example polygons.
-#include "settings/Settings.h" //Settings to generate walls with.
-#include "sliceDataStorage.h" //Sl
-#include "slicer.h"
+#include "Settings.h" //Settings to generate walls with.
+#include "SliceDataStorage.h" //Sl
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "Slicer.h"
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
 #include <cstdlib>
@@ -24,7 +26,7 @@
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
 
 // NOLINTBEGIN(*-magic-numbers)
-namespace cura
+namespace curaengine
 {
 /*!
  * Fixture that provides a basis for testing wall computation.
@@ -45,15 +47,15 @@ public:
     /*!
      * Basic 10x10mm square shape to work with.
      */
-    Shape square_shape;
+    ::curaengine::geometry::Shape square_shape;
 
     /*!
      * A rectangle enclosing two triangular holes;
      */
-    Shape ff_holes;
+    ::curaengine::geometry::Shape ff_holes;
 
     WallsComputationTest()
-        : walls_computation(settings, LayerIndex(100))
+        : walls_computation(settings, ::curaengine::types::LayerIndex(100))
     {
         square_shape.emplace_back();
         square_shape.back().emplace_back(0, 0);
@@ -113,7 +115,7 @@ TEST_F(WallsComputationTest, GenerateWallsForLayerSinglePart)
     part.outline.push_back(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
 
     // Verify that something was generated.
     EXPECT_FALSE(part.wall_toolpaths.empty()) << "There must be some walls.";
@@ -136,7 +138,7 @@ TEST_F(WallsComputationTest, GenerateWallsZeroWalls)
     part.outline.push_back(square_shape);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
 
     // Verify that there is still an inner area, outline and parts.
     EXPECT_EQ(part.inner_area.area(), square_shape.area()) << "There are no walls, so the inner area (for infill/skin) needs to be the entire part.";
@@ -157,10 +159,10 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     part.outline.push_back(ff_holes);
 
     // Run the test.
-    walls_computation.generateWalls(&layer, SectionType::WALL);
+    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
 
     const bool outer_to_inner = false;
-    std::vector<ExtrusionLine> all_paths;
+    std::vector<::curaengine::utils::ExtrusionLine> all_paths;
     for (auto& line : part.wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
@@ -176,33 +178,33 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
 
 #ifdef WALLS_COMPUTATION_TEST_SVG_OUTPUT
     {
-        SVG svg("/tmp/wall_order.svg", AABB(part.outline));
-        for (const VariableWidthLines& inset : part.wall_toolpaths)
+        ::curaengine::utils::SVG svg("/tmp/wall_order.svg", ::curaengine::utils::AABB(part.outline));
+        for (const ::curaengine::utils::VariableWidthLines& inset : part.wall_toolpaths)
         {
-            for (const ExtrusionLine& line : inset)
+            for (const ::curaengine::utils::ExtrusionLine& line : inset)
             {
                 if (line.is_odd)
                 {
-                    svg.writePolyline(line.toPolygon(), SVG::Color::YELLOW);
+                    svg.writePolyline(line.toPolygon(), ::curaengine::utils::SVG::Color::YELLOW);
                     svg.writePoints(line.toPolygon(), true);
                 }
                 else
-                    svg.writePolygon(line.toPolygon(), SVG::Color::GREEN);
+                    svg.writePolygon(line.toPolygon(), ::curaengine::utils::SVG::Color::GREEN);
             }
         }
-        svg.writePolygons(part.outline, SVG::Color::RED);
-        svg.writePolygons(part.inner_area, SVG::Color::YELLOW);
+        svg.writePolygons(part.outline, ::curaengine::utils::SVG::Color::RED);
+        svg.writePolygons(part.inner_area, ::curaengine::utils::SVG::Color::YELLOW);
         svg.nextLayer();
         for (auto [first, second] : order)
         {
             if (! second->is_odd)
-                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::BLUE);
+                svg.writeArrow(first->front().p, (++second->begin())->p, ::curaengine::utils::SVG::Color::BLUE);
         }
         svg.nextLayer();
         for (auto [first, second] : order)
         {
             if (second->is_odd)
-                svg.writeArrow(first->front().p, (++second->begin())->p, SVG::Color::MAGENTA);
+                svg.writeArrow(first->front().p, (++second->begin())->p, ::curaengine::utils::SVG::Color::MAGENTA);
         }
     }
 #endif // WALLS_COMPUTATION_TEST_SVG_OUTPUT
@@ -219,7 +221,7 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
         }
     }
     EXPECT_GT(order.size(), 0) << "There should be ordered pairs!";
-    std::unordered_set<const ExtrusionLine*> has_order_info(part.wall_toolpaths.size());
+    std::unordered_set<const ::curaengine::utils::ExtrusionLine*> has_order_info(part.wall_toolpaths.size());
     for (auto [from, to] : order)
     {
         has_order_info.emplace(from);
@@ -228,5 +230,5 @@ TEST_F(WallsComputationTest, WallToolPathsGetWeakOrder)
     EXPECT_EQ(has_order_info.size(), n_paths) << "Every path should have order information.";
 }
 
-} // namespace cura
+} // namespace curaengine
 // NOLINTEND(*-magic-numbers)

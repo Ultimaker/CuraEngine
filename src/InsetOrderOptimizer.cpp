@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "InsetOrderOptimizer.h"
@@ -11,7 +11,6 @@
 #include <range/v3/range/conversion.hpp>
 #include <range/v3/view/addressof.hpp>
 #include <range/v3/view/any_view.hpp>
-#include <range/v3/view/drop.hpp>
 #include <range/v3/view/drop_last.hpp>
 #include <range/v3/view/filter.hpp>
 #include <range/v3/view/join.hpp>
@@ -24,14 +23,23 @@
 #include "FffGcodeWriter.h"
 #include "ForceRetract.h"
 #include "LayerPlan.h"
-#include "utils/views/convert.h"
-#include "utils/views/dfs.h"
+#include "types/EZSeamType.h"
+#include "types/InsetDirection.h"
+#include "types/RetractBeforeOuterWall.h"
+#include "utils/LinearAlg2D.h"
+#include "utils/actions/dfs.h"
 
 namespace rg = ranges;
 namespace rv = ranges::views;
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
+using types::operator""_r;
+
 
 InsetOrderOptimizer::InsetOrderOptimizer(
     const SliceDataStorage& storage,
@@ -267,7 +275,7 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
             if (LinearAlg2D::segmentSegmentIntersection(ray_origin, request_point, junction.p_, next_junction.p_, t, u))
             {
                 const Point2LL intersection = ray_origin + (request_point - ray_origin) * t;
-                const coord_t distance_sqd = vSize2(request_point - intersection);
+                const coord_t distance_sqd = geometry::vSize2(request_point - intersection);
                 if (distance_sqd < closest_distance_sqd)
                 {
                     closest_point = intersection;
@@ -305,21 +313,21 @@ std::optional<size_t> InsetOrderOptimizer::insertSeamPoint(ExtrusionLine& closed
         closest_point = LinearAlg2D::getClosestOnLineSegment(request_point, start_pt.p_, end_pt.p_);
     }
     constexpr coord_t smallest_dist_sqd = 25;
-    if (vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
+    if (geometry::vSize2(closest_point - start_pt.p_) <= smallest_dist_sqd)
     {
         // If the closest point is very close to the start point, just use it instead.
         return closest_junction_idx;
     }
-    if (vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
+    if (geometry::vSize2(closest_point - end_pt.p_) <= smallest_dist_sqd)
     {
         // If the closest point is very close to the end point, just use it instead.
         return (closest_junction_idx + 1) % closed_line.junctions_.size();
     }
 
     // NOTE: This could also be done on a single axis (skipping the implied sqrt), but figuring out which one and then using the right values became a bit messy/verbose.
-    const coord_t total_dist = vSize(end_pt.p_ - start_pt.p_);
-    const coord_t start_dist = vSize(closest_point - start_pt.p_);
-    const coord_t end_dist = vSize(closest_point - end_pt.p_);
+    const coord_t total_dist = geometry::vSize(end_pt.p_ - start_pt.p_);
+    const coord_t start_dist = geometry::vSize(closest_point - start_pt.p_);
+    const coord_t end_dist = geometry::vSize(closest_point - end_pt.p_);
     const coord_t w = ((end_pt.w_ * end_dist) / total_dist) + ((start_pt.w_ * start_dist) / total_dist);
 
     closed_line.junctions_.insert(closed_line.junctions_.begin() + closest_junction_idx + 1, ExtrusionJunction(closest_point, w, start_pt.perimeter_index_));
@@ -425,7 +433,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
                 closest_outer_wall_line[current_line] = outer_wall;
             }
         };
-        actions::dfs_depth_state(outer_wall, graph, update_nodes);
+        utils::actions::dfs_depth_state(outer_wall, graph, update_nodes);
     }
 
     // for each of the outer walls, perform a dfs until we have found an extrusion line that is
@@ -453,7 +461,7 @@ InsetOrderOptimizer::value_type InsetOrderOptimizer::getRegionOrder(const std::v
             }
         };
 
-        actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
+        utils::actions::dfs_parent_state(outer_wall, graph, set_order_constraints);
     }
 
     return order;
@@ -571,4 +579,4 @@ std::vector<ExtrusionLine> InsetOrderOptimizer::getWallsToBeAdded(const bool rev
     return view | rv::join | rv::remove_if(rg::empty) | rg::to_vector;
 }
 
-} // namespace cura
+} // namespace curaengine

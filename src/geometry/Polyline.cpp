@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "geometry/Polyline.h"
@@ -10,10 +10,13 @@
 #include "geometry/LinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
-#include "settings/types/Angle.h"
-#include "utils/linearAlg2D.h"
+#include "types/AngleRadians.h"
+#include "utils/LinearAlg2D.h"
 
-namespace cura
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::geometry
 {
 
 void Polyline::removeColinearEdges(const AngleRadians max_deviation_angle)
@@ -174,4 +177,4 @@ OpenLinesSet Polyline::splitIntoSegments() const
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

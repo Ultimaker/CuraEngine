@@ -11,7 +11,7 @@
 #include "ExtruderTrain.h"
 #include "FffProcessor.h"
 
-namespace cura
+namespace curaengine
 {
 
 Slice::Slice(const size_t num_mesh_groups)
@@ -49,4 +49,4 @@ void Slice::reset()
     scene.settings = Settings();
 }
 
-} // namespace cura
+} // namespace curaengine

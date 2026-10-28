@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
 #include "bridge/bridge.h"
@@ -7,6 +7,11 @@
 
 #include "LayerPlan.h"
 #include "PathAdapter.h"
+#include "SkinPart.h"
+#include "SliceDataStorage.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SupportLayer.h"
 #include "bridge/AlignShapeScoringCriterion.h"
 #include "bridge/ExpansionRange.h"
 #include "bridge/LineAnchoringScoringCriterion.h"
@@ -14,17 +19,20 @@
 #include "bridge/TransformedShape.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
-#include "settings/EnumSettings.h"
-#include "settings/types/Ratio.h"
-#include "sliceDataStorage.h"
+#include "types/EFillMethod.h"
+#include "types/Ratio.h"
+#include "types/geometry.h"
 #include "utils/AABB.h"
-#include "utils/linearAlg2D.h"
+#include "utils/LinearAlg2D.h"
 #include "utils/math.h"
 #include "utils/scoring/BestElementFinder.h"
-#include "utils/types/geometry.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine::bridge
 {
 
 /*!
@@ -233,8 +241,8 @@ std::optional<AngleDegrees> bridgeAngle(
         {
             angle_candidates.push_back(angle);
         }
-        BestElementFinder best_angle_finder;
-        BestElementFinder::CriteriaPass criteria_pass;
+        utils::scoring::BestElementFinder best_angle_finder;
+        utils::scoring::BestElementFinder::CriteriaPass criteria_pass;
         criteria_pass.criteria.emplace_back(std::make_shared<LineAnchoringScoringCriterion>(angle_candidates, skin_outline, supported_regions, line_width));
         best_angle_finder.appendCriteriaPass(criteria_pass);
         best_angle_index = best_angle_finder.findBestElement(angle_candidates.size());
@@ -250,8 +258,8 @@ std::optional<AngleDegrees> bridgeAngle(
         {
             angle_candidates.push_back(angle);
         }
-        BestElementFinder best_angle_refiner;
-        BestElementFinder::CriteriaPass criteria_pass_refiner;
+        utils::scoring::BestElementFinder best_angle_refiner;
+        utils::scoring::BestElementFinder::CriteriaPass criteria_pass_refiner;
         criteria_pass_refiner.criteria.emplace_back(std::make_shared<AlignShapeScoringCriterion>(angle_candidates, skin_outline, supported_regions));
         best_angle_refiner.appendCriteriaPass(criteria_pass_refiner);
 
@@ -457,7 +465,7 @@ void expandSegment(
     const TransformedSegment*& current_supporting_infill_line)
 {
     // 1 means expand to the right, -1 expand to the left
-    const int8_t expand_direction = sign(segment.getEnd().Y - segment.getStart().Y);
+    const int8_t expand_direction = utils::sign(segment.getEnd().Y - segment.getStart().Y);
 
     // Make the list of expanded ranges for this segment
     std::vector<ExpansionRange> expanded_ranges = makeExpandedRanges(segment, infill_lines_below, expand_direction);
@@ -545,4 +553,4 @@ std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }
 
-} // namespace cura
+} // namespace curaengine::bridge

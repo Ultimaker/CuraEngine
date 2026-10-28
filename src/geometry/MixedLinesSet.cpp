@@ -11,7 +11,9 @@
 #include "geometry/Shape.h"
 
 
-namespace cura
+using namespace curaengine::utils;
+
+namespace curaengine::geometry
 {
 
 MixedLinesSet::MixedLinesSet(const ClosedLinesSet& lines)
@@ -267,4 +269,4 @@ coord_t MixedLinesSet::length() const
         });
 }
 
-} // namespace cura
+} // namespace curaengine::geometry

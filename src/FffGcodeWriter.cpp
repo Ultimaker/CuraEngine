@@ -1,4 +1,4 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "FffGcodeWriter.h"
@@ -19,30 +19,58 @@
 
 #include "Application.h"
 #include "ExtruderTrain.h"
+#include "FanSpeedLayerTimeSettings.h"
 #include "FffProcessor.h"
 #include "InfillOrderOptimizer.h"
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
-#include "PrimeTower/PrimeTower.h"
+#include "Mesh.h"
+#include "Raft.h"
+#include "RetractionAndWipeConfig.h"
+#include "SkinPart.h"
 #include "Slice.h"
+#include "SliceLayer.h"
+#include "SliceLayerPart.h"
+#include "SliceMeshStorage.h"
+#include "SupportLayer.h"
+#include "SupportStorage.h"
 #include "WallToolPaths.h"
 #include "bridge/bridge.h"
 #include "communication/Communication.h" //To send layer view data.
 #include "geometry/LinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
-#include "infill.h"
+#include "infill/Infill.h"
+#include "prime_tower/PrimeTower.h"
 #include "progress/Progress.h"
-#include "raft.h"
+#include "types/Acceleration.h"
+#include "types/DraftShieldHeightLimitation.h"
+#include "types/EFillMethod.h"
+#include "types/EPlatformAdhesion.h"
+#include "types/ESupportStructure.h"
+#include "types/ESurfaceMode.h"
+#include "types/EZSeamCornerPrefType.h"
+#include "types/EZSeamType.h"
+#include "types/InfillStartEndPreference.h"
+#include "types/RetractBeforeOuterWall.h"
+#include "utils/LinearAlg2D.h"
+#include "utils/OrderOptimizer.h"
+#include "utils/PolygonUtils.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
 #include "utils/ThreadPool.h"
-#include "utils/linearAlg2D.h"
 #include "utils/math.h"
-#include "utils/orderOptimizer.h"
-#include "utils/polygonUtils.h"
+#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::infill;
+using namespace curaengine::progress;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
+using types::operator""_r;
+
 
 const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names
     = { .extruder_nr = "roofing_extruder_nr", .pattern_0 = "roofing_pattern", .pattern_x = "roofing_pattern", .monotonic = "roofing_monotonic" };
@@ -159,7 +187,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keep
         }
     }
 
-    run_multiple_producers_ordered_consumer(
+    utils::run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
         total_layers,
         [&storage, total_layers, this](int layer_nr)
@@ -223,7 +251,7 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
         // and if it isn't, we move forward
 
-        if (vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
+        if (geometry::vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
         {
             // get the inward normal of the last layer seam vertex
             Point2LL last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
@@ -1405,7 +1433,7 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
 
     const auto smart_brim_ordering = train.settings_.get<bool>("brim_smart_ordering") && train.settings_.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM;
     std::unordered_multimap<const Polyline*, const Polyline*> order_requirements;
-    for (const std::pair<SquareGrid::GridPoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
+    for (const std::pair<SquareGrid::GridPoint, utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
         const BrimLineReference& here = p.second.val;
         Point2LL loc_here = p.second.point;
@@ -1959,7 +1987,7 @@ bool FffGcodeWriter::processMultiLayerInfill(
     if (! mesh.infill_angles.empty())
     {
         const size_t combined_infill_layers
-            = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
+            = std::max(uint64_t(1), utils::round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
     }
     const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
@@ -2170,7 +2198,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
     if (! mesh.infill_angles.empty())
     {
         const size_t combined_infill_layers
-            = std::max(uint64_t(1), round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
+            = std::max(uint64_t(1), utils::round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = mesh.infill_angles.at((static_cast<size_t>(gcode_layer.getLayerNr()) / combined_infill_layers) % mesh.infill_angles.size());
     }
     const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
@@ -2205,7 +2233,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
         const Shape infill_contour = part.infill_area.offset(infill_overlap + infill_wall_offset);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
         std::tie(infill_below_skin, skin_support_angle)
-            = makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
+            = bridge::makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
         infill_not_below_skin = infill_not_below_skin.difference(infill_below_skin);
     }
 
@@ -2750,7 +2778,7 @@ OverrideAreas
             // max_air_gap is the max allowed width of the unsupported region below the wall line
             // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
 
-            const coord_t overhang_width = layer_height * boundedTan(mesh.settings.get<AngleRadians>("wall_overhang_angle"));
+            const coord_t overhang_width = layer_height * types::boundedTan(mesh.settings.get<AngleRadians>("wall_overhang_angle"));
             const coord_t max_air_gap = std::clamp(overhang_width, half_outer_wall_width, outer_wall_width);
 
             // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
@@ -2984,7 +3012,7 @@ std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Shape& fil
     // create a vector from the middle of the BB whose length is such that it can be rotated
     // around the middle of the BB and the end will always be a long way outside of the part's outline
     // and rotate the vector so that it is normal to the skin angle
-    const Point2LL vec = rot.apply(Point2LL(0, vSize(skin_part_bb.max_ - bb_middle) * 100));
+    const Point2LL vec = rot.apply(Point2LL(0, geometry::vSize(skin_part_bb.max_ - bb_middle) * 100));
     // find the vertex in the outline that is closest to the end of the rotated vector
     const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
     // and find another outline vertex, this time using the vector + 180 deg
@@ -2994,7 +3022,7 @@ std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Shape& fil
         return std::optional<Point2LL>();
     }
     // now go to whichever of those vertices that is closest to where we are now
-    if (vSize2(pa.p() - last_position) < vSize2(pb.p() - last_position))
+    if (geometry::vSize2(pa.p() - last_position) < geometry::vSize2(pb.p() - last_position))
     {
         return std::optional<Point2LL>(std::in_place, pa.p());
     }
@@ -3162,7 +3190,7 @@ void FffGcodeWriter::processTopBottom(
 
         Shape bridging_area;
 
-        const std::optional<AngleDegrees> bridge_angle = bridgeAngle(mesh, skin_fill, storage, layer_nr, bridge_layer, support_layer, bridging_area);
+        const std::optional<AngleDegrees> bridge_angle = bridge::bridgeAngle(mesh, skin_fill, storage, layer_nr, bridge_layer, support_layer, bridging_area);
 
         if (bridge_angle.has_value())
         {
@@ -4289,4 +4317,4 @@ void FffGcodeWriter::finalize()
 }
 
 
-} // namespace cura
+} // namespace curaengine

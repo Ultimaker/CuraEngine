@@ -1,14 +1,18 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef DISTANCESCORINGCRITERION_H
-#define DISTANCESCORINGCRITERION_H
+#pragma once
 
 #include "utils/scoring/PositionBasedScoringCriterion.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 class PointsSet;
+}
+
+namespace curaengine::utils::scoring
+{
+
 
 /*!
  * Criterion that will give a score according to the distance from the point to a target point. Closer points will get
@@ -25,7 +29,7 @@ public:
     };
 
 private:
-    const Point2LL& target_pos_;
+    const geometry::Point2LL& target_pos_;
     const DistanceType distance_type_;
 
     /*!
@@ -36,14 +40,12 @@ private:
 
 public:
     explicit DistanceScoringCriterion(
-        const PointsSet& points,
-        const Point2LL& target_pos,
+        const geometry::PointsSet& points,
+        const geometry::Point2LL& target_pos,
         DistanceType distance_type = DistanceType::Euclidian,
         const double distance_divider = 20.0);
 
-    virtual double computeScore(const Point2LL& candidate_position) const override;
+    virtual double computeScore(const geometry::Point2LL& candidate_position) const override;
 };
 
-} // namespace cura
-
-#endif // DISTANCESCORINGCRITERION_H
+} // namespace curaengine::utils::scoring

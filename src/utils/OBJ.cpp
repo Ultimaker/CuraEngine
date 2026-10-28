@@ -1,4 +1,4 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "utils/OBJ.h"
@@ -9,11 +9,15 @@
 #include <range/v3/algorithm/find.hpp>
 #include <spdlog/spdlog.h>
 
-#include "mesh.h"
-#include "utils/Point3D.h"
+#include "Mesh.h"
+#include "MeshFace.h"
+#include "MeshVertex.h"
+#include "geometry/Point3D.h"
 #include "utils/VoxelGrid.h"
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 OBJ::OBJ(const std::string& filename, const double scale)
@@ -216,4 +220,4 @@ std::string OBJ::materialName(const SVG::Color color) const
     return fmt::format("material_{}", SVG::toString(color));
 }
 
-} // namespace cura
+} // namespace curaengine::utils

@@ -1,14 +1,11 @@
-// Copyright (c) 2020 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_POLYGONS_SEGMENT_INDEX_H
-#define UTILS_POLYGONS_SEGMENT_INDEX_H
+#pragma once
 
-#include <vector>
+#include "PathsPointIndex.h"
 
-#include "PolygonsPointIndex.h"
-
-namespace cura
+namespace curaengine::utils
 {
 
 /*!
@@ -18,15 +15,12 @@ class PolygonsSegmentIndex : public PolygonsPointIndex
 {
 public:
     PolygonsSegmentIndex();
-    PolygonsSegmentIndex(const Shape* polygons, unsigned int poly_idx, unsigned int point_idx);
+    PolygonsSegmentIndex(const geometry::Shape* polygons, unsigned int poly_idx, unsigned int point_idx);
 
-    Point2LL from() const;
+    geometry::Point2LL from() const;
 
-    Point2LL to() const;
+    geometry::Point2LL to() const;
 };
 
 
-} // namespace cura
-
-
-#endif // UTILS_POLYGONS_SEGMENT_INDEX_H
+} // namespace curaengine::utils

@@ -1,10 +1,9 @@
-// Copyright (c) 2025 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef BRIDGE_SEGMENTOVERLAPPINGTYPE_H
-#define BRIDGE_SEGMENTOVERLAPPINGTYPE_H
+#pragma once
 
-namespace cura
+namespace curaengine::bridge
 {
 
 /*! Enumeration containing the overlapping type of two segments in the bridging projection direction */
@@ -16,6 +15,4 @@ enum class SegmentOverlappingType
     Middle, // The segment overlaps with the base segment somewhere in the middle, but not top neither bottom
 };
 
-} // namespace cura
-
-#endif
+} // namespace curaengine::bridge

@@ -1,8 +1,7 @@
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_LIST_POLY_IT_H
-#define UTILS_LIST_POLY_IT_H
+#pragma once
 
 #include <list>
 #include <vector>
@@ -10,13 +9,17 @@
 #include "geometry/Point2LL.h"
 
 
-namespace cura
+namespace curaengine::geometry
 {
-
 class Polygon;
 class Shape;
+} // namespace curaengine::geometry
 
-using ListPolygon = std::list<Point2LL>; //!< A polygon represented by a linked list instead of a vector
+namespace curaengine::utils
+{
+
+
+using ListPolygon = std::list<geometry::Point2LL>; //!< A polygon represented by a linked list instead of a vector
 using ListPolygons = std::vector<ListPolygon>; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
 /*!
@@ -37,7 +40,7 @@ public:
     {
     }
 
-    Point2LL& p() const
+    geometry::Point2LL& p() const
     {
         return *it_;
     }
@@ -115,7 +118,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonsToLists(const Shape& shape, ListPolygons& result);
+    static void convertPolygonsToLists(const geometry::Shape& shape, ListPolygons& result);
 
     /*!
      * Convert Polygons to ListPolygons
@@ -123,7 +126,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonToList(const Polygon& poly, ListPolygon& result);
+    static void convertPolygonToList(const geometry::Polygon& poly, ListPolygon& result);
 
     /*!
      * Convert ListPolygons to Polygons
@@ -131,7 +134,7 @@ public:
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, Shape& polygons);
+    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, geometry::Shape& polygons);
 
     /*!
      * Convert ListPolygons to Polygons
@@ -139,7 +142,7 @@ public:
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonToPolygon(const ListPolygon& list_polygon, Polygon& polygon);
+    static void convertListPolygonToPolygon(const ListPolygon& list_polygon, geometry::Polygon& polygon);
 
     /*!
      * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.
@@ -149,7 +152,7 @@ public:
      * \param to_insert The point to insert into the ListPolygon in between \p before and \p after
      * \return Iterator to the newly inserted point, or \p before or \p after in case to_insert was already in the polygon
      */
-    static ListPolyIt insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point2LL to_insert);
+    static ListPolyIt insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const geometry::Point2LL to_insert);
 
 private:
     ListPolygon* poly_; //!< The polygon
@@ -157,7 +160,7 @@ private:
 };
 
 
-} // namespace cura
+} // namespace curaengine::utils
 
 namespace std
 {
@@ -165,14 +168,11 @@ namespace std
  * Hash function for \ref ListPolyIt
  */
 template<>
-struct hash<cura::ListPolyIt>
+struct hash<::curaengine::utils::ListPolyIt>
 {
-    size_t operator()(const cura::ListPolyIt& lpi) const
+    size_t operator()(const ::curaengine::utils::ListPolyIt& lpi) const
     {
-        return std::hash<cura::Point2LL>()(lpi.p());
+        return std::hash<::curaengine::geometry::Point2LL>()(lpi.p());
     }
 };
 } // namespace std
-
-
-#endif // UTILS_LIST_POLY_IT_H

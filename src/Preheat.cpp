@@ -1,4 +1,4 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
 #include "Preheat.h"
@@ -8,11 +8,13 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "Slice.h"
-#include "settings/FlowTempGraph.h"
-#include "settings/types/Ratio.h"
+#include "types/Ratio.h"
 
-namespace cura
+using namespace curaengine::types;
+
+namespace curaengine
 {
+
 
 Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing)
 {
@@ -191,4 +193,4 @@ Preheat::CoolDownResult Preheat::getCoolDownPointAfterWarmUp(double time_window,
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine

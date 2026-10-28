@@ -1,8 +1,7 @@
-// Copyright (c) 2022 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef SVG_H
-#define SVG_H
+#pragma once
 
 #include <stdio.h> // for file output
 #include <variant>
@@ -14,14 +13,22 @@
 #include "NoCopy.h"
 #include "geometry/Point2LL.h"
 
-namespace cura
+namespace curaengine::geometry
 {
-
 class Point2D;
 class MixedLinesSet;
+} // namespace curaengine::geometry
+
+namespace curaengine::arachne
+{
 class SkeletalTrapezoidationGraph;
 class STHalfEdge;
 class STHalfEdgeNode;
+} // namespace curaengine::arachne
+
+namespace curaengine::utils
+{
+
 
 class SVG : NoCopy
 {
@@ -249,17 +256,17 @@ private:
 
     FILE* out_; // the output file
     const AABB aabb_; // the boundary box to display
-    const Point2LL aabb_size_;
-    const Point2LL canvas_size_;
+    const geometry::Point2LL aabb_size_;
+    const geometry::Point2LL canvas_size_;
     const double scale_;
     size_t layer_nr_ = 1;
 
     bool output_is_html_;
 
 public:
-    SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size, const ColorObject& background = ColorObject());
+    SVG(const std::string& filename, const AABB& aabb, const geometry::Point2LL& canvas_size, const ColorObject& background = ColorObject());
     SVG(const std::string& filename, const AABB& aabb, const double scale = 1.0, const ColorObject& background = ColorObject());
-    SVG(const std::string& filename, const AABB& aabb, const double scale, const Point2LL& canvas_size, const ColorObject& background = ColorObject());
+    SVG(const std::string& filename, const AABB& aabb, const double scale, const geometry::Point2LL& canvas_size, const ColorObject& background = ColorObject());
 
     ~SVG();
 
@@ -277,37 +284,41 @@ public:
     /*!
      * transform a point in real space to canvas space
      */
-    Point2LL transform(const Point2LL& p) const;
+    geometry::Point2LL transform(const geometry::Point2LL& p) const;
 
     /*!
      * transform a point in real space to canvas space with more precision
      */
-    Point2D transformF(const Point2LL& p) const;
+    geometry::Point2D transformF(const geometry::Point2LL& p) const;
 
     void writeComment(const std::string& comment) const;
 
-    void write(const Shape& shape, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const geometry::Shape& shape, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
     template<class LineType>
-    void write(const LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush = true, const FillRule fill_rule = FillRule::None) const;
+    void write(const geometry::LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush = true, const FillRule fill_rule = FillRule::None) const;
 
-    void write(const OpenPolyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const geometry::OpenPolyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const geometry::ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const MixedLinesSet& lines, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const geometry::MixedLinesSet& lines, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const Point2LL& start, const Point2LL& end, const VisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const geometry::Point2LL& start, const geometry::Point2LL& end, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const PointsSet& points, const VerticesAttributes& visual_attributes, const bool flush = true) const;
+    void write(const geometry::PointsSet& points, const VerticesAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const Point2LL& point, const VerticesAttributes& visual_attributes, const bool flush = true) const;
+    void write(const geometry::Point2LL& point, const VerticesAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const std::string& text, const Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush = true) const;
+    void write(const std::string& text, const geometry::Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush = true) const;
 
-    void write(const SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush = true) const;
+    void write(const arachne::SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const STHalfEdge& edge, const STVisualAttributes& visual_attributes, const bool flush = true, const std::set<const STHalfEdgeNode*>& drawn_nodes = {}) const;
+    void write(
+        const arachne::STHalfEdge& edge,
+        const STVisualAttributes& visual_attributes,
+        const bool flush = true,
+        const std::set<const arachne::STHalfEdgeNode*>& drawn_nodes = {}) const;
 
     template<typename T>
     void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
@@ -318,7 +329,8 @@ public:
     template<typename T>
     void write(const boost::polygon::voronoi_cell<T>& cell, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
+    void writeArrow(const geometry::Point2LL& a, const geometry::Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0)
+        const;
 
     template<typename... Args>
     void printf(const char* txt, Args&&... args) const;
@@ -383,7 +395,7 @@ public:
     void writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& visual_attributes, const bool flush = true) const;
 
 private:
-    void writePathPoints(const Polyline& line) const;
+    void writePathPoints(const geometry::Polyline& line) const;
 
     static RgbColor makeRainbowColor(const size_t index, const size_t elementsCount);
 };
@@ -394,5 +406,4 @@ void SVG::printf(const char* txt, Args&&... args) const
     fprintf(out_, txt, args...);
 }
 
-} // namespace cura
-#endif // SVG_H
+} // namespace curaengine::utils

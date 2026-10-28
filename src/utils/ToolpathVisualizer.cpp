@@ -7,7 +7,9 @@
 #include "geometry/Point3LL.h"
 
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 void ToolpathVisualizer::outline(const Shape& input)
@@ -154,4 +156,4 @@ void ToolpathVisualizer::widths(
     }
 }
 
-} // namespace cura
+} // namespace curaengine::utils

@@ -1,13 +1,12 @@
-// Copyright (c) 2024 UltiMaker
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher
 
-#ifndef GEOMETRY_POINTS_SET_H
-#define GEOMETRY_POINTS_SET_H
+#pragma once
 
 #include "geometry/Point2LL.h"
 #include "utils/Coord_t.h"
 
-namespace cura
+namespace curaengine::geometry
 {
 
 class PointMatrix;
@@ -231,6 +230,4 @@ public:
     }
 };
 
-} // namespace cura
-
-#endif // GEOMETRY_POINTS_SET_H
+} // namespace curaengine::geometry

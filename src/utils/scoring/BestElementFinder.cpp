@@ -10,7 +10,7 @@
 
 #include "utils/scoring/ScoringCriterion.h"
 
-namespace cura
+namespace curaengine::utils::scoring
 {
 
 void BestElementFinder::appendSingleCriterionPass(std::shared_ptr<ScoringCriterion> criterion, const double outsider_delta_threshold)
@@ -90,4 +90,4 @@ std::optional<size_t> BestElementFinder::findBestElement(const size_t candidates
     return begin != end ? std::make_optional(begin->candidate_index) : std::nullopt;
 }
 
-} // namespace cura
+} // namespace curaengine::utils::scoring

@@ -1,18 +1,25 @@
-// Copyright (c) 2021 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef PATHORDERMONOTONIC_H
-#define PATHORDERMONOTONIC_H
+#pragma once
 
 #include <cmath> //For std::sin() and std::cos().
 #include <deque>
 
 #include "PathOrder.h"
+#include "PathOrdering.h"
 #include "geometry/Point2D.h"
-#include "path_ordering.h"
+#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
-namespace cura
+namespace curaengine::utils
 {
+template<class Val>
+class SparsePointGridInclusive;
+}
+
+namespace curaengine
+{
+
 
 /*!
  * Class that orders paths monotonically.
@@ -44,7 +51,11 @@ public:
     using Path = PathOrdering<PathType>;
     using PathOrder<PathType>::coincident_point_distance_;
 
-    PathOrderMonotonic(const AngleRadians& monotonic_direction, const coord_t max_adjacent_distance, const Point2LL& start_point, const bool interlaced = false)
+    PathOrderMonotonic(
+        const types::AngleRadians& monotonic_direction,
+        const utils::coord_t max_adjacent_distance,
+        const geometry::Point2LL& start_point,
+        const bool interlaced = false)
         : PathOrder<PathType>(start_point)
         // The monotonic vector needs to rotate clockwise instead of counter-clockwise, the same as how the infill patterns are generated.
         , monotonic_vector_(-std::cos(monotonic_direction), std::sin(monotonic_direction))
@@ -62,7 +73,7 @@ protected:
      * The resulting ordering will cause clusters of paths to be sorted
      * according to their projection on this vector.
      */
-    Point2D monotonic_vector_;
+    geometry::Point2D monotonic_vector_;
 
     /*!
      * Maximum distance at which lines are considered to be adjacent.
@@ -70,7 +81,7 @@ protected:
      * The monotonicity constraint is only held for lines that are closer than
      * this distance together.
      */
-    coord_t max_adjacent_distance_;
+    utils::coord_t max_adjacent_distance_;
 
     /*!
      * Interlaced monotonic will order lines in two passes, so that adjacent lines will never be printed just after each other
@@ -114,12 +125,12 @@ protected:
      * \param current_pos The last position of the nozzle before printing this
      * path.
      */
-    static void optimizeClosestStartPoint(Path* path, Point2LL& current_pos)
+    static void optimizeClosestStartPoint(Path* path, geometry::Point2LL& current_pos)
     {
         if (path->start_vertex_ == path->converted_->size())
         {
-            const coord_t dist_start = vSize2(current_pos - path->converted_->front());
-            const coord_t dist_end = vSize2(current_pos - path->converted_->back());
+            const utils::coord_t dist_start = geometry::vSize2(current_pos - path->converted_->front());
+            const utils::coord_t dist_end = geometry::vSize2(current_pos - path->converted_->back());
             setStartVertex(path, dist_start >= dist_end);
         }
         current_pos = (*path->converted_)[path->converted_->size() - 1 - path->start_vertex_]; // Opposite of the start vertex.
@@ -128,15 +139,15 @@ protected:
     /*!
      * Projects the given point along the given direction
      */
-    static double projectToVector(const Point2LL& point, const Point2D& direction)
+    static double projectToVector(const geometry::Point2LL& point, const geometry::Point2D& direction)
     {
-        return Point2D::dot(Point2D(point.X, point.Y), direction);
+        return geometry::Point2D::dot(geometry::Point2D(point.X, point.Y), direction);
     }
 
     /*!
      * Projects the given point along the monotonic direction
      */
-    double projectToMonotonicVector(const Point2LL& point) const
+    double projectToMonotonicVector(const geometry::Point2LL& point) const
     {
         return projectToVector(point, monotonic_vector_);
     }
@@ -152,7 +163,7 @@ protected:
      * printed. All paths in this string already have their start_vertex set
      * correctly.
      */
-    std::deque<Path*> findPolylineString(Path* polyline, const SparsePointGridInclusive<Path*>& line_bucket_grid);
+    std::deque<Path*> findPolylineString(Path* polyline, const utils::SparsePointGridInclusive<Path*>& line_bucket_grid);
 
     /*!
      * Get the endpoint of the polyline that is farthest away from the given
@@ -161,10 +172,10 @@ protected:
      * \param point The point to get far away from.
      * \return The vertex index of the endpoint that is farthest away.
      */
-    static size_t getFarthestEndpoint(Path* polyline, const Point2LL& point)
+    static size_t getFarthestEndpoint(Path* polyline, const geometry::Point2LL& point)
     {
-        const coord_t front_dist = vSize2(polyline->converted_->front() - point);
-        const coord_t back_dist = vSize2(polyline->converted_->back() - point);
+        const utils::coord_t front_dist = geometry::vSize2(polyline->converted_->front() - point);
+        const utils::coord_t back_dist = geometry::vSize2(polyline->converted_->back() - point);
         if (front_dist < back_dist)
         {
             return polyline->converted_->size() - 1;
@@ -188,9 +199,9 @@ protected:
      */
     std::vector<Path*> getOverlappingLines(
         const typename std::vector<Path*>::const_iterator& polyline_it,
-        const Point2D& perpendicular,
+        const geometry::Point2D& perpendicular,
         const std::vector<Path*>& polylines,
-        const coord_t max_adjacent_distance);
+        const utils::coord_t max_adjacent_distance);
 
 private:
     /*!
@@ -205,10 +216,10 @@ private:
      * struct of the bucket grid contains not only the actual path (via pointer)
      * but also the endpoint of it that it found to be nearby.
      */
-    static bool canConnectToPolyline(const Point2LL& nearby_endpoint, SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Path*> found_path)
+    static bool canConnectToPolyline(const geometry::Point2LL& nearby_endpoint, utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
     {
         return found_path.val->start_vertex_ == found_path.val->converted_->size() // Don't find any line already in the string.
-            && vSize2(found_path.point - nearby_endpoint) < coincident_point_distance_ * coincident_point_distance_; // And only find close lines.
+            && geometry::vSize2(found_path.point - nearby_endpoint) < coincident_point_distance_ * coincident_point_distance_; // And only find close lines.
     }
 
     /*!
@@ -217,9 +228,7 @@ private:
      * @param max_adjacent_distance The maximum distance for which to consider segments as adjacent
      * @return The lines in monotonic order
      */
-    std::vector<Path> makeOrderedPath(const std::vector<Path*>& lines, const coord_t max_adjacent_distance);
+    std::vector<Path> makeOrderedPath(const std::vector<Path*>& lines, const utils::coord_t max_adjacent_distance);
 };
 
-} // namespace cura
-
-#endif // PATHORDERMONOTONIC_H
+} // namespace curaengine

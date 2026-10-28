@@ -1,17 +1,15 @@
-// Copyright (c) 2024 Ultimaker B.V.
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_OPEN_POLYLINE_STITCHER_H
-#define UTILS_OPEN_POLYLINE_STITCHER_H
+#pragma once
 
 #include "PolylineStitcher.h"
 #include "geometry/LinesSet.h"
 #include "geometry/Shape.h"
 
-namespace cura
+namespace curaengine::utils
 {
 
-using OpenPolylineStitcher = PolylineStitcher<OpenLinesSet, Shape, OpenPolyline, Point2LL>;
+using OpenPolylineStitcher = PolylineStitcher<geometry::OpenLinesSet, geometry::Shape, geometry::OpenPolyline, geometry::Point2LL>;
 
-} // namespace cura
-#endif // UTILS_OPEN_POLYLINE_STITCHER_H
+} // namespace curaengine::utils

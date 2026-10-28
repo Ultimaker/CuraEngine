@@ -5,7 +5,10 @@
 
 #include "utils/ExtrusionLine.h"
 
-namespace cura
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
+namespace curaengine
 {
 
 template<>
@@ -32,4 +35,4 @@ coord_t PathAdapter<Polygon>::lineWidthAt(size_t /*index*/) const
     return fixed_line_width_;
 }
 
-} // namespace cura
+} // namespace curaengine

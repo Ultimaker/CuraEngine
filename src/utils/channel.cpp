@@ -9,7 +9,7 @@
 
 #include "utils/resources/certificate.pem.h"
 
-namespace cura::utils
+namespace curaengine::utils
 {
 namespace details
 {
@@ -45,6 +45,6 @@ std::shared_ptr<grpc::Channel> createChannel(const ChannelSetupConfiguration& co
     return grpc::CreateCustomChannel(fmt::format("{}:{}", config.host, config.port), create_credentials(config), args);
 }
 
-} // namespace cura::utils
+} // namespace curaengine::utils
 
 #endif // ENABLE_PLUGINS

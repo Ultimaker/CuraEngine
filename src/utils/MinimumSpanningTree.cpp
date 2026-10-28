@@ -6,7 +6,9 @@
 #include <algorithm>
 #include <iterator>
 
-namespace cura
+using namespace curaengine::geometry;
+
+namespace curaengine::utils
 {
 
 MinimumSpanningTree::MinimumSpanningTree(std::vector<Point2LL> vertices)
@@ -41,7 +43,7 @@ auto MinimumSpanningTree::prim(std::vector<Point2LL> vertices) const -> Adjacenc
     for (size_t vertex_index = 1; vertex_index < vertices_list.size(); vertex_index++)
     {
         const auto& vert = vertices_list[vertex_index];
-        smallest_distance[&vert] = vSize2(vert - vertices_list[0]);
+        smallest_distance[&vert] = geometry::vSize2(vert - vertices_list[0]);
         smallest_distance_to[&vert] = &vertices_list[0];
     }
 
@@ -79,7 +81,7 @@ auto MinimumSpanningTree::prim(std::vector<Point2LL> vertices) const -> Adjacenc
         // Update the distances of all points that are not in the graph.
         for (std::pair<const Point2LL*, coord_t> point_and_distance : smallest_distance)
         {
-            const coord_t new_distance = vSize2(*closest_point - *point_and_distance.first);
+            const coord_t new_distance = geometry::vSize2(*closest_point - *point_and_distance.first);
             const coord_t old_distance = point_and_distance.second;
             if (new_distance < old_distance) // New point is closer.
             {
@@ -139,4 +141,4 @@ std::vector<Point2LL> MinimumSpanningTree::vertices() const
     return result;
 }
 
-} // namespace cura
+} // namespace curaengine::utils

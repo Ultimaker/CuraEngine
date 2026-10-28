@@ -1,61 +1,31 @@
-// Copyright (c) 2016 Scott Lenser
-// Copyright (c) 2018 Ultimaker B.V.
+// Copyright (c) 2026 Scott Lenser
+// Copyright (c) 2026 UltiMaker
 // CuraEngine is released under the terms of the AGPLv3 or higher.
 
-#ifndef UTILS_SPARSE_POINT_GRID_INCLUSIVE_H
-#define UTILS_SPARSE_POINT_GRID_INCLUSIVE_H
+#pragma once
 
-#include <cassert>
 #include <unordered_map>
 #include <vector>
 
 #include "SparsePointGrid.h"
 #include "geometry/Point2LL.h"
+#include "utils/sparse_point_grid_inclusive_impl/Locatoror.h"
+#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
-namespace cura
+namespace curaengine::utils
 {
 
-
-namespace SparsePointGridInclusiveImpl
-{
-
-template<class Val>
-struct SparsePointGridInclusiveElem
-{
-    SparsePointGridInclusiveElem()
-    {
-    }
-
-    SparsePointGridInclusiveElem(const Point2LL& point_, const Val& val_)
-        : point(point_)
-        , val(val_)
-    {
-    }
-
-    Point2LL point;
-    Val val;
-};
-
-template<class T>
-struct Locatoror
-{
-    Point2LL operator()(const SparsePointGridInclusiveElem<T>& elem)
-    {
-        return elem.point;
-    }
-};
-
-} // namespace SparsePointGridInclusiveImpl
 
 /*! \brief Sparse grid which can locate spatially nearby values efficiently.
  *
  * \tparam Val The value type to store.
  */
 template<class Val>
-class SparsePointGridInclusive : public SparsePointGrid<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>, SparsePointGridInclusiveImpl::Locatoror<Val>>
+class SparsePointGridInclusive
+    : public SparsePointGrid<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>
 {
 public:
-    using Base = SparsePointGrid<SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>, SparsePointGridInclusiveImpl::Locatoror<Val>>;
+    using Base = SparsePointGrid<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>;
 
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
@@ -73,7 +43,7 @@ public:
      * \param[in] point The location for the element.
      * \param[in] val The value for the element.
      */
-    void insert(const Point2LL& point, const Val& val);
+    void insert(const geometry::Point2LL& point, const Val& val);
 
     /*! \brief Returns all values within radius of query_pt.
      *
@@ -86,7 +56,7 @@ public:
      * \param[in] radius The search radius.
      * \return Vector of values found
      */
-    std::vector<Val> getNearbyVals(const Point2LL& query_pt, coord_t radius) const;
+    std::vector<Val> getNearbyVals(const geometry::Point2LL& query_pt, coord_t radius) const;
 };
 
 #define SG_TEMPLATE template<class Val>
@@ -99,17 +69,17 @@ SG_THIS::SparsePointGridInclusive(coord_t cell_size, size_t elem_reserve, double
 }
 
 SG_TEMPLATE
-void SG_THIS::insert(const Point2LL& point, const Val& val)
+void SG_THIS::insert(const geometry::Point2LL& point, const Val& val)
 {
     typename SG_THIS::Elem elem(point, val);
     Base::insert(elem);
 }
 
 SG_TEMPLATE
-std::vector<Val> SG_THIS::getNearbyVals(const Point2LL& query_pt, coord_t radius) const
+std::vector<Val> SG_THIS::getNearbyVals(const geometry::Point2LL& query_pt, coord_t radius) const
 {
     std::vector<Val> ret;
-    std::function<bool(const SparsePointGridInclusiveImpl::SparsePointGridInclusiveElem<Val>&)> process_func = [&ret](const typename SG_THIS::Elem& elem)
+    std::function<bool(const utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>&)> process_func = [&ret](const typename SG_THIS::Elem& elem)
     {
         ret.push_back(elem.val);
         return true;
@@ -122,6 +92,4 @@ std::vector<Val> SG_THIS::getNearbyVals(const Point2LL& query_pt, coord_t radius
 #undef SG_TEMPLATE
 #undef SG_THIS
 
-} // namespace cura
-
-#endif // UTILS_SPARSE_POINT_GRID_INCLUSIVE_H
+} // namespace curaengine::utils
