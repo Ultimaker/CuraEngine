@@ -111,34 +111,11 @@ using slots = details::SingletonRegistry<SlotTypes, details::Holder>;
 } // namespace curaengine
 
 #else // No Engine plugin support
-#include <utility>
-
-#include "plugins/v0/SlotID.h"
+#include "plugins/details/Slots.h"
 
 namespace curaengine::plugins::slots
 {
-namespace details
-{
-struct Slots
-{
-    template<plugins::v0::SlotID S>
-    constexpr auto modify(auto&& data, auto&&... args) noexcept
-    {
-        return std::forward<decltype(data)>(data);
-    }
-
-    template<plugins::v0::SlotID S>
-    constexpr auto broadcast(auto&&... args) noexcept
-    {
-    }
-
-    constexpr auto connect(auto&&... args) noexcept
-    {
-    }
-};
-} // namespace curaengine::plugins::slots::details
-
-constexpr details::Slots instance() noexcept
+constexpr ::curaengine::plugins::details::Slots instance() noexcept
 {
     return {};
 }
