@@ -74,18 +74,19 @@ GCodePath* LayerPlan::getLatestPathWithConfig(
     {
         return &paths.back();
     }
-    paths.emplace_back(GCodePath{
-        .z_offset = z_offset,
-        .config = config,
-        .mesh = current_mesh_,
-        .space_fill_type = space_fill_type,
-        .flow = flow,
-        .width_factor = width_factor,
-        .spiralize = spiralize,
-        .speed_factor = speed_factor,
-        .travel_to_z = travel_to_z,
-        .print_attributes = print_attributes,
-    });
+    paths.emplace_back(
+        GCodePath{
+            .z_offset = z_offset,
+            .config = config,
+            .mesh = current_mesh_,
+            .space_fill_type = space_fill_type,
+            .flow = flow,
+            .width_factor = width_factor,
+            .spiralize = spiralize,
+            .speed_factor = speed_factor,
+            .travel_to_z = travel_to_z,
+            .print_attributes = print_attributes,
+        });
 
     GCodePath* ret = &paths.back();
     return ret;
@@ -3739,10 +3740,11 @@ void LayerPlan::writeGCode(GCodeExport& gcode)
         const std::vector<PathCoasting> coasting_per_path = calculatePathsCoasting(extruder.settings_, paths, gcode.getPosition());
 
         std::shared_ptr<const SliceMeshStorage> skippable_mesh = nullptr;
-        const auto insert_skippable_end{ [&gcode, &skippable_mesh]() {
-            gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
-            gcode.writeCurrentExtrusionValue();
-        } };
+        const auto insert_skippable_end{ [&gcode, &skippable_mesh]()
+                                         {
+                                             gcode.writeComment(fmt::format("TAG:SKIPPABLE.END='{}'", skippable_mesh->mesh_name));
+                                             gcode.writeCurrentExtrusionValue();
+                                         } };
 
         for (size_t path_idx = 0; path_idx < paths.size(); path_idx++)
         {
