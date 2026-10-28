@@ -39,6 +39,10 @@
 #include "types/Velocity.h" //To send to layer view how fast stuff is printing.
 #include "utils/channel.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::communication
 {
 
@@ -56,7 +60,7 @@ class ArcusCommunication::PathCompiler
     //! Reference to the private data of the CommandSocket used to send the data to the front end.
     ArcusCommunication::Private& _cs_private_data;
     //! Keeps track of the current layer number being processed. If layer number is set to a different value, the current data is flushed to CommandSocket.
-    ::curaengine::types::LayerIndex _layer_nr{ 0 };
+    LayerIndex _layer_nr{ 0 };
     size_t extruder{ 0 };
     PointType data_point_type{ ::cura::proto::PathSegment::Point3D };
 
@@ -68,7 +72,7 @@ class ArcusCommunication::PathCompiler
                                //!< the dimensionality of the point.
     std::vector<uint32_t> line_attributes; //! Indicates if the line is processed with specific settings, e.g. overhanging or bridging, the size of this vector is N.
 
-    ::curaengine::geometry::Point3LL last_point;
+    Point3LL last_point;
 
     PathCompiler(const PathCompiler&) = delete;
     PathCompiler& operator=(const PathCompiler&) = delete;
@@ -98,7 +102,7 @@ public:
      * for.
      * \param new_layer_nr The new layer to switch to.
      */
-    void setLayer(const ::curaengine::types::LayerIndex& new_layer_nr)
+    void setLayer(const LayerIndex& new_layer_nr)
     {
         if (_layer_nr != new_layer_nr)
         {
@@ -135,7 +139,7 @@ public:
      * of the path this jump is marked as `PrintFeatureType::NoneType`.
      * \param from The initial point of a polygon.
      */
-    void handleInitialPoint(const ::curaengine::geometry::Point3LL& initial_point)
+    void handleInitialPoint(const Point3LL& initial_point)
     {
         if (points.size() == 0)
         {
@@ -199,7 +203,7 @@ public:
     /*!
      * \brief Move the current point of this path to \p position.
      */
-    void setCurrentPosition(const ::curaengine::geometry::Point3LL& position)
+    void setCurrentPosition(const Point3LL& position)
     {
         handleInitialPoint(position);
     }
@@ -218,10 +222,10 @@ public:
      */
     void sendLineTo(
         const PrintFeatureType& print_feature_type,
-        const ::curaengine::geometry::Point3LL& to,
-        const ::curaengine::utils::coord_t& width,
-        const ::curaengine::utils::coord_t& thickness,
-        const ::curaengine::types::Velocity& feedrate,
+        const Point3LL& to,
+        const coord_t& width,
+        const coord_t& thickness,
+        const Velocity& feedrate,
         const PrintSegmentAttributes& print_attributes)
     {
         assert(! points.empty() && "A point must already be in the buffer for sendLineTo(.) to function properly.");
@@ -239,7 +243,7 @@ private:
      * Each point is represented as three consecutive floats. All members adding a
      * 3D point to the data should use this function.
      */
-    void addPoint3D(const ::curaengine::geometry::Point3LL& point)
+    void addPoint3D(const Point3LL& point)
     {
         points.push_back(INT2MM(point.x_));
         points.push_back(INT2MM(point.y_));
@@ -262,10 +266,10 @@ private:
      */
     void addLineSegment(
         const PrintFeatureType& print_feature_type,
-        const ::curaengine::geometry::Point3LL& point,
-        const ::curaengine::utils::coord_t& width,
-        const ::curaengine::utils::coord_t& thickness,
-        const ::curaengine::types::Velocity& velocity,
+        const Point3LL& point,
+        const coord_t& width,
+        const coord_t& thickness,
+        const Velocity& velocity,
         const PrintSegmentAttributes& print_attributes)
     {
         addPoint3D(point);
@@ -327,7 +331,7 @@ void ArcusCommunication::setSocketMock(Arcus::Socket* socket)
 
 void ArcusCommunication::sendGCodePart(const std::string& gcode_part)
 {
-    const std::string message_str = ::curaengine::plugins::slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_part);
+    const std::string message_str = plugins::slots::instance().modify<plugins::v0::SlotID::POSTPROCESS_MODIFY>(gcode_part);
     if (message_str.empty())
     {
         return;
@@ -344,7 +348,7 @@ bool ArcusCommunication::hasSlice() const
         && private_data->slice_count < 1; // Only slice once per run of CuraEngine. See documentation of slice_count.
 }
 
-void ArcusCommunication::sendCurrentPosition(const ::curaengine::geometry::Point3LL& position)
+void ArcusCommunication::sendCurrentPosition(const Point3LL& position)
 {
     path_compiler->setCurrentPosition(position);
 }
@@ -363,7 +367,7 @@ void ArcusCommunication::sendFinishedSlicing() const
     spdlog::debug("Sent slicing finished message.");
 }
 
-void ArcusCommunication::sendLayerComplete(const ::curaengine::types::LayerIndex::value_type& layer_nr, const ::curaengine::utils::coord_t& z, const ::curaengine::utils::coord_t& thickness)
+void ArcusCommunication::sendLayerComplete(const LayerIndex::value_type& layer_nr, const coord_t& z, const coord_t& thickness)
 {
     std::shared_ptr<::cura::proto::LayerOptimized> layer = private_data->getOptimizedLayerById(layer_nr);
     layer->set_height(z);
@@ -372,10 +376,10 @@ void ArcusCommunication::sendLayerComplete(const ::curaengine::types::LayerIndex
 
 void ArcusCommunication::sendLineTo(
     const PrintFeatureType& type,
-    const ::curaengine::geometry::Point3LL& to,
-    const ::curaengine::utils::coord_t& line_width,
-    const ::curaengine::utils::coord_t& line_thickness,
-    const ::curaengine::types::Velocity& velocity,
+    const Point3LL& to,
+    const coord_t& line_width,
+    const coord_t& line_thickness,
+    const Velocity& velocity,
     const PrintSegmentAttributes& print_attributes)
 {
     path_compiler->sendLineTo(type, to, line_width, line_thickness, velocity, print_attributes);
@@ -405,7 +409,7 @@ void ArcusCommunication::sendOptimizedLayerData()
     data.slice_data.clear();
 }
 
-void ArcusCommunication::sendPrintInformation(const std::vector<::curaengine::types::Duration>& time_estimates, const PrintInformation& print_information) const
+void ArcusCommunication::sendPrintInformation(const std::vector<Duration>& time_estimates, const PrintInformation& print_information) const
 {
     spdlog::debug("Sending print information.");
 
@@ -479,7 +483,7 @@ void ArcusCommunication::sendProgress(double progress) const
     private_data->last_sent_progress = rounded_amount;
 }
 
-void ArcusCommunication::setLayerForSend(const ::curaengine::types::LayerIndex::value_type& layer_nr)
+void ArcusCommunication::setLayerForSend(const LayerIndex::value_type& layer_nr)
 {
     path_compiler->setLayer(layer_nr);
 }
@@ -521,7 +525,7 @@ void ArcusCommunication::sliceNext()
     for (const auto& plugin : slice_message->engine_plugins())
     {
         const auto slot_id = static_cast<plugins::v0::SlotID>(plugin.id());
-        ::curaengine::plugins::slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
+        plugins::slots::instance().connect(slot_id, plugin.plugin_name(), plugin.plugin_version(), utils::createChannel({ plugin.address(), plugin.port() }));
 #ifdef SENTRY_URL
         sentry_set_tag(fmt::format("plugin_{}.version", plugin.plugin_name()).c_str(), plugin.plugin_version().c_str());
 #endif
@@ -535,7 +539,7 @@ void ArcusCommunication::sliceNext()
     private_data->readExtruderSettingsMessage(slice_message->extruders());
 
     // Broadcast the settings to the plugins
-    ::curaengine::plugins::slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
+    plugins::slots::instance().broadcast<plugins::v0::SlotID::SETTINGS_BROADCAST>(*slice_message);
     const size_t extruder_count = slice->scene.extruders.size();
 
     // For each setting, register what extruder it should be obtained from (if this is limited to an extruder).

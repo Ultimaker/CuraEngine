@@ -28,21 +28,26 @@
 
 #define MIN_AREA_SIZE (0.4 * 0.4)
 
+using namespace curaengine::geometry;
+using namespace curaengine::infill;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
-::curaengine::utils::coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const ::curaengine::types::LayerIndex& layer_nr)
+coord_t SkinInfillAreaComputation::getSkinLineWidth(const SliceMeshStorage& mesh, const LayerIndex& layer_nr)
 {
-    ::curaengine::utils::coord_t skin_line_width = mesh.settings.get<::curaengine::utils::coord_t>("skin_line_width");
+    coord_t skin_line_width = mesh.settings.get<coord_t>("skin_line_width");
     if (layer_nr == 0)
     {
         const ExtruderTrain& train_skin = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr");
-        skin_line_width *= train_skin.settings_.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
+        skin_line_width *= train_skin.settings_.get<Ratio>("initial_layer_line_width_factor");
     }
     return skin_line_width;
 }
 
-SkinInfillAreaComputation::SkinInfillAreaComputation(const ::curaengine::types::LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill)
+SkinInfillAreaComputation::SkinInfillAreaComputation(const LayerIndex& layer_nr, SliceMeshStorage& mesh, bool process_infill)
     : layer_nr_(layer_nr)
     , mesh_(mesh)
     , bottom_layer_count_(mesh.settings.get<size_t>("bottom_layers"))
@@ -51,10 +56,10 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const ::curaengine::types::
     , skin_line_width_(getSkinLineWidth(mesh, layer_nr))
     , no_small_gaps_heuristic_(mesh.settings.get<bool>("skin_no_small_gaps_heuristic"))
     , process_infill_(process_infill)
-    , top_skin_preshrink_(mesh.settings.get<::curaengine::utils::coord_t>("top_skin_preshrink"))
-    , bottom_skin_preshrink_(mesh.settings.get<::curaengine::utils::coord_t>("bottom_skin_preshrink"))
-    , top_skin_expand_distance_(mesh.settings.get<::curaengine::utils::coord_t>("top_skin_expand_distance"))
-    , bottom_skin_expand_distance_(mesh.settings.get<::curaengine::utils::coord_t>("bottom_skin_expand_distance"))
+    , top_skin_preshrink_(mesh.settings.get<coord_t>("top_skin_preshrink"))
+    , bottom_skin_preshrink_(mesh.settings.get<coord_t>("bottom_skin_preshrink"))
+    , top_skin_expand_distance_(mesh.settings.get<coord_t>("top_skin_expand_distance"))
+    , bottom_skin_expand_distance_(mesh.settings.get<coord_t>("bottom_skin_expand_distance"))
 {
 }
 
@@ -64,9 +69,9 @@ SkinInfillAreaComputation::SkinInfillAreaComputation(const ::curaengine::types::
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-::curaengine::geometry::Shape SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_here, const ::curaengine::types::LayerIndex layer2_nr)
+Shape SkinInfillAreaComputation::getOutlineOnLayer(const SliceLayerPart& part_here, const LayerIndex layer2_nr)
 {
-    ::curaengine::geometry::Shape result;
+    Shape result;
     if (layer2_nr >= static_cast<int>(mesh_.layers.size()))
     {
         return result;
@@ -135,15 +140,15 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas()
 void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
 {
     // Make a copy of the outline which we later intersect and union with the resized skins to ensure the resized skin isn't too large or removed completely.
-    ::curaengine::geometry::Shape top_skin;
+    Shape top_skin;
     if (top_layer_count_ > 0)
     {
-        top_skin = ::curaengine::geometry::Shape(part.inner_area);
+        top_skin = Shape(part.inner_area);
     }
-    ::curaengine::geometry::Shape bottom_skin;
-    if (bottom_layer_count_ > 0 || layer_nr_ < ::curaengine::types::LayerIndex(initial_bottom_layer_count_))
+    Shape bottom_skin;
+    if (bottom_layer_count_ > 0 || layer_nr_ < LayerIndex(initial_bottom_layer_count_))
     {
-        bottom_skin = ::curaengine::geometry::Shape(part.inner_area);
+        bottom_skin = Shape(part.inner_area);
     }
 
     calculateBottomSkin(part, bottom_skin);
@@ -152,7 +157,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
     applySkinExpansion(part.inner_area, top_skin, bottom_skin);
 
     // Now combine the resized top skin and bottom skin.
-    ::curaengine::geometry::Shape skin = top_skin.unionPolygons(bottom_skin);
+    Shape skin = top_skin.unionPolygons(bottom_skin);
 
     skin.removeSmallAreas(MIN_AREA_SIZE);
     // Create infill area irrespective if the infill is to be generated or not(would be used for bridging).
@@ -166,7 +171,7 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
         generateInfill(part);
     }
 
-    for (const ::curaengine::geometry::SingleShape& skin_area_part : skin.splitIntoParts())
+    for (const SingleShape& skin_area_part : skin.splitIntoParts())
     {
         if (skin_area_part.empty())
         {
@@ -183,18 +188,18 @@ void SkinInfillAreaComputation::generateSkinAndInfillAreas(SliceLayerPart& part)
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, ::curaengine::geometry::Shape& downskin)
+void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, Shape& downskin)
 {
     if (bottom_layer_count_ == 0 && initial_bottom_layer_count_ == 0)
     {
         return; // downskin remains empty
     }
-    if (layer_nr_ < ::curaengine::types::LayerIndex(initial_bottom_layer_count_))
+    if (layer_nr_ < LayerIndex(initial_bottom_layer_count_))
     {
         return; // don't subtract anything form the downskin
     }
-    ::curaengine::types::LayerIndex bottom_check_start_layer_idx{ std::max(::curaengine::types::LayerIndex{ 0 }, ::curaengine::types::LayerIndex{ layer_nr_ - bottom_layer_count_ }) };
-    ::curaengine::geometry::Shape not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
+    LayerIndex bottom_check_start_layer_idx{ std::max(LayerIndex{ 0 }, LayerIndex{ layer_nr_ - bottom_layer_count_ }) };
+    Shape not_air = getOutlineOnLayer(part, bottom_check_start_layer_idx);
     if (! no_small_gaps_heuristic_)
     {
         for (int downskin_layer_nr = bottom_check_start_layer_idx + 1; downskin_layer_nr < layer_nr_; downskin_layer_nr++)
@@ -210,16 +215,16 @@ void SkinInfillAreaComputation::calculateBottomSkin(const SliceLayerPart& part, 
     downskin = downskin.difference(not_air); // skin overlaps with the walls
 }
 
-void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, ::curaengine::geometry::Shape& upskin)
+void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, Shape& upskin)
 {
-    if (layer_nr_ > ::curaengine::types::LayerIndex(mesh_.layers.size()) - top_layer_count_ || top_layer_count_ <= 0)
+    if (layer_nr_ > LayerIndex(mesh_.layers.size()) - top_layer_count_ || top_layer_count_ <= 0)
     {
         // If we're in the very top layers (less than top_layer_count from the top of the mesh) everything will be top skin anyway, so no need to generate infill. Just take the
         // original inner contour. If top_layer_count is 0, no need to calculate anything either.
         return;
     }
 
-    ::curaengine::geometry::Shape not_air = getOutlineOnLayer(part, layer_nr_ + top_layer_count_);
+    Shape not_air = getOutlineOnLayer(part, layer_nr_ + top_layer_count_);
     if (! no_small_gaps_heuristic_)
     {
         for (int upskin_layer_nr = layer_nr_ + 1; upskin_layer_nr < layer_nr_ + top_layer_count_; upskin_layer_nr++)
@@ -243,9 +248,9 @@ void SkinInfillAreaComputation::calculateTopSkin(const SliceLayerPart& part, ::c
  *
  * this function may only read/write the skin and infill from the *current* layer.
  */
-void SkinInfillAreaComputation::applySkinExpansion(const ::curaengine::geometry::Shape& original_outline, ::curaengine::geometry::Shape& upskin, ::curaengine::geometry::Shape& downskin)
+void SkinInfillAreaComputation::applySkinExpansion(const Shape& original_outline, Shape& upskin, Shape& downskin)
 {
-    const ::curaengine::utils::coord_t min_width = mesh_.settings.get<::curaengine::utils::coord_t>("min_skin_width_for_expansion") / 2;
+    const coord_t min_width = mesh_.settings.get<coord_t>("min_skin_width_for_expansion") / 2;
 
     // Expand some areas of the skin for Skin Expand Distance.
     if (min_width > 0)
@@ -254,13 +259,13 @@ void SkinInfillAreaComputation::applySkinExpansion(const ::curaengine::geometry:
         // The expansion is only applied to that opened shape.
         if (bottom_skin_expand_distance_ != 0)
         {
-            const ::curaengine::geometry::Shape expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance_);
+            const Shape expanded = downskin.offset(-min_width).offset(min_width + bottom_skin_expand_distance_);
             // And then re-joined with the original part that was not offset, to retain parts smaller than min_width.
             downskin = downskin.unionPolygons(expanded);
         }
         if (top_skin_expand_distance_ != 0)
         {
-            const ::curaengine::geometry::Shape expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance_);
+            const Shape expanded = upskin.offset(-min_width).offset(min_width + top_skin_expand_distance_);
             upskin = upskin.unionPolygons(expanded);
         }
     }
@@ -317,16 +322,16 @@ void SkinInfillAreaComputation::applySkinExpansion(const ::curaengine::geometry:
     }
 }
 
-void SkinInfillAreaComputation::applySkinFillSmallInfillGaps(::curaengine::geometry::Shape& skin, ::curaengine::geometry::Shape& infill) const
+void SkinInfillAreaComputation::applySkinFillSmallInfillGaps(Shape& skin, Shape& infill) const
 {
     // First do an opening to close the small gaps within the skin
-    const ::curaengine::utils::coord_t opening_offset = skin_line_width_ * 2;
-    const ::curaengine::geometry::Shape opened_skin = skin.offset(opening_offset).offset(-opening_offset - ::curaengine::utils::EPSILON);
+    const coord_t opening_offset = skin_line_width_ * 2;
+    const Shape opened_skin = skin.offset(opening_offset).offset(-opening_offset - EPSILON);
 
     // Now extract the filled gaps by removing the initial skin
-    const ::curaengine::geometry::Shape filled_areas = opened_skin.difference(skin);
+    const Shape filled_areas = opened_skin.difference(skin);
     // Only keep the filled gaps that overlap infill areas
-    const ::curaengine::geometry::Shape filled_areas_over_infill = filled_areas.intersection(infill).offset(::curaengine::utils::EPSILON);
+    const Shape filled_areas_over_infill = filled_areas.intersection(infill).offset(EPSILON);
 
     // Expand skin and shrink infill with the filled gaps
     skin = skin.unionPolygons(filled_areas_over_infill);
@@ -428,7 +433,7 @@ bool roofFloorSettingsEqual(
     constexpr auto skin_monotonic = "skin_monotonic";
     constexpr auto skin_angles = "skin_angles";
     if ((settings.get<int>(setting_other_names.at(extruder_nr)) >= 0 && settings.get<int>(setting_other_names.at(extruder_nr)) != settings.get<int>(extruder_nr))
-        || settings.get<::curaengine::types::EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<::curaengine::types::EFillMethod>(top_bottom_pattern)
+        || settings.get<EFillMethod>(setting_other_names.at(top_bottom_pattern)) != settings.get<EFillMethod>(top_bottom_pattern)
         || settings.get<bool>(setting_other_names.at(skin_monotonic)) != settings.get<bool>(skin_monotonic)
         || ! ranges::equal(
             settings.get<std::vector<double>>(setting_other_names.at(skin_angles)),
@@ -456,21 +461,21 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
     const bool has_roofing = roofing_layer_count > 0 && ! roofFloorSettingsEqual(mesh_.settings, roof_setting_floats, roof_setting_others, roof_settings_zero_default);
     const size_t flooring_layer_count = std::min(mesh_.settings.get<size_t>("flooring_layer_count"), mesh_.settings.get<size_t>("bottom_layers"));
     const bool has_flooring = flooring_layer_count > 0 && ! roofFloorSettingsEqual(mesh_.settings, floor_setting_floats, floor_setting_others, {});
-    const ::curaengine::utils::coord_t skin_overlap = mesh_.settings.get<::curaengine::utils::coord_t>("skin_overlap_mm");
-    const ::curaengine::utils::coord_t roofing_expansion = mesh_.settings.get<::curaengine::utils::coord_t>("roofing_expansion");
-    const ::curaengine::utils::coord_t top_bottom_skin_merge_distance = mesh_.settings.get<::curaengine::utils::coord_t>("top_bottom_skin_merge_distance");
+    const coord_t skin_overlap = mesh_.settings.get<coord_t>("skin_overlap_mm");
+    const coord_t roofing_expansion = mesh_.settings.get<coord_t>("roofing_expansion");
+    const coord_t top_bottom_skin_merge_distance = mesh_.settings.get<coord_t>("top_bottom_skin_merge_distance");
 
     const SliceDataStorage slice_data;
-    const ::curaengine::geometry::Shape build_plate = slice_data.getRawMachineBorder();
+    const Shape build_plate = slice_data.getRawMachineBorder();
 
-    const ::curaengine::geometry::Shape filled_area_above = has_roofing ? generateFilledAreaAbove(part, roofing_layer_count) : build_plate;
-    const ::curaengine::geometry::Shape filled_area_below = has_flooring ? (generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate)) : build_plate;
+    const Shape filled_area_above = has_roofing ? generateFilledAreaAbove(part, roofing_layer_count) : build_plate;
+    const Shape filled_area_below = has_flooring ? (generateFilledAreaBelow(part, flooring_layer_count).value_or(build_plate)) : build_plate;
 
     for (SkinPart& skin_part : part.skin_parts)
     {
         if (has_roofing)
         {
-            const ::curaengine::geometry::Shape below_inside = skin_part.outline.intersection(filled_area_below);
+            const Shape below_inside = skin_part.outline.intersection(filled_area_below);
             skin_part.roofing_fill = below_inside.difference(filled_area_above);
             if (roofing_expansion > 0)
             {
@@ -480,7 +485,7 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
 
         if (has_flooring)
         {
-            const ::curaengine::geometry::Shape above_inside = skin_part.outline.intersection(filled_area_above);
+            const Shape above_inside = skin_part.outline.intersection(filled_area_above);
             skin_part.flooring_fill = above_inside.difference(filled_area_below);
         }
 
@@ -492,12 +497,12 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
         {
             // Skin can grow over flooring and roofing given the top_bottom_skin_merge_distance.
             constexpr bool allow_thin_areas_grow = true;
-            ::curaengine::utils::PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.roofing_fill, allow_thin_areas_grow);
-            ::curaengine::utils::PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.flooring_fill, allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.roofing_fill, allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.skin_fill, skin_part.flooring_fill, allow_thin_areas_grow);
 
             constexpr bool do_not_allow_thin_areas_grow = false;
-            ::curaengine::utils::PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.roofing_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
-            ::curaengine::utils::PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.flooring_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.roofing_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
+            PolygonUtils::mergeThinOverlap(top_bottom_skin_merge_distance, skin_part.flooring_fill, skin_part.skin_fill, do_not_allow_thin_areas_grow);
         }
 
         // We remove offsets areas from roofing and flooring anywhere they overlap with skin_fill.
@@ -510,12 +515,12 @@ void SkinInfillAreaComputation::generateSkinRoofingFlooringFill(SliceLayerPart& 
 
 void SkinInfillAreaComputation::generateTopAndBottomMostSurfaces(SliceLayerPart& part)
 {
-    const ::curaengine::geometry::Shape outline_above = getOutlineOnLayer(part, layer_nr_ + 1);
+    const Shape outline_above = getOutlineOnLayer(part, layer_nr_ + 1);
     part.top_most_surface = part.outline.difference(outline_above);
 
     if (layer_nr_ > 0)
     {
-        const ::curaengine::geometry::Shape outline_below = getOutlineOnLayer(part, layer_nr_ + 1);
+        const Shape outline_below = getOutlineOnLayer(part, layer_nr_ + 1);
         part.bottom_most_surface = part.outline.difference(outline_below);
     }
     else
@@ -530,14 +535,14 @@ void SkinInfillAreaComputation::generateTopAndBottomMostSurfaces(SliceLayerPart&
  *
  * this function may only read the skin and infill from the *current* layer.
  */
-::curaengine::geometry::Shape SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count)
+Shape SkinInfillAreaComputation::generateFilledAreaAbove(SliceLayerPart& part, size_t roofing_layer_count)
 {
-    ::curaengine::geometry::Shape filled_area_above = getOutlineOnLayer(part, layer_nr_ + roofing_layer_count);
+    Shape filled_area_above = getOutlineOnLayer(part, layer_nr_ + roofing_layer_count);
     if (! no_small_gaps_heuristic_)
     {
         for (int layer_nr_above = layer_nr_ + 1; layer_nr_above < layer_nr_ + roofing_layer_count; layer_nr_above++)
         {
-            ::curaengine::geometry::Shape outlines_above = getOutlineOnLayer(part, layer_nr_above);
+            Shape outlines_above = getOutlineOnLayer(part, layer_nr_above);
             filled_area_above = filled_area_above.intersection(outlines_above);
         }
     }
@@ -549,7 +554,7 @@ void SkinInfillAreaComputation::generateTopAndBottomMostSurfaces(SliceLayerPart&
         // has air below (fixes https://github.com/Ultimaker/Cura/issues/2656)
 
         // set air_below to the skin area for the current layer that has air below it
-        ::curaengine::geometry::Shape air_below = getOutlineOnLayer(part, layer_nr_).difference(getOutlineOnLayer(part, layer_nr_ - 1));
+        Shape air_below = getOutlineOnLayer(part, layer_nr_).difference(getOutlineOnLayer(part, layer_nr_ - 1));
 
         if (! air_below.empty())
         {
@@ -566,7 +571,7 @@ void SkinInfillAreaComputation::generateTopAndBottomMostSurfaces(SliceLayerPart&
  *
  * this function may only read the skin and infill from the *current* layer.
  */
-std::optional<::curaengine::geometry::Shape> SkinInfillAreaComputation::generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count)
+std::optional<Shape> SkinInfillAreaComputation::generateFilledAreaBelow(SliceLayerPart& part, size_t flooring_layer_count)
 {
     if (layer_nr_ < flooring_layer_count)
     {
@@ -574,14 +579,14 @@ std::optional<::curaengine::geometry::Shape> SkinInfillAreaComputation::generate
     }
 
     const int lowest_flooring_layer = layer_nr_ - flooring_layer_count;
-    ::curaengine::geometry::Shape filled_area_below = getOutlineOnLayer(part, lowest_flooring_layer);
+    Shape filled_area_below = getOutlineOnLayer(part, lowest_flooring_layer);
 
     if (! no_small_gaps_heuristic_)
     {
         const int next_lowest_flooring_layer = lowest_flooring_layer + 1;
         for (int layer_nr_below = next_lowest_flooring_layer; layer_nr_below < layer_nr_; layer_nr_below++)
         {
-            ::curaengine::geometry::Shape outlines_below = getOutlineOnLayer(part, layer_nr_below);
+            Shape outlines_below = getOutlineOnLayer(part, layer_nr_below);
             filled_area_below = filled_area_below.intersection(outlines_below);
         }
     }
@@ -590,18 +595,18 @@ std::optional<::curaengine::geometry::Shape> SkinInfillAreaComputation::generate
 
 void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
 {
-    const ::curaengine::utils::coord_t layer_height = mesh.settings.get<::curaengine::utils::coord_t>("layer_height");
-    const ::curaengine::types::AngleRadians support_angle = mesh.settings.get<::curaengine::types::AngleRadians>("infill_support_angle");
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
+    const AngleRadians support_angle = mesh.settings.get<AngleRadians>("infill_support_angle");
     const double tan_angle = tan(support_angle) - 0.01; // The X/Y component of the support angle. 0.01 to make 90 degrees work too.
-    const ::curaengine::utils::coord_t max_dist_from_lower_layer = tan_angle * layer_height; // Maximum horizontal distance that can be bridged.
+    const coord_t max_dist_from_lower_layer = tan_angle * layer_height; // Maximum horizontal distance that can be bridged.
 
     for (int layer_idx = mesh.layers.size() - 2; layer_idx >= 0; layer_idx--)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
         SliceLayer& layer_above = mesh.layers[layer_idx + 1];
 
-        ::curaengine::geometry::Shape inside_above;
-        ::curaengine::geometry::Shape infill_above;
+        Shape inside_above;
+        Shape infill_above;
         for (SliceLayerPart& part_above : layer_above.parts)
         {
             inside_above.push_back(part_above.infill_area);
@@ -610,17 +615,17 @@ void SkinInfillAreaComputation::generateInfillSupport(SliceMeshStorage& mesh)
 
         for (SliceLayerPart& part : layer.parts)
         {
-            const ::curaengine::geometry::Shape& infill_area = part.infill_area;
+            const Shape& infill_area = part.infill_area;
             if (infill_area.empty())
             {
                 continue;
             }
 
-            const ::curaengine::geometry::Shape unsupported = infill_area.offset(-max_dist_from_lower_layer);
-            const ::curaengine::geometry::Shape basic_overhang = unsupported.difference(inside_above);
-            const ::curaengine::geometry::Shape overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 50); // +50 for easier joining with support from layer above
-            const ::curaengine::geometry::Shape full_overhang = overhang_extented.difference(inside_above);
-            const ::curaengine::geometry::Shape infill_support = infill_above.unionPolygons(full_overhang);
+            const Shape unsupported = infill_area.offset(-max_dist_from_lower_layer);
+            const Shape basic_overhang = unsupported.difference(inside_above);
+            const Shape overhang_extented = basic_overhang.offset(max_dist_from_lower_layer + 50); // +50 for easier joining with support from layer above
+            const Shape full_overhang = overhang_extented.difference(inside_above);
+            const Shape infill_support = infill_above.unionPolygons(full_overhang);
 
             part.infill_area_own = infill_support.intersection(part.getOwnInfillArea());
         }
@@ -635,9 +640,9 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     {
         layer_skip_count = 1;
     }
-    const ::curaengine::utils::coord_t gradual_infill_step_height = mesh.settings.get<::curaengine::utils::coord_t>("gradual_infill_step_height");
+    const coord_t gradual_infill_step_height = mesh.settings.get<coord_t>("gradual_infill_step_height");
     const size_t gradual_infill_step_layer_count
-        = ::curaengine::utils::round_divide(gradual_infill_step_height, mesh.settings.get<::curaengine::utils::coord_t>("layer_height")); // The difference in layer count between consecutive density infill areas
+        = utils::round_divide(gradual_infill_step_height, mesh.settings.get<coord_t>("layer_height")); // The difference in layer count between consecutive density infill areas
 
     // make gradual_infill_step_height divisible by layer_skip_count
     double n_skip_steps_per_gradual_step
@@ -645,15 +650,15 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
     layer_skip_count = gradual_infill_step_layer_count / n_skip_steps_per_gradual_step;
     const size_t max_infill_steps = mesh.settings.get<size_t>("gradual_infill_steps");
 
-    const ::curaengine::types::LayerIndex mesh_min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
-    const ::curaengine::types::LayerIndex mesh_max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
+    const LayerIndex mesh_min_layer = mesh.settings.get<size_t>("initial_bottom_layers");
+    const LayerIndex mesh_max_layer = mesh.layers.size() - 1 - mesh.settings.get<size_t>("top_layers");
 
-    const ::curaengine::utils::Simplify simplifier(mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").settings_);
+    const Simplify simplifier(mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").settings_);
 
     const auto infill_wall_count = mesh.settings.get<size_t>("infill_wall_line_count");
-    const auto infill_wall_width = mesh.settings.get<::curaengine::utils::coord_t>("infill_line_width");
-    const auto is_connected = mesh.settings.get<bool>("zig_zaggify_infill") || mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern") == ::curaengine::types::EFillMethod::ZIG_ZAG;
-    for (::curaengine::types::LayerIndex layer_idx = 0; layer_idx < static_cast<::curaengine::types::LayerIndex>(mesh.layers.size()); layer_idx++)
+    const auto infill_wall_width = mesh.settings.get<coord_t>("infill_line_width");
+    const auto is_connected = mesh.settings.get<bool>("zig_zaggify_infill") || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::ZIG_ZAG;
+    for (LayerIndex layer_idx = 0; layer_idx < static_cast<LayerIndex>(mesh.layers.size()); layer_idx++)
     { // loop also over layers which don't contain infill cause of bottom_ and top_layer to initialize their infill_area_per_combine_per_density
         SliceLayer& layer = mesh.layers[layer_idx];
 
@@ -661,14 +666,14 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
         {
             assert((part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is supposed to be uninitialized"));
 
-            const ::curaengine::geometry::Shape& infill_area = ::curaengine::infill::Infill::generateWallToolPaths(
+            const Shape& infill_area = Infill::generateWallToolPaths(
                 part.infill_wall_toolpaths,
                 part.getOwnInfillArea(),
-                static_cast<::curaengine::utils::coord_t>(infill_wall_count) * infill_wall_width,
+                static_cast<coord_t>(infill_wall_count) * infill_wall_width,
                 infill_wall_width,
                 mesh.settings,
                 layer_idx,
-                ::curaengine::utils::SectionType::SKIN);
+                SectionType::SKIN);
 
             if (infill_area.empty() || layer_idx < mesh_min_layer || layer_idx > mesh_max_layer)
             { // initialize infill_area_per_combine_per_density empty
@@ -677,12 +682,12 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 // note: no need to copy part.infill_area, cause it's the empty vector anyway
                 continue;
             }
-            ::curaengine::geometry::Shape less_dense_infill = infill_area; // one step less dense with each infill_step
-            ::curaengine::geometry::Shape sum_more_dense; // NOTE: Only used for zig-zag or connected fills.
+            Shape less_dense_infill = infill_area; // one step less dense with each infill_step
+            Shape sum_more_dense; // NOTE: Only used for zig-zag or connected fills.
             for (size_t infill_step = 0; infill_step < max_infill_steps; infill_step++)
             {
-                ::curaengine::types::LayerIndex min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + static_cast<size_t>(layer_skip_count);
-                ::curaengine::types::LayerIndex max_layer = layer_idx + (infill_step + 1) * gradual_infill_step_layer_count;
+                LayerIndex min_layer = layer_idx + infill_step * gradual_infill_step_layer_count + static_cast<size_t>(layer_skip_count);
+                LayerIndex max_layer = layer_idx + (infill_step + 1) * gradual_infill_step_layer_count;
 
                 for (double upper_layer_idx = min_layer; upper_layer_idx <= max_layer; upper_layer_idx += layer_skip_count)
                 {
@@ -692,7 +697,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                         break;
                     }
                     const SliceLayer& upper_layer = mesh.layers[static_cast<size_t>(upper_layer_idx)];
-                    ::curaengine::geometry::Shape relevent_upper_polygons;
+                    Shape relevent_upper_polygons;
                     for (const SliceLayerPart& upper_layer_part : upper_layer.parts)
                     {
                         if (! upper_layer_part.boundaryBox.hit(part.boundaryBox))
@@ -709,8 +714,8 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 }
                 // add new infill_area_per_combine for the current density
                 part.infill_area_per_combine_per_density.emplace_back();
-                std::vector<::curaengine::geometry::Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
-                const ::curaengine::geometry::Shape more_dense_infill = infill_area.difference(less_dense_infill);
+                std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
+                const Shape more_dense_infill = infill_area.difference(less_dense_infill);
                 infill_area_per_combine_current_density.push_back(simplifier.polygon(more_dense_infill.difference(sum_more_dense)));
                 if (is_connected)
                 {
@@ -718,7 +723,7 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
                 }
             }
             part.infill_area_per_combine_per_density.emplace_back();
-            std::vector<::curaengine::geometry::Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
+            std::vector<Shape>& infill_area_per_combine_current_density = part.infill_area_per_combine_per_density.back();
             infill_area_per_combine_current_density.push_back(simplifier.polygon(infill_area.difference(sum_more_dense)));
             part.infill_area_own = std::nullopt; // clear infill_area_own, it's not needed any more.
             assert(! part.infill_area_per_combine_per_density.empty() && "infill_area_per_combine_per_density is now initialized");
@@ -729,17 +734,17 @@ void SkinInfillAreaComputation::generateGradualInfill(SliceMeshStorage& mesh)
 void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
 {
     if (mesh.layers.empty() || mesh.layers.size() - 1 < mesh.settings.get<size_t>("top_layers")
-        || mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance") == 0) // No infill is even generated.
+        || mesh.settings.get<coord_t>("infill_line_distance") == 0) // No infill is even generated.
     {
         return;
     }
 
-    const ::curaengine::utils::coord_t layer_height = mesh.settings.get<::curaengine::utils::coord_t>("layer_height");
+    const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
     const size_t amount = std::max(
         uint64_t(1),
-        ::curaengine::utils::round_divide(
-            mesh.settings.get<::curaengine::utils::coord_t>("infill_sparse_thickness"),
-            std::max(layer_height, ::curaengine::utils::coord_t(1)))); // How many infill layers to combine to obtain the requested sparse thickness.
+        utils::round_divide(
+            mesh.settings.get<coord_t>("infill_sparse_thickness"),
+            std::max(layer_height, coord_t(1)))); // How many infill layers to combine to obtain the requested sparse thickness.
     if (amount <= 1) // If we must combine 1 layer, nothing needs to be combined. Combining 0 layers is invalid.
     {
         return;
@@ -750,21 +755,21 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
     layers and some at non-divisible layers. Those layers would then miss each
     other. */
     size_t bottom_most_layers = mesh.settings.get<size_t>("initial_bottom_layers");
-    ::curaengine::types::LayerIndex min_layer = static_cast<::curaengine::types::LayerIndex>(bottom_most_layers + amount) - 1;
+    LayerIndex min_layer = static_cast<LayerIndex>(bottom_most_layers + amount) - 1;
     min_layer -= min_layer % amount; // Round upwards to the nearest layer divisible by infill_sparse_combine.
-    ::curaengine::types::LayerIndex max_layer = static_cast<::curaengine::types::LayerIndex>(mesh.layers.size()) - 1 - mesh.settings.get<size_t>("top_layers");
+    LayerIndex max_layer = static_cast<LayerIndex>(mesh.layers.size()) - 1 - mesh.settings.get<size_t>("top_layers");
     max_layer -= max_layer % amount; // Round downwards to the nearest layer divisible by infill_sparse_combine.
-    for (::curaengine::types::LayerIndex layer_idx = min_layer; layer_idx <= max_layer; layer_idx += amount) // Skip every few layers, but extrude more.
+    for (LayerIndex layer_idx = min_layer; layer_idx <= max_layer; layer_idx += amount) // Skip every few layers, but extrude more.
     {
         SliceLayer* layer = &mesh.layers[layer_idx];
         for (size_t combine_count_here = 1; combine_count_here < amount; combine_count_here++)
         {
-            if (layer_idx < static_cast<::curaengine::types::LayerIndex>(combine_count_here))
+            if (layer_idx < static_cast<LayerIndex>(combine_count_here))
             {
                 break;
             }
 
-            ::curaengine::types::LayerIndex lower_layer_idx = layer_idx - combine_count_here;
+            LayerIndex lower_layer_idx = layer_idx - combine_count_here;
             if (lower_layer_idx < min_layer)
             {
                 break;
@@ -774,13 +779,13 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
             {
                 for (unsigned int density_idx = 0; density_idx < part.infill_area_per_combine_per_density.size(); density_idx++)
                 { // go over each density of gradual infill (these density areas overlap!)
-                    std::vector<::curaengine::geometry::Shape>& infill_area_per_combine = part.infill_area_per_combine_per_density[density_idx];
-                    ::curaengine::geometry::Shape result;
+                    std::vector<Shape>& infill_area_per_combine = part.infill_area_per_combine_per_density[density_idx];
+                    Shape result;
                     for (SliceLayerPart& lower_layer_part : lower_layer->parts)
                     {
                         if (part.boundaryBox.hit(lower_layer_part.boundaryBox))
                         {
-                            ::curaengine::geometry::Shape intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.infill_area).offset(-200).offset(200);
+                            Shape intersection = infill_area_per_combine[combine_count_here - 1].intersection(lower_layer_part.infill_area).offset(-200).offset(200);
                             result.push_back(intersection); // add area to be thickened
                             infill_area_per_combine[combine_count_here - 1]
                                 = infill_area_per_combine[combine_count_here - 1].difference(intersection); // remove thickened area from less thick layer here
@@ -801,7 +806,7 @@ void SkinInfillAreaComputation::combineInfillLayers(SliceMeshStorage& mesh)
                                  lower_density_idx <= max_lower_density_idx && lower_density_idx < lower_layer_part.infill_area_per_combine_per_density.size();
                                  lower_density_idx++)
                             {
-                                std::vector<::curaengine::geometry::Shape>& lower_infill_area_per_combine = lower_layer_part.infill_area_per_combine_per_density[lower_density_idx];
+                                std::vector<Shape>& lower_infill_area_per_combine = lower_layer_part.infill_area_per_combine_per_density[lower_density_idx];
                                 lower_infill_area_per_combine[0]
                                     = lower_infill_area_per_combine[0].difference(intersection); // remove thickened area from lower (single thickness) layer
                             }

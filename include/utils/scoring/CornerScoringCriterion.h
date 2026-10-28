@@ -23,12 +23,12 @@ namespace curaengine::utils::scoring
 class CornerScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
-    const ::curaengine::types::EZSeamCornerPrefType corner_preference_;
+    const types::EZSeamCornerPrefType corner_preference_;
     std::vector<coord_t> segments_sizes_;
     coord_t total_length_{ 0 };
 
 public:
-    explicit CornerScoringCriterion(const ::curaengine::geometry::PointsSet& points, const ::curaengine::types::EZSeamCornerPrefType corner_preference);
+    explicit CornerScoringCriterion(const geometry::PointsSet& points, const types::EZSeamCornerPrefType corner_preference);
 
     virtual double computeScore(const size_t candidate_index) const override;
 
@@ -59,7 +59,7 @@ private:
      * or negative to go backward
      * \return The position of the path a the given distance from the reference point
      */
-    ::curaengine::geometry::Point2LL findNeighbourPoint(size_t vertex_index, coord_t distance) const;
+    geometry::Point2LL findNeighbourPoint(size_t vertex_index, coord_t distance) const;
 };
 
 } // namespace curaengine::utils::scoring

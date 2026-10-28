@@ -35,7 +35,7 @@ class MeshFace
 public:
     int vertex_index_[3] = { -1 }; //!< counter-clockwise ordering
     int connected_face_index_[3]; //!< same ordering as vertex_index (connected_face 0 is connected via vertex 0 and 1, etc.)
-    std::optional<::curaengine::geometry::Point2F> uv_coordinates_[3]; //!< UV coordinates for each vertex of the face
+    std::optional<geometry::Point2F> uv_coordinates_[3]; //!< UV coordinates for each vertex of the face
 };
 
 } // namespace curaengine

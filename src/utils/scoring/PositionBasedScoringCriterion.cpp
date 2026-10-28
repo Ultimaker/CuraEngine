@@ -6,10 +6,12 @@
 #include "geometry/PointsSet.h"
 
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils::scoring
 {
 
-PositionBasedScoringCriterion::PositionBasedScoringCriterion(const ::curaengine::geometry::PointsSet& points)
+PositionBasedScoringCriterion::PositionBasedScoringCriterion(const PointsSet& points)
     : points_(points)
 {
 }
@@ -19,7 +21,7 @@ double PositionBasedScoringCriterion::computeScore(const size_t candidate_index)
     return computeScore(points_.at(candidate_index));
 }
 
-double PositionBasedScoringCriterion::computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const
+double PositionBasedScoringCriterion::computeScore(const Point2LL& candidate_position) const
 {
     return 0.0;
 }

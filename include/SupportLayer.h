@@ -26,16 +26,16 @@ class SupportLayer
 {
 public:
     std::vector<SupportInfillPart> support_infill_parts; //!< a list of support infill parts
-    ::curaengine::geometry::Shape support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
-    ::curaengine::geometry::Shape support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
+    geometry::Shape support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
+    geometry::Shape support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
                         //   NOTE: This is _all_ of the support_roof, and as such, overlaps with support_fractional_roof!
-    ::curaengine::geometry::Shape support_fractional_roof; //!< If the support distance is not exactly a multiple of the layer height,
+    geometry::Shape support_fractional_roof; //!< If the support distance is not exactly a multiple of the layer height,
                                    //   the first part of support just underneath the model needs to be printed at a fracional layer height.
-    ::curaengine::geometry::Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
-    ::curaengine::geometry::Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
-    ::curaengine::geometry::Shape anti_overhang; //!< Areas where no overhang should be detected.
-    ::curaengine::geometry::Shape force_overhang; //!< Areas where overhang should be forced.
-    ::curaengine::geometry::MixedLinesSet base; //!< Extra lines to be printed around for sturdiness.
+    geometry::Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
+    geometry::Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
+    geometry::Shape anti_overhang; //!< Areas where no overhang should be detected.
+    geometry::Shape force_overhang; //!< Areas where overhang should be forced.
+    geometry::MixedLinesSet base; //!< Extra lines to be printed around for sturdiness.
 
     /*!
      * Exclude the given polygons from the support infill areas and update the SupportInfillParts.
@@ -43,7 +43,7 @@ public:
      * \param exclude_polygons The polygons to exclude
      * \param exclude_polygons_boundary_box The boundary box for the polygons to exclude
      */
-    void excludeAreasFromSupportInfillAreas(const ::curaengine::geometry::Shape& exclude_polygons, const ::curaengine::utils::AABB& exclude_polygons_boundary_box);
+    void excludeAreasFromSupportInfillAreas(const geometry::Shape& exclude_polygons, const utils::AABB& exclude_polygons_boundary_box);
 
     /* Fill up the infill parts for the support with the given support polygons. The support polygons will be split into parts.
      *
@@ -56,14 +56,14 @@ public:
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
      */
     void fillInfillParts(
-        const ::curaengine::geometry::Shape& area,
-        const ::curaengine::utils::coord_t support_line_width,
-        const ::curaengine::utils::coord_t wall_thickness,
+        const geometry::Shape& area,
+        const utils::coord_t support_line_width,
+        const utils::coord_t wall_thickness,
         const bool use_fractional_config = false,
         const bool unionAll = false,
-        const ::curaengine::utils::coord_t custom_line_distance = 0)
+        const utils::coord_t custom_line_distance = 0)
     {
-        for (const ::curaengine::geometry::SingleShape& island_outline : area.splitIntoParts(unionAll))
+        for (const geometry::SingleShape& island_outline : area.splitIntoParts(unionAll))
         {
             support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_thickness, custom_line_distance);
         }
@@ -83,15 +83,15 @@ public:
      * \param custom_line_distance (optional, default to 0) Distance between lines of the infill pattern. custom_line_distance of 0 means use the default instead.
      */
     void fillInfillParts(
-        const ::curaengine::types::LayerIndex layer_nr,
-        const std::vector<::curaengine::geometry::Shape>& support_fill_per_layer,
-        const ::curaengine::utils::coord_t infill_layer_height,
+        const types::LayerIndex layer_nr,
+        const std::vector<geometry::Shape>& support_fill_per_layer,
+        const utils::coord_t infill_layer_height,
         const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
-        const ::curaengine::utils::coord_t support_line_width,
-        const ::curaengine::utils::coord_t wall_thickness,
-        const ::curaengine::utils::coord_t grow_layer_above = 0,
+        const utils::coord_t support_line_width,
+        const utils::coord_t wall_thickness,
+        const utils::coord_t grow_layer_above = 0,
         const bool unionAll = false,
-        const ::curaengine::utils::coord_t custom_line_distance = 0);
+        const utils::coord_t custom_line_distance = 0);
 };
 
 } // namespace curaengine

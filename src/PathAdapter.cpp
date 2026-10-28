@@ -5,29 +5,32 @@
 
 #include "utils/ExtrusionLine.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
 template<>
-const ::curaengine::geometry::Point2LL& PathAdapter<::curaengine::utils::ExtrusionLine>::pointAt(size_t index) const
+const Point2LL& PathAdapter<ExtrusionLine>::pointAt(size_t index) const
 {
     return path_.junctions_.at(index).p_;
 }
 
 template<>
-::curaengine::utils::coord_t PathAdapter<::curaengine::utils::ExtrusionLine>::lineWidthAt(size_t index) const
+coord_t PathAdapter<ExtrusionLine>::lineWidthAt(size_t index) const
 {
     return path_.junctions_.at(index).w_;
 }
 
 template<>
-const ::curaengine::geometry::Point2LL& PathAdapter<::curaengine::geometry::Polygon>::pointAt(size_t index) const
+const Point2LL& PathAdapter<Polygon>::pointAt(size_t index) const
 {
     return path_.at(index);
 }
 
 template<>
-::curaengine::utils::coord_t PathAdapter<::curaengine::geometry::Polygon>::lineWidthAt(size_t /*index*/) const
+coord_t PathAdapter<Polygon>::lineWidthAt(size_t /*index*/) const
 {
     return fixed_line_width_;
 }

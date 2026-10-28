@@ -11,6 +11,8 @@
 #include "utils/PathsPointIndex.h"
 #include "utils/PathsPointIndexLocator.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
@@ -28,13 +30,13 @@ bool ExtrusionLineStitcher::canReverse(const PathsPointIndex<VariableWidthLines>
 }
 
 template<>
-bool OpenPolylineStitcher::canReverse(const PathsPointIndex<::curaengine::geometry::OpenLinesSet>&)
+bool OpenPolylineStitcher::canReverse(const PathsPointIndex<OpenLinesSet>&)
 {
     return true;
 }
 
 template<>
-bool PolylineStitcher<::curaengine::geometry::OpenLinesSet, ::curaengine::geometry::ClosedLinesSet, ::curaengine::geometry::OpenPolyline, ::curaengine::geometry::Point2LL>::canReverse(const PathsPointIndex<::curaengine::geometry::OpenLinesSet>&)
+bool PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::canReverse(const PathsPointIndex<OpenLinesSet>&)
 {
     return true;
 }
@@ -46,13 +48,13 @@ bool ExtrusionLineStitcher::canConnect(const ExtrusionLine& a, const ExtrusionLi
 }
 
 template<>
-bool OpenPolylineStitcher::canConnect(const ::curaengine::geometry::OpenPolyline&, const ::curaengine::geometry::OpenPolyline&)
+bool OpenPolylineStitcher::canConnect(const OpenPolyline&, const OpenPolyline&)
 {
     return true;
 }
 
 template<>
-bool PolylineStitcher<::curaengine::geometry::OpenLinesSet, ::curaengine::geometry::ClosedLinesSet, ::curaengine::geometry::OpenPolyline, ::curaengine::geometry::Point2LL>::canConnect(const ::curaengine::geometry::OpenPolyline&, const ::curaengine::geometry::OpenPolyline&)
+bool PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::canConnect(const OpenPolyline&, const OpenPolyline&)
 {
     return true;
 }
@@ -64,13 +66,13 @@ bool ExtrusionLineStitcher::isOdd(const ExtrusionLine& line)
 }
 
 template<>
-bool OpenPolylineStitcher::isOdd(const ::curaengine::geometry::OpenPolyline&)
+bool OpenPolylineStitcher::isOdd(const OpenPolyline&)
 {
     return false;
 }
 
 template<>
-bool PolylineStitcher<::curaengine::geometry::OpenLinesSet, ::curaengine::geometry::ClosedLinesSet, ::curaengine::geometry::OpenPolyline, ::curaengine::geometry::Point2LL>::isOdd(const ::curaengine::geometry::OpenPolyline&)
+bool PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::isOdd(const OpenPolyline&)
 {
     return false;
 }
@@ -82,13 +84,13 @@ void ExtrusionLineStitcher::pushToClosedResult(VariableWidthLines& result_polygo
 }
 
 template<>
-void OpenPolylineStitcher::pushToClosedResult(::curaengine::geometry::Shape& result_polygons, const ::curaengine::geometry::OpenPolyline& polyline)
+void OpenPolylineStitcher::pushToClosedResult(Shape& result_polygons, const OpenPolyline& polyline)
 {
     result_polygons.emplace_back(polyline.getPoints(), true);
 }
 
 template<>
-void PolylineStitcher<::curaengine::geometry::OpenLinesSet, ::curaengine::geometry::ClosedLinesSet, ::curaengine::geometry::OpenPolyline, ::curaengine::geometry::Point2LL>::pushToClosedResult(::curaengine::geometry::ClosedLinesSet& result_polygons, const ::curaengine::geometry::OpenPolyline& polyline)
+void PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::pushToClosedResult(ClosedLinesSet& result_polygons, const OpenPolyline& polyline)
 {
     result_polygons.emplace_back(polyline.getPoints(), true);
 }
@@ -101,7 +103,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
     coord_t max_stitch_distance,
     coord_t snap_distance)
 {
-    using ::curaengine::geometry::make_point;
+    using geometry::make_point;
 
     if (lines.empty())
     {
@@ -142,7 +144,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
 
             while (true)
             {
-                ::curaengine::geometry::Point2LL from = make_point(chain.back());
+                Point2LL from = make_point(chain.back());
 
                 PathsPointIndex<InputPaths> closest;
                 coord_t closest_distance = std::numeric_limits<coord_t>::max();
@@ -163,12 +165,12 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
                          should_close](const PathsPointIndex<InputPaths>& nearby) -> bool
                         {
                             bool is_closing_segment = false;
-                            coord_t dist = ::curaengine::geometry::vSize(nearby.p() - from);
+                            coord_t dist = geometry::vSize(nearby.p() - from);
                             if (dist > max_stitch_distance)
                             {
                                 return true; // keep looking
                             }
-                            if (::curaengine::geometry::vSize2(nearby.p() - make_point(chain.front())) < snap_distance * snap_distance)
+                            if (geometry::vSize2(nearby.p() - make_point(chain.front())) < snap_distance * snap_distance)
                             {
                                 if (chain_length + dist < 3 * max_stitch_distance // prevent closing of small poly, cause it might be able to continue making a larger polyline
                                     || chain.size() <= 2) // don't make 2 vert polygons
@@ -223,7 +225,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
                 }
 
 
-                coord_t segment_dist = ::curaengine::geometry::vSize(make_point(chain.back()) - closest.p());
+                coord_t segment_dist = geometry::vSize(make_point(chain.back()) - closest.p());
                 assert(segment_dist <= max_stitch_distance + 10);
                 const size_t old_size = chain.size();
                 if (closest.point_idx_ == 0)
@@ -246,7 +248,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
                 }
                 for (size_t i = old_size; i < chain.size(); ++i) // Update chain length.
                 {
-                    chain_length += ::curaengine::geometry::vSize(chain[i] - chain[i - 1]);
+                    chain_length += geometry::vSize(chain[i] - chain[i - 1]);
                 }
                 should_close = should_close & ! isOdd((*closest.polygons_)[closest.poly_idx_]); // If we connect an even to an odd line, we should no longer try to close it.
                 assert(! processed[closest.poly_idx_]);
@@ -281,7 +283,7 @@ void PolylineStitcher<InputPaths, OutputPaths, Path, Junction>::stitch(
     }
 }
 
-template void OpenPolylineStitcher::stitch(const ::curaengine::geometry::OpenLinesSet& lines, ::curaengine::geometry::OpenLinesSet& result_lines, ::curaengine::geometry::Shape& result_polygons, coord_t max_stitch_distance, coord_t snap_distance);
+template void OpenPolylineStitcher::stitch(const OpenLinesSet& lines, OpenLinesSet& result_lines, Shape& result_polygons, coord_t max_stitch_distance, coord_t snap_distance);
 
 template void ExtrusionLineStitcher::stitch(
     const VariableWidthLines& lines,
@@ -290,10 +292,10 @@ template void ExtrusionLineStitcher::stitch(
     coord_t max_stitch_distance,
     coord_t snap_distance);
 
-template void PolylineStitcher<::curaengine::geometry::OpenLinesSet, ::curaengine::geometry::ClosedLinesSet, ::curaengine::geometry::OpenPolyline, ::curaengine::geometry::Point2LL>::stitch(
-    const ::curaengine::geometry::OpenLinesSet& lines,
-    ::curaengine::geometry::OpenLinesSet& result_lines,
-    ::curaengine::geometry::ClosedLinesSet& result_polygons,
+template void PolylineStitcher<OpenLinesSet, ClosedLinesSet, OpenPolyline, Point2LL>::stitch(
+    const OpenLinesSet& lines,
+    OpenLinesSet& result_lines,
+    ClosedLinesSet& result_polygons,
     coord_t max_stitch_distance,
     coord_t snap_distance);
 

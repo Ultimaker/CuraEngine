@@ -26,9 +26,9 @@ private:
     const std::string feature_name_;
 
 public:
-    explicit TextureScoringCriterion(const ::curaengine::geometry::PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name);
+    explicit TextureScoringCriterion(const geometry::PointsSet& points, const std::shared_ptr<TextureDataProvider>& texture_data_provider, const std::string& feature_name);
 
-    virtual double computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const override;
+    virtual double computeScore(const geometry::Point2LL& candidate_position) const override;
 };
 
 } // namespace curaengine::utils::scoring

@@ -13,9 +13,9 @@
 
 namespace curaengine::plugins
 {
-struct infill_generate_request : public details::converter<infill_generate_request, ::cura::plugins::slots::infill::v0::generate::CallRequest, ::curaengine::geometry::Shape>
+struct infill_generate_request : public details::converter<infill_generate_request, ::cura::plugins::slots::infill::v0::generate::CallRequest, geometry::Shape>
 {
-    value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings, const ::curaengine::utils::coord_t z) const;
+    value_type operator()(const native_value_type& inner_contour, const std::string& pattern, const Settings& settings, const utils::coord_t z) const;
 };
 } // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

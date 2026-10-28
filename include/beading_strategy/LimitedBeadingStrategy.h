@@ -25,22 +25,22 @@ namespace curaengine::beading_strategy
 class LimitedBeadingStrategy : public BeadingStrategy
 {
 public:
-    LimitedBeadingStrategy(const ::curaengine::utils::coord_t max_bead_count, BeadingStrategyPtr parent);
+    LimitedBeadingStrategy(const utils::coord_t max_bead_count, BeadingStrategyPtr parent);
 
     virtual ~LimitedBeadingStrategy() override = default;
 
-    Beading compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const override;
-    ::curaengine::utils::coord_t getOptimalThickness(::curaengine::utils::coord_t bead_count) const override;
-    ::curaengine::utils::coord_t getTransitionThickness(::curaengine::utils::coord_t lower_bead_count) const override;
-    ::curaengine::utils::coord_t getOptimalBeadCount(::curaengine::utils::coord_t thickness) const override;
+    Beading compute(utils::coord_t thickness, utils::coord_t bead_count) const override;
+    utils::coord_t getOptimalThickness(utils::coord_t bead_count) const override;
+    utils::coord_t getTransitionThickness(utils::coord_t lower_bead_count) const override;
+    utils::coord_t getOptimalBeadCount(utils::coord_t thickness) const override;
     std::string toString() const override;
 
-    ::curaengine::utils::coord_t getTransitioningLength(::curaengine::utils::coord_t lower_bead_count) const override;
+    utils::coord_t getTransitioningLength(utils::coord_t lower_bead_count) const override;
 
-    double getTransitionAnchorPos(::curaengine::utils::coord_t lower_bead_count) const override;
+    double getTransitionAnchorPos(utils::coord_t lower_bead_count) const override;
 
 protected:
-    const ::curaengine::utils::coord_t max_bead_count_;
+    const utils::coord_t max_bead_count_;
     const BeadingStrategyPtr parent_;
 };
 

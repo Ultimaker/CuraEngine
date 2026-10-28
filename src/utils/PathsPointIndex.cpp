@@ -5,11 +5,13 @@
 
 #include "geometry/Shape.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
 template<>
-const ::curaengine::geometry::Polygon& PathsPointIndex<::curaengine::geometry::Shape>::getPolygon() const
+const Polygon& PathsPointIndex<Shape>::getPolygon() const
 {
     return (*polygons_)[poly_idx_];
 }

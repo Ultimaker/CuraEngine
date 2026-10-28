@@ -27,14 +27,14 @@ public:
 
     int layer_nr_max_filled_layer; //!< the layer number of the uppermost layer with content
 
-    std::vector<::curaengine::types::AngleDegrees> support_infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
-    std::vector<::curaengine::types::AngleDegrees> support_infill_angles_layer_0; //!< a list of angle values which is cycled through to determine the infill angle of each layer
-    std::vector<::curaengine::types::AngleDegrees> support_roof_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
-    std::vector<::curaengine::types::AngleDegrees> support_bottom_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<types::AngleDegrees> support_infill_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<types::AngleDegrees> support_infill_angles_layer_0; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<types::AngleDegrees> support_roof_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
+    std::vector<types::AngleDegrees> support_bottom_angles; //!< a list of angle values which is cycled through to determine the infill angle of each layer
 
     std::vector<SupportLayer> supportLayers;
-    std::shared_ptr<::curaengine::infill::SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
-    std::shared_ptr<::curaengine::infill::LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
+    std::shared_ptr<infill::SierpinskiFillProvider> cross_fill_provider; //!< the fractal pattern for the cross (3d) filling pattern
+    std::shared_ptr<infill::LightningGenerator> lightning_generator; //!< Pre-computed structure for Lightning type infill
 
     SupportStorage();
     ~SupportStorage();

@@ -33,7 +33,7 @@ class SliceMeshStorage;
  *
  * The main function of this class is FffPolygonGenerator::generateAreas().
  */
-class FffPolygonGenerator : public ::curaengine::utils::NoCopy
+class FffPolygonGenerator : public utils::NoCopy
 {
 public:
     /*!
@@ -43,7 +43,7 @@ public:
      * \param timeKeeper Object which keeps track of timings of each stage.
      * \param storage Output parameter: where the outlines are stored. See SliceLayerPart::outline.
      */
-    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, ::curaengine::utils::TimeKeeper& timeKeeper);
+    bool generateAreas(SliceDataStorage& storage, MeshGroup* object, utils::TimeKeeper& timeKeeper);
 
 private:
     /*!
@@ -68,7 +68,7 @@ private:
      *
      * \return Whether the process succeeded (always true).
      */
-    bool sliceModel(MeshGroup* object, ::curaengine::utils::TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
+    bool sliceModel(MeshGroup* object, utils::TimeKeeper& timeKeeper, SliceDataStorage& storage); /// slices the model
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, support area polygons, etc.
@@ -76,7 +76,7 @@ private:
      * \param storage Input and Output parameter: fetches the outline information (see SliceLayerPart::outline) and generates the other reachable field of the \p storage
      * \param timeKeeper Object which keeps track of timings of each stage.
      */
-    void slices2polygons(SliceDataStorage& storage, ::curaengine::utils::TimeKeeper& timeKeeper);
+    void slices2polygons(SliceDataStorage& storage, utils::TimeKeeper& timeKeeper);
 
     /*!
      * Processes the outline information as stored in the \p storage: generates inset perimeter polygons, skin and infill
@@ -90,7 +90,7 @@ private:
         SliceDataStorage& storage,
         const size_t mesh_order_idx,
         const std::vector<size_t>& mesh_order,
-        ::curaengine::progress::ProgressStageEstimator& inset_skin_progress_estimate);
+        progress::ProgressStageEstimator& inset_skin_progress_estimate);
 
     /*!
      * Process the mesh to be an infill mesh: limit all outlines to within the infill of normal meshes and subtract their volume from the infill of those meshes
@@ -117,7 +117,7 @@ private:
      *
      * \return Whether or not the layer is empty
      */
-    bool isEmptyLayer(SliceDataStorage& storage, const ::curaengine::types::LayerIndex& layer_idx);
+    bool isEmptyLayer(SliceDataStorage& storage, const types::LayerIndex& layer_idx);
 
     /*!
      * \brief Remove all bottom layers which are empty.
@@ -155,7 +155,7 @@ private:
      * \param layer_nr The layer for which to generate the skin areas.
      * \param process_infill Generate infill areas
      */
-    void processSkinsAndInfill(SliceMeshStorage& mesh, const ::curaengine::types::LayerIndex layer_nr, bool process_infill);
+    void processSkinsAndInfill(SliceMeshStorage& mesh, const types::LayerIndex layer_nr, bool process_infill);
 
     /*!
      * Generate the polygons where the draft screen should be.

@@ -23,10 +23,10 @@ class STHalfEdgeNode
 
 public:
     node_data_t data_;
-    ::curaengine::geometry::Point2LL p_;
+    geometry::Point2LL p_;
     edge_t* incident_edge_ = nullptr;
 
-    STHalfEdgeNode(const SkeletalTrapezoidationJoint& data, const ::curaengine::geometry::Point2LL& p);
+    STHalfEdgeNode(const SkeletalTrapezoidationJoint& data, const geometry::Point2LL& p);
 
     bool isMultiIntersection();
 

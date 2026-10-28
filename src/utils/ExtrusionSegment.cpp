@@ -9,26 +9,28 @@
 
 #include "utils/macros.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
-::curaengine::geometry::Shape ExtrusionSegment::toShape()
+Shape ExtrusionSegment::toShape()
 {
     return toShape(is_reduced_);
 }
 
-::curaengine::geometry::Shape ExtrusionSegment::toShape(bool reduced)
+Shape ExtrusionSegment::toShape(bool reduced)
 {
-    ::curaengine::geometry::Shape ret;
-    const ::curaengine::geometry::Point2LL vec = to_.p_ - from_.p_;
-    const coord_t vec_length = ::curaengine::geometry::vSize(vec);
+    Shape ret;
+    const Point2LL vec = to_.p_ - from_.p_;
+    const coord_t vec_length = geometry::vSize(vec);
 
     if (vec_length <= 0) // Don't even output the endcaps.
     {
         return ret;
     }
 
-    ::curaengine::geometry::Polygon& poly = ret.newLine();
+    Polygon& poly = ret.newLine();
     const double delta_r = 0.5 * std::abs(from_.w_ - to_.w_);
     const double vec_length_fixed = std::max(delta_r, static_cast<double>(vec_length));
     float alpha = std::acos(delta_r / vec_length_fixed); // Angle between the slope along the edge of the polygon (due to varying line width) and the centerline.
@@ -51,7 +53,7 @@ namespace curaengine::utils
 
     // Draw the endcap on the "from" vertex's end.
     {
-        poly.push_back(from_.p_ + ::curaengine::geometry::Point2LL(from_.w_ / 2 * cos(alpha + dir), from_.w_ / 2 * sin(alpha + dir)));
+        poly.push_back(from_.p_ + Point2LL(from_.w_ / 2 * cos(alpha + dir), from_.w_ / 2 * sin(alpha + dir)));
 
         double start_a = 2 * std::numbers::pi;
         while (start_a > alpha + dir)
@@ -69,16 +71,16 @@ namespace curaengine::utils
         // Draw the endcap.
         for (double a = start_a; a <= end_a; a += a_step)
         {
-            poly.emplace_back(from_.p_ + ::curaengine::geometry::Point2LL(from_.w_ / 2 * cos(a), from_.w_ / 2 * sin(a)));
+            poly.emplace_back(from_.p_ + Point2LL(from_.w_ / 2 * cos(a), from_.w_ / 2 * sin(a)));
         }
-        poly.emplace_back(from_.p_ + ::curaengine::geometry::Point2LL(from_.w_ / 2 * cos(2 * std::numbers::pi - alpha + dir), from_.w_ / 2 * sin(2 * std::numbers::pi - alpha + dir)));
+        poly.emplace_back(from_.p_ + Point2LL(from_.w_ / 2 * cos(2 * std::numbers::pi - alpha + dir), from_.w_ / 2 * sin(2 * std::numbers::pi - alpha + dir)));
     }
 
     // Draw the endcap on the "to" vertex's end.
     {
         poly.push_back(
             to_.p_
-            + ::curaengine::geometry::Point2LL(
+            + Point2LL(
                 to_.w_ / 2 * cos(2 * std::numbers::pi - alpha + dir),
                 to_.w_ / 2 * sin(2 * std::numbers::pi - alpha + dir))); // Also draws the main diagonal from the "from" vertex to the "to" vertex!
 
@@ -111,23 +113,23 @@ namespace curaengine::utils
         {
             for (double a = end_a; a >= start_a; a -= a_step) // Go in the opposite direction.
             {
-                poly.emplace_back(to_.p_ + ::curaengine::geometry::Point2LL(to_.w_ / 2 * cos(a), to_.w_ / 2 * sin(a)));
+                poly.emplace_back(to_.p_ + Point2LL(to_.w_ / 2 * cos(a), to_.w_ / 2 * sin(a)));
             }
         }
         else
         {
             for (double a = end_a; a <= start_a; a += a_step)
             {
-                poly.emplace_back(to_.p_ + ::curaengine::geometry::Point2LL(to_.w_ / 2 * cos(a), to_.w_ / 2 * sin(a)));
+                poly.emplace_back(to_.p_ + Point2LL(to_.w_ / 2 * cos(a), to_.w_ / 2 * sin(a)));
             }
         }
 
-        poly.emplace_back(to_.p_ + ::curaengine::geometry::Point2LL(to_.w_ / 2 * cos(alpha + dir), to_.w_ / 2 * sin(alpha + dir)));
+        poly.emplace_back(to_.p_ + Point2LL(to_.w_ / 2 * cos(alpha + dir), to_.w_ / 2 * sin(alpha + dir)));
         // The other main diagonal from the "to" vertex to the "from" vertex is implicit in the closing of the polygon.
     }
 
 #ifdef DEBUG
-    for (const ::curaengine::geometry::Point2LL& p : poly)
+    for (const Point2LL& p : poly)
     {
         assert(p.X < 0x3FFFFFFFFFFFFFFFLL);
         assert(p.Y < 0x3FFFFFFFFFFFFFFFLL);
@@ -140,10 +142,10 @@ namespace curaengine::utils
 
 std::vector<ExtrusionSegment> ExtrusionSegment::discretize(coord_t step_size)
 {
-    ::curaengine::geometry::Point2LL a = from_.p_;
-    ::curaengine::geometry::Point2LL b = to_.p_;
-    ::curaengine::geometry::Point2LL ab = b - a;
-    coord_t ab_length = ::curaengine::geometry::vSize(ab);
+    Point2LL a = from_.p_;
+    Point2LL b = to_.p_;
+    Point2LL ab = b - a;
+    coord_t ab_length = geometry::vSize(ab);
     coord_t step_count = std::max(static_cast<coord_t>(1), (ab_length + step_size / 2) / step_size);
     std::vector<ExtrusionSegment> discretized;
     for (coord_t step = 0; step < step_count; step++)

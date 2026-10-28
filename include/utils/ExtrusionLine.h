@@ -213,9 +213,9 @@ struct ExtrusionLine
      *
      * When this path is not closed the returned Polygon should be handled as a polyline, rather than a polygon.
      */
-    ::curaengine::geometry::Polygon toPolygon() const
+    geometry::Polygon toPolygon() const
     {
-        ::curaengine::geometry::Polygon ret;
+        geometry::Polygon ret;
 
         for (const ExtrusionJunction& j : junctions_)
             ret.push_back(j.p_);

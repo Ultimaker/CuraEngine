@@ -10,6 +10,10 @@
 #include "types/ESurfaceMode.h"
 #include "Settings.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 SliceMeshStorage::SliceMeshStorage(Mesh* mesh, const size_t slice_layer_count)
@@ -43,7 +47,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
             return false;
         }
     }
-    if (settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr)
+    if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr)
     {
         return true;
     }
@@ -56,7 +60,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     {
         return true;
     }
-    if (settings.get<::curaengine::utils::coord_t>("infill_line_distance") > 0 && settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_ == extruder_nr)
+    if (settings.get<coord_t>("infill_line_distance") > 0 && settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_ == extruder_nr)
     {
         return true;
     }
@@ -77,7 +81,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr) const
     return false;
 }
 
-bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const ::curaengine::types::LayerIndex& layer_nr) const
+bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const LayerIndex& layer_nr) const
 {
     if (layer_nr < 0 || layer_nr >= static_cast<int>(layers.size()))
     {
@@ -99,7 +103,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const ::curae
             }
         }
     }
-    if (settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr
+    if (settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ == extruder_nr
         && layer.open_polylines.size() > 0)
     {
         return true;
@@ -115,7 +119,7 @@ bool SliceMeshStorage::getExtruderIsUsed(const size_t extruder_nr, const ::curae
             }
         }
     }
-    if (settings.get<::curaengine::utils::coord_t>("infill_line_distance") > 0 && settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_ == extruder_nr)
+    if (settings.get<coord_t>("infill_line_distance") > 0 && settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_ == extruder_nr)
     {
         for (const SliceLayerPart& part : layer.parts)
         {
@@ -177,13 +181,13 @@ bool SliceMeshStorage::isModelMesh() const
     return is_model_mesh_;
 }
 
-::curaengine::geometry::Point2LL SliceMeshStorage::getZSeamHint() const
+Point2LL SliceMeshStorage::getZSeamHint() const
 {
-    ::curaengine::geometry::Point2LL pos(settings.get<::curaengine::utils::coord_t>("z_seam_x"), settings.get<::curaengine::utils::coord_t>("z_seam_y"));
+    Point2LL pos(settings.get<coord_t>("z_seam_x"), settings.get<coord_t>("z_seam_y"));
     if (settings.get<bool>("z_seam_relative"))
     {
-        ::curaengine::geometry::Point3LL middle = bounding_box.getMiddle();
-        pos += ::curaengine::geometry::Point2LL(middle.x_, middle.y_);
+        Point3LL middle = bounding_box.getMiddle();
+        pos += Point2LL(middle.x_, middle.y_);
     }
     return pos;
 }

@@ -56,16 +56,16 @@ public:
     InfillOrderOptimizer();
 
     /*! Add a set of open polylines to be printed consecutively. */
-    void addPart(InfillPartArea part_area, ::curaengine::geometry::OpenLinesSet& lines);
+    void addPart(InfillPartArea part_area, geometry::OpenLinesSet& lines);
 
     /*! Add a set of closed polylines to be printed consecutively. */
-    void addPart(InfillPartArea part_area, const ::curaengine::geometry::Shape& polygons);
+    void addPart(InfillPartArea part_area, const geometry::Shape& polygons);
 
     /*! Add a set of extrusion lines to be printed consecutively. */
-    void addPart(InfillPartArea part_area, const std::vector<std::vector<::curaengine::utils::VariableWidthLines>>& walls);
+    void addPart(InfillPartArea part_area, const std::vector<std::vector<utils::VariableWidthLines>>& walls);
 
     /*! Process the paths ordering optimization. */
-    void optimize(const bool skin_support_interlace_lines, const std::optional<::curaengine::geometry::Point2LL>& near_end_location = std::nullopt);
+    void optimize(const bool skin_support_interlace_lines, const std::optional<geometry::Point2LL>& near_end_location = std::nullopt);
 
     /*!
      * Adds the ordered infill parts to the given layer plan.
@@ -74,18 +74,18 @@ public:
     bool addToLayer(
         LayerPlan& layer_plan,
         const Settings& settings,
-        const std::optional<::curaengine::geometry::Point2LL>& near_end_location,
-        const ::curaengine::types::EFillMethod infill_pattern,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const std::optional<geometry::Point2LL>& near_end_location,
+        const types::EFillMethod infill_pattern,
+        const types::MeshPathConfigs& mesh_config,
         const SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::utils::coord_t start_move_inwards_length,
-        const ::curaengine::utils::coord_t end_move_inwards_length,
-        const ::curaengine::geometry::Shape& infill_inner_contour,
-        const ::curaengine::utils::coord_t skin_support_line_distance,
-        const ::curaengine::geometry::Shape& infill_below_skin,
-        const ::curaengine::types::AngleDegrees& skin_support_angle) const;
+        const utils::coord_t start_move_inwards_length,
+        const utils::coord_t end_move_inwards_length,
+        const geometry::Shape& infill_inner_contour,
+        const utils::coord_t skin_support_line_distance,
+        const geometry::Shape& infill_below_skin,
+        const types::AngleDegrees& skin_support_angle) const;
 
 private:
     /*! Types of infill print types. The order determines the preferred printing order. */
@@ -103,9 +103,9 @@ private:
         InfillPartType type;
         union
         {
-            const ::curaengine::geometry::Shape* polygons;
-            ::curaengine::geometry::OpenLinesSet* lines;
-            const std::vector<std::vector<::curaengine::utils::VariableWidthLines>>* extrusion_lines;
+            const geometry::Shape* polygons;
+            geometry::OpenLinesSet* lines;
+            const std::vector<std::vector<utils::VariableWidthLines>>* extrusion_lines;
         } paths;
     };
 
@@ -119,57 +119,57 @@ private:
      * @return Whether we have found a vertex in the lines set closer to the given location than the actual closest location
      */
     template<class LinesSetType>
-    bool isCloserTo(const LinesSetType& line_set, const ::curaengine::geometry::Point2LL& location, std::optional<std::pair<size_t, size_t>>& closest_point, ::curaengine::utils::coord_t& closest_distance_squared);
+    bool isCloserTo(const LinesSetType& line_set, const geometry::Point2LL& location, std::optional<std::pair<size_t, size_t>>& closest_point, utils::coord_t& closest_distance_squared);
 
     /*! Add the given part to the layer plan using the given settings */
     void addToLayer(
         const InfillPart& part,
         LayerPlan& layer_plan,
         const Settings& settings,
-        const std::optional<::curaengine::geometry::Point2LL>& near_start_location,
+        const std::optional<geometry::Point2LL>& near_start_location,
         const bool reverse_print_direction,
-        const ::curaengine::types::EFillMethod infill_pattern,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::EFillMethod infill_pattern,
+        const types::MeshPathConfigs& mesh_config,
         const SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::utils::coord_t start_move_inwards_length,
-        const ::curaengine::utils::coord_t end_move_inwards_length,
-        const ::curaengine::geometry::Shape& infill_inner_contour,
-        const ::curaengine::utils::coord_t skin_support_line_distance,
-        const ::curaengine::geometry::Shape& infill_below_skin,
-        const ::curaengine::types::AngleDegrees& skin_support_angle) const;
+        const utils::coord_t start_move_inwards_length,
+        const utils::coord_t end_move_inwards_length,
+        const geometry::Shape& infill_inner_contour,
+        const utils::coord_t skin_support_line_distance,
+        const geometry::Shape& infill_below_skin,
+        const types::AngleDegrees& skin_support_angle) const;
 
     /*! Add the given infill lines to the layer plan using the given settings */
     void addInfillLinesToLayer(
-        const ::curaengine::geometry::OpenLinesSet& lines,
+        const geometry::OpenLinesSet& lines,
         LayerPlan& layer_plan,
         const Settings& settings,
-        const std::optional<::curaengine::geometry::Point2LL>& near_start_location,
+        const std::optional<geometry::Point2LL>& near_start_location,
         const bool reverse_print_direction,
-        const ::curaengine::types::EFillMethod infill_pattern,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
-        const ::curaengine::utils::coord_t start_move_inwards_length,
-        const ::curaengine::utils::coord_t end_move_inwards_length,
-        const ::curaengine::geometry::Shape& infill_inner_contour,
+        const types::EFillMethod infill_pattern,
+        const types::MeshPathConfigs& mesh_config,
+        const utils::coord_t start_move_inwards_length,
+        const utils::coord_t end_move_inwards_length,
+        const geometry::Shape& infill_inner_contour,
         const bool enable_travel_optimization,
-        const ::curaengine::types::Ratio& flow_ratio,
+        const types::Ratio& flow_ratio,
         const double fan_speed,
-        const std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*>& order_requirements) const;
+        const std::unordered_multimap<const geometry::Polyline*, const geometry::Polyline*>& order_requirements) const;
 
     /*! Add the given skin support lines to the layer plan using the given settings */
     void addSkinSupportLinesToLayer(
-        const ::curaengine::geometry::OpenLinesSet& lines,
+        const geometry::OpenLinesSet& lines,
         LayerPlan& layer_plan,
         const Settings& settings,
-        const std::optional<::curaengine::geometry::Point2LL>& near_start_location,
+        const std::optional<geometry::Point2LL>& near_start_location,
         const bool reverse_print_direction,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
-        const ::curaengine::utils::coord_t skin_support_line_distance,
-        const ::curaengine::geometry::Shape& infill_below_skin,
-        const ::curaengine::types::AngleDegrees& skin_support_angle,
+        const types::MeshPathConfigs& mesh_config,
+        const utils::coord_t skin_support_line_distance,
+        const geometry::Shape& infill_below_skin,
+        const types::AngleDegrees& skin_support_angle,
         const bool enable_travel_optimization,
-        const ::curaengine::types::Ratio& flow_ratio) const;
+        const types::Ratio& flow_ratio) const;
 
     /*! Indicates whether part1 should be printed by default before part2 */
     static bool shouldPrintBefore(const InfillPart& part1, const InfillPart& part2);

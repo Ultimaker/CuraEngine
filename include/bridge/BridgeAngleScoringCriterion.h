@@ -26,10 +26,10 @@ class TransformedShape;
 
 
 /*! Base class for criteria that calculate a score for a candidate bridging angle */
-class BridgeAngleScoringCriterion : public ::curaengine::utils::scoring::ScoringCriterion
+class BridgeAngleScoringCriterion : public utils::scoring::ScoringCriterion
 {
 public:
-    explicit BridgeAngleScoringCriterion(const std::vector<::curaengine::types::AngleDegrees>& candidates, const ::curaengine::geometry::Shape& skin_outline, const ::curaengine::geometry::Shape& supported_regions);
+    explicit BridgeAngleScoringCriterion(const std::vector<types::AngleDegrees>& candidates, const geometry::Shape& skin_outline, const geometry::Shape& supported_regions);
 
     double computeScore(const size_t candidate_index) const override;
 
@@ -43,9 +43,9 @@ protected:
     virtual double computeScore(const TransformedShape& transformed_skin, const TransformedShape& transformed_supported_regions) const = 0;
 
 private:
-    const std::vector<::curaengine::types::AngleDegrees>& candidates_;
-    const ::curaengine::geometry::Shape& skin_outline_;
-    const ::curaengine::geometry::Shape& supported_regions_;
+    const std::vector<types::AngleDegrees>& candidates_;
+    const geometry::Shape& skin_outline_;
+    const geometry::Shape& supported_regions_;
 };
 
 } // namespace curaengine::bridge

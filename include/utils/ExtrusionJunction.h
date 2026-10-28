@@ -21,7 +21,7 @@ struct ExtrusionJunction
      * The position of the centreline of the path when it reaches this junction.
      * This is the position that should end up in the g-code eventually.
      */
-    ::curaengine::geometry::Point2LL p_;
+    geometry::Point2LL p_;
 
     /*!
      * The width of the extruded path at this junction.
@@ -36,18 +36,18 @@ struct ExtrusionJunction
      */
     size_t perimeter_index_;
 
-    ExtrusionJunction(const ::curaengine::geometry::Point2LL& p, const coord_t w, const coord_t perimeter_index);
+    ExtrusionJunction(const geometry::Point2LL& p, const coord_t w, const coord_t perimeter_index);
 
     bool operator==(const ExtrusionJunction& other) const;
 };
 
-inline ::curaengine::geometry::Point2LL operator-(const ExtrusionJunction& a, const ExtrusionJunction& b)
+inline geometry::Point2LL operator-(const ExtrusionJunction& a, const ExtrusionJunction& b)
 {
     return a.p_ - b.p_;
 }
 
 // Identity function, used to be able to make templated algorithms that do their operations on 'point-like' input.
-inline const ::curaengine::geometry::Point2LL& make_point(const ExtrusionJunction& ej)
+inline const geometry::Point2LL& make_point(const ExtrusionJunction& ej)
 {
     return ej.p_;
 }

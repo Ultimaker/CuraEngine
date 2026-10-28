@@ -9,6 +9,8 @@
 
 #include "utils/macros.h"
 
+using namespace curaengine::utils;
+
 namespace curaengine::beading_strategy
 {
 
@@ -17,17 +19,17 @@ std::string LimitedBeadingStrategy::toString() const
     return std::string("LimitedBeadingStrategy+") + parent_->toString();
 }
 
-::curaengine::utils::coord_t LimitedBeadingStrategy::getTransitioningLength(::curaengine::utils::coord_t lower_bead_count) const
+coord_t LimitedBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
     return parent_->getTransitioningLength(lower_bead_count);
 }
 
-double LimitedBeadingStrategy::getTransitionAnchorPos(::curaengine::utils::coord_t lower_bead_count) const
+double LimitedBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
 {
     return parent_->getTransitionAnchorPos(lower_bead_count);
 }
 
-LimitedBeadingStrategy::LimitedBeadingStrategy(const ::curaengine::utils::coord_t max_bead_count, BeadingStrategyPtr parent)
+LimitedBeadingStrategy::LimitedBeadingStrategy(const coord_t max_bead_count, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)
     , max_bead_count_(max_bead_count)
     , parent_(std::move(parent))
@@ -38,7 +40,7 @@ LimitedBeadingStrategy::LimitedBeadingStrategy(const ::curaengine::utils::coord_
     }
 }
 
-LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const
+LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
     if (bead_count <= max_bead_count_)
     {
@@ -47,8 +49,8 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(::curaengine::ut
 
         if (bead_count % 2 == 0 && bead_count == max_bead_count_)
         {
-            const ::curaengine::utils::coord_t innermost_toolpath_location = ret.toolpath_locations[max_bead_count_ / 2 - 1];
-            const ::curaengine::utils::coord_t innermost_toolpath_width = ret.bead_widths[max_bead_count_ / 2 - 1];
+            const coord_t innermost_toolpath_location = ret.toolpath_locations[max_bead_count_ / 2 - 1];
+            const coord_t innermost_toolpath_width = ret.bead_widths[max_bead_count_ / 2 - 1];
             ret.toolpath_locations.insert(ret.toolpath_locations.begin() + max_bead_count_ / 2, innermost_toolpath_location + innermost_toolpath_width / 2);
             ret.bead_widths.insert(ret.bead_widths.begin() + max_bead_count_ / 2, 0);
         }
@@ -60,7 +62,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(::curaengine::ut
         RUN_ONCE(spdlog::warn("Too many beads! {} != {}", bead_count, max_bead_count_ + 1));
     }
 
-    ::curaengine::utils::coord_t optimal_thickness = parent_->getOptimalThickness(max_bead_count_);
+    coord_t optimal_thickness = parent_->getOptimalThickness(max_bead_count_);
     Beading ret = parent_->compute(optimal_thickness, max_bead_count_);
     bead_count = ret.toolpath_locations.size();
     ret.left_over += thickness - ret.total_thickness;
@@ -72,15 +74,15 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(::curaengine::ut
         ret.toolpath_locations[bead_count / 2] = thickness / 2;
         ret.bead_widths[bead_count / 2] = thickness - optimal_thickness;
     }
-    for (::curaengine::utils::coord_t bead_idx = 0; bead_idx < (bead_count + 1) / 2; bead_idx++)
+    for (coord_t bead_idx = 0; bead_idx < (bead_count + 1) / 2; bead_idx++)
     {
         ret.toolpath_locations[bead_count - 1 - bead_idx] = thickness - ret.toolpath_locations[bead_idx];
     }
 
     // Create a "fake" inner wall with 0 width to indicate the edge of the walled area.
     // This wall can then be used by other structures to e.g. fill the infill area adjacent to the variable-width walls.
-    ::curaengine::utils::coord_t innermost_toolpath_location = ret.toolpath_locations[max_bead_count_ / 2 - 1];
-    ::curaengine::utils::coord_t innermost_toolpath_width = ret.bead_widths[max_bead_count_ / 2 - 1];
+    coord_t innermost_toolpath_location = ret.toolpath_locations[max_bead_count_ / 2 - 1];
+    coord_t innermost_toolpath_width = ret.bead_widths[max_bead_count_ / 2 - 1];
     ret.toolpath_locations.insert(ret.toolpath_locations.begin() + max_bead_count_ / 2, innermost_toolpath_location + innermost_toolpath_width / 2);
     ret.bead_widths.insert(ret.bead_widths.begin() + max_bead_count_ / 2, 0);
 
@@ -94,7 +96,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(::curaengine::ut
     return ret;
 }
 
-::curaengine::utils::coord_t LimitedBeadingStrategy::getOptimalThickness(::curaengine::utils::coord_t bead_count) const
+coord_t LimitedBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
     if (bead_count <= max_bead_count_)
     {
@@ -103,7 +105,7 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(::curaengine::ut
     return 10000000; // 10 meter
 }
 
-::curaengine::utils::coord_t LimitedBeadingStrategy::getTransitionThickness(::curaengine::utils::coord_t lower_bead_count) const
+coord_t LimitedBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     if (lower_bead_count < max_bead_count_)
     {
@@ -116,9 +118,9 @@ LimitedBeadingStrategy::Beading LimitedBeadingStrategy::compute(::curaengine::ut
     return 9000000; // 9 meter
 }
 
-::curaengine::utils::coord_t LimitedBeadingStrategy::getOptimalBeadCount(::curaengine::utils::coord_t thickness) const
+coord_t LimitedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    ::curaengine::utils::coord_t parent_bead_count = parent_->getOptimalBeadCount(thickness);
+    coord_t parent_bead_count = parent_->getOptimalBeadCount(thickness);
     if (parent_bead_count <= max_bead_count_)
     {
         return parent_->getOptimalBeadCount(thickness);

@@ -12,6 +12,8 @@
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
 
+using namespace curaengine::utils;
+
 namespace curaengine::geometry
 {
 
@@ -108,13 +110,13 @@ OpenLinesSet LinesSet<LineType>::splitIntoSegments() const
 }
 
 template<class LineType>
-::curaengine::utils::coord_t LinesSet<LineType>::length() const
+coord_t LinesSet<LineType>::length() const
 {
     return std::accumulate(
         lines_.begin(),
         lines_.end(),
         0LL,
-        [](::curaengine::utils::coord_t total, const LineType& line)
+        [](coord_t total, const LineType& line)
         {
             return total += line.length();
         });
@@ -151,7 +153,7 @@ void LinesSet<LineType>::applyMatrix(const Point3Matrix& matrix)
 }
 
 template<>
-Shape LinesSet<ClosedPolyline>::offset(::curaengine::utils::coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
+Shape LinesSet<ClosedPolyline>::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (empty())
     {
@@ -175,7 +177,7 @@ Shape LinesSet<ClosedPolyline>::offset(::curaengine::utils::coord_t distance, Cl
 }
 
 template<>
-Shape LinesSet<Polygon>::offset(::curaengine::utils::coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
+Shape LinesSet<Polygon>::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (empty())
     {
@@ -194,7 +196,7 @@ Shape LinesSet<Polygon>::offset(::curaengine::utils::coord_t distance, ClipperLi
 }
 
 template<>
-Shape LinesSet<OpenPolyline>::offset(::curaengine::utils::coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
+Shape LinesSet<OpenPolyline>::offset(coord_t distance, ClipperLib::JoinType join_type, double miter_limit) const
 {
     if (empty() || distance == 0)
     {
@@ -301,7 +303,7 @@ template size_t LinesSet<OpenPolyline>::pointCount() const;
 template void LinesSet<OpenPolyline>::removeAt(size_t index);
 template void LinesSet<OpenPolyline>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<OpenPolyline>::splitIntoSegments() const;
-template ::curaengine::utils::coord_t LinesSet<OpenPolyline>::length() const;
+template coord_t LinesSet<OpenPolyline>::length() const;
 template void LinesSet<OpenPolyline>::translate(const Point2LL& delta);
 template void LinesSet<OpenPolyline>::applyMatrix(const PointMatrix& matrix);
 template void LinesSet<OpenPolyline>::applyMatrix(const Point3Matrix& matrix);
@@ -316,7 +318,7 @@ template size_t LinesSet<ClosedPolyline>::pointCount() const;
 template void LinesSet<ClosedPolyline>::removeAt(size_t index);
 template void LinesSet<ClosedPolyline>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<ClosedPolyline>::splitIntoSegments() const;
-template ::curaengine::utils::coord_t LinesSet<ClosedPolyline>::length() const;
+template coord_t LinesSet<ClosedPolyline>::length() const;
 template void LinesSet<ClosedPolyline>::translate(const Point2LL& delta);
 template void LinesSet<ClosedPolyline>::applyMatrix(const PointMatrix& matrix);
 template void LinesSet<ClosedPolyline>::applyMatrix(const Point3Matrix& matrix);
@@ -331,7 +333,7 @@ template size_t LinesSet<Polygon>::pointCount() const;
 template void LinesSet<Polygon>::removeAt(size_t index);
 template void LinesSet<Polygon>::splitIntoSegments(OpenLinesSet& result) const;
 template OpenLinesSet LinesSet<Polygon>::splitIntoSegments() const;
-template ::curaengine::utils::coord_t LinesSet<Polygon>::length() const;
+template coord_t LinesSet<Polygon>::length() const;
 template void LinesSet<Polygon>::translate(const Point2LL& delta);
 template void LinesSet<Polygon>::applyMatrix(const PointMatrix& matrix);
 template void LinesSet<Polygon>::applyMatrix(const Point3Matrix& matrix);

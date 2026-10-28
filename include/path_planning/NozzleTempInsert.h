@@ -42,7 +42,7 @@ struct NozzleTempInsert
      * Write the temperature command at the current position in the gcode.
      * \param gcode The actual gcode writer
      */
-    void write(::curaengine::gcode_export::GCodeExport& gcode);
+    void write(gcode_export::GCodeExport& gcode);
 };
 
 } // namespace curaengine::path_planning

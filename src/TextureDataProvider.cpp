@@ -9,6 +9,8 @@
 #include "TextureArea.h"
 #include "TextureBitField.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine
 {
 
@@ -37,15 +39,15 @@ std::optional<uint32_t> TextureDataProvider::getValue(const size_t pixel_x, cons
     return (pixel_data << (32 - 1 - bit_field.bit_range_end_index)) >> (32 - 1 - (bit_field.bit_range_end_index - bit_field.bit_range_start_index));
 }
 
-std::optional<uint32_t> TextureDataProvider::getValue(const ::curaengine::geometry::Point2F& uv_coordinates, const std::string& feature) const
+std::optional<uint32_t> TextureDataProvider::getValue(const Point2F& uv_coordinates, const std::string& feature) const
 {
     std::pair<size_t, size_t> pixel_coordinates = texture_->getPixelCoordinates(uv_coordinates);
     return getValue(pixel_coordinates.first, pixel_coordinates.second, feature);
 }
 
-std::optional<uint32_t> TextureDataProvider::getValue(const ::curaengine::geometry::Point2LL& position, const std::string& feature) const
+std::optional<uint32_t> TextureDataProvider::getValue(const Point2LL& position, const std::string& feature) const
 {
-    const std::optional<::curaengine::geometry::Point2F> point_uv_coordinates = uv_coordinates_->getClosestUVCoordinates(position);
+    const std::optional<Point2F> point_uv_coordinates = uv_coordinates_->getClosestUVCoordinates(position);
     if (! point_uv_coordinates.has_value())
     {
         return std::nullopt;
@@ -54,7 +56,7 @@ std::optional<uint32_t> TextureDataProvider::getValue(const ::curaengine::geomet
     return getValue(point_uv_coordinates.value(), feature);
 }
 
-std::optional<TextureArea> TextureDataProvider::getAreaPreference(const ::curaengine::geometry::Point2LL& position, const std::string& feature) const
+std::optional<TextureArea> TextureDataProvider::getAreaPreference(const Point2LL& position, const std::string& feature) const
 {
     const std::optional<uint32_t> raw_value = getValue(position, feature);
     if (raw_value.has_value())

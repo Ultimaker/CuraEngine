@@ -59,13 +59,13 @@ public:
      */
     PathsPointIndex(const PathsPointIndex& original) = default;
 
-    ::curaengine::geometry::Point2LL p() const
+    geometry::Point2LL p() const
     {
-        using ::curaengine::geometry::make_point;
+        using geometry::make_point;
 
         if (! polygons_)
         {
-            return ::curaengine::geometry::Point2LL(0, 0);
+            return geometry::Point2LL(0, 0);
         }
         return make_point((*polygons_)[poly_idx_][point_idx_]);
     }
@@ -81,7 +81,7 @@ public:
     /*!
      * Get the polygon to which this PolygonsPointIndex refers
      */
-    const ::curaengine::geometry::Polygon& getPolygon() const;
+    const geometry::Polygon& getPolygon() const;
 
     /*!
      * Test whether two iterators refer to the same polygon in the same polygon list.
@@ -147,7 +147,7 @@ public:
     }
 };
 
-using PolygonsPointIndex = PathsPointIndex<::curaengine::geometry::Shape>;
+using PolygonsPointIndex = PathsPointIndex<geometry::Shape>;
 
 
 } // namespace curaengine::utils

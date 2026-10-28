@@ -22,27 +22,27 @@ namespace curaengine
 class SliceLayerPart
 {
 public:
-    ::curaengine::utils::AABB boundaryBox; //!< The boundaryBox is an axis-aligned boundary box which is used to quickly check for possible
+    utils::AABB boundaryBox; //!< The boundaryBox is an axis-aligned boundary box which is used to quickly check for possible
                       //!< collision between different parts on different layers. It's an optimization used during
                       //!< skin calculations.
-    ::curaengine::geometry::SingleShape outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
+    geometry::SingleShape outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
                          //!< a cross-section of the 3D model.
-    ::curaengine::geometry::Shape print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
+    geometry::Shape print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
                          //!< Too small parts will be omitted compared to the outline.
-    ::curaengine::geometry::Shape spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
-    ::curaengine::geometry::Shape inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
+    geometry::Shape spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
+    geometry::Shape inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.
-    std::vector<::curaengine::utils::VariableWidthLines> wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets. Binned by inset_idx.
-    std::vector<::curaengine::utils::VariableWidthLines> infill_wall_toolpaths; //!< toolpaths for the walls of the infill areas. Binned by inset_idx.
-    ::curaengine::geometry::Shape top_most_surface; //!< Sub-part of the outline containing the area that is not covered by something above
-    ::curaengine::geometry::Shape bottom_most_surface; //!< Sub-part of the outline containing the area that has nothing below
+    std::vector<utils::VariableWidthLines> wall_toolpaths; //!< toolpaths for walls, will replace(?) the insets. Binned by inset_idx.
+    std::vector<utils::VariableWidthLines> infill_wall_toolpaths; //!< toolpaths for the walls of the infill areas. Binned by inset_idx.
+    geometry::Shape top_most_surface; //!< Sub-part of the outline containing the area that is not covered by something above
+    geometry::Shape bottom_most_surface; //!< Sub-part of the outline containing the area that has nothing below
 
     /*!
      * The areas inside of the mesh.
      * Like SliceLayerPart::outline, this class member is not used to actually determine the feature area,
      * but is used to compute the inside comb boundary.
      */
-    ::curaengine::geometry::Shape infill_area;
+    geometry::Shape infill_area;
 
     /*!
      * The areas which need to be filled with sparse (0-99%) infill.
@@ -53,7 +53,7 @@ public:
      *
      * If these polygons are not initialized, simply use the normal infill area.
      */
-    std::optional<::curaengine::geometry::Shape> infill_area_own;
+    std::optional<geometry::Shape> infill_area_own;
 
     /*!
      * The areas which need to be filled with sparse (0-99%) infill for different thicknesses.
@@ -100,21 +100,21 @@ public:
      * infill_area[x] will lie fully inside infill_area[x+1].
      * infill_area_per_combine_per_density.back()[0] == part.infill area initially
      */
-    std::vector<std::vector<::curaengine::geometry::Shape>> infill_area_per_combine_per_density;
+    std::vector<std::vector<geometry::Shape>> infill_area_per_combine_per_density;
 
     /*!
      * Get the infill_area_own (or when it's not instantiated: the normal infill_area)
      * \see SliceLayerPart::infill_area_own
      * \return the own infill area
      */
-    ::curaengine::geometry::Shape& getOwnInfillArea();
+    geometry::Shape& getOwnInfillArea();
 
     /*!
      * Get the infill_area_own (or when it's not instantiated: the normal infill_area)
      * \see SliceLayerPart::infill_area_own
      * \return the own infill area
      */
-    const ::curaengine::geometry::Shape& getOwnInfillArea() const;
+    const geometry::Shape& getOwnInfillArea() const;
 
     /*!
      * Searches whether the part has any walls in the specified inset index

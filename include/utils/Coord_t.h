@@ -33,7 +33,7 @@ static constexpr coord_t operator""_mu(unsigned long long i)
 #define INT2MICRON(n) ((n) / 1)
 #define MICRON2INT(n) ((n) * 1)
 
-template<::curaengine::types::floating_point FactorType>
+template<types::floating_point FactorType>
 [[nodiscard]] inline coord_t lerp(coord_t a, coord_t b, FactorType t)
 {
     return std::llrint(std::lerp(static_cast<double>(a), static_cast<double>(b), t));

@@ -26,7 +26,7 @@ private:
      * \brief Creates a message containing slice information.
      * \return A string containing the slice information message.
      */
-    [[nodiscard]] static std::string createSliceInfoMessage(const std::vector<::curaengine::types::Duration>& time_estimates, const PrintInformation& print_information);
+    [[nodiscard]] static std::string createSliceInfoMessage(const std::vector<types::Duration>& time_estimates, const PrintInformation& print_information);
     [[nodiscard]] static std::string createEngineInfoMessage();
 
 
@@ -48,7 +48,7 @@ public:
      * \param time_estimates The calculated time estimations, per extruder
      * \param print_information The calculated materials consumptions, per extruder
      */
-    void sendPrintInformation(const std::vector<::curaengine::types::Duration>& time_estimates, const PrintInformation& print_information) const override;
+    void sendPrintInformation(const std::vector<types::Duration>& time_estimates, const PrintInformation& print_information) const override;
 };
 
 } // namespace curaengine::communication

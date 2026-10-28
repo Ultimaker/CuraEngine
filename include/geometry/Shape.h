@@ -16,7 +16,7 @@ class Ratio;
 
 namespace curaengine::geometry
 {
-using ::curaengine::utils::operator""_mu;
+using utils::operator""_mu;
 
 
 class Polygon;
@@ -93,7 +93,7 @@ public:
      *  @note The behavior of this method is exactly the same, but it just exists because it allows
      *        for a performance optimization
      */
-    [[nodiscard]] Shape offset(::curaengine::utils::coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
+    [[nodiscard]] Shape offset(utils::coord_t distance, ClipperLib::JoinType join_type = ClipperLib::jtMiter, double miter_limit = 1.2) const;
 
     /*!
      * Intersect polylines with the area covered by the shape.
@@ -109,7 +109,7 @@ public:
      * \todo This should technically return a MixedLinesSet, because it can definitely contain open and closed polylines, but that is a heavy change
      */
     template<class LineType>
-    OpenLinesSet intersection(const LinesSet<LineType>& polylines, bool restitch = true, const ::curaengine::utils::coord_t max_stitch_distance = 10_mu, const bool split_into_segments = true) const;
+    OpenLinesSet intersection(const LinesSet<LineType>& polylines, bool restitch = true, const utils::coord_t max_stitch_distance = 10_mu, const bool split_into_segments = true) const;
 
     [[nodiscard]] Shape xorPolygons(const Shape& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const;
 
@@ -174,11 +174,11 @@ public:
      * \param shortcut_length The desired length of the shortcut line segment introduced (shorter shortcuts may be unavoidable)
      * \return The resulting polygons
      */
-    [[nodiscard]] Shape smoothOutward(const ::curaengine::types::AngleDegrees angle, int shortcut_length) const;
+    [[nodiscard]] Shape smoothOutward(const types::AngleDegrees angle, int shortcut_length) const;
 
     [[nodiscard]] Shape smooth2(int remove_length, int min_area) const; //!< removes points connected to small lines
 
-    void removeColinearEdges(const ::curaengine::types::AngleRadians max_deviation_angle = ::curaengine::types::AngleRadians(0.0005));
+    void removeColinearEdges(const types::AngleRadians max_deviation_angle = types::AngleRadians(0.0005));
 
     /*!
      * Remove all but the polygons on the very outside.
@@ -234,7 +234,7 @@ public:
      */
     void ensureManifold();
 
-    [[nodiscard]] Shape offsetMulti(const std::vector<::curaengine::utils::coord_t>& offset_dists) const;
+    [[nodiscard]] Shape offsetMulti(const std::vector<utils::coord_t>& offset_dists) const;
 
     /*!
      * @brief Remove self-intersections from the polygons
@@ -270,7 +270,7 @@ public:
      *        shape. Comparable to normal offset.
      * \return The resulting polygons.
      */
-    [[nodiscard]] Shape createTubeShape(const ::curaengine::utils::coord_t inner_offset, const ::curaengine::utils::coord_t outer_offset) const;
+    [[nodiscard]] Shape createTubeShape(const utils::coord_t inner_offset, const utils::coord_t outer_offset) const;
 
 #ifdef BUILD_TESTS
     /*!

@@ -9,6 +9,10 @@
 #include "Slice.h"
 #include "SliceDataStorage.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::prime_tower
 {
 
@@ -22,7 +26,7 @@ ExtruderPrime PrimeTowerInterleaved::getExtruderPrime(
     size_t extruder_nr,
     size_t last_extruder,
     const SliceDataStorage& /*storage*/,
-    const ::curaengine::types::LayerIndex& /*layer_nr*/) const
+    const LayerIndex& /*layer_nr*/) const
 {
     // For now, just calculate prime or not. Support extrusion requires the whole extruders list to be calculted, and
     // will be processed later.
@@ -36,25 +40,25 @@ ExtruderPrime PrimeTowerInterleaved::getExtruderPrime(
     }
 }
 
-std::map<::curaengine::types::LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInterleaved::generateToolPaths(const ::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& extruders_use)
+std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerInterleaved::generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-    const ::curaengine::utils::coord_t tower_radius = mesh_group_settings.get<::curaengine::utils::coord_t>("prime_tower_size") / 2;
-    const ::curaengine::utils::coord_t min_shell_thickness = mesh_group_settings.get<::curaengine::utils::coord_t>("prime_tower_min_shell_thickness");
-    ::curaengine::utils::coord_t shell_thickness = 0;
-    std::map<::curaengine::types::LayerIndex, std::vector<ExtruderToolPaths>> toolpaths;
+    const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
+    const coord_t min_shell_thickness = mesh_group_settings.get<coord_t>("prime_tower_min_shell_thickness");
+    coord_t shell_thickness = 0;
+    std::map<LayerIndex, std::vector<ExtruderToolPaths>> toolpaths;
 
     // Loop from top bo bottom, so that the required support increases with what is actually required
     for (auto iterator = extruders_use.rbegin(); iterator != extruders_use.rend(); ++iterator)
     {
-        const ::curaengine::types::LayerIndex layer_nr = extruders_use.getLayer(iterator);
+        const LayerIndex layer_nr = extruders_use.getLayer(iterator);
         const std::vector<ExtruderUse>& extruders_use_at_layer = extruders_use[layer_nr];
         std::vector<ExtruderToolPaths> toolpaths_at_layer;
         size_t last_extruder_support = 0;
 
         // Generate actual priming patterns
-        ::curaengine::utils::coord_t prime_next_outer_radius = tower_radius;
+        coord_t prime_next_outer_radius = tower_radius;
         for (const ExtruderUse& extruder_use : extruders_use_at_layer)
         {
             if (extruder_use.prime == ExtruderPrime::Prime)
@@ -75,7 +79,7 @@ std::map<::curaengine::types::LayerIndex, std::vector<PrimeTower::ExtruderToolPa
         }
 
         // Increase shell thickness if required
-        const ::curaengine::utils::coord_t layer_prime_thickness = tower_radius - prime_next_outer_radius;
+        const coord_t layer_prime_thickness = tower_radius - prime_next_outer_radius;
         shell_thickness = std::max(shell_thickness, layer_prime_thickness);
 
         if (shell_thickness > 0)
@@ -83,16 +87,16 @@ std::map<::curaengine::types::LayerIndex, std::vector<PrimeTower::ExtruderToolPa
             shell_thickness = std::max(shell_thickness, min_shell_thickness);
 
             // Generate extra inner support if required
-            const ::curaengine::utils::coord_t inner_support_radius = tower_radius - shell_thickness;
+            const coord_t inner_support_radius = tower_radius - shell_thickness;
             if (inner_support_radius < prime_next_outer_radius)
             {
                 if (toolpaths_at_layer.empty())
                 {
-                    toolpaths_at_layer.push_back(ExtruderToolPaths{ last_extruder_support, ::curaengine::geometry::ClosedLinesSet(), prime_next_outer_radius, inner_support_radius });
+                    toolpaths_at_layer.push_back(ExtruderToolPaths{ last_extruder_support, ClosedLinesSet(), prime_next_outer_radius, inner_support_radius });
                 }
 
                 ExtruderToolPaths& last_extruder_toolpaths = toolpaths_at_layer.back();
-                ::curaengine::geometry::ClosedLinesSet support_toolpaths = generateSupportToolpaths(last_extruder_toolpaths.extruder_nr, prime_next_outer_radius, inner_support_radius);
+                ClosedLinesSet support_toolpaths = generateSupportToolpaths(last_extruder_toolpaths.extruder_nr, prime_next_outer_radius, inner_support_radius);
                 last_extruder_toolpaths.toolpaths.push_back(support_toolpaths);
                 last_extruder_toolpaths.outer_radius = prime_next_outer_radius;
                 last_extruder_toolpaths.inner_radius = inner_support_radius;
@@ -105,7 +109,7 @@ std::map<::curaengine::types::LayerIndex, std::vector<PrimeTower::ExtruderToolPa
     return toolpaths;
 }
 
-void PrimeTowerInterleaved::polishExtrudersUses(::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder)
+void PrimeTowerInterleaved::polishExtrudersUses(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder)
 {
     size_t last_used_extruder = start_extruder;
 

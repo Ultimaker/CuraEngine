@@ -49,13 +49,13 @@ class InsetOrderOptimizer;
  *
  * The main function of this class is FffGcodeWriter::writeGCode().
  */
-class FffGcodeWriter : public ::curaengine::utils::NoCopy
+class FffGcodeWriter : public utils::NoCopy
 {
     friend class FffProcessor; // Because FffProcessor exposes finalize (TODO)
     friend class DISABLED_FffGcodeWriterTest_SurfaceGetsExtraInfillLinesUnderIt_Test;
 
 private:
-    ::curaengine::utils::coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
+    utils::coord_t max_object_height; //!< The maximal height of all previously sliced meshgroups, used to avoid collision when moving to the next meshgroup to print.
 
     /*
      * Buffer for all layer plans (of type LayerPlan)
@@ -70,10 +70,10 @@ private:
      *
      * It holds information such as the last written position etc.
      */
-    ::curaengine::gcode_export::GCodeExport gcode;
+    gcode_export::GCodeExport gcode;
 
     //!< For each layer, the extruders to be used in that layer in the order in which they are going to be used
-    ::curaengine::utils::LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
+    utils::LayerVector<std::vector<ExtruderUse>> extruder_order_per_layer;
 
     std::vector<std::vector<size_t>> mesh_order_per_extruder; //!< For each extruder, the order of the meshes (first element is first mesh to be printed)
 
@@ -85,7 +85,7 @@ private:
      * the layer numbers are all zero (or less in case of raft)
      * or they are the first layer at which the extruder is needed
      */
-    ::curaengine::types::LayerIndex extruder_prime_layer_nr[MAX_EXTRUDERS];
+    types::LayerIndex extruder_prime_layer_nr[MAX_EXTRUDERS];
 
     std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder; //!< The settings used relating to minimal layer time
                                                                                        //!< and fan speeds. Configured for each extruder.
@@ -110,13 +110,13 @@ public:
      * \param[in] storage The data storage from which to get the polygons to print and the areas to fill.
      * \param timeKeeper The stop watch to see how long it takes for each of the stages in the slicing process.
      */
-    void writeGCode(SliceDataStorage& storage, ::curaengine::utils::TimeKeeper& timeKeeper);
+    void writeGCode(SliceDataStorage& storage, utils::TimeKeeper& timeKeeper);
 
 private:
     struct ProcessLayerResult
     {
         LayerPlan* layer_plan;
-        ::curaengine::utils::TimeKeeper time_keeper;
+        utils::TimeKeeper time_keeper;
     };
 
     struct RoofingFlooringSettingsNames
@@ -198,9 +198,9 @@ private:
      */
     void processRaft(const SliceDataStorage& storage);
 
-    void startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const ::curaengine::types::LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder);
+    void startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const types::LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder);
 
-    void endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const ::curaengine::types::LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower = true);
+    void endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const types::LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower = true);
 
     /*!
      * Convert the polygon data of a layer into a layer plan on the FffGcodeWriter::layer_plan_buffer
@@ -213,7 +213,7 @@ private:
      * \param total_layers The total number of layers.
      * \return The layer plans
      */
-    ProcessLayerResult processLayer(const SliceDataStorage& storage, ::curaengine::types::LayerIndex layer_nr, const size_t total_layers) const;
+    ProcessLayerResult processLayer(const SliceDataStorage& storage, types::LayerIndex layer_nr, const size_t total_layers) const;
 
     /*!
      * This function checks whether prime blob should happen for any extruder on the first layer.
@@ -238,7 +238,7 @@ private:
      * brim.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const ::curaengine::types::LayerIndex layer_nr) const;
+    void processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const types::LayerIndex layer_nr) const;
 
     /*!
      * Add the support brim to the layer plan
@@ -248,7 +248,7 @@ private:
      * \param extruder_nr The extruder train for which to process the brim.
      * \param layer_nr The index of the layer to write the gcode of.
      */
-    static void processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const ::curaengine::types::LayerIndex layer_nr);
+    static void processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const types::LayerIndex layer_nr);
 
     /*!
      * Adds the ooze shield to the layer plan \p gcodeLayer.
@@ -304,7 +304,7 @@ private:
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
     std::vector<ExtruderUse>
-        getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const ::curaengine::types::LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used) const;
+        getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const types::LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used) const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
@@ -324,7 +324,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const ::curaengine::types::MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
+    void addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, LayerPlan& gcodeLayer) const;
 
     /*!
      * Add the open polylines from a single layer from a single mesh-volume to the layer plan \p gcodeLayer for mesh the surface modes.
@@ -334,7 +334,7 @@ private:
      * \param mesh_config the line config with which to print a print feature
      * \param gcodeLayer The initial planning of the gcode of the layer.
      */
-    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const ::curaengine::types::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
+    void addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add all features of a given extruder from a single layer from a single mesh-volume to the layer plan \p gcode_layer.
@@ -351,7 +351,7 @@ private:
         const SliceDataStorage& storage,
         const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         LayerPlan& gcode_layer) const;
 
     /*!
@@ -370,7 +370,7 @@ private:
         const SliceDataStorage& storage,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         SliceLayerPart& part,
         LayerPlan& gcode_layer) const;
 
@@ -391,9 +391,9 @@ private:
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const std::optional<::curaengine::geometry::Point2LL>& near_end_location = std::nullopt) const;
+        const std::optional<geometry::Point2LL>& near_end_location = std::nullopt) const;
 
     /*!
      * \brief Add thicker (multiple layers) sparse infill for a given part in a
@@ -415,11 +415,11 @@ private:
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const ::curaengine::utils::coord_t start_move_inwards_length = 0,
-        const ::curaengine::utils::coord_t end_move_inwards_length = 0,
-        const std::optional<::curaengine::geometry::Point2LL>& near_end_location = std::nullopt,
+        const utils::coord_t start_move_inwards_length = 0,
+        const utils::coord_t end_move_inwards_length = 0,
+        const std::optional<geometry::Point2LL>& near_end_location = std::nullopt,
         const bool split_near_end_location = false) const;
 
     /*!
@@ -441,11 +441,11 @@ private:
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         const SliceLayerPart& part,
-        const ::curaengine::utils::coord_t start_move_inwards_length = 0,
-        const ::curaengine::utils::coord_t end_move_inwards_length = 0,
-        const std::optional<::curaengine::geometry::Point2LL>& near_end_location = std::nullopt,
+        const utils::coord_t start_move_inwards_length = 0,
+        const utils::coord_t end_move_inwards_length = 0,
+        const std::optional<geometry::Point2LL>& near_end_location = std::nullopt,
         const bool split_near_end_location = false) const;
 
     /*!
@@ -464,12 +464,12 @@ private:
         LayerPlan& gcodeLayer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         SliceLayerPart& part,
         const bool end_infill_close_to_seam) const;
 
     OverrideAreas
-        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const ::curaengine::types::MeshPathConfigs& mesh_config, SliceLayerPart& part) const;
+        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, SliceLayerPart& part) const;
 
     /*!
      * Inserts the previously processed insets
@@ -490,7 +490,7 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         SliceLayerPart& part,
         const bool infill_added) const;
 
@@ -503,7 +503,7 @@ private:
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
     void
-        processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const ::curaengine::types::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh)
+        processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const types::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh)
             const;
 
     /*!
@@ -522,7 +522,7 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         const SliceLayerPart& part) const;
 
     /*!
@@ -551,7 +551,7 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         const SkinPart& skin_part) const;
 
     /*!
@@ -572,10 +572,10 @@ private:
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
         const RoofingFlooringSettingsNames& settings_names,
-        const ::curaengine::types::MeshPathConfigs& mesh_config,
+        const types::MeshPathConfigs& mesh_config,
         const GCodePathConfig& default_config,
-        const std::vector<::curaengine::types::AngleDegrees>& angles,
-        const ::curaengine::geometry::Shape& skin_fill,
+        const std::vector<types::AngleDegrees>& angles,
+        const geometry::Shape& skin_fill,
         const bool is_roofing_flooring,
         bool& added_something) const;
 
@@ -605,18 +605,18 @@ private:
         LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const size_t extruder_nr,
-        const ::curaengine::geometry::Shape& area,
+        const geometry::Shape& area,
         const GCodePathConfig& config,
         const GCodePathConfig* bridge_config,
-        ::curaengine::types::EFillMethod pattern,
-        const ::curaengine::types::AngleDegrees skin_angle,
-        const ::curaengine::utils::coord_t skin_overlap,
-        const ::curaengine::types::Ratio skin_density,
+        types::EFillMethod pattern,
+        const types::AngleDegrees skin_angle,
+        const utils::coord_t skin_overlap,
+        const types::Ratio skin_density,
         const LinesOrderingMethod ordering,
         const bool is_roofing_flooring,
         bool& added_something,
         double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
-        std::optional<::curaengine::utils::coord_t> forced_small_area_width = std::nullopt,
+        std::optional<utils::coord_t> forced_small_area_width = std::nullopt,
         const OverrideAreas& override_areas = {}) const;
 
     /*!
@@ -642,7 +642,7 @@ private:
      * \param last_position The position the print head is in before going to fill the part
      * \return The location near where to start filling the part
      */
-    std::optional<::curaengine::geometry::Point2LL> getSeamAvoidingLocation(const ::curaengine::geometry::Shape& filling_part, int filling_angle, ::curaengine::geometry::Point2LL last_position) const;
+    std::optional<geometry::Point2LL> getSeamAvoidingLocation(const geometry::Shape& filling_part, int filling_angle, geometry::Point2LL last_position) const;
 
     /*!
      * Add the g-code for ironing the top surface.
@@ -687,7 +687,7 @@ private:
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
-    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const ::curaengine::geometry::Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
+    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const geometry::Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
 
     /*!
      * Add the support bottoms to the layer plan \p gcodeLayer of the current
@@ -751,7 +751,7 @@ private:
      * \param part [in] The part that we're currently checking.
      * \param skin_layer_nr [in] A layer that is adjacent to the part (so either above or below the layer of the part).
      */
-    static void getCombinedSkinForSkinSupport(::curaengine::geometry::Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr);
+    static void getCombinedSkinForSkinSupport(geometry::Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr);
 
     /*!
      * Partition the Infill regions by the skin at N layers above.
@@ -770,13 +770,13 @@ private:
      * \param infill_line_width line width of the infill
      */
     static void partitionInfillBySkinAbove(
-        ::curaengine::geometry::Shape& infill_below_skin,
-        ::curaengine::geometry::Shape& infill_not_below_skin,
-        ::curaengine::geometry::Shape& infill_sandwiched,
+        geometry::Shape& infill_below_skin,
+        geometry::Shape& infill_not_below_skin,
+        geometry::Shape& infill_sandwiched,
         const LayerPlan& gcode_layer,
         const SliceMeshStorage& mesh,
         const SliceLayerPart& part,
-        ::curaengine::utils::coord_t infill_line_width);
+        utils::coord_t infill_line_width);
 
     /*!
      * Find the first or last extruder used at the given layer. This may loop to lower layers if
@@ -788,7 +788,7 @@ private:
      * \param last Indicates whether we want to retrieve the last or the first extruder being used
      * \return The first or last exruder used at the given index
      */
-    size_t findUsedExtruderIndex(const SliceDataStorage& storage, const ::curaengine::types::LayerIndex& layer_nr, bool last) const;
+    size_t findUsedExtruderIndex(const SliceDataStorage& storage, const types::LayerIndex& layer_nr, bool last) const;
 };
 
 } // namespace curaengine

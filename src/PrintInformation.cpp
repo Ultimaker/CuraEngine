@@ -6,7 +6,9 @@
 #include "LayerPlan.h"
 
 
-void curaengine::PrintInformation::updateWithLayer(const LayerPlan* layer_plan)
+using namespace curaengine;
+
+void PrintInformation::updateWithLayer(const LayerPlan* layer_plan)
 {
     // Find the first layer that has an extrusion (most likely layer 0) and keep the very initial extruder nr
     if (! initial_extruder_nr.has_value())

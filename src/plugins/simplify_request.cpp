@@ -7,13 +7,15 @@
 #include <range/v3/range/operations.hpp>
 #include <range/v3/view/drop.hpp>
 
+using namespace curaengine::utils;
+
 namespace curaengine::plugins
 {
 simplify_request::value_type simplify_request::operator()(
     const simplify_request::native_value_type& polygons,
-    const ::curaengine::utils::coord_t max_resolution,
-    [[maybe_unused]] const ::curaengine::utils::coord_t max_deviation,
-    [[maybe_unused]] const ::curaengine::utils::coord_t max_area_deviation) const
+    const coord_t max_resolution,
+    [[maybe_unused]] const coord_t max_deviation,
+    [[maybe_unused]] const coord_t max_area_deviation) const
 {
     value_type message{};
     if (polygons.empty())

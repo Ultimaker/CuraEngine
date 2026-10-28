@@ -24,19 +24,19 @@ public:
      * \param distribution_radius the radius (in number of beads) over which to distribute the discrepancy between the feature size and the optimal thickness
      */
     DistributedBeadingStrategy(
-        const ::curaengine::utils::coord_t optimal_width,
-        const ::curaengine::utils::coord_t default_transition_length,
-        const ::curaengine::types::AngleRadians transitioning_angle,
-        const ::curaengine::types::Ratio wall_split_middle_threshold,
-        const ::curaengine::types::Ratio wall_add_middle_threshold,
+        const utils::coord_t optimal_width,
+        const utils::coord_t default_transition_length,
+        const types::AngleRadians transitioning_angle,
+        const types::Ratio wall_split_middle_threshold,
+        const types::Ratio wall_add_middle_threshold,
         const int distribution_radius);
 
     virtual ~DistributedBeadingStrategy() override
     {
     }
 
-    Beading compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const override;
-    ::curaengine::utils::coord_t getOptimalBeadCount(::curaengine::utils::coord_t thickness) const override;
+    Beading compute(utils::coord_t thickness, utils::coord_t bead_count) const override;
+    utils::coord_t getOptimalBeadCount(utils::coord_t thickness) const override;
 };
 
 } // namespace curaengine::beading_strategy

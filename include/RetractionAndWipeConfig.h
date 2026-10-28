@@ -14,7 +14,7 @@ struct RetractionAndWipeConfig
     WipeScriptConfig wipe_config;
 
     RetractionConfig retraction_config;
-    ::curaengine::utils::coord_t retraction_hop_after_extruder_switch;
+    utils::coord_t retraction_hop_after_extruder_switch;
     double switch_extruder_extra_prime_amount;
     RetractionConfig extruder_switch_retraction_config;
 };

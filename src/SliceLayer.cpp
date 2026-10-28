@@ -3,20 +3,22 @@
 
 #include "SliceLayer.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine
 {
 SliceLayer::~SliceLayer()
 {
 }
 
-::curaengine::geometry::Shape SliceLayer::getOutlines(bool external_polys_only) const
+Shape SliceLayer::getOutlines(bool external_polys_only) const
 {
-    ::curaengine::geometry::Shape ret;
+    Shape ret;
     getOutlines(ret, external_polys_only);
     return ret;
 }
 
-void SliceLayer::getOutlines(::curaengine::geometry::Shape& result, bool external_polys_only) const
+void SliceLayer::getOutlines(Shape& result, bool external_polys_only) const
 {
     for (const SliceLayerPart& part : parts)
     {

@@ -37,6 +37,11 @@
 #include "utils/VoxelGrid.h"
 
 
+using namespace curaengine::geometry;
+using namespace curaengine::progress;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::mesh_material_splitter
 {
 
@@ -46,10 +51,10 @@ namespace curaengine::mesh_material_splitter
 struct MeshGeneratorData
 {
     const Mesh& mesh; //!< The mesh for which a material modifier is to be generated
-    ::curaengine::utils::AABB3D bounding_box; //!< The bounding box of the mesh
+    AABB3D bounding_box; //!< The bounding box of the mesh
     size_t estimated_material_iterations{ 0 }; //!< The roughly estimated number of multi-material voxels-propagation iterations (for progress reporting)
-    ::curaengine::utils::coord_t depth; //!< The propagation depth retrieved from the mesh settings
-    ::curaengine::utils::coord_t resolution; //!< The points cloud resolution retrieved from the mesh settings
+    coord_t depth; //!< The propagation depth retrieved from the mesh settings
+    coord_t resolution; //!< The points cloud resolution retrieved from the mesh settings
 };
 
 /*!
@@ -90,35 +95,35 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
     const Mesh& mesh,
     const std::shared_ptr<TextureDataProvider>& texture_data_provider,
     const std::string& texture_feature,
-    ::curaengine::utils::VoxelGrid& voxel_grid,
+    VoxelGrid& voxel_grid,
     const uint8_t default_value,
     const std::unordered_set<size_t>& authorized_values)
 {
     spdlog::stopwatch timer;
     boost::concurrent_flat_set<uint8_t> found_values;
 
-    ::curaengine::utils::parallel_for(
+    utils::parallel_for(
         mesh.faces_,
         [&](const auto& iterator)
         {
             const MeshFace& face = *iterator;
-            const std::optional<::curaengine::geometry::Point2F> uv0 = face.uv_coordinates_[0];
-            const std::optional<::curaengine::geometry::Point2F> uv1 = face.uv_coordinates_[1];
-            const std::optional<::curaengine::geometry::Point2F> uv2 = face.uv_coordinates_[2];
+            const std::optional<Point2F> uv0 = face.uv_coordinates_[0];
+            const std::optional<Point2F> uv1 = face.uv_coordinates_[1];
+            const std::optional<Point2F> uv2 = face.uv_coordinates_[2];
 
             if (! uv0.has_value() || ! uv1.has_value() || ! uv2.has_value())
             {
                 return;
             }
 
-            const ::curaengine::geometry::Triangle2F face_uvs{ uv0.value(), uv1.value(), uv2.value() };
-            const ::curaengine::geometry::Triangle3LL triangle{ mesh.vertices_[face.vertex_index_[0]].p_, mesh.vertices_[face.vertex_index_[1]].p_, mesh.vertices_[face.vertex_index_[2]].p_ };
+            const Triangle2F face_uvs{ uv0.value(), uv1.value(), uv2.value() };
+            const Triangle3LL triangle{ mesh.vertices_[face.vertex_index_[0]].p_, mesh.vertices_[face.vertex_index_[1]].p_, mesh.vertices_[face.vertex_index_[2]].p_ };
 
-            for (const ::curaengine::utils::VoxelGrid::LocalCoordinates& traversed_voxel : voxel_grid.getTraversedVoxels(triangle))
+            for (const VoxelGrid::LocalCoordinates& traversed_voxel : voxel_grid.getTraversedVoxels(triangle))
             {
-                const ::curaengine::geometry::Point3D global_position = voxel_grid.toGlobalCoordinates(traversed_voxel);
-                const ::curaengine::geometry::Point3LL global_position_ll = ::curaengine::geometry::Point3LL(std::llrint(global_position.x_), std::llrint(global_position.y_), std::llrint(global_position.z_));
-                const std::optional<::curaengine::geometry::Point3D> barycentric_coordinates = ::curaengine::utils::getBarycentricCoordinates(global_position_ll, triangle);
+                const Point3D global_position = voxel_grid.toGlobalCoordinates(traversed_voxel);
+                const Point3LL global_position_ll = Point3LL(std::llrint(global_position.x_), std::llrint(global_position.y_), std::llrint(global_position.z_));
+                const std::optional<Point3D> barycentric_coordinates = utils::getBarycentricCoordinates(global_position_ll, triangle);
                 if (! barycentric_coordinates.has_value() || barycentric_coordinates.value().x_ < 0 || barycentric_coordinates.value().y_ < 0
                     || barycentric_coordinates.value().z_ < 0)
                 {
@@ -126,8 +131,8 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
                     continue;
                 }
 
-                const ::curaengine::geometry::Point2F point_uv_coords = ::curaengine::utils::getUVCoordinates(barycentric_coordinates.value(), face_uvs);
-                const std::pair<size_t, size_t> pixel = texture_data_provider->getTexture()->getPixelCoordinates(::curaengine::geometry::Point2F(point_uv_coords.x_, point_uv_coords.y_));
+                const Point2F point_uv_coords = utils::getUVCoordinates(barycentric_coordinates.value(), face_uvs);
+                const std::pair<size_t, size_t> pixel = texture_data_provider->getTexture()->getPixelCoordinates(Point2F(point_uv_coords.x_, point_uv_coords.y_));
                 std::optional<uint32_t> texture_value = texture_data_provider->getValue(std::get<0>(pixel), std::get<1>(pixel), texture_feature);
                 if (! texture_value.has_value() || ! authorized_values.contains(texture_value.value()))
                 {
@@ -157,12 +162,12 @@ boost::concurrent_flat_set<uint8_t> makeVoxelGridFromTexture(
  * Then we just have to extrude those polygons vertically. The final mesh has no horizontal face, thus it is not watertight at all. However, since it will subsequently
  * be re-sliced on XY planes, this is good enough.
  */
-std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::VoxelGrid& voxel_grid, const uint8_t ignore_value, const std::optional<Settings>& mesh_settings, const bool is_hollow)
+std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const VoxelGrid& voxel_grid, const uint8_t ignore_value, const std::optional<Settings>& mesh_settings, const bool is_hollow)
 {
     spdlog::debug("Make modifier meshes from voxels grid");
 
     // First, gather all positions that should be considered for the marching square, e.g. all that have a specific value and around them
-    boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates> marching_squares;
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> marching_squares;
     voxel_grid.visitOccupiedVoxels(
         [&marching_squares, &ignore_value](const auto& occupied_voxel)
         {
@@ -171,15 +176,15 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::Voxe
                 marching_squares.insert(occupied_voxel.first);
                 if (occupied_voxel.first.position.x > 0)
                 {
-                    marching_squares.insert(::curaengine::utils::VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x - 1, occupied_voxel.first.position.y, occupied_voxel.first.position.z));
+                    marching_squares.insert(VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x - 1, occupied_voxel.first.position.y, occupied_voxel.first.position.z));
                 }
                 if (occupied_voxel.first.position.y > 0)
                 {
-                    marching_squares.insert(::curaengine::utils::VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x, occupied_voxel.first.position.y - 1, occupied_voxel.first.position.z));
+                    marching_squares.insert(VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x, occupied_voxel.first.position.y - 1, occupied_voxel.first.position.z));
                 }
                 if (occupied_voxel.first.position.x > 0 && occupied_voxel.first.position.y > 0)
                 {
-                    marching_squares.insert(::curaengine::utils::VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x - 1, occupied_voxel.first.position.y - 1, occupied_voxel.first.position.z));
+                    marching_squares.insert(VoxelGrid::LocalCoordinates(occupied_voxel.first.position.x - 1, occupied_voxel.first.position.y - 1, occupied_voxel.first.position.z));
                 }
             }
         });
@@ -187,39 +192,39 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::Voxe
     // Build the list of segments to be added when running the marching squares
     const double half_res_x = voxel_grid.getResolution().x_ / 2;
     const double half_res_y = voxel_grid.getResolution().y_ / 2;
-    std::array<::curaengine::geometry::OpenLinesSet, 16> marching_segments = {
-        ::curaengine::geometry::OpenLinesSet(), // This case is empty
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(0, half_res_y), ::curaengine::geometry::Point2LL(half_res_x, 0) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(-half_res_x, 0), ::curaengine::geometry::Point2LL(0, half_res_y) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(-half_res_x, 0), ::curaengine::geometry::Point2LL(half_res_x, 0) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(half_res_x, 0), ::curaengine::geometry::Point2LL(0, -half_res_y) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(0, half_res_y), ::curaengine::geometry::Point2LL(0, -half_res_y) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(-half_res_x, 0), ::curaengine::geometry::Point2LL(0, half_res_y) }), ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(half_res_x, 0), ::curaengine::geometry::Point2LL(0, -half_res_y) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(-half_res_x, 0), ::curaengine::geometry::Point2LL(0, -half_res_y) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(0, -half_res_y), ::curaengine::geometry::Point2LL(-half_res_x, 0) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(0, -half_res_y), ::curaengine::geometry::Point2LL(-half_res_x, 0) }), ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(0, half_res_y), ::curaengine::geometry::Point2LL(half_res_x, 0) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(0, -half_res_y), ::curaengine::geometry::Point2LL(0, half_res_y) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(0, -half_res_y), ::curaengine::geometry::Point2LL(half_res_x, 0) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(half_res_x, 0), ::curaengine::geometry::Point2LL(-half_res_x, 0) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(0, half_res_y), ::curaengine::geometry::Point2LL(-half_res_x, 0) }) },
-        ::curaengine::geometry::OpenLinesSet{ ::curaengine::geometry::OpenPolyline({ ::curaengine::geometry::Point2LL(half_res_x, 0), ::curaengine::geometry::Point2LL(0, half_res_y) }) },
-        ::curaengine::geometry::OpenLinesSet(), // This case is empty
+    std::array<OpenLinesSet, 16> marching_segments = {
+        OpenLinesSet(), // This case is empty
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, -half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(0, -half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, half_res_y) }), OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, -half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(-half_res_x, 0), Point2LL(0, -half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(-half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(-half_res_x, 0) }), OpenPolyline({ Point2LL(0, half_res_y), Point2LL(half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(0, half_res_y) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, -half_res_y), Point2LL(half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(-half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(0, half_res_y), Point2LL(-half_res_x, 0) }) },
+        OpenLinesSet{ OpenPolyline({ Point2LL(half_res_x, 0), Point2LL(0, half_res_y) }) },
+        OpenLinesSet(), // This case is empty
     };
 
     // Now visit all the squares and generate the appropriate outer segments
     struct Contour
     {
-        ::curaengine::geometry::OpenLinesSet segments; // Single segments before stitching
-        ::curaengine::geometry::Shape polygons; // Assembled polygons
+        OpenLinesSet segments; // Single segments before stitching
+        Shape polygons; // Assembled polygons
     };
 
-    const ::curaengine::geometry::Point3D position_delta_center(half_res_x, half_res_y, 0);
+    const Point3D position_delta_center(half_res_x, half_res_y, 0);
     boost::concurrent_flat_map<ContourKey, Contour> raw_contours;
     marching_squares.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid, &raw_contours, &position_delta_center, &marching_segments, &ignore_value, &is_hollow](const ::curaengine::utils::VoxelGrid::LocalCoordinates square_start)
+        [&voxel_grid, &raw_contours, &position_delta_center, &marching_segments, &ignore_value, &is_hollow](const VoxelGrid::LocalCoordinates square_start)
         {
             const int32_t x_plus1 = static_cast<int32_t>(square_start.position.x) + 1;
             const bool x_plus1_valid = x_plus1 <= std::numeric_limits<uint16_t>::max();
@@ -236,7 +241,7 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::Voxe
             {
                 if (position_valid)
                 {
-                    const std::optional<uint8_t> occupation = voxel_grid.getOccupation(::curaengine::utils::VoxelGrid::LocalCoordinates(x, y, square_start.position.z));
+                    const std::optional<uint8_t> occupation = voxel_grid.getOccupation(VoxelGrid::LocalCoordinates(x, y, square_start.position.z));
                     if (occupation.has_value())
                     {
                         filled_values.insert(occupation.value());
@@ -273,7 +278,7 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::Voxe
                 // Apply the marching squares base principle: calculate the index of the segments list to be added according to the occupations of the 4 positions
                 const size_t segments_index = (occupation_bits[0] == value ? 1 : 0) + ((occupation_bits[1] == value ? 1 : 0) << 1) + ((occupation_bits[2] == value ? 1 : 0) << 2)
                                             + ((occupation_bits[3] == value ? 1 : 0) << 3);
-                ::curaengine::geometry::OpenLinesSet translated_segments = marching_segments[segments_index];
+                OpenLinesSet translated_segments = marching_segments[segments_index];
 
                 if (translated_segments.empty())
                 {
@@ -282,11 +287,11 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::Voxe
                 }
 
                 // Now translate the segments according to the current position
-                const ::curaengine::geometry::Point3D center_position = voxel_grid.toGlobalCoordinates(square_start) + position_delta_center;
-                const ::curaengine::geometry::Point2LL center_position_ll(center_position.x_, center_position.y_);
-                for (::curaengine::geometry::OpenPolyline& lines_set : translated_segments)
+                const Point3D center_position = voxel_grid.toGlobalCoordinates(square_start) + position_delta_center;
+                const Point2LL center_position_ll(center_position.x_, center_position.y_);
+                for (OpenPolyline& lines_set : translated_segments)
                 {
-                    for (::curaengine::geometry::Point2LL& point : lines_set)
+                    for (Point2LL& point : lines_set)
                     {
                         point += center_position_ll;
                     }
@@ -309,13 +314,13 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::Voxe
 #endif
         [](auto& raw_contour)
         {
-            ::curaengine::geometry::OpenLinesSet result_lines;
-            ::curaengine::utils::OpenPolylineStitcher::stitch(raw_contour.second.segments, result_lines, raw_contour.second.polygons);
+            OpenLinesSet result_lines;
+            OpenPolylineStitcher::stitch(raw_contour.second.segments, result_lines, raw_contour.second.polygons);
         });
 
     // Finally, simplify the polygons and extrude them vertically
     const double min_distance = std::min({ voxel_grid.getResolution().x_, voxel_grid.getResolution().y_, voxel_grid.getResolution().z_ }) / 2.0;
-    ::curaengine::utils::Simplify simplifier(min_distance, min_distance / 2, std::numeric_limits<::curaengine::utils::coord_t>::max());
+    Simplify simplifier(min_distance, min_distance / 2, std::numeric_limits<coord_t>::max());
 
     std::map<uint8_t, Mesh> meshes;
     std::mutex mutex;
@@ -327,13 +332,13 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::Voxe
         {
             const uint16_t z = contour.first.definition.z;
             const uint8_t feature_value = contour.first.definition.feature_value;
-            const ::curaengine::utils::coord_t z_low = voxel_grid.toGlobalZ(z, false);
-            const ::curaengine::utils::coord_t z_high = voxel_grid.toGlobalZ(z + 1, false);
+            const coord_t z_low = voxel_grid.toGlobalZ(z, false);
+            const coord_t z_high = voxel_grid.toGlobalZ(z + 1, false);
 
             // Add a small offset to make sure overlapping edges won't let any space in between
             constexpr int offset_overlapping = 5;
-            const ::curaengine::geometry::Shape simplified_polygons = simplifier.polygon(contour.second.polygons).offset(offset_overlapping);
-            for (const ::curaengine::geometry::Polygon& simplified_polygon : simplified_polygons)
+            const Shape simplified_polygons = simplifier.polygon(contour.second.polygons).offset(offset_overlapping);
+            for (const Polygon& simplified_polygon : simplified_polygons)
             {
                 const std::lock_guard lock(mutex);
                 const auto mesh_iterator = meshes.find(feature_value);
@@ -346,10 +351,10 @@ std::map<uint8_t, Mesh> makeMeshesFromVoxelsGrid(const ::curaengine::utils::Voxe
                 Mesh& mesh = meshes[feature_value];
                 for (auto iterator = simplified_polygon.beginSegments(); iterator != simplified_polygon.endSegments(); ++iterator)
                 {
-                    const ::curaengine::geometry::Point2LL& start = (*iterator).start;
-                    const ::curaengine::geometry::Point2LL& end = (*iterator).end;
-                    mesh.addFace(::curaengine::geometry::Point3LL(start, z_low), ::curaengine::geometry::Point3LL(end, z_low), ::curaengine::geometry::Point3LL(end, z_high));
-                    mesh.addFace(::curaengine::geometry::Point3LL(end, z_high), ::curaengine::geometry::Point3LL(start, z_high), ::curaengine::geometry::Point3LL(start, z_low));
+                    const Point2LL& start = (*iterator).start;
+                    const Point2LL& end = (*iterator).end;
+                    mesh.addFace(Point3LL(start, z_low), Point3LL(end, z_low), Point3LL(end, z_high));
+                    mesh.addFace(Point3LL(end, z_high), Point3LL(start, z_high), Point3LL(start, z_low));
                 }
             }
         });
@@ -406,17 +411,17 @@ std::vector<Mesh> applyMeshSupport(std::map<uint8_t, Mesh>& meshes)
  * @param rasterized_mesh The voxels grid containing the rasterized mesh
  * @return A vector of shapes, that has as many elements as Z planes in the voxels grid
  */
-std::vector<::curaengine::geometry::Shape> sliceMesh(const Mesh& mesh, const ::curaengine::utils::VoxelGrid& rasterized_mesh)
+std::vector<Shape> sliceMesh(const Mesh& mesh, const VoxelGrid& rasterized_mesh)
 {
-    const ::curaengine::utils::coord_t thickness = rasterized_mesh.getResolution().z_;
-    const ::curaengine::utils::coord_t initial_layer_thickness = thickness;
+    const coord_t thickness = rasterized_mesh.getResolution().z_;
+    const coord_t initial_layer_thickness = thickness;
     constexpr bool use_variable_layer_heights = false;
-    constexpr std::vector<::curaengine::types::AdaptiveLayer>* adaptive_layers = nullptr;
-    constexpr ::curaengine::types::SlicingTolerance slicing_tolerance = ::curaengine::types::SlicingTolerance::INCLUSIVE;
+    constexpr std::vector<AdaptiveLayer>* adaptive_layers = nullptr;
+    constexpr SlicingTolerance slicing_tolerance = SlicingTolerance::INCLUSIVE;
 
     // There is some margin in the voxel grid around the mesh, so get the actual mesh bounding box and see how many layers are actually covered
-    ::curaengine::utils::AABB3D mesh_bounding_box = mesh.getAABB();
-    const size_t margin_below_mesh = rasterized_mesh.toLocalZ(std::max(mesh_bounding_box.min_.z_, static_cast<::curaengine::utils::coord_t>(0)));
+    AABB3D mesh_bounding_box = mesh.getAABB();
+    const size_t margin_below_mesh = rasterized_mesh.toLocalZ(std::max(mesh_bounding_box.min_.z_, static_cast<coord_t>(0)));
     const size_t slice_layer_count = rasterized_mesh.toLocalZ(mesh_bounding_box.max_.z_) - margin_below_mesh + 1;
 
     const double xy_offset = INT2MM(std::max(rasterized_mesh.getResolution().x_, rasterized_mesh.getResolution().y_) * 2);
@@ -429,10 +434,10 @@ std::vector<::curaengine::geometry::Shape> sliceMesh(const Mesh& mesh, const ::c
     Slicer slicer(&sliced_mesh, thickness, slice_layer_count, use_variable_layer_heights, adaptive_layers, slicing_tolerance, initial_layer_thickness);
 
     // In order to re-create an offset on the Z direction, union the sliced shapes over a few layers so that we get an approximate outer shell of it
-    std::vector<::curaengine::geometry::Shape> slices;
+    std::vector<Shape> slices;
     for (std::ptrdiff_t layer_index = 0; layer_index < rasterized_mesh.getSlicesCount().z_; ++layer_index)
     {
-        ::curaengine::geometry::Shape expanded_shape;
+        Shape expanded_shape;
         for (std::ptrdiff_t delta = -2; delta <= 2; ++delta)
         {
             std::ptrdiff_t union_layer_index = layer_index + delta - margin_below_mesh;
@@ -453,11 +458,11 @@ std::vector<::curaengine::geometry::Shape> sliceMesh(const Mesh& mesh, const ::c
  * @param sliced_mesh The pre-sliced mesh, containing a Shape for each Z-plane of the voxels grid
  * @return True if the position is inside the mesh or on the border, false if is outside
  */
-bool isInside(const ::curaengine::utils::VoxelGrid& voxel_grid, const ::curaengine::utils::VoxelGrid::LocalCoordinates& position, const std::vector<::curaengine::geometry::Shape>& sliced_mesh)
+bool isInside(const VoxelGrid& voxel_grid, const VoxelGrid::LocalCoordinates& position, const std::vector<Shape>& sliced_mesh)
 {
-    const ::curaengine::geometry::Point3D global_position = voxel_grid.toGlobalCoordinates(position);
+    const Point3D global_position = voxel_grid.toGlobalCoordinates(position);
     constexpr bool border_result = true;
-    return sliced_mesh.at(position.position.z).inside(::curaengine::geometry::Point2LL(global_position.x_, global_position.y_), border_result);
+    return sliced_mesh.at(position.position.z).inside(Point2LL(global_position.x_, global_position.y_), border_result);
 }
 
 /*!
@@ -466,19 +471,19 @@ bool isInside(const ::curaengine::utils::VoxelGrid& voxel_grid, const ::curaengi
  * @param previously_evaluated_voxels The list of voxels that were just evaluated
  * @return The list of new voxels to be evaluated
  */
-boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates>
-    findVoxelsToEvaluate(const ::curaengine::utils::VoxelGrid& voxel_grid, const boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates>& previously_evaluated_voxels)
+boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>
+    findVoxelsToEvaluate(const VoxelGrid& voxel_grid, const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& previously_evaluated_voxels)
 {
-    boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates> voxels_to_evaluate;
-    boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates> voxels_considered;
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_to_evaluate;
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> voxels_considered;
 
     previously_evaluated_voxels.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&](const ::curaengine::utils::VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
+        [&](const VoxelGrid::LocalCoordinates& previously_evaluated_voxel)
         {
-            for (const ::curaengine::utils::VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(previously_evaluated_voxel))
+            for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(previously_evaluated_voxel))
             {
                 if (voxels_considered.insert(voxel_around) && ! voxel_grid.hasOccupation(voxel_around))
                 {
@@ -501,20 +506,20 @@ boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates>
  * @param mesh_extruder_nr The main mesh extruder number
  */
 void evaluateVoxels(
-    ::curaengine::utils::VoxelGrid& voxel_grid,
-    const boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates>& voxels_to_evaluate,
-    const ::curaengine::utils::SpatialLookup& texture_data,
-    const std::vector<::curaengine::geometry::Shape>& sliced_mesh,
-    const ::curaengine::utils::coord_t depth_squared,
+    VoxelGrid& voxel_grid,
+    const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& voxels_to_evaluate,
+    const SpatialLookup& texture_data,
+    const std::vector<Shape>& sliced_mesh,
+    const coord_t depth_squared,
     const uint8_t mesh_extruder_nr)
 {
     voxels_to_evaluate.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid, &texture_data, &sliced_mesh, &depth_squared, &mesh_extruder_nr](const ::curaengine::utils::VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+        [&voxel_grid, &texture_data, &sliced_mesh, &depth_squared, &mesh_extruder_nr](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
         {
-            const ::curaengine::geometry::Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
+            const Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
 
             if (! sliced_mesh.empty() && ! isInside(voxel_grid, voxel_to_evaluate, sliced_mesh))
             {
@@ -523,10 +528,10 @@ void evaluateVoxels(
             else
             {
                 // Find the nearest neighbor
-                const std::optional<::curaengine::utils::OccupiedPosition> nearest_occupation = texture_data.findClosestOccupation(position);
+                const std::optional<OccupiedPosition> nearest_occupation = texture_data.findClosestOccupation(position);
                 if (nearest_occupation.has_value())
                 {
-                    const ::curaengine::geometry::Point3D diff = position - nearest_occupation.value().position;
+                    const Point3D diff = position - nearest_occupation.value().position;
                     const uint8_t new_occupation = diff.vSize2() <= depth_squared ? nearest_occupation.value().occupation : mesh_extruder_nr;
                     voxel_grid.setOccupation(voxel_to_evaluate, new_occupation);
                 }
@@ -544,17 +549,17 @@ void evaluateVoxels(
  * @param evaluated_voxels The previously evaluated voxels
  * @param voxel_grid The voxel grid being filled
  */
-void findBoundaryVoxels(boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates>& evaluated_voxels, const ::curaengine::utils::VoxelGrid& voxel_grid)
+void findBoundaryVoxels(boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& evaluated_voxels, const VoxelGrid& voxel_grid)
 {
     evaluated_voxels.erase_if(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid](const ::curaengine::utils::VoxelGrid::LocalCoordinates& evaluated_voxel)
+        [&voxel_grid](const VoxelGrid::LocalCoordinates& evaluated_voxel)
         {
             bool has_various_voxels_around = false;
             const uint8_t actual_occupation = voxel_grid.getOccupation(evaluated_voxel).value();
-            for (const ::curaengine::utils::VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(evaluated_voxel))
+            for (const VoxelGrid::LocalCoordinates& voxel_around : voxel_grid.getVoxelsAround(evaluated_voxel))
             {
                 const std::optional<uint8_t> around_occupation = voxel_grid.getOccupation(voxel_around);
                 if (around_occupation.has_value() && around_occupation.value() != actual_occupation)
@@ -581,12 +586,12 @@ void findBoundaryVoxels(boost::concurrent_flat_set<::curaengine::utils::VoxelGri
  * @param total_estimated_iterations The total number of iterations to be processed, for progress reporting
  */
 void propagateVoxels(
-    ::curaengine::utils::VoxelGrid& voxel_grid,
-    boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates>& evaluated_voxels,
+    VoxelGrid& voxel_grid,
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates>& evaluated_voxels,
     const size_t estimated_iterations,
-    const std::vector<::curaengine::geometry::Shape>& sliced_mesh,
-    const ::curaengine::utils::SpatialLookup& texture_data,
-    const ::curaengine::utils::coord_t depth_squared,
+    const std::vector<Shape>& sliced_mesh,
+    const SpatialLookup& texture_data,
+    const coord_t depth_squared,
     const uint8_t mesh_extruder_nr,
     const size_t delta_iterations,
     const size_t total_estimated_iterations)
@@ -595,7 +600,7 @@ void propagateVoxels(
 
     while (! evaluated_voxels.empty())
     {
-        ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SPLIT_MULTIMATERIAL, std::min(iteration, estimated_iterations) + delta_iterations, total_estimated_iterations);
+        Progress::messageProgress(Progress::Stage::SPLIT_MULTIMATERIAL, std::min(iteration, estimated_iterations) + delta_iterations, total_estimated_iterations);
 
         // Make the list of new voxels to be evaluated, based on which were evaluated before
         spdlog::debug("Finding voxels around {} voxels for iteration {}", evaluated_voxels.size(), iteration);
@@ -634,11 +639,11 @@ std::vector<Mesh> makeMaterialModifierMeshes(
     // Fill a first voxel grid by rasterizing the triangles of the mesh in 3D, and assign the extruders according to the texture. This way we can later evaluate which extruder
     // to assign any point in 3D space just by finding the closest outside point and see what extruder it is assigned to.
     spdlog::debug("Fill original voxels based on texture data");
-    ::curaengine::utils::AABB3D bounding_box = mesh_data.bounding_box;
+    AABB3D bounding_box = mesh_data.bounding_box;
     bounding_box.expand(mesh_data.resolution * 8);
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles, which will be used as spatial reference for the texture data
-    ::curaengine::utils::VoxelGrid voxel_grid(bounding_box, mesh_data.resolution);
+    VoxelGrid voxel_grid(bounding_box, mesh_data.resolution);
 
     std::unordered_set<size_t> active_extruders;
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
@@ -665,15 +670,15 @@ std::vector<Mesh> makeMaterialModifierMeshes(
     }
 
     spdlog::debug("Prepare spatial lookup for texture data");
-    const ::curaengine::utils::SpatialLookup texture_data = ::curaengine::utils::SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
+    const SpatialLookup texture_data = SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
 
-    const ::curaengine::utils::coord_t depth_squared = mesh_data.depth * mesh_data.depth;
+    const coord_t depth_squared = mesh_data.depth * mesh_data.depth;
 
     // Create a slice of the mesh so that we can quickly check for points insideness
-    const std::vector<::curaengine::geometry::Shape> sliced_mesh = sliceMesh(mesh_data.mesh, voxel_grid);
+    const std::vector<Shape> sliced_mesh = sliceMesh(mesh_data.mesh, voxel_grid);
 
     spdlog::debug("Get initially filled voxels");
-    boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> previously_evaluated_voxels;
     voxel_grid.visitOccupiedVoxels(
         [&previously_evaluated_voxels, &mesh_extruder_nr](const auto& voxel)
         {
@@ -707,19 +712,19 @@ std::vector<Mesh> makeMaterialModifierMeshes(
  * @param texture_data_provider The provider containing the texture painted data
  * @return A list of modifier meshes to be added to the slicing process
  */
-std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const ::curaengine::utils::AABB3D& mesh_bounding_box, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
+std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const AABB3D& mesh_bounding_box, const std::shared_ptr<TextureDataProvider>& texture_data_provider)
 {
     const Settings& settings = mesh.settings_;
-    const auto resolution = settings.get<::curaengine::utils::coord_t>("support_paint_resolution");
+    const auto resolution = settings.get<coord_t>("support_paint_resolution");
     constexpr uint8_t ignore_value = 0;
     const std::unordered_set<size_t>& authorized_values{ 1, 2 };
 
     // Give some more space around the mesh to expand the voxels grid
-    ::curaengine::utils::AABB3D expanded_bounding_box = mesh_bounding_box;
+    AABB3D expanded_bounding_box = mesh_bounding_box;
     expanded_bounding_box.expand(resolution * 2);
 
     // Create the voxel grid and initially fill it with the rasterized mesh triangles
-    ::curaengine::utils::VoxelGrid voxel_grid(expanded_bounding_box, resolution);
+    VoxelGrid voxel_grid(expanded_bounding_box, resolution);
     const boost::concurrent_flat_set<uint8_t> found_support_values = makeVoxelGridFromTexture(mesh, texture_data_provider, "support", voxel_grid, ignore_value, authorized_values);
     if (found_support_values.empty() || (found_support_values.size() == 1 && found_support_values.contains(ignore_value)))
     {
@@ -731,10 +736,10 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const ::curaengine
     // it by 1 voxel in all direction, so it will end up being 3-voxels wide
 
     // Create the lookup structure that will help us expand only where necessary
-    const ::curaengine::utils::SpatialLookup texture_data = ::curaengine::utils::SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
+    const SpatialLookup texture_data = SpatialLookup::makeSpatialLookupFromVoxelGrid(voxel_grid);
 
     // Extract the voxels have an actual support value. Others don't need to be expanded since they won't generate a mesh.
-    boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates> valued_voxels;
+    boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> valued_voxels;
     voxel_grid.visitOccupiedVoxels(
         [&valued_voxels, &ignore_value](const auto& voxel)
         {
@@ -745,19 +750,19 @@ std::vector<Mesh> makeSupportModifierMeshes(const Mesh& mesh, const ::curaengine
         });
 
     // Now get all the voxels around the valued voxels that have no occupation yet
-    const boost::concurrent_flat_set<::curaengine::utils::VoxelGrid::LocalCoordinates> outer_voxels = findVoxelsToEvaluate(voxel_grid, valued_voxels);
+    const boost::concurrent_flat_set<VoxelGrid::LocalCoordinates> outer_voxels = findVoxelsToEvaluate(voxel_grid, valued_voxels);
 
     // Finally, evaluate all the voxels around and set their proper occupation
     outer_voxels.visit_all(
 #ifdef __cpp_lib_execution
         std::execution::par,
 #endif
-        [&voxel_grid, &texture_data, &ignore_value](const ::curaengine::utils::VoxelGrid::LocalCoordinates& voxel_to_evaluate)
+        [&voxel_grid, &texture_data, &ignore_value](const VoxelGrid::LocalCoordinates& voxel_to_evaluate)
         {
-            const ::curaengine::geometry::Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
+            const Point3D position = voxel_grid.toGlobalCoordinates(voxel_to_evaluate);
 
             // Find the nearest neighbor
-            const std::optional<::curaengine::utils::OccupiedPosition> nearest_occupation = texture_data.findClosestOccupation(position);
+            const std::optional<OccupiedPosition> nearest_occupation = texture_data.findClosestOccupation(position);
             if (nearest_occupation.has_value() && nearest_occupation.value().occupation != ignore_value)
             {
                 voxel_grid.setOccupation(voxel_to_evaluate, nearest_occupation.value().occupation);
@@ -794,8 +799,8 @@ std::vector<MeshGeneratorData> makeInitialMeshesGenerationData(const MeshGroup* 
 
         const Settings& settings = mesh.settings_;
         MeshGeneratorData mesh_data{ .mesh = mesh,
-                                     .depth = settings.get<::curaengine::utils::coord_t>("multi_material_paint_depth"),
-                                     .resolution = settings.get<::curaengine::utils::coord_t>("multi_material_paint_resolution") };
+                                     .depth = settings.get<coord_t>("multi_material_paint_depth"),
+                                     .resolution = settings.get<coord_t>("multi_material_paint_resolution") };
 
         for (const MeshVertex& vertex : mesh.vertices_)
         {

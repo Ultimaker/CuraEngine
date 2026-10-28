@@ -58,7 +58,7 @@ namespace curaengine::plugins
  *
  * Class provides methods for validating the plugin, making requests and processing responses.
  */
-template<plugins::v0::SlotID SlotID, ::curaengine::types::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, typename RequestTp, typename ResponseTp>
+template<plugins::v0::SlotID SlotID, types::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, typename RequestTp, typename ResponseTp>
 class PluginProxy
 {
     // type aliases for easy use

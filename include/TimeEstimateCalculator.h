@@ -62,17 +62,17 @@ public:
 
         double accelerate_until;
         double decelerate_after;
-        ::curaengine::types::Velocity initial_feedrate;
-        ::curaengine::types::Velocity final_feedrate;
+        types::Velocity initial_feedrate;
+        types::Velocity final_feedrate;
 
-        ::curaengine::types::Velocity entry_speed;
-        ::curaengine::types::Velocity max_entry_speed;
+        types::Velocity entry_speed;
+        types::Velocity max_entry_speed;
         bool nominal_length_flag;
 
-        ::curaengine::types::Velocity nominal_feedrate;
+        types::Velocity nominal_feedrate;
         double maxTravel;
         double distance;
-        ::curaengine::types::Acceleration acceleration;
+        types::Acceleration acceleration;
         Position delta;
         Position absDelta;
 
@@ -80,17 +80,17 @@ public:
     };
 
 private:
-    ::curaengine::types::Velocity max_feedrate[NUM_AXIS] = { 600.0, 600.0, 40.0, 25.0 }; // mm/s
-    ::curaengine::types::Velocity minimumfeedrate = 0.01;
-    ::curaengine::types::Acceleration acceleration = 3000.0;
-    ::curaengine::types::Acceleration max_acceleration[NUM_AXIS] = { 9000.0, 9000.0, 100.0, 10000.0 };
-    ::curaengine::types::Velocity max_xy_jerk = 20.0;
-    ::curaengine::types::Velocity max_z_jerk = 0.4;
-    ::curaengine::types::Velocity max_e_jerk = 5.0;
-    ::curaengine::types::Duration extra_time = 0.0;
+    types::Velocity max_feedrate[NUM_AXIS] = { 600.0, 600.0, 40.0, 25.0 }; // mm/s
+    types::Velocity minimumfeedrate = 0.01;
+    types::Acceleration acceleration = 3000.0;
+    types::Acceleration max_acceleration[NUM_AXIS] = { 9000.0, 9000.0, 100.0, 10000.0 };
+    types::Velocity max_xy_jerk = 20.0;
+    types::Velocity max_z_jerk = 0.4;
+    types::Velocity max_e_jerk = 5.0;
+    types::Duration extra_time = 0.0;
 
     Position previous_feedrate;
-    ::curaengine::types::Velocity previous_nominal_feedrate;
+    types::Velocity previous_nominal_feedrate;
 
     Position currentPosition;
 
@@ -103,14 +103,14 @@ public:
      */
     void setFirmwareDefaults(const Settings& settings);
     void setPosition(Position newPos);
-    void plan(Position newPos, ::curaengine::types::Velocity feedRate, PrintFeatureType feature);
-    void addTime(const ::curaengine::types::Duration& time);
-    void setAcceleration(const ::curaengine::types::Acceleration& acc); //!< Set the default acceleration to \p acc
-    void setMaxXyJerk(const ::curaengine::types::Velocity& jerk); //!< Set the max xy jerk to \p jerk
+    void plan(Position newPos, types::Velocity feedRate, PrintFeatureType feature);
+    void addTime(const types::Duration& time);
+    void setAcceleration(const types::Acceleration& acc); //!< Set the default acceleration to \p acc
+    void setMaxXyJerk(const types::Velocity& jerk); //!< Set the max xy jerk to \p jerk
 
     void reset();
 
-    std::vector<::curaengine::types::Duration> calculate();
+    std::vector<types::Duration> calculate();
 
 private:
     void reversePass();
@@ -122,7 +122,7 @@ private:
     void recalculateTrapezoids();
 
     // Calculates trapezoid parameters so that the entry- and exit-speed is compensated by the provided factors.
-    void calculateTrapezoidForBlock(Block* block, const ::curaengine::types::Ratio entry_factor, const ::curaengine::types::Ratio exit_factor);
+    void calculateTrapezoidForBlock(Block* block, const types::Ratio entry_factor, const types::Ratio exit_factor);
 
     // The kernel called by accelerationPlanner::calculate() when scanning the plan from last to first entry.
     void plannerReversePassKernel(Block* previous, Block* current, Block* next);

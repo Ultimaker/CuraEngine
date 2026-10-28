@@ -17,16 +17,21 @@
 #include "types/InsetDirection.h"
 #include "types/RetractBeforeOuterWall.h"
 
+using namespace curaengine::gcode_export;
+using namespace curaengine::geometry;
+using namespace curaengine::path_planning;
+using namespace curaengine::types;
+
 namespace curaengine
 {
-using ::curaengine::types::operator""_s;
+using types::operator""_s;
 
 
 
 
-constexpr ::curaengine::types::Duration LayerPlanBuffer::extra_preheat_time_;
+constexpr Duration LayerPlanBuffer::extra_preheat_time_;
 
-void LayerPlanBuffer::handle(LayerPlan& layer_plan, ::curaengine::gcode_export::GCodeExport& gcode)
+void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)
 {
     std::lock_guard mutex_locker(buffer_mutex_);
 
@@ -80,7 +85,7 @@ void LayerPlanBuffer::flush()
     }
 }
 
-const LayerPlan* LayerPlanBuffer::getCompletedLayerPlan(const ::curaengine::types::LayerIndex& layer_nr) const
+const LayerPlan* LayerPlanBuffer::getCompletedLayerPlan(const LayerIndex& layer_nr) const
 {
     const LayerPlan* result = nullptr;
 
@@ -122,7 +127,7 @@ const LayerPlan* LayerPlanBuffer::getCompletedLayerPlan(const ::curaengine::type
 
 void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const LayerPlan* newest_layer)
 {
-    std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
+    std::optional<std::pair<Point2LL, bool>> new_layer_destination_state = newest_layer->getFirstTravelDestinationState();
 
     if (! new_layer_destination_state)
     {
@@ -130,7 +135,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         return;
     }
 
-    ::curaengine::geometry::Point2LL first_location_new_layer = new_layer_destination_state->first;
+    Point2LL first_location_new_layer = new_layer_destination_state->first;
 
     assert(newest_layer->extruder_plans_.front().paths_[0].points.size() == 1);
     assert(newest_layer->extruder_plans_.front().paths_[0].points[0].toPoint2LL() == first_location_new_layer);
@@ -142,7 +147,7 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_layer->extruder_plans_.back().extruder_nr_].settings_;
         prev_layer->setIsInside(new_layer_destination_state->second);
 
-        const bool travel_retract_before_outer_wall = mesh_group_settings.get<::curaengine::types::RetractBeforeOuterWall>("travel_retract_before_outer_wall") == ::curaengine::types::RetractBeforeOuterWall::RETRACTED;
+        const bool travel_retract_before_outer_wall = mesh_group_settings.get<RetractBeforeOuterWall>("travel_retract_before_outer_wall") == RetractBeforeOuterWall::RETRACTED;
         const bool retract_at_layer_change = extruder_settings.get<bool>("retract_at_layer_change");
         bool next_mesh_retract_before_outer_wall = false;
         std::shared_ptr<const SliceMeshStorage> first_printed_mesh = newest_layer->findFirstPrintedMesh();
@@ -150,14 +155,14 @@ void LayerPlanBuffer::addConnectingTravelMove(LayerPlan* prev_layer, const Layer
         {
             // Check whether we are moving towards an outer wall and it should be retracted
             const Settings& mesh_settings = first_printed_mesh->settings;
-            const ::curaengine::types::InsetDirection inset_direction = mesh_settings.get<::curaengine::types::InsetDirection>("inset_direction");
+            const InsetDirection inset_direction = mesh_settings.get<InsetDirection>("inset_direction");
             const size_t wall_line_count = mesh_settings.get<size_t>("wall_line_count");
 
-            next_mesh_retract_before_outer_wall = inset_direction == ::curaengine::types::InsetDirection::OUTSIDE_IN || wall_line_count == 1;
+            next_mesh_retract_before_outer_wall = inset_direction == InsetDirection::OUTSIDE_IN || wall_line_count == 1;
         }
         const ForceRetract force_retract = (retract_at_layer_change || next_mesh_retract_before_outer_wall) ? ForceRetract::RETRACTED : ForceRetract::AUTOMATIC;
         prev_layer->final_travel_z_ = newest_layer->z_;
-        ::curaengine::path_planning::GCodePath& path = prev_layer->addTravel(first_location_new_layer, force_retract);
+        GCodePath& path = prev_layer->addTravel(first_location_new_layer, force_retract);
         if (force_retract == ForceRetract::RETRACTED && ! path.retract)
         {
             // addTravel() won't use retraction if the travel distance is less than retraction minimum travel setting
@@ -178,7 +183,7 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
     // Assume the print head is homed at the start of a mesh group.
     // This introduces small inaccuracies for the naive layer time estimates of the first layer of the second mesh group.
     // It's not that bad, though. They are naive estimates any way.
-    ::curaengine::geometry::Point2LL starting_position(0, 0);
+    Point2LL starting_position(0, 0);
     if (buffer_.size() >= 2)
     {
         auto prev_layer_it = newest_layer_it;
@@ -191,18 +196,18 @@ void LayerPlanBuffer::processFanSpeedLayerTime()
 }
 
 
-void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, const ::curaengine::types::Duration time_before_extruder_plan_end, const size_t extruder_nr, const ::curaengine::types::Temperature temp)
+void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, const Duration time_before_extruder_plan_end, const size_t extruder_nr, const Temperature temp)
 {
-    ::curaengine::types::Duration acc_time = 0.0;
+    Duration acc_time = 0.0;
     for (unsigned int path_idx = extruder_plan_before.paths_.size() - 1; int(path_idx) != -1; path_idx--)
     {
-        ::curaengine::path_planning::GCodePath& path = extruder_plan_before.paths_[path_idx];
+        GCodePath& path = extruder_plan_before.paths_[path_idx];
         acc_time += path.estimates.getTotalTime();
         if (acc_time >= time_before_extruder_plan_end)
         {
             constexpr bool wait = false;
             extruder_plan_before.insertCommand(
-                ::curaengine::path_planning::NozzleTempInsert{ .path_idx = path_idx,
+                NozzleTempInsert{ .path_idx = path_idx,
                                   .extruder = extruder_nr,
                                   .temperature = temp,
                                   .wait = wait,
@@ -213,7 +218,7 @@ void LayerPlanBuffer::insertPreheatCommand(ExtruderPlan& extruder_plan_before, c
     constexpr bool wait = false;
     constexpr size_t path_idx = 0;
     extruder_plan_before.insertCommand(
-        ::curaengine::path_planning::NozzleTempInsert{ .path_idx = path_idx,
+        NozzleTempInsert{ .path_idx = path_idx,
                           .extruder = extruder_nr,
                           .temperature = temp,
                           .wait = wait }); // insert at start of extruder plan if time_after_extruder_plan_start > extruder_plan.time
@@ -226,13 +231,13 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
     Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
     double initial_print_temp = extruder_plan.required_start_temperature_;
 
-    ::curaengine::types::Duration in_between_time = 0.0_s; // the duration during which the extruder isn't used
+    Duration in_between_time = 0.0_s; // the duration during which the extruder isn't used
     for (size_t extruder_plan_before_idx = extruder_plan_idx - 1; int(extruder_plan_before_idx) >= 0; extruder_plan_before_idx--)
     { // find a previous extruder plan where the same extruder is used to see what time this extruder wasn't used
         ExtruderPlan& extruder_plan_before = *extruder_plans[extruder_plan_before_idx];
         if (extruder_plan_before.extruder_nr_ == extruder)
         {
-            ::curaengine::types::Temperature temp_before = extruder_settings.get<::curaengine::types::Temperature>("material_final_print_temperature");
+            Temperature temp_before = extruder_settings.get<Temperature>("material_final_print_temperature");
             if (temp_before == 0)
             {
                 temp_before = extruder_plan_before.extrusion_temperature_.value_or(initial_print_temp);
@@ -242,7 +247,7 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
                 in_between_time,
                 extruder,
                 temp_before,
-                extruder_settings.get<::curaengine::types::Temperature>("material_standby_temperature"),
+                extruder_settings.get<Temperature>("material_standby_temperature"),
                 initial_print_temp,
                 during_printing);
             warm_up.heating_time = std::min(in_between_time, warm_up.heating_time + extra_preheat_time_);
@@ -254,19 +259,19 @@ Preheat::WarmUpResult LayerPlanBuffer::computeStandbyTempPlan(std::vector<Extrud
     // assume the nozzle has cooled down to strandby temperature already.
     Preheat::WarmUpResult warm_up;
     warm_up.total_time_window = in_between_time;
-    warm_up.lowest_temperature = extruder_settings.get<::curaengine::types::Temperature>("material_standby_temperature");
+    warm_up.lowest_temperature = extruder_settings.get<Temperature>("material_standby_temperature");
     constexpr bool during_printing = false;
     warm_up.heating_time = preheat_config_.getTimeToGoFromTempToTemp(extruder, warm_up.lowest_temperature, initial_print_temp, during_printing);
     if (warm_up.heating_time > in_between_time)
     {
         warm_up.heating_time = in_between_time;
-        warm_up.lowest_temperature = initial_print_temp - in_between_time * extruder_settings.get<::curaengine::types::Temperature>("machine_nozzle_heat_up_speed");
+        warm_up.lowest_temperature = initial_print_temp - in_between_time * extruder_settings.get<Temperature>("machine_nozzle_heat_up_speed");
     }
     warm_up.heating_time = warm_up.heating_time + extra_preheat_time_;
     return warm_up;
 }
 
-void LayerPlanBuffer::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, const size_t extruder_nr, const ::curaengine::types::Temperature required_temp)
+void LayerPlanBuffer::insertPreheatCommand_singleExtrusion(ExtruderPlan& prev_extruder_plan, const size_t extruder_nr, const Temperature required_temp)
 {
     if (! Application::getInstance().current_slice_->scene.extruders[extruder_nr].settings_.get<bool>("machine_nozzle_temp_enabled"))
     {
@@ -297,7 +302,7 @@ void LayerPlanBuffer::handleStandbyTemp(std::vector<ExtruderPlan*>& extruder_pla
     spdlog::warn("Couldn't find previous extruder plan so as to set the standby temperature. Inserting temp command in earliest available layer.");
     ExtruderPlan& earliest_extruder_plan = *extruder_plans[0];
     constexpr bool wait = false;
-    earliest_extruder_plan.insertCommand(::curaengine::path_planning::NozzleTempInsert{ .path_idx = 0, .extruder = extruder, .temperature = standby_temp, .wait = wait });
+    earliest_extruder_plan.insertCommand(NozzleTempInsert{ .path_idx = 0, .extruder = extruder, .temperature = standby_temp, .wait = wait });
 }
 
 void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -313,7 +318,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
 
     Preheat::WarmUpResult heating_time_and_from_temp = computeStandbyTempPlan(extruder_plans, extruder_plan_idx);
 
-    if (heating_time_and_from_temp.total_time_window < extruder_settings.get<::curaengine::types::Duration>("machine_min_cool_heat_time_window"))
+    if (heating_time_and_from_temp.total_time_window < extruder_settings.get<Duration>("machine_min_cool_heat_time_window"))
     {
         handleStandbyTemp(extruder_plans, extruder_plan_idx, initial_print_temp);
         return; // don't insert preheat command and just stay on printing temperature
@@ -343,7 +348,7 @@ void LayerPlanBuffer::insertPreheatCommand_multiExtrusion(std::vector<ExtruderPl
     bool wait = false;
     unsigned int path_idx = 0;
     extruder_plans[0]->insertCommand(
-        ::curaengine::path_planning::NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = initial_print_temp, .wait = wait }); // insert preheat command at verfy beginning of buffer
+        NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = initial_print_temp, .wait = wait }); // insert preheat command at verfy beginning of buffer
 }
 
 void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_plans, unsigned int extruder_plan_idx)
@@ -358,7 +363,7 @@ void LayerPlanBuffer::insertTempCommands(std::vector<ExtruderPlan*>& extruder_pl
     if (prev_extruder != extruder)
     { // set previous extruder to standby temperature
         const Settings& previous_extruder_settings = Application::getInstance().current_slice_->scene.extruders[prev_extruder].settings_;
-        extruder_plan.prev_extruder_standby_temp_ = previous_extruder_settings.get<::curaengine::types::Temperature>("material_standby_temperature");
+        extruder_plan.prev_extruder_standby_temp_ = previous_extruder_settings.get<Temperature>("material_standby_temperature");
     }
 
     if (prev_extruder == extruder)
@@ -390,8 +395,8 @@ void LayerPlanBuffer::insertInLayerTempCommands(ExtruderPlan& extruder_plan)
             continue;
         }
 
-        const ::curaengine::types::Temperature path_temperature = normal_temperature + path.config.temperature_delta;
-        if (! ::curaengine::utils::fuzzy_equal(path_temperature.value, actual_temperature, 0.1))
+        const Temperature path_temperature = normal_temperature + path.config.temperature_delta;
+        if (! utils::fuzzy_equal(path_temperature.value, actual_temperature, 0.1))
         {
             constexpr bool wait = false;
             extruder_plan.insertCommand({ index, extruder_plan.extruder_nr_, path_temperature, wait });
@@ -417,12 +422,12 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
     }
 
     double heated_pre_travel_time = 0;
-    if (extruder_settings.get<::curaengine::types::Temperature>("material_initial_print_temperature") != 0)
+    if (extruder_settings.get<Temperature>("material_initial_print_temperature") != 0)
     { // handle heating from initial_print_temperature to printing_tempreature
         unsigned int path_idx;
         for (path_idx = 0; path_idx < extruder_plan.paths_.size(); path_idx++)
         {
-            ::curaengine::path_planning::GCodePath& path = extruder_plan.paths_[path_idx];
+            GCodePath& path = extruder_plan.paths_[path_idx];
             heated_pre_travel_time += path.estimates.getTotalTime();
             if (! path.isTravelPath())
             {
@@ -430,7 +435,7 @@ void LayerPlanBuffer::insertPrintTempCommand(ExtruderPlan& extruder_plan)
             }
         }
         bool wait = false;
-        extruder_plan.insertCommand(::curaengine::path_planning::NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = print_temp, .wait = wait });
+        extruder_plan.insertCommand(NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = print_temp, .wait = wait });
     }
     extruder_plan.heated_pre_travel_time_ = heated_pre_travel_time;
 }
@@ -445,7 +450,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         return;
     }
 
-    const ::curaengine::types::Temperature final_print_temp = extruder_settings.get<::curaengine::types::Temperature>("material_final_print_temperature");
+    const Temperature final_print_temp = extruder_settings.get<Temperature>("material_final_print_temperature");
     if (final_print_temp == 0)
     {
         return;
@@ -456,7 +461,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         unsigned int path_idx;
         for (path_idx = last_extruder_plan.paths_.size() - 1; int(path_idx) >= 0; path_idx--)
         {
-            ::curaengine::path_planning::GCodePath& path = last_extruder_plan.paths_[path_idx];
+            GCodePath& path = last_extruder_plan.paths_[path_idx];
             if (! path.isTravelPath())
             {
                 break;
@@ -553,7 +558,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         unsigned int path_idx;
         for (path_idx = precool_extruder_plan->paths_.size() - 1; int(path_idx) >= 0; path_idx--)
         {
-            ::curaengine::path_planning::GCodePath& path = precool_extruder_plan->paths_[path_idx];
+            GCodePath& path = precool_extruder_plan->paths_[path_idx];
             extrusion_time_seen += path.estimates.getTotalTime();
             if (extrusion_time_seen >= cool_down_time)
             {
@@ -563,7 +568,7 @@ void LayerPlanBuffer::insertFinalPrintTempCommand(std::vector<ExtruderPlan*>& ex
         bool wait = false;
         double time_after_path_start = extrusion_time_seen - cool_down_time;
         precool_extruder_plan->insertCommand(
-            ::curaengine::path_planning::NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = final_print_temp, .wait = wait, .time_after_path_start = time_after_path_start });
+            NozzleTempInsert{ .path_idx = path_idx, .extruder = extruder, .temperature = final_print_temp, .wait = wait, .time_after_path_start = time_after_path_start });
     }
 }
 
@@ -593,18 +598,18 @@ void LayerPlanBuffer::insertTempCommands()
         ExtruderPlan& extruder_plan = layer_plan.extruder_plans_[extruder_plan_idx];
         size_t extruder = extruder_plan.extruder_nr_;
         const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;
-        ::curaengine::types::Duration time = extruder_plan.estimates_.getTotalUnretractedTime();
+        Duration time = extruder_plan.estimates_.getTotalUnretractedTime();
         if (time <= 0.0)
         {
             assert(extruder_plan.estimates_.material == 0.0 && "No extrusion time should mean no material usage!");
         }
 
-        ::curaengine::types::Temperature print_temp = preheat_config_.getTemp(extruder, extruder_plan.is_initial_layer_);
-        ::curaengine::types::Temperature initial_print_temp = extruder_settings.get<::curaengine::types::Temperature>("material_initial_print_temperature");
+        Temperature print_temp = preheat_config_.getTemp(extruder, extruder_plan.is_initial_layer_);
+        Temperature initial_print_temp = extruder_settings.get<Temperature>("material_initial_print_temperature");
 
         if (extruder_plan.temperature_factor_ > 0) // force lower printing temperatures due to minimum layer time
         {
-            print_temp = print_temp * (1 - extruder_plan.temperature_factor_) + extruder_plan.temperature_factor_ * extruder_settings.get<::curaengine::types::Temperature>("cool_min_temperature");
+            print_temp = print_temp * (1 - extruder_plan.temperature_factor_) + extruder_plan.temperature_factor_ * extruder_settings.get<Temperature>("cool_min_temperature");
             initial_print_temp = std::min(initial_print_temp, print_temp);
         }
 
@@ -641,14 +646,14 @@ void LayerPlanBuffer::insertTempCommands()
                     }
                     else
                     {
-                        gcode_.setInitialTemp(extruder_idx, other_extruder_settings.get<::curaengine::types::Temperature>("material_standby_temperature"));
+                        gcode_.setInitialTemp(extruder_idx, other_extruder_settings.get<Temperature>("material_standby_temperature"));
                     }
                 }
                 else
                 {
                     if (extruder_idx != extruder)
                     { // TODO: do we need to do this?
-                        extruder_plan.prev_extruder_standby_temp_ = other_extruder_settings.get<::curaengine::types::Temperature>("material_standby_temperature");
+                        extruder_plan.prev_extruder_standby_temp_ = other_extruder_settings.get<Temperature>("material_standby_temperature");
                     }
                 }
             }

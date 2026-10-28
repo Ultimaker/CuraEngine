@@ -16,13 +16,13 @@ struct SparsePointGridInclusiveElem
     {
     }
 
-    SparsePointGridInclusiveElem(const ::curaengine::geometry::Point2LL& point_, const Val& val_)
+    SparsePointGridInclusiveElem(const geometry::Point2LL& point_, const Val& val_)
         : point(point_)
         , val(val_)
     {
     }
 
-    ::curaengine::geometry::Point2LL point;
+    geometry::Point2LL point;
     Val val;
 };
 

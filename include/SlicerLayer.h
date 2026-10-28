@@ -29,8 +29,8 @@ public:
     std::unordered_map<int, int> face_idx_to_segment_idx_; // topology
 
     int z_ = -1;
-    ::curaengine::geometry::Shape polygons_;
-    ::curaengine::geometry::OpenLinesSet open_polylines_;
+    geometry::Shape polygons_;
+    geometry::OpenLinesSet open_polylines_;
     std::shared_ptr<SlicedUVCoordinates> sliced_uv_coordinates_;
 
     /*!
@@ -46,7 +46,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void makeBasicPolygonLoops(::curaengine::geometry::OpenLinesSet& open_polylines);
+    void makeBasicPolygonLoops(geometry::OpenLinesSet& open_polylines);
 
     /*!
      * Connect the segments into a loop, starting from the segment with index \p start_segment_idx
@@ -54,7 +54,7 @@ protected:
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      * \param[in] start_segment_idx The index into SlicerLayer::segments for the first segment from which to start the polygon loop
      */
-    void makeBasicPolygonLoop(::curaengine::geometry::OpenLinesSet& open_polylines, const size_t start_segment_idx);
+    void makeBasicPolygonLoop(geometry::OpenLinesSet& open_polylines, const size_t start_segment_idx);
 
     /*!
      * Get the next segment connected to the end of \p segment.
@@ -74,7 +74,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop
      */
-    void connectOpenPolylines(::curaengine::geometry::OpenLinesSet& open_polylines);
+    void connectOpenPolylines(geometry::OpenLinesSet& open_polylines);
 
     /*!
      * Link up all the missing ends, closing up the smallest gaps first. This is an inefficient implementation which can run in O(n*n*n) time.
@@ -83,11 +83,11 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
-    void stitch(::curaengine::geometry::OpenLinesSet& open_polylines);
+    void stitch(geometry::OpenLinesSet& open_polylines);
 
-    std::optional<GapCloserResult> findPolygonGapCloser(::curaengine::geometry::Point2LL ip0, ::curaengine::geometry::Point2LL ip1);
+    std::optional<GapCloserResult> findPolygonGapCloser(geometry::Point2LL ip0, geometry::Point2LL ip1);
 
-    std::optional<ClosePolygonResult> findPolygonPointClosestTo(::curaengine::geometry::Point2LL input);
+    std::optional<ClosePolygonResult> findPolygonPointClosestTo(geometry::Point2LL input);
 
     /*!
      * Try to close up polylines into polygons while they have large gaps in them.
@@ -96,7 +96,7 @@ protected:
      *
      * \param[in,out] open_polylines The polylines which are stiched, but couldn't be closed into a loop yet
      */
-    void stitch_extensive(::curaengine::geometry::OpenLinesSet& open_polylines);
+    void stitch_extensive(geometry::OpenLinesSet& open_polylines);
 
 private:
     /*!
@@ -387,7 +387,7 @@ private:
      *     the order of a polyline.
      * \return The stitches that are allowed in order from best to worst.
      */
-    std::priority_queue<PossibleStitch> findPossibleStitches(const ::curaengine::geometry::OpenLinesSet& open_polylines, ::curaengine::utils::coord_t max_dist, ::curaengine::utils::coord_t cell_size, bool allow_reverse) const;
+    std::priority_queue<PossibleStitch> findPossibleStitches(const geometry::OpenLinesSet& open_polylines, utils::coord_t max_dist, utils::coord_t cell_size, bool allow_reverse) const;
 
     /*! Plans the best way to perform a stitch.
      *
@@ -405,7 +405,7 @@ private:
      * \param[in,out] terminus_1 the Terminus on polyline_1 to join at.
      * \param[out] reverse Whether the polylines need to be reversed.
      */
-    void planPolylineStitch(const ::curaengine::geometry::OpenLinesSet& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
+    void planPolylineStitch(const geometry::OpenLinesSet& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const;
 
     /*! Joins polyline_1 onto polyline_0.
      *
@@ -423,7 +423,7 @@ private:
      *     polyline_0 and reverse[1] indicates whether to reverse
      *     polyline_1
      */
-    static void joinPolylines(::curaengine::geometry::OpenPolyline& polyline_0, ::curaengine::geometry::OpenPolyline& polyline_1, const bool reverse[2]);
+    static void joinPolylines(geometry::OpenPolyline& polyline_0, geometry::OpenPolyline& polyline_1, const bool reverse[2]);
 
     /*!
      * Connecting polylines that are not closed yet.
@@ -443,7 +443,7 @@ private:
      * \param[in] allow_reverse If true, then this function is allowed
      *     to reverse edge directions to merge polylines.
      */
-    void connectOpenPolylinesImpl(::curaengine::geometry::OpenLinesSet& open_polylines, ::curaengine::utils::coord_t max_dist, ::curaengine::utils::coord_t cell_size, bool allow_reverse);
+    void connectOpenPolylinesImpl(geometry::OpenLinesSet& open_polylines, utils::coord_t max_dist, utils::coord_t cell_size, bool allow_reverse);
 };
 
 } // namespace curaengine

@@ -23,33 +23,37 @@
 #include "utils/ThreadPool.h"
 #include "utils/TimeKeeper.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 Slicer::Slicer(
     Mesh* i_mesh,
-    const ::curaengine::utils::coord_t thickness,
+    const coord_t thickness,
     const size_t slice_layer_count,
     bool use_variable_layer_heights,
-    std::vector<::curaengine::types::AdaptiveLayer>* adaptive_layers,
-    const ::curaengine::types::SlicingTolerance slicing_tolerance,
-    const ::curaengine::utils::coord_t initial_layer_thickness)
+    std::vector<AdaptiveLayer>* adaptive_layers,
+    const SlicingTolerance slicing_tolerance,
+    const coord_t initial_layer_thickness)
     : mesh(i_mesh)
 {
     assert(slice_layer_count > 0);
 
-    ::curaengine::utils::TimeKeeper slice_timer;
+    TimeKeeper slice_timer;
 
     layers = buildLayersWithHeight(slice_layer_count, slicing_tolerance, initial_layer_thickness, thickness, use_variable_layer_heights, adaptive_layers);
     scripta::setAll(
         layers,
-        static_cast<int>(mesh->settings_.get<::curaengine::types::EPlatformAdhesion>("adhesion_type")),
+        static_cast<int>(mesh->settings_.get<EPlatformAdhesion>("adhesion_type")),
         mesh->settings_.get<int>("raft_surface_layers"),
-        mesh->settings_.get<::curaengine::utils::coord_t>("raft_surface_thickness"),
+        mesh->settings_.get<coord_t>("raft_surface_thickness"),
         mesh->settings_.get<int>("raft_interface_layers"),
-        mesh->settings_.get<::curaengine::utils::coord_t>("raft_interface_thickness"),
-        mesh->settings_.get<::curaengine::utils::coord_t>("raft_base_thickness"),
-        mesh->settings_.get<::curaengine::utils::coord_t>("raft_airgap"),
-        mesh->settings_.get<::curaengine::utils::coord_t>("layer_0_z_overlap"),
+        mesh->settings_.get<coord_t>("raft_interface_thickness"),
+        mesh->settings_.get<coord_t>("raft_base_thickness"),
+        mesh->settings_.get<coord_t>("raft_airgap"),
+        mesh->settings_.get<coord_t>("layer_0_z_overlap"),
         Raft::getFillerLayerCount());
 
     std::vector<std::pair<int32_t, int32_t>> zbbox = buildZHeightsForFaces(*mesh);
@@ -59,13 +63,13 @@ Slicer::Slicer(
     spdlog::info("Slice of mesh took {}", std::chrono::duration<double>(slice_timer.restart()));
 
     makePolygons(*i_mesh, slicing_tolerance, layers);
-    scripta::log("sliced_polygons", layers, ::curaengine::utils::SectionType::NA);
+    scripta::log("sliced_polygons", layers, SectionType::NA);
     spdlog::info("Make polygons took {}", std::chrono::duration<double>(slice_timer.restart()));
 }
 
-void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbbox, const ::curaengine::types::SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers)
+void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbbox, const SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers)
 {
-    ::curaengine::utils::parallel_for(
+    utils::parallel_for(
         layers,
         [&](auto layer_it)
         {
@@ -86,17 +90,17 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
                 const MeshVertex& v0 = mesh.vertices_[face.vertex_index_[0]];
                 const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
                 const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
-                const std::optional<::curaengine::geometry::Point2F> uv0 = face.uv_coordinates_[0];
-                const std::optional<::curaengine::geometry::Point2F> uv1 = face.uv_coordinates_[1];
-                const std::optional<::curaengine::geometry::Point2F> uv2 = face.uv_coordinates_[2];
+                const std::optional<Point2F> uv0 = face.uv_coordinates_[0];
+                const std::optional<Point2F> uv1 = face.uv_coordinates_[1];
+                const std::optional<Point2F> uv2 = face.uv_coordinates_[2];
 
                 // get all vertices represented as 3D point
-                ::curaengine::geometry::Point3LL p0 = v0.p_;
-                ::curaengine::geometry::Point3LL p1 = v1.p_;
-                ::curaengine::geometry::Point3LL p2 = v2.p_;
+                Point3LL p0 = v0.p_;
+                Point3LL p1 = v1.p_;
+                Point3LL p2 = v2.p_;
 
                 // Compensate for points exactly on the slice-boundary, except for 'inclusive', which already handles this correctly.
-                if (slicing_tolerance != ::curaengine::types::SlicingTolerance::INCLUSIVE)
+                if (slicing_tolerance != SlicingTolerance::INCLUSIVE)
                 {
                     p0.z_ += static_cast<int>(p0.z_ == z) * -static_cast<int>(p0.z_ < 1);
                     p1.z_ += static_cast<int>(p1.z_ == z) * -static_cast<int>(p1.z_ < 1);
@@ -200,31 +204,31 @@ void Slicer::buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t
 
 std::vector<SlicerLayer> Slicer::buildLayersWithHeight(
     size_t slice_layer_count,
-    ::curaengine::types::SlicingTolerance slicing_tolerance,
-    ::curaengine::utils::coord_t initial_layer_thickness,
-    ::curaengine::utils::coord_t thickness,
+    SlicingTolerance slicing_tolerance,
+    coord_t initial_layer_thickness,
+    coord_t thickness,
     bool use_variable_layer_heights,
-    const std::vector<::curaengine::types::AdaptiveLayer>* adaptive_layers)
+    const std::vector<AdaptiveLayer>* adaptive_layers)
 {
     std::vector<SlicerLayer> layers_res;
 
     layers_res.resize(slice_layer_count);
 
     // set (and initialize compensation for) initial layer, depending on slicing mode
-    layers_res[0].z_ = slicing_tolerance == ::curaengine::types::SlicingTolerance::INCLUSIVE ? 0 : std::max(0LL, initial_layer_thickness - thickness);
-    ::curaengine::utils::coord_t adjusted_layer_offset = initial_layer_thickness;
+    layers_res[0].z_ = slicing_tolerance == SlicingTolerance::INCLUSIVE ? 0 : std::max(0LL, initial_layer_thickness - thickness);
+    coord_t adjusted_layer_offset = initial_layer_thickness;
     if (use_variable_layer_heights)
     {
         layers_res[0].z_ = (*adaptive_layers)[0].z_position_;
     }
-    else if (slicing_tolerance == ::curaengine::types::SlicingTolerance::MIDDLE)
+    else if (slicing_tolerance == SlicingTolerance::MIDDLE)
     {
         layers_res[0].z_ = initial_layer_thickness / 2;
         adjusted_layer_offset = initial_layer_thickness + (thickness / 2);
     }
 
     // define all layer z positions (depending on slicing mode, see above)
-    for (::curaengine::types::LayerIndex layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
+    for (LayerIndex layer_nr = 1; layer_nr < slice_layer_count; layer_nr++)
     {
         if (use_variable_layer_heights)
         {
@@ -239,9 +243,9 @@ std::vector<SlicerLayer> Slicer::buildLayersWithHeight(
     return layers_res;
 }
 
-void Slicer::makePolygons(Mesh& mesh, ::curaengine::types::SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers)
+void Slicer::makePolygons(Mesh& mesh, SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers)
 {
-    ::curaengine::utils::parallel_for(
+    utils::parallel_for(
         layers,
         [&mesh](auto layer_it)
         {
@@ -250,20 +254,20 @@ void Slicer::makePolygons(Mesh& mesh, ::curaengine::types::SlicingTolerance slic
 
     switch (slicing_tolerance)
     {
-    case ::curaengine::types::SlicingTolerance::INCLUSIVE:
+    case SlicingTolerance::INCLUSIVE:
         for (size_t layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
         {
             layers[layer_nr].polygons_ = layers[layer_nr].polygons_.unionPolygons(layers[layer_nr + 1].polygons_);
         }
         break;
-    case ::curaengine::types::SlicingTolerance::EXCLUSIVE:
+    case SlicingTolerance::EXCLUSIVE:
         for (size_t layer_nr = 0; layer_nr + 1 < layers.size(); layer_nr++)
         {
             layers[layer_nr].polygons_ = layers[layer_nr].polygons_.intersection(layers[layer_nr + 1].polygons_);
         }
         layers.back().polygons_.clear();
         break;
-    case ::curaengine::types::SlicingTolerance::MIDDLE:
+    case SlicingTolerance::MIDDLE:
     default:
         // do nothing
         ;
@@ -276,14 +280,14 @@ void Slicer::makePolygons(Mesh& mesh, ::curaengine::types::SlicingTolerance slic
     }
 
 
-    const ::curaengine::utils::coord_t xy_offset = mesh.settings_.get<::curaengine::utils::coord_t>("xy_offset");
-    const ::curaengine::utils::coord_t xy_offset_0 = mesh.settings_.get<::curaengine::utils::coord_t>("xy_offset_layer_0");
-    const ::curaengine::utils::coord_t xy_offset_hole = mesh.settings_.get<::curaengine::utils::coord_t>("hole_xy_offset");
-    const ::curaengine::utils::coord_t hole_offset_max_diameter = mesh.settings_.get<::curaengine::utils::coord_t>("hole_xy_offset_max_diameter");
+    const coord_t xy_offset = mesh.settings_.get<coord_t>("xy_offset");
+    const coord_t xy_offset_0 = mesh.settings_.get<coord_t>("xy_offset_layer_0");
+    const coord_t xy_offset_hole = mesh.settings_.get<coord_t>("hole_xy_offset");
+    const coord_t hole_offset_max_diameter = mesh.settings_.get<coord_t>("hole_xy_offset_max_diameter");
 
     const auto max_hole_area = std::numbers::pi / 4 * static_cast<double>(hole_offset_max_diameter * hole_offset_max_diameter);
 
-    ::curaengine::utils::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         layers.size(),
         [&layers, layer_apply_initial_xy_offset, xy_offset, xy_offset_0, xy_offset_hole, hole_offset_max_diameter, max_hole_area](size_t layer_nr)
@@ -300,9 +304,9 @@ void Slicer::makePolygons(Mesh& mesh, ::curaengine::types::SlicingTolerance slic
 
                 for (const auto& part : parts)
                 {
-                    ::curaengine::geometry::Shape holes;
-                    ::curaengine::geometry::Shape outline;
-                    for (const ::curaengine::geometry::Polygon& poly : part)
+                    Shape holes;
+                    Shape outline;
+                    for (const Polygon& poly : part)
                     {
                         const auto area = poly.area();
                         const auto abs_area = std::abs(area);
@@ -350,9 +354,9 @@ std::vector<std::pair<int32_t, int32_t>> Slicer::buildZHeightsForFaces(const Mes
         const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
 
         // get all vertices represented as 3D point
-        ::curaengine::geometry::Point3LL p0 = v0.p_;
-        ::curaengine::geometry::Point3LL p1 = v1.p_;
-        ::curaengine::geometry::Point3LL p2 = v2.p_;
+        Point3LL p0 = v0.p_;
+        Point3LL p1 = v1.p_;
+        Point3LL p2 = v2.p_;
 
         // find the minimum and maximum z point
         int32_t minZ = p0.z_;
@@ -382,13 +386,13 @@ std::vector<std::pair<int32_t, int32_t>> Slicer::buildZHeightsForFaces(const Mes
 }
 
 SlicerSegment Slicer::project2D(
-    const ::curaengine::geometry::Point3LL& p0,
-    const ::curaengine::geometry::Point3LL& p1,
-    const ::curaengine::geometry::Point3LL& p2,
-    const std::optional<::curaengine::geometry::Point2F>& uv0,
-    const std::optional<::curaengine::geometry::Point2F>& uv1,
-    const std::optional<::curaengine::geometry::Point2F>& uv2,
-    const ::curaengine::utils::coord_t z)
+    const Point3LL& p0,
+    const Point3LL& p1,
+    const Point3LL& p2,
+    const std::optional<Point2F>& uv0,
+    const std::optional<Point2F>& uv1,
+    const std::optional<Point2F>& uv2,
+    const coord_t z)
 {
     SlicerSegment seg;
 
@@ -399,8 +403,8 @@ SlicerSegment Slicer::project2D(
 
     if (uv0.has_value() && uv1.has_value() && uv2.has_value())
     {
-        const std::optional<::curaengine::geometry::Point3D> start_barycentric = getBarycentricCoordinates(::curaengine::geometry::Point3LL(seg.start, z), p0, p1, p2);
-        const std::optional<::curaengine::geometry::Point3D> end_barycentric = getBarycentricCoordinates(::curaengine::geometry::Point3LL(seg.end, z), p0, p1, p2);
+        const std::optional<Point3D> start_barycentric = getBarycentricCoordinates(Point3LL(seg.start, z), p0, p1, p2);
+        const std::optional<Point3D> end_barycentric = getBarycentricCoordinates(Point3LL(seg.end, z), p0, p1, p2);
 
         if (start_barycentric.has_value() && end_barycentric.has_value())
         {
@@ -412,12 +416,12 @@ SlicerSegment Slicer::project2D(
     return seg;
 }
 
-std::optional<::curaengine::geometry::Point3D> Slicer::getBarycentricCoordinates(const ::curaengine::geometry::Point3LL& point, const ::curaengine::geometry::Point3LL& p0, const ::curaengine::geometry::Point3LL& p1, const ::curaengine::geometry::Point3LL& p2)
+std::optional<Point3D> Slicer::getBarycentricCoordinates(const Point3LL& point, const Point3LL& p0, const Point3LL& p1, const Point3LL& p2)
 {
     // Calculate vectors from p0 to p1 and p0 to p2
-    const ::curaengine::geometry::Point3LL v0(p1 - p0);
-    const ::curaengine::geometry::Point3LL v1(p2 - p0);
-    const ::curaengine::geometry::Point3LL v2(point - p0);
+    const Point3LL v0(p1 - p0);
+    const Point3LL v1(p2 - p0);
+    const Point3LL v2(point - p0);
 
     // Compute dot products
     const double d00 = v0.dot(v0);
@@ -441,20 +445,20 @@ std::optional<::curaengine::geometry::Point3D> Slicer::getBarycentricCoordinates
     const double u = 1.0 - v - w;
 
     // Return as a Point_3 where x/y/z represent the barycentric coordinates u/v/w
-    return ::curaengine::geometry::Point3D(u, v, w);
+    return Point3D(u, v, w);
 }
 
-::curaengine::geometry::Point2F Slicer::interpolateUV(const ::curaengine::geometry::Point3D& barycentric_coordinates, const ::curaengine::geometry::Point2F& uv0, const ::curaengine::geometry::Point2F& uv1, const ::curaengine::geometry::Point2F& uv2)
+Point2F Slicer::interpolateUV(const Point3D& barycentric_coordinates, const Point2F& uv0, const Point2F& uv1, const Point2F& uv2)
 {
-    return ::curaengine::geometry::Point2F(
+    return Point2F(
         barycentric_coordinates.x_ * uv0.x_ + barycentric_coordinates.y_ * uv1.x_ + barycentric_coordinates.z_ * uv2.x_,
         barycentric_coordinates.x_ * uv0.y_ + barycentric_coordinates.y_ * uv1.y_ + barycentric_coordinates.z_ * uv2.y_);
 }
 
-::curaengine::utils::coord_t Slicer::interpolate(const ::curaengine::utils::coord_t x, const ::curaengine::utils::coord_t x0, const ::curaengine::utils::coord_t x1, const ::curaengine::utils::coord_t y0, const ::curaengine::utils::coord_t y1)
+coord_t Slicer::interpolate(const coord_t x, const coord_t x0, const coord_t x1, const coord_t y0, const coord_t y1)
 {
-    const ::curaengine::utils::coord_t dx_01 = x1 - x0;
-    ::curaengine::utils::coord_t num = (y1 - y0) * (x - x0);
+    const coord_t dx_01 = x1 - x0;
+    coord_t num = (y1 - y0) * (x - x0);
     num += num > 0 ? dx_01 / 4 : -dx_01 / 4; // add in offset to round result
     return y0 + num / dx_01;
 }

@@ -15,7 +15,7 @@ namespace curaengine::utils
  */
 struct PolygonsPointIndexSegmentLocator
 {
-    std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> operator()(const PolygonsPointIndex& val) const;
+    std::pair<geometry::Point2LL, geometry::Point2LL> operator()(const PolygonsPointIndex& val) const;
 };
 
 } // namespace curaengine::utils

@@ -13,7 +13,7 @@ namespace curaengine::utils
  */
 struct GivenDistPoint
 {
-    ::curaengine::geometry::Point2LL location; //!< Result location
+    geometry::Point2LL location; //!< Result location
     int pos; //!< Index to the first point in the polygon of the line segment on which the result was found
 };
 

@@ -12,6 +12,10 @@
 #include "utils/Simplify.h"
 #include "utils/SparsePointGridInclusive.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
@@ -19,7 +23,7 @@ constexpr int largest_neglected_gap_first_phase = MM2INT(0.01); //!< distance be
 constexpr int largest_neglected_gap_second_phase = MM2INT(0.02); //!< distance between two line segments regarded as connected
 constexpr int max_stitch1 = MM2INT(10.0); //!< maximal distance stitched between open polylines to form polygons
 
-void SlicerLayer::makeBasicPolygonLoops(::curaengine::geometry::OpenLinesSet& open_polylines)
+void SlicerLayer::makeBasicPolygonLoops(OpenLinesSet& open_polylines)
 {
     for (size_t start_segment_idx = 0; start_segment_idx < segments_.size(); start_segment_idx++)
     {
@@ -30,9 +34,9 @@ void SlicerLayer::makeBasicPolygonLoops(::curaengine::geometry::OpenLinesSet& op
     }
 }
 
-void SlicerLayer::makeBasicPolygonLoop(::curaengine::geometry::OpenLinesSet& open_polylines, const size_t start_segment_idx)
+void SlicerLayer::makeBasicPolygonLoop(OpenLinesSet& open_polylines, const size_t start_segment_idx)
 {
-    ::curaengine::geometry::Polygon poly(true);
+    Polygon poly(true);
     poly.push_back(segments_[start_segment_idx].start);
 
     for (int segment_idx = start_segment_idx; segment_idx != -1;)
@@ -59,9 +63,9 @@ int SlicerLayer::tryFaceNextSegmentIdx(const SlicerSegment& segment, const int f
     if (it != it_end)
     {
         const int segment_idx = (*it).second;
-        ::curaengine::geometry::Point2LL p1 = segments_[segment_idx].start;
-        ::curaengine::geometry::Point2LL diff = segment.end - p1;
-        if (::curaengine::geometry::shorterThen(diff, largest_neglected_gap_first_phase))
+        Point2LL p1 = segments_[segment_idx].start;
+        Point2LL diff = segment.end - p1;
+        if (geometry::shorterThen(diff, largest_neglected_gap_first_phase))
         {
             if (segment_idx == static_cast<int>(start_segment_idx))
             {
@@ -115,16 +119,16 @@ int SlicerLayer::getNextSegmentIdx(const SlicerSegment& segment, const size_t st
     return next_segment_idx;
 }
 
-void SlicerLayer::connectOpenPolylines(::curaengine::geometry::OpenLinesSet& open_polylines)
+void SlicerLayer::connectOpenPolylines(OpenLinesSet& open_polylines)
 {
     constexpr bool allow_reverse = false;
     // Search a bit fewer cells but at cost of covering more area.
     // Since acceptance area is small to start with, the extra is unlikely to hurt much.
-    constexpr ::curaengine::utils::coord_t cell_size = largest_neglected_gap_first_phase * 2;
+    constexpr coord_t cell_size = largest_neglected_gap_first_phase * 2;
     connectOpenPolylinesImpl(open_polylines, largest_neglected_gap_second_phase, cell_size, allow_reverse);
 }
 
-void SlicerLayer::stitch(::curaengine::geometry::OpenLinesSet& open_polylines)
+void SlicerLayer::stitch(OpenLinesSet& open_polylines)
 {
     bool allow_reverse = true;
     connectOpenPolylinesImpl(open_polylines, max_stitch1, max_stitch1, allow_reverse);
@@ -177,7 +181,7 @@ bool SlicerLayer::PossibleStitch::operator<(const PossibleStitch& other) const
 }
 
 std::priority_queue<SlicerLayer::PossibleStitch>
-    SlicerLayer::findPossibleStitches(const ::curaengine::geometry::OpenLinesSet& open_polylines, ::curaengine::utils::coord_t max_dist, ::curaengine::utils::coord_t cell_size, bool allow_reverse) const
+    SlicerLayer::findPossibleStitches(const OpenLinesSet& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse) const
 {
     std::priority_queue<PossibleStitch> stitch_queue;
 
@@ -190,21 +194,21 @@ std::priority_queue<SlicerLayer::PossibleStitch>
         unsigned int polyline_idx;
         // Depending on the SparsePointGridInclusive, either the start point or the
         // end point of the polyline
-        ::curaengine::geometry::Point2LL polyline_term_pt;
+        Point2LL polyline_term_pt;
     };
 
     struct StitchGridValLocator
     {
-        ::curaengine::geometry::Point2LL operator()(const StitchGridVal& val) const
+        Point2LL operator()(const StitchGridVal& val) const
         {
             return val.polyline_term_pt;
         }
     };
 
     // Used to find nearby end points within a fixed maximum radius
-    ::curaengine::utils::SparsePointGrid<StitchGridVal, StitchGridValLocator> grid_ends(cell_size);
+    SparsePointGrid<StitchGridVal, StitchGridValLocator> grid_ends(cell_size);
     // Used to find nearby start points within a fixed maximum radius
-    ::curaengine::utils::SparsePointGrid<StitchGridVal, StitchGridValLocator> grid_starts(cell_size);
+    SparsePointGrid<StitchGridVal, StitchGridValLocator> grid_starts(cell_size);
 
     // populate grids
 
@@ -212,7 +216,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
     //   insert the starts of the polylines).
     for (unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
     {
-        const ::curaengine::geometry::OpenPolyline& polyline_0 = open_polylines[polyline_0_idx];
+        const OpenPolyline& polyline_0 = open_polylines[polyline_0_idx];
 
         if (polyline_0.size() < 1)
             continue;
@@ -228,7 +232,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
     {
         for (unsigned int polyline_0_idx = 0; polyline_0_idx < open_polylines.size(); polyline_0_idx++)
         {
-            const ::curaengine::geometry::OpenPolyline& polyline_0 = open_polylines[polyline_0_idx];
+            const OpenPolyline& polyline_0 = open_polylines[polyline_0_idx];
 
             if (polyline_0.size() < 1)
                 continue;
@@ -243,7 +247,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
     // search for nearby end points
     for (unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
     {
-        const ::curaengine::geometry::OpenPolyline& polyline_1 = open_polylines[polyline_1_idx];
+        const OpenPolyline& polyline_1 = open_polylines[polyline_1_idx];
 
         if (polyline_1.size() < 1)
             continue;
@@ -256,8 +260,8 @@ std::priority_queue<SlicerLayer::PossibleStitch>
         nearby_ends = grid_ends.getNearby(polyline_1[0], max_dist);
         for (const auto& nearby_end : nearby_ends)
         {
-            ::curaengine::geometry::Point2LL diff = nearby_end.polyline_term_pt - polyline_1[0];
-            int64_t dist2 = ::curaengine::geometry::vSize2(diff);
+            Point2LL diff = nearby_end.polyline_term_pt - polyline_1[0];
+            int64_t dist2 = geometry::vSize2(diff);
             if (dist2 < max_dist2)
             {
                 PossibleStitch poss_stitch;
@@ -282,8 +286,8 @@ std::priority_queue<SlicerLayer::PossibleStitch>
                     continue;
                 }
 
-                ::curaengine::geometry::Point2LL diff = nearby_end.polyline_term_pt - polyline_1.back();
-                int64_t dist2 = ::curaengine::geometry::vSize2(diff);
+                Point2LL diff = nearby_end.polyline_term_pt - polyline_1.back();
+                int64_t dist2 = geometry::vSize2(diff);
                 if (dist2 < max_dist2)
                 {
                     PossibleStitch poss_stitch;
@@ -306,8 +310,8 @@ std::priority_queue<SlicerLayer::PossibleStitch>
                     continue;
                 }
 
-                ::curaengine::geometry::Point2LL diff = nearby_start.polyline_term_pt - polyline_1[0];
-                int64_t dist2 = ::curaengine::geometry::vSize2(diff);
+                Point2LL diff = nearby_start.polyline_term_pt - polyline_1[0];
+                int64_t dist2 = geometry::vSize2(diff);
                 if (dist2 < max_dist2)
                 {
                     PossibleStitch poss_stitch;
@@ -323,7 +327,7 @@ std::priority_queue<SlicerLayer::PossibleStitch>
     return stitch_queue;
 }
 
-void SlicerLayer::planPolylineStitch(const ::curaengine::geometry::OpenLinesSet& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const
+void SlicerLayer::planPolylineStitch(const OpenLinesSet& open_polylines, Terminus& terminus_0, Terminus& terminus_1, bool reverse[2]) const
 {
     size_t polyline_0_idx = terminus_0.getPolylineIdx();
     size_t polyline_1_idx = terminus_1.getPolylineIdx();
@@ -372,7 +376,7 @@ void SlicerLayer::planPolylineStitch(const ::curaengine::geometry::OpenLinesSet&
     }
 }
 
-void SlicerLayer::joinPolylines(::curaengine::geometry::OpenPolyline& polyline_0, ::curaengine::geometry::OpenPolyline& polyline_1, const bool reverse[2])
+void SlicerLayer::joinPolylines(OpenPolyline& polyline_0, OpenPolyline& polyline_1, const bool reverse[2])
 {
     if (reverse[0])
     {
@@ -392,7 +396,7 @@ void SlicerLayer::joinPolylines(::curaengine::geometry::OpenPolyline& polyline_0
     else
     {
         // append polyline_1 onto polyline_0
-        for (::curaengine::geometry::Point2LL& p : polyline_1)
+        for (Point2LL& p : polyline_1)
             polyline_0.push_back(p);
     }
     polyline_1.clear();
@@ -439,7 +443,7 @@ void SlicerLayer::TerminusTrackingMap::updateMap(
     }
 }
 
-void SlicerLayer::connectOpenPolylinesImpl(::curaengine::geometry::OpenLinesSet& open_polylines, ::curaengine::utils::coord_t max_dist, ::curaengine::utils::coord_t cell_size, bool allow_reverse)
+void SlicerLayer::connectOpenPolylinesImpl(OpenLinesSet& open_polylines, coord_t max_dist, coord_t cell_size, bool allow_reverse)
 {
     // below code closes smallest gaps first
 
@@ -479,8 +483,8 @@ void SlicerLayer::connectOpenPolylinesImpl(::curaengine::geometry::OpenLinesSet&
         if (completed_poly)
         {
             // finished polygon
-            ::curaengine::geometry::OpenPolyline& polyline_0 = open_polylines[best_polyline_0_idx];
-            polygons_.push_back(::curaengine::geometry::Polygon(std::move(polyline_0.getPoints()), true)); // Will also clear the polyline
+            OpenPolyline& polyline_0 = open_polylines[best_polyline_0_idx];
+            polygons_.push_back(Polygon(std::move(polyline_0.getPoints()), true)); // Will also clear the polyline
             Terminus cur_terms[2] = { { best_polyline_0_idx, false }, { best_polyline_0_idx, true } };
             for (size_t idx = 0U; idx != 2U; ++idx)
             {
@@ -498,8 +502,8 @@ void SlicerLayer::connectOpenPolylinesImpl(::curaengine::geometry::OpenLinesSet&
         // need to reread since planPolylineStitch can swap terminus_0/1
         best_polyline_0_idx = terminus_0.getPolylineIdx();
         best_polyline_1_idx = terminus_1.getPolylineIdx();
-        ::curaengine::geometry::OpenPolyline& polyline_0 = open_polylines[best_polyline_0_idx];
-        ::curaengine::geometry::OpenPolyline& polyline_1 = open_polylines[best_polyline_1_idx];
+        OpenPolyline& polyline_0 = open_polylines[best_polyline_0_idx];
+        OpenPolyline& polyline_1 = open_polylines[best_polyline_1_idx];
 
         // join polylines according to plan
         joinPolylines(polyline_0, polyline_1, reverse);
@@ -521,7 +525,7 @@ void SlicerLayer::connectOpenPolylinesImpl(::curaengine::geometry::OpenLinesSet&
     }
 }
 
-void SlicerLayer::stitch_extensive(::curaengine::geometry::OpenLinesSet& open_polylines)
+void SlicerLayer::stitch_extensive(OpenLinesSet& open_polylines)
 {
     // For extensive stitching find 2 open polygons that are touching 2 closed polygons.
     //  Then find the shortest path over this polygon that can be used to connect the open polygons,
@@ -536,7 +540,7 @@ void SlicerLayer::stitch_extensive(::curaengine::geometry::OpenLinesSet& open_po
 
         for (unsigned int polyline_1_idx = 0; polyline_1_idx < open_polylines.size(); polyline_1_idx++)
         {
-            ::curaengine::geometry::OpenPolyline& polyline_1 = open_polylines[polyline_1_idx];
+            OpenPolyline& polyline_1 = open_polylines[polyline_1_idx];
             if (polyline_1.size() < 1)
                 continue;
 
@@ -552,7 +556,7 @@ void SlicerLayer::stitch_extensive(::curaengine::geometry::OpenLinesSet& open_po
 
             for (unsigned int polyline_2_idx = 0; polyline_2_idx < open_polylines.size(); polyline_2_idx++)
             {
-                ::curaengine::geometry::OpenPolyline& polyline_2 = open_polylines[polyline_2_idx];
+                OpenPolyline& polyline_2 = open_polylines[polyline_2_idx];
                 if (polyline_2.size() < 1 || polyline_1_idx == polyline_2_idx)
                     continue;
 
@@ -572,12 +576,12 @@ void SlicerLayer::stitch_extensive(::curaengine::geometry::OpenLinesSet& open_po
             {
                 if (best_result->pointIdxA == best_result->pointIdxB)
                 {
-                    polygons_.push_back(::curaengine::geometry::Polygon(open_polylines[best_polyline_1_idx].getPoints(), true));
+                    polygons_.push_back(Polygon(open_polylines[best_polyline_1_idx].getPoints(), true));
                     open_polylines[best_polyline_1_idx].clear();
                 }
                 else if (best_result->AtoB)
                 {
-                    ::curaengine::geometry::Polygon& poly = polygons_.newLine();
+                    Polygon& poly = polygons_.newLine();
                     for (unsigned int j = best_result->pointIdxA; j != best_result->pointIdxB; j = (j + 1) % polygons_[best_result->polygonIdx].size())
                         poly.push_back(polygons_[best_result->polygonIdx][j]);
                     for (unsigned int j = open_polylines[best_polyline_1_idx].size() - 1; int(j) >= 0; j--)
@@ -587,7 +591,7 @@ void SlicerLayer::stitch_extensive(::curaengine::geometry::OpenLinesSet& open_po
                 else
                 {
                     unsigned int n = polygons_.size();
-                    polygons_.push_back(::curaengine::geometry::Polygon(open_polylines[best_polyline_1_idx].getPoints(), true));
+                    polygons_.push_back(Polygon(open_polylines[best_polyline_1_idx].getPoints(), true));
                     for (unsigned int j = best_result->pointIdxB; j != best_result->pointIdxA; j = (j + 1) % polygons_[best_result->polygonIdx].size())
                         polygons_[n].push_back(polygons_[best_result->polygonIdx][j]);
                     open_polylines[best_polyline_1_idx].clear();
@@ -603,7 +607,7 @@ void SlicerLayer::stitch_extensive(::curaengine::geometry::OpenLinesSet& open_po
                 }
                 else if (best_result->AtoB)
                 {
-                    ::curaengine::geometry::Polygon poly;
+                    Polygon poly;
                     for (unsigned int n = best_result->pointIdxA; n != best_result->pointIdxB; n = (n + 1) % polygons_[best_result->polygonIdx].size())
                         poly.push_back(polygons_[best_result->polygonIdx][n]);
                     for (unsigned int n = poly.size() - 1; int(n) >= 0; n--)
@@ -629,7 +633,7 @@ void SlicerLayer::stitch_extensive(::curaengine::geometry::OpenLinesSet& open_po
     }
 }
 
-std::optional<GapCloserResult> SlicerLayer::findPolygonGapCloser(::curaengine::geometry::Point2LL ip0, ::curaengine::geometry::Point2LL ip1)
+std::optional<GapCloserResult> SlicerLayer::findPolygonGapCloser(Point2LL ip0, Point2LL ip1)
 {
     std::optional<ClosePolygonResult> c1 = findPolygonPointClosestTo(ip0);
     std::optional<ClosePolygonResult> c2 = findPolygonPointClosestTo(ip1);
@@ -647,30 +651,30 @@ std::optional<GapCloserResult> SlicerLayer::findPolygonGapCloser(::curaengine::g
     if (ret.pointIdxA == ret.pointIdxB)
     {
         // Connection points are on the same line segment.
-        ret.len = ::curaengine::geometry::vSize(ip0 - ip1);
+        ret.len = geometry::vSize(ip0 - ip1);
     }
     else
     {
         // Find out if we have should go from A to B or the other way around.
-        ::curaengine::geometry::Point2LL p0 = polygons_[ret.polygonIdx][ret.pointIdxA];
-        int64_t lenA = ::curaengine::geometry::vSize(p0 - ip0);
+        Point2LL p0 = polygons_[ret.polygonIdx][ret.pointIdxA];
+        int64_t lenA = geometry::vSize(p0 - ip0);
         for (unsigned int i = ret.pointIdxA; i != ret.pointIdxB; i = (i + 1) % polygons_[ret.polygonIdx].size())
         {
-            ::curaengine::geometry::Point2LL p1 = polygons_[ret.polygonIdx][i];
-            lenA += ::curaengine::geometry::vSize(p0 - p1);
+            Point2LL p1 = polygons_[ret.polygonIdx][i];
+            lenA += geometry::vSize(p0 - p1);
             p0 = p1;
         }
-        lenA += ::curaengine::geometry::vSize(p0 - ip1);
+        lenA += geometry::vSize(p0 - ip1);
 
         p0 = polygons_[ret.polygonIdx][ret.pointIdxB];
-        int64_t lenB = ::curaengine::geometry::vSize(p0 - ip1);
+        int64_t lenB = geometry::vSize(p0 - ip1);
         for (unsigned int i = ret.pointIdxB; i != ret.pointIdxA; i = (i + 1) % polygons_[ret.polygonIdx].size())
         {
-            ::curaengine::geometry::Point2LL p1 = polygons_[ret.polygonIdx][i];
-            lenB += ::curaengine::geometry::vSize(p0 - p1);
+            Point2LL p1 = polygons_[ret.polygonIdx][i];
+            lenB += geometry::vSize(p0 - p1);
             p0 = p1;
         }
-        lenB += ::curaengine::geometry::vSize(p0 - ip0);
+        lenB += geometry::vSize(p0 - ip0);
 
         if (lenA < lenB)
         {
@@ -686,25 +690,25 @@ std::optional<GapCloserResult> SlicerLayer::findPolygonGapCloser(::curaengine::g
     return ret;
 }
 
-std::optional<ClosePolygonResult> SlicerLayer::findPolygonPointClosestTo(::curaengine::geometry::Point2LL input)
+std::optional<ClosePolygonResult> SlicerLayer::findPolygonPointClosestTo(Point2LL input)
 {
     for (size_t n = 0; n < polygons_.size(); n++)
     {
-        ::curaengine::geometry::Point2LL p0 = polygons_[n][polygons_[n].size() - 1];
+        Point2LL p0 = polygons_[n][polygons_[n].size() - 1];
         for (size_t i = 0; i < polygons_[n].size(); i++)
         {
-            ::curaengine::geometry::Point2LL p1 = polygons_[n][i];
+            Point2LL p1 = polygons_[n][i];
 
             // Q = A + Normal( B - A ) * ((( B - A ) dot ( P - A )) / VSize( A - B ));
-            ::curaengine::geometry::Point2LL pDiff = p1 - p0;
-            int64_t lineLength = ::curaengine::geometry::vSize(pDiff);
+            Point2LL pDiff = p1 - p0;
+            int64_t lineLength = geometry::vSize(pDiff);
             if (lineLength > 1)
             {
-                int64_t distOnLine = ::curaengine::geometry::dot(pDiff, input - p0) / lineLength;
+                int64_t distOnLine = geometry::dot(pDiff, input - p0) / lineLength;
                 if (distOnLine >= 0 && distOnLine <= lineLength)
                 {
-                    ::curaengine::geometry::Point2LL q = p0 + pDiff * distOnLine / lineLength;
-                    if (::curaengine::geometry::shorterThen(q - input, MM2INT(0.1)))
+                    Point2LL q = p0 + pDiff * distOnLine / lineLength;
+                    if (geometry::shorterThen(q - input, MM2INT(0.1)))
                     {
                         ClosePolygonResult ret;
                         ret.polygonIdx = n;
@@ -722,7 +726,7 @@ std::optional<ClosePolygonResult> SlicerLayer::findPolygonPointClosestTo(::curae
 
 void SlicerLayer::makePolygons(const Mesh* mesh)
 {
-    ::curaengine::geometry::OpenLinesSet open_polylines;
+    OpenLinesSet open_polylines;
 
     makeBasicPolygonLoops(open_polylines);
 
@@ -731,7 +735,7 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
     // TODO: (?) for mesh surface mode: connect open polygons. Maybe the above algorithm can create two open polygons which are actually connected when the starting segment is in
     // the middle between the two open polygons.
 
-    if (mesh->settings_.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") == ::curaengine::types::ESurfaceMode::NORMAL)
+    if (mesh->settings_.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::NORMAL)
     { // don't stitch when using (any) mesh surface mode, i.e. also don't stitch when using mixed mesh surface and closed polygons, because then polylines which are supposed to be
       // open will be closed
         stitch(open_polylines);
@@ -744,37 +748,37 @@ void SlicerLayer::makePolygons(const Mesh* mesh)
 
     if (mesh->settings_.get<bool>("meshfix_keep_open_polygons"))
     {
-        for (const ::curaengine::geometry::OpenPolyline& polyline : open_polylines)
+        for (const OpenPolyline& polyline : open_polylines)
         {
-            polygons_.push_back(::curaengine::geometry::Polygon(polyline.getPoints(), false), ::curaengine::geometry::CheckNonEmptyParam::OnlyIfNotEmpty);
+            polygons_.push_back(Polygon(polyline.getPoints(), false), CheckNonEmptyParam::OnlyIfNotEmpty);
         }
     }
 
-    for (const ::curaengine::geometry::OpenPolyline& polyline : open_polylines)
+    for (const OpenPolyline& polyline : open_polylines)
     {
-        open_polylines_.push_back(std::move(polyline), ::curaengine::geometry::CheckNonEmptyParam::OnlyIfNotEmpty);
+        open_polylines_.push_back(std::move(polyline), CheckNonEmptyParam::OnlyIfNotEmpty);
     }
 
     // Remove all the tiny polygons, or polygons that are not closed. As they do not contribute to the actual print.
-    const ::curaengine::utils::coord_t snap_distance = std::max(mesh->settings_.get<::curaengine::utils::coord_t>("minimum_polygon_circumference"), static_cast<::curaengine::utils::coord_t>(1));
+    const coord_t snap_distance = std::max(mesh->settings_.get<coord_t>("minimum_polygon_circumference"), static_cast<coord_t>(1));
     auto itPolygons = std::remove_if(
         polygons_.begin(),
         polygons_.end(),
-        [snap_distance](const ::curaengine::geometry::Polygon& poly)
+        [snap_distance](const Polygon& poly)
         {
             return poly.shorterThan(snap_distance);
         });
     polygons_.erase(itPolygons, polygons_.end());
 
     // Finally optimize all the polygons. Every point removed saves time in the long run.
-    polygons_ = ::curaengine::utils::Simplify(mesh->settings_).polygon(polygons_);
+    polygons_ = Simplify(mesh->settings_).polygon(polygons_);
     polygons_.removeDegenerateVerts(); // remove verts connected to overlapping line segments
 
     // Clean up polylines for Surface Mode printing
     auto itPolylines = std::remove_if(
         open_polylines_.begin(),
         open_polylines_.end(),
-        [snap_distance](const ::curaengine::geometry::OpenPolyline& line)
+        [snap_distance](const OpenPolyline& line)
         {
             return line.shorterThan(snap_distance);
         });

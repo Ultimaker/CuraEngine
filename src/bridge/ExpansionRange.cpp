@@ -7,6 +7,8 @@
 #include "bridge/SegmentOverlappingData.h"
 
 
+using namespace curaengine::utils;
+
 namespace curaengine::bridge
 {
 
@@ -17,7 +19,7 @@ std::optional<SegmentOverlapping> ExpansionRange::calculateOverlapping(const Tra
         return data_.segment.calculateOverlapping(other, expand_direction);
     }
 
-    if (::curaengine::utils::fuzzy_is_greater_or_equal(other.minY(), maxY()) || ::curaengine::utils::fuzzy_is_lesser_or_equal(other.maxY(), minY()))
+    if (fuzzy_is_greater_or_equal(other.minY(), maxY()) || fuzzy_is_lesser_or_equal(other.maxY(), minY()))
     {
         // Not on the same horizontal band, or very slightly overlapping , discard
         return std::nullopt;

@@ -40,12 +40,12 @@ public:
 
     Slicer(
         Mesh* mesh,
-        const ::curaengine::utils::coord_t thickness,
+        const utils::coord_t thickness,
         const size_t slice_layer_count,
         bool use_variable_layer_heights,
-        std::vector<::curaengine::types::AdaptiveLayer>* adaptive_layers,
-        const ::curaengine::types::SlicingTolerance slicing_tolerance,
-        const ::curaengine::utils::coord_t initial_layer_thickness);
+        std::vector<types::AdaptiveLayer>* adaptive_layers,
+        const types::SlicingTolerance slicing_tolerance,
+        const utils::coord_t initial_layer_thickness);
 
 
 private:
@@ -61,7 +61,7 @@ private:
      * \param y1 The Y coordinate of the second end point of the line segment.
      * \return The Y coordinate of the point to find.
      */
-    static ::curaengine::utils::coord_t interpolate(const ::curaengine::utils::coord_t x, const ::curaengine::utils::coord_t x0, const ::curaengine::utils::coord_t x1, const ::curaengine::utils::coord_t y0, const ::curaengine::utils::coord_t y1);
+    static utils::coord_t interpolate(const utils::coord_t x, const utils::coord_t x0, const utils::coord_t x1, const utils::coord_t y0, const utils::coord_t y1);
 
     /*!
      * Interpolate the UV coordinates at the 3 points of the given triangle to the given position in barycentric coordinates
@@ -71,7 +71,7 @@ private:
      * @param uv2 The UV coordinates at point 2 of the triangle
      * @return The interpolated UV coordinates at the given position
      */
-    static ::curaengine::geometry::Point2F interpolateUV(const ::curaengine::geometry::Point3D& barycentric_coordinates, const ::curaengine::geometry::Point2F& uv0, const ::curaengine::geometry::Point2F& uv1, const ::curaengine::geometry::Point2F& uv2);
+    static geometry::Point2F interpolateUV(const geometry::Point3D& barycentric_coordinates, const geometry::Point2F& uv0, const geometry::Point2F& uv1, const geometry::Point2F& uv2);
 
     /*!
      * Get the barycentric coordinates of the given point in the given triangle
@@ -81,7 +81,7 @@ private:
      * @param p2 The coordinates of point 2 of the triangle
      * @return The barycentric coordinates of the given point
      */
-    static std::optional<::curaengine::geometry::Point3D> getBarycentricCoordinates(const ::curaengine::geometry::Point3LL& point, const ::curaengine::geometry::Point3LL& p0, const ::curaengine::geometry::Point3LL& p1, const ::curaengine::geometry::Point3LL& p2);
+    static std::optional<geometry::Point3D> getBarycentricCoordinates(const geometry::Point3LL& point, const geometry::Point3LL& p0, const geometry::Point3LL& p1, const geometry::Point3LL& p2);
 
     /*!
      * \brief Project a triangle onto a 2D layer.
@@ -96,13 +96,13 @@ private:
      * \return A slicer segment.
      */
     static SlicerSegment project2D(
-        const ::curaengine::geometry::Point3LL& p0,
-        const ::curaengine::geometry::Point3LL& p1,
-        const ::curaengine::geometry::Point3LL& p2,
-        const std::optional<::curaengine::geometry::Point2F>& uv0,
-        const std::optional<::curaengine::geometry::Point2F>& uv1,
-        const std::optional<::curaengine::geometry::Point2F>& uv2,
-        const ::curaengine::utils::coord_t z);
+        const geometry::Point3LL& p0,
+        const geometry::Point3LL& p1,
+        const geometry::Point3LL& p2,
+        const std::optional<geometry::Point2F>& uv0,
+        const std::optional<geometry::Point2F>& uv1,
+        const std::optional<geometry::Point2F>& uv2,
+        const utils::coord_t z);
 
     /*! Creates an array of "z bounding boxes" for each face.
      * \param[in] mesh The mesh which is analyzed.
@@ -115,7 +115,7 @@ private:
      * \param[in] slicing_tolerance The way the slicing tolerance should be applied (MIDDLE/INCLUSIVE/EXCLUSIVE).
      * \param[in, out] layers The polygon are created here.
      */
-    static void makePolygons(Mesh& mesh, ::curaengine::types::SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers);
+    static void makePolygons(Mesh& mesh, types::SlicingTolerance slicing_tolerance, std::vector<SlicerLayer>& layers);
 
     /*! Creates a vector of layers and set their z value.
      * \param[in] mesh The mesh which is analyzed.
@@ -129,11 +129,11 @@ private:
      */
     static std::vector<SlicerLayer> buildLayersWithHeight(
         size_t slice_layer_count,
-        ::curaengine::types::SlicingTolerance slicing_tolerance,
-        ::curaengine::utils::coord_t initial_layer_thickness,
-        ::curaengine::utils::coord_t thickness,
+        types::SlicingTolerance slicing_tolerance,
+        utils::coord_t initial_layer_thickness,
+        utils::coord_t thickness,
         bool use_variable_layer_heights,
-        const std::vector<::curaengine::types::AdaptiveLayer>* adaptive_layers);
+        const std::vector<types::AdaptiveLayer>* adaptive_layers);
 
     /*! Creates the segments and write them into the layers.
      * \param[in] mesh The mesh which is analyzed.
@@ -142,7 +142,7 @@ private:
      * \param[in, out] layers The segments are created here.
      */
     static void
-        buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbboxes, const ::curaengine::types::SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers);
+        buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbboxes, const types::SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers);
 };
 
 } // namespace curaengine

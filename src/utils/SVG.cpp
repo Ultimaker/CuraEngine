@@ -25,6 +25,9 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/VoronoiUtils.h"
 
+using namespace curaengine::arachne;
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
@@ -148,7 +151,7 @@ void SVG::handleFlush(const bool flush) const
 }
 
 
-SVG::SVG(const std::string& filename, const AABB& aabb, const ::curaengine::geometry::Point2LL& canvas_size, const ColorObject& background)
+SVG::SVG(const std::string& filename, const AABB& aabb, const Point2LL& canvas_size, const ColorObject& background)
     : SVG(filename,
           aabb,
           std::min(
@@ -164,7 +167,7 @@ SVG::SVG(const std::string& filename, const AABB& aabb, double scale, const Colo
 {
 }
 
-SVG::SVG(const std::string& filename, const AABB& aabb, double scale, const ::curaengine::geometry::Point2LL& canvas_size, const ColorObject& background)
+SVG::SVG(const std::string& filename, const AABB& aabb, double scale, const Point2LL& canvas_size, const ColorObject& background)
     : aabb_(aabb)
     , aabb_size_(aabb.max_ - aabb.min_)
     , canvas_size_(canvas_size)
@@ -228,14 +231,14 @@ void SVG::nextLayer()
     fprintf(out_, "    id=\"layer%zu\">\n", layer_nr_);
 }
 
-::curaengine::geometry::Point2LL SVG::transform(const ::curaengine::geometry::Point2LL& p) const
+Point2LL SVG::transform(const Point2LL& p) const
 {
-    return ::curaengine::geometry::Point2LL(std::llrint(static_cast<double>(p.X - aabb_.min_.X) * scale_), std::llrint(static_cast<double>(aabb_.max_.Y - p.Y) * scale_));
+    return Point2LL(std::llrint(static_cast<double>(p.X - aabb_.min_.X) * scale_), std::llrint(static_cast<double>(aabb_.max_.Y - p.Y) * scale_));
 }
 
-::curaengine::geometry::Point2D SVG::transformF(const ::curaengine::geometry::Point2LL& p) const
+Point2D SVG::transformF(const Point2LL& p) const
 {
-    return ::curaengine::geometry::Point2D(static_cast<double>(p.X - aabb_.min_.X) * scale_, static_cast<double>(aabb_.max_.Y - p.Y) * scale_);
+    return Point2D(static_cast<double>(p.X - aabb_.min_.X) * scale_, static_cast<double>(aabb_.max_.Y - p.Y) * scale_);
 }
 
 void SVG::writeComment(const std::string& comment) const
@@ -243,13 +246,13 @@ void SVG::writeComment(const std::string& comment) const
     fprintf(out_, "<!-- %s -->\n", comment.c_str());
 }
 
-void SVG::write(const ::curaengine::geometry::Shape& shape, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const Shape& shape, const VisualAttributes& visual_attributes, const bool flush) const
 {
-    write(static_cast<::curaengine::geometry::LinesSet<::curaengine::geometry::Polygon>>(shape), visual_attributes, flush, FillRule::EvenOdd);
+    write(static_cast<LinesSet<Polygon>>(shape), visual_attributes, flush, FillRule::EvenOdd);
 }
 
 template<class LineType>
-void SVG::write(const ::curaengine::geometry::LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const
+void SVG::write(const LinesSet<LineType>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const
 {
     if (visual_attributes.line.isDisplayed() || visual_attributes.surface.isDisplayed())
     {
@@ -298,35 +301,35 @@ void SVG::write(const ::curaengine::geometry::LinesSet<LineType>& lines, const V
 
     for (const LineType& line : lines)
     {
-        write(static_cast<::curaengine::geometry::PointsSet>(line), visual_attributes.vertices, false);
+        write(static_cast<PointsSet>(line), visual_attributes.vertices, false);
     }
 
     handleFlush(flush);
 }
 
-template void SVG::write(const ::curaengine::geometry::LinesSet<::curaengine::geometry::Polygon>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
-template void SVG::write(const ::curaengine::geometry::LinesSet<::curaengine::geometry::OpenPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
-template void SVG::write(const ::curaengine::geometry::LinesSet<::curaengine::geometry::ClosedPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+template void SVG::write(const LinesSet<Polygon>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+template void SVG::write(const LinesSet<OpenPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
+template void SVG::write(const LinesSet<ClosedPolyline>& lines, const VisualAttributes& visual_attributes, const bool flush, const FillRule fill_rule) const;
 
-void SVG::write(const ::curaengine::geometry::OpenPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const OpenPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
 {
-    write(::curaengine::geometry::LinesSet{ line }, visual_attributes, flush);
+    write(LinesSet{ line }, visual_attributes, flush);
 }
 
-void SVG::write(const ::curaengine::geometry::ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const ClosedPolyline& line, const VisualAttributes& visual_attributes, const bool flush) const
 {
-    write(::curaengine::geometry::LinesSet{ line }, visual_attributes, flush);
+    write(LinesSet{ line }, visual_attributes, flush);
 }
 
-void SVG::write(const ::curaengine::geometry::MixedLinesSet& lines, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const MixedLinesSet& lines, const VisualAttributes& visual_attributes, const bool flush) const
 {
-    for (const ::curaengine::geometry::PolylinePtr& line : lines)
+    for (const PolylinePtr& line : lines)
     {
-        if (auto open_polyline = dynamic_pointer_cast<::curaengine::geometry::OpenPolyline>(line))
+        if (auto open_polyline = dynamic_pointer_cast<OpenPolyline>(line))
         {
             write(*open_polyline, visual_attributes, false);
         }
-        else if (auto closed_polyline = dynamic_pointer_cast<::curaengine::geometry::ClosedPolyline>(line))
+        else if (auto closed_polyline = dynamic_pointer_cast<ClosedPolyline>(line))
         {
             write(*closed_polyline, visual_attributes, false);
         }
@@ -335,9 +338,9 @@ void SVG::write(const ::curaengine::geometry::MixedLinesSet& lines, const Visual
     handleFlush(flush);
 }
 
-void SVG::write(const ::curaengine::geometry::PointsSet& points, const VerticesAttributes& visual_attributes, const bool flush) const
+void SVG::write(const PointsSet& points, const VerticesAttributes& visual_attributes, const bool flush) const
 {
-    for (const ::curaengine::geometry::Point2LL& point : points)
+    for (const Point2LL& point : points)
     {
         write(point, visual_attributes, false);
     }
@@ -345,11 +348,11 @@ void SVG::write(const ::curaengine::geometry::PointsSet& points, const VerticesA
     handleFlush(flush);
 }
 
-void SVG::write(const ::curaengine::geometry::Point2LL& point, const VerticesAttributes& visual_attributes, const bool flush) const
+void SVG::write(const Point2LL& point, const VerticesAttributes& visual_attributes, const bool flush) const
 {
     if (visual_attributes.isDisplayed())
     {
-        ::curaengine::geometry::Point2D transformed_point = transformF(point);
+        Point2D transformed_point = transformF(point);
         fprintf(
             out_,
             "<circle cx=\"%f\" cy=\"%f\" r=\"%f\" stroke-width=\"0\" fill=\"%s\" />\n",
@@ -367,22 +370,22 @@ void SVG::write(const ::curaengine::geometry::Point2LL& point, const VerticesAtt
     handleFlush(flush);
 }
 
-void SVG::write(const ::curaengine::geometry::Point2LL& start, const ::curaengine::geometry::Point2LL& end, const VisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const Point2LL& start, const Point2LL& end, const VisualAttributes& visual_attributes, const bool flush) const
 {
-    write(::curaengine::geometry::OpenPolyline({ start, end }), visual_attributes, flush);
+    write(OpenPolyline({ start, end }), visual_attributes, flush);
 }
 
-void SVG::writeArrow(const ::curaengine::geometry::Point2LL& a, const ::curaengine::geometry::Point2LL& b, const ColorObject color, const double stroke_width, const double head_size) const
+void SVG::writeArrow(const Point2LL& a, const Point2LL& b, const ColorObject color, const double stroke_width, const double head_size) const
 {
-    const ::curaengine::geometry::Point2D fa = transformF(a);
-    const ::curaengine::geometry::Point2D fb = transformF(b);
-    const ::curaengine::geometry::Point2D ab = fb - fa;
-    const ::curaengine::geometry::Point2D normal = ::curaengine::geometry::Point2D(ab.y(), -ab.x()).vNormalized().value();
-    const ::curaengine::geometry::Point2D direction = ab.vNormalized().value();
+    const Point2D fa = transformF(a);
+    const Point2D fb = transformF(b);
+    const Point2D ab = fb - fa;
+    const Point2D normal = Point2D(ab.y(), -ab.x()).vNormalized().value();
+    const Point2D direction = ab.vNormalized().value();
 
-    const ::curaengine::geometry::Point2D tip = fb + normal * head_size - direction * head_size;
-    const ::curaengine::geometry::Point2D b_base = fb + normal * stroke_width - direction * stroke_width * 2.41f;
-    const ::curaengine::geometry::Point2D a_base = fa + normal * stroke_width;
+    const Point2D tip = fb + normal * head_size - direction * head_size;
+    const Point2D b_base = fb + normal * stroke_width - direction * stroke_width * 2.41f;
+    const Point2D a_base = fa + normal * stroke_width;
     fprintf(
         out_,
         "<polygon fill=\"%s\" points=\"%f,%f %f,%f %f,%f %f,%f %f,%f\" />",
@@ -399,9 +402,9 @@ void SVG::writeArrow(const ::curaengine::geometry::Point2LL& a, const ::curaengi
         static_cast<double>(a_base.y()));
 }
 
-void SVG::write(const std::string& text, const ::curaengine::geometry::Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush) const
+void SVG::write(const std::string& text, const Point2LL& p, const VerticesAttributes& vertices_attributes, const bool flush) const
 {
-    const ::curaengine::geometry::Point2D transformed_point = transformF(p);
+    const Point2D transformed_point = transformF(p);
     fprintf(
         out_,
         "<text x=\"%f\" y=\"%f\" style=\"font-size: %fpx;\" fill=\"%s\">%s</text>\n",
@@ -414,18 +417,18 @@ void SVG::write(const std::string& text, const ::curaengine::geometry::Point2LL&
     handleFlush(flush);
 }
 
-void SVG::write(const ::curaengine::arachne::SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush) const
+void SVG::write(const SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush) const
 {
     const size_t start_edges_count = ranges::accumulate(
         graph.edges_,
         0,
-        [](int total, const ::curaengine::arachne::STHalfEdge& edge)
+        [](int total, const STHalfEdge& edge)
         {
             return total + (edge.prev_ == nullptr ? 1 : 0);
         });
 
-    std::set<const ::curaengine::arachne::STHalfEdge*> drawn_edges;
-    std::set<const ::curaengine::arachne::STHalfEdgeNode*> drawn_nodes;
+    std::set<const STHalfEdge*> drawn_edges;
+    std::set<const STHalfEdgeNode*> drawn_nodes;
 
     for (const auto& [index, edge] : graph.edges_ | ranges::views::enumerate)
     {
@@ -440,7 +443,7 @@ void SVG::write(const ::curaengine::arachne::SkeletalTrapezoidationGraph& graph,
             loop_visual_attributes.line.color = makeRainbowColor(index, start_edges_count);
         }
 
-        const ::curaengine::arachne::STHalfEdge* current_edge = &edge;
+        const STHalfEdge* current_edge = &edge;
         while (current_edge != nullptr)
         {
             if (! drawn_edges.contains(current_edge))
@@ -474,7 +477,7 @@ void SVG::write(const ::curaengine::arachne::SkeletalTrapezoidationGraph& graph,
     handleFlush(flush);
 }
 
-void SVG::write(const ::curaengine::arachne::STHalfEdge& edge, const STVisualAttributes& visual_attributes, const bool flush, const std::set<const ::curaengine::arachne::STHalfEdgeNode*>& drawn_nodes) const
+void SVG::write(const STHalfEdge& edge, const STVisualAttributes& visual_attributes, const bool flush, const std::set<const STHalfEdgeNode*>& drawn_nodes) const
 {
     if (visual_attributes.beads_count.isDisplayed())
     {
@@ -503,22 +506,22 @@ void SVG::write(const ::curaengine::arachne::STHalfEdge& edge, const STVisualAtt
         return;
     }
 
-    const std::optional<::curaengine::geometry::Point2D> direction = ::curaengine::geometry::conversions::toPoint2D(::curaengine::geometry::Point2LL(edge.to_->p_ - edge.from_->p_)).vNormalized();
+    const std::optional<Point2D> direction = geometry::conversions::toPoint2D(Point2LL(edge.to_->p_ - edge.from_->p_)).vNormalized();
     if (! direction.has_value())
     {
         spdlog::warn("Invalid half edge, skipping");
         return;
     }
 
-    const ::curaengine::geometry::Point2D radial = direction->rotated90CCW();
-    const ::curaengine::geometry::Point2LL delta_radial = ::curaengine::geometry::conversions::toPoint2LL(radial * (visual_attributes.line.width * 0.65 / scale_));
-    const ::curaengine::geometry::Point2LL size_reduction_axial = ::curaengine::geometry::conversions::toPoint2LL(direction.value() * (visual_attributes.line.width * 4.0 / scale_));
+    const Point2D radial = direction->rotated90CCW();
+    const Point2LL delta_radial = geometry::conversions::toPoint2LL(radial * (visual_attributes.line.width * 0.65 / scale_));
+    const Point2LL size_reduction_axial = geometry::conversions::toPoint2LL(direction.value() * (visual_attributes.line.width * 4.0 / scale_));
 
-    ::curaengine::geometry::OpenPolyline edge_half_arrow;
+    OpenPolyline edge_half_arrow;
     edge_half_arrow.push_back(edge.from_->p_ + size_reduction_axial + delta_radial);
     edge_half_arrow.push_back(edge.to_->p_ - size_reduction_axial + delta_radial);
 
-    const ::curaengine::geometry::Point2LL tip_delta = ::curaengine::geometry::conversions::toPoint2LL(-(direction.value() - radial) * (visual_attributes.line.width * 1.5 / scale_));
+    const Point2LL tip_delta = geometry::conversions::toPoint2LL(-(direction.value() - radial) * (visual_attributes.line.width * 1.5 / scale_));
     edge_half_arrow.push_back(edge_half_arrow.back() + tip_delta);
 
     write(edge_half_arrow, visual_attributes, flush);
@@ -557,13 +560,13 @@ void SVG::write(const ExtrusionLine& line, const SurfaceAttributes& visual_attri
         ExtrusionJunction end_vertex = line.junctions_[index];
 
         // Compute the corners of the trapezoid for this variable-width line segment.
-        const ::curaengine::geometry::Point2LL direction_vector = end_vertex.p_ - start_vertex.p_;
-        const ::curaengine::geometry::Point2LL direction_left = ::curaengine::geometry::turn90CCW(direction_vector);
-        const ::curaengine::geometry::Point2LL direction_right = -direction_left; // Opposite of left.
-        const ::curaengine::geometry::Point2D start_left = transformF(start_vertex.p_ + ::curaengine::geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
-        const ::curaengine::geometry::Point2D start_right = transformF(start_vertex.p_ + ::curaengine::geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
-        const ::curaengine::geometry::Point2D end_left = transformF(end_vertex.p_ + ::curaengine::geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
-        const ::curaengine::geometry::Point2D end_right = transformF(end_vertex.p_ + ::curaengine::geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
+        const Point2LL direction_vector = end_vertex.p_ - start_vertex.p_;
+        const Point2LL direction_left = geometry::turn90CCW(direction_vector);
+        const Point2LL direction_right = -direction_left; // Opposite of left.
+        const Point2D start_left = transformF(start_vertex.p_ + geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D start_right = transformF(start_vertex.p_ + geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D end_left = transformF(end_vertex.p_ + geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
+        const Point2D end_right = transformF(end_vertex.p_ + geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
 
         fprintf(out_, "<polygon ");
         write(visual_attributes);
@@ -609,23 +612,23 @@ void SVG::writeCoordinateGrid(const coord_t grid_size, const VisualAttributes& v
 
     for (coord_t x = min_x; x < aabb_.max_.X; x += grid_size)
     {
-        write(::curaengine::geometry::Point2LL(x, aabb_.min_.Y), ::curaengine::geometry::Point2LL(x, aabb_.max_.Y), visual_attributes);
+        write(Point2LL(x, aabb_.min_.Y), Point2LL(x, aabb_.max_.Y), visual_attributes);
         std::stringstream ss;
         ss << INT2MM(x);
         write(
             ss.str(),
-            ::curaengine::geometry::Point2LL(x, std::llrint(static_cast<double>(aabb_.min_.Y) + static_cast<double>(aabb_.max_.Y - aabb_.min_.Y) * dist_from_edge)),
+            Point2LL(x, std::llrint(static_cast<double>(aabb_.min_.Y) + static_cast<double>(aabb_.max_.Y - aabb_.min_.Y) * dist_from_edge)),
             visual_attributes.vertices,
             false);
     }
     for (coord_t y = min_y; y < aabb_.max_.Y; y += grid_size)
     {
-        write(::curaengine::geometry::Point2LL(aabb_.min_.X, y), ::curaengine::geometry::Point2LL(aabb_.max_.Y, y), visual_attributes);
+        write(Point2LL(aabb_.min_.X, y), Point2LL(aabb_.max_.Y, y), visual_attributes);
         std::stringstream ss;
         ss << INT2MM(y);
         write(
             ss.str(),
-            ::curaengine::geometry::Point2LL(std::llrint(static_cast<double>(aabb_.min_.X) + static_cast<double>(aabb_.max_.X - aabb_.min_.X) * dist_from_edge), y),
+            Point2LL(std::llrint(static_cast<double>(aabb_.min_.X) + static_cast<double>(aabb_.max_.X - aabb_.min_.X) * dist_from_edge), y),
             visual_attributes.vertices,
             false);
     }
@@ -649,12 +652,12 @@ void SVG::write(const boost::polygon::voronoi_edge<VoronoiUtils::voronoi_data_t>
         return;
     }
 
-    const ::curaengine::geometry::Point2LL p0 = VoronoiUtils::p(v0);
-    const ::curaengine::geometry::Point2LL p1 = VoronoiUtils::p(v1);
+    const Point2LL p0 = VoronoiUtils::p(v0);
+    const Point2LL p1 = VoronoiUtils::p(v1);
 
-    ::curaengine::arachne::STHalfEdge half_edge = { ::curaengine::arachne::SkeletalTrapezoidationEdge() };
-    ::curaengine::arachne::STHalfEdgeNode from(::curaengine::arachne::SkeletalTrapezoidationJoint(), p0);
-    ::curaengine::arachne::STHalfEdgeNode to(::curaengine::arachne::SkeletalTrapezoidationJoint(), p1);
+    STHalfEdge half_edge = { SkeletalTrapezoidationEdge() };
+    STHalfEdgeNode from(SkeletalTrapezoidationJoint(), p0);
+    STHalfEdgeNode to(SkeletalTrapezoidationJoint(), p1);
     half_edge.from_ = &from;
     half_edge.to_ = &to;
 
@@ -670,7 +673,7 @@ void SVG::write(const boost::polygon::voronoi_cell<VoronoiUtils::voronoi_data_t>
         return;
     }
 
-    ::curaengine::geometry::Polygon cell_polygon;
+    Polygon cell_polygon;
 
     const VoronoiUtils::vd_t::edge_type* current_edge = start_edge;
     do
@@ -721,7 +724,7 @@ void SVG::write(const VoronoiUtils::vd_t& voronoi_diagram, const DiagramVisualAt
     handleFlush(flush);
 }
 
-void SVG::writePathPoints(const ::curaengine::geometry::Polyline& line) const
+void SVG::writePathPoints(const Polyline& line) const
 {
     bool first_segment = true;
     const bool has_closing_segment = line.hasClosingSegment();
@@ -730,14 +733,14 @@ void SVG::writePathPoints(const ::curaengine::geometry::Polyline& line) const
     {
         if (first_segment)
         {
-            const ::curaengine::geometry::Point2D transformed_start = transformF((*iterator).start);
+            const Point2D transformed_start = transformF((*iterator).start);
             fprintf(out_, "M%f %f ", transformed_start.x(), transformed_start.y());
             first_segment = false;
         }
 
         if (! has_closing_segment || iterator != before_last_iterator)
         {
-            const ::curaengine::geometry::Point2D transformed_end = transformF((*iterator).end);
+            const Point2D transformed_end = transformF((*iterator).end);
             fprintf(out_, "L%f,%f ", static_cast<double>(transformed_end.x()), static_cast<double>(transformed_end.y()));
         }
     }

@@ -27,8 +27,8 @@ public:
      * is reduced, all coordinates will go towards this origin. If the scale is
      * increased, all coordinates will go away from this origin.
      */
-    static Matrix4x3D scale(const ::curaengine::types::Ratio scale, const Point3LL origin);
-    static Matrix4x3D scale(const ::curaengine::types::Ratio scale_x, const ::curaengine::types::Ratio scale_y, const ::curaengine::types::Ratio scale_z, const Point3LL origin);
+    static Matrix4x3D scale(const types::Ratio scale, const Point3LL origin);
+    static Matrix4x3D scale(const types::Ratio scale_x, const types::Ratio scale_y, const types::Ratio scale_z, const Point3LL origin);
 
     /*!
      * The matrix data, row-endian.

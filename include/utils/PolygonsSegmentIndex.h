@@ -15,11 +15,11 @@ class PolygonsSegmentIndex : public PolygonsPointIndex
 {
 public:
     PolygonsSegmentIndex();
-    PolygonsSegmentIndex(const ::curaengine::geometry::Shape* polygons, unsigned int poly_idx, unsigned int point_idx);
+    PolygonsSegmentIndex(const geometry::Shape* polygons, unsigned int poly_idx, unsigned int point_idx);
 
-    ::curaengine::geometry::Point2LL from() const;
+    geometry::Point2LL from() const;
 
-    ::curaengine::geometry::Point2LL to() const;
+    geometry::Point2LL to() const;
 };
 
 

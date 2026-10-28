@@ -12,9 +12,9 @@ namespace curaengine::path_planning
 
 struct SpeedDerivatives
 {
-    ::curaengine::types::Velocity speed{}; //!< movement speed (mm/s)
-    ::curaengine::types::Acceleration acceleration{}; //!< acceleration of head movement (mm/s^2)
-    ::curaengine::types::Velocity jerk{}; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
+    types::Velocity speed{}; //!< movement speed (mm/s)
+    types::Acceleration acceleration{}; //!< acceleration of head movement (mm/s^2)
+    types::Velocity jerk{}; //!< jerk of the head movement (around stand still) as instantaneous speed change (mm/s)
 
     constexpr bool operator==(const SpeedDerivatives& other) const noexcept = default;
     constexpr auto operator<=>(const SpeedDerivatives& other) const noexcept = default;
@@ -30,7 +30,7 @@ struct SpeedDerivatives
      * \param layer_nr The layer number
      * \param max_speed_layer The layer number for which the speed_iconic should be used.
      */
-    void smoothSpeed(const SpeedDerivatives& first_layer_config, const ::curaengine::types::LayerIndex layer_nr, const ::curaengine::types::LayerIndex max_speed_layer_nr);
+    void smoothSpeed(const SpeedDerivatives& first_layer_config, const types::LayerIndex layer_nr, const types::LayerIndex max_speed_layer_nr);
 };
 
 } // namespace curaengine::path_planning

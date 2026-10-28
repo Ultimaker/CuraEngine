@@ -22,7 +22,7 @@ public:
      * \param fixed_line_width The fixed line width in case the stored path doesn't handle information about a variable
      *                         line width. Can be omitted otherwise.
      */
-    PathAdapter(const PathType& path, const ::curaengine::utils::coord_t fixed_line_width = 0)
+    PathAdapter(const PathType& path, const utils::coord_t fixed_line_width = 0)
         : path_(path)
         , fixed_line_width_(fixed_line_width)
     {
@@ -38,14 +38,14 @@ public:
         return path_.size();
     }
 
-    ::curaengine::utils::coord_t length() const
+    utils::coord_t length() const
     {
         return path_.length();
     }
 
-    const ::curaengine::geometry::Point2LL& pointAt(size_t index) const;
+    const geometry::Point2LL& pointAt(size_t index) const;
 
-    ::curaengine::utils::coord_t lineWidthAt(size_t index) const;
+    utils::coord_t lineWidthAt(size_t index) const;
 
     const PathType& getPath() const
     {
@@ -54,7 +54,7 @@ public:
 
 private:
     const PathType& path_;
-    const ::curaengine::utils::coord_t fixed_line_width_;
+    const utils::coord_t fixed_line_width_;
 };
 
 } // namespace curaengine

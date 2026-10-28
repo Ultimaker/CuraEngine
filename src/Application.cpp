@@ -26,6 +26,10 @@
 #include "utils/ThreadPool.h"
 #include "utils/string.h" //For stringcasecompare.
 
+using namespace curaengine::communication;
+using namespace curaengine::progress;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
@@ -104,7 +108,7 @@ void Application::connect()
         }
     }
 
-    auto arcus_communication = std::make_shared<::curaengine::communication::ArcusCommunication>();
+    auto arcus_communication = std::make_shared<ArcusCommunication>();
     arcus_communication->connect(ip, port);
     communication_ = arcus_communication;
 }
@@ -219,9 +223,9 @@ void Application::slice()
         arguments.emplace_back(argv_[argument_index]);
     }
 #ifdef __EMSCRIPTEN__
-    communication_ = std::make_shared<::curaengine::communication::EmscriptenCommunication>(arguments);
+    communication_ = std::make_shared<EmscriptenCommunication>(arguments);
 #else
-    communication_ = std::make_shared<::curaengine::communication::CommandLine>(arguments);
+    communication_ = std::make_shared<CommandLine>(arguments);
 #endif
 }
 
@@ -232,7 +236,7 @@ void Application::run(const size_t argc, char** argv)
 
     printHeader();
     printLicense();
-    ::curaengine::progress::Progress::init();
+    Progress::init();
 
     if (argc < 2)
     {
@@ -241,17 +245,17 @@ void Application::run(const size_t argc, char** argv)
     }
 
 #ifdef ARCUS
-    if (::curaengine::utils::stringcasecompare(argv[1], "connect") == 0)
+    if (utils::stringcasecompare(argv[1], "connect") == 0)
     {
         connect();
     }
     else
 #endif // ARCUS
-        if (::curaengine::utils::stringcasecompare(argv[1], "slice") == 0)
+        if (utils::stringcasecompare(argv[1], "slice") == 0)
         {
             slice();
         }
-        else if (::curaengine::utils::stringcasecompare(argv[1], "help") == 0)
+        else if (utils::stringcasecompare(argv[1], "help") == 0)
         {
             printHelp();
         }
@@ -306,7 +310,7 @@ void Application::startThreadPool(int nworkers)
     }
 
     delete thread_pool_;
-    thread_pool_ = new ::curaengine::utils::ThreadPool(nthreads);
+    thread_pool_ = new ThreadPool(nthreads);
 }
 
 } // namespace curaengine

@@ -27,7 +27,7 @@ public:
     SpatialLookup() = default;
 
     /*! Find the occupation that is closest to the given position */
-    std::optional<OccupiedPosition> findClosestOccupation(const ::curaengine::geometry::Point3D& position) const;
+    std::optional<OccupiedPosition> findClosestOccupation(const geometry::Point3D& position) const;
 
     /*!
      * Make a spatial lookup based on the data stored in the given voxels grid

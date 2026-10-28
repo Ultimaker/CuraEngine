@@ -16,7 +16,7 @@ namespace curaengine::utils
 /*! Utility structure to allow storing an occupation in a boost::geometry::index::rtree. */
 struct OccupiedPosition
 {
-    ::curaengine::geometry::Point3D position;
+    geometry::Point3D position;
     uint8_t occupation;
 };
 

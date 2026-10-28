@@ -9,6 +9,8 @@
 #include "types/AngleRadians.h"
 
 
+using namespace curaengine::types;
+
 namespace curaengine::geometry
 {
 
@@ -21,13 +23,13 @@ PointMatrix::PointMatrix(double rotation)
     matrix[3] = matrix[0];
 }
 
-PointMatrix::PointMatrix(const ::curaengine::types::AngleDegrees& rotation)
+PointMatrix::PointMatrix(const AngleDegrees& rotation)
     : PointMatrix(rotation.value_)
 {
 }
 
-PointMatrix::PointMatrix(const ::curaengine::types::AngleRadians& rotation)
-    : PointMatrix(::curaengine::types::AngleDegrees(rotation))
+PointMatrix::PointMatrix(const AngleRadians& rotation)
+    : PointMatrix(AngleDegrees(rotation))
 {
 }
 

@@ -12,8 +12,8 @@
 namespace curaengine
 {
 
-using CSegment = ::curaengine::utils::PolygonsSegmentIndex;
-using CPolygon = boost::polygon::polygon_data<::curaengine::utils::coord_t>;
+using CSegment = utils::PolygonsSegmentIndex;
+using CPolygon = boost::polygon::polygon_data<utils::coord_t>;
 using CPolygonSet = std::vector<CPolygon>;
 
 } // namespace curaengine

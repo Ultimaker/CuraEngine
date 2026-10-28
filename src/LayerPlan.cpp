@@ -53,10 +53,18 @@
 #include "utils/Simplify.h"
 #include "utils/math.h"
 
+using namespace curaengine::arachne;
+using namespace curaengine::beading_strategy;
+using namespace curaengine::gcode_export;
+using namespace curaengine::geometry;
+using namespace curaengine::path_planning;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
-using ::curaengine::types::operator""_r;
-using ::curaengine::types::operator""_s;
+using types::operator""_r;
+using types::operator""_s;
 
 
 
@@ -70,18 +78,18 @@ size_t point_index(T wall, ptrdiff_t index)
     return (index + (wall.size() << 2)) % wall.size();
 }
 
-::curaengine::path_planning::GCodePath* LayerPlan::getLatestPathWithConfig(
+GCodePath* LayerPlan::getLatestPathWithConfig(
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
-    const ::curaengine::utils::coord_t z_offset,
-    const ::curaengine::types::Ratio flow,
-    const ::curaengine::types::Ratio width_factor,
+    const coord_t z_offset,
+    const Ratio flow,
+    const Ratio width_factor,
     const bool spiralize,
-    const ::curaengine::types::Ratio speed_factor,
+    const Ratio speed_factor,
     const bool travel_to_z,
     const PrintSegmentAttributes print_attributes)
 {
-    std::vector<::curaengine::path_planning::GCodePath>& paths = extruder_plans_.back().paths_;
+    std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
     if (! paths.empty() && paths.back().config == config && ! paths.back().done && paths.back().flow == flow && paths.back().width_factor == width_factor
         && paths.back().speed_factor == speed_factor && paths.back().z_offset == z_offset && paths.back().mesh == current_mesh_
         && paths.back().print_attributes == print_attributes) // spiralize can only change when a travel path is in between
@@ -89,7 +97,7 @@ size_t point_index(T wall, ptrdiff_t index)
         return &paths.back();
     }
     paths.emplace_back(
-        ::curaengine::path_planning::GCodePath{
+        GCodePath{
             .z_offset = z_offset,
             .config = config,
             .mesh = current_mesh_,
@@ -102,38 +110,38 @@ size_t point_index(T wall, ptrdiff_t index)
             .print_attributes = print_attributes,
         });
 
-    ::curaengine::path_planning::GCodePath* ret = &paths.back();
+    GCodePath* ret = &paths.back();
     return ret;
 }
 
-const ::curaengine::geometry::Shape* LayerPlan::getCombBoundaryInside() const
+const Shape* LayerPlan::getCombBoundaryInside() const
 {
     return &comb_boundary_preferred_;
 }
 
 void LayerPlan::forceNewPathStart()
 {
-    std::vector<::curaengine::path_planning::GCodePath>& paths = extruder_plans_.back().paths_;
+    std::vector<GCodePath>& paths = extruder_plans_.back().paths_;
     if (paths.size() > 0)
         paths[paths.size() - 1].done = true;
 }
 
 LayerPlan::LayerPlan(
     const SliceDataStorage& storage,
-    ::curaengine::types::LayerIndex layer_nr,
-    ::curaengine::utils::coord_t z,
-    ::curaengine::utils::coord_t layer_thickness,
+    LayerIndex layer_nr,
+    coord_t z,
+    coord_t layer_thickness,
     size_t start_extruder,
     const std::vector<FanSpeedLayerTimeSettings>& fan_speed_layer_time_settings_per_extruder,
-    ::curaengine::utils::coord_t comb_boundary_offset,
-    ::curaengine::utils::coord_t comb_move_inside_distance,
-    ::curaengine::utils::coord_t travel_avoid_distance)
+    coord_t comb_boundary_offset,
+    coord_t comb_move_inside_distance,
+    coord_t travel_avoid_distance)
     : configs_storage_(storage, layer_nr, layer_thickness)
     , z_(z)
     , final_travel_z_(z)
     , storage_(storage)
     , layer_nr_(layer_nr)
-    , is_initial_layer_(layer_nr == 0 - static_cast<::curaengine::types::LayerIndex>(Raft::getTotalExtraLayers()))
+    , is_initial_layer_(layer_nr == 0 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()))
     , layer_type_(Raft::getLayerType(layer_nr))
     , layer_thickness_(layer_thickness)
     , has_prime_tower_planned_per_extruder_(Application::getInstance().current_slice_->scene.extruders.size(), false)
@@ -151,9 +159,9 @@ LayerPlan::LayerPlan(
     was_inside_ = true; // not used, because the first travel move is bogus
     is_inside_ = false; // assumes the next move will not be to inside a layer part (overwritten just before going into a layer part)
     const auto& local_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (local_settings.get<::curaengine::types::CombingMode>("retraction_combing") != ::curaengine::types::CombingMode::OFF && local_settings.get<::curaengine::utils::coord_t>("retraction_combing_avoid_distance") > 0)
+    if (local_settings.get<CombingMode>("retraction_combing") != CombingMode::OFF && local_settings.get<coord_t>("retraction_combing_avoid_distance") > 0)
     {
-        comb_ = new ::curaengine::path_planning::Comb(storage, layer_nr, comb_boundary_minimum_, comb_boundary_preferred_, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
+        comb_ = new Comb(storage, layer_nr, comb_boundary_minimum_, comb_boundary_preferred_, comb_boundary_offset, travel_avoid_distance, comb_move_inside_distance);
     }
     else
     {
@@ -161,7 +169,7 @@ LayerPlan::LayerPlan(
     }
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
-        layer_start_pos_per_extruder_.emplace_back(extruder.settings_.get<::curaengine::utils::coord_t>("layer_start_x"), extruder.settings_.get<::curaengine::utils::coord_t>("layer_start_y"), 0);
+        layer_start_pos_per_extruder_.emplace_back(extruder.settings_.get<coord_t>("layer_start_x"), extruder.settings_.get<coord_t>("layer_start_y"), 0);
     }
     extruder_plans_.reserve(Application::getInstance().current_slice_->scene.extruders.size());
     const auto is_raft_layer = layer_type_ == Raft::LayerType::RaftBase || layer_type_ == Raft::LayerType::RaftInterface || layer_type_ == Raft::LayerType::RaftSurface;
@@ -191,11 +199,11 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
     return last_planned_extruder_;
 }
 
-::curaengine::geometry::Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
+Shape LayerPlan::computeCombBoundary(const CombBoundary boundary_type)
 {
-    ::curaengine::geometry::Shape comb_boundary;
-    const ::curaengine::types::CombingMode mesh_combing_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<::curaengine::types::CombingMode>("retraction_combing");
-    if (mesh_combing_mode != ::curaengine::types::CombingMode::OFF && (layer_nr_ >= 0 || mesh_combing_mode != ::curaengine::types::CombingMode::NO_SKIN))
+    Shape comb_boundary;
+    const CombingMode mesh_combing_mode = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<CombingMode>("retraction_combing");
+    if (mesh_combing_mode != CombingMode::OFF && (layer_nr_ >= 0 || mesh_combing_mode != CombingMode::NO_SKIN))
     {
         switch (layer_type_)
         {
@@ -226,15 +234,15 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
                     continue;
                 }
 
-                constexpr ::curaengine::utils::coord_t extra_offset = 10; // Additional offset to avoid zero-width polygons remains
-                ::curaengine::utils::coord_t offset;
+                constexpr coord_t extra_offset = 10; // Additional offset to avoid zero-width polygons remains
+                coord_t offset;
                 switch (boundary_type)
                 {
                 case CombBoundary::MINIMUM:
-                    offset = -(mesh.settings.get<::curaengine::utils::coord_t>("machine_nozzle_size") / 2 + mesh.settings.get<::curaengine::utils::coord_t>("wall_line_width_0") / 2 + extra_offset);
+                    offset = -(mesh.settings.get<coord_t>("machine_nozzle_size") / 2 + mesh.settings.get<coord_t>("wall_line_width_0") / 2 + extra_offset);
                     break;
                 case CombBoundary::PREFERRED:
-                    offset = -(mesh.settings.get<::curaengine::utils::coord_t>("retraction_combing_avoid_distance") + mesh.settings.get<::curaengine::utils::coord_t>("wall_line_width_0") / 2 + extra_offset);
+                    offset = -(mesh.settings.get<coord_t>("retraction_combing_avoid_distance") + mesh.settings.get<coord_t>("wall_line_width_0") / 2 + extra_offset);
                     break;
                 default:
                     offset = 0;
@@ -242,23 +250,23 @@ ExtruderTrain* LayerPlan::getLastPlannedExtruderTrain()
                     break;
                 }
 
-                const ::curaengine::types::CombingMode combing_mode = mesh.settings.get<::curaengine::types::CombingMode>("retraction_combing");
+                const CombingMode combing_mode = mesh.settings.get<CombingMode>("retraction_combing");
                 for (const SliceLayerPart& part : layer.parts)
                 {
-                    ::curaengine::geometry::Shape part_combing_boundary;
+                    Shape part_combing_boundary;
 
-                    if (combing_mode == ::curaengine::types::CombingMode::INFILL)
+                    if (combing_mode == CombingMode::INFILL)
                     {
                         part_combing_boundary = part.infill_area;
                     }
                     else
                     {
                         part_combing_boundary = part.outline.offset(10).offset(offset - 10);
-                        if (combing_mode == ::curaengine::types::CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
+                        if (combing_mode == CombingMode::NO_SKIN) // Add the increased outline offset, subtract skin (infill and part of the inner walls)
                         {
                             part_combing_boundary = part_combing_boundary.difference(part.inner_area.difference(part.infill_area));
                         }
-                        else if (combing_mode == ::curaengine::types::CombingMode::NO_OUTER_SURFACES)
+                        else if (combing_mode == CombingMode::NO_OUTER_SURFACES)
                         {
                             for (const SliceLayerPart& outer_surface_part : layer.parts)
                             {
@@ -293,19 +301,19 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     { // handle end position of the prev extruder
         ExtruderTrain* extruder = getLastPlannedExtruderTrain();
         const bool end_pos_absolute = extruder->settings_.get<bool>("machine_extruder_end_pos_abs");
-        ::curaengine::geometry::Point2LL end_pos(extruder->settings_.get<::curaengine::utils::coord_t>("machine_extruder_end_pos_x"), extruder->settings_.get<::curaengine::utils::coord_t>("machine_extruder_end_pos_y"));
+        Point2LL end_pos(extruder->settings_.get<coord_t>("machine_extruder_end_pos_x"), extruder->settings_.get<coord_t>("machine_extruder_end_pos_y"));
         if (! end_pos_absolute)
         {
             end_pos += getLastPlannedPositionOrStartingPosition();
         }
         else
         {
-            const ::curaengine::geometry::Point2LL extruder_offset(extruder->settings_.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"));
+            const Point2LL extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"));
             end_pos += extruder_offset; // absolute end pos is given as a head position
         }
         if (end_pos_absolute || last_planned_position_)
         {
-            ::curaengine::path_planning::GCodePath& path = addTravel(end_pos); //  + extruder_offset cause it
+            GCodePath& path = addTravel(end_pos); //  + extruder_offset cause it
             path.retract_for_nozzle_switch = true;
         }
     }
@@ -329,14 +337,14 @@ bool LayerPlan::setExtruder(const size_t extruder_nr)
     { // handle starting pos of the new extruder
         ExtruderTrain* extruder = getLastPlannedExtruderTrain();
         const bool start_pos_absolute = extruder->settings_.get<bool>("machine_extruder_start_pos_abs");
-        ::curaengine::geometry::Point3LL start_pos(extruder->settings_.get<::curaengine::utils::coord_t>("machine_extruder_start_pos_x"), extruder->settings_.get<::curaengine::utils::coord_t>("machine_extruder_start_pos_y"), 0);
+        Point3LL start_pos(extruder->settings_.get<coord_t>("machine_extruder_start_pos_x"), extruder->settings_.get<coord_t>("machine_extruder_start_pos_y"), 0);
         if (! start_pos_absolute)
         {
             start_pos += getLastPlannedPositionOrStartingPosition();
         }
         else
         {
-            ::curaengine::geometry::Point3LL extruder_offset(extruder->settings_.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"), 0);
+            Point3LL extruder_offset(extruder->settings_.get<coord_t>("machine_nozzle_offset_x"), extruder->settings_.get<coord_t>("machine_nozzle_offset_y"), 0);
             start_pos += extruder_offset; // absolute start pos is given as a head position
         }
         if (start_pos_absolute || last_planned_position_)
@@ -351,15 +359,15 @@ void LayerPlan::setMesh(const std::shared_ptr<const SliceMeshStorage>& mesh)
     current_mesh_ = mesh;
 }
 
-void LayerPlan::moveInsideCombBoundary(const ::curaengine::utils::coord_t distance, const std::optional<SliceLayerPart>& part, ::curaengine::path_planning::GCodePath* path)
+void LayerPlan::moveInsideCombBoundary(const coord_t distance, const std::optional<SliceLayerPart>& part, GCodePath* path)
 {
-    constexpr ::curaengine::utils::coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
+    constexpr coord_t max_dist2 = MM2INT(2.0) * MM2INT(2.0); // if we are further than this distance, we conclude we are not inside even though we thought we were.
     // this function is to be used to move from the boundary of a part to inside the part
-    ::curaengine::geometry::Point2LL p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
-    if (::curaengine::utils::PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2) != NO_INDEX)
+    Point2LL p = getLastPlannedPositionOrStartingPosition(); // copy, since we are going to move p
+    if (PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2) != NO_INDEX)
     {
         // Move inside again, so we move out of tight 90deg corners
-        ::curaengine::utils::PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2);
+        PolygonUtils::moveInside(comb_boundary_preferred_, p, distance, max_dist2);
         if (comb_boundary_preferred_.inside(p) && (part == std::nullopt || part->outline.inside(p)))
         {
             addTravel_simple(p, path);
@@ -379,9 +387,9 @@ void LayerPlan::setPrimeTowerIsPlanned(size_t extruder_nr)
     has_prime_tower_planned_per_extruder_[extruder_nr] = true;
 }
 
-std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getFirstTravelDestinationState() const
+std::optional<std::pair<Point2LL, bool>> LayerPlan::getFirstTravelDestinationState() const
 {
-    std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> ret;
+    std::optional<std::pair<Point2LL, bool>> ret;
     if (first_travel_destination_)
     {
         ret = std::make_pair(*first_travel_destination_, first_travel_destination_is_inside_);
@@ -389,14 +397,14 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
     return ret;
 }
 
-::curaengine::path_planning::GCodePath& LayerPlan::addTravel(const ::curaengine::geometry::Point2LL& p, const ForceRetract force_retract, const ::curaengine::utils::coord_t z_offset, const std::optional<::curaengine::utils::coord_t> max_distance_ignore_combing)
+GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retract, const coord_t z_offset, const std::optional<coord_t> max_distance_ignore_combing)
 {
     const GCodePathConfig& travel_config = configs_storage_.travel_config_per_extruder[getExtruder()];
 
     const RetractionConfig& retraction_config
         = current_mesh_ ? current_mesh_->retraction_wipe_config.retraction_config : storage_.retraction_wipe_config_per_extruder[getExtruder()].retraction_config;
 
-    ::curaengine::path_planning::GCodePath* path = getLatestPathWithConfig(travel_config, SpaceFillType::None, z_offset);
+    GCodePath* path = getLatestPathWithConfig(travel_config, SpaceFillType::None, z_offset);
 
     bool combed = false;
 
@@ -424,7 +432,7 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
     }
     else if (
         force_retract == ForceRetract::RETRACTED && last_planned_position_
-        && ! ::curaengine::geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
+        && ! geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         // path is not shorter than min travel distance, force a retraction
         path->retract = true;
@@ -436,11 +444,11 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
 
     if (comb_ != nullptr && ! bypass_combing)
     {
-        ::curaengine::path_planning::CombPaths combPaths;
+        CombPaths combPaths;
 
         // Divide by 2 to get the radius
         // Multiply by 2 because if two lines start and end points places very close then will be applied combing with retractions. (Ex: for brim)
-        const ::curaengine::utils::coord_t max_distance_ignored = max_distance_ignore_combing.value_or(mesh_or_extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_tip_outer_diameter")) / 2 * 2;
+        const coord_t max_distance_ignored = max_distance_ignore_combing.value_or(mesh_or_extruder_settings.get<coord_t>("machine_nozzle_tip_outer_diameter")) / 2 * 2;
 
         bool unretract_before_last_travel_move = false; // Decided when calculating the combing
         bool do_retracted_combing_move = false; // Decided when calculating the combing
@@ -469,7 +477,7 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
                 }
                 else
                 {
-                    for (::curaengine::path_planning::CombPath& combPath : combPaths)
+                    for (CombPath& combPath : combPaths)
                     { // retract when path moves through a boundary
                         if (combPath.cross_boundary)
                         {
@@ -480,26 +488,26 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
                 }
             }
 
-            const ::curaengine::utils::coord_t maximum_travel_resolution = mesh_or_extruder_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_travel_resolution");
-            ::curaengine::utils::coord_t distance = 0;
-            ::curaengine::geometry::Point2LL last_point((last_planned_position_) ? last_planned_position_.value().toPoint2LL() : ::curaengine::geometry::Point2LL(0, 0));
-            for (::curaengine::path_planning::CombPath& combPath : combPaths)
+            const coord_t maximum_travel_resolution = mesh_or_extruder_settings.get<coord_t>("meshfix_maximum_travel_resolution");
+            coord_t distance = 0;
+            Point2LL last_point((last_planned_position_) ? last_planned_position_.value().toPoint2LL() : Point2LL(0, 0));
+            for (CombPath& combPath : combPaths)
             { // add all comb paths (don't do anything special for paths which are moving through air)
                 if (combPath.empty())
                 {
                     continue;
                 }
-                for (::curaengine::geometry::Point2LL& comb_point : combPath)
+                for (Point2LL& comb_point : combPath)
                 {
                     if (path->points.empty() || (path->points.back() - comb_point).vSize2() > maximum_travel_resolution * maximum_travel_resolution)
                     {
                         path->points.push_back(comb_point);
-                        distance += ::curaengine::geometry::vSize(last_point - comb_point);
+                        distance += geometry::vSize(last_point - comb_point);
                         last_point = comb_point;
                     }
                 }
-                distance += ::curaengine::geometry::vSize(last_point - p);
-                const ::curaengine::utils::coord_t retract_threshold = mesh_or_extruder_settings.get<::curaengine::utils::coord_t>("retraction_combing_max_distance");
+                distance += geometry::vSize(last_point - p);
+                const coord_t retract_threshold = mesh_or_extruder_settings.get<coord_t>("retraction_combing_max_distance");
                 path->retract = retract || (retract_threshold > 0 && distance > retract_threshold && retraction_enable);
                 // don't perform a z-hop
             }
@@ -519,7 +527,7 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
     // CURA-6675:
     // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
     // Retraction Minimal Travel Distance, retraction should be disabled.
-    if (! is_first_travel_of_layer && last_planned_position_ && ::curaengine::geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
+    if (! is_first_travel_of_layer && last_planned_position_ && geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         path->retract = false;
         path->perform_z_hop = false;
@@ -527,16 +535,16 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
 
     // no combing? retract only when path is not shorter than minimum travel distance
     if (! combed && ! is_first_travel_of_layer && last_planned_position_
-        && ! ::curaengine::geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
+        && ! geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         if (was_inside_) // when the previous location was from printing something which is considered inside (not support or prime tower etc)
         { // then move inside the printed part, so that we don't ooze on the outer wall while retraction, but on the inside of the print.
             assert(extruder != nullptr);
-            ::curaengine::utils::coord_t innermost_wall_line_width
-                = mesh_or_extruder_settings.get<::curaengine::utils::coord_t>((mesh_or_extruder_settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
+            coord_t innermost_wall_line_width
+                = mesh_or_extruder_settings.get<coord_t>((mesh_or_extruder_settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
             if (layer_nr_ == 0)
             {
-                innermost_wall_line_width *= mesh_or_extruder_settings.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
+                innermost_wall_line_width *= mesh_or_extruder_settings.get<Ratio>("initial_layer_line_width_factor");
             }
             moveInsideCombBoundary(innermost_wall_line_width, std::nullopt, path);
         }
@@ -547,12 +555,12 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
     // must start new travel path as retraction can be enabled or not depending on path length, etc.
     forceNewPathStart();
 
-    ::curaengine::path_planning::GCodePath& ret = addTravel_simple(p, path);
+    GCodePath& ret = addTravel_simple(p, path);
     was_inside_ = is_inside_;
     return ret;
 }
 
-::curaengine::path_planning::GCodePath& LayerPlan::addTravel_simple(const ::curaengine::geometry::Point2LL& p, ::curaengine::path_planning::GCodePath* path)
+GCodePath& LayerPlan::addTravel_simple(const Point2LL& p, GCodePath* path)
 {
     bool is_first_travel_of_layer = ! static_cast<bool>(last_planned_position_);
     if (is_first_travel_of_layer)
@@ -572,41 +580,41 @@ std::optional<std::pair<::curaengine::geometry::Point2LL, bool>> LayerPlan::getF
 void LayerPlan::planPrime(double prime_blob_wipe_length)
 {
     forceNewPathStart();
-    ::curaengine::path_planning::GCodePath& prime_travel = addTravel_simple(getLastPlannedPositionOrStartingPosition() + ::curaengine::geometry::Point2LL(0, MM2INT(prime_blob_wipe_length)));
+    GCodePath& prime_travel = addTravel_simple(getLastPlannedPositionOrStartingPosition() + Point2LL(0, MM2INT(prime_blob_wipe_length)));
     prime_travel.retract = false;
     prime_travel.perform_z_hop = false;
     prime_travel.perform_prime = true;
     forceNewPathStart();
 }
 
-void LayerPlan::setGeneratedInfillLines(const SliceMeshStorage* mesh, const ::curaengine::geometry::MixedLinesSet& infill_lines)
+void LayerPlan::setGeneratedInfillLines(const SliceMeshStorage* mesh, const MixedLinesSet& infill_lines)
 {
     infill_lines_[mesh].push_back(infill_lines);
 }
 
-const ::curaengine::geometry::MixedLinesSet LayerPlan::getGeneratedInfillLines(const SliceMeshStorage* mesh) const
+const MixedLinesSet LayerPlan::getGeneratedInfillLines(const SliceMeshStorage* mesh) const
 {
     auto iterator = infill_lines_.find(mesh);
     if (iterator != infill_lines_.end())
     {
         return iterator->second;
     }
-    return ::curaengine::geometry::MixedLinesSet();
+    return MixedLinesSet();
 }
 
 void LayerPlan::addExtrusionMove(
-    const ::curaengine::geometry::Point3LL& p,
+    const Point3LL& p,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
-    const ::curaengine::types::Ratio& flow,
-    const ::curaengine::types::Ratio width_factor,
+    const Ratio& flow,
+    const Ratio width_factor,
     const bool spiralize,
-    const ::curaengine::types::Ratio speed_factor,
+    const Ratio speed_factor,
     const double fan_speed,
     const bool travel_to_z,
     const PrintSegmentAttributes& print_attributes)
 {
-    ::curaengine::path_planning::GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor, travel_to_z, print_attributes);
+    GCodePath* path = getLatestPathWithConfig(config, space_fill_type, config.z_offset, flow, width_factor, spiralize, speed_factor, travel_to_z, print_attributes);
     path->points.push_back(p);
     path->setFanSpeed(fan_speed);
     if (! static_cast<bool>(first_extrusion_acc_jerk_))
@@ -617,14 +625,14 @@ void LayerPlan::addExtrusionMove(
 }
 
 void LayerPlan::addExtrusionMove(
-    const ::curaengine::geometry::Point3LL& p,
+    const Point3LL& p,
     const GCodePathConfig& config,
     const OverrideAreas& override_areas,
     const SpaceFillType space_fill_type,
-    const ::curaengine::types::Ratio& flow,
-    const ::curaengine::types::Ratio width_factor,
+    const Ratio& flow,
+    const Ratio width_factor,
     const bool spiralize,
-    const ::curaengine::types::Ratio speed_factor,
+    const Ratio speed_factor,
     const double fan_speed,
     const bool travel_to_z)
 {
@@ -652,13 +660,13 @@ void LayerPlan::addExtrusionMove(
 }
 
 void LayerPlan::addSkinExtrusion(
-    const ::curaengine::geometry::Point3LL& p0,
-    const ::curaengine::geometry::Point3LL& p1,
-    const ::curaengine::geometry::Shape& mask,
+    const Point3LL& p0,
+    const Point3LL& p1,
+    const Shape& mask,
     const GCodePathConfig& skin_config,
     const GCodePathConfig& default_config,
-    const ::curaengine::types::Ratio& flow,
-    const ::curaengine::types::Ratio& width_factor,
+    const Ratio& flow,
+    const Ratio& width_factor,
     const bool spiralize,
     bool travel_to_z,
     const OverrideAreas& override_areas)
@@ -669,19 +677,19 @@ void LayerPlan::addSkinExtrusion(
     // the default_config. Since the original line segment was straight we can simply print
     // to the first and last point of the intersected line segments alternating between
     // skin and default_config's.
-    ::curaengine::geometry::OpenLinesSet line_polys;
+    OpenLinesSet line_polys;
     line_polys.addSegment(p0.toPoint2LL(), p1.toPoint2LL());
     constexpr bool restitch = false; // only a single line doesn't need stitching
-    ::curaengine::geometry::OpenLinesSet skin_line_segments = mask.intersection(line_polys, restitch);
+    OpenLinesSet skin_line_segments = mask.intersection(line_polys, restitch);
 
     // Create a set of the intersections points, ordered by distance to p0
-    auto order_points = [&p0](const ::curaengine::geometry::Point2LL& point_left, const ::curaengine::geometry::Point2LL& point_right) -> bool
+    auto order_points = [&p0](const Point2LL& point_left, const Point2LL& point_right) -> bool
     {
-        return ::curaengine::geometry::vSize2(point_left - p0) < ::curaengine::geometry::vSize2(point_right - p0);
+        return geometry::vSize2(point_left - p0) < geometry::vSize2(point_right - p0);
     };
-    std::set<::curaengine::geometry::Point2LL, decltype(order_points)> intersections(order_points);
+    std::set<Point2LL, decltype(order_points)> intersections(order_points);
 
-    for (const ::curaengine::geometry::OpenPolyline& line_poly : skin_line_segments)
+    for (const OpenPolyline& line_poly : skin_line_segments)
     {
         intersections.insert(line_poly.front());
         intersections.insert(line_poly.back());
@@ -696,18 +704,18 @@ void LayerPlan::addSkinExtrusion(
     intersections.insert(p1.toPoint2LL());
 
     // Now loop through the intersections and apply the sub-segments
-    const ::curaengine::utils::coord_t segment_length = ::curaengine::geometry::vSize(p1.toPoint2LL() - p0.toPoint2LL());
-    ::curaengine::geometry::Point2LL current_position = p0.toPoint2LL();
-    const ::curaengine::utils::coord_t z_diff = p1.z_ - p0.z_;
-    for (const ::curaengine::geometry::Point2LL& intersection : intersections)
+    const coord_t segment_length = geometry::vSize(p1.toPoint2LL() - p0.toPoint2LL());
+    Point2LL current_position = p0.toPoint2LL();
+    const coord_t z_diff = p1.z_ - p0.z_;
+    for (const Point2LL& intersection : intersections)
     {
-        if (intersection == p1 || ::curaengine::geometry::vSize2(intersection - current_position) > ::curaengine::utils::EPSILON_SQUARED)
+        if (intersection == p1 || geometry::vSize2(intersection - current_position) > EPSILON_SQUARED)
         {
-            ::curaengine::geometry::Point3LL target_position(intersection, p0.z_);
+            Point3LL target_position(intersection, p0.z_);
             if (z_diff != 0)
             {
-                const double factor = static_cast<double>(::curaengine::geometry::vSize(intersection - p0)) / segment_length;
-                target_position.z_ += ::curaengine::utils::lerp(0, z_diff, factor);
+                const double factor = static_cast<double>(geometry::vSize(intersection - p0)) / segment_length;
+                target_position.z_ += utils::lerp(0, z_diff, factor);
             }
             addExtrusionMove(
                 target_position,
@@ -730,12 +738,12 @@ void LayerPlan::addSkinExtrusion(
 }
 
 template<class PathType>
-void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const ::curaengine::utils::coord_t wipe_distance, const bool backwards, const size_t start_index, const ::curaengine::geometry::Point2LL& last_path_position)
+void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const coord_t wipe_distance, const bool backwards, const size_t start_index, const Point2LL& last_path_position)
 {
     if (path.size() >= 2 && wipe_distance > 0)
     {
         const int direction = backwards ? -1 : 1;
-        ::curaengine::geometry::Point2LL p0 = last_path_position;
+        Point2LL p0 = last_path_position;
         int distance_traversed = 0;
         size_t index = start_index;
         while (distance_traversed < wipe_distance)
@@ -747,12 +755,12 @@ void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const ::curaeng
                 break;
             }
 
-            const ::curaengine::geometry::Point2LL& p1 = path.pointAt(index);
-            const int p0p1_dist = ::curaengine::geometry::vSize(p1 - p0);
+            const Point2LL& p1 = path.pointAt(index);
+            const int p0p1_dist = geometry::vSize(p1 - p0);
             if (distance_traversed + p0p1_dist >= wipe_distance)
             {
-                ::curaengine::geometry::Point2LL vector = p1 - p0;
-                ::curaengine::geometry::Point2LL half_way = p0 + ::curaengine::geometry::normal(vector, wipe_distance - distance_traversed);
+                Point2LL vector = p1 - p0;
+                Point2LL half_way = p0 + geometry::normal(vector, wipe_distance - distance_traversed);
                 addTravel_simple(half_way);
             }
             else
@@ -769,14 +777,14 @@ void LayerPlan::addWipeTravel(const PathAdapter<PathType>& path, const ::curaeng
 }
 
 void LayerPlan::addPolygon(
-    const ::curaengine::geometry::Polygon& polygon,
+    const Polygon& polygon,
     int start_idx,
     const bool backwards,
     const Settings& settings,
     const GCodePathConfig& config,
-    ::curaengine::utils::coord_t wall_0_wipe_dist,
+    coord_t wall_0_wipe_dist,
     bool spiralize,
-    const ::curaengine::types::Ratio& flow_ratio,
+    const Ratio& flow_ratio,
     const ForceRetract force_retract,
     bool scarf_seam,
     bool smooth_speed,
@@ -786,10 +794,10 @@ void LayerPlan::addPolygon(
     constexpr bool is_candidate_small_feature = false;
     const PathAdapter path_adapter(polygon, config.getLineWidth());
 
-    ::curaengine::geometry::Point2LL p0 = polygon[start_idx];
+    Point2LL p0 = polygon[start_idx];
     addTravel(p0, force_retract, config.z_offset);
 
-    const std::tuple<size_t, ::curaengine::geometry::Point2LL> add_wall_result = addWallWithScarfSeam<::curaengine::geometry::Polygon>(
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<Polygon>(
         path_adapter,
         start_idx,
         settings,
@@ -802,13 +810,13 @@ void LayerPlan::addPolygon(
         scarf_seam,
         smooth_speed,
         [this, &config, &spiralize, &override_areas](
-            const std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>>& /*bridging_subsegments*/,
-            const ::curaengine::geometry::Point3LL& /*start*/,
-            const ::curaengine::geometry::Point3LL& end,
-            const ::curaengine::types::Ratio& speed_factor,
-            const ::curaengine::types::Ratio& actual_flow_ratio,
-            const ::curaengine::types::Ratio& line_width_ratio,
-            const ::curaengine::utils::coord_t /*distance_to_bridge_start*/,
+            const std::vector<std::tuple<Ratio, Ratio>>& /*bridging_subsegments*/,
+            const Point3LL& /*start*/,
+            const Point3LL& end,
+            const Ratio& speed_factor,
+            const Ratio& actual_flow_ratio,
+            const Ratio& line_width_ratio,
+            const coord_t /*distance_to_bridge_start*/,
             const bool /*travel_to_z*/)
         {
             constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
@@ -829,17 +837,17 @@ void LayerPlan::addPolygon(
 }
 
 void LayerPlan::addPolygonsByOptimizer(
-    const ::curaengine::geometry::Shape& polygons,
+    const Shape& polygons,
     const GCodePathConfig& config,
     const Settings& settings,
     const OverrideAreas& override_areas,
-    const ::curaengine::types::ZSeamConfig& z_seam_config,
-    ::curaengine::utils::coord_t wall_0_wipe_dist,
+    const ZSeamConfig& z_seam_config,
+    coord_t wall_0_wipe_dist,
     bool spiralize,
-    const ::curaengine::types::Ratio flow_ratio,
+    const Ratio flow_ratio,
     const ForceRetract force_retract,
     bool reverse_order,
-    const std::optional<::curaengine::geometry::Point2LL> start_near_location,
+    const std::optional<Point2LL> start_near_location,
     bool scarf_seam,
     bool smooth_speed,
     const std::shared_ptr<TextureDataProvider>& texture_data_provider)
@@ -850,14 +858,14 @@ void LayerPlan::addPolygonsByOptimizer(
     }
 
     constexpr bool detect_loops = false;
-    constexpr ::curaengine::geometry::Shape* combing_boundary = nullptr;
+    constexpr Shape* combing_boundary = nullptr;
     constexpr bool reverse_direction = false;
-    const std::unordered_multimap<const ::curaengine::geometry::Polygon*, const ::curaengine::geometry::Polygon*>& order_requirements = PathOrderOptimizer<const ::curaengine::geometry::Polygon*>::no_order_requirements_;
+    const std::unordered_multimap<const Polygon*, const Polygon*>& order_requirements = PathOrderOptimizer<const Polygon*>::no_order_requirements_;
     constexpr bool group_outer_walls = false;
-    const ::curaengine::geometry::Shape disallowed_areas_for_seams = {}; // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
+    const Shape disallowed_areas_for_seams = {}; // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
     constexpr bool use_shortest_for_inner_walls = false;
-    const ::curaengine::geometry::Shape overhang_areas = ::curaengine::geometry::Shape(); // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
-    PathOrderOptimizer<const ::curaengine::geometry::Polygon*> orderOptimizer(
+    const Shape overhang_areas = Shape(); // <- The Mac compiler we use in builds can't handle this as a `constexpr`, put back when that's updated.
+    PathOrderOptimizer<const Polygon*> orderOptimizer(
         start_near_location.value_or(getLastPlannedPositionOrStartingPosition()),
         z_seam_config,
         detect_loops,
@@ -891,12 +899,12 @@ void LayerPlan::addPolygonsByOptimizer(
 }
 
 void LayerPlan::addInfillPolygonsByOptimizer(
-    const ::curaengine::geometry::Shape& polygons,
-    ::curaengine::geometry::OpenLinesSet& remaining_lines,
+    const Shape& polygons,
+    OpenLinesSet& remaining_lines,
     const GCodePathConfig& config,
     const Settings& settings,
     const bool add_extra_inwards_move,
-    const std::optional<::curaengine::geometry::Point2LL>& near_start_location,
+    const std::optional<Point2LL>& near_start_location,
     const bool reverse_print_direction)
 {
     if (polygons.empty())
@@ -904,10 +912,10 @@ void LayerPlan::addInfillPolygonsByOptimizer(
         return;
     }
 
-    const ::curaengine::types::ZSeamConfig seam_config = ::curaengine::types::ZSeamConfig();
+    const ZSeamConfig seam_config = ZSeamConfig();
     constexpr bool detect_loops = false;
-    constexpr ::curaengine::geometry::Shape* combing_boundary = nullptr;
-    PathOrderOptimizer<const ::curaengine::geometry::Polygon*>
+    constexpr Shape* combing_boundary = nullptr;
+    PathOrderOptimizer<const Polygon*>
         orderOptimizer(near_start_location.value_or(getLastPlannedPositionOrStartingPosition()), seam_config, detect_loops, combing_boundary, reverse_print_direction);
     for (size_t poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -923,12 +931,12 @@ void LayerPlan::addInfillPolygonsByOptimizer(
     }
 
     // In order to add the inwards moves, we will have to un-close the polygons to open lines
-    for (const PathOrdering<const ::curaengine::geometry::Polygon*>& ordered_polygon : orderOptimizer.paths_)
+    for (const PathOrdering<const Polygon*>& ordered_polygon : orderOptimizer.paths_)
     {
-        const ::curaengine::geometry::Polygon& polygon = *ordered_polygon.vertices_;
+        const Polygon& polygon = *ordered_polygon.vertices_;
         const size_t start_index = ordered_polygon.start_vertex_;
 
-        ::curaengine::geometry::ClosedPolyline split_polygon(polygon);
+        ClosedPolyline split_polygon(polygon);
         split_polygon.shiftVerticesToStartPoint(start_index);
         remaining_lines.push_back(split_polygon.toPseudoOpenPolyline());
     }
@@ -936,7 +944,7 @@ void LayerPlan::addInfillPolygonsByOptimizer(
 
 static constexpr double max_non_bridge_line_volume = MM2INT(100); // limit to accumulated "volume" of non-bridge lines which is proportional to distance x extrusion rate
 
-std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment(const ::curaengine::geometry::Point3LL& start, const ::curaengine::geometry::Point3LL& end, const std::vector<OverrideArea>& override_areas)
+std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment(const Point3LL& start, const Point3LL& end, const std::vector<OverrideArea>& override_areas)
 {
     if (override_areas.empty())
     {
@@ -944,18 +952,18 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
     }
 
     // Useful values
-    const ::curaengine::geometry::Point3LL vector = end - start;
-    const ::curaengine::utils::coord_t vector_length = vector.vSize();
+    const Point3LL vector = end - start;
+    const coord_t vector_length = vector.vSize();
 
-    if (vector_length <= ::curaengine::utils::EPSILON)
+    if (vector_length <= EPSILON)
     {
         return { PartialExtrusionSegment{ end, nullptr } };
     }
 
-    const float epsilon_factor = float{ ::curaengine::utils::EPSILON } / vector_length;
+    const float epsilon_factor = float{ EPSILON } / vector_length;
 
     // Utility functions
-    const auto make_partial_segment = [&override_areas](const ::curaengine::geometry::Point3LL& p1, const std::optional<size_t> area_index) -> PartialExtrusionSegment
+    const auto make_partial_segment = [&override_areas](const Point3LL& p1, const std::optional<size_t> area_index) -> PartialExtrusionSegment
     {
         if (area_index.has_value())
         {
@@ -984,7 +992,7 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
 
         // Calculate whether this area is under the segment start
         constexpr bool border_result = true;
-        const ::curaengine::geometry::Point2LL first_subsegment_average_pos = get_position(intersections.empty() ? 0.5 : intersections.front() * 0.5).toPoint2LL();
+        const Point2LL first_subsegment_average_pos = get_position(intersections.empty() ? 0.5 : intersections.front() * 0.5).toPoint2LL();
         if (override_area.area.inside(first_subsegment_average_pos, border_result))
         {
             areas_under_segments.set(index);
@@ -1059,7 +1067,7 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
         if (new_topmost_area != current_topmost_area)
         {
             // We are either moving out of the area of moving in to a higher-level area, so end the current segment
-            const ::curaengine::geometry::Point3LL next_intersection_position = get_position(*next_intersection);
+            const Point3LL next_intersection_position = get_position(*next_intersection);
             partial_extrusion_segments.push_back(make_partial_segment(next_intersection_position, current_topmost_area));
 
             current_topmost_area = new_topmost_area;
@@ -1069,7 +1077,7 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
     // Filter out micro-segments
     std::vector<PartialExtrusionSegment> partial_extrusion_segments_filtered;
     partial_extrusion_segments_filtered.reserve(partial_extrusion_segments.size());
-    ::curaengine::geometry::Point3LL current_position = start;
+    Point3LL current_position = start;
     for (const PartialExtrusionSegment& extrusion_move : partial_extrusion_segments | ranges::views::drop_last(1))
     {
         if ((extrusion_move.p1 - current_position).vSize2() >= MINIMUM_SQUARED_LINE_LENGTH)
@@ -1093,18 +1101,18 @@ std::vector<LayerPlan::PartialExtrusionSegment> LayerPlan::splitExtrusionSegment
 }
 
 void LayerPlan::addWallLine(
-    const std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>>& bridging_subsegments,
-    const ::curaengine::geometry::Point3LL& p0,
-    const ::curaengine::geometry::Point3LL& p1,
+    const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
+    const Point3LL& p0,
+    const Point3LL& p1,
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
     const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
     double flow,
-    const ::curaengine::types::Ratio width_factor,
+    const Ratio width_factor,
     double& non_bridge_line_volume,
-    ::curaengine::types::Ratio speed_factor,
+    Ratio speed_factor,
     double distance_to_bridge_start,
     const bool travel_to_z,
     const OverrideAreas& override_areas)
@@ -1113,9 +1121,9 @@ void LayerPlan::addWallLine(
     constexpr double acceleration_factor = 0.75; // must be < 1, the larger the value, the slower the acceleration
     constexpr bool spiralize = false;
 
-    const ::curaengine::types::Ratio bridge_wall_coast = settings.get<::curaengine::types::Ratio>("bridge_wall_coast");
+    const Ratio bridge_wall_coast = settings.get<Ratio>("bridge_wall_coast");
 
-    ::curaengine::geometry::Point3LL cur_point = p0;
+    Point3LL cur_point = p0;
 
     // helper function to add a single non-bridge line
 
@@ -1123,14 +1131,14 @@ void LayerPlan::addWallLine(
 
     // alternatively, if the line follows a bridge line, it may be segmented and the print speed gradually increased to reduce under-extrusion
 
-    auto addNonBridgeLine = [&](const ::curaengine::geometry::Point3LL& line_end)
+    auto addNonBridgeLine = [&](const Point3LL& line_end)
     {
-        ::curaengine::utils::coord_t distance_to_line_end = (cur_point - line_end).vSize();
+        coord_t distance_to_line_end = (cur_point - line_end).vSize();
 
-        while (distance_to_line_end > ::curaengine::utils::EPSILON)
+        while (distance_to_line_end > EPSILON)
         {
             // if we are accelerating after a bridge line, the segment length is less than the whole line length
-            ::curaengine::geometry::Point3LL segment_end = (speed_factor == 1 || distance_to_line_end < acceleration_segment_len)
+            Point3LL segment_end = (speed_factor == 1 || distance_to_line_end < acceleration_segment_len)
                                      ? line_end
                                      : cur_point + (line_end - cur_point) * acceleration_segment_len / distance_to_line_end;
 
@@ -1144,7 +1152,7 @@ void LayerPlan::addWallLine(
                 // speed_flow_factor approximates how the extrusion rate alters between the non-bridge wall line and the following bridge wall line
                 // if the extrusion rates are the same, its value will be 1, if the bridge config extrusion rate is < the non-bridge config extrusion rate, the value is < 1
 
-                const ::curaengine::types::Ratio speed_flow_factor((bridge_config.getSpeed() * bridge_config.getFlowRatio()) / (default_config.getSpeed() * default_config.getFlowRatio()));
+                const Ratio speed_flow_factor((bridge_config.getSpeed() * bridge_config.getFlowRatio()) / (default_config.getSpeed() * default_config.getFlowRatio()));
 
                 // coast distance is proportional to distance, speed and flow of non-bridge segments just printed and is throttled by speed_flow_factor
                 const double coast_dist = std::min(non_bridge_line_volume, max_non_bridge_line_volume) * (1 - speed_flow_factor) * bridge_wall_coast / 40;
@@ -1155,10 +1163,10 @@ void LayerPlan::addWallLine(
                     segment_end = line_end;
                 }
 
-                const ::curaengine::utils::coord_t len = (cur_point - segment_end).vSize();
+                const coord_t len = (cur_point - segment_end).vSize();
                 if (coast_dist > 0 && ((distance_to_bridge_start - len) <= coast_dist))
                 {
-                    if ((len - coast_dist) > ::curaengine::utils::EPSILON)
+                    if ((len - coast_dist) > EPSILON)
                     {
                         // segment is longer than coast distance so extrude using non-bridge config to start of coast
                         addExtrusionMove(
@@ -1174,7 +1182,7 @@ void LayerPlan::addWallLine(
                             travel_to_z);
                     }
                     // then coast to start of bridge segment
-                    constexpr ::curaengine::types::Ratio no_flow = 0.0_r; // Coasting has no flow rate.
+                    constexpr Ratio no_flow = 0.0_r; // Coasting has no flow rate.
                     addExtrusionMove(segment_end, default_config, SpaceFillType::Polygons, no_flow, width_factor, spiralize, speed_factor);
                 }
                 else
@@ -1221,7 +1229,7 @@ void LayerPlan::addWallLine(
         }
     };
 
-    const auto use_skin_config = [&default_config, &p0, &p1](const ::curaengine::geometry::Shape& mask, const GCodePathConfig& config) -> bool
+    const auto use_skin_config = [&default_config, &p0, &p1](const Shape& mask, const GCodePathConfig& config) -> bool
     {
         if (config == default_config)
         {
@@ -1229,7 +1237,7 @@ void LayerPlan::addWallLine(
             // what part of the line segment will be printed with what config.
             return false;
         }
-        return ::curaengine::utils::PolygonUtils::polygonCollidesWithLineSegment(mask, p0.toPoint2LL(), p1.toPoint2LL()) || mask.inside(p1.toPoint2LL(), true);
+        return PolygonUtils::polygonCollidesWithLineSegment(mask, p0.toPoint2LL(), p1.toPoint2LL()) || mask.inside(p1.toPoint2LL(), true);
     };
 
     if (use_skin_config(roofing_mask_, roofing_config))
@@ -1246,10 +1254,10 @@ void LayerPlan::addWallLine(
         const PrintSegmentAttributes attributes_bridging = PrintSegmentAttribute::Bridging;
 
         // the line crosses the boundary between supported and non-supported regions so one or more bridges are required
-        for (const std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>& bridging_subsegment : bridging_subsegments)
+        for (const std::tuple<Ratio, Ratio>& bridging_subsegment : bridging_subsegments)
         {
-            const ::curaengine::geometry::Point3LL bridging_subsegment_p0 = ::curaengine::geometry::lerp(p0, p1, std::get<0>(bridging_subsegment).value);
-            const ::curaengine::geometry::Point3LL bridging_subsegment_p1 = ::curaengine::geometry::lerp(p0, p1, std::get<1>(bridging_subsegment).value);
+            const Point3LL bridging_subsegment_p0 = geometry::lerp(p0, p1, std::get<0>(bridging_subsegment).value);
+            const Point3LL bridging_subsegment_p1 = geometry::lerp(p0, p1, std::get<1>(bridging_subsegment).value);
 
             addNonBridgeLine(bridging_subsegment_p0);
             addExtrusionMove(
@@ -1268,7 +1276,7 @@ void LayerPlan::addWallLine(
             cur_point = bridging_subsegment_p1;
 
             // after a bridge segment, start slow and accelerate to avoid under-extrusion due to extruder lag
-            speed_factor = std::max(std::min(::curaengine::types::Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
+            speed_factor = std::max(std::min(Ratio(bridge_config.getSpeed() / default_config.getSpeed()), 1.0_r), 0.5_r);
         }
 
         addNonBridgeLine(p1);
@@ -1285,14 +1293,14 @@ void LayerPlan::addWallLine(
 }
 
 void LayerPlan::addWall(
-    const ::curaengine::geometry::Polygon& wall,
+    const Polygon& wall,
     size_t start_idx,
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
     const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
-    ::curaengine::utils::coord_t wall_0_wipe_dist,
+    coord_t wall_0_wipe_dist,
     double flow_ratio,
     const ForceRetract force_retract)
 {
@@ -1303,15 +1311,15 @@ void LayerPlan::addWall(
     }
 
     constexpr size_t dummy_perimeter_id = 0; // <-- Here, don't care about which perimeter any more.
-    const ::curaengine::utils::coord_t nominal_line_width
+    const coord_t nominal_line_width
         = default_config
               .getLineWidth(); // <-- The line width which it's 'supposed to' be will be used to adjust the flow ratio each time, this'll give a flow-ratio-multiplier of 1.
 
-    ::curaengine::utils::ExtrusionLine ewall;
+    ExtrusionLine ewall;
     std::for_each(
         wall.begin(),
         wall.end(),
-        [&dummy_perimeter_id, &nominal_line_width, &ewall](const ::curaengine::geometry::Point2LL& p)
+        [&dummy_perimeter_id, &nominal_line_width, &ewall](const Point2LL& p)
         {
             ewall.emplace_back(p, nominal_line_width, dummy_perimeter_id);
         });
@@ -1336,38 +1344,38 @@ void LayerPlan::addWall(
 }
 
 template<class PathType>
-std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
+std::tuple<size_t, Point2LL> LayerPlan::addSplitWall(
     const PathAdapter<PathType>& wall,
-    const ::curaengine::utils::coord_t wall_length,
+    const coord_t wall_length,
     const size_t start_idx,
     const size_t max_index,
     const int direction,
     const GCodePathConfig& default_config,
     const ForceRetract force_retract,
     const bool is_small_feature,
-    ::curaengine::types::Ratio small_feature_speed_factor,
-    const ::curaengine::utils::coord_t max_area_deviation,
+    Ratio small_feature_speed_factor,
+    const coord_t max_area_deviation,
     const auto max_resolution,
     const double flow_ratio,
-    const ::curaengine::utils::coord_t nominal_line_width,
-    const ::curaengine::utils::coord_t min_bridge_line_len,
-    const ::curaengine::utils::coord_t bridge_max_deviation,
+    const coord_t nominal_line_width,
+    const coord_t min_bridge_line_len,
+    const coord_t bridge_max_deviation,
     const auto scarf_seam_length,
     const auto scarf_seam_start_ratio,
     const auto scarf_split_distance,
-    const ::curaengine::utils::coord_t scarf_max_z_offset,
-    const ::curaengine::utils::coord_t speed_split_distance,
-    const ::curaengine::types::Ratio start_speed_ratio,
-    const ::curaengine::utils::coord_t accelerate_length,
-    const ::curaengine::types::Ratio end_speed_ratio,
-    const ::curaengine::utils::coord_t decelerate_length,
+    const coord_t scarf_max_z_offset,
+    const coord_t speed_split_distance,
+    const Ratio start_speed_ratio,
+    const coord_t accelerate_length,
+    const Ratio end_speed_ratio,
+    const coord_t decelerate_length,
     const bool is_scarf_closure,
     const bool compute_distance_to_bridge_start,
     const AddExtrusionSegmentFunction<PathType>& func_add_segment)
 {
-    std::vector<::curaengine::utils::coord_t> distances_to_next_bridge;
-    std::vector<std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>>> bridging_subsections_per_segment;
-    if constexpr (std::is_same_v<PathType, ::curaengine::utils::ExtrusionLine>)
+    std::vector<coord_t> distances_to_next_bridge;
+    std::vector<std::vector<std::tuple<Ratio, Ratio>>> bridging_subsections_per_segment;
+    if constexpr (std::is_same_v<PathType, ExtrusionLine>)
     {
         // The bridging functionality has not been designed to work with anything else than ExtrusionLine objects,
         // and there is no need to do it otherwise yet. So the compute_distance_to_bridge_start argument will
@@ -1379,25 +1387,25 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
     else
     {
         distances_to_next_bridge.resize(wall.size(), 0);
-        bridging_subsections_per_segment.resize(wall.size(), std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>>{});
+        bridging_subsections_per_segment.resize(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
     }
 
-    std::optional<::curaengine::utils::coord_t> distance_to_bridge_start; // will be updated before each line is processed
-    ::curaengine::geometry::Point2LL p0 = wall.pointAt(start_idx);
-    ::curaengine::utils::coord_t w0 = wall.lineWidthAt(start_idx);
+    std::optional<coord_t> distance_to_bridge_start; // will be updated before each line is processed
+    Point2LL p0 = wall.pointAt(start_idx);
+    coord_t w0 = wall.lineWidthAt(start_idx);
     bool first_line = ! is_scarf_closure;
-    ::curaengine::geometry::Point3LL split_origin = p0;
+    Point3LL split_origin = p0;
     if (! is_scarf_closure && scarf_seam_length > 0)
     {
         split_origin.z_ = scarf_max_z_offset;
     }
 
-    ::curaengine::utils::coord_t wall_processed_distance = 0; // This will grow while we travel along the wall, to the total wall length
+    coord_t wall_processed_distance = 0; // This will grow while we travel along the wall, to the total wall length
     double scarf_factor_origin = 0.0; // Interpolation factor at the current point for the scarf
     double accelerate_factor_origin = 0.0; // Interpolation factor at the current point for the acceleration
     double decelerate_factor_origin = 0.0; // Interpolation factor at the current point for the deceleration
-    const ::curaengine::utils::coord_t start_decelerate_position = wall_length - decelerate_length;
-    ::curaengine::geometry::Point3LL split_destination = p0;
+    const coord_t start_decelerate_position = wall_length - decelerate_length;
+    Point3LL split_destination = p0;
     size_t previous_point_index = start_idx;
     bool keep_processing = true;
 
@@ -1405,9 +1413,9 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
     {
         const size_t actual_point_index = (wall.size() + start_idx + point_idx * direction) % wall.size();
         previous_point_index = (wall.size() + start_idx + (point_idx - 1) * direction) % wall.size();
-        const ::curaengine::geometry::Point2LL& p1 = wall.pointAt(actual_point_index);
-        const ::curaengine::utils::coord_t w1 = wall.lineWidthAt(actual_point_index);
-        ::curaengine::utils::coord_t segment_processed_distance = 0;
+        const Point2LL& p1 = wall.pointAt(actual_point_index);
+        const coord_t w1 = wall.lineWidthAt(actual_point_index);
+        coord_t segment_processed_distance = 0;
 
         if (compute_distance_to_bridge_start && ! bridge_wall_mask_.empty() && ! distance_to_bridge_start.has_value())
         {
@@ -1432,9 +1440,9 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
         pieces we'd want to get low enough deviation, then check if each piece
         is not too short at the end.
         */
-        const ::curaengine::utils::coord_t delta_line_width = w1 - w0;
-        const ::curaengine::geometry::Point2LL line_vector = p1 - p0;
-        const ::curaengine::utils::coord_t line_length = ::curaengine::geometry::vSize(line_vector);
+        const coord_t delta_line_width = w1 - w0;
+        const Point2LL line_vector = p1 - p0;
+        const coord_t line_length = geometry::vSize(line_vector);
         /*
         Calculate how much the line would deviate from the trapezoidal shape if printed at average width.
         This formula is:
@@ -1443,20 +1451,20 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
         - Double of that because the deviation occurs on both sides of the idealised line width.
         This results in delta_line_width / 2 * line_length / 2 / 2 * 2 == delta_line_width * line_length / 4.
         */
-        const ::curaengine::utils::coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 4;
-        const size_t pieces_limit_deviation = ::curaengine::utils::round_up_divide(line_area_deviation, max_area_deviation); // How many pieces we'd need to stay beneath the max area deviation.
+        const coord_t line_area_deviation = std::abs(delta_line_width) * line_length / 4;
+        const size_t pieces_limit_deviation = utils::round_up_divide(line_area_deviation, max_area_deviation); // How many pieces we'd need to stay beneath the max area deviation.
         const size_t pieces_limit_resolution = line_length / max_resolution; // Round down this time, to not exceed the maximum resolution.
         const size_t pieces = std::max(size_t(1), std::min(pieces_limit_deviation, pieces_limit_resolution)); // Resolution overrides deviation, if resolution is a constraint.
-        const ::curaengine::utils::coord_t piece_length = ::curaengine::utils::round_divide(line_length, pieces);
+        const coord_t piece_length = utils::round_divide(line_length, pieces);
 
         for (size_t piece = 0; piece < pieces && keep_processing; ++piece)
         {
             const double average_progress = (double(piece) + 0.5) / pieces; // How far along this line to sample the line width in the middle of this piece.
             // Round the line_width value to overcome floating point rounding issues, otherwise we may end up with slightly different values
             // and the generated GCodePath objects will not be merged together, which some subsequent algorithms rely on (e.g. coasting)
-            const ::curaengine::utils::coord_t line_width = std::lrint(static_cast<double>(w0) + average_progress * static_cast<double>(delta_line_width));
-            const ::curaengine::types::Ratio line_width_ratio = static_cast<double>(line_width) / nominal_line_width;
-            const ::curaengine::geometry::Point2LL destination = p0 + ::curaengine::geometry::normal(line_vector, piece_length * (piece + 1));
+            const coord_t line_width = std::lrint(static_cast<double>(w0) + average_progress * static_cast<double>(delta_line_width));
+            const Ratio line_width_ratio = static_cast<double>(line_width) / nominal_line_width;
+            const Point2LL destination = p0 + geometry::normal(line_vector, piece_length * (piece + 1));
             if (is_small_feature && ! is_scarf_closure)
             {
                 constexpr bool spiralize = false;
@@ -1464,14 +1472,14 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
             }
             else
             {
-                ::curaengine::utils::coord_t piece_remaining_distance = piece_length;
+                coord_t piece_remaining_distance = piece_length;
 
                 // Cut piece into smaller parts for scarf seam and acceleration/deceleration
                 while (piece_remaining_distance > 0 && keep_processing)
                 {
                     // Make a list of all the possible incoming positions where we would eventually want to stop next
                     // The positions are expressed in distance from wall start along the wall segments
-                    std::vector<::curaengine::utils::coord_t> split_positions{ wall_processed_distance + piece_remaining_distance };
+                    std::vector<coord_t> split_positions{ wall_processed_distance + piece_remaining_distance };
 
                     const bool process_scarf = wall_processed_distance < scarf_seam_length;
                     if (process_scarf)
@@ -1502,10 +1510,10 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
                     }
 
                     // Now take the closest position candidate and make a sub-segment to it
-                    const ::curaengine::utils::coord_t destination_position = *std::min_element(split_positions.begin(), split_positions.end());
-                    const ::curaengine::utils::coord_t length_to_process = destination_position - wall_processed_distance;
+                    const coord_t destination_position = *std::min_element(split_positions.begin(), split_positions.end());
+                    const coord_t length_to_process = destination_position - wall_processed_distance;
                     const double destination_factor = static_cast<double>(segment_processed_distance + length_to_process) / line_length;
-                    split_destination = ::curaengine::geometry::lerp(p0, p1, destination_factor);
+                    split_destination = geometry::lerp(p0, p1, destination_factor);
 
                     double scarf_factor_destination = 1.0; // Out of range, scarf is done => 1.0
                     if (process_scarf)
@@ -1520,7 +1528,7 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
                         }
                     }
 
-                    ::curaengine::types::Ratio accelerate_speed_factor = 1.0_r;
+                    Ratio accelerate_speed_factor = 1.0_r;
                     double accelerate_factor_destination = 1.0; // Out of range, acceleration is done => 1.0
                     if (process_acceleration)
                     {
@@ -1531,7 +1539,7 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
                         accelerate_speed_factor = std::lerp(start_speed_ratio, 1.0, accelerate_factor_average);
                     }
 
-                    ::curaengine::types::Ratio decelerate_speed_factor = is_scarf_closure ? end_speed_ratio : 1.0_r;
+                    Ratio decelerate_speed_factor = is_scarf_closure ? end_speed_ratio : 1.0_r;
                     double decelerate_factor_destination = 0.0; // Out of range, deceleration is not started => 0.0
                     if (deceleration_started)
                     {
@@ -1591,7 +1599,7 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addSplitWall(
 }
 
 std::vector<LayerPlan::PathCoasting>
-    LayerPlan::calculatePathsCoasting(const Settings& extruder_settings, const std::vector<::curaengine::path_planning::GCodePath>& paths, const ::curaengine::geometry::Point3LL& current_position) const
+    LayerPlan::calculatePathsCoasting(const Settings& extruder_settings, const std::vector<GCodePath>& paths, const Point3LL& current_position) const
 {
     std::vector<PathCoasting> path_coastings;
     path_coastings.resize(paths.size());
@@ -1639,7 +1647,7 @@ std::vector<LayerPlan::PathCoasting>
 
                 for (const auto& [point_idx, point] : path.points | ranges::views::enumerate | ranges::views::reverse)
                 {
-                    ::curaengine::geometry::Point3LL previous_point;
+                    Point3LL previous_point;
                     if (point_idx > 0)
                     {
                         previous_point = path.points[point_idx - 1];
@@ -1663,7 +1671,7 @@ std::vector<LayerPlan::PathCoasting>
                         if (accumulated_volume >= coasting_volume)
                         {
                             const double start_pos_factor = (accumulated_volume - coasting_volume) / segment_volume;
-                            ::curaengine::geometry::Point3LL coasting_start_pos = ::curaengine::geometry::lerp(previous_point, point, start_pos_factor);
+                            Point3LL coasting_start_pos = geometry::lerp(previous_point, point, start_pos_factor);
                             path_coasting = { ApplyCoasting::PartialCoasting, point_idx, coasting_start_pos };
                             chunk_coasting_point_reached = true;
                         }
@@ -1705,11 +1713,11 @@ std::vector<LayerPlan::PathCoasting>
 }
 
 std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
-    const ::curaengine::utils::ExtrusionLine& wall,
+    const ExtrusionLine& wall,
     const size_t current_index,
-    const ::curaengine::utils::coord_t min_bridge_line_len,
-    const ::curaengine::utils::coord_t min_anchor_distance,
-    const ::curaengine::utils::coord_t max_bridge_deviation,
+    const coord_t min_bridge_line_len,
+    const coord_t min_anchor_distance,
+    const coord_t max_bridge_deviation,
     const int direction) const
 {
     if (bridge_wall_mask_.empty())
@@ -1719,8 +1727,8 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
 
     std::vector<BridgeLocation> out_bridge_locations;
 
-    ::curaengine::utils::coord_t total_distance_p0 = 0;
-    ::curaengine::utils::coord_t ending_anchor_distance = 0;
+    coord_t total_distance_p0 = 0;
+    coord_t ending_anchor_distance = 0;
 
     std::deque<BridgeLocation> bridge_segment_candidates;
 
@@ -1733,11 +1741,11 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
         const size_t base_index = current_index + iteration * direction;
         const size_t idx_0 = point_index(wall, base_index);
         const size_t idx_1 = point_index(wall, base_index + direction);
-        const ::curaengine::utils::ExtrusionJunction& p0 = wall[idx_0];
-        const ::curaengine::utils::ExtrusionJunction& p1 = wall[idx_1];
-        const ::curaengine::utils::coord_t line_distance = ::curaengine::geometry::vSize(p1.p_ - p0.p_);
+        const ExtrusionJunction& p0 = wall[idx_0];
+        const ExtrusionJunction& p1 = wall[idx_1];
+        const coord_t line_distance = geometry::vSize(p1.p_ - p0.p_);
 
-        if (! bridge_wall_mask_bb_.hit(::curaengine::utils::AABB({ p0.p_, p1.p_ })))
+        if (! bridge_wall_mask_bb_.hit(AABB({ p0.p_, p1.p_ })))
         {
             // line segment not connected to bridge, can only function as anchor but not otherwise related
             total_distance_p0 += line_distance;
@@ -1746,9 +1754,9 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
         }
 
         constexpr bool restitch = false; // only a single line doesn't need stitching
-        ::curaengine::geometry::OpenLinesSet intersections_with_bridge_mask = bridge_wall_mask_.intersection(::curaengine::geometry::OpenLinesSet(::curaengine::geometry::OpenPolyline({ p0.p_, p1.p_ })), restitch);
+        OpenLinesSet intersections_with_bridge_mask = bridge_wall_mask_.intersection(OpenLinesSet(OpenPolyline({ p0.p_, p1.p_ })), restitch);
 
-        if (! ::curaengine::utils::PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
+        if (! PolygonUtils::polygonCollidesWithLineSegment(bridge_wall_mask_, p0.p_, p1.p_))
         {
             ending_anchor_distance += line_distance;
 
@@ -1770,12 +1778,12 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
         // First, replace the intersection segments in the proper direction, and sort them by order along the main segment
         ranges::sort(
             intersections_with_bridge_mask,
-            [&p0](::curaengine::geometry::OpenPolyline& segment0, ::curaengine::geometry::OpenPolyline& segment1) -> bool
+            [&p0](OpenPolyline& segment0, OpenPolyline& segment1) -> bool
             {
-                const ::curaengine::utils::coord_t distance_s0_p0 = ::curaengine::geometry::vSize2(segment0[0] - p0.p_);
-                const ::curaengine::utils::coord_t distance_s0_p1 = ::curaengine::geometry::vSize2(segment0[1] - p0.p_);
-                const ::curaengine::utils::coord_t distance_s1_p0 = ::curaengine::geometry::vSize2(segment1[0] - p0.p_);
-                const ::curaengine::utils::coord_t distance_s1_p1 = ::curaengine::geometry::vSize2(segment1[1] - p0.p_);
+                const coord_t distance_s0_p0 = geometry::vSize2(segment0[0] - p0.p_);
+                const coord_t distance_s0_p1 = geometry::vSize2(segment0[1] - p0.p_);
+                const coord_t distance_s1_p0 = geometry::vSize2(segment1[0] - p0.p_);
+                const coord_t distance_s1_p1 = geometry::vSize2(segment1[1] - p0.p_);
 
                 // Reorder segments if they end up not being in the same direction as the original segment
                 if (distance_s0_p1 < distance_s0_p0)
@@ -1792,12 +1800,12 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
             });
 
         // Finally, loop over the intersections to find candidate bridge segments.
-        for (const ::curaengine::geometry::OpenPolyline& intersection_segment : intersections_with_bridge_mask)
+        for (const OpenPolyline& intersection_segment : intersections_with_bridge_mask)
         {
-            const auto& [b0, b1] = (::curaengine::geometry::vSize2(intersection_segment[0] - p0.p_) < ::curaengine::geometry::vSize2(intersection_segment[1] - p0.p_)) ? std::tie(intersection_segment[0], intersection_segment[1])
+            const auto& [b0, b1] = (geometry::vSize2(intersection_segment[0] - p0.p_) < geometry::vSize2(intersection_segment[1] - p0.p_)) ? std::tie(intersection_segment[0], intersection_segment[1])
                                                                                                                        : std::tie(intersection_segment[1], intersection_segment[0]);
 
-            if (::curaengine::geometry::vSize2(b1 - b0) < ::curaengine::utils::EPSILON_SQUARED)
+            if (geometry::vSize2(b1 - b0) < EPSILON_SQUARED)
             {
                 // don't consider negligible lengths in any case however
                 continue;
@@ -1805,9 +1813,9 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
 
             // add a candidate bridge-segment here (don't check anchoring, distance, max deviation or distance to first yet; that's for the next step)
             // note that they're also not merged yet
-            const ::curaengine::utils::coord_t start_len = ::curaengine::geometry::vSize(b0 - p0.p_);
-            const ::curaengine::utils::coord_t end_len = ::curaengine::geometry::vSize(b1 - p0.p_);
-            const ::curaengine::utils::coord_t from_end = ::curaengine::geometry::vSize(p1.p_ - b1);
+            const coord_t start_len = geometry::vSize(b0 - p0.p_);
+            const coord_t end_len = geometry::vSize(b1 - p0.p_);
+            const coord_t from_end = geometry::vSize(p1.p_ - b1);
             bridge_segment_candidates.emplace_back(idx_0, idx_1, start_len, end_len, line_distance - (start_len + from_end), from_end, total_distance_p0 + start_len);
         }
 
@@ -1827,16 +1835,16 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
         // get the endpoints of the bridge
         const auto& p00 = wall[bridge.wall_idx_start];
         const auto& p01 = wall[point_index(wall, bridge.wall_idx_start + direction)];
-        const auto start_pt = p00.p_ + ::curaengine::geometry::normal(p01.p_ - p00.p_, bridge.start_dist);
+        const auto start_pt = p00.p_ + geometry::normal(p01.p_ - p00.p_, bridge.start_dist);
 
         const auto& p10 = wall[point_index(wall, bridge.wall_idx_end - direction)];
         const auto& p11 = wall[bridge.wall_idx_end];
-        const auto end_pt = p10.p_ + ::curaengine::geometry::normal(p11.p_ - p10.p_, bridge.end_dist);
+        const auto end_pt = p10.p_ + geometry::normal(p11.p_ - p10.p_, bridge.end_dist);
 
         // see what other points in the bridge go over the max deviation, if any
         for (ptrdiff_t pt_idx = point_index(wall, bridge.wall_idx_start + direction); pt_idx != bridge.wall_idx_end; pt_idx = point_index(wall, pt_idx + direction))
         {
-            if (::curaengine::utils::LinearAlg2D::getDistFromLine(wall[pt_idx].p_, start_pt, end_pt) > max_bridge_deviation)
+            if (LinearAlg2D::getDistFromLine(wall[pt_idx].p_, start_pt, end_pt) > max_bridge_deviation)
             {
                 // don't add a bridge -- we're over the max deviation here
                 return;
@@ -1848,7 +1856,7 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
 
     // merge bridges, check if the resulting bridges conform to the parameters, and if so, add them to the out batch
     std::optional<BridgeLocation> current_bridge;
-    ::curaengine::utils::coord_t skipped_first_anchor_len
+    coord_t skipped_first_anchor_len
         = 0; // <- combined length of skipped bridges before the first proper one; can be used to get the proper anchor length from the from-start-of-wall member
     for (; ! bridge_segment_candidates.empty(); bridge_segment_candidates.pop_front())
     {
@@ -1905,17 +1913,17 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
     return out_bridge_locations;
 }
 
-std::vector<::curaengine::utils::coord_t>
-    LayerPlan::findNextBridgeDistances(const ::curaengine::utils::ExtrusionLine& wall, const size_t current_index, const std::vector<BridgeLocation>& bridge_locations, const int direction) const
+std::vector<coord_t>
+    LayerPlan::findNextBridgeDistances(const ExtrusionLine& wall, const size_t current_index, const std::vector<BridgeLocation>& bridge_locations, const int direction) const
 {
-    std::vector<::curaengine::utils::coord_t> out_next_bridge_dists(wall.size(), 0);
+    std::vector<coord_t> out_next_bridge_dists(wall.size(), 0);
     std::set<size_t> wall_segments_with_bridge;
 
     // now that we have all bridges, for each line segment in the _wall_ we'd like to have the distance to the start of the next bridge
     // (for coasting purposes) note that these aren't the same as the anchoring distances, since we can ignore anything that happened before the current wall segment
 
     // first fill in the 'trivial' cases, where there's a bridge within the wall-line-segment
-    ::curaengine::utils::coord_t distance_from_end_of_prev = 0;
+    coord_t distance_from_end_of_prev = 0;
     for (const auto& bridge : bridge_locations)
     {
         out_next_bridge_dists[bridge.wall_idx_start] = bridge.from_start_of_wall;
@@ -1930,7 +1938,7 @@ std::vector<::curaengine::utils::coord_t>
 
     // with help of the already filled in starts, populate the previous ones
 
-    ::curaengine::utils::coord_t non_bridge_dist = 0;
+    coord_t non_bridge_dist = 0;
     bool found_last = false;
     for (ptrdiff_t pt_idx = point_index(wall, current_index - direction); pt_idx != current_index; pt_idx = point_index(wall, pt_idx - direction))
     {
@@ -1944,7 +1952,7 @@ std::vector<::curaengine::utils::coord_t>
         {
             // didn't exist yet, but we can fill in info by appending the current segment-length
             const size_t next_pt_idx = point_index(wall, pt_idx + direction);
-            non_bridge_dist += ::curaengine::geometry::vSize(wall[next_pt_idx].p_ - wall[pt_idx].p_);
+            non_bridge_dist += geometry::vSize(wall[next_pt_idx].p_ - wall[pt_idx].p_);
             out_next_bridge_dists[pt_idx] = non_bridge_dist;
         }
     }
@@ -1952,10 +1960,10 @@ std::vector<::curaengine::utils::coord_t>
     return out_next_bridge_dists;
 }
 
-std::vector<std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>>>
-    LayerPlan::convertBridgeLocations(const ::curaengine::utils::ExtrusionLine& wall, const std::vector<BridgeLocation>& bridge_locations, ptrdiff_t direction) const
+std::vector<std::vector<std::tuple<Ratio, Ratio>>>
+    LayerPlan::convertBridgeLocations(const ExtrusionLine& wall, const std::vector<BridgeLocation>& bridge_locations, ptrdiff_t direction) const
 {
-    std::vector<std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>>> out_bridging_subsections(wall.size(), std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>>{});
+    std::vector<std::vector<std::tuple<Ratio, Ratio>>> out_bridging_subsections(wall.size(), std::vector<std::tuple<Ratio, Ratio>>{});
 
     for (const auto& bridge : bridge_locations)
     {
@@ -1963,13 +1971,13 @@ std::vector<std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::typ
         do
         {
             const ptrdiff_t next_pt_idx = point_index(wall, pt_idx + direction);
-            const ::curaengine::geometry::Point2LL& a = wall[pt_idx].p_;
-            const ::curaengine::geometry::Point2LL& b = wall[next_pt_idx].p_;
-            const ::curaengine::types::Ratio seg_len{ ::curaengine::geometry::vSize(b - a) };
-            if (seg_len >= ::curaengine::utils::EPSILON)
+            const Point2LL& a = wall[pt_idx].p_;
+            const Point2LL& b = wall[next_pt_idx].p_;
+            const Ratio seg_len{ geometry::vSize(b - a) };
+            if (seg_len >= EPSILON)
             {
-                const auto ratio_to_start = ::curaengine::types::Ratio{ pt_idx == bridge.wall_idx_start ? bridge.start_dist : 0 } / seg_len;
-                const auto ratio_to_end = 1.0 - ((::curaengine::types::Ratio{ next_pt_idx == bridge.wall_idx_end ? bridge.backwards_end_dist : 0 } / seg_len));
+                const auto ratio_to_start = Ratio{ pt_idx == bridge.wall_idx_start ? bridge.start_dist : 0 } / seg_len;
+                const auto ratio_to_end = 1.0 - ((Ratio{ next_pt_idx == bridge.wall_idx_end ? bridge.backwards_end_dist : 0 } / seg_len));
                 out_bridging_subsections[pt_idx].emplace_back(ratio_to_start, ratio_to_end);
             }
             pt_idx = next_pt_idx;
@@ -1980,7 +1988,7 @@ std::vector<std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::typ
 }
 
 template<class PathType>
-std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addWallWithScarfSeam(
+std::tuple<size_t, Point2LL> LayerPlan::addWallWithScarfSeam(
     const PathAdapter<PathType>& wall,
     size_t start_idx,
     const Settings& settings,
@@ -1996,45 +2004,45 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addWallWithScarf
 {
     if (wall.empty())
     {
-        return { start_idx, ::curaengine::geometry::Point2LL() };
+        return { start_idx, Point2LL() };
     }
 
     const bool actual_scarf_seam = scarf_seam && is_closed && layer_nr_ > 0;
 
-    const ::curaengine::utils::coord_t min_bridge_line_len = settings.get<::curaengine::utils::coord_t>("bridge_wall_min_length");
-    const ::curaengine::utils::coord_t bridge_max_deviation = settings.get<::curaengine::utils::coord_t>("bridge_wall_max_deviation");
+    const coord_t min_bridge_line_len = settings.get<coord_t>("bridge_wall_min_length");
+    const coord_t bridge_max_deviation = settings.get<coord_t>("bridge_wall_max_deviation");
 
-    const ::curaengine::utils::coord_t nominal_line_width = default_config.getLineWidth();
+    const coord_t nominal_line_width = default_config.getLineWidth();
 
-    const ::curaengine::utils::coord_t wall_length = wall.length();
-    const ::curaengine::utils::coord_t small_feature_max_length = settings.get<::curaengine::utils::coord_t>("small_feature_max_length");
+    const coord_t wall_length = wall.length();
+    const coord_t small_feature_max_length = settings.get<coord_t>("small_feature_max_length");
     const bool is_small_feature = (small_feature_max_length > 0) && (layer_nr_ == 0 || is_candidate_small_feature) && wall_length < small_feature_max_length;
-    const ::curaengine::types::Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
-    ::curaengine::types::Ratio small_feature_speed_factor = settings.get<::curaengine::types::Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
+    const Velocity min_speed = fan_speed_layer_time_settings_per_extruder_[getLastPlannedExtruderTrain()->extruder_nr_].cool_min_speed;
+    Ratio small_feature_speed_factor = settings.get<Ratio>((layer_nr_ == 0) ? "small_feature_speed_factor_0" : "small_feature_speed_factor");
     small_feature_speed_factor = std::max(static_cast<double>(small_feature_speed_factor), static_cast<double>(min_speed / default_config.getSpeed()));
-    const ::curaengine::utils::coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
-    const auto max_resolution = std::max(settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution"), ::curaengine::utils::coord_t(1));
+    const coord_t max_area_deviation = std::max(settings.get<int>("meshfix_maximum_extrusion_area_deviation"), 1); // Square micrometres!
+    const auto max_resolution = std::max(settings.get<coord_t>("meshfix_maximum_resolution"), coord_t(1));
     const int direction = is_reversed ? -1 : 1;
     const size_t max_index = is_closed ? wall.size() + 1 : wall.size();
 
-    const ::curaengine::utils::coord_t scarf_seam_length = std::min(wall_length, actual_scarf_seam ? settings.get<::curaengine::utils::coord_t>("scarf_joint_seam_length") : 0);
-    const auto scarf_seam_start_ratio = actual_scarf_seam ? settings.get<::curaengine::types::Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
-    const auto scarf_split_distance = settings.get<::curaengine::utils::coord_t>("scarf_split_distance");
-    const ::curaengine::utils::coord_t scarf_max_z_offset = static_cast<::curaengine::utils::coord_t>(-(1.0 - scarf_seam_start_ratio) * static_cast<double>(layer_thickness_));
+    const coord_t scarf_seam_length = std::min(wall_length, actual_scarf_seam ? settings.get<coord_t>("scarf_joint_seam_length") : 0);
+    const auto scarf_seam_start_ratio = actual_scarf_seam ? settings.get<Ratio>("scarf_joint_seam_start_height_ratio") : 1.0_r;
+    const auto scarf_split_distance = settings.get<coord_t>("scarf_split_distance");
+    const coord_t scarf_max_z_offset = static_cast<coord_t>(-(1.0 - scarf_seam_start_ratio) * static_cast<double>(layer_thickness_));
 
-    const ::curaengine::types::Velocity top_speed = default_config.getSpeed();
-    const ::curaengine::utils::coord_t speed_split_distance = settings.get<::curaengine::utils::coord_t>("wall_0_speed_split_distance"); // mm
-    const ::curaengine::types::Ratio start_speed_ratio = smooth_speed ? settings.get<::curaengine::types::Ratio>("wall_0_start_speed_ratio") : 1.0_r;
+    const Velocity top_speed = default_config.getSpeed();
+    const coord_t speed_split_distance = settings.get<coord_t>("wall_0_speed_split_distance"); // mm
+    const Ratio start_speed_ratio = smooth_speed ? settings.get<Ratio>("wall_0_start_speed_ratio") : 1.0_r;
     const int acceleration = settings.get<int>("wall_0_acceleration"); // mm/s²
-    const ::curaengine::types::Velocity start_speed = top_speed * start_speed_ratio; // mm/s
-    const ::curaengine::utils::coord_t accelerate_length = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT((::curaengine::utils::square(top_speed) - ::curaengine::utils::square(start_speed)) / (2.0 * acceleration)) : 0; // µm
+    const Velocity start_speed = top_speed * start_speed_ratio; // mm/s
+    const coord_t accelerate_length = (smooth_speed && start_speed_ratio < 1.0) ? MM2INT((utils::square(top_speed) - utils::square(start_speed)) / (2.0 * acceleration)) : 0; // µm
 
-    const ::curaengine::types::Ratio end_speed_ratio = smooth_speed ? settings.get<::curaengine::types::Ratio>("wall_0_end_speed_ratio") : 1.0_r;
+    const Ratio end_speed_ratio = smooth_speed ? settings.get<Ratio>("wall_0_end_speed_ratio") : 1.0_r;
     const int deceleration = settings.get<int>("wall_0_deceleration"); // mm/s²
-    const ::curaengine::types::Velocity end_speed = top_speed * end_speed_ratio; // mm/s
-    const ::curaengine::utils::coord_t decelerate_length = (smooth_speed && end_speed_ratio < 1.0) ? MM2INT((::curaengine::utils::square(top_speed) - ::curaengine::utils::square(end_speed)) / (2.0 * deceleration)) : 0; // µm
+    const Velocity end_speed = top_speed * end_speed_ratio; // mm/s
+    const coord_t decelerate_length = (smooth_speed && end_speed_ratio < 1.0) ? MM2INT((utils::square(top_speed) - utils::square(end_speed)) / (2.0 * deceleration)) : 0; // µm
 
-    auto addSplitWallPass = [&](bool is_scarf_closure) -> std::tuple<size_t, ::curaengine::geometry::Point2LL>
+    auto addSplitWallPass = [&](bool is_scarf_closure) -> std::tuple<size_t, Point2LL>
     {
         constexpr bool compute_distance_to_bridge_start = true;
 
@@ -2069,7 +2077,7 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addWallWithScarf
     };
 
     // First pass to add the wall with the scarf beginning and acceleration
-    std::tuple<size_t, ::curaengine::geometry::Point2LL> result = addSplitWallPass(false);
+    std::tuple<size_t, Point2LL> result = addSplitWallPass(false);
 
     if (scarf_seam_length > 0)
     {
@@ -2081,14 +2089,14 @@ std::tuple<size_t, ::curaengine::geometry::Point2LL> LayerPlan::addWallWithScarf
 }
 
 void LayerPlan::addWall(
-    const ::curaengine::utils::ExtrusionLine& wall,
+    const ExtrusionLine& wall,
     size_t start_idx,
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
     const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
-    ::curaengine::utils::coord_t wall_0_wipe_dist,
+    coord_t wall_0_wipe_dist,
     const double flow_ratio,
     const ForceRetract force_retract,
     const bool is_closed,
@@ -2106,7 +2114,7 @@ void LayerPlan::addWall(
     double non_bridge_line_volume = max_non_bridge_line_volume; // assume extruder is fully pressurised before first non-bridge line is output
     const PathAdapter path_adapter(wall);
 
-    const std::tuple<size_t, ::curaengine::geometry::Point2LL> add_wall_result = addWallWithScarfSeam<::curaengine::utils::ExtrusionLine>(
+    const std::tuple<size_t, Point2LL> add_wall_result = addWallWithScarfSeam<ExtrusionLine>(
         path_adapter,
         start_idx,
         settings,
@@ -2118,13 +2126,13 @@ void LayerPlan::addWall(
         wall.inset_idx_ == 0,
         scarf_seam,
         smooth_speed,
-        [&](const std::vector<std::tuple<::curaengine::types::Ratio, ::curaengine::types::Ratio>>& bridging_subsegments,
-            const ::curaengine::geometry::Point3LL& start,
-            const ::curaengine::geometry::Point3LL& end,
-            const ::curaengine::types::Ratio& speed_factor,
-            const ::curaengine::types::Ratio& actual_flow_ratio,
-            const ::curaengine::types::Ratio& line_width_ratio,
-            const ::curaengine::utils::coord_t distance_to_bridge_start,
+        [&](const std::vector<std::tuple<Ratio, Ratio>>& bridging_subsegments,
+            const Point3LL& start,
+            const Point3LL& end,
+            const Ratio& speed_factor,
+            const Ratio& actual_flow_ratio,
+            const Ratio& line_width_ratio,
+            const coord_t distance_to_bridge_start,
             const bool travel_to_z)
         {
             addWallLine(
@@ -2158,55 +2166,55 @@ void LayerPlan::addWall(
     }
 }
 
-void LayerPlan::addInfillWall(const ::curaengine::utils::ExtrusionLine& wall, const GCodePathConfig& path_config, const ForceRetract force_retract)
+void LayerPlan::addInfillWall(const ExtrusionLine& wall, const GCodePathConfig& path_config, const ForceRetract force_retract)
 {
     assert(! wall.empty() && "All empty walls should have been filtered at this stage");
-    ::curaengine::utils::ExtrusionJunction junction{ *wall.begin() };
+    ExtrusionJunction junction{ *wall.begin() };
     addTravel(junction.p_, force_retract);
 
     for (const auto& junction_n : wall)
     {
-        const ::curaengine::types::Ratio width_factor{ static_cast<::curaengine::types::Ratio::value_type>(junction_n.w_) / ::curaengine::types::Ratio{ static_cast<::curaengine::types::Ratio::value_type>(path_config.getLineWidth()) } };
+        const Ratio width_factor{ static_cast<Ratio::value_type>(junction_n.w_) / Ratio{ static_cast<Ratio::value_type>(path_config.getLineWidth()) } };
         constexpr SpaceFillType space_fill_type = SpaceFillType::Polygons;
-        constexpr ::curaengine::types::Ratio flow = 1.0_r;
+        constexpr Ratio flow = 1.0_r;
         addExtrusionMove(junction_n.p_, path_config, space_fill_type, flow, width_factor);
         junction = junction_n;
     }
 }
 
 void LayerPlan::addWalls(
-    const ::curaengine::geometry::Shape& walls,
+    const Shape& walls,
     const Settings& settings,
     const GCodePathConfig& default_config,
     const GCodePathConfig& roofing_config,
     const GCodePathConfig& flooring_config,
     const GCodePathConfig& bridge_config,
-    const ::curaengine::types::ZSeamConfig& z_seam_config,
-    ::curaengine::utils::coord_t wall_0_wipe_dist,
+    const ZSeamConfig& z_seam_config,
+    coord_t wall_0_wipe_dist,
     double flow_ratio,
     const ForceRetract force_retract)
 {
     // TODO: Deprecated in favor of ExtrusionJunction version below.
-    PathOrderOptimizer<const ::curaengine::geometry::Polygon*> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
-    for (const ::curaengine::geometry::Polygon& polygon : walls)
+    PathOrderOptimizer<const Polygon*> orderOptimizer(getLastPlannedPositionOrStartingPosition(), z_seam_config);
+    for (const Polygon& polygon : walls)
     {
         orderOptimizer.addPolygon(&polygon);
     }
     orderOptimizer.optimize();
-    for (const PathOrdering<const ::curaengine::geometry::Polygon*>& path : orderOptimizer.paths_)
+    for (const PathOrdering<const Polygon*>& path : orderOptimizer.paths_)
     {
         addWall(*path.vertices_, path.start_vertex_, settings, default_config, roofing_config, flooring_config, bridge_config, wall_0_wipe_dist, flow_ratio, force_retract);
     }
 }
 
-::curaengine::geometry::OpenPolyline LayerPlan::makeInwardsMove(const std::list<::curaengine::arachne::STHalfEdge>& trapezoidal_edges, const ::curaengine::geometry::Point2LL& start_point, const ::curaengine::utils::coord_t move_inwards_length)
+OpenPolyline LayerPlan::makeInwardsMove(const std::list<STHalfEdge>& trapezoidal_edges, const Point2LL& start_point, const coord_t move_inwards_length)
 {
     // Find the trapezoidal that the start point belongs to
-    const ::curaengine::arachne::STHalfEdge* trapezoidal_start = nullptr;
+    const STHalfEdge* trapezoidal_start = nullptr;
     uint8_t trapezoidal_segments = 0;
     double projection_ratio_on_outer_segment = 0.0;
-    std::optional<::curaengine::utils::coord_t> distance_to_closest_segment_squared;
-    for (const ::curaengine::arachne::STHalfEdge& start_edge : trapezoidal_edges)
+    std::optional<coord_t> distance_to_closest_segment_squared;
+    for (const STHalfEdge& start_edge : trapezoidal_edges)
     {
         if (start_edge.prev_ != nullptr)
         {
@@ -2215,7 +2223,7 @@ void LayerPlan::addWalls(
         }
 
         uint8_t current_trapezoidal_segments = 1;
-        const ::curaengine::arachne::STHalfEdge* end_edge = &start_edge;
+        const STHalfEdge* end_edge = &start_edge;
         while (end_edge->next_)
         {
             current_trapezoidal_segments++;
@@ -2224,34 +2232,34 @@ void LayerPlan::addWalls(
 
         assert((current_trapezoidal_segments == 2 || current_trapezoidal_segments == 3) && "Invalid trapezoidal");
 
-        const ::curaengine::geometry::Point2LL& outer_segment_p0 = start_edge.from_->p_;
-        const ::curaengine::geometry::Point2LL& outer_segment_p1 = end_edge->to_->p_;
+        const Point2LL& outer_segment_p0 = start_edge.from_->p_;
+        const Point2LL& outer_segment_p1 = end_edge->to_->p_;
 
-        ::curaengine::utils::coord_t projection_distance_squared;
+        coord_t projection_distance_squared;
         double projection_ratio;
         if (outer_segment_p1 == outer_segment_p0)
         {
-            projection_distance_squared = ::curaengine::geometry::vSize2(start_point - outer_segment_p0);
+            projection_distance_squared = geometry::vSize2(start_point - outer_segment_p0);
             projection_ratio = 0.5; // If using this segment for subsequent opposite projection, use edge center
         }
         else
         {
-            const ::curaengine::geometry::Point2LL p0_p1 = outer_segment_p1 - outer_segment_p0;
-            const ::curaengine::geometry::Point2LL p0_start = start_point - outer_segment_p0;
-            projection_ratio = ::curaengine::geometry::dot(p0_start, p0_p1) / ::curaengine::geometry::vSize2f(p0_p1);
+            const Point2LL p0_p1 = outer_segment_p1 - outer_segment_p0;
+            const Point2LL p0_start = start_point - outer_segment_p0;
+            projection_ratio = geometry::dot(p0_start, p0_p1) / geometry::vSize2f(p0_p1);
 
             if (projection_ratio < 0.0)
             {
-                projection_distance_squared = ::curaengine::geometry::vSize2(start_point - outer_segment_p0);
+                projection_distance_squared = geometry::vSize2(start_point - outer_segment_p0);
             }
             else if (projection_ratio > 1.0)
             {
-                projection_distance_squared = ::curaengine::geometry::vSize2(start_point - outer_segment_p1);
+                projection_distance_squared = geometry::vSize2(start_point - outer_segment_p1);
             }
             else
             {
-                const ::curaengine::geometry::Point2LL projected = ::curaengine::geometry::lerp(outer_segment_p0, outer_segment_p1, projection_ratio);
-                projection_distance_squared = ::curaengine::geometry::vSize2(start_point - projected);
+                const Point2LL projected = geometry::lerp(outer_segment_p0, outer_segment_p1, projection_ratio);
+                projection_distance_squared = geometry::vSize2(start_point - projected);
             }
         }
 
@@ -2270,7 +2278,7 @@ void LayerPlan::addWalls(
         return {};
     }
 
-    ::curaengine::utils::coord_t remaining_inwards_length = move_inwards_length - std::sqrt(distance_to_closest_segment_squared.value());
+    coord_t remaining_inwards_length = move_inwards_length - std::sqrt(distance_to_closest_segment_squared.value());
     if (remaining_inwards_length <= 0)
     {
         // Start point is already far enough from the outside, no need to add an extra move
@@ -2278,7 +2286,7 @@ void LayerPlan::addWalls(
     }
 
     // Project the start point on the edge that is at the opposite in the trapezoidal, i.e. going inwards the contour
-    ::curaengine::geometry::Point2LL opposite_projection;
+    Point2LL opposite_projection;
     if (trapezoidal_segments == 2)
     {
         // Trapezoidal is reduced to a triangle, inwards direction point towards the opposite vertex
@@ -2287,31 +2295,31 @@ void LayerPlan::addWalls(
     else
     {
         // Trapezoidal is a quadrilateral, project point on opposite edge
-        opposite_projection = ::curaengine::geometry::lerp(trapezoidal_start->to_->p_, trapezoidal_start->next_->to_->p_, projection_ratio_on_outer_segment);
+        opposite_projection = geometry::lerp(trapezoidal_start->to_->p_, trapezoidal_start->next_->to_->p_, projection_ratio_on_outer_segment);
     }
 
-    ::curaengine::geometry::OpenPolyline inwards_move;
+    OpenPolyline inwards_move;
     constexpr bool is_upward_strict = true;
-    const ::curaengine::arachne::STHalfEdgeNode* next_start_node = nullptr;
-    const ::curaengine::geometry::Point2LL start_to_opposite = opposite_projection - start_point;
-    const ::curaengine::utils::coord_t distance_to_opposite_vertex = ::curaengine::geometry::vSize(start_to_opposite);
+    const STHalfEdgeNode* next_start_node = nullptr;
+    const Point2LL start_to_opposite = opposite_projection - start_point;
+    const coord_t distance_to_opposite_vertex = geometry::vSize(start_to_opposite);
 
-    const auto add_edge = [&remaining_inwards_length, &inwards_move](const ::curaengine::arachne::STHalfEdge* edge_move_up, const ::curaengine::geometry::Point2LL& start_position)
+    const auto add_edge = [&remaining_inwards_length, &inwards_move](const STHalfEdge* edge_move_up, const Point2LL& start_position)
     {
-        const ::curaengine::geometry::Point2LL start_to_edge_end = edge_move_up->to_->p_ - start_position;
-        const ::curaengine::utils::coord_t distance_to_edge_end = ::curaengine::geometry::vSize(start_to_edge_end);
-        const ::curaengine::utils::coord_t add_distance = std::min(distance_to_edge_end, remaining_inwards_length);
-        const ::curaengine::geometry::Point2D edge_direction = ::curaengine::geometry::conversions::toPoint2D(edge_move_up->to_->p_ - edge_move_up->from_->p_).vNormalized().value();
+        const Point2LL start_to_edge_end = edge_move_up->to_->p_ - start_position;
+        const coord_t distance_to_edge_end = geometry::vSize(start_to_edge_end);
+        const coord_t add_distance = std::min(distance_to_edge_end, remaining_inwards_length);
+        const Point2D edge_direction = geometry::conversions::toPoint2D(edge_move_up->to_->p_ - edge_move_up->from_->p_).vNormalized().value();
 
-        inwards_move.push_back(start_position + ::curaengine::geometry::conversions::toPoint2LL(edge_direction * add_distance));
+        inwards_move.push_back(start_position + geometry::conversions::toPoint2LL(edge_direction * add_distance));
         remaining_inwards_length -= add_distance;
     };
 
     if (distance_to_opposite_vertex > remaining_inwards_length)
     {
         // Trapezoidal is long enough to contain the full inwards move, stop now
-        const ::curaengine::geometry::Point2D inwards_direction = ::curaengine::geometry::conversions::toPoint2D(start_to_opposite).vNormalized().value();
-        inwards_move.push_back(start_point + ::curaengine::geometry::conversions::toPoint2LL(inwards_direction * remaining_inwards_length));
+        const Point2D inwards_direction = geometry::conversions::toPoint2D(start_to_opposite).vNormalized().value();
+        inwards_move.push_back(start_point + geometry::conversions::toPoint2LL(inwards_direction * remaining_inwards_length));
     }
     else
     {
@@ -2325,7 +2333,7 @@ void LayerPlan::addWalls(
         else
         {
             // Now we have reached the opposite segment, keep going inwards by following it
-            const ::curaengine::arachne::STHalfEdge* edge_move_up = nullptr;
+            const STHalfEdge* edge_move_up = nullptr;
             if (trapezoidal_start->next_->isUpward(is_upward_strict))
             {
                 edge_move_up = trapezoidal_start->next_;
@@ -2360,7 +2368,7 @@ void LayerPlan::addWalls(
         // Find an edge starting from the current node that goes upwards
         auto iterator = ranges::find_if(
             trapezoidal_edges,
-            [&next_start_node](const ::curaengine::arachne::STHalfEdge& edge)
+            [&next_start_node](const STHalfEdge& edge)
             {
                 return edge.from_ == next_start_node && edge.isUpward(is_upward_strict);
             });
@@ -2371,7 +2379,7 @@ void LayerPlan::addWalls(
             break;
         }
 
-        const ::curaengine::arachne::STHalfEdge* edge_move_up = &(*iterator);
+        const STHalfEdge* edge_move_up = &(*iterator);
         add_edge(edge_move_up, edge_move_up->from_->p_);
         next_start_node = edge_move_up->to_;
     }
@@ -2381,23 +2389,23 @@ void LayerPlan::addWalls(
 
 template<class LineType>
 void LayerPlan::addLinesByOptimizer(
-    const ::curaengine::geometry::LinesSet<LineType>& lines,
+    const LinesSet<LineType>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,
-    const ::curaengine::utils::coord_t wipe_dist,
-    const ::curaengine::types::Ratio flow_ratio,
-    const std::optional<::curaengine::geometry::Point2LL> near_start_location,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const OverrideAreas& override_areas,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*>& order_requirements,
-    const ::curaengine::utils::coord_t extra_inwards_start_move_length,
-    const ::curaengine::utils::coord_t extra_inwards_end_move_length,
-    const ::curaengine::geometry::MendedShape& extra_inwards_move_contour,
-    const std::optional<::curaengine::utils::coord_t> max_distance_ignore_combing)
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
+    const coord_t extra_inwards_start_move_length,
+    const coord_t extra_inwards_end_move_length,
+    const MendedShape& extra_inwards_move_contour,
+    const std::optional<coord_t> max_distance_ignore_combing)
 {
-    ::curaengine::geometry::Shape boundary;
+    Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
@@ -2407,7 +2415,7 @@ void LayerPlan::addLinesByOptimizer(
             // determine how much the skin/infill lines overlap the combing boundary
             for (const std::shared_ptr<SliceMeshStorage>& mesh : storage_.meshes)
             {
-                const ::curaengine::utils::coord_t overlap = std::max(mesh->settings.get<::curaengine::utils::coord_t>("skin_overlap_mm"), mesh->settings.get<::curaengine::utils::coord_t>("infill_overlap_mm"));
+                const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
                 {
                     dist = overlap;
@@ -2417,26 +2425,26 @@ void LayerPlan::addLinesByOptimizer(
         }
         boundary.push_back(comb_boundary_minimum_.offset(dist));
         // simplify boundary to cut down processing time
-        boundary = ::curaengine::utils::Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
+        boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
     constexpr bool detect_loops = true;
-    PathOrderOptimizer<const ::curaengine::geometry::Polyline*> order_optimizer(
+    PathOrderOptimizer<const Polyline*> order_optimizer(
         near_start_location.value_or(getLastPlannedPositionOrStartingPosition()),
-        ::curaengine::types::ZSeamConfig(),
+        ZSeamConfig(),
         detect_loops,
         &boundary,
         reverse_print_direction,
         order_requirements);
-    if constexpr (std::is_same<LineType, ::curaengine::geometry::OpenPolyline>::value)
+    if constexpr (std::is_same<LineType, OpenPolyline>::value)
     {
-        for (const ::curaengine::geometry::OpenPolyline& polyline : lines)
+        for (const OpenPolyline& polyline : lines)
         {
             order_optimizer.addPolyline(&polyline);
         }
     }
-    if constexpr (std::is_same<LineType, ::curaengine::geometry::ClosedPolyline>::value)
+    if constexpr (std::is_same<LineType, ClosedPolyline>::value)
     {
-        for (const ::curaengine::geometry::ClosedPolyline& polyline : lines)
+        for (const ClosedPolyline& polyline : lines)
         {
             order_optimizer.addPolygon(&polyline);
         }
@@ -2458,18 +2466,18 @@ void LayerPlan::addLinesByOptimizer(
 }
 
 void LayerPlan::addLinesByOptimizer(
-    const ::curaengine::geometry::MixedLinesSet& lines,
+    const MixedLinesSet& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,
-    const ::curaengine::utils::coord_t wipe_dist,
-    const ::curaengine::types::Ratio flow_ratio,
-    const std::optional<::curaengine::geometry::Point2LL> near_start_location,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*>& order_requirements)
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements)
 {
-    ::curaengine::geometry::Shape boundary;
+    Shape boundary;
     if (enable_travel_optimization && ! comb_boundary_minimum_.empty())
     {
         // use the combing boundary inflated so that all infill lines are inside the boundary
@@ -2479,7 +2487,7 @@ void LayerPlan::addLinesByOptimizer(
             // determine how much the skin/infill lines overlap the combing boundary
             for (const std::shared_ptr<SliceMeshStorage>& mesh : storage_.meshes)
             {
-                const ::curaengine::utils::coord_t overlap = std::max(mesh->settings.get<::curaengine::utils::coord_t>("skin_overlap_mm"), mesh->settings.get<::curaengine::utils::coord_t>("infill_overlap_mm"));
+                const coord_t overlap = std::max(mesh->settings.get<coord_t>("skin_overlap_mm"), mesh->settings.get<coord_t>("infill_overlap_mm"));
                 if (overlap > dist)
                 {
                     dist = overlap;
@@ -2489,23 +2497,23 @@ void LayerPlan::addLinesByOptimizer(
         }
         boundary.push_back(comb_boundary_minimum_.offset(dist));
         // simplify boundary to cut down processing time
-        boundary = ::curaengine::utils::Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
+        boundary = Simplify(MM2INT(0.1), MM2INT(0.1), 0).polygon(boundary);
     }
     constexpr bool detect_loops = false; // We already know which lines are closed
-    PathOrderOptimizer<const ::curaengine::geometry::Polyline*> order_optimizer(
+    PathOrderOptimizer<const Polyline*> order_optimizer(
         near_start_location.value_or(getLastPlannedPositionOrStartingPosition()),
-        ::curaengine::types::ZSeamConfig(),
+        ZSeamConfig(),
         detect_loops,
         &boundary,
         reverse_print_direction,
         order_requirements);
-    for (const std::shared_ptr<const ::curaengine::geometry::Polyline>& line : lines)
+    for (const std::shared_ptr<const Polyline>& line : lines)
     {
-        if (const std::shared_ptr<const ::curaengine::geometry::OpenPolyline> open_line = dynamic_pointer_cast<const ::curaengine::geometry::OpenPolyline>(line))
+        if (const std::shared_ptr<const OpenPolyline> open_line = dynamic_pointer_cast<const OpenPolyline>(line))
         {
             order_optimizer.addPolyline(open_line.get());
         }
-        else if (const std::shared_ptr<const ::curaengine::geometry::ClosedPolyline> closed_line = dynamic_pointer_cast<const ::curaengine::geometry::ClosedPolyline>(line))
+        else if (const std::shared_ptr<const ClosedPolyline> closed_line = dynamic_pointer_cast<const ClosedPolyline>(line))
         {
             order_optimizer.addPolygon(closed_line.get());
         }
@@ -2517,33 +2525,33 @@ void LayerPlan::addLinesByOptimizer(
 }
 
 void LayerPlan::addLinesInGivenOrder(
-    const std::vector<PathOrdering<const ::curaengine::geometry::Polyline*>>& lines,
+    const std::vector<PathOrdering<const Polyline*>>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
-    const ::curaengine::utils::coord_t wipe_dist,
-    const ::curaengine::types::Ratio flow_ratio,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
     const double fan_speed,
     const OverrideAreas& override_areas,
-    const ::curaengine::utils::coord_t extra_inwards_start_move_length,
-    const ::curaengine::utils::coord_t extra_inwards_end_move_length,
-    const ::curaengine::geometry::MendedShape& extra_inwards_move_contour,
-    const std::optional<::curaengine::utils::coord_t> max_distance_ignore_combing)
+    const coord_t extra_inwards_start_move_length,
+    const coord_t extra_inwards_end_move_length,
+    const MendedShape& extra_inwards_move_contour,
+    const std::optional<coord_t> max_distance_ignore_combing)
 {
-    const ::curaengine::utils::coord_t half_line_width = config.getLineWidth() / 2;
-    const ::curaengine::utils::coord_t line_width_2 = half_line_width * half_line_width;
-    std::unique_ptr<const ::curaengine::arachne::SkeletalTrapezoidation> trapezoidation;
+    const coord_t half_line_width = config.getLineWidth() / 2;
+    const coord_t line_width_2 = half_line_width * half_line_width;
+    std::unique_ptr<const SkeletalTrapezoidation> trapezoidation;
 
     if (extra_inwards_start_move_length > 0 || extra_inwards_end_move_length > 0)
     {
-        const ::curaengine::beading_strategy::BeadingStrategyPtr beading_strategy = ::curaengine::beading_strategy::BeadingStrategyFactory::makeStrategy();
-        constexpr ::curaengine::utils::coord_t discretization_step_size = MM2INT(0.8);
-        trapezoidation = std::make_unique<::curaengine::arachne::SkeletalTrapezoidation>(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, ::curaengine::utils::SectionType::INFILL);
+        const BeadingStrategyPtr beading_strategy = BeadingStrategyFactory::makeStrategy();
+        constexpr coord_t discretization_step_size = MM2INT(0.8);
+        trapezoidation = std::make_unique<SkeletalTrapezoidation>(extra_inwards_move_contour, *beading_strategy, 0.0, discretization_step_size, 0, 0, 0, 0, SectionType::INFILL);
     }
 
     for (size_t order_idx = 0; order_idx < lines.size(); order_idx++)
     {
-        const PathOrdering<const ::curaengine::geometry::Polyline*>& path = lines[order_idx];
-        const ::curaengine::geometry::Polyline& raw_polyline = *path.vertices_;
+        const PathOrdering<const Polyline*>& path = lines[order_idx];
+        const Polyline& raw_polyline = *path.vertices_;
 
         if (! raw_polyline.isValid())
         {
@@ -2552,18 +2560,18 @@ void LayerPlan::addLinesInGivenOrder(
 
         size_t start_idx = path.start_vertex_;
         assert(start_idx == 0 || start_idx == raw_polyline.size() - 1 || path.is_closed_);
-        ::curaengine::geometry::Point2LL start = raw_polyline[start_idx];
+        Point2LL start = raw_polyline[start_idx];
 
-        std::shared_ptr<::curaengine::geometry::Polyline> expanded_polyline;
-        const ::curaengine::geometry::Polyline* polyline = &raw_polyline;
+        std::shared_ptr<Polyline> expanded_polyline;
+        const Polyline* polyline = &raw_polyline;
 
         if (extra_inwards_start_move_length > 0 || extra_inwards_end_move_length > 0)
         {
-            ::curaengine::geometry::OpenPolyline start_inwards_move
-                = extra_inwards_start_move_length > 0 ? makeInwardsMove(trapezoidation->graph_.edges_, start, extra_inwards_start_move_length) : ::curaengine::geometry::OpenPolyline();
-            const ::curaengine::geometry::Point2LL& end = raw_polyline[path.is_closed_ ? start_idx : (start_idx == 0 ? raw_polyline.size() - 1 : 0)];
+            OpenPolyline start_inwards_move
+                = extra_inwards_start_move_length > 0 ? makeInwardsMove(trapezoidation->graph_.edges_, start, extra_inwards_start_move_length) : OpenPolyline();
+            const Point2LL& end = raw_polyline[path.is_closed_ ? start_idx : (start_idx == 0 ? raw_polyline.size() - 1 : 0)];
 
-            ::curaengine::geometry::OpenPolyline end_inwards_move;
+            OpenPolyline end_inwards_move;
             if (extra_inwards_end_move_length == extra_inwards_start_move_length && end == start)
             {
                 end_inwards_move = start_inwards_move;
@@ -2573,7 +2581,7 @@ void LayerPlan::addLinesInGivenOrder(
                 end_inwards_move = makeInwardsMove(trapezoidation->graph_.edges_, end, extra_inwards_end_move_length);
             }
 
-            expanded_polyline = std::make_shared<::curaengine::geometry::OpenPolyline>();
+            expanded_polyline = std::make_shared<OpenPolyline>();
             expanded_polyline->reserve(raw_polyline.size() + 2 * start_inwards_move.size());
 
             if (path.is_closed_)
@@ -2609,14 +2617,14 @@ void LayerPlan::addLinesInGivenOrder(
             start = polyline->at(start_idx);
         }
 
-        if (::curaengine::geometry::vSize2(getLastPlannedPositionOrStartingPosition() - start) < line_width_2)
+        if (geometry::vSize2(getLastPlannedPositionOrStartingPosition() - start) < line_width_2)
         {
             // Instead of doing a small travel that is shorter than the line width (which is generally done at pretty high jerk & move) do a
             // "fake" extrusion move
-            constexpr ::curaengine::types::Ratio flow = 0.0_r;
-            constexpr ::curaengine::types::Ratio width_factor = 1.0_r;
+            constexpr Ratio flow = 0.0_r;
+            constexpr Ratio width_factor = 1.0_r;
             constexpr bool spiralize = false;
-            constexpr ::curaengine::types::Ratio speed_factor = 1.0_r;
+            constexpr Ratio speed_factor = 1.0_r;
             constexpr bool travel_to_z = true;
             addExtrusionMove(start, config, override_areas, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
         }
@@ -2628,11 +2636,11 @@ void LayerPlan::addLinesInGivenOrder(
                 addTravel(getLastPlannedPositionOrStartingPosition());
             }
 
-            constexpr ::curaengine::utils::coord_t z_offset{ 0 };
+            constexpr coord_t z_offset{ 0 };
             addTravel(start, ForceRetract::AUTOMATIC, z_offset, max_distance_ignore_combing);
         }
 
-        ::curaengine::geometry::Point2LL p0 = start;
+        Point2LL p0 = start;
         for (size_t idx = 0; idx < polyline->size(); idx++)
         {
             size_t point_idx;
@@ -2649,21 +2657,21 @@ void LayerPlan::addLinesInGivenOrder(
                 assert(start_idx == polyline->size() - 1);
                 point_idx = start_idx - idx;
             }
-            ::curaengine::geometry::Point2LL p1 = polyline->at(point_idx);
+            Point2LL p1 = polyline->at(point_idx);
 
             // ignore line segments that are less than 5uM long
-            if (::curaengine::geometry::vSize2(p1 - p0) >= MINIMUM_SQUARED_LINE_LENGTH)
+            if (geometry::vSize2(p1 - p0) >= MINIMUM_SQUARED_LINE_LENGTH)
             {
-                constexpr ::curaengine::types::Ratio width_factor = 1.0_r;
+                constexpr Ratio width_factor = 1.0_r;
                 constexpr bool spiralize = false;
-                constexpr ::curaengine::types::Ratio speed_factor = 1.0_r;
+                constexpr Ratio speed_factor = 1.0_r;
                 constexpr bool travel_to_z = true;
                 addExtrusionMove(p1, config, override_areas, space_fill_type, flow_ratio, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
                 p0 = p1;
             }
         }
 
-        ::curaengine::geometry::Point2LL p1 = polyline->at((start_idx == 0) ? polyline->size() - 1 : 0);
+        Point2LL p1 = polyline->at((start_idx == 0) ? polyline->size() - 1 : 0);
         p0 = (polyline->size() <= 1) ? p1 : polyline->at((start_idx == 0) ? polyline->size() - 2 : 1);
 
         // Wipe
@@ -2681,11 +2689,11 @@ void LayerPlan::addLinesInGivenOrder(
             // Don't wipe if next starting point is very near
             if (wipe && (order_idx < lines.size() - 1))
             {
-                const PathOrdering<const ::curaengine::geometry::Polyline*>& next_path = lines[order_idx + 1];
-                const ::curaengine::geometry::Polyline& next_polygon = *next_path.vertices_;
+                const PathOrdering<const Polyline*>& next_path = lines[order_idx + 1];
+                const Polyline& next_polygon = *next_path.vertices_;
                 const size_t next_start = next_path.start_vertex_;
-                const ::curaengine::geometry::Point2LL& next_p0 = next_polygon[next_start];
-                if (::curaengine::geometry::vSize2(next_p0 - p1) <= line_width * line_width * 4)
+                const Point2LL& next_p0 = next_polygon[next_start];
+                if (geometry::vSize2(next_p0 - p1) <= line_width * line_width * 4)
                 {
                     wipe = false;
                 }
@@ -2693,25 +2701,25 @@ void LayerPlan::addLinesInGivenOrder(
 
             if (wipe)
             {
-                constexpr ::curaengine::types::Ratio flow = 0.0_r;
-                constexpr ::curaengine::types::Ratio width_factor = 1.0_r;
+                constexpr Ratio flow = 0.0_r;
+                constexpr Ratio width_factor = 1.0_r;
                 constexpr bool spiralize = false;
-                constexpr ::curaengine::types::Ratio speed_factor = 1.0_r;
+                constexpr Ratio speed_factor = 1.0_r;
                 constexpr bool travel_to_z = true;
-                addExtrusionMove(p1 + ::curaengine::geometry::normal(p1 - p0, wipe_dist), config, override_areas, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
+                addExtrusionMove(p1 + geometry::normal(p1 - p0, wipe_dist), config, override_areas, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
             }
         }
     }
 }
 
 void LayerPlan::addPolygonsInGivenOrder(
-    const std::vector<PathOrdering<const ::curaengine::geometry::Polygon*>>& polygons,
+    const std::vector<PathOrdering<const Polygon*>>& polygons,
     const GCodePathConfig& config,
     const Settings& settings,
-    const ::curaengine::types::ZSeamConfig& z_seam_config,
-    ::curaengine::utils::coord_t wall_0_wipe_dist,
+    const ZSeamConfig& z_seam_config,
+    coord_t wall_0_wipe_dist,
     bool spiralize,
-    const ::curaengine::types::Ratio flow_ratio,
+    const Ratio flow_ratio,
     const ForceRetract force_retract,
     bool reverse_order,
     bool scarf_seam,
@@ -2750,27 +2758,27 @@ void LayerPlan::addPolygonsInGivenOrder(
     }
 }
 
-LayerPlan::TravelDurations LayerPlan::computeTravelDurations(const ::curaengine::gcode_export::GCodeExport& gcode, const ExtruderTrain& extruder, const ::curaengine::path_planning::GCodePath& path, const ::curaengine::utils::coord_t z_hop_height)
+LayerPlan::TravelDurations LayerPlan::computeTravelDurations(const GCodeExport& gcode, const ExtruderTrain& extruder, const GCodePath& path, const coord_t z_hop_height)
 {
     TravelDurations travel_durations;
 
     if (z_hop_height > 0)
     {
-        const ::curaengine::types::Velocity z_hop_speed = extruder.settings_.get<::curaengine::types::Velocity>("speed_z_hop");
+        const Velocity z_hop_speed = extruder.settings_.get<Velocity>("speed_z_hop");
         travel_durations.z_hop = (z_hop_height / z_hop_speed) / 1000.0;
     }
 
     if (! path.points.empty())
     {
-        const ::curaengine::types::Velocity& travel_speed = path.config.getSpeed();
-        ::curaengine::geometry::Point2LL start_position = gcode.getPosition().toPoint2LL();
-        const ::curaengine::utils::coord_t travel_distance = ranges::accumulate(
+        const Velocity& travel_speed = path.config.getSpeed();
+        Point2LL start_position = gcode.getPosition().toPoint2LL();
+        const coord_t travel_distance = ranges::accumulate(
             path.points,
             0,
-            [&start_position](const ::curaengine::utils::coord_t total_distance, const ::curaengine::geometry::Point3LL& travel_point)
+            [&start_position](const coord_t total_distance, const Point3LL& travel_point)
             {
-                const ::curaengine::geometry::Point2LL travel_point_2d = travel_point.toPoint2LL();
-                const ::curaengine::utils::coord_t travel_segment_length = ::curaengine::geometry::vSize(travel_point_2d - start_position);
+                const Point2LL travel_point_2d = travel_point.toPoint2LL();
+                const coord_t travel_segment_length = geometry::vSize(travel_point_2d - start_position);
                 start_position = travel_point_2d;
                 return total_distance + travel_segment_length;
             });
@@ -2781,10 +2789,10 @@ LayerPlan::TravelDurations LayerPlan::computeTravelDurations(const ::curaengine:
 }
 
 void LayerPlan::computeAntiOozeAmounts(
-    const ::curaengine::gcode_export::GCodeExport& gcode,
+    const GCodeExport& gcode,
     const ExtruderTrain& extruder,
-    const ::curaengine::path_planning::GCodePath& path,
-    const ::curaengine::utils::coord_t z_hop_height,
+    const GCodePath& path,
+    const coord_t z_hop_height,
     const RetractionAndWipeConfig* retraction_config,
     std::optional<TravelAntiOozing>& retraction_amounts,
     std::optional<TravelAntiOozing>& priming_amounts)
@@ -2804,7 +2812,7 @@ void LayerPlan::computeAntiOozeAmounts(
     {
         intermediate_amounts.actual_during_travel_ratio = gcode.machineHandlesRetraction() ? 0.0_r : settings.during_travel_ratio;
         intermediate_amounts.total_expected_duration = settings.distance / settings.speed;
-        const ::curaengine::types::Duration expected_duration_during_zhop_and_travel = intermediate_amounts.total_expected_duration * intermediate_amounts.actual_during_travel_ratio;
+        const Duration expected_duration_during_zhop_and_travel = intermediate_amounts.total_expected_duration * intermediate_amounts.actual_during_travel_ratio;
         intermediate_amounts.expected_duration_during_travel = std::max(0.0_s, expected_duration_during_zhop_and_travel - travel_durations.z_hop);
         intermediate_amounts.expected_amount_during_travel = intermediate_amounts.expected_duration_during_travel * settings.speed;
 
@@ -2825,20 +2833,20 @@ void LayerPlan::computeAntiOozeAmounts(
     // Compute the expected retraction/priming distance and duration during travel/z-hop
     AntiOozeIntermediateAmounts intermediate_amounts_retract;
     AntiOozeIntermediateAmounts intermediate_amounts_prime;
-    ::curaengine::types::Velocity retract_speed = retract_settings.speed;
+    Velocity retract_speed = retract_settings.speed;
 
     compute_base_anti_ooze_amounts(retract_settings, intermediate_amounts_retract, retraction_amounts);
     compute_base_anti_ooze_amounts(prime_settings, intermediate_amounts_prime, priming_amounts);
 
     // Now check whether we actually have enough time during z-hop + travel to fit the retraction and priming
-    const ::curaengine::types::Duration total_anti_ooze_expected_duration_during_travel
+    const Duration total_anti_ooze_expected_duration_during_travel
         = intermediate_amounts_retract.expected_duration_during_travel + intermediate_amounts_prime.expected_duration_during_travel;
 
     const double free_time_during_travel = travel_durations.travel.value_ - total_anti_ooze_expected_duration_during_travel.value_;
     if (free_time_during_travel < 0.0)
     {
         // We won't have enough time to perform retraction and priming during travel, so we will have to retract less
-        const ::curaengine::types::Ratio reduction_ratio = -(free_time_during_travel / total_anti_ooze_expected_duration_during_travel);
+        const Ratio reduction_ratio = -(free_time_during_travel / total_anti_ooze_expected_duration_during_travel);
         const double retraction_reduction_amount = intermediate_amounts_retract.expected_amount_during_travel * reduction_ratio;
         intermediate_amounts_retract.actual_amount_during_travel = intermediate_amounts_retract.expected_amount_during_travel - retraction_reduction_amount;
         const double prime_reduction_amount = intermediate_amounts_prime.expected_amount_during_travel * reduction_ratio;
@@ -2897,16 +2905,16 @@ void LayerPlan::computeAntiOozeAmounts(
 }
 
 void LayerPlan::computeAntiOozeTravelSplit(
-    const ::curaengine::gcode_export::GCodeExport& gcode,
-    const ::curaengine::path_planning::GCodePath& path,
-    const ::curaengine::types::Velocity& speed,
+    const GCodeExport& gcode,
+    const GCodePath& path,
+    const Velocity& speed,
     const double amount_during_travel,
     const bool reversed,
     TravelAntiOozing& anti_oozing)
 {
     // Now we are going to iterate over all the points of the travel move, including the start position, so create a temporary list and fill it appropriately
-    const ::curaengine::geometry::Point2LL start_position = gcode.getPosition().toPoint2LL();
-    std::vector<::curaengine::geometry::Point3LL> points;
+    const Point2LL start_position = gcode.getPosition().toPoint2LL();
+    std::vector<Point3LL> points;
     if (reversed)
     {
         points.insert(points.end(), path.points.rbegin(), path.points.rend());
@@ -2919,21 +2927,21 @@ void LayerPlan::computeAntiOozeTravelSplit(
     }
 
     // Now loop over the segments of the travel move to find when and where the retraction/prime should stop/start
-    const ::curaengine::types::Duration duration_during_travel = amount_during_travel / speed;
-    ::curaengine::types::Duration travel_duration;
+    const Duration duration_during_travel = amount_during_travel / speed;
+    Duration travel_duration;
     for (const auto& [index, segment] : points | ranges::views::sliding(2) | ranges::views::enumerate)
     {
-        const ::curaengine::geometry::Point2LL& segment_start = segment[0].toPoint2LL();
-        const ::curaengine::geometry::Point2LL& segment_end = segment[1].toPoint2LL();
+        const Point2LL& segment_start = segment[0].toPoint2LL();
+        const Point2LL& segment_end = segment[1].toPoint2LL();
 
-        const ::curaengine::types::Duration segment_duration = (::curaengine::geometry::vSize(segment_end - segment_start) / path.config.getSpeed()) / 1000.0;
+        const Duration segment_duration = (geometry::vSize(segment_end - segment_start) / path.config.getSpeed()) / 1000.0;
         if ((travel_duration + segment_duration >= (duration_during_travel - 0.001_s)) || index == points.size() - 2)
         {
             // Retraction/prime ends/starts on this segment, so calculate the intermediate position and final/start amount
             if (segment_duration > 0.001_s)
             {
                 const double segment_ratio = (duration_during_travel - travel_duration) / segment_duration;
-                anti_oozing.segment_split_position = ::curaengine::geometry::lerp(segment_start, segment_end, segment_ratio);
+                anti_oozing.segment_split_position = geometry::lerp(segment_start, segment_end, segment_ratio);
             }
             else
             {
@@ -2960,11 +2968,11 @@ void LayerPlan::computeAntiOozeTravelSplit(
 
 void LayerPlan::writeTravelSegment(
     TravelRetractionState& travel_retraction_state,
-    ::curaengine::gcode_export::GCodeExport& gcode,
-    const ::curaengine::path_planning::GCodePath& path,
+    GCodeExport& gcode,
+    const GCodePath& path,
     const std::optional<TravelAntiOozing>& retraction_amounts,
     const std::optional<TravelAntiOozing>& priming_amounts,
-    const ::curaengine::types::Velocity& speed,
+    const Velocity& speed,
     const size_t point_index)
 {
     switch (travel_retraction_state)
@@ -3032,7 +3040,7 @@ void LayerPlan::writeTravelSegment(
     }
 }
 
-::curaengine::utils::coord_t LayerPlan::calculateMaxOverhangLength() const
+coord_t LayerPlan::calculateMaxOverhangLength() const
 {
     return ranges::max(
         extruder_plans_
@@ -3043,38 +3051,38 @@ void LayerPlan::writeTravelSegment(
             }));
 }
 
-void LayerPlan::sendLineTo(const ::curaengine::path_planning::GCodePath& path, const ::curaengine::geometry::Point3LL& position, const double extrude_speed, const std::optional<::curaengine::utils::coord_t>& line_thickness)
+void LayerPlan::sendLineTo(const GCodePath& path, const Point3LL& position, const double extrude_speed, const std::optional<coord_t>& line_thickness)
 {
     Application::getInstance().communication_->sendLineTo(
         path.config.type,
-        position + ::curaengine::geometry::Point3LL(0, 0, z_ + path.z_offset),
+        position + Point3LL(0, 0, z_ + path.z_offset),
         path.getLineWidthForLayerView(),
         line_thickness.value_or(path.config.getLayerThickness() + path.z_offset + position.z_),
         extrude_speed,
         path.print_attributes);
 }
 
-void LayerPlan::writeTravelRelativeZ(::curaengine::gcode_export::GCodeExport& gcode, const ::curaengine::geometry::Point3LL& position, const ::curaengine::types::Velocity& speed, const ::curaengine::utils::coord_t path_z_offset, const std::optional<double> retract_distance)
+void LayerPlan::writeTravelRelativeZ(GCodeExport& gcode, const Point3LL& position, const Velocity& speed, const coord_t path_z_offset, const std::optional<double> retract_distance)
 {
-    gcode.writeTravel(position + ::curaengine::geometry::Point3LL(0, 0, z_ + path_z_offset), speed, retract_distance);
+    gcode.writeTravel(position + Point3LL(0, 0, z_ + path_z_offset), speed, retract_distance);
 }
 
 void LayerPlan::writeExtrusionRelativeZ(
-    ::curaengine::gcode_export::GCodeExport& gcode,
-    const ::curaengine::geometry::Point3LL& position,
-    const ::curaengine::types::Velocity& speed,
-    const ::curaengine::utils::coord_t path_z_offset,
+    GCodeExport& gcode,
+    const Point3LL& position,
+    const Velocity& speed,
+    const coord_t path_z_offset,
     double extrusion_mm3_per_mm,
     PrintFeatureType feature,
     bool update_extrusion_offset)
 {
-    ::curaengine::types::Ratio thickness_factor;
-    const ::curaengine::utils::coord_t z_offset_start = gcode.getPositionZ() - z_;
+    Ratio thickness_factor;
+    const coord_t z_offset_start = gcode.getPositionZ() - z_;
     if (z_offset_start != 0 || path_z_offset != 0)
     {
         // Make average flow according to Z offset, because it can't be different at start and end positions
-        const ::curaengine::types::Ratio thickness_factor_start = std::clamp(1.0 + (static_cast<double>(z_offset_start) / layer_thickness_), 0.0, 1.0);
-        const ::curaengine::types::Ratio thickness_factor_end = std::clamp(1.0 + (static_cast<double>(path_z_offset) / layer_thickness_), 0.0, 1.0);
+        const Ratio thickness_factor_start = std::clamp(1.0 + (static_cast<double>(z_offset_start) / layer_thickness_), 0.0, 1.0);
+        const Ratio thickness_factor_end = std::clamp(1.0 + (static_cast<double>(path_z_offset) / layer_thickness_), 0.0, 1.0);
         thickness_factor = (thickness_factor_start + thickness_factor_end) / 2.0;
     }
     else
@@ -3082,48 +3090,48 @@ void LayerPlan::writeExtrusionRelativeZ(
         thickness_factor = 1.0;
     }
 
-    gcode.writeExtrusion(position + ::curaengine::geometry::Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm * thickness_factor, feature, update_extrusion_offset);
+    gcode.writeExtrusion(position + Point3LL(0, 0, z_ + path_z_offset), speed, extrusion_mm3_per_mm * thickness_factor, feature, update_extrusion_offset);
 }
 
 void LayerPlan::addLinesMonotonic(
-    const ::curaengine::geometry::Shape& area,
-    const ::curaengine::geometry::OpenLinesSet& lines,
+    const Shape& area,
+    const OpenLinesSet& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
-    const ::curaengine::types::AngleRadians monotonic_direction,
-    const ::curaengine::utils::coord_t max_adjacent_distance,
-    const ::curaengine::utils::coord_t exclude_distance,
-    const ::curaengine::utils::coord_t wipe_dist,
-    const ::curaengine::types::Ratio flow_ratio,
+    const AngleRadians monotonic_direction,
+    const coord_t max_adjacent_distance,
+    const coord_t exclude_distance,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
     const double fan_speed,
     const bool interlaced,
     const OverrideAreas& override_areas,
-    const std::optional<::curaengine::utils::coord_t> max_distance_ignore_combing)
+    const std::optional<coord_t> max_distance_ignore_combing)
 {
-    const ::curaengine::geometry::Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
-    const ::curaengine::utils::coord_t exclude_dist2 = exclude_distance * exclude_distance;
-    const ::curaengine::geometry::Point2LL last_position = getLastPlannedPositionOrStartingPosition();
+    const Shape exclude_areas = area.createTubeShape(exclude_distance, exclude_distance);
+    const coord_t exclude_dist2 = exclude_distance * exclude_distance;
+    const Point2LL last_position = getLastPlannedPositionOrStartingPosition();
 
     // First lay all adjacent lines next to each other, to have a sensible input to the monotonic part of the algorithm.
-    PathOrderOptimizer<const ::curaengine::geometry::OpenPolyline*> line_order(last_position);
-    for (const ::curaengine::geometry::OpenPolyline& line : lines)
+    PathOrderOptimizer<const OpenPolyline*> line_order(last_position);
+    for (const OpenPolyline& line : lines)
     {
         line_order.addPolyline(&line);
     }
     line_order.optimize();
 
-    const auto is_inside_exclusion = [&exclude_areas, &exclude_dist2](const ::curaengine::geometry::OpenPolyline& path)
+    const auto is_inside_exclusion = [&exclude_areas, &exclude_dist2](const OpenPolyline& path)
     {
-        return ::curaengine::geometry::vSize2(path[1] - path[0]) < exclude_dist2 && exclude_areas.inside((path[0] + path[1]) / 2);
+        return geometry::vSize2(path[1] - path[0]) < exclude_dist2 && exclude_areas.inside((path[0] + path[1]) / 2);
     };
 
     // Order monotonically, except for line-segments which stay in the excluded areas (read: close to the walls) consecutively.
-    PathOrderMonotonic<const ::curaengine::geometry::Polyline*> order(monotonic_direction, max_adjacent_distance, last_position, interlaced);
-    ::curaengine::geometry::OpenLinesSet left_over;
+    PathOrderMonotonic<const Polyline*> order(monotonic_direction, max_adjacent_distance, last_position, interlaced);
+    OpenLinesSet left_over;
     bool last_would_have_been_excluded = false;
     for (size_t line_idx = 0; line_idx < line_order.paths_.size(); ++line_idx)
     {
-        const ::curaengine::geometry::OpenPolyline& polyline = *line_order.paths_[line_idx].vertices_;
+        const OpenPolyline& polyline = *line_order.paths_[line_idx].vertices_;
         if (! polyline.isValid())
         {
             continue;
@@ -3144,9 +3152,9 @@ void LayerPlan::addLinesMonotonic(
     order.optimize();
 
     // Read out and process the monotonically ordered lines.
-    constexpr ::curaengine::utils::coord_t extra_inwards_start_move_length{ 0 };
-    constexpr ::curaengine::utils::coord_t extra_inwards_end_move_length{ 0 };
-    constexpr ::curaengine::geometry::MendedShape extra_inwards_move_contour;
+    constexpr coord_t extra_inwards_start_move_length{ 0 };
+    constexpr coord_t extra_inwards_end_move_length{ 0 };
+    constexpr MendedShape extra_inwards_move_contour;
     addLinesInGivenOrder(
         order.paths_,
         config,
@@ -3166,8 +3174,8 @@ void LayerPlan::addLinesMonotonic(
 
 void LayerPlan::spiralizeWallSlice(
     const GCodePathConfig& config,
-    const ::curaengine::geometry::Polygon& wall,
-    const ::curaengine::geometry::Polygon& last_wall,
+    const Polygon& wall,
+    const Polygon& last_wall,
     const int seam_vertex_idx,
     const int last_seam_vertex_idx,
     const bool is_top_layer,
@@ -3175,10 +3183,10 @@ void LayerPlan::spiralizeWallSlice(
 {
     const bool smooth_contours = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("smooth_spiralized_contours");
     constexpr bool spiralize = true; // In addExtrusionMove calls, enable spiralize and use nominal line width.
-    constexpr ::curaengine::types::Ratio width_factor = 1.0_r;
+    constexpr Ratio width_factor = 1.0_r;
 
     // once we are into the spiral we always start at the end point of the last layer (if any)
-    const ::curaengine::geometry::Point2LL origin = (last_seam_vertex_idx >= 0 && ! is_bottom_layer) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
+    const Point2LL origin = (last_seam_vertex_idx >= 0 && ! is_bottom_layer) ? last_wall[last_seam_vertex_idx] : wall[seam_vertex_idx];
     // NOTE: this used to use addTravel_simple() but if support is being generated then combed travel is required to avoid
     // the nozzle crossing the model on its return from printing the support.
     addTravel(origin);
@@ -3188,25 +3196,25 @@ void LayerPlan::spiralizeWallSlice(
         // when not smoothing, we get to the (unchanged) outline for this layer as quickly as possible so that the remainder of the
         // outline wall has the correct direction - although this creates a little step, the end result is generally better because when the first
         // outline wall has the wrong direction (due to it starting from the finish point of the last layer) the visual effect is very noticeable
-        ::curaengine::geometry::Point2LL join_first_wall_at = ::curaengine::utils::LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx % wall.size()], wall[(seam_vertex_idx + 1) % wall.size()]);
-        if (::curaengine::geometry::vSize(join_first_wall_at - origin) > 10)
+        Point2LL join_first_wall_at = LinearAlg2D::getClosestOnLineSegment(origin, wall[seam_vertex_idx % wall.size()], wall[(seam_vertex_idx + 1) % wall.size()]);
+        if (geometry::vSize(join_first_wall_at - origin) > 10)
         {
-            constexpr ::curaengine::types::Ratio flow = 1.0_r;
+            constexpr Ratio flow = 1.0_r;
             addExtrusionMove(join_first_wall_at, config, SpaceFillType::Polygons, flow, width_factor, spiralize);
         }
     }
 
     const int n_points = wall.size();
-    ::curaengine::geometry::Shape last_wall_polygons;
+    Shape last_wall_polygons;
     last_wall_polygons.push_back(last_wall);
     const int max_dist2 = config.getLineWidth() * config.getLineWidth() * 4; // (2 * lineWidth)^2;
 
     double total_length = 0.0; // determine the length of the complete wall
-    ::curaengine::geometry::Point2LL p0 = origin;
+    Point2LL p0 = origin;
     for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
     {
-        const ::curaengine::geometry::Point2LL& p1 = wall[(seam_vertex_idx + wall_point_idx) % n_points];
-        total_length += ::curaengine::geometry::vSizeMM(p1 - p0);
+        const Point2LL& p1 = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+        total_length += geometry::vSizeMM(p1 - p0);
         p0 = p1;
     }
 
@@ -3257,8 +3265,8 @@ void LayerPlan::spiralizeWallSlice(
     for (int wall_point_idx = 1; wall_point_idx <= n_points; ++wall_point_idx)
     {
         // p is a point from the current wall polygon
-        const ::curaengine::geometry::Point2LL& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
-        wall_length += ::curaengine::geometry::vSizeMM(p - p0);
+        const Point2LL& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+        wall_length += geometry::vSizeMM(p - p0);
         p0 = p;
 
         const double flow = (is_bottom_layer) ? (min_bottom_layer_flow + ((1 - min_bottom_layer_flow) * wall_length / total_length)) : 1.0;
@@ -3269,10 +3277,10 @@ void LayerPlan::spiralizeWallSlice(
         if (smooth_contours && ! is_bottom_layer && wall_point_idx < n_points)
         {
             // now find the point on the last wall that is closest to p
-            ::curaengine::utils::ClosestPointPolygon cpp = ::curaengine::utils::PolygonUtils::findClosest(p, last_wall_polygons);
+            ClosestPointPolygon cpp = PolygonUtils::findClosest(p, last_wall_polygons);
 
             // if we found a point and it's not further away than max_dist2, use it
-            if (cpp.isValid() && ::curaengine::geometry::vSize2(cpp.location_ - p) <= max_dist2)
+            if (cpp.isValid() && geometry::vSize2(cpp.location_ - p) <= max_dist2)
             {
                 // interpolate between cpp.location and p depending on how far we have progressed along wall
                 addExtrusionMove(cpp.location_ + (p - cpp.location_) * (wall_length / total_length), config, SpaceFillType::Polygons, flow, width_factor, spiralize, speed_factor);
@@ -3298,8 +3306,8 @@ void LayerPlan::spiralizeWallSlice(
         wall_length = 0;
         for (int wall_point_idx = 1; wall_point_idx <= n_points && distance_coasted < min_spiral_coast_dist; wall_point_idx++)
         {
-            const ::curaengine::geometry::Point2LL& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
-            const double seg_length = ::curaengine::geometry::vSizeMM(p - p0);
+            const Point2LL& p = wall[(seam_vertex_idx + wall_point_idx) % n_points];
+            const double seg_length = geometry::vSizeMM(p - p0);
             wall_length += seg_length;
             p0 = p;
             // flow is reduced in step with the distance travelled so the wall width should remain roughly constant
@@ -3314,7 +3322,7 @@ void LayerPlan::spiralizeWallSlice(
             constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
             constexpr bool travel_to_z = false;
             addExtrusionMove(
-                ::curaengine::geometry::Point3LL(p, layer_thickness_ / 2.0),
+                Point3LL(p, layer_thickness_ / 2.0),
                 config,
                 SpaceFillType::Polygons,
                 ((int)(flow * 20)) / 20.0,
@@ -3338,7 +3346,7 @@ bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
 
     double total_extrude_time_at_minimum_speed = 0.0;
     double total_extrude_time_at_slowest_speed = 0.0;
-    for (::curaengine::path_planning::GCodePath& path : paths_)
+    for (GCodePath& path : paths_)
     {
         total_extrude_time_at_minimum_speed += path.estimates.extrude_time_at_minimum_speed;
         total_extrude_time_at_slowest_speed += path.estimates.extrude_time_at_slowest_path_speed;
@@ -3349,7 +3357,7 @@ bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
         const double minExtrudeTime = minTime - (totalTime - extrudeTime);
 
         double target_speed = 0.0;
-        std::function<double(const ::curaengine::path_planning::GCodePath&)> slow_down_func{ [&target_speed](const ::curaengine::path_planning::GCodePath& path)
+        std::function<double(const GCodePath&)> slow_down_func{ [&target_speed](const GCodePath& path)
                                                                 {
                                                                     return std::min(target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
                                                                 } };
@@ -3384,7 +3392,7 @@ bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
             // Slowing down to the slowest_speed is sufficient to respect the minimum layer time.
             // Linear interpolate between extrudeTime and total_extrude_time_at_slowest_speed
             const double factor = (1 / total_extrude_time_at_slowest_speed - 1 / minExtrudeTime) / (1 / total_extrude_time_at_slowest_speed - 1 / extrudeTime);
-            slow_down_func = [&slowest_path_speed = slowest_path_speed_, factor](const ::curaengine::path_planning::GCodePath& path)
+            slow_down_func = [&slowest_path_speed = slowest_path_speed_, factor](const GCodePath& path)
             {
                 const double actual_target_speed = slowest_path_speed * (1.0 - factor) + (path.config.getSpeed() * path.speed_factor) * factor;
                 return std::min(actual_target_speed / (path.config.getSpeed() * path.speed_factor), 1.0);
@@ -3394,13 +3402,13 @@ bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
             estimates_.extrude_time = minExtrudeTime;
         }
 
-        for (::curaengine::path_planning::GCodePath& path : paths_)
+        for (GCodePath& path : paths_)
         {
             if (path.isTravelPath())
             {
                 continue;
             }
-            ::curaengine::types::Ratio slow_down_factor = slow_down_func(path);
+            Ratio slow_down_factor = slow_down_func(path);
             path.speed_factor *= slow_down_factor;
             path.estimates.extrude_time /= slow_down_factor;
         }
@@ -3410,33 +3418,33 @@ bool ExtruderPlan::forceMinimalLayerTime(double minTime, double time_other_extr_
     return false;
 }
 
-double ExtruderPlan::getRetractTime(const ::curaengine::path_planning::GCodePath& path)
+double ExtruderPlan::getRetractTime(const GCodePath& path)
 {
     return retraction_config_.distance / (path.retract ? retraction_config_.speed : retraction_config_.primeSpeed);
 }
 
-std::pair<double, double> ExtruderPlan::getPointToPointTime(const ::curaengine::geometry::Point3LL& p0, const ::curaengine::geometry::Point3LL& p1, const ::curaengine::path_planning::GCodePath& path) const
+std::pair<double, double> ExtruderPlan::getPointToPointTime(const Point3LL& p0, const Point3LL& p1, const GCodePath& path) const
 {
     const double length = (p0 - p1).vSizeMM();
     return { length, length / (path.config.getSpeed() * path.speed_factor) };
 }
 
-::curaengine::path_planning::TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(::curaengine::geometry::Point2LL starting_position)
+TimeMaterialEstimates ExtruderPlan::computeNaiveTimeEstimates(Point2LL starting_position)
 {
-    ::curaengine::geometry::Point3LL p0 = starting_position;
+    Point3LL p0 = starting_position;
 
     const double min_path_speed = fan_speed_layer_time_settings_.cool_min_speed;
     slowest_path_speed_ = std::accumulate(
         paths_.begin(),
         paths_.end(),
         std::numeric_limits<double>::max(),
-        [](double value, const ::curaengine::path_planning::GCodePath& path)
+        [](double value, const GCodePath& path)
         {
             return path.isTravelPath() ? value : std::min(value, path.config.getSpeed().value * path.speed_factor);
         });
 
     bool was_retracted = false; // wrong assumption; won't matter that much. (TODO)
-    for (::curaengine::path_planning::GCodePath& path : paths_)
+    for (GCodePath& path : paths_)
     {
         bool is_extrusion_path = false;
         double* path_time_estimate;
@@ -3475,7 +3483,7 @@ std::pair<double, double> ExtruderPlan::getPointToPointTime(const ::curaengine::
                 path.estimates.unretracted_travel_time += 0.5 * retract_unretract_time;
             }
         }
-        for (::curaengine::geometry::Point3LL& p1 : path.points)
+        for (Point3LL& p1 : path.points)
         {
             double length = (p0 - p1).vSizeMM();
             if (is_extrusion_path)
@@ -3496,7 +3504,7 @@ std::pair<double, double> ExtruderPlan::getPointToPointTime(const ::curaengine::
     return estimates_;
 }
 
-void ExtruderPlan::processFanSpeedForMinimalLayerTime(::curaengine::types::Duration minTime, double time_other_extr_plans)
+void ExtruderPlan::processFanSpeedForMinimalLayerTime(Duration minTime, double time_other_extr_plans)
 {
     /* interpolate fan speed
 
@@ -3544,11 +3552,11 @@ void ExtruderPlan::processFanSpeedForFirstLayers()
     {
         // Slow down the fan on the layers below the [cool_fan_full_layer], where layer 0 is speed 0.
         fan_speed = fan_speed_layer_time_settings_.cool_fan_speed_0
-                  + (fan_speed - fan_speed_layer_time_settings_.cool_fan_speed_0) * std::max(::curaengine::types::LayerIndex(0), layer_nr_) / fan_speed_layer_time_settings_.cool_fan_full_layer;
+                  + (fan_speed - fan_speed_layer_time_settings_.cool_fan_speed_0) * std::max(LayerIndex(0), layer_nr_) / fan_speed_layer_time_settings_.cool_fan_full_layer;
     }
 }
 
-void LayerPlan::processFanSpeedAndMinimalLayerTime(::curaengine::geometry::Point2LL starting_position)
+void LayerPlan::processFanSpeedAndMinimalLayerTime(Point2LL starting_position)
 {
     // the minimum layer time behaviour is only applied to the last extruder.
     const size_t last_extruder_nr = ranges::max_element(
@@ -3560,7 +3568,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(::curaengine::geometry::Point
                                         ->extruder_nr_;
     unsigned int last_extruder_idx;
     double other_extr_plan_time = 0.0;
-    ::curaengine::types::Duration maximum_cool_min_layer_time;
+    Duration maximum_cool_min_layer_time;
 
     for (unsigned int extr_plan_idx = 0; extr_plan_idx < extruder_plans_.size(); extr_plan_idx++)
     {
@@ -3599,7 +3607,7 @@ void LayerPlan::processFanSpeedAndMinimalLayerTime(::curaengine::geometry::Point
     last_extruder_plan.processFanSpeedForMinimalLayerTime(maximum_cool_min_layer_time, other_extr_plan_time);
 }
 
-void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
+void LayerPlan::writeGCode(GCodeExport& gcode)
 {
     auto communication = Application::getInstance().communication_;
     communication->setLayerForSend(layer_nr_);
@@ -3616,20 +3624,20 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     gcode.setFlowRateExtrusionSettings(
         mesh_group_settings.get<double>("flow_rate_max_extrusion_offset"),
-        mesh_group_settings.get<::curaengine::types::Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
+        mesh_group_settings.get<Ratio>("flow_rate_extrusion_offset_factor")); // Offset is in mm.
 
-    static ::curaengine::types::LayerIndex layer_1{ 1 - static_cast<::curaengine::types::LayerIndex>(Raft::getTotalExtraLayers()) };
+    static LayerIndex layer_1{ 1 - static_cast<LayerIndex>(Raft::getTotalExtraLayers()) };
     if (layer_nr_ == layer_1 && mesh_group_settings.get<bool>("machine_heated_bed"))
     {
         constexpr bool wait = false;
-        gcode.writeBedTemperatureCommand(mesh_group_settings.get<::curaengine::types::Temperature>("material_bed_temperature"), wait);
+        gcode.writeBedTemperatureCommand(mesh_group_settings.get<Temperature>("material_bed_temperature"), wait);
     }
     if (mesh_group_settings.get<size_t>("build_volume_fan_nr") != 0)
     {
         // The machine has a build volume fan.
         if (layer_nr_ == mesh_group_settings.get<size_t>("build_fan_full_layer"))
         {
-            const auto fan_speed = mesh_group_settings.get<::curaengine::types::Ratio>("build_volume_fan_speed") * 100.0;
+            const auto fan_speed = mesh_group_settings.get<Ratio>("build_volume_fan_speed") * 100.0;
             gcode.writeSpecificFanCommand(fan_speed, mesh_group_settings.get<size_t>("build_volume_fan_nr"));
         }
     }
@@ -3668,7 +3676,7 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
         };
 
         const RetractionAndWipeConfig* retraction_config = get_retraction_config(current_mesh).value_or(&storage_.retraction_wipe_config_per_extruder[extruder_plan.extruder_nr_]);
-        ::curaengine::utils::coord_t z_hop_height = retraction_config->retraction_config.zHop;
+        coord_t z_hop_height = retraction_config->retraction_config.zHop;
 
         if (extruder_nr != extruder_plan.extruder_nr_)
         {
@@ -3697,8 +3705,8 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
             if (extruder_plan.prev_extruder_standby_temp_)
             { // turn off previous extruder
                 constexpr bool wait = false;
-                ::curaengine::types::Temperature prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp_;
-                const ::curaengine::types::LayerIndex prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr_ - 1 : layer_nr_;
+                Temperature prev_extruder_temp = *extruder_plan.prev_extruder_standby_temp_;
+                const LayerIndex prev_layer_nr = (extruder_plan_idx == 0) ? layer_nr_ - 1 : layer_nr_;
                 if (prev_layer_nr == storage_.max_print_height_per_extruder[prev_extruder])
                 {
                     prev_extruder_temp = 0; // TODO ? should there be a setting for extruder_off_temperature ?
@@ -3736,7 +3744,7 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
         {
             gcode.writePrepareFansForExtrusion(extruder_plan.getFanSpeed());
         }
-        std::vector<::curaengine::path_planning::GCodePath>& paths = extruder_plan.paths_;
+        std::vector<GCodePath>& paths = extruder_plan.paths_;
 
         extruder_plan.inserts_.sort();
 
@@ -3760,7 +3768,7 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
             extruder_plan.handleInserts(path_idx, gcode, cumulative_path_time);
             cumulative_path_time = 0.; // reset to 0 for current path.
 
-            ::curaengine::path_planning::GCodePath& path = paths[path_idx];
+            GCodePath& path = paths[path_idx];
 
             assert(! path.points.empty());
 
@@ -3773,7 +3781,7 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
 
             if (path.perform_prime)
             {
-                gcode.writePrimeTrain(extruder.settings_.get<::curaengine::types::Velocity>("speed_travel"));
+                gcode.writePrimeTrain(extruder.settings_.get<Velocity>("speed_travel"));
                 // Don't update cumulative path time, as ComputeNaiveTimeEstimates also doesn't.
                 gcode.writeRetraction(retraction_config->retraction_config);
             }
@@ -3941,7 +3949,7 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
                 && (path_idx > 0 || layer_nr_ > 0))
             {
                 // First move to desired height to then make a plain horizontal move
-                gcode.writeTravel(::curaengine::geometry::Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), speed);
+                gcode.writeTravel(Point3LL(gcode.getPosition().x_, gcode.getPosition().y_, z_ + path.z_offset + path.points.front().z_), speed);
             }
 
             if (path.config.isTravelPath())
@@ -3949,9 +3957,9 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
                 if (! path.perform_z_hop && final_travel_z_ != z_ && extruder_plan_idx == (extruder_plans_.size() - 1) && path_idx == (paths.size() - 1))
                 {
                     // Before the final travel, move up to the next layer height, on the current spot, with a sensible speed.
-                    ::curaengine::geometry::Point3LL current_position = gcode.getPosition();
+                    Point3LL current_position = gcode.getPosition();
                     current_position.z_ = final_travel_z_;
-                    gcode.writeTravel(current_position, extruder.settings_.get<::curaengine::types::Velocity>("speed_z_hop"));
+                    gcode.writeTravel(current_position, extruder.settings_.get<Velocity>("speed_z_hop"));
 
                     // Prevent the final travel(s) from resetting to the 'previous' layer height.
                     path.z_offset = final_travel_z_ - z_;
@@ -4002,7 +4010,7 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
                 }
                 if (! coasting) // not same as 'else', cause we might have changed [coasting] in the line above...
                 { // normal path to gcode algorithm
-                    ::curaengine::geometry::Point3LL prev_point = gcode.getPosition();
+                    Point3LL prev_point = gcode.getPosition();
                     for (const auto& pt : path.points)
                     {
                         const auto [_, time] = extruder_plan.getPointToPointTime(prev_point, pt, path);
@@ -4020,29 +4028,29 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
             { // SPIRALIZE
                 // If we need to spiralize then raise the head slowly by 1 layer as this path progresses.
                 double totalLength = 0.0;
-                ::curaengine::geometry::Point2LL p0 = gcode.getPositionXY();
+                Point2LL p0 = gcode.getPositionXY();
                 for (unsigned int _path_idx = path_idx; _path_idx < paths.size() && ! paths[_path_idx].isTravelPath(); _path_idx++)
                 {
-                    ::curaengine::path_planning::GCodePath& _path = paths[_path_idx];
+                    GCodePath& _path = paths[_path_idx];
                     for (unsigned int point_idx = 0; point_idx < _path.points.size(); point_idx++)
                     {
-                        ::curaengine::geometry::Point2LL p1 = _path.points[point_idx].toPoint2LL();
-                        totalLength += ::curaengine::geometry::vSizeMM(p0 - p1);
+                        Point2LL p1 = _path.points[point_idx].toPoint2LL();
+                        totalLength += geometry::vSizeMM(p0 - p1);
                         p0 = p1;
                     }
                 }
 
                 double length = 0.0;
                 p0 = gcode.getPositionXY();
-                const auto writeSpiralPath = [&](const ::curaengine::path_planning::GCodePath& spiral_path, const bool end_layer) -> void
+                const auto writeSpiralPath = [&](const GCodePath& spiral_path, const bool end_layer) -> void
                 {
                     for (const auto& p1 : spiral_path.points)
                     {
-                        const ::curaengine::geometry::Point2LL p1_2d = p1.toPoint2LL();
-                        length += ::curaengine::geometry::vSizeMM(p0 - p1_2d);
+                        const Point2LL p1_2d = p1.toPoint2LL();
+                        length += geometry::vSizeMM(p0 - p1_2d);
                         p0 = p1_2d;
 
-                        const ::curaengine::utils::coord_t z_offset = end_layer ? layer_thickness_ / 2 : std::round(layer_thickness_ * length / totalLength);
+                        const coord_t z_offset = end_layer ? layer_thickness_ / 2 : std::round(layer_thickness_ * length / totalLength);
                         const double extrude_speed = speed * spiral_path.speed_back_pressure_factor;
                         writeExtrusionRelativeZ(
                             gcode,
@@ -4052,7 +4060,7 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
                             spiral_path.getExtrusionMM3perMM(),
                             spiral_path.config.type,
                             update_extrusion_offset);
-                        sendLineTo(spiral_path, ::curaengine::geometry::Point3LL(p1.x_, p1.y_, z_offset), extrude_speed, layer_thickness_);
+                        sendLineTo(spiral_path, Point3LL(p1.x_, p1.y_, z_offset), extrude_speed, layer_thickness_);
                     }
                 };
 
@@ -4094,20 +4102,20 @@ void LayerPlan::writeGCode(::curaengine::gcode_export::GCodeExport& gcode)
         scripta::log(
             "extruder_plan_2",
             extruder_plan.paths_,
-            ::curaengine::utils::SectionType::NA,
+            SectionType::NA,
             layer_nr_,
-            scripta::CellVDI{ "flow", &::curaengine::path_planning::GCodePath::flow },
-            scripta::CellVDI{ "width_factor", &::curaengine::path_planning::GCodePath::width_factor },
-            scripta::CellVDI{ "spiralize", &::curaengine::path_planning::GCodePath::spiralize },
-            scripta::CellVDI{ "speed_factor", &::curaengine::path_planning::GCodePath::speed_factor },
-            scripta::CellVDI{ "speed_back_pressure_factor", &::curaengine::path_planning::GCodePath::speed_back_pressure_factor },
-            scripta::CellVDI{ "retract", &::curaengine::path_planning::GCodePath::retract },
-            scripta::CellVDI{ "unretract_before_last_travel_move", &::curaengine::path_planning::GCodePath::unretract_before_last_travel_move },
-            scripta::CellVDI{ "perform_z_hop", &::curaengine::path_planning::GCodePath::perform_z_hop },
-            scripta::CellVDI{ "perform_prime", &::curaengine::path_planning::GCodePath::perform_prime },
-            scripta::CellVDI{ "fan_speed", &::curaengine::path_planning::GCodePath::getFanSpeed },
-            scripta::CellVDI{ "is_travel_path", &::curaengine::path_planning::GCodePath::isTravelPath },
-            scripta::CellVDI{ "extrusion_mm3_per_mm", &::curaengine::path_planning::GCodePath::getExtrusionMM3perMM });
+            scripta::CellVDI{ "flow", &GCodePath::flow },
+            scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
+            scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
+            scripta::CellVDI{ "speed_factor", &GCodePath::speed_factor },
+            scripta::CellVDI{ "speed_back_pressure_factor", &GCodePath::speed_back_pressure_factor },
+            scripta::CellVDI{ "retract", &GCodePath::retract },
+            scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
+            scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
+            scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
+            scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
+            scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
+            scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
     } // extruder plans /\  .
 
     communication->sendLayerComplete(layer_nr_, z_, layer_thickness_);
@@ -4125,7 +4133,7 @@ void LayerPlan::overrideFanSpeeds(double speed)
 
 bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigned int path_idx)
 {
-    std::vector<::curaengine::path_planning::GCodePath>& paths = extruder_plans_[extruder_plan_idx].paths_;
+    std::vector<GCodePath>& paths = extruder_plans_[extruder_plan_idx].paths_;
     for (unsigned int path_idx2 = path_idx + 1; path_idx2 < paths.size(); path_idx2++)
     {
         if (paths[path_idx2].getExtrusionMM3perMM() > 0)
@@ -4150,7 +4158,7 @@ bool LayerPlan::makeRetractSwitchRetract(unsigned int extruder_plan_idx, unsigne
 }
 
 bool LayerPlan::writePathWithCoasting(
-    ::curaengine::gcode_export::GCodeExport& gcode,
+    GCodeExport& gcode,
     const size_t extruder_plan_idx,
     const size_t path_idx,
     const std::function<void(const double, const int64_t)> insertTempOnTime,
@@ -4162,10 +4170,10 @@ bool LayerPlan::writePathWithCoasting(
     }
 
     size_t coasting_start_index;
-    ::curaengine::geometry::Point3LL previous_position = gcode.getPosition();
+    Point3LL previous_position = gcode.getPosition();
     const ExtruderPlan& extruder_plan = extruder_plans_[extruder_plan_idx];
-    const std::vector<::curaengine::path_planning::GCodePath>& paths = extruder_plan.paths_;
-    const ::curaengine::path_planning::GCodePath& path = paths[path_idx];
+    const std::vector<GCodePath>& paths = extruder_plan.paths_;
+    const GCodePath& path = paths[path_idx];
     const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_];
 
     if (path_coasting.apply_coasting == ApplyCoasting::CoastEntirePath)
@@ -4199,8 +4207,8 @@ bool LayerPlan::writePathWithCoasting(
         auto [_, time] = extruder_plan.getPointToPointTime(previous_position, path.points[point_idx], path);
         insertTempOnTime(time, path_idx);
 
-        const ::curaengine::types::Ratio coasting_speed_modifier = extruder.settings_.get<::curaengine::types::Ratio>("coasting_speed");
-        const ::curaengine::types::Velocity speed = ::curaengine::types::Velocity(coasting_speed_modifier * path.config.getSpeed());
+        const Ratio coasting_speed_modifier = extruder.settings_.get<Ratio>("coasting_speed");
+        const Velocity speed = Velocity(coasting_speed_modifier * path.config.getSpeed());
         writeTravelRelativeZ(gcode, path.points[point_idx], speed, path.z_offset);
 
         previous_position = path.points[point_idx];
@@ -4217,22 +4225,22 @@ void LayerPlan::applyModifyPlugin()
         scripta::log(
             "extruder_plan_0",
             extruder_plan.paths_,
-            ::curaengine::utils::SectionType::NA,
+            SectionType::NA,
             layer_nr_,
-            scripta::CellVDI{ "flow", &::curaengine::path_planning::GCodePath::flow },
-            scripta::CellVDI{ "width_factor", &::curaengine::path_planning::GCodePath::width_factor },
-            scripta::CellVDI{ "spiralize", &::curaengine::path_planning::GCodePath::spiralize },
-            scripta::CellVDI{ "speed_factor", &::curaengine::path_planning::GCodePath::speed_factor },
-            scripta::CellVDI{ "speed_back_pressure_factor", &::curaengine::path_planning::GCodePath::speed_back_pressure_factor },
-            scripta::CellVDI{ "retract", &::curaengine::path_planning::GCodePath::retract },
-            scripta::CellVDI{ "unretract_before_last_travel_move", &::curaengine::path_planning::GCodePath::unretract_before_last_travel_move },
-            scripta::CellVDI{ "perform_z_hop", &::curaengine::path_planning::GCodePath::perform_z_hop },
-            scripta::CellVDI{ "perform_prime", &::curaengine::path_planning::GCodePath::perform_prime },
-            scripta::CellVDI{ "fan_speed", &::curaengine::path_planning::GCodePath::getFanSpeed },
-            scripta::CellVDI{ "is_travel_path", &::curaengine::path_planning::GCodePath::isTravelPath },
-            scripta::CellVDI{ "extrusion_mm3_per_mm", &::curaengine::path_planning::GCodePath::getExtrusionMM3perMM });
+            scripta::CellVDI{ "flow", &GCodePath::flow },
+            scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
+            scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
+            scripta::CellVDI{ "speed_factor", &GCodePath::speed_factor },
+            scripta::CellVDI{ "speed_back_pressure_factor", &GCodePath::speed_back_pressure_factor },
+            scripta::CellVDI{ "retract", &GCodePath::retract },
+            scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
+            scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
+            scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
+            scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
+            scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
+            scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
 
-        extruder_plan.paths_ = ::curaengine::plugins::slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
+        extruder_plan.paths_ = plugins::slots::instance().modify<plugins::v0::SlotID::GCODE_PATHS_MODIFY>(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
 
         // Check if the plugin changed first_travel_destination and update it accordingly if it has
         if (! handled_initial_travel)
@@ -4253,7 +4261,7 @@ void LayerPlan::applyModifyPlugin()
 
         size_t removed_count = std::erase_if(
             extruder_plan.paths_,
-            [](::curaengine::path_planning::GCodePath& path)
+            [](GCodePath& path)
             {
                 return path.points.empty();
             });
@@ -4265,20 +4273,20 @@ void LayerPlan::applyModifyPlugin()
         scripta::log(
             "extruder_plan_1",
             extruder_plan.paths_,
-            ::curaengine::utils::SectionType::NA,
+            SectionType::NA,
             layer_nr_,
-            scripta::CellVDI{ "flow", &::curaengine::path_planning::GCodePath::flow },
-            scripta::CellVDI{ "width_factor", &::curaengine::path_planning::GCodePath::width_factor },
-            scripta::CellVDI{ "spiralize", &::curaengine::path_planning::GCodePath::spiralize },
-            scripta::CellVDI{ "speed_factor", &::curaengine::path_planning::GCodePath::speed_factor },
-            scripta::CellVDI{ "speed_back_pressure_factor", &::curaengine::path_planning::GCodePath::speed_back_pressure_factor },
-            scripta::CellVDI{ "retract", &::curaengine::path_planning::GCodePath::retract },
-            scripta::CellVDI{ "unretract_before_last_travel_move", &::curaengine::path_planning::GCodePath::unretract_before_last_travel_move },
-            scripta::CellVDI{ "perform_z_hop", &::curaengine::path_planning::GCodePath::perform_z_hop },
-            scripta::CellVDI{ "perform_prime", &::curaengine::path_planning::GCodePath::perform_prime },
-            scripta::CellVDI{ "fan_speed", &::curaengine::path_planning::GCodePath::getFanSpeed },
-            scripta::CellVDI{ "is_travel_path", &::curaengine::path_planning::GCodePath::isTravelPath },
-            scripta::CellVDI{ "extrusion_mm3_per_mm", &::curaengine::path_planning::GCodePath::getExtrusionMM3perMM });
+            scripta::CellVDI{ "flow", &GCodePath::flow },
+            scripta::CellVDI{ "width_factor", &GCodePath::width_factor },
+            scripta::CellVDI{ "spiralize", &GCodePath::spiralize },
+            scripta::CellVDI{ "speed_factor", &GCodePath::speed_factor },
+            scripta::CellVDI{ "speed_back_pressure_factor", &GCodePath::speed_back_pressure_factor },
+            scripta::CellVDI{ "retract", &GCodePath::retract },
+            scripta::CellVDI{ "unretract_before_last_travel_move", &GCodePath::unretract_before_last_travel_move },
+            scripta::CellVDI{ "perform_z_hop", &GCodePath::perform_z_hop },
+            scripta::CellVDI{ "perform_prime", &GCodePath::perform_prime },
+            scripta::CellVDI{ "fan_speed", &GCodePath::getFanSpeed },
+            scripta::CellVDI{ "is_travel_path", &GCodePath::isTravelPath },
+            scripta::CellVDI{ "extrusion_mm3_per_mm", &GCodePath::getExtrusionMM3perMM });
     }
 }
 
@@ -4286,8 +4294,8 @@ void LayerPlan::applyBackPressureCompensation()
 {
     for (auto& extruder_plan : extruder_plans_)
     {
-        const ::curaengine::types::Ratio back_pressure_compensation
-            = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_].settings_.get<::curaengine::types::Ratio>("speed_equalize_flow_width_factor");
+        const Ratio back_pressure_compensation
+            = Application::getInstance().current_slice_->scene.extruders[extruder_plan.extruder_nr_].settings_.get<Ratio>("speed_equalize_flow_width_factor");
         if (back_pressure_compensation != 0.0)
         {
             extruder_plan.applyBackPressureCompensation(back_pressure_compensation);
@@ -4299,7 +4307,7 @@ void LayerPlan::applyGradualFlow()
 {
     for (ExtruderPlan& extruder_plan : extruder_plans_)
     {
-        ::curaengine::gradual_flow::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
+        gradual_flow::process(extruder_plan.paths_, extruder_plan.extruder_nr_, layer_nr_);
     }
 }
 
@@ -4332,9 +4340,9 @@ std::optional<size_t> LayerPlan::findInitialExtruderNr() const
     return std::nullopt;
 }
 
-::curaengine::utils::AABB LayerPlan::calculateExtrusionBoundingBox() const
+AABB LayerPlan::calculateExtrusionBoundingBox() const
 {
-    ::curaengine::utils::AABB bounding_box;
+    AABB bounding_box;
 
     for (const ExtruderPlan& extruder_plan : extruder_plans_)
     {
@@ -4354,12 +4362,12 @@ const bool LayerPlan::empty() const
         });
 }
 
-::curaengine::types::LayerIndex LayerPlan::getLayerNr() const
+LayerIndex LayerPlan::getLayerNr() const
 {
     return layer_nr_;
 }
 
-::curaengine::geometry::Point2LL LayerPlan::getLastPlannedPositionOrStartingPosition() const
+Point2LL LayerPlan::getLastPlannedPositionOrStartingPosition() const
 {
     return last_planned_position_.value_or(layer_start_pos_per_extruder_[getExtruder()]).toPoint2LL();
 }
@@ -4384,64 +4392,64 @@ size_t LayerPlan::getExtruder() const
     return extruder_plans_.back().extruder_nr_;
 }
 
-void LayerPlan::setBridgeWallMask(const ::curaengine::geometry::Shape& polys)
+void LayerPlan::setBridgeWallMask(const Shape& polys)
 {
     bridge_wall_mask_ = polys;
-    bridge_wall_mask_bb_ = ::curaengine::utils::AABB(polys);
+    bridge_wall_mask_bb_ = AABB(polys);
 }
 
-void LayerPlan::setSeamOverhangMask(const ::curaengine::geometry::Shape& polys)
+void LayerPlan::setSeamOverhangMask(const Shape& polys)
 {
     seam_overhang_mask_ = polys;
 }
 
-const ::curaengine::geometry::Shape& LayerPlan::getSeamOverhangMask() const
+const Shape& LayerPlan::getSeamOverhangMask() const
 {
     return seam_overhang_mask_;
 }
 
-void LayerPlan::setRoofingMask(const ::curaengine::geometry::Shape& polys)
+void LayerPlan::setRoofingMask(const Shape& polys)
 {
     roofing_mask_ = polys;
 }
 
-void LayerPlan::setFlooringMask(const ::curaengine::geometry::Shape& shape)
+void LayerPlan::setFlooringMask(const Shape& shape)
 {
     flooring_mask_ = shape;
 }
 
 template void LayerPlan::addLinesByOptimizer(
-    const ::curaengine::geometry::LinesSet<::curaengine::geometry::OpenPolyline>& lines,
+    const LinesSet<OpenPolyline>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,
-    const ::curaengine::utils::coord_t wipe_dist,
-    const ::curaengine::types::Ratio flow_ratio,
-    const std::optional<::curaengine::geometry::Point2LL> near_start_location,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const OverrideAreas& override_areas,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*>& order_requirements,
-    const ::curaengine::utils::coord_t extra_inwards_start_move_length,
-    const ::curaengine::utils::coord_t extra_inwards_end_move_length,
-    const ::curaengine::geometry::MendedShape& extra_inwards_move_contour,
-    const std::optional<::curaengine::utils::coord_t> max_distance_ignore_combing);
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
+    const coord_t extra_inwards_start_move_length,
+    const coord_t extra_inwards_end_move_length,
+    const MendedShape& extra_inwards_move_contour,
+    const std::optional<coord_t> max_distance_ignore_combing);
 
 template void LayerPlan::addLinesByOptimizer(
-    const ::curaengine::geometry::LinesSet<::curaengine::geometry::ClosedPolyline>& lines,
+    const LinesSet<ClosedPolyline>& lines,
     const GCodePathConfig& config,
     const SpaceFillType space_fill_type,
     const bool enable_travel_optimization,
-    const ::curaengine::utils::coord_t wipe_dist,
-    const ::curaengine::types::Ratio flow_ratio,
-    const std::optional<::curaengine::geometry::Point2LL> near_start_location,
+    const coord_t wipe_dist,
+    const Ratio flow_ratio,
+    const std::optional<Point2LL> near_start_location,
     const double fan_speed,
     const OverrideAreas& override_areas,
     const bool reverse_print_direction,
-    const std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*>& order_requirements,
-    const ::curaengine::utils::coord_t extra_inwards_start_move_length,
-    const ::curaengine::utils::coord_t extra_inwards_end_move_length,
-    const ::curaengine::geometry::MendedShape& extra_inwards_move_contour,
-    const std::optional<::curaengine::utils::coord_t> max_distance_ignore_combing);
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements,
+    const coord_t extra_inwards_start_move_length,
+    const coord_t extra_inwards_end_move_length,
+    const MendedShape& extra_inwards_move_contour,
+    const std::optional<coord_t> max_distance_ignore_combing);
 
 } // namespace curaengine

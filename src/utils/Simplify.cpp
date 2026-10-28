@@ -13,6 +13,8 @@
 #include "utils/ExtrusionLine.h"
 #include "utils/LinearAlg2D.h" //To calculate line deviations and intersecting lines.
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
@@ -30,17 +32,17 @@ Simplify::Simplify(const Settings& settings)
 {
 }
 
-::curaengine::geometry::Shape Simplify::polygon(const ::curaengine::geometry::Shape& polygons) const
+Shape Simplify::polygon(const Shape& polygons) const
 {
-    ::curaengine::geometry::Shape result;
+    Shape result;
     for (size_t i = 0; i < polygons.size(); ++i)
     {
-        result.push_back(polygon(polygons[i]), ::curaengine::geometry::CheckNonEmptyParam::OnlyIfNotEmpty);
+        result.push_back(polygon(polygons[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
     }
     return result;
 }
 
-::curaengine::geometry::Polygon Simplify::polygon(const ::curaengine::geometry::Polygon& polygon) const
+Polygon Simplify::polygon(const Polygon& polygon) const
 {
     constexpr bool is_closed = true;
     return simplify(polygon, is_closed);
@@ -53,39 +55,39 @@ ExtrusionLine Simplify::polygon(const ExtrusionLine& polygon) const
 }
 
 template<class LineType>
-::curaengine::geometry::LinesSet<LineType> Simplify::polyline(const ::curaengine::geometry::LinesSet<LineType>& polylines) const
+LinesSet<LineType> Simplify::polyline(const LinesSet<LineType>& polylines) const
 {
-    ::curaengine::geometry::LinesSet<LineType> result;
+    LinesSet<LineType> result;
     for (size_t i = 0; i < polylines.size(); ++i)
     {
-        result.push_back(polyline(polylines[i]), ::curaengine::geometry::CheckNonEmptyParam::OnlyIfNotEmpty);
+        result.push_back(polyline(polylines[i]), CheckNonEmptyParam::OnlyIfNotEmpty);
     }
     return result;
 }
 
-::curaengine::geometry::MixedLinesSet Simplify::polyline(const ::curaengine::geometry::MixedLinesSet& polylines) const
+MixedLinesSet Simplify::polyline(const MixedLinesSet& polylines) const
 {
-    ::curaengine::geometry::MixedLinesSet result;
-    for (const ::curaengine::geometry::PolylinePtr& polyline_ptr : polylines)
+    MixedLinesSet result;
+    for (const PolylinePtr& polyline_ptr : polylines)
     {
-        if (std::shared_ptr<const ::curaengine::geometry::OpenPolyline> open_polyline = std::dynamic_pointer_cast<const ::curaengine::geometry::OpenPolyline>(polyline_ptr))
+        if (std::shared_ptr<const OpenPolyline> open_polyline = std::dynamic_pointer_cast<const OpenPolyline>(polyline_ptr))
         {
-            result.push_back(std::make_shared<::curaengine::geometry::OpenPolyline>(polyline(*open_polyline)));
+            result.push_back(std::make_shared<OpenPolyline>(polyline(*open_polyline)));
         }
-        if (std::shared_ptr<const ::curaengine::geometry::ClosedPolyline> closed_polyline = std::dynamic_pointer_cast<const ::curaengine::geometry::ClosedPolyline>(polyline_ptr))
+        if (std::shared_ptr<const ClosedPolyline> closed_polyline = std::dynamic_pointer_cast<const ClosedPolyline>(polyline_ptr))
         {
-            result.push_back(std::make_shared<::curaengine::geometry::ClosedPolyline>(polyline(*closed_polyline)));
+            result.push_back(std::make_shared<ClosedPolyline>(polyline(*closed_polyline)));
         }
     }
     return result;
 }
 
-::curaengine::geometry::ClosedPolyline Simplify::polyline(const ::curaengine::geometry::ClosedPolyline& polyline) const
+ClosedPolyline Simplify::polyline(const ClosedPolyline& polyline) const
 {
     return simplify(polyline, polyline.isExplicitlyClosed());
 }
 
-::curaengine::geometry::OpenPolyline Simplify::polyline(const ::curaengine::geometry::OpenPolyline& polyline) const
+OpenPolyline Simplify::polyline(const OpenPolyline& polyline) const
 {
     constexpr bool is_closed = false;
     return simplify(polyline, is_closed);
@@ -127,7 +129,7 @@ Polygonal Simplify::createEmpty(const Polygonal& /*original*/)
     return Polygonal();
 }
 
-void Simplify::appendVertex(::curaengine::geometry::Polyline& polygon, const ::curaengine::geometry::Point2LL& vertex) const
+void Simplify::appendVertex(Polyline& polygon, const Point2LL& vertex) const
 {
     polygon.push_back(vertex);
 }
@@ -137,22 +139,22 @@ void Simplify::appendVertex(ExtrusionLine& extrusion_line, const ExtrusionJuncti
     extrusion_line.junctions_.push_back(vertex);
 }
 
-const ::curaengine::geometry::Point2LL& Simplify::getPosition(const ::curaengine::geometry::Point2LL& vertex) const
+const Point2LL& Simplify::getPosition(const Point2LL& vertex) const
 {
     return vertex;
 }
 
-const ::curaengine::geometry::Point2LL& Simplify::getPosition(const ExtrusionJunction& vertex) const
+const Point2LL& Simplify::getPosition(const ExtrusionJunction& vertex) const
 {
     return vertex.p_;
 }
 
-::curaengine::geometry::Point2LL Simplify::createIntersection([[maybe_unused]] const ::curaengine::geometry::Point2LL& before, const ::curaengine::geometry::Point2LL intersection, [[maybe_unused]] const ::curaengine::geometry::Point2LL& after) const
+Point2LL Simplify::createIntersection([[maybe_unused]] const Point2LL& before, const Point2LL intersection, [[maybe_unused]] const Point2LL& after) const
 {
     return intersection;
 }
 
-ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, const ::curaengine::geometry::Point2LL intersection, const ExtrusionJunction& after) const
+ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, const Point2LL intersection, const ExtrusionJunction& after) const
 {
     // Average the extrusion width of the line.
     // More correct would be to see where along the line the intersection occurs with a projection or something.
@@ -160,7 +162,7 @@ ExtrusionJunction Simplify::createIntersection(const ExtrusionJunction& before, 
     return ExtrusionJunction(intersection, (before.w_ + after.w_) / 2, before.perimeter_index_);
 }
 
-coord_t Simplify::getAreaDeviation([[maybe_unused]] const ::curaengine::geometry::Point2LL& before, [[maybe_unused]] const ::curaengine::geometry::Point2LL& vertex, [[maybe_unused]] const ::curaengine::geometry::Point2LL& after) const
+coord_t Simplify::getAreaDeviation([[maybe_unused]] const Point2LL& before, [[maybe_unused]] const Point2LL& vertex, [[maybe_unused]] const Point2LL& after) const
 {
     return 0; // Fixed-width polygons don't have any deviation.
 }
@@ -184,9 +186,9 @@ coord_t Simplify::getAreaDeviation(const ExtrusionJunction& before, const Extrus
      * weighted-average width for the entire extrusion line.
      *
      * */
-    const coord_t ab_length = ::curaengine::geometry::vSize(vertex - before);
-    const coord_t bc_length = ::curaengine::geometry::vSize(after - vertex);
-    const coord_t ac_length = ::curaengine::geometry::vSize(after - before);
+    const coord_t ab_length = geometry::vSize(vertex - before);
+    const coord_t bc_length = geometry::vSize(after - vertex);
+    const coord_t ac_length = geometry::vSize(after - before);
     if (ab_length == 0 || ac_length == 0 || bc_length == 0)
     {
         return 0; // Either of the line segments is zero, so the deviation of one of the line segments doesn't matter (not printed). So effectively there is no deviation.
@@ -220,7 +222,7 @@ bool Simplify::detectSmall(const Polygonal& polygon, const coord_t& min_size) co
         const auto a = getPosition(polygon[0]);
         const auto b = getPosition(polygon[1]);
         const auto c = getPosition(polygon[polygon.size() - 1]);
-        if (std::max(std::max(::curaengine::geometry::vSize2(b - a), ::curaengine::geometry::vSize2(c - a)), ::curaengine::geometry::vSize2(c - b)) < min_resolution * min_resolution)
+        if (std::max(std::max(geometry::vSize2(b - a), geometry::vSize2(c - a)), geometry::vSize2(c - b)) < min_resolution * min_resolution)
         {
             // ... unless they are degenetate.
             return true;
@@ -314,7 +316,7 @@ coord_t Simplify::importance(const Polygonal& polygon, const std::vector<bool>& 
     }
     // From here on out we can safely look at the vertex neighbors and assume it's a polygon. We won't go out of bounds of the polyline.
 
-    const ::curaengine::geometry::Point2LL& vertex = getPosition(polygon[index]);
+    const Point2LL& vertex = getPosition(polygon[index]);
     const size_t before_index = previousNotDeleted(index, to_delete);
     const size_t after_index = nextNotDeleted(index, to_delete);
 
@@ -324,14 +326,14 @@ coord_t Simplify::importance(const Polygonal& polygon, const std::vector<bool>& 
         return std::numeric_limits<coord_t>::max();
     }
 
-    const ::curaengine::geometry::Point2LL& before = getPosition(polygon[before_index]);
-    const ::curaengine::geometry::Point2LL& after = getPosition(polygon[after_index]);
+    const Point2LL& before = getPosition(polygon[before_index]);
+    const Point2LL& after = getPosition(polygon[after_index]);
     const coord_t deviation2 = LinearAlg2D::getDist2FromLine(vertex, before, after);
     if (deviation2 <= min_resolution * min_resolution) // Deviation so small that it's always desired to remove them.
     {
         return deviation2;
     }
-    if (::curaengine::geometry::vSize2(before - vertex) > max_resolution_ * max_resolution_ && ::curaengine::geometry::vSize2(after - vertex) > max_resolution_ * max_resolution_)
+    if (geometry::vSize2(before - vertex) > max_resolution_ * max_resolution_ && geometry::vSize2(after - vertex) > max_resolution_ * max_resolution_)
     {
         return std::numeric_limits<coord_t>::max(); // Long line segments, no need to remove this one.
     }
@@ -351,11 +353,11 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
 
     const size_t before = previousNotDeleted(vertex, to_delete);
     const size_t after = nextNotDeleted(vertex, to_delete);
-    const ::curaengine::geometry::Point2LL& vertex_position = getPosition(polygon[vertex]);
-    const ::curaengine::geometry::Point2LL& before_position = getPosition(polygon[before]);
-    const ::curaengine::geometry::Point2LL& after_position = getPosition(polygon[after]);
-    const coord_t length2_before = ::curaengine::geometry::vSize2(vertex_position - before_position);
-    const coord_t length2_after = ::curaengine::geometry::vSize2(vertex_position - after_position);
+    const Point2LL& vertex_position = getPosition(polygon[vertex]);
+    const Point2LL& before_position = getPosition(polygon[before]);
+    const Point2LL& after_position = getPosition(polygon[after]);
+    const coord_t length2_before = geometry::vSize2(vertex_position - before_position);
+    const coord_t length2_after = geometry::vSize2(vertex_position - after_position);
 
     if (length2_before <= max_resolution_ * max_resolution_ && length2_after <= max_resolution_ * max_resolution_) // Both adjacent line segments are short.
     {
@@ -367,7 +369,7 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
     // Otherwise, one edge next to this vertex is longer than max_resolution. The other is shorter.
     // In this case we want to remove the short edge by replacing it with a vertex where the two surrounding edges intersect.
     // Find the two line segments surrounding the short edge here ("before" and "after" edges).
-    ::curaengine::geometry::Point2LL before_from, before_to, after_from, after_to;
+    Point2LL before_from, before_to, after_from, after_to;
     if (length2_before <= length2_after) // Before is the shorter line.
     {
         if (! is_closed && before == 0) // No edge before the short edge.
@@ -392,7 +394,7 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
         after_from = getPosition(polygon[after]);
         after_to = getPosition(polygon[after_after]);
     }
-    ::curaengine::geometry::Point2LL intersection;
+    Point2LL intersection;
     const bool did_intersect = LinearAlg2D::lineLineIntersection(before_from, before_to, after_from, after_to, intersection);
     if (! did_intersect) // Lines are parallel.
     {
@@ -408,7 +410,7 @@ bool Simplify::remove(Polygonal& polygon, std::vector<bool>& to_delete, const si
     return false;
 }
 
-template ::curaengine::geometry::LinesSet<::curaengine::geometry::OpenPolyline> Simplify::polyline(const ::curaengine::geometry::LinesSet<::curaengine::geometry::OpenPolyline>& polylines) const;
-template ::curaengine::geometry::LinesSet<::curaengine::geometry::ClosedPolyline> Simplify::polyline(const ::curaengine::geometry::LinesSet<::curaengine::geometry::ClosedPolyline>& polylines) const;
+template LinesSet<OpenPolyline> Simplify::polyline(const LinesSet<OpenPolyline>& polylines) const;
+template LinesSet<ClosedPolyline> Simplify::polyline(const LinesSet<ClosedPolyline>& polylines) const;
 
 } // namespace curaengine::utils

@@ -28,6 +28,10 @@
 #include "types/geometry.h"
 
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::bridge
 {
 
@@ -37,7 +41,7 @@ namespace curaengine::bridge
  * @param layer_nr The number of the layer being processed
  * @return The angle to be applied to bridging over infill on this layer
  */
-::curaengine::types::AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned layer_nr)
+AngleDegrees bridgeOverInfillAngle(const SliceMeshStorage& mesh, const unsigned layer_nr)
 {
     if (layer_nr == 0)
     {
@@ -45,42 +49,42 @@ namespace curaengine::bridge
         return 0;
     }
 
-    const std::vector<::curaengine::types::AngleDegrees>& infill_angles = mesh.infill_angles;
+    const std::vector<AngleDegrees>& infill_angles = mesh.infill_angles;
     assert(! infill_angles.empty());
 
-    const ::curaengine::types::AngleDegrees infill_angle_below = infill_angles[(layer_nr - 1) % infill_angles.size()];
-    const auto infill_pattern = mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern");
+    const AngleDegrees infill_angle_below = infill_angles[(layer_nr - 1) % infill_angles.size()];
+    const auto infill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
 
-    ::curaengine::types::AngleDegrees bridge_angle;
+    AngleDegrees bridge_angle;
 
     switch (infill_pattern)
     {
-    case ::curaengine::types::EFillMethod::CROSS:
-    case ::curaengine::types::EFillMethod::CROSS_3D:
+    case EFillMethod::CROSS:
+    case EFillMethod::CROSS_3D:
         bridge_angle = 22.5;
         break;
-    case ::curaengine::types::EFillMethod::GYROID:
-    case ::curaengine::types::EFillMethod::CONCENTRIC:
-    case ::curaengine::types::EFillMethod::LIGHTNING:
-    case ::curaengine::types::EFillMethod::PLUGIN:
-    case ::curaengine::types::EFillMethod::NONE:
+    case EFillMethod::GYROID:
+    case EFillMethod::CONCENTRIC:
+    case EFillMethod::LIGHTNING:
+    case EFillMethod::PLUGIN:
+    case EFillMethod::NONE:
         bridge_angle = 45;
         break;
-    case ::curaengine::types::EFillMethod::CUBICSUBDIV:
+    case EFillMethod::CUBICSUBDIV:
         bridge_angle = infill_angle_below + 45;
         break;
-    case ::curaengine::types::EFillMethod::TRIANGLES:
-    case ::curaengine::types::EFillMethod::LINES:
-    case ::curaengine::types::EFillMethod::TRIHEXAGON:
-    case ::curaengine::types::EFillMethod::CUBIC:
-    case ::curaengine::types::EFillMethod::ZIG_ZAG:
-    case ::curaengine::types::EFillMethod::HONEYCOMB:
-    case ::curaengine::types::EFillMethod::OCTAGON:
+    case EFillMethod::TRIANGLES:
+    case EFillMethod::LINES:
+    case EFillMethod::TRIHEXAGON:
+    case EFillMethod::CUBIC:
+    case EFillMethod::ZIG_ZAG:
+    case EFillMethod::HONEYCOMB:
+    case EFillMethod::OCTAGON:
         bridge_angle = infill_angle_below + 90;
         break;
-    case ::curaengine::types::EFillMethod::QUARTER_CUBIC:
-    case ::curaengine::types::EFillMethod::TETRAHEDRAL:
-    case ::curaengine::types::EFillMethod::GRID:
+    case EFillMethod::QUARTER_CUBIC:
+    case EFillMethod::TETRAHEDRAL:
+    case EFillMethod::GRID:
         bridge_angle = infill_angle_below;
         break;
     }
@@ -88,14 +92,14 @@ namespace curaengine::bridge
     return bridge_angle;
 }
 
-std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
+std::optional<AngleDegrees> bridgeAngle(
     const SliceMeshStorage& mesh,
-    const ::curaengine::geometry::Shape& skin_outline,
+    const Shape& skin_outline,
     const SliceDataStorage& storage,
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    ::curaengine::geometry::Shape& bridging_area)
+    Shape& bridging_area)
 {
     const Settings& settings = mesh.settings;
     const bool bridge_settings_enabled = settings.get<bool>("bridge_settings_enabled");
@@ -104,15 +108,15 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
         return std::nullopt;
     }
 
-    ::curaengine::utils::AABB boundary_box(skin_outline);
+    AABB boundary_box(skin_outline);
 
-    const ::curaengine::utils::coord_t line_width = settings.get<::curaengine::utils::coord_t>("skin_line_width");
+    const coord_t line_width = settings.get<coord_t>("skin_line_width");
 
     // To detect if we have a bridge, first calculate the intersection of the current layer with the previous layer.
     //  This gives us the islands that the layer rests on.
-    ::curaengine::geometry::Shape prev_layer_outline; // we also want the complete outline of the previous layer
-    ::curaengine::geometry::Shape prev_layer_infill;
-    ::curaengine::geometry::Shape supported_regions;
+    Shape prev_layer_outline; // we also want the complete outline of the previous layer
+    Shape prev_layer_infill;
+    Shape supported_regions;
 
     // include parts from all meshes
     for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
@@ -120,15 +124,15 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
         const auto& mesh = *mesh_ptr;
         if (mesh.isPrinted())
         {
-            const ::curaengine::utils::coord_t infill_line_distance = mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance");
+            const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
             const bool part_has_sparse_infill = infill_line_distance == 0;
 
             for (const SliceLayerPart& prev_layer_part : mesh.layers[layer_nr - bridge_layer].parts)
             {
-                ::curaengine::geometry::Shape prev_layer_part_infill = prev_layer_part.getOwnInfillArea();
+                Shape prev_layer_part_infill = prev_layer_part.getOwnInfillArea();
                 prev_layer_infill = prev_layer_infill.unionPolygons(prev_layer_part_infill);
 
-                ::curaengine::geometry::Shape solid_below(prev_layer_part.outline);
+                Shape solid_below(prev_layer_part.outline);
                 if (bridge_layer == 1 && part_has_sparse_infill)
                 {
                     solid_below = solid_below.difference(prev_layer_part_infill);
@@ -147,12 +151,12 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
     {
         if (! support_layer->support_roof.empty())
         {
-            ::curaengine::utils::AABB support_roof_bb(support_layer->support_roof);
+            AABB support_roof_bb(support_layer->support_roof);
             if (boundary_box.hit(support_roof_bb))
             {
                 prev_layer_outline.push_back(support_layer->support_roof); // not intersected with skin
 
-                ::curaengine::geometry::Shape supported_skin(skin_outline.intersection(support_layer->support_roof));
+                Shape supported_skin(skin_outline.intersection(support_layer->support_roof));
                 if (! supported_skin.empty())
                 {
                     supported_regions.push_back(supported_skin);
@@ -163,12 +167,12 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
         {
             for (const SupportInfillPart& support_part : support_layer->support_infill_parts)
             {
-                ::curaengine::utils::AABB support_part_bb(support_part.outline_);
+                AABB support_part_bb(support_part.outline_);
                 if (boundary_box.hit(support_part_bb))
                 {
                     prev_layer_outline.push_back(support_part.outline_); // not intersected with skin
 
-                    ::curaengine::geometry::Shape supported_skin(skin_outline.intersection(support_part.outline_));
+                    Shape supported_skin(skin_outline.intersection(support_part.outline_));
                     if (! supported_skin.empty())
                     {
                         supported_regions.push_back(supported_skin);
@@ -178,7 +182,7 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
         }
     }
 
-    const ::curaengine::types::Ratio support_threshold = settings.get<::curaengine::types::Ratio>("bridge_skin_support_threshold");
+    const Ratio support_threshold = settings.get<Ratio>("bridge_skin_support_threshold");
     if (support_threshold == 0 || (supported_regions.area() / (skin_outline.area() + 1)) >= support_threshold)
     {
         // as the proportion of the skin region that is supported is >= supportThreshold, it's not
@@ -186,10 +190,10 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
         return std::nullopt;
     }
 
-    bridging_area = skin_outline.difference(supported_regions.offset(::curaengine::utils::EPSILON));
+    bridging_area = skin_outline.difference(supported_regions.offset(EPSILON));
 
     prev_layer_infill = skin_outline.intersection(prev_layer_infill);
-    const ::curaengine::types::Ratio infill_ratio = prev_layer_infill.area() / (skin_outline.area() + 1);
+    const Ratio infill_ratio = prev_layer_infill.area() / (skin_outline.area() + 1);
     if (infill_ratio > 0.5) // In practice, the ratio should always be close to 0 or 1, so 0.5 should be good enough
     {
         // We are doing bridging over infill, so use the infill angle instead of trying to calculate a proper angle
@@ -198,11 +202,11 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
 
     struct FitAngle
     {
-        ::curaengine::utils::coord_t score;
-        std::optional<::curaengine::types::AngleDegrees> angle;
+        coord_t score;
+        std::optional<AngleDegrees> angle;
     };
 
-    ::curaengine::geometry::OpenLinesSet bridge_area_lines;
+    OpenLinesSet bridge_area_lines;
     for (auto& path : skin_outline)
     {
         bridge_area_lines.push_back(path.toPseudoOpenPolyline());
@@ -221,24 +225,24 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
         // would look _chaotic_ on the final print a more consistent approach is used.
         auto skin_outline_ = skin_outline;
         skin_outline_.makeConvex();
-        auto [aabb, angle] = ::curaengine::utils::AABB::minimumAreaOrientedBoundingBox(skin_outline_);
+        auto [aabb, angle] = AABB::minimumAreaOrientedBoundingBox(skin_outline_);
         if (aabb.height() > aabb.width())
         {
-            angle += ::curaengine::types::AngleDegrees(90);
+            angle += AngleDegrees(90);
         }
-        return -::curaengine::types::AngleDegrees(angle);
+        return -AngleDegrees(angle);
     }
 
-    std::vector<::curaengine::types::AngleDegrees> angle_candidates;
+    std::vector<AngleDegrees> angle_candidates;
     std::optional<size_t> best_angle_index;
     {
         // Do a first pass to find the global angle that gives more anchored lines while bridging
-        for (::curaengine::types::AngleDegrees angle = 0; angle < 180; angle += 1)
+        for (AngleDegrees angle = 0; angle < 180; angle += 1)
         {
             angle_candidates.push_back(angle);
         }
-        ::curaengine::utils::scoring::BestElementFinder best_angle_finder;
-        ::curaengine::utils::scoring::BestElementFinder::CriteriaPass criteria_pass;
+        utils::scoring::BestElementFinder best_angle_finder;
+        utils::scoring::BestElementFinder::CriteriaPass criteria_pass;
         criteria_pass.criteria.emplace_back(std::make_shared<LineAnchoringScoringCriterion>(angle_candidates, skin_outline, supported_regions, line_width));
         best_angle_finder.appendCriteriaPass(criteria_pass);
         best_angle_index = best_angle_finder.findBestElement(angle_candidates.size());
@@ -254,8 +258,8 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
         {
             angle_candidates.push_back(angle);
         }
-        ::curaengine::utils::scoring::BestElementFinder best_angle_refiner;
-        ::curaengine::utils::scoring::BestElementFinder::CriteriaPass criteria_pass_refiner;
+        utils::scoring::BestElementFinder best_angle_refiner;
+        utils::scoring::BestElementFinder::CriteriaPass criteria_pass_refiner;
         criteria_pass_refiner.criteria.emplace_back(std::make_shared<AlignShapeScoringCriterion>(angle_candidates, skin_outline, supported_regions));
         best_angle_refiner.appendCriteriaPass(criteria_pass_refiner);
 
@@ -388,7 +392,7 @@ void updateExpandedPolygon(
     const TransformedSegment& segment,
     const std::vector<ExpansionRange>& expanded_ranges,
     const int8_t expand_direction,
-    ::curaengine::geometry::Polygon& expanded_polygon,
+    Polygon& expanded_polygon,
     const TransformedSegment*& current_supporting_infill_line)
 {
     for (const ExpansionRange& expanded_range : expanded_ranges)
@@ -414,13 +418,13 @@ void updateExpandedPolygon(
         }
         else
         {
-            ::curaengine::geometry::Point2LL next_start_position;
+            Point2LL next_start_position;
 
             if (! expanded_range.isProjected())
             {
                 // This is an unprojected range, use the raw segment
-                const ::curaengine::utils::coord_t position_switch_y = expand_direction > 0 ? expanded_range.minY() : expanded_range.maxY();
-                next_start_position = ::curaengine::geometry::Point2LL(::curaengine::utils::LinearAlg2D::lineHorizontalLineIntersection(segment.getStart(), segment.getEnd(), position_switch_y).value_or(0), position_switch_y);
+                const coord_t position_switch_y = expand_direction > 0 ? expanded_range.minY() : expanded_range.maxY();
+                next_start_position = Point2LL(LinearAlg2D::lineHorizontalLineIntersection(segment.getStart(), segment.getEnd(), position_switch_y).value_or(0), position_switch_y);
             }
             else
             {
@@ -428,8 +432,8 @@ void updateExpandedPolygon(
             }
 
             // Add point to close anchoring to previous infill line
-            expanded_polygon.pushBackIfFormingSegment(::curaengine::geometry::Point2LL(
-                ::curaengine::utils::LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->getStart(), current_supporting_infill_line->getEnd(), next_start_position.Y)
+            expanded_polygon.pushBackIfFormingSegment(Point2LL(
+                LinearAlg2D::lineHorizontalLineIntersection(current_supporting_infill_line->getStart(), current_supporting_infill_line->getEnd(), next_start_position.Y)
                     .value_or(0),
                 next_start_position.Y));
 
@@ -457,11 +461,11 @@ void updateExpandedPolygon(
 void expandSegment(
     const TransformedSegment& segment,
     const std::vector<TransformedSegment>& infill_lines_below,
-    ::curaengine::geometry::Polygon& expanded_polygon,
+    Polygon& expanded_polygon,
     const TransformedSegment*& current_supporting_infill_line)
 {
     // 1 means expand to the right, -1 expand to the left
-    const int8_t expand_direction = ::curaengine::utils::sign(segment.getEnd().Y - segment.getStart().Y);
+    const int8_t expand_direction = utils::sign(segment.getEnd().Y - segment.getStart().Y);
 
     // Make the list of expanded ranges for this segment
     std::vector<ExpansionRange> expanded_ranges = makeExpandedRanges(segment, infill_lines_below, expand_direction);
@@ -476,9 +480,9 @@ void expandSegment(
     updateExpandedPolygon(segment, expanded_ranges, expand_direction, expanded_polygon, current_supporting_infill_line);
 }
 
-std::tuple<::curaengine::geometry::Shape, ::curaengine::types::AngleDegrees> makeBridgeOverInfillPrintable(
-    const ::curaengine::geometry::Shape& infill_contour,
-    const ::curaengine::geometry::Shape& infill_below_skin_area,
+std::tuple<Shape, AngleDegrees> makeBridgeOverInfillPrintable(
+    const Shape& infill_contour,
+    const Shape& infill_below_skin_area,
     const SliceMeshStorage& mesh,
     const LayerPlan* completed_layer_plan_below,
     const unsigned layer_nr)
@@ -488,7 +492,7 @@ std::tuple<::curaengine::geometry::Shape, ::curaengine::types::AngleDegrees> mak
         return {};
     }
 
-    ::curaengine::geometry::Shape unsupported_infill_below_skin_area = infill_below_skin_area;
+    Shape unsupported_infill_below_skin_area = infill_below_skin_area;
     for (const SliceLayerPart& part_below : mesh.layers[layer_nr - 1].parts)
     {
         for (const SkinPart& skin_part_below : part_below.skin_parts)
@@ -504,18 +508,18 @@ std::tuple<::curaengine::geometry::Shape, ::curaengine::types::AngleDegrees> mak
     }
 
     // Calculate the proper bridging angle, according to the type of infill below
-    const ::curaengine::types::AngleDegrees bridge_angle = bridgeOverInfillAngle(mesh, layer_nr);
+    const AngleDegrees bridge_angle = bridgeOverInfillAngle(mesh, layer_nr);
 
     // We will expand the bridging area following the lines direction
-    const ::curaengine::types::AngleDegrees expansion_angle = bridge_angle + 90;
-    const ::curaengine::geometry::MixedLinesSet infill_lines_below = completed_layer_plan_below->getGeneratedInfillLines(&mesh);
+    const AngleDegrees expansion_angle = bridge_angle + 90;
+    const MixedLinesSet infill_lines_below = completed_layer_plan_below->getGeneratedInfillLines(&mesh);
 
     // Rotate all the infill lines below so that they are in a space where the under skin area should be expanded horizontally
-    const ::curaengine::geometry::PointMatrix matrix(expansion_angle);
+    const PointMatrix matrix(expansion_angle);
     TransformedShape filtered_infill_lines_below(matrix);
 
     constexpr bool filter_out_horizontal = true;
-    for (const ::curaengine::geometry::PolylinePtr& infill_line_below : infill_lines_below)
+    for (const PolylinePtr& infill_line_below : infill_lines_below)
     {
         for (auto iterator = infill_line_below->cbeginSegments(); iterator != infill_line_below->cendSegments(); ++iterator)
         {
@@ -526,12 +530,12 @@ std::tuple<::curaengine::geometry::Shape, ::curaengine::types::AngleDegrees> mak
     filtered_infill_lines_below.addShape(infill_contour, filter_out_horizontal);
 
     // Now expand each polygon by expanding its segments horizontally according to the supporting infill lines
-    ::curaengine::geometry::Shape transformed_expanded_infill_below_skin_area;
-    for (const ::curaengine::geometry::Polygon& infill_below_skin_polygon : unsupported_infill_below_skin_area)
+    Shape transformed_expanded_infill_below_skin_area;
+    for (const Polygon& infill_below_skin_polygon : unsupported_infill_below_skin_area)
     {
         const TransformedShape transformed_infill_below_skin_polygon(infill_below_skin_polygon, matrix);
 
-        ::curaengine::geometry::Polygon expanded_polygon;
+        Polygon expanded_polygon;
         const TransformedSegment* current_supporting_infill_line = nullptr;
         for (const TransformedSegment& transformed_infill_below_skin_segment : transformed_infill_below_skin_polygon.getSegments())
         {
@@ -544,7 +548,7 @@ std::tuple<::curaengine::geometry::Shape, ::curaengine::types::AngleDegrees> mak
     transformed_expanded_infill_below_skin_area.applyMatrix(matrix.inverse());
 
     // Perform a morphological closing to remove overlapping lines
-    transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(::curaengine::utils::EPSILON).offset(-::curaengine::utils::EPSILON).intersection(infill_contour);
+    transformed_expanded_infill_below_skin_area = transformed_expanded_infill_below_skin_area.offset(EPSILON).offset(-EPSILON).intersection(infill_contour);
 
     return { transformed_expanded_infill_below_skin_area, bridge_angle };
 }

@@ -9,15 +9,20 @@
 #include "SliceMeshStorage.h"
 #include "gcode_export/GCodeExport.h"
 
+using namespace curaengine::gcode_export;
+using namespace curaengine::geometry;
+using namespace curaengine::path_planning;
+using namespace curaengine::types;
+using namespace curaengine::utils;
 
 namespace curaengine
 {
 ExtruderPlan::ExtruderPlan(
     const size_t extruder,
-    const ::curaengine::types::LayerIndex layer_nr,
+    const LayerIndex layer_nr,
     const bool is_initial_layer,
     const bool is_raft_layer,
-    const ::curaengine::utils::coord_t layer_thickness,
+    const coord_t layer_thickness,
     const FanSpeedLayerTimeSettings& fan_speed_layer_time_settings,
     const RetractionConfig& retraction_config)
     : extruder_nr_(extruder)
@@ -30,16 +35,16 @@ ExtruderPlan::ExtruderPlan(
 {
 }
 
-void ExtruderPlan::insertCommand(::curaengine::path_planning::NozzleTempInsert&& insert)
+void ExtruderPlan::insertCommand(NozzleTempInsert&& insert)
 {
     inserts_.emplace_back(insert);
 }
 
-void ExtruderPlan::handleInserts(const size_t path_idx, ::curaengine::gcode_export::GCodeExport& gcode, const double cumulative_path_time)
+void ExtruderPlan::handleInserts(const size_t path_idx, GCodeExport& gcode, const double cumulative_path_time)
 {
     while (! inserts_.empty())
     {
-        const ::curaengine::path_planning::NozzleTempInsert& insert = inserts_.front();
+        const NozzleTempInsert& insert = inserts_.front();
         const bool in_future_path = insert.path_idx > path_idx;
         const bool in_current_path_at_future_time = insert.path_idx == path_idx && insert.time_after_path_start > cumulative_path_time;
         if (in_future_path || in_current_path_at_future_time)
@@ -53,11 +58,11 @@ void ExtruderPlan::handleInserts(const size_t path_idx, ::curaengine::gcode_expo
     }
 }
 
-void ExtruderPlan::handleAllRemainingInserts(::curaengine::gcode_export::GCodeExport& gcode)
+void ExtruderPlan::handleAllRemainingInserts(GCodeExport& gcode)
 {
     while (! inserts_.empty())
     { // handle the Insert to be inserted before this path_idx (and all inserts not handled yet)
-        ::curaengine::path_planning::NozzleTempInsert& insert = inserts_.front();
+        NozzleTempInsert& insert = inserts_.front();
         insert.write(gcode);
         inserts_.pop_front();
     }
@@ -72,7 +77,7 @@ double ExtruderPlan::getFanSpeed()
     return fan_speed;
 }
 
-void ExtruderPlan::applyBackPressureCompensation(const ::curaengine::types::Ratio back_pressure_compensation)
+void ExtruderPlan::applyBackPressureCompensation(const Ratio back_pressure_compensation)
 {
     constexpr double epsilon_speed_factor = 0.001; // Don't put on actual 'limit double minimum', because we don't want printers to stall.
     for (auto& path : paths_)
@@ -89,7 +94,7 @@ void ExtruderPlan::applyBackPressureCompensation(const ::curaengine::types::Rati
 
 std::shared_ptr<const SliceMeshStorage> ExtruderPlan::findFirstPrintedMesh() const
 {
-    for (const ::curaengine::path_planning::GCodePath& path : paths_)
+    for (const GCodePath& path : paths_)
     {
         if (path.mesh)
         {
@@ -104,18 +109,18 @@ bool ExtruderPlan::hasExtrusion() const
 {
     return ranges::any_of(
         paths_,
-        [](const ::curaengine::path_planning::GCodePath& path)
+        [](const GCodePath& path)
         {
             return ! path.isTravelPath() && ! path.points.empty();
         });
 }
 
-::curaengine::utils::AABB ExtruderPlan::calculateExtrusionBoundingBox() const
+AABB ExtruderPlan::calculateExtrusionBoundingBox() const
 {
-    std::optional<::curaengine::geometry::Point2LL> current_position;
-    ::curaengine::utils::AABB bounding_box;
+    std::optional<Point2LL> current_position;
+    AABB bounding_box;
 
-    for (const ::curaengine::path_planning::GCodePath& gcode_path : paths_)
+    for (const GCodePath& gcode_path : paths_)
     {
         if (gcode_path.points.empty())
         {
@@ -128,7 +133,7 @@ bool ExtruderPlan::hasExtrusion() const
             {
                 bounding_box.include(current_position.value());
             }
-            for (const ::curaengine::geometry::Point3LL& position : gcode_path.points)
+            for (const Point3LL& position : gcode_path.points)
             {
                 bounding_box.include(position.toPoint2LL());
             }
@@ -140,14 +145,14 @@ bool ExtruderPlan::hasExtrusion() const
     return bounding_box;
 }
 
-::curaengine::utils::coord_t ExtruderPlan::calculateMaxOverhangLength() const
+coord_t ExtruderPlan::calculateMaxOverhangLength() const
 {
-    ::curaengine::utils::coord_t max_overhang_length = 0;
+    coord_t max_overhang_length = 0;
     bool overhanging = false;
-    ::curaengine::utils::coord_t current_overhang_length = 0;
-    std::optional<::curaengine::geometry::Point2LL> current_position;
+    coord_t current_overhang_length = 0;
+    std::optional<Point2LL> current_position;
 
-    for (const ::curaengine::path_planning::GCodePath& path : paths_)
+    for (const GCodePath& path : paths_)
     {
         const bool new_overhanging = path.print_attributes.isSet(PrintSegmentAttribute::Overhanging);
         if (new_overhanging != overhanging)
@@ -162,11 +167,11 @@ bool ExtruderPlan::hasExtrusion() const
 
         if (new_overhanging)
         {
-            for (const ::curaengine::geometry::Point3LL& position : path.points)
+            for (const Point3LL& position : path.points)
             {
                 if (current_position.has_value())
                 {
-                    current_overhang_length += ::curaengine::geometry::vSize(position.toPoint2LL() - current_position.value());
+                    current_overhang_length += geometry::vSize(position.toPoint2LL() - current_position.value());
                 }
                 current_position = position.toPoint2LL();
             }

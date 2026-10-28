@@ -24,29 +24,29 @@ template<typename T>
 class OrderOptimizer
 {
 public:
-    std::vector<std::pair<const ::curaengine::geometry::Point2LL, T>> items; //!< the items in arbitrary order
+    std::vector<std::pair<const geometry::Point2LL, T>> items; //!< the items in arbitrary order
 
     OrderOptimizer()
     {
     }
 
-    void addItem(const ::curaengine::geometry::Point2LL location, const T item);
+    void addItem(const geometry::Point2LL location, const T item);
 
     /*!
      * Optimize the order of \ref OrderOptimizer::items
      * \return A vector of the ordered indices into \ref OrderOptimizer::items
      */
-    std::list<size_t> optimize(const ::curaengine::geometry::Point2LL& start_position);
+    std::list<size_t> optimize(const geometry::Point2LL& start_position);
 };
 
 template<typename T>
-void OrderOptimizer<T>::addItem(const ::curaengine::geometry::Point2LL location, const T item)
+void OrderOptimizer<T>::addItem(const geometry::Point2LL location, const T item)
 {
     items.emplace_back(location, item);
 }
 
 template<typename T>
-std::list<size_t> OrderOptimizer<T>::optimize(const ::curaengine::geometry::Point2LL& start_position)
+std::list<size_t> OrderOptimizer<T>::optimize(const geometry::Point2LL& start_position)
 {
     // Use the nearest mesh ordering
     std::list<size_t> order;
@@ -61,7 +61,7 @@ std::list<size_t> OrderOptimizer<T>::optimize(const ::curaengine::geometry::Poin
     {
         item_idx_list.emplace_back(i);
     }
-    const ::curaengine::geometry::Point2LL* last_item_position = &start_position;
+    const geometry::Point2LL* last_item_position = &start_position;
 
     while (! item_idx_list.empty())
     {
@@ -72,8 +72,8 @@ std::list<size_t> OrderOptimizer<T>::optimize(const ::curaengine::geometry::Poin
         for (size_t idx = 0; idx < item_idx_list.size(); idx++)
         {
             const size_t item_idx = item_idx_list[idx];
-            const ::curaengine::geometry::Point2LL& position = items[item_idx].first;
-            const coord_t distance = ::curaengine::geometry::vSize(position - *last_item_position);
+            const geometry::Point2LL& position = items[item_idx].first;
+            const coord_t distance = geometry::vSize(position - *last_item_position);
             if (distance < shortest_distance)
             {
                 shortest_distance = distance;

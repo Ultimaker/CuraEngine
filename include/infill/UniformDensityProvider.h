@@ -27,7 +27,7 @@ public:
     {
     }
 
-    virtual double operator()(const ::curaengine::utils::AABB3D&) const
+    virtual double operator()(const utils::AABB3D&) const
     {
         return density_;
     }

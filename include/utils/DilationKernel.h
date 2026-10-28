@@ -10,7 +10,7 @@
 namespace curaengine::utils
 {
 
-using GridPoint3 = ::curaengine::geometry::Point3LL;
+using GridPoint3 = geometry::Point3LL;
 
 /*!
  * Class for holding the relative positiongs wrt a reference cell on which to perform a dilation.

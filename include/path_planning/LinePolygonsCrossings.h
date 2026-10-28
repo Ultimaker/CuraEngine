@@ -33,7 +33,7 @@ private:
     struct Crossing
     {
         size_t poly_idx_; //!< The index of the polygon which crosses the scanline
-        ::curaengine::utils::coord_t x_; //!< x coordinate of crossings between the polygon and the scanline.
+        utils::coord_t x_; //!< x coordinate of crossings between the polygon and the scanline.
         size_t point_idx_; //!< The index of the first point of the line segment which crosses the scanline
 
         /*!
@@ -42,23 +42,23 @@ private:
          * \param x The x-coordinate in transformed space
          * \param point_idx The index of the first point of the line segment which crosses the scanline
          */
-        Crossing(const size_t poly_idx, const ::curaengine::utils::coord_t x, const size_t point_idx);
+        Crossing(const size_t poly_idx, const utils::coord_t x, const size_t point_idx);
     };
 
     std::vector<Crossing> crossings_; //!< All crossings of polygons in the LinePolygonsCrossings::boundary with the scanline.
 
-    const ::curaengine::geometry::Shape& boundary_; //!< The boundary not to cross during combing.
-    ::curaengine::utils::LocToLineGrid& loc_to_line_grid_; //!< Mapping from locations to line segments of \ref LinePolygonsCrossings::boundary
-    ::curaengine::geometry::Point2LL start_point_; //!< The start point of the scanline.
-    ::curaengine::geometry::Point2LL end_point_; //!< The end point of the scanline.
+    const geometry::Shape& boundary_; //!< The boundary not to cross during combing.
+    utils::LocToLineGrid& loc_to_line_grid_; //!< Mapping from locations to line segments of \ref LinePolygonsCrossings::boundary
+    geometry::Point2LL start_point_; //!< The start point of the scanline.
+    geometry::Point2LL end_point_; //!< The end point of the scanline.
 
     int64_t dist_to_move_boundary_point_outside_; //!< The distance used to move outside or inside so that a boundary point doesn't intersect with the boundary anymore. Neccesary
                                                   //!< due to computational rounding problems. Use negative value for insicde combing.
 
-    ::curaengine::geometry::PointMatrix transformation_matrix_; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
-    ::curaengine::geometry::Point2LL transformed_start_point_; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
+    geometry::PointMatrix transformation_matrix_; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
+    geometry::Point2LL transformed_start_point_; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
                                        //!< transformed_endPoint
-    ::curaengine::geometry::Point2LL transformed_end_point_; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
+    geometry::Point2LL transformed_end_point_; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
                                      //!< transformed_startPoint
 
 
@@ -124,7 +124,7 @@ private:
      * \param end the end point
      * \param dist_to_move_boundary_point_outside Distance used to move a point from a boundary so that it doesn't intersect with it anymore. (Precision issue)
      */
-    LinePolygonsCrossings(const ::curaengine::geometry::Shape& boundary, ::curaengine::utils::LocToLineGrid& loc_to_line_grid, ::curaengine::geometry::Point2LL& start, ::curaengine::geometry::Point2LL& end, int64_t dist_to_move_boundary_point_outside)
+    LinePolygonsCrossings(const geometry::Shape& boundary, utils::LocToLineGrid& loc_to_line_grid, geometry::Point2LL& start, geometry::Point2LL& end, int64_t dist_to_move_boundary_point_outside)
         : boundary_(boundary)
         , loc_to_line_grid_(loc_to_line_grid)
         , start_point_(start)
@@ -145,10 +145,10 @@ public:
      * \return Whether combing succeeded, i.e. we didn't cross any gaps/other parts
      */
     static bool comb(
-        const ::curaengine::geometry::Shape& boundary,
-        ::curaengine::utils::LocToLineGrid& loc_to_line_grid,
-        ::curaengine::geometry::Point2LL startPoint,
-        ::curaengine::geometry::Point2LL endPoint,
+        const geometry::Shape& boundary,
+        utils::LocToLineGrid& loc_to_line_grid,
+        geometry::Point2LL startPoint,
+        geometry::Point2LL endPoint,
         CombPath& combPath,
         int64_t dist_to_move_boundary_point_outside,
         int64_t max_comb_distance_ignored,

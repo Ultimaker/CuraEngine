@@ -10,7 +10,7 @@
 
 namespace curaengine::plugins
 {
-struct simplify_response : public details::converter<simplify_response, ::cura::plugins::slots::simplify::v0::modify::CallResponse, ::curaengine::geometry::Shape>
+struct simplify_response : public details::converter<simplify_response, ::cura::plugins::slots::simplify::v0::modify::CallResponse, geometry::Shape>
 {
     native_value_type operator()([[maybe_unused]] const native_value_type& original_value, const value_type& message) const;
 };

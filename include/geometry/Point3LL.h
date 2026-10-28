@@ -21,13 +21,13 @@ namespace curaengine::geometry
 class Point3LL
 {
 public:
-    ::curaengine::utils::coord_t x_{ 0 };
-    ::curaengine::utils::coord_t y_{ 0 };
-    ::curaengine::utils::coord_t z_{ 0 };
+    utils::coord_t x_{ 0 };
+    utils::coord_t y_{ 0 };
+    utils::coord_t z_{ 0 };
 
     Point3LL() = default;
 
-    Point3LL(const ::curaengine::utils::coord_t x, const ::curaengine::utils::coord_t y, const ::curaengine::utils::coord_t z)
+    Point3LL(const utils::coord_t x, const utils::coord_t y, const utils::coord_t z)
         : x_(x)
         , y_(y)
         , z_(z)
@@ -36,7 +36,7 @@ public:
 
     Point3LL(Point3LL&& point) = default;
     Point3LL(const Point3LL& point) = default;
-    Point3LL(const Point2LL& point, const ::curaengine::utils::coord_t z = 0);
+    Point3LL(const Point2LL& point, const utils::coord_t z = 0);
 
     Point3LL& operator=(const Point3LL& point) = default;
     Point3LL& operator=(Point3LL&& point) = default;
@@ -49,19 +49,19 @@ public:
     Point3LL operator*(const Point3LL& p) const; //!< Element-wise multiplication. For dot product, use .dot()!
     Point3LL operator/(const Point3LL& p) const;
 
-    template<::curaengine::types::numeric T>
+    template<types::numeric T>
     Point3LL operator*(const T& i) const
     {
         return { std::llround(static_cast<T>(x_) * i), std::llround(static_cast<T>(y_) * i), std::llround(static_cast<T>(z_) * i) };
     }
 
-    template<::curaengine::types::numeric T>
+    template<types::numeric T>
     Point3LL operator/(const T& i) const
     {
         return { x_ / i, y_ / i, z_ / i };
     }
 
-    template<::curaengine::types::numeric T>
+    template<types::numeric T>
     Point3LL operator%(const T& i) const
     {
         return { x_ % i, y_ % i, z_ % i };
@@ -72,7 +72,7 @@ public:
     Point3LL& operator*=(const Point3LL& p);
     Point3LL& operator/=(const Point3LL& p);
 
-    template<::curaengine::types::numeric T>
+    template<types::numeric T>
     Point3LL& operator*=(const T i)
     {
         x_ *= i;
@@ -81,7 +81,7 @@ public:
         return *this;
     }
 
-    template<::curaengine::types::numeric T>
+    template<types::numeric T>
     Point3LL& operator/=(const T i)
     {
         x_ /= i;
@@ -98,7 +98,7 @@ public:
         return os << "(" << p.x_ << ", " << p.y_ << ", " << p.z_ << ")";
     }
 
-    [[nodiscard]] ::curaengine::utils::coord_t max() const
+    [[nodiscard]] utils::coord_t max() const
     {
         if (x_ > y_ && x_ > z_)
         {
@@ -111,7 +111,7 @@ public:
         return z_;
     }
 
-    [[nodiscard]] bool testLength(::curaengine::utils::coord_t len) const
+    [[nodiscard]] bool testLength(utils::coord_t len) const
     {
         if (x_ > len || x_ < -len)
         {
@@ -128,7 +128,7 @@ public:
         return vSize2() <= len * len;
     }
 
-    [[nodiscard]] ::curaengine::utils::coord_t vSize2() const
+    [[nodiscard]] utils::coord_t vSize2() const
     {
         return x_ * x_ + y_ * y_ + z_ * z_;
     }
@@ -138,7 +138,7 @@ public:
         return static_cast<double>(x_) * static_cast<double>(x_) + static_cast<double>(y_) * static_cast<double>(y_) + static_cast<double>(z_) * static_cast<double>(z_);
     }
 
-    [[nodiscard]] ::curaengine::utils::coord_t vSize() const
+    [[nodiscard]] utils::coord_t vSize() const
     {
         return std::llrint(sqrt(static_cast<double>(vSize2())));
     }
@@ -151,16 +151,16 @@ public:
         return sqrt(fx * fx + fy * fy + fz * fz);
     }
 
-    [[nodiscard]] ::curaengine::utils::coord_t dot(const Point3LL& p) const
+    [[nodiscard]] utils::coord_t dot(const Point3LL& p) const
     {
         return x_ * p.x_ + y_ * p.y_ + z_ * p.z_;
     }
 
     [[nodiscard]] Point2LL toPoint2LL() const;
 
-    [[nodiscard]] Point3LL resized(::curaengine::utils::coord_t length) const;
+    [[nodiscard]] Point3LL resized(utils::coord_t length) const;
 
-    ::curaengine::utils::coord_t& operator[](const size_t index)
+    utils::coord_t& operator[](const size_t index)
     {
         assert(index < 3);
         switch (index)
@@ -173,7 +173,7 @@ public:
             return z_;
         }
     }
-    const ::curaengine::utils::coord_t& operator[](const size_t index) const
+    const utils::coord_t& operator[](const size_t index) const
     {
         return const_cast<Point3LL*>(this)->operator[](index);
     }
@@ -184,9 +184,9 @@ public:
  *
  * Its value is something that is rarely used.
  */
-static Point3LL no_point3(std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min(), std::numeric_limits<::curaengine::utils::coord_t>::min());
+static Point3LL no_point3(std::numeric_limits<utils::coord_t>::min(), std::numeric_limits<utils::coord_t>::min(), std::numeric_limits<utils::coord_t>::min());
 
-template<::curaengine::types::numeric T>
+template<types::numeric T>
 inline Point3LL operator*(const T i, const Point3LL& rhs)
 {
     return rhs * i;

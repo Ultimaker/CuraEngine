@@ -14,29 +14,33 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/OpenPolylineStitcher.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::infill
 {
 
 void AbstractLinesInfill::generateInfill(
-    ::curaengine::geometry::OpenLinesSet& result_polylines,
-    ::curaengine::geometry::Shape& result_polygons,
+    OpenLinesSet& result_polylines,
+    Shape& result_polygons,
     const bool zig_zaggify,
-    const ::curaengine::utils::coord_t line_distance,
-    const ::curaengine::geometry::Shape& in_outline,
-    const ::curaengine::utils::coord_t z,
-    const ::curaengine::utils::coord_t line_width,
-    const ::curaengine::types::AngleDegrees& rotation) const
+    const coord_t line_distance,
+    const Shape& in_outline,
+    const coord_t z,
+    const coord_t line_width,
+    const AngleDegrees& rotation) const
 {
-    ::curaengine::geometry::Shape rotated_outline = in_outline;
-    ::curaengine::geometry::PointMatrix rotation_matrix(rotation);
+    Shape rotated_outline = in_outline;
+    PointMatrix rotation_matrix(rotation);
     if (rotation != 0)
     {
         rotated_outline.applyMatrix(rotation_matrix);
     }
 
-    const ::curaengine::geometry::OpenLinesSet raw_lines = generateParallelLines(line_distance, ::curaengine::utils::AABB(rotated_outline), z, line_width);
-    const ::curaengine::geometry::OpenLinesSet fit_lines = fitLines(raw_lines, zig_zaggify, rotated_outline);
-    ::curaengine::utils::OpenPolylineStitcher::stitch(fit_lines, result_polylines, result_polygons, line_width);
+    const OpenLinesSet raw_lines = generateParallelLines(line_distance, AABB(rotated_outline), z, line_width);
+    const OpenLinesSet fit_lines = fitLines(raw_lines, zig_zaggify, rotated_outline);
+    OpenPolylineStitcher::stitch(fit_lines, result_polylines, result_polygons, line_width);
 
     if (rotation != 0)
     {
@@ -46,7 +50,7 @@ void AbstractLinesInfill::generateInfill(
     }
 }
 
-::curaengine::geometry::OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_lines, const ::curaengine::geometry::Shape& in_outline)
+OpenLinesSet AbstractLinesInfill::zigZaggify(std::vector<SplitLines>& split_lines, const Shape& in_outline)
 {
     // zig-zaggification consists of joining alternate chain ends to make a chain of chains
     // the basic algorithm is that we follow the infill area boundary and as we progress we are either drawing a connector or not
@@ -54,18 +58,18 @@ void AbstractLinesInfill::generateInfill(
     // things are made more complicated by the fact that we want to avoid generating loops and so we need to keep track
     // of the indentity of the first chain in a connected sequence
 
-    ::curaengine::geometry::OpenLinesSet result;
+    OpenLinesSet result;
     int chain_ends_remaining = split_lines.size() * 2;
     std::vector<std::array<std::optional<size_t>, 2>> connected_to(split_lines.size());
 
-    for (const ::curaengine::geometry::Polygon& outline_poly : in_outline)
+    for (const Polygon& outline_poly : in_outline)
     {
-        std::vector<::curaengine::geometry::Point2LL> connector_points; // the points that make up a connector line
+        std::vector<Point2LL> connector_points; // the points that make up a connector line
 
         // we need to remember the first chain processed and the path to it from the first outline point
         // so that later we can possibly connect to it from the last chain processed
         std::optional<size_t> first_chain_chain_index;
-        std::vector<::curaengine::geometry::Point2LL> path_to_first_chain;
+        std::vector<Point2LL> path_to_first_chain;
 
         bool drawing = false; // true when a connector line is being (potentially) created
 
@@ -73,14 +77,14 @@ void AbstractLinesInfill::generateInfill(
         std::optional<size_t> connector_start_chain_index;
         std::optional<size_t> connector_start_point_index;
 
-        ::curaengine::geometry::Point2LL cur_point; // current point of interest - either an outline point or a chain end
+        Point2LL cur_point; // current point of interest - either an outline point or a chain end
 
         // go round all of the region's outline and find the chain ends that meet it
         // quit the loop early if we have seen all the chain ends and are not currently drawing a connector
         for (size_t outline_point_index = 0; (chain_ends_remaining > 0 || drawing) && outline_point_index < outline_poly.size(); ++outline_point_index)
         {
-            ::curaengine::geometry::Point2LL op0 = outline_poly[outline_point_index];
-            ::curaengine::geometry::Point2LL op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
+            Point2LL op0 = outline_poly[outline_point_index];
+            Point2LL op1 = outline_poly[(outline_point_index + 1) % outline_poly.size()];
             std::vector<size_t> points_on_outline_chain_index;
             std::vector<size_t> points_on_outline_point_index;
 
@@ -91,7 +95,7 @@ void AbstractLinesInfill::generateInfill(
                 {
                     // don't include chain ends that are close to the segment but are beyond the segment ends
                     short beyond = 0;
-                    if (::curaengine::utils::LinearAlg2D::getDist2FromLineSegment(op0, point, op1, &beyond) < 10 && ! beyond)
+                    if (LinearAlg2D::getDist2FromLineSegment(op0, point, op1, &beyond) < 10 && ! beyond)
                     {
                         points_on_outline_point_index.push_back(point_index);
                         points_on_outline_chain_index.push_back(chain_index);
@@ -99,7 +103,7 @@ void AbstractLinesInfill::generateInfill(
                 }
             }
 
-            if (outline_point_index == 0 || ::curaengine::geometry::vSize2(op0 - cur_point) > MM2INT(0.1))
+            if (outline_point_index == 0 || geometry::vSize2(op0 - cur_point) > MM2INT(0.1))
             {
                 // this is either the first outline point or it is another outline point that is not too close to cur_point
 
@@ -125,7 +129,7 @@ void AbstractLinesInfill::generateInfill(
                 double nearest_point_dist2 = std::numeric_limits<float>::infinity();
                 for (size_t pi = 0; pi < points_on_outline_chain_index.size(); ++pi)
                 {
-                    double dist2 = ::curaengine::geometry::vSize2f(split_lines[points_on_outline_chain_index[pi]].chain[points_on_outline_point_index[pi]] - cur_point);
+                    double dist2 = geometry::vSize2f(split_lines[points_on_outline_chain_index[pi]].chain[points_on_outline_point_index[pi]] - cur_point);
                     if (dist2 < nearest_point_dist2)
                     {
                         nearest_point_dist2 = dist2;
@@ -138,7 +142,7 @@ void AbstractLinesInfill::generateInfill(
                 // make the chain end the current point and add it to the connector line
                 cur_point = split_lines[chain_index].chain[point_index];
 
-                if (drawing && connector_points.size() > 0 && ::curaengine::geometry::vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
+                if (drawing && connector_points.size() > 0 && geometry::vSize2(cur_point - connector_points.back()) < MM2INT(0.1))
                 {
                     // this chain end will be too close to the last connector point so throw away the last connector point
                     connector_points.pop_back();
@@ -160,7 +164,7 @@ void AbstractLinesInfill::generateInfill(
 
                     if (chain_index != connector_start_chain_index && connected_to[chain_index][(point_index + 1) % 2] != connector_start_chain_index)
                     {
-                        result.push_back(::curaengine::geometry::OpenPolyline{ connector_points });
+                        result.push_back(OpenPolyline{ connector_points });
                         drawing = false;
                         connector_points.clear();
                         // remember the connection
@@ -209,9 +213,9 @@ void AbstractLinesInfill::generateInfill(
         {
             // output the connector line segments from the last chain to the first point in the outline
             connector_points.push_back(outline_poly[0]);
-            result.push_back(::curaengine::geometry::OpenPolyline{ connector_points });
+            result.push_back(OpenPolyline{ connector_points });
             // output the connector line segments from the first point in the outline to the first chain
-            result.push_back(::curaengine::geometry::OpenPolyline{ path_to_first_chain });
+            result.push_back(OpenPolyline{ path_to_first_chain });
         }
 
         if (chain_ends_remaining < 1)
@@ -223,9 +227,9 @@ void AbstractLinesInfill::generateInfill(
     return result;
 }
 
-::curaengine::geometry::OpenLinesSet AbstractLinesInfill::fitLines(const ::curaengine::geometry::OpenLinesSet& raw_lines, const bool zig_zaggify, const ::curaengine::geometry::Shape& in_outline)
+OpenLinesSet AbstractLinesInfill::fitLines(const OpenLinesSet& raw_lines, const bool zig_zaggify, const Shape& in_outline)
 {
-    ::curaengine::geometry::OpenLinesSet result;
+    OpenLinesSet result;
     std::vector<SplitLines> split_lines;
 
     for (const auto& [column_id, raw_line] : raw_lines | ranges::views::enumerate)
@@ -236,10 +240,10 @@ void AbstractLinesInfill::generateInfill(
         }
 
         constexpr bool restitch = false;
-        constexpr ::curaengine::utils::coord_t max_stitching_distance = 0;
+        constexpr coord_t max_stitching_distance = 0;
         constexpr bool split_into_segments = false;
-        const ::curaengine::geometry::OpenLinesSet intersected_lines = in_outline.intersection(::curaengine::geometry::OpenLinesSet(raw_line), restitch, max_stitching_distance, split_into_segments);
-        for (const ::curaengine::geometry::OpenPolyline& intersected_line : intersected_lines)
+        const OpenLinesSet intersected_lines = in_outline.intersection(OpenLinesSet(raw_line), restitch, max_stitching_distance, split_into_segments);
+        for (const OpenPolyline& intersected_line : intersected_lines)
         {
             result.push_back(intersected_line);
             if (zig_zaggify)

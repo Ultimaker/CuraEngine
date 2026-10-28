@@ -67,14 +67,14 @@ namespace curaengine::bridge
  * \param supported_regions Pre-computed regions that the support layer would
  * support.
  */
-std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
+std::optional<types::AngleDegrees> bridgeAngle(
     const SliceMeshStorage& mesh,
-    const ::curaengine::geometry::Shape& skin_outline,
+    const geometry::Shape& skin_outline,
     const SliceDataStorage& storage,
     const unsigned layer_nr,
     const unsigned bridge_layer,
     const SupportLayer* support_layer,
-    ::curaengine::geometry::Shape& bridging_area);
+    geometry::Shape& bridging_area);
 
 /*!
  * @brief Make sure the bridging above infill (below skin) is properly printable by expanding the area below the skin so that the bridging would always provide anchoring points
@@ -86,9 +86,9 @@ std::optional<::curaengine::types::AngleDegrees> bridgeAngle(
  * @param layer_nr The current layer number
  * @return A new shape containing the expanded infill below skin area, and the angle to be used to generate bridging in this area
  */
-std::tuple<::curaengine::geometry::Shape, ::curaengine::types::AngleDegrees> makeBridgeOverInfillPrintable(
-    const ::curaengine::geometry::Shape& infill_contour,
-    const ::curaengine::geometry::Shape& infill_below_skin_area,
+std::tuple<geometry::Shape, types::AngleDegrees> makeBridgeOverInfillPrintable(
+    const geometry::Shape& infill_contour,
+    const geometry::Shape& infill_below_skin_area,
     const SliceMeshStorage& mesh,
     const LayerPlan* completed_layer_plan_below,
     const unsigned layer_nr);

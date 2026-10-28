@@ -69,7 +69,7 @@ SGI_THIS::SparseLineGrid(coord_t cell_size, size_t elem_reserve, double max_load
 SGI_TEMPLATE
 void SGI_THIS::insert(const Elem& elem)
 {
-    const std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> line = m_locator(elem);
+    const std::pair<geometry::Point2LL, geometry::Point2LL> line = m_locator(elem);
     // below is a workaround for the fact that lambda functions cannot access private or protected members
     // first we define a lambda which works on any GridMap and then we bind it to the actual protected GridMap of the parent class
     std::function<bool(GridMap*, const GridPoint)> process_cell_func_ = [&elem, this](GridMap* grid, const GridPoint grid_loc)
@@ -97,10 +97,10 @@ void SGI_THIS::debugHTML(std::string filename)
     for (std::pair<GridPoint, ElemT> cell : SparseGrid<ElemT>::grid_)
     {
         // doesn't draw cells at x = 0 or y = 0 correctly (should be double size)
-        ::curaengine::geometry::Point2LL lb = SparseGrid<ElemT>::toLowerCorner(cell.first);
-        ::curaengine::geometry::Point2LL lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
-        ::curaengine::geometry::Point2LL rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
-        ::curaengine::geometry::Point2LL rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), 0));
+        geometry::Point2LL lb = SparseGrid<ElemT>::toLowerCorner(cell.first);
+        geometry::Point2LL lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
+        geometry::Point2LL rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
+        geometry::Point2LL rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), 0));
         if (lb.X == 0)
         {
             lb.X = -SparseGrid<ElemT>::cell_size_;
@@ -117,7 +117,7 @@ void SGI_THIS::debugHTML(std::string filename)
         svg.write(rt, rb, { .line = { SVG::Color::GRAY } });
         svg.write(rb, lb, { .line = { SVG::Color::GRAY } });
 
-        std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> line = m_locator(cell.second);
+        std::pair<geometry::Point2LL, geometry::Point2LL> line = m_locator(cell.second);
         svg.write(line.first, line.second, { .line = { SVG::Color::BLACK }, .vertices = { true } });
     }
 }
@@ -127,53 +127,53 @@ void SGI_THIS::debugTest()
 {
     struct PairLocator
     {
-        std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> operator()(const std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>& val) const
+        std::pair<geometry::Point2LL, geometry::Point2LL> operator()(const std::pair<geometry::Point2LL, geometry::Point2LL>& val) const
         {
             return val;
         }
     };
-    SparseLineGrid<std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>, PairLocator> line_grid(10);
+    SparseLineGrid<std::pair<geometry::Point2LL, geometry::Point2LL>, PairLocator> line_grid(10);
 
     // straight lines
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(50, 0), ::curaengine::geometry::Point2LL(50, 70)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(0, 90), ::curaengine::geometry::Point2LL(50, 90)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(253, 103), ::curaengine::geometry::Point2LL(253, 173)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(203, 193), ::curaengine::geometry::Point2LL(253, 193)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-50, 0), ::curaengine::geometry::Point2LL(-50, -70)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(0, -90), ::curaengine::geometry::Point2LL(-50, -90)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-253, -103), ::curaengine::geometry::Point2LL(-253, -173)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-203, -193), ::curaengine::geometry::Point2LL(-253, -193)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(50, 0), geometry::Point2LL(50, 70)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(0, 90), geometry::Point2LL(50, 90)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(253, 103), geometry::Point2LL(253, 173)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(203, 193), geometry::Point2LL(253, 193)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-50, 0), geometry::Point2LL(-50, -70)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(0, -90), geometry::Point2LL(-50, -90)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-253, -103), geometry::Point2LL(-253, -173)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-203, -193), geometry::Point2LL(-253, -193)));
 
     // diagonal lines
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(113, 133), ::curaengine::geometry::Point2LL(166, 125)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(13, 73), ::curaengine::geometry::Point2LL(26, 25)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(166, 33), ::curaengine::geometry::Point2LL(113, 25)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(26, 173), ::curaengine::geometry::Point2LL(13, 125)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-24, -18), ::curaengine::geometry::Point2LL(-19, -64)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-113, -133), ::curaengine::geometry::Point2LL(-166, -125)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-166, -33), ::curaengine::geometry::Point2LL(-113, -25)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-26, -173), ::curaengine::geometry::Point2LL(-13, -125)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(113, 133), geometry::Point2LL(166, 125)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(13, 73), geometry::Point2LL(26, 25)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(166, 33), geometry::Point2LL(113, 25)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(26, 173), geometry::Point2LL(13, 125)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-24, -18), geometry::Point2LL(-19, -64)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-113, -133), geometry::Point2LL(-166, -125)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-166, -33), geometry::Point2LL(-113, -25)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-26, -173), geometry::Point2LL(-13, -125)));
 
     // diagonal lines exactly crossing cell corners
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(160, 190), ::curaengine::geometry::Point2LL(220, 170)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(60, 130), ::curaengine::geometry::Point2LL(80, 70)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(220, 90), ::curaengine::geometry::Point2LL(160, 70)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(80, 220), ::curaengine::geometry::Point2LL(60, 160)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-160, -190), ::curaengine::geometry::Point2LL(-220, -170)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-60, -130), ::curaengine::geometry::Point2LL(-80, -70)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-220, -90), ::curaengine::geometry::Point2LL(-160, -70)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-80, -220), ::curaengine::geometry::Point2LL(-60, -160)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(160, 190), geometry::Point2LL(220, 170)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(60, 130), geometry::Point2LL(80, 70)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(220, 90), geometry::Point2LL(160, 70)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(80, 220), geometry::Point2LL(60, 160)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-160, -190), geometry::Point2LL(-220, -170)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-60, -130), geometry::Point2LL(-80, -70)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-220, -90), geometry::Point2LL(-160, -70)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-80, -220), geometry::Point2LL(-60, -160)));
 
     // single cell
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(203, 213), ::curaengine::geometry::Point2LL(203, 213)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(223, 213), ::curaengine::geometry::Point2LL(223, 215)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(243, 213), ::curaengine::geometry::Point2LL(245, 213)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(263, 213), ::curaengine::geometry::Point2LL(265, 215)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(283, 215), ::curaengine::geometry::Point2LL(285, 213)));
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(-203, -213), ::curaengine::geometry::Point2LL(-203, -213)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(203, 213), geometry::Point2LL(203, 213)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(223, 213), geometry::Point2LL(223, 215)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(243, 213), geometry::Point2LL(245, 213)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(263, 213), geometry::Point2LL(265, 215)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(283, 215), geometry::Point2LL(285, 213)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(-203, -213), geometry::Point2LL(-203, -213)));
 
     // around origin
-    line_grid.insert(std::make_pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL>(::curaengine::geometry::Point2LL(20, -20), ::curaengine::geometry::Point2LL(-20, 20)));
+    line_grid.insert(std::make_pair<geometry::Point2LL, geometry::Point2LL>(geometry::Point2LL(20, -20), geometry::Point2LL(-20, 20)));
 
     line_grid.debugHTML("line_grid.html");
 }

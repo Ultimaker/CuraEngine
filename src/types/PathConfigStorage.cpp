@@ -19,6 +19,9 @@
 #include "types/Acceleration.h"
 #include "types/Velocity.h"
 
+using namespace curaengine::path_planning;
+using namespace curaengine::utils;
+
 namespace curaengine::types
 {
 
@@ -40,7 +43,7 @@ std::vector<Ratio> PathConfigStorage::getLineWidthFactorPerExtruder(const LayerI
     return ret;
 }
 
-PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const ::curaengine::utils::coord_t layer_thickness)
+PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const coord_t layer_thickness)
     : support_infill_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_)
     , support_roof_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_)
     , support_bottom_extruder_nr(Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_)
@@ -53,32 +56,32 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     , line_width_factor_per_extruder(PathConfigStorage::getLineWidthFactorPerExtruder(layer_nr))
     , raft_base_config(
           GCodePathConfig{ .type = PrintFeatureType::SupportInterface,
-                           .line_width = raft_base_train.settings_.get<::curaengine::utils::coord_t>("raft_base_line_width"),
-                           .layer_thickness = raft_base_train.settings_.get<::curaengine::utils::coord_t>("raft_base_thickness"),
+                           .line_width = raft_base_train.settings_.get<coord_t>("raft_base_line_width"),
+                           .layer_thickness = raft_base_train.settings_.get<coord_t>("raft_base_thickness"),
                            .flow = raft_base_train.settings_.get<Ratio>("raft_base_flow"),
-                           .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = raft_base_train.settings_.get<Velocity>("raft_base_speed"),
+                           .speed_derivatives = SpeedDerivatives{ .speed = raft_base_train.settings_.get<Velocity>("raft_base_speed"),
                                                                   .acceleration = raft_base_train.settings_.get<Acceleration>("raft_base_acceleration"),
                                                                   .jerk = raft_base_train.settings_.get<Velocity>("raft_base_jerk") } })
     , raft_interface_config(
           GCodePathConfig{ .type = PrintFeatureType::Support,
-                           .line_width = raft_interface_train.settings_.get<::curaengine::utils::coord_t>("raft_interface_line_width"),
-                           .layer_thickness = raft_interface_train.settings_.get<::curaengine::utils::coord_t>("raft_interface_thickness"),
+                           .line_width = raft_interface_train.settings_.get<coord_t>("raft_interface_line_width"),
+                           .layer_thickness = raft_interface_train.settings_.get<coord_t>("raft_interface_thickness"),
                            .flow = raft_base_train.settings_.get<Ratio>("raft_interface_flow"),
-                           .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = raft_interface_train.settings_.get<Velocity>("raft_interface_speed"),
+                           .speed_derivatives = SpeedDerivatives{ .speed = raft_interface_train.settings_.get<Velocity>("raft_interface_speed"),
                                                                   .acceleration = raft_interface_train.settings_.get<Acceleration>("raft_interface_acceleration"),
                                                                   .jerk = raft_interface_train.settings_.get<Velocity>("raft_interface_jerk") } })
     , raft_surface_config(
           GCodePathConfig{ .type = PrintFeatureType::SupportInterface,
-                           .line_width = raft_surface_train.settings_.get<::curaengine::utils::coord_t>("raft_surface_line_width"),
-                           .layer_thickness = raft_surface_train.settings_.get<::curaengine::utils::coord_t>("raft_surface_thickness"),
+                           .line_width = raft_surface_train.settings_.get<coord_t>("raft_surface_line_width"),
+                           .layer_thickness = raft_surface_train.settings_.get<coord_t>("raft_surface_thickness"),
                            .flow = raft_base_train.settings_.get<Ratio>("raft_surface_flow"),
-                           .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = raft_surface_train.settings_.get<Velocity>("raft_surface_speed"),
+                           .speed_derivatives = SpeedDerivatives{ .speed = raft_surface_train.settings_.get<Velocity>("raft_surface_speed"),
                                                                   .acceleration = raft_surface_train.settings_.get<Acceleration>("raft_surface_acceleration"),
                                                                   .jerk = raft_surface_train.settings_.get<Velocity>("raft_surface_jerk") } })
     , support_roof_config(
           GCodePathConfig{ .type = PrintFeatureType::SupportInterface,
                            .line_width
-                           = static_cast<::curaengine::utils::coord_t>(support_roof_train.settings_.get<::curaengine::utils::coord_t>("support_roof_line_width") * line_width_factor_per_extruder[support_roof_extruder_nr]),
+                           = static_cast<coord_t>(support_roof_train.settings_.get<coord_t>("support_roof_line_width") * line_width_factor_per_extruder[support_roof_extruder_nr]),
                            .layer_thickness = layer_thickness,
                            .flow = support_roof_train.settings_.get<Ratio>("support_roof_material_flow")
                                  * ((layer_nr == 0) ? support_roof_train.settings_.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
@@ -87,12 +90,12 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
                                                   .jerk = support_roof_train.settings_.get<Velocity>("jerk_support_roof") } })
     , support_bottom_config(
           GCodePathConfig{ .type = PrintFeatureType::SupportInterface,
-                           .line_width = static_cast<::curaengine::utils::coord_t>(
-                               support_bottom_train.settings_.get<::curaengine::utils::coord_t>("support_bottom_line_width") * line_width_factor_per_extruder[support_bottom_extruder_nr]),
+                           .line_width = static_cast<coord_t>(
+                               support_bottom_train.settings_.get<coord_t>("support_bottom_line_width") * line_width_factor_per_extruder[support_bottom_extruder_nr]),
                            .layer_thickness = layer_thickness,
                            .flow = support_roof_train.settings_.get<Ratio>("support_bottom_material_flow")
                                  * ((layer_nr == 0) ? support_roof_train.settings_.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
-                           .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = support_bottom_train.settings_.get<Velocity>("speed_support_bottom"),
+                           .speed_derivatives = SpeedDerivatives{ .speed = support_bottom_train.settings_.get<Velocity>("speed_support_bottom"),
                                                                   .acceleration = support_bottom_train.settings_.get<Acceleration>("acceleration_support_bottom"),
                                                                   .jerk = support_bottom_train.settings_.get<Velocity>("jerk_support_bottom") } })
 {
@@ -109,31 +112,31 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
                              .line_width = 0,
                              .layer_thickness = 0,
                              .flow = 0.0,
-                             .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = train.settings_.get<Velocity>("speed_travel"),
+                             .speed_derivatives = SpeedDerivatives{ .speed = train.settings_.get<Velocity>("speed_travel"),
                                                                     .acceleration = train.settings_.get<Acceleration>("acceleration_travel"),
                                                                     .jerk = train.settings_.get<Velocity>("jerk_travel") } });
         skirt_brim_config_per_extruder.emplace_back(
             GCodePathConfig{ .type = PrintFeatureType::SkirtBrim,
-                             .line_width = static_cast<::curaengine::utils::coord_t>(
-                                 train.settings_.get<::curaengine::utils::coord_t>("skirt_brim_line_width")
+                             .line_width = static_cast<coord_t>(
+                                 train.settings_.get<coord_t>("skirt_brim_line_width")
                                  * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
                                         ? 1.0_r
                                         : line_width_factor_per_extruder[extruder_nr])) // cause it's also used for the draft/ooze shield
                              ,
                              .layer_thickness = layer_thickness,
                              .flow = train.settings_.get<Ratio>("skirt_brim_material_flow") * ((layer_nr == 0) ? train.settings_.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
-                             .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = train.settings_.get<Velocity>("skirt_brim_speed"),
+                             .speed_derivatives = SpeedDerivatives{ .speed = train.settings_.get<Velocity>("skirt_brim_speed"),
                                                                     .acceleration = train.settings_.get<Acceleration>("acceleration_skirt_brim"),
                                                                     .jerk = train.settings_.get<Velocity>("jerk_skirt_brim") } });
         prime_tower_config_per_extruder.emplace_back(
             GCodePathConfig{
                 .type = PrintFeatureType::PrimeTower,
-                .line_width = static_cast<::curaengine::utils::coord_t>(
-                    train.settings_.get<::curaengine::utils::coord_t>("prime_tower_line_width")
+                .line_width = static_cast<coord_t>(
+                    train.settings_.get<coord_t>("prime_tower_line_width")
                     * ((mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT) ? 1.0_r : line_width_factor_per_extruder[extruder_nr])),
                 .layer_thickness = layer_thickness,
                 .flow = train.settings_.get<Ratio>("prime_tower_flow") * ((layer_nr == 0) ? train.settings_.get<Ratio>("material_flow_layer_0") : Ratio(1.0)),
-                .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = train.settings_.get<Velocity>("speed_prime_tower"),
+                .speed_derivatives = SpeedDerivatives{ .speed = train.settings_.get<Velocity>("speed_prime_tower"),
                                                        .acceleration = train.settings_.get<Acceleration>("acceleration_prime_tower"),
                                                        .jerk = train.settings_.get<Velocity>("jerk_prime_tower") } });
     }
@@ -151,11 +154,11 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     {
         support_infill_config.emplace_back(
             GCodePathConfig{ .type = PrintFeatureType::Support,
-                             .line_width = static_cast<::curaengine::utils::coord_t>(support_infill_train.settings_.get<::curaengine::utils::coord_t>("support_line_width") * support_infill_line_width_factor),
+                             .line_width = static_cast<coord_t>(support_infill_train.settings_.get<coord_t>("support_line_width") * support_infill_line_width_factor),
                              .layer_thickness = layer_thickness,
                              .flow = support_infill_train.settings_.get<Ratio>("support_material_flow")
                                    * ((layer_nr == 0) ? support_infill_train.settings_.get<Ratio>("material_flow_layer_0") : Ratio(1.0)) * (combine_idx + 1),
-                             .speed_derivatives = ::curaengine::path_planning::SpeedDerivatives{ .speed = support_infill_train.settings_.get<Velocity>("speed_support_infill"),
+                             .speed_derivatives = SpeedDerivatives{ .speed = support_infill_train.settings_.get<Velocity>("speed_support_infill"),
                                                                     .acceleration = support_infill_train.settings_.get<Acceleration>("acceleration_support_infill"),
                                                                     .jerk = support_infill_train.settings_.get<Velocity>("jerk_support_infill") } });
     }
@@ -166,9 +169,9 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
         handleInitialLayerSpeedup(storage, layer_nr, initial_speedup_layer_count);
     }
 
-    const auto layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<::curaengine::utils::coord_t>("layer_height");
-    const auto support_top_distance = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<::curaengine::utils::coord_t>("support_top_distance");
-    const ::curaengine::utils::coord_t leftover_support_distance = support_top_distance % layer_height;
+    const auto layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
+    const auto support_top_distance = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("support_top_distance");
+    const coord_t leftover_support_distance = support_top_distance % layer_height;
 
     support_fractional_infill_config = support_infill_config; // copy
     for (auto& config : support_fractional_infill_config)
@@ -180,7 +183,7 @@ PathConfigStorage::PathConfigStorage(const SliceDataStorage& storage, const Laye
     support_fractional_roof_config.z_offset = -leftover_support_distance;
 }
 
-void MeshPathConfigs::smoothAllSpeeds(const ::curaengine::path_planning::SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer)
+void MeshPathConfigs::smoothAllSpeeds(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer)
 {
     inset0_config.speed_derivatives.smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
     insetX_config.speed_derivatives.smoothSpeed(first_layer_config, layer_nr, max_speed_layer);
@@ -195,12 +198,12 @@ void MeshPathConfigs::smoothAllSpeeds(const ::curaengine::path_planning::SpeedDe
 
 void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count)
 {
-    std::vector<::curaengine::path_planning::SpeedDerivatives> global_first_layer_config_per_extruder;
+    std::vector<SpeedDerivatives> global_first_layer_config_per_extruder;
     global_first_layer_config_per_extruder.reserve(Application::getInstance().current_slice_->scene.extruders.size());
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
         global_first_layer_config_per_extruder.emplace_back(
-            ::curaengine::path_planning::SpeedDerivatives{ .speed = extruder.settings_.get<Velocity>("speed_print_layer_0"),
+            SpeedDerivatives{ .speed = extruder.settings_.get<Velocity>("speed_print_layer_0"),
                               .acceleration = extruder.settings_.get<Acceleration>("acceleration_print_layer_0"),
                               .jerk = extruder.settings_.get<Velocity>("jerk_print_layer_0") });
     }
@@ -235,7 +238,7 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
         for (size_t extruder_nr = 0; extruder_nr < Application::getInstance().current_slice_->scene.extruders.size(); extruder_nr++)
         {
             const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-            const ::curaengine::path_planning::SpeedDerivatives initial_layer_travel_speed_config{ .speed = train.settings_.get<Velocity>("speed_travel_layer_0"),
+            const SpeedDerivatives initial_layer_travel_speed_config{ .speed = train.settings_.get<Velocity>("speed_travel_layer_0"),
                                                                       .acceleration = train.settings_.get<Acceleration>("acceleration_travel_layer_0"),
                                                                       .jerk = train.settings_.get<Velocity>("jerk_travel_layer_0") };
             GCodePathConfig& travel = travel_config_per_extruder[extruder_nr];
@@ -255,7 +258,7 @@ void PathConfigStorage::handleInitialLayerSpeedup(const SliceDataStorage& storag
         {
             const SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
 
-            const ::curaengine::path_planning::SpeedDerivatives initial_layer_speed_config{ .speed = mesh.settings.get<Velocity>("speed_print_layer_0"),
+            const SpeedDerivatives initial_layer_speed_config{ .speed = mesh.settings.get<Velocity>("speed_print_layer_0"),
                                                                .acceleration = mesh.settings.get<Acceleration>("acceleration_print_layer_0"),
                                                                .jerk = mesh.settings.get<Velocity>("jerk_print_layer_0") };
 

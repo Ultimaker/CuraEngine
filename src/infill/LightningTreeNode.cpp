@@ -6,20 +6,23 @@
 #include "geometry/OpenLinesSet.h"
 #include "utils/LinearAlg2D.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
 namespace curaengine::infill
 {
 
 using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 
-::curaengine::utils::coord_t LightningTreeNode::getWeightedDistance(const ::curaengine::geometry::Point2LL& unsupported_location, const ::curaengine::utils::coord_t& supporting_radius) const
+coord_t LightningTreeNode::getWeightedDistance(const Point2LL& unsupported_location, const coord_t& supporting_radius) const
 {
-    constexpr ::curaengine::utils::coord_t min_valence_for_boost = 0;
-    constexpr ::curaengine::utils::coord_t max_valence_for_boost = 4;
-    constexpr ::curaengine::utils::coord_t valence_boost_multiplier = 4;
+    constexpr coord_t min_valence_for_boost = 0;
+    constexpr coord_t max_valence_for_boost = 4;
+    constexpr coord_t valence_boost_multiplier = 4;
 
     const size_t valence = (! is_root_) + children_.size();
-    const ::curaengine::utils::coord_t valence_boost = (min_valence_for_boost < valence && valence < max_valence_for_boost) ? valence_boost_multiplier * supporting_radius : 0;
-    const ::curaengine::utils::coord_t dist_here = ::curaengine::geometry::vSize(getLocation() - unsupported_location);
+    const coord_t valence_boost = (min_valence_for_boost < valence && valence < max_valence_for_boost) ? valence_boost_multiplier * supporting_radius : 0;
+    const coord_t dist_here = geometry::vSize(getLocation() - unsupported_location);
     return dist_here - valence_boost;
 }
 
@@ -37,17 +40,17 @@ bool LightningTreeNode::hasOffspring(const LightningTreeNodeSPtr& to_be_checked)
     return false;
 }
 
-const ::curaengine::geometry::Point2LL& LightningTreeNode::getLocation() const
+const Point2LL& LightningTreeNode::getLocation() const
 {
     return p_;
 }
 
-void LightningTreeNode::setLocation(const ::curaengine::geometry::Point2LL& loc)
+void LightningTreeNode::setLocation(const Point2LL& loc)
 {
     p_ = loc;
 }
 
-LightningTreeNodeSPtr LightningTreeNode::addChild(const ::curaengine::geometry::Point2LL& child_loc)
+LightningTreeNodeSPtr LightningTreeNode::addChild(const Point2LL& child_loc)
 {
     assert(p_ != child_loc);
     LightningTreeNodeSPtr child = LightningTreeNode::create(child_loc);
@@ -66,11 +69,11 @@ LightningTreeNodeSPtr LightningTreeNode::addChild(LightningTreeNodeSPtr& new_chi
 
 void LightningTreeNode::propagateToNextLayer(
     std::vector<LightningTreeNodeSPtr>& next_trees,
-    const ::curaengine::geometry::Shape& next_outlines,
-    const ::curaengine::utils::LocToLineGrid& outline_locator,
-    const ::curaengine::utils::coord_t prune_distance,
-    const ::curaengine::utils::coord_t smooth_magnitude,
-    const ::curaengine::utils::coord_t max_remove_colinear_dist) const
+    const Shape& next_outlines,
+    const LocToLineGrid& outline_locator,
+    const coord_t prune_distance,
+    const coord_t smooth_magnitude,
+    const coord_t max_remove_colinear_dist) const
 {
     auto tree_below = deepCopy();
 
@@ -84,7 +87,7 @@ void LightningTreeNode::propagateToNextLayer(
 
 // NOTE: Depth-first, as currently implemented.
 //       Skips the root (because that has no root itself), but all initial nodes will have the root point anyway.
-void LightningTreeNode::visitBranches(const std::function<void(const ::curaengine::geometry::Point2LL&, const ::curaengine::geometry::Point2LL&)>& visitor) const
+void LightningTreeNode::visitBranches(const std::function<void(const Point2LL&, const Point2LL&)>& visitor) const
 {
     for (const auto& node : children_)
     {
@@ -105,7 +108,7 @@ void LightningTreeNode::visitNodes(const std::function<void(LightningTreeNodeSPt
     }
 }
 
-LightningTreeNode::LightningTreeNode(const ::curaengine::geometry::Point2LL& p, const std::optional<::curaengine::geometry::Point2LL>& last_grounding_location /*= std::nullopt*/)
+LightningTreeNode::LightningTreeNode(const Point2LL& p, const std::optional<Point2LL>& last_grounding_location /*= std::nullopt*/)
     : is_root_(true)
     , p_(p)
     , last_grounding_location_(last_grounding_location)
@@ -152,15 +155,15 @@ void LightningTreeNode::reroot(LightningTreeNodeSPtr new_parent /*= nullptr*/)
     }
 }
 
-LightningTreeNodeSPtr LightningTreeNode::closestNode(const ::curaengine::geometry::Point2LL& loc)
+LightningTreeNodeSPtr LightningTreeNode::closestNode(const Point2LL& loc)
 {
     LightningTreeNodeSPtr result = shared_from_this();
-    ::curaengine::utils::coord_t closest_dist2 = ::curaengine::geometry::vSize2(p_ - loc);
+    coord_t closest_dist2 = geometry::vSize2(p_ - loc);
 
     for (const auto& child : children_)
     {
         LightningTreeNodeSPtr candidate_node = child->closestNode(loc);
-        const ::curaengine::utils::coord_t child_dist2 = ::curaengine::geometry::vSize2(candidate_node->p_ - loc);
+        const coord_t child_dist2 = geometry::vSize2(candidate_node->p_ - loc);
         if (child_dist2 < closest_dist2)
         {
             closest_dist2 = child_dist2;
@@ -171,7 +174,7 @@ LightningTreeNodeSPtr LightningTreeNode::closestNode(const ::curaengine::geometr
     return result;
 }
 
-bool LightningTreeNode::realign(const ::curaengine::geometry::Shape& outlines, const ::curaengine::utils::LocToLineGrid& outline_locator, std::vector<LightningTreeNodeSPtr>& rerooted_parts)
+bool LightningTreeNode::realign(const Shape& outlines, const LocToLineGrid& outline_locator, std::vector<LightningTreeNodeSPtr>& rerooted_parts)
 {
     if (outlines.empty())
     {
@@ -181,13 +184,13 @@ bool LightningTreeNode::realign(const ::curaengine::geometry::Shape& outlines, c
     if (outlines.inside(p_, true))
     {
         // Only keep children that have an unbroken connection to here, realign will put the rest in rerooted parts due to recursion:
-        ::curaengine::geometry::Point2LL coll;
+        Point2LL coll;
         bool reground_me = false;
         const auto remove_unconnected_func{
             [&](const LightningTreeNodeSPtr& child)
             {
                 bool connect_branch = child->realign(outlines, outline_locator, rerooted_parts);
-                if (connect_branch && ::curaengine::utils::PolygonUtils::lineSegmentPolygonsIntersection(child->p_, p_, outlines, outline_locator, coll, outline_locator.getCellSize() * 2))
+                if (connect_branch && PolygonUtils::lineSegmentPolygonsIntersection(child->p_, p_, outlines, outline_locator, coll, outline_locator.getCellSize() * 2))
                 {
                     child->last_grounding_location_.reset();
                     child->parent_.reset();
@@ -224,46 +227,46 @@ bool LightningTreeNode::realign(const ::curaengine::geometry::Shape& outlines, c
     return false;
 }
 
-void LightningTreeNode::straighten(const ::curaengine::utils::coord_t magnitude, const ::curaengine::utils::coord_t max_remove_colinear_dist)
+void LightningTreeNode::straighten(const coord_t magnitude, const coord_t max_remove_colinear_dist)
 {
     straighten(magnitude, p_, 0, max_remove_colinear_dist * max_remove_colinear_dist);
 }
 
 LightningTreeNode::RectilinearJunction
-    LightningTreeNode::straighten(const ::curaengine::utils::coord_t magnitude, const ::curaengine::geometry::Point2LL& junction_above, const ::curaengine::utils::coord_t accumulated_dist, const ::curaengine::utils::coord_t max_remove_colinear_dist2)
+    LightningTreeNode::straighten(const coord_t magnitude, const Point2LL& junction_above, const coord_t accumulated_dist, const coord_t max_remove_colinear_dist2)
 {
-    constexpr ::curaengine::utils::coord_t junction_magnitude_factor_numerator = 3;
-    constexpr ::curaengine::utils::coord_t junction_magnitude_factor_denominator = 4;
+    constexpr coord_t junction_magnitude_factor_numerator = 3;
+    constexpr coord_t junction_magnitude_factor_denominator = 4;
 
-    const ::curaengine::utils::coord_t junction_magnitude = magnitude * junction_magnitude_factor_numerator / junction_magnitude_factor_denominator;
+    const coord_t junction_magnitude = magnitude * junction_magnitude_factor_numerator / junction_magnitude_factor_denominator;
     if (children_.size() == 1)
     {
         auto child_p = children_.front();
-        ::curaengine::utils::coord_t child_dist = ::curaengine::geometry::vSize(p_ - child_p->p_);
+        coord_t child_dist = geometry::vSize(p_ - child_p->p_);
         RectilinearJunction junction_below = child_p->straighten(magnitude, junction_above, accumulated_dist + child_dist, max_remove_colinear_dist2);
-        ::curaengine::utils::coord_t total_dist_to_junction_below = junction_below.total_recti_dist;
-        ::curaengine::geometry::Point2LL a = junction_above;
-        ::curaengine::geometry::Point2LL b = junction_below.junction_loc;
+        coord_t total_dist_to_junction_below = junction_below.total_recti_dist;
+        Point2LL a = junction_above;
+        Point2LL b = junction_below.junction_loc;
         if (a != b) // should always be true!
         {
-            ::curaengine::geometry::Point2LL ab = b - a;
-            ::curaengine::geometry::Point2LL destination = a + ab * accumulated_dist / std::max(::curaengine::utils::coord_t(1), total_dist_to_junction_below);
-            if (::curaengine::geometry::shorterThen(destination - p_, magnitude))
+            Point2LL ab = b - a;
+            Point2LL destination = a + ab * accumulated_dist / std::max(coord_t(1), total_dist_to_junction_below);
+            if (geometry::shorterThen(destination - p_, magnitude))
             {
                 p_ = destination;
             }
             else
             {
-                p_ = p_ + ::curaengine::geometry::normal(destination - p_, magnitude);
+                p_ = p_ + geometry::normal(destination - p_, magnitude);
             }
         }
         { // remove nodes on linear segments
-            constexpr ::curaengine::utils::coord_t close_enough = 10;
+            constexpr coord_t close_enough = 10;
 
             child_p = children_.front(); // recursive call to straighten might have removed the child
             const LightningTreeNodeSPtr& parent_node = parent_.lock();
-            if (parent_node && ::curaengine::geometry::vSize2(child_p->p_ - parent_node->p_) < max_remove_colinear_dist2
-                && ::curaengine::utils::LinearAlg2D::getDist2FromLineSegment(parent_node->p_, p_, child_p->p_) < close_enough)
+            if (parent_node && geometry::vSize2(child_p->p_ - parent_node->p_) < max_remove_colinear_dist2
+                && LinearAlg2D::getDist2FromLineSegment(parent_node->p_, p_, child_p->p_) < close_enough)
             {
                 child_p->parent_ = parent_;
                 for (auto& sibling : parent_node->children_)
@@ -280,23 +283,23 @@ LightningTreeNode::RectilinearJunction
     }
     else
     {
-        constexpr ::curaengine::utils::coord_t weight = 1000;
-        ::curaengine::geometry::Point2LL junction_moving_dir = ::curaengine::geometry::normal(junction_above - p_, weight);
+        constexpr coord_t weight = 1000;
+        Point2LL junction_moving_dir = geometry::normal(junction_above - p_, weight);
         bool prevent_junction_moving = false;
         for (auto& child_p : children_)
         {
-            const ::curaengine::utils::coord_t child_dist = ::curaengine::geometry::vSize(p_ - child_p->p_);
+            const coord_t child_dist = geometry::vSize(p_ - child_p->p_);
             RectilinearJunction below = child_p->straighten(magnitude, p_, child_dist, max_remove_colinear_dist2);
 
-            junction_moving_dir += ::curaengine::geometry::normal(below.junction_loc - p_, weight);
+            junction_moving_dir += geometry::normal(below.junction_loc - p_, weight);
             if (below.total_recti_dist < magnitude) // TODO: make configurable?
             {
                 prevent_junction_moving = true; // prevent flipflopping in branches due to straightening and junctoin moving clashing
             }
         }
-        if (junction_moving_dir != ::curaengine::geometry::Point2LL(0, 0) && ! children_.empty() && ! is_root_ && ! prevent_junction_moving)
+        if (junction_moving_dir != Point2LL(0, 0) && ! children_.empty() && ! is_root_ && ! prevent_junction_moving)
         {
-            ::curaengine::utils::coord_t junction_moving_dir_len = ::curaengine::geometry::vSize(junction_moving_dir);
+            coord_t junction_moving_dir_len = geometry::vSize(junction_moving_dir);
             if (junction_moving_dir_len > junction_magnitude)
             {
                 junction_moving_dir = junction_moving_dir * junction_magnitude / junction_moving_dir_len;
@@ -308,18 +311,18 @@ LightningTreeNode::RectilinearJunction
 }
 
 // Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
-::curaengine::utils::coord_t LightningTreeNode::prune(const ::curaengine::utils::coord_t& pruning_distance)
+coord_t LightningTreeNode::prune(const coord_t& pruning_distance)
 {
     if (pruning_distance <= 0)
     {
         return 0;
     }
 
-    ::curaengine::utils::coord_t max_distance_pruned = 0;
+    coord_t max_distance_pruned = 0;
     for (auto child_it = children_.begin(); child_it != children_.end();)
     {
         auto& child = *child_it;
-        ::curaengine::utils::coord_t dist_pruned_child = child->prune(pruning_distance);
+        coord_t dist_pruned_child = child->prune(pruning_distance);
         if (dist_pruned_child >= pruning_distance)
         { // pruning is finished for child; dont modify further
             max_distance_pruned = std::max(max_distance_pruned, dist_pruned_child);
@@ -327,10 +330,10 @@ LightningTreeNode::RectilinearJunction
         }
         else
         {
-            const ::curaengine::geometry::Point2LL a = getLocation();
-            const ::curaengine::geometry::Point2LL b = child->getLocation();
-            const ::curaengine::geometry::Point2LL ba = a - b;
-            const ::curaengine::utils::coord_t ab_len = ::curaengine::geometry::vSize(ba);
+            const Point2LL a = getLocation();
+            const Point2LL b = child->getLocation();
+            const Point2LL ba = a - b;
+            const coord_t ab_len = geometry::vSize(ba);
             if (dist_pruned_child + ab_len <= pruning_distance)
             { // we're still in the process of pruning
                 assert(child->children_.empty() && "when pruning away a node all it's children must already have been pruned away");
@@ -339,8 +342,8 @@ LightningTreeNode::RectilinearJunction
             }
             else
             { // pruning stops in between this node and the child
-                const ::curaengine::geometry::Point2LL n = b + ::curaengine::geometry::normal(ba, pruning_distance - dist_pruned_child);
-                assert(std::abs(::curaengine::geometry::vSize(n - b) + dist_pruned_child - pruning_distance) < 10 && "total pruned distance must be equal to the pruning_distance");
+                const Point2LL n = b + geometry::normal(ba, pruning_distance - dist_pruned_child);
+                assert(std::abs(geometry::vSize(n - b) + dist_pruned_child - pruning_distance) < 10 && "total pruned distance must be equal to the pruning_distance");
                 max_distance_pruned = std::max(max_distance_pruned, pruning_distance);
                 child->setLocation(n);
                 ++child_it;
@@ -351,21 +354,21 @@ LightningTreeNode::RectilinearJunction
     return max_distance_pruned;
 }
 
-const std::optional<::curaengine::geometry::Point2LL>& LightningTreeNode::getLastGroundingLocation() const
+const std::optional<Point2LL>& LightningTreeNode::getLastGroundingLocation() const
 {
     return last_grounding_location_;
 }
 
-void LightningTreeNode::convertToPolylines(::curaengine::geometry::OpenLinesSet& output, const ::curaengine::utils::coord_t line_width) const
+void LightningTreeNode::convertToPolylines(OpenLinesSet& output, const coord_t line_width) const
 {
-    ::curaengine::geometry::OpenLinesSet result;
+    OpenLinesSet result;
     result.emplace_back();
     convertToPolylines(0, result);
     removeJunctionOverlap(result, line_width);
     output.push_back(result);
 }
 
-void LightningTreeNode::convertToPolylines(size_t long_line_idx, ::curaengine::geometry::OpenLinesSet& output) const
+void LightningTreeNode::convertToPolylines(size_t long_line_idx, OpenLinesSet& output) const
 {
     if (children_.empty())
     {
@@ -387,12 +390,12 @@ void LightningTreeNode::convertToPolylines(size_t long_line_idx, ::curaengine::g
     }
 }
 
-void LightningTreeNode::removeJunctionOverlap(::curaengine::geometry::OpenLinesSet& result_lines, const ::curaengine::utils::coord_t line_width) const
+void LightningTreeNode::removeJunctionOverlap(OpenLinesSet& result_lines, const coord_t line_width) const
 {
-    const ::curaengine::utils::coord_t reduction = line_width / 2; // TODO make configurable?
+    const coord_t reduction = line_width / 2; // TODO make configurable?
     for (auto poly_it = result_lines.begin(); poly_it != result_lines.end();)
     {
-        ::curaengine::geometry::OpenPolyline& polyline = *poly_it;
+        OpenPolyline& polyline = *poly_it;
         if (polyline.size() <= 1)
         {
             polyline = std::move(result_lines.back());
@@ -400,13 +403,13 @@ void LightningTreeNode::removeJunctionOverlap(::curaengine::geometry::OpenLinesS
             continue;
         }
 
-        ::curaengine::utils::coord_t to_be_reduced = reduction;
-        ::curaengine::geometry::Point2LL a = polyline.back();
+        coord_t to_be_reduced = reduction;
+        Point2LL a = polyline.back();
         for (int point_idx = polyline.size() - 2; point_idx >= 0; point_idx--)
         {
-            const ::curaengine::geometry::Point2LL b = polyline[point_idx];
-            const ::curaengine::geometry::Point2LL ab = b - a;
-            const ::curaengine::utils::coord_t ab_len = ::curaengine::geometry::vSize(ab);
+            const Point2LL b = polyline[point_idx];
+            const Point2LL ab = b - a;
+            const coord_t ab_len = geometry::vSize(ab);
             if (ab_len >= to_be_reduced)
             {
                 polyline.back() = a + ab * to_be_reduced / ab_len;

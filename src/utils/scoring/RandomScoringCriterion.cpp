@@ -14,7 +14,7 @@ RandomScoringCriterion::RandomScoringCriterion()
 
 double RandomScoringCriterion::computeScore(const size_t /*candidate_index*/) const
 {
-    return ::curaengine::utils::randf<double>();
+    return utils::randf<double>();
 }
 
 } // namespace curaengine::utils::scoring

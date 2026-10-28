@@ -21,17 +21,17 @@ namespace curaengine::infill
 class ImageBasedDensityProvider : public DensityProvider
 {
 public:
-    ImageBasedDensityProvider(const std::string filename, const ::curaengine::utils::AABB aabb);
+    ImageBasedDensityProvider(const std::string filename, const utils::AABB aabb);
 
     virtual ~ImageBasedDensityProvider();
 
-    virtual double operator()(const ::curaengine::utils::AABB3D& aabb) const;
+    virtual double operator()(const utils::AABB3D& aabb) const;
 
 protected:
-    ::curaengine::geometry::Point3LL image_size; //!< dimensions of the image. Third dimension is the amount of channels.
+    geometry::Point3LL image_size; //!< dimensions of the image. Third dimension is the amount of channels.
     unsigned char* image = nullptr; //!< image data: rows of channel data per pixel.
 
-    ::curaengine::utils::AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
+    utils::AABB print_aabb; //!< bounding box of print coordinates in which to apply the image
 };
 
 } // namespace curaengine::infill

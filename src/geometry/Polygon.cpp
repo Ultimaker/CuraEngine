@@ -12,6 +12,9 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/ListPolyIt.h"
 
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::geometry
 {
 
@@ -139,7 +142,7 @@ void Polygon::smooth(int remove_length, Polygon& result) const
     }
 }
 
-void Polygon::smoothOutward(const ::curaengine::types::AngleDegrees min_angle, int shortcut_length, Polygon& result) const
+void Polygon::smoothOutward(const AngleDegrees min_angle, int shortcut_length, Polygon& result) const
 {
     // example of smoothed out corner:
     //
@@ -160,35 +163,35 @@ void Polygon::smoothOutward(const ::curaengine::types::AngleDegrees min_angle, i
     int shortcut_length2 = shortcut_length * shortcut_length;
     double cos_min_angle = std::cos(min_angle / 180 * std::numbers::pi);
 
-    ::curaengine::utils::ListPolygon poly;
-    ::curaengine::utils::ListPolyIt::convertPolygonToList(*this, poly);
+    ListPolygon poly;
+    ListPolyIt::convertPolygonToList(*this, poly);
 
     { // remove duplicate vertices
-        ::curaengine::utils::ListPolyIt p1_it(poly, poly.begin());
+        ListPolyIt p1_it(poly, poly.begin());
         do
         {
-            ::curaengine::utils::ListPolyIt next = p1_it.next();
+            ListPolyIt next = p1_it.next();
             if (vSize2(p1_it.p() - next.p()) < 100LL)
             {
                 p1_it.remove();
             }
             p1_it = next;
-        } while (p1_it != ::curaengine::utils::ListPolyIt(poly, poly.begin()));
+        } while (p1_it != ListPolyIt(poly, poly.begin()));
     }
 
-    ::curaengine::utils::ListPolyIt p1_it(poly, poly.begin());
+    ListPolyIt p1_it(poly, poly.begin());
     do
     {
         const Point2LL p1 = p1_it.p();
-        ::curaengine::utils::ListPolyIt p0_it = p1_it.prev();
-        ::curaengine::utils::ListPolyIt p2_it = p1_it.next();
+        ListPolyIt p0_it = p1_it.prev();
+        ListPolyIt p2_it = p1_it.next();
         const Point2LL p0 = p0_it.p();
         const Point2LL p2 = p2_it.p();
 
         const Point2LL v10 = p0 - p1;
         const Point2LL v12 = p2 - p1;
         double cos_angle = INT2MM(INT2MM(dot(v10, v12))) / vSizeMM(v10) / vSizeMM(v12);
-        bool is_left_angle = ::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) > 0;
+        bool is_left_angle = LinearAlg2D::pointIsLeftOfLine(p1, p0, p2) > 0;
         if (cos_angle > cos_min_angle && is_left_angle)
         {
             // angle is so sharp that it can be removed
@@ -213,18 +216,18 @@ void Polygon::smoothOutward(const ::curaengine::types::AngleDegrees min_angle, i
         {
             ++p1_it;
         }
-    } while (p1_it != ::curaengine::utils::ListPolyIt(poly, poly.begin()));
+    } while (p1_it != ListPolyIt(poly, poly.begin()));
 
-    ::curaengine::utils::ListPolyIt::convertListPolygonToPolygon(poly, result);
+    ListPolyIt::convertListPolygonToPolygon(poly, result);
 }
 
 void Polygon::smoothCornerSimple(
     const Point2LL& p0,
     const Point2LL& p1,
     const Point2LL& p2,
-    const ::curaengine::utils::ListPolyIt& p0_it,
-    const ::curaengine::utils::ListPolyIt& p1_it,
-    const ::curaengine::utils::ListPolyIt& p2_it,
+    const ListPolyIt& p0_it,
+    const ListPolyIt& p1_it,
+    const ListPolyIt& p2_it,
     const Point2LL& v10,
     const Point2LL& v12,
     const Point2LL& v02,
@@ -241,7 +244,7 @@ void Polygon::smoothCornerSimple(
     //  0
     // ideally a1_size == b1_size
     if (vSize2(v02) <= shortcut_length * (shortcut_length + 10) // v02 is approximately shortcut length
-        || (cos_angle > 0.9999 && ::curaengine::utils::LinearAlg2D::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
+        || (cos_angle > 0.9999 && LinearAlg2D::getDist2FromLine(p2, p0, p1) < 20 * 20)) // p1 is degenerate
     {
         // handle this separately to avoid rounding problems below in the getPointOnLineWithDist function
         p1_it.remove();
@@ -268,8 +271,8 @@ void Polygon::smoothCornerSimple(
             assert(vSize(a) < 4000000);
             assert(vSize(b) < 4000000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-            ::curaengine::utils::ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
-            ::curaengine::utils::ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
+            ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
+            ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             p1_it.remove();
         }
         else if (vSize2(v12) < vSize2(v10))
@@ -285,14 +288,14 @@ void Polygon::smoothCornerSimple(
             //  0
             const Point2LL& b = p2_it.p();
             Point2LL a;
-            bool success = ::curaengine::utils::LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
+            bool success = LinearAlg2D::getPointOnLineWithDist(b, p1, p0, shortcut_length, a);
             // v02 has to be longer than ab!
             if (success)
             { // if not success then assume a is negligibly close to 0, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
                 assert(vSize(a) < 4000000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-                ::curaengine::utils::ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
+                ListPolyIt::insertPointNonDuplicate(p0_it, p1_it, a);
             }
             p1_it.remove();
         }
@@ -305,14 +308,14 @@ void Polygon::smoothCornerSimple(
             //  a
             const Point2LL& a = p0_it.p();
             Point2LL b;
-            bool success = ::curaengine::utils::LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
+            bool success = LinearAlg2D::getPointOnLineWithDist(a, p1, p2, shortcut_length, b);
             // v02 has to be longer than ab!
             if (success)
             { // if not success then assume b is negligibly close to 2, but rounding errors caused a problem
 #ifdef ASSERT_INSANE_OUTPUT
                 assert(vSize(b) < 4000000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-                ::curaengine::utils::ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
+                ListPolyIt::insertPointNonDuplicate(p1_it, p2_it, b);
             }
             p1_it.remove();
         }
@@ -322,8 +325,8 @@ void Polygon::smoothCornerSimple(
 void Polygon::smoothOutwardStep(
     const Point2LL& p1,
     const int64_t shortcut_length2,
-    ::curaengine::utils::ListPolyIt& p0_it,
-    ::curaengine::utils::ListPolyIt& p2_it,
+    ListPolyIt& p0_it,
+    ListPolyIt& p2_it,
     bool& forward_is_blocked,
     bool& backward_is_blocked,
     bool& forward_is_too_far,
@@ -338,9 +341,9 @@ void Polygon::smoothOutwardStep(
 
     if (walk_forward)
     {
-        const ::curaengine::utils::ListPolyIt p2_2_it = p2_it.next();
+        const ListPolyIt p2_2_it = p2_it.next();
         const Point2LL p2_2 = p2_2_it.p();
-        bool p2_is_left = ::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(p2, p0, p2_2) >= 0;
+        bool p2_is_left = LinearAlg2D::pointIsLeftOfLine(p2, p0, p2_2) >= 0;
         if (! p2_is_left)
         {
             forward_is_blocked = true;
@@ -359,9 +362,9 @@ void Polygon::smoothOutwardStep(
         backward_is_too_far = false;
         return;
     }
-    const ::curaengine::utils::ListPolyIt p0_2_it = p0_it.prev();
+    const ListPolyIt p0_2_it = p0_it.prev();
     const Point2LL p0_2 = p0_2_it.p();
-    bool p0_is_left = ::curaengine::utils::LinearAlg2D::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
+    bool p0_is_left = LinearAlg2D::pointIsLeftOfLine(p0, p0_2, p2) >= 0;
     if (! p0_is_left)
     {
         backward_is_blocked = true;
@@ -380,7 +383,7 @@ void Polygon::smoothOutwardStep(
     forward_is_too_far = false;
 }
 
-bool Polygon::smoothCornerComplex(const Point2LL& p1, ::curaengine::utils::ListPolyIt& p0_it, ::curaengine::utils::ListPolyIt& p2_it, const int64_t shortcut_length)
+bool Polygon::smoothCornerComplex(const Point2LL& p1, ListPolyIt& p0_it, ListPolyIt& p2_it, const int64_t shortcut_length)
 {
     // walk away from the corner until the shortcut > shortcut_length or it would smooth a piece inward
     // - walk in both directions untill shortcut > shortcut_length
@@ -464,8 +467,8 @@ bool Polygon::smoothCornerComplex(const Point2LL& p1, ::curaengine::utils::ListP
         //  0
         const auto v02_size = static_cast<int64_t>(std::sqrt(v02_size2));
 
-        const ::curaengine::utils::ListPolyIt p0_2_it = p0_it.prev();
-        const ::curaengine::utils::ListPolyIt p2_2_it = p2_it.next();
+        const ListPolyIt p0_2_it = p0_it.prev();
+        const ListPolyIt p2_2_it = p2_it.next();
         const Point2LL p2_2 = p2_2_it.p();
         const Point2LL p0_2 = p0_2_it.p();
         const Point2LL v02_2 = p0_2 - p2_2;
@@ -474,9 +477,9 @@ bool Polygon::smoothCornerComplex(const Point2LL& p1, ::curaengine::utils::ListP
             = std::min(1.0, INT2MM(shortcut_length - v02_size) / INT2MM(v02_2_size - v02_size)); // account for rounding error when v02_2_size is approx equal to v02_size
         assert(progress >= 0.0f && progress <= 1.0f && "shortcut length must be between last length and new length");
         const Point2LL new_p0 = p0_it.p() + (p0_2 - p0_it.p()) * progress;
-        p0_it = ::curaengine::utils::ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
+        p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
         const Point2LL new_p2 = p2_it.p() + (p2_2 - p2_it.p()) * progress;
-        p2_it = ::curaengine::utils::ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
+        p2_it = ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
     }
     else if (! backward_is_blocked)
     { // forward is blocked, back is open
@@ -489,19 +492,19 @@ bool Polygon::smoothCornerComplex(const Point2LL& p1, ::curaengine::utils::ListP
         //  |a
         //  |
         //  0_2
-        const ::curaengine::utils::ListPolyIt p0_2_it = p0_it.prev();
+        const ListPolyIt p0_2_it = p0_it.prev();
         const Point2LL p0 = p0_it.p();
         const Point2LL p0_2 = p0_2_it.p();
         const Point2LL p2 = p2_it.p();
         Point2LL new_p0;
-        bool success = ::curaengine::utils::LinearAlg2D::getPointOnLineWithDist(p2, p0, p0_2, shortcut_length, new_p0);
+        bool success = LinearAlg2D::getPointOnLineWithDist(p2, p0, p0_2, shortcut_length, new_p0);
         // shortcut length must be possible given that last length was ok and new length is too long
         if (success)
         {
 #ifdef ASSERT_INSANE_OUTPUT
             assert(new_p0.X < 400000 && new_p0.Y < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-            p0_it = ::curaengine::utils::ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
+            p0_it = ListPolyIt::insertPointNonDuplicate(p0_2_it, p0_it, new_p0);
         }
         else
         { // if not then a rounding error occured
@@ -518,19 +521,19 @@ bool Polygon::smoothCornerComplex(const Point2LL& p1, ::curaengine::utils::ListP
         //  |   ,-'
         //--0.-'
         //  a
-        const ::curaengine::utils::ListPolyIt p2_2_it = p2_it.next();
+        const ListPolyIt p2_2_it = p2_it.next();
         const Point2LL p0 = p0_it.p();
         const Point2LL p2 = p2_it.p();
         const Point2LL p2_2 = p2_2_it.p();
         Point2LL new_p2;
-        bool success = ::curaengine::utils::LinearAlg2D::getPointOnLineWithDist(p0, p2, p2_2, shortcut_length, new_p2);
+        bool success = LinearAlg2D::getPointOnLineWithDist(p0, p2, p2_2, shortcut_length, new_p2);
         // shortcut length must be possible given that last length was ok and new length is too long
         if (success)
         {
 #ifdef ASSERT_INSANE_OUTPUT
             assert(new_p2.X < 400000 && new_p2.Y < 400000);
 #endif // #ifdef ASSERT_INSANE_OUTPUT
-            p2_it = ::curaengine::utils::ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
+            p2_it = ListPolyIt::insertPointNonDuplicate(p2_it, p2_2_it, new_p2);
         }
         else
         { // if not then a rounding error occured

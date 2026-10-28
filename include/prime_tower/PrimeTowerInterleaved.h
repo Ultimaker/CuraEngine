@@ -26,12 +26,12 @@ public:
         size_t extruder_nr,
         size_t last_extruder,
         const SliceDataStorage& storage,
-        const ::curaengine::types::LayerIndex& layer_nr) const override;
+        const types::LayerIndex& layer_nr) const override;
 
 protected:
-    virtual void polishExtrudersUses(::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder) override;
+    virtual void polishExtrudersUses(utils::LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder) override;
 
-    virtual std::map<::curaengine::types::LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const ::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& extruders_use) override;
+    virtual std::map<types::LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const utils::LayerVector<std::vector<ExtruderUse>>& extruders_use) override;
 };
 
 } // namespace curaengine::prime_tower

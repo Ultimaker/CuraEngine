@@ -12,10 +12,13 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/macros.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
 namespace curaengine::arachne
 {
 
-void SkeletalTrapezoidationGraph::collapseSmallEdges(::curaengine::utils::coord_t snap_dist)
+void SkeletalTrapezoidationGraph::collapseSmallEdges(coord_t snap_dist)
 {
     std::unordered_map<edge_t*, std::list<edge_t>::iterator> edge_locator;
     std::unordered_map<node_t*, std::list<node_t>::iterator> node_locator;
@@ -45,7 +48,7 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(::curaengine::utils::coord_
 
     auto should_collapse = [snap_dist](node_t* a, node_t* b)
     {
-        return ::curaengine::geometry::shorterThen(a->p_ - b->p_, snap_dist);
+        return geometry::shorterThen(a->p_ - b->p_, snap_dist);
     };
 
     for (auto edge_it = edges_.begin(); edge_it != edges_.end();)
@@ -147,10 +150,10 @@ void SkeletalTrapezoidationGraph::collapseSmallEdges(::curaengine::utils::coord_
     }
 }
 
-void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, ::curaengine::geometry::Point2LL start_source_point, ::curaengine::geometry::Point2LL end_source_point)
+void SkeletalTrapezoidationGraph::makeRib(edge_t*& prev_edge, Point2LL start_source_point, Point2LL end_source_point)
 {
-    ::curaengine::geometry::Point2LL p = ::curaengine::utils::LinearAlg2D::getClosestOnLine(prev_edge->to_->p_, start_source_point, end_source_point);
-    ::curaengine::utils::coord_t dist = ::curaengine::geometry::vSize(prev_edge->to_->p_ - p);
+    Point2LL p = LinearAlg2D::getClosestOnLine(prev_edge->to_->p_, start_source_point, end_source_point);
+    coord_t dist = geometry::vSize(prev_edge->to_->p_ - p);
     prev_edge->to_->data_.distance_to_boundary_ = dist;
     assert(dist >= 0);
 
@@ -183,11 +186,11 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     node_t* node_before = edge.from_;
     node_t* node_after = edge.to_;
 
-    ::curaengine::geometry::Point2LL p = mid_node->p_;
+    Point2LL p = mid_node->p_;
 
-    std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> source_segment = getSource(edge);
-    ::curaengine::geometry::Point2LL px = ::curaengine::utils::LinearAlg2D::getClosestOnLineSegment(p, source_segment.first, source_segment.second);
-    ::curaengine::utils::coord_t dist = ::curaengine::geometry::vSize(p - px);
+    std::pair<Point2LL, Point2LL> source_segment = getSource(edge);
+    Point2LL px = LinearAlg2D::getClosestOnLineSegment(p, source_segment.first, source_segment.second);
+    coord_t dist = geometry::vSize(p - px);
     assert(dist > 0);
     mid_node->data_.distance_to_boundary_ = dist;
     mid_node->data_.transition_ratio_ = 0; // Both transition end should have rest = 0, because at the ends a whole number of beads fits without rest
@@ -256,7 +259,7 @@ std::pair<SkeletalTrapezoidationGraph::edge_t*, SkeletalTrapezoidationGraph::edg
     return std::make_pair(first, second);
 }
 
-SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edge_t* edge, ::curaengine::geometry::Point2LL mid, ::curaengine::utils::coord_t mide_node_bead_count)
+SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edge_t* edge, Point2LL mid, coord_t mide_node_bead_count)
 {
     edge_t* last_edge_replacing_input = edge;
 
@@ -283,7 +286,7 @@ SkeletalTrapezoidationGraph::edge_t* SkeletalTrapezoidationGraph::insertNode(edg
     return last_edge_replacing_input;
 }
 
-std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> SkeletalTrapezoidationGraph::getSource(const edge_t& edge)
+std::pair<Point2LL, Point2LL> SkeletalTrapezoidationGraph::getSource(const edge_t& edge)
 {
     const edge_t* from_edge = &edge;
     while (from_edge->prev_)

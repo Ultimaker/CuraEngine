@@ -30,17 +30,17 @@ public:
      */
     struct Beading
     {
-        ::curaengine::utils::coord_t total_thickness;
-        std::vector<::curaengine::utils::coord_t> bead_widths; //! The line width of each bead from the outer inset inward
-        std::vector<::curaengine::utils::coord_t> toolpath_locations; //! The distance of the toolpath location of each bead from the outline
-        ::curaengine::utils::coord_t left_over; //! The distance not covered by any bead; gap area.
+        utils::coord_t total_thickness;
+        std::vector<utils::coord_t> bead_widths; //! The line width of each bead from the outer inset inward
+        std::vector<utils::coord_t> toolpath_locations; //! The distance of the toolpath location of each bead from the outline
+        utils::coord_t left_over; //! The distance not covered by any bead; gap area.
     };
 
     BeadingStrategy(
-        ::curaengine::utils::coord_t optimal_width,
-        ::curaengine::types::Ratio wall_split_middle_threshold,
-        ::curaengine::types::Ratio wall_add_middle_threshold,
-        ::curaengine::utils::coord_t default_transition_length,
+        utils::coord_t optimal_width,
+        types::Ratio wall_split_middle_threshold,
+        types::Ratio wall_add_middle_threshold,
+        utils::coord_t default_transition_length,
         double transitioning_angle = std::numbers::pi / 3.0);
 
     BeadingStrategy(const BeadingStrategy& other);
@@ -54,36 +54,36 @@ public:
      *
      * \note The \p bead_count might be different from the \ref BeadingStrategy::optimal_bead_count
      */
-    virtual Beading compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const = 0;
+    virtual Beading compute(utils::coord_t thickness, utils::coord_t bead_count) const = 0;
 
     /*!
      * The ideal thickness for a given \param bead_count
      */
-    virtual ::curaengine::utils::coord_t getOptimalThickness(::curaengine::utils::coord_t bead_count) const;
+    virtual utils::coord_t getOptimalThickness(utils::coord_t bead_count) const;
 
     /*!
      * The model thickness at which \ref BeadingStrategy::optimal_bead_count transitions from \p lower_bead_count to \p lower_bead_count + 1
      */
-    virtual ::curaengine::utils::coord_t getTransitionThickness(::curaengine::utils::coord_t lower_bead_count) const;
+    virtual utils::coord_t getTransitionThickness(utils::coord_t lower_bead_count) const;
 
     /*!
      * The number of beads should we ideally usefor a given model thickness
      */
-    virtual ::curaengine::utils::coord_t getOptimalBeadCount(::curaengine::utils::coord_t thickness) const = 0;
+    virtual utils::coord_t getOptimalBeadCount(utils::coord_t thickness) const = 0;
 
     /*!
      * The length of the transitioning region along the marked / significant regions of the skeleton.
      *
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps with some incline defined by their length.
      */
-    virtual ::curaengine::utils::coord_t getTransitioningLength(::curaengine::utils::coord_t lower_bead_count) const;
+    virtual utils::coord_t getTransitioningLength(utils::coord_t lower_bead_count) const;
 
     /*!
      * The fraction of the transition length to put between the lower end of the transition and the point where the unsmoothed bead count jumps.
      *
      * Transitions are used to smooth out the jumps in integer bead count; the jumps turn into ramps which could be positioned relative to the jump location.
      */
-    virtual double getTransitionAnchorPos(::curaengine::utils::coord_t lower_bead_count) const;
+    virtual double getTransitionAnchorPos(utils::coord_t lower_bead_count) const;
 
     /*!
      * Get the locations in a bead count region where \ref BeadingStrategy::compute exhibits a bend in the widths.
@@ -91,32 +91,32 @@ public:
      *
      * This is used to insert extra support bones into the skeleton, so that the resulting beads in long trapezoids don't linearly change between the two ends.
      */
-    virtual std::vector<::curaengine::utils::coord_t> getNonlinearThicknesses(::curaengine::utils::coord_t lower_bead_count) const;
+    virtual std::vector<utils::coord_t> getNonlinearThicknesses(utils::coord_t lower_bead_count) const;
 
     virtual std::string toString() const;
 
-    ::curaengine::utils::coord_t getOptimalWidth() const;
-    ::curaengine::types::Ratio getSplitMiddleThreshold() const;
-    ::curaengine::types::Ratio getAddMiddleThreshold() const;
-    ::curaengine::utils::coord_t getDefaultTransitionLength() const;
-    ::curaengine::types::AngleRadians getTransitioningAngle() const;
+    utils::coord_t getOptimalWidth() const;
+    types::Ratio getSplitMiddleThreshold() const;
+    types::Ratio getAddMiddleThreshold() const;
+    utils::coord_t getDefaultTransitionLength() const;
+    types::AngleRadians getTransitioningAngle() const;
 
 protected:
     std::string name_;
 
-    ::curaengine::utils::coord_t optimal_width_; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
+    utils::coord_t optimal_width_; //! Optimal bead width, nominal width off the walls in 'ideal' circumstances.
 
-    ::curaengine::types::Ratio wall_split_middle_threshold_; //! Threshold when a middle wall should be split into two, as a ratio of the optimal wall width.
+    types::Ratio wall_split_middle_threshold_; //! Threshold when a middle wall should be split into two, as a ratio of the optimal wall width.
 
-    ::curaengine::types::Ratio wall_add_middle_threshold_; //! Threshold when a new middle wall should be added between an even number of walls, as a ratio of the optimal wall width.
+    types::Ratio wall_add_middle_threshold_; //! Threshold when a new middle wall should be added between an even number of walls, as a ratio of the optimal wall width.
 
-    ::curaengine::utils::coord_t default_transition_length_; //! The length of the region to smoothly transfer between bead counts
+    utils::coord_t default_transition_length_; //! The length of the region to smoothly transfer between bead counts
 
     /*!
      * The maximum angle between outline segments smaller than which we are going to add transitions
      * Equals 180 - the "limit bisector angle" from the paper
      */
-    ::curaengine::types::AngleRadians transitioning_angle_;
+    types::AngleRadians transitioning_angle_;
 };
 
 using BeadingStrategyPtr = std::unique_ptr<BeadingStrategy>;

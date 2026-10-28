@@ -21,10 +21,10 @@ namespace curaengine::utils
  * \tparam Val The value type to store.
  */
 template<class Val>
-class SparsePointGridInclusive : public SparsePointGrid<::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, ::curaengine::utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>
+class SparsePointGridInclusive : public SparsePointGrid<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>
 {
 public:
-    using Base = SparsePointGrid<::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, ::curaengine::utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>;
+    using Base = SparsePointGrid<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>;
 
     /*! \brief Constructs a sparse grid with the specified cell size.
      *
@@ -42,7 +42,7 @@ public:
      * \param[in] point The location for the element.
      * \param[in] val The value for the element.
      */
-    void insert(const ::curaengine::geometry::Point2LL& point, const Val& val);
+    void insert(const geometry::Point2LL& point, const Val& val);
 
     /*! \brief Returns all values within radius of query_pt.
      *
@@ -55,7 +55,7 @@ public:
      * \param[in] radius The search radius.
      * \return Vector of values found
      */
-    std::vector<Val> getNearbyVals(const ::curaengine::geometry::Point2LL& query_pt, coord_t radius) const;
+    std::vector<Val> getNearbyVals(const geometry::Point2LL& query_pt, coord_t radius) const;
 };
 
 #define SG_TEMPLATE template<class Val>
@@ -68,17 +68,17 @@ SG_THIS::SparsePointGridInclusive(coord_t cell_size, size_t elem_reserve, double
 }
 
 SG_TEMPLATE
-void SG_THIS::insert(const ::curaengine::geometry::Point2LL& point, const Val& val)
+void SG_THIS::insert(const geometry::Point2LL& point, const Val& val)
 {
     typename SG_THIS::Elem elem(point, val);
     Base::insert(elem);
 }
 
 SG_TEMPLATE
-std::vector<Val> SG_THIS::getNearbyVals(const ::curaengine::geometry::Point2LL& query_pt, coord_t radius) const
+std::vector<Val> SG_THIS::getNearbyVals(const geometry::Point2LL& query_pt, coord_t radius) const
 {
     std::vector<Val> ret;
-    std::function<bool(const ::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>&)> process_func = [&ret](const typename SG_THIS::Elem& elem)
+    std::function<bool(const utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>&)> process_func = [&ret](const typename SG_THIS::Elem& elem)
     {
         ret.push_back(elem.val);
         return true;

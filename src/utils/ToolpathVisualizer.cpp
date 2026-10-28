@@ -7,10 +7,12 @@
 #include "geometry/Point3LL.h"
 
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
-void ToolpathVisualizer::outline(const ::curaengine::geometry::Shape& input)
+void ToolpathVisualizer::outline(const Shape& input)
 {
     svg_.write(input, { .surface = { SVG::Color::GRAY } });
     svg_.nextLayer();
@@ -20,13 +22,13 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
 {
     for (double w = .9; w > .25; w = 1.0 - (1.0 - w) * 1.2)
     {
-        ::curaengine::geometry::Shape polys;
+        Shape polys;
         for (size_t segment_idx = 0; segment_idx < all_segments.size(); segment_idx++)
         {
             ExtrusionSegment s = all_segments[segment_idx];
             s.from_.w_ *= w / .9;
             s.to_.w_ *= w / .9;
-            ::curaengine::geometry::Shape covered = s.toShape(false);
+            Shape covered = s.toShape(false);
             polys.push_back(covered);
         }
         int c = 255 - 200 * (w - .25);
@@ -41,12 +43,12 @@ void ToolpathVisualizer::toolpaths(const std::vector<ExtrusionSegment>& all_segm
 }
 
 
-void ToolpathVisualizer::underfill(const ::curaengine::geometry::Shape& underfills)
+void ToolpathVisualizer::underfill(const Shape& underfills)
 {
     svg_.write(underfills, { .surface = { SVG::RgbColor(0, 128, 255) } });
     svg_.nextLayer();
 }
-void ToolpathVisualizer::overfill(const ::curaengine::geometry::Shape& overfills, const ::curaengine::geometry::Shape& double_overfills)
+void ToolpathVisualizer::overfill(const Shape& overfills, const Shape& double_overfills)
 {
     svg_.write(overfills, { .surface = { SVG::RgbColor(255, 128, 0) } });
     svg_.nextLayer();
@@ -57,7 +59,7 @@ void ToolpathVisualizer::overfill(const ::curaengine::geometry::Shape& overfills
     }
 }
 
-void ToolpathVisualizer::width_legend(const ::curaengine::geometry::Shape& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization)
+void ToolpathVisualizer::width_legend(const Shape& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization)
 {
     auto to_string = [](double v)
     {
@@ -66,8 +68,8 @@ void ToolpathVisualizer::width_legend(const ::curaengine::geometry::Shape& input
         return ss.str();
     };
     AABB aabb(input);
-    ExtrusionJunction legend_btm(::curaengine::geometry::Point2LL(aabb.max_.X + nozzle_size + max_dev, aabb.max_.Y), nozzle_size - max_dev, 0);
-    ExtrusionJunction legend_top(::curaengine::geometry::Point2LL(aabb.max_.X + nozzle_size + max_dev, aabb.min_.Y), nozzle_size + max_dev, 0);
+    ExtrusionJunction legend_btm(Point2LL(aabb.max_.X + nozzle_size + max_dev, aabb.max_.Y), nozzle_size - max_dev, 0);
+    ExtrusionJunction legend_top(Point2LL(aabb.max_.X + nozzle_size + max_dev, aabb.min_.Y), nozzle_size + max_dev, 0);
     ExtrusionJunction legend_mid((legend_top.p_ + legend_btm.p_) / 2, (legend_top.w_ + legend_btm.w_) / 2, 0);
     legend_btm.p_ += (legend_mid.p_ - legend_btm.p_) / 4;
     legend_top.p_ += (legend_mid.p_ - legend_top.p_) / 4;
@@ -76,7 +78,7 @@ void ToolpathVisualizer::width_legend(const ::curaengine::geometry::Shape& input
     std::vector<ExtrusionSegment> all_segments_plus;
     all_segments_plus.emplace_back(legend_segment); // colored
 
-    ::curaengine::geometry::Point2LL legend_text_offset(nozzle_size, 0);
+    Point2LL legend_text_offset(nozzle_size, 0);
     svg_.write(to_string(INT2MM(legend_top.w_)), legend_top.p_ + legend_text_offset, { true });
     svg_.write(to_string(INT2MM(legend_btm.w_)), legend_btm.p_ + legend_text_offset, { true });
     svg_.write(to_string(INT2MM(legend_mid.w_)), legend_mid.p_ + legend_text_offset, { true });
@@ -96,9 +98,9 @@ void ToolpathVisualizer::widths(
     bool exaggerate_widths)
 {
     //     Point3 middle = rounded_visualization? Point3(255,255,255) : Point3(192,192,192);
-    ::curaengine::geometry::Point3LL middle(255, 255, 255);
-    ::curaengine::geometry::Point3LL wide(255, 0, 0);
-    ::curaengine::geometry::Point3LL narrow(0, 0, 255);
+    Point3LL middle(255, 255, 255);
+    Point3LL wide(255, 0, 0);
+    Point3LL narrow(0, 0, 255);
 
     //     Polygons connecteds = PolygonUtils::connect(area_covered);
     //     for (PolygonRef connected : connecteds)
@@ -115,7 +117,7 @@ void ToolpathVisualizer::widths(
             for (ExtrusionSegment s : ss.discretize(MM2INT(0.1)))
             {
                 coord_t avg_w = (s.from_.w_ + s.to_.w_) / 2;
-                ::curaengine::geometry::Point3LL clr;
+                Point3LL clr;
                 double color_ratio = std::min(1.0, double(std::abs(avg_w - nozzle_size)) / max_dev);
                 color_ratio = color_ratio * .5 + .5 * sqrt(color_ratio);
                 if (avg_w > nozzle_size)
@@ -144,7 +146,7 @@ void ToolpathVisualizer::widths(
                 //                 }
                 s.from_.w_ *= w / .9;
                 s.to_.w_ *= w / .9;
-                ::curaengine::geometry::Shape covered = s.toShape();
+                Shape covered = s.toShape();
                 svg_.write(covered, { .surface = { SVG::RgbColor(clr.x_, clr.y_, clr.z_) } });
             }
         }

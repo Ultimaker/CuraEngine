@@ -15,8 +15,8 @@ class MeshVertex;
 class SlicerSegment
 {
 public:
-    ::curaengine::geometry::Point2LL start, end;
-    std::optional<::curaengine::geometry::Point2F> uv_start, uv_end;
+    geometry::Point2LL start, end;
+    std::optional<geometry::Point2F> uv_start, uv_end;
     int faceIndex = -1;
     // The index of the other face connected via the edge that created end
     int endOtherFaceIdx = -1;

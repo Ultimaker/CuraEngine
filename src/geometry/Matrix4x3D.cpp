@@ -7,15 +7,17 @@
 #include "geometry/Point3D.h" //This matrix gets applied to floating point coordinates.
 #include "types/Ratio.h" //Scale factor.
 
+using namespace curaengine::types;
+
 namespace curaengine::geometry
 {
 
-Matrix4x3D Matrix4x3D::scale(const ::curaengine::types::Ratio scale, const Point3LL origin)
+Matrix4x3D Matrix4x3D::scale(const Ratio scale, const Point3LL origin)
 {
     return Matrix4x3D::scale(scale, scale, scale, origin);
 }
 
-Matrix4x3D Matrix4x3D::scale(const ::curaengine::types::Ratio scale_x, const ::curaengine::types::Ratio scale_y, const ::curaengine::types::Ratio scale_z, const Point3LL origin)
+Matrix4x3D Matrix4x3D::scale(const Ratio scale_x, const Ratio scale_y, const Ratio scale_z, const Point3LL origin)
 {
     Matrix4x3D result;
     result.m[0][0] = scale_x; // X scale.

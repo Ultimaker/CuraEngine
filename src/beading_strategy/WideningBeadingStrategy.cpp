@@ -3,10 +3,12 @@
 
 #include "beading_strategy/WideningBeadingStrategy.h"
 
+using namespace curaengine::utils;
+
 namespace curaengine::beading_strategy
 {
 
-WideningBeadingStrategy::WideningBeadingStrategy(BeadingStrategyPtr parent, const ::curaengine::utils::coord_t min_input_width, const ::curaengine::utils::coord_t min_output_width)
+WideningBeadingStrategy::WideningBeadingStrategy(BeadingStrategyPtr parent, const coord_t min_input_width, const coord_t min_output_width)
     : BeadingStrategy(*parent)
     , parent_(std::move(parent))
     , min_input_width_(min_input_width)
@@ -19,7 +21,7 @@ std::string WideningBeadingStrategy::toString() const
     return std::string("Widening+") + parent_->toString();
 }
 
-WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const
+WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
     if (thickness < optimal_width_)
     {
@@ -42,12 +44,12 @@ WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(::curaengine::
     }
 }
 
-::curaengine::utils::coord_t WideningBeadingStrategy::getOptimalThickness(::curaengine::utils::coord_t bead_count) const
+coord_t WideningBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
     return parent_->getOptimalThickness(bead_count);
 }
 
-::curaengine::utils::coord_t WideningBeadingStrategy::getTransitionThickness(::curaengine::utils::coord_t lower_bead_count) const
+coord_t WideningBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     if (lower_bead_count == 0)
     {
@@ -59,31 +61,31 @@ WideningBeadingStrategy::Beading WideningBeadingStrategy::compute(::curaengine::
     }
 }
 
-::curaengine::utils::coord_t WideningBeadingStrategy::getOptimalBeadCount(::curaengine::utils::coord_t thickness) const
+coord_t WideningBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     if (thickness < min_input_width_)
         return 0;
-    ::curaengine::utils::coord_t ret = parent_->getOptimalBeadCount(thickness);
+    coord_t ret = parent_->getOptimalBeadCount(thickness);
     if (thickness >= min_input_width_ && ret < 1)
         return 1;
     return ret;
 }
 
-::curaengine::utils::coord_t WideningBeadingStrategy::getTransitioningLength(::curaengine::utils::coord_t lower_bead_count) const
+coord_t WideningBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
     return parent_->getTransitioningLength(lower_bead_count);
 }
 
-double WideningBeadingStrategy::getTransitionAnchorPos(::curaengine::utils::coord_t lower_bead_count) const
+double WideningBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
 {
     return parent_->getTransitionAnchorPos(lower_bead_count);
 }
 
-std::vector<::curaengine::utils::coord_t> WideningBeadingStrategy::getNonlinearThicknesses(::curaengine::utils::coord_t lower_bead_count) const
+std::vector<coord_t> WideningBeadingStrategy::getNonlinearThicknesses(coord_t lower_bead_count) const
 {
-    std::vector<::curaengine::utils::coord_t> ret;
+    std::vector<coord_t> ret;
     ret.emplace_back(min_output_width_);
-    std::vector<::curaengine::utils::coord_t> pret = parent_->getNonlinearThicknesses(lower_bead_count);
+    std::vector<coord_t> pret = parent_->getNonlinearThicknesses(lower_bead_count);
     ret.insert(ret.end(), pret.begin(), pret.end());
     return ret;
 }

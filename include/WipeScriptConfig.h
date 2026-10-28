@@ -18,16 +18,16 @@ struct WipeScriptConfig
     bool retraction_enable; // whether to retract the filament when the nozzle is moving over a non-printed area
     RetractionConfig retraction_config;
 
-    ::curaengine::types::Duration pause; // pause after the unretract, in seconds
+    types::Duration pause; // pause after the unretract, in seconds
 
     bool hop_enable; // whenever a retraction is done, the build plate is lowered to create clearance between the nozzle and the print
-    ::curaengine::utils::coord_t hop_amount; // height difference when performing a Z Hop
-    ::curaengine::types::Velocity hop_speed;
+    utils::coord_t hop_amount; // height difference when performing a Z Hop
+    types::Velocity hop_speed;
 
-    ::curaengine::utils::coord_t brush_pos_x; // X coordinate - location where wipe script will start
+    utils::coord_t brush_pos_x; // X coordinate - location where wipe script will start
     size_t repeat_count; // number of times to move the nozzle across the brush
-    ::curaengine::utils::coord_t move_distance; // distance to move the head back and forth across the brush
-    ::curaengine::types::Velocity move_speed;
+    utils::coord_t move_distance; // distance to move the head back and forth across the brush
+    types::Velocity move_speed;
     double max_extrusion_mm3; // maximum material that can be extruded before another nozzle wipe is initiated (in mm^3)
     bool clean_between_layers; // whether to include nozzle wipe g-code between layers
 };

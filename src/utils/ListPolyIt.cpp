@@ -11,25 +11,27 @@
 #include "geometry/Shape.h"
 
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
 
-void ListPolyIt::convertPolygonsToLists(const ::curaengine::geometry::Shape& shape, ListPolygons& result)
+void ListPolyIt::convertPolygonsToLists(const Shape& shape, ListPolygons& result)
 {
-    for (const ::curaengine::geometry::Polygon& poly : shape)
+    for (const Polygon& poly : shape)
     {
         result.emplace_back();
         convertPolygonToList(poly, result.back());
     }
 }
 
-void ListPolyIt::convertPolygonToList(const ::curaengine::geometry::Polygon& poly, ListPolygon& result)
+void ListPolyIt::convertPolygonToList(const Polygon& poly, ListPolygon& result)
 {
 #ifdef DEBUG
-    ::curaengine::geometry::Point2LL last = poly.back();
+    Point2LL last = poly.back();
 #endif // DEBUG
-    for (const ::curaengine::geometry::Point2LL& p : poly)
+    for (const Point2LL& p : poly)
     {
         result.push_back(p);
 #ifdef DEBUG
@@ -43,7 +45,7 @@ void ListPolyIt::convertPolygonToList(const ::curaengine::geometry::Polygon& pol
 }
 
 
-void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons, ::curaengine::geometry::Shape& polygons)
+void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons, Shape& polygons)
 {
     for (unsigned int poly_idx = 0; poly_idx < polygons.size(); poly_idx++)
     {
@@ -52,15 +54,15 @@ void ListPolyIt::convertListPolygonsToPolygons(const ListPolygons& list_polygons
     }
 }
 
-void ListPolyIt::convertListPolygonToPolygon(const ListPolygon& list_polygon, ::curaengine::geometry::Polygon& polygon)
+void ListPolyIt::convertListPolygonToPolygon(const ListPolygon& list_polygon, Polygon& polygon)
 {
-    for (const ::curaengine::geometry::Point2LL& p : list_polygon)
+    for (const Point2LL& p : list_polygon)
     {
         polygon.push_back(p);
     }
 }
 
-ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const ::curaengine::geometry::Point2LL to_insert)
+ListPolyIt ListPolyIt::insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const Point2LL to_insert)
 {
     if (to_insert == before.p())
     {

@@ -18,10 +18,13 @@
 #include "types/SlicingTolerance.h"
 #include "types/AngleRadians.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
 namespace curaengine::types
 {
 
-AdaptiveLayerHeights::AdaptiveLayerHeights(const ::curaengine::utils::coord_t base_layer_height, const ::curaengine::utils::coord_t variation, const ::curaengine::utils::coord_t step_size, const ::curaengine::utils::coord_t threshold, const MeshGroup* meshgroup)
+AdaptiveLayerHeights::AdaptiveLayerHeights(const coord_t base_layer_height, const coord_t variation, const coord_t step_size, const coord_t threshold, const MeshGroup* meshgroup)
     : base_layer_height_{ base_layer_height }
     , max_variation_{ variation }
     , step_size_{ step_size }
@@ -47,7 +50,7 @@ void AdaptiveLayerHeights::calculateAllowedLayerHeights()
 {
     // calculate the allowed layer heights from variation and step size
     // note: the order is from thickest to thinnest height!
-    for (::curaengine::utils::coord_t allowed_layer_height = base_layer_height_ + max_variation_; allowed_layer_height >= base_layer_height_ - max_variation_; allowed_layer_height -= step_size_)
+    for (coord_t allowed_layer_height = base_layer_height_ + max_variation_; allowed_layer_height >= base_layer_height_ - max_variation_; allowed_layer_height -= step_size_)
     {
         // we should only consider using layer_heights that are > 0
         if (allowed_layer_height <= 0)
@@ -60,16 +63,16 @@ void AdaptiveLayerHeights::calculateAllowedLayerHeights()
 
 void AdaptiveLayerHeights::calculateLayers()
 {
-    const ::curaengine::utils::coord_t minimum_layer_height = *std::min_element(allowed_layer_heights_.begin(), allowed_layer_heights_.end());
+    const coord_t minimum_layer_height = *std::min_element(allowed_layer_heights_.begin(), allowed_layer_heights_.end());
     Settings const& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     auto slicing_tolerance = mesh_group_settings.get<SlicingTolerance>("slicing_tolerance");
     std::vector<size_t> triangles_of_interest;
-    const ::curaengine::utils::coord_t model_max_z = meshgroup_->max().z_;
-    ::curaengine::utils::coord_t z_level = 0;
-    ::curaengine::utils::coord_t previous_layer_height = 0;
+    const coord_t model_max_z = meshgroup_->max().z_;
+    coord_t z_level = 0;
+    coord_t previous_layer_height = 0;
 
     // the first layer has it's own independent height set, so we always add that
-    const auto initial_layer_height = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height_0");
+    const auto initial_layer_height = mesh_group_settings.get<coord_t>("layer_height_0");
     z_level += initial_layer_height;
 
     AdaptiveLayer adaptive_layer(initial_layer_height);
@@ -86,9 +89,9 @@ void AdaptiveLayerHeights::calculateLayers()
         for (auto& layer_height : allowed_layer_heights_)
         {
             // use lower and upper bounds to filter on triangles that are interesting for this potential layer
-            const ::curaengine::utils::coord_t lower_bound = z_level;
+            const coord_t lower_bound = z_level;
             // if slicing tolerance "middle" is used, a layer is interpreted as the middle of the upper and lower bounds.
-            const ::curaengine::utils::coord_t upper_bound = z_level + ((slicing_tolerance == SlicingTolerance::MIDDLE) ? (layer_height / 2) : layer_height);
+            const coord_t upper_bound = z_level + ((slicing_tolerance == SlicingTolerance::MIDDLE) ? (layer_height / 2) : layer_height);
 
             if (layer_height == allowed_layer_heights_[0])
             {
@@ -201,9 +204,9 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
             const MeshVertex& v1 = mesh.vertices_[face.vertex_index_[1]];
             const MeshVertex& v2 = mesh.vertices_[face.vertex_index_[2]];
 
-            const ::curaengine::geometry::Point3D p0(v0.p_);
-            const ::curaengine::geometry::Point3D p1(v1.p_);
-            const ::curaengine::geometry::Point3D p2(v2.p_);
+            const Point3D p0(v0.p_);
+            const Point3D p1(v1.p_);
+            const Point3D p2(v2.p_);
 
             double min_z = p0.z_;
             min_z = std::min(min_z, p1.z_);
@@ -213,8 +216,8 @@ void AdaptiveLayerHeights::calculateMeshTriangleSlopes()
             max_z = std::max(max_z, p2.z_);
 
             // calculate the angle of this triangle in the z direction
-            const ::curaengine::geometry::Point3D n = (p1 - p0).cross(p2 - p0);
-            const ::curaengine::geometry::Point3D normal = n.normalized();
+            const Point3D n = (p1 - p0).cross(p2 - p0);
+            const Point3D normal = n.normalized();
             AngleRadians z_angle = std::acos(std::abs(normal.z_));
 
             // prevent flat surfaces from influencing the algorithm

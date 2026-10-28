@@ -21,7 +21,7 @@ namespace curaengine::utils
 
 
 
-using ListPolygon = std::list<::curaengine::geometry::Point2LL>; //!< A polygon represented by a linked list instead of a vector
+using ListPolygon = std::list<geometry::Point2LL>; //!< A polygon represented by a linked list instead of a vector
 using ListPolygons = std::vector<ListPolygon>; //!< Polygons represented by a vector of linked lists instead of a vector of vectors
 
 /*!
@@ -42,7 +42,7 @@ public:
     {
     }
 
-    ::curaengine::geometry::Point2LL& p() const
+    geometry::Point2LL& p() const
     {
         return *it_;
     }
@@ -120,7 +120,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonsToLists(const ::curaengine::geometry::Shape& shape, ListPolygons& result);
+    static void convertPolygonsToLists(const geometry::Shape& shape, ListPolygons& result);
 
     /*!
      * Convert Polygons to ListPolygons
@@ -128,7 +128,7 @@ public:
      * \param polys The polygons to convert
      * \param result The converted polygons
      */
-    static void convertPolygonToList(const ::curaengine::geometry::Polygon& poly, ListPolygon& result);
+    static void convertPolygonToList(const geometry::Polygon& poly, ListPolygon& result);
 
     /*!
      * Convert ListPolygons to Polygons
@@ -136,7 +136,7 @@ public:
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, ::curaengine::geometry::Shape& polygons);
+    static void convertListPolygonsToPolygons(const ListPolygons& list_polygons, geometry::Shape& polygons);
 
     /*!
      * Convert ListPolygons to Polygons
@@ -144,7 +144,7 @@ public:
      * \param list_polygons The polygons to convert
      * \param polygons The converted polygons
      */
-    static void convertListPolygonToPolygon(const ListPolygon& list_polygon, ::curaengine::geometry::Polygon& polygon);
+    static void convertListPolygonToPolygon(const ListPolygon& list_polygon, geometry::Polygon& polygon);
 
     /*!
      * Insert a point into a ListPolygon if it's not a duplicate of the point before or the point after.
@@ -154,7 +154,7 @@ public:
      * \param to_insert The point to insert into the ListPolygon in between \p before and \p after
      * \return Iterator to the newly inserted point, or \p before or \p after in case to_insert was already in the polygon
      */
-    static ListPolyIt insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const ::curaengine::geometry::Point2LL to_insert);
+    static ListPolyIt insertPointNonDuplicate(const ListPolyIt before, const ListPolyIt after, const geometry::Point2LL to_insert);
 
 private:
     ListPolygon* poly_; //!< The polygon

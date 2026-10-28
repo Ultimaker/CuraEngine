@@ -3,6 +3,8 @@
 
 #include "utils/PolygonsSegmentIndex.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
@@ -11,17 +13,17 @@ PolygonsSegmentIndex::PolygonsSegmentIndex()
 {
 }
 
-PolygonsSegmentIndex::PolygonsSegmentIndex(const ::curaengine::geometry::Shape* polygons, unsigned int poly_idx, unsigned int point_idx)
+PolygonsSegmentIndex::PolygonsSegmentIndex(const Shape* polygons, unsigned int poly_idx, unsigned int point_idx)
     : PolygonsPointIndex(polygons, poly_idx, point_idx)
 {
 }
 
-::curaengine::geometry::Point2LL PolygonsSegmentIndex::from() const
+Point2LL PolygonsSegmentIndex::from() const
 {
     return PolygonsPointIndex::p();
 }
 
-::curaengine::geometry::Point2LL PolygonsSegmentIndex::to() const
+Point2LL PolygonsSegmentIndex::to() const
 {
     return PolygonsSegmentIndex::next().p();
 }

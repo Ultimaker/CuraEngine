@@ -25,7 +25,7 @@ namespace curaengine::infill
 class NoZigZagConnectorProcessor : public ZigzagConnectorProcessor
 {
 public:
-    NoZigZagConnectorProcessor(const ::curaengine::geometry::PointMatrix& rotation_matrix, ::curaengine::geometry::OpenLinesSet& result)
+    NoZigZagConnectorProcessor(const geometry::PointMatrix& rotation_matrix, geometry::OpenLinesSet& result)
         : ZigzagConnectorProcessor(
               rotation_matrix,
               result,
@@ -36,8 +36,8 @@ public:
     {
     }
 
-    void registerVertex(const ::curaengine::geometry::Point2LL& vertex);
-    void registerScanlineSegmentIntersection(const ::curaengine::geometry::Point2LL& intersection, int scanline_index, ::curaengine::utils::coord_t min_distance_to_scanline);
+    void registerVertex(const geometry::Point2LL& vertex);
+    void registerScanlineSegmentIntersection(const geometry::Point2LL& intersection, int scanline_index, utils::coord_t min_distance_to_scanline);
     void registerPolyFinished();
 };
 

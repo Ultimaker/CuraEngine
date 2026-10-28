@@ -6,12 +6,14 @@
 #include "utils/VoxelGrid.h"
 
 
-BOOST_GEOMETRY_REGISTER_POINT_3D(::curaengine::geometry::Point3D, double, boost::geometry::cs::cartesian, x_, y_, z_)
+BOOST_GEOMETRY_REGISTER_POINT_3D(Point3D, double, boost::geometry::cs::cartesian, x_, y_, z_)
+
+using namespace curaengine::geometry;
 
 namespace curaengine::utils
 {
 
-std::optional<OccupiedPosition> SpatialLookup::findClosestOccupation(const ::curaengine::geometry::Point3D& position) const
+std::optional<OccupiedPosition> SpatialLookup::findClosestOccupation(const Point3D& position) const
 {
     std::vector<OccupiedPosition> nearest_neighbors;
     lookup_tree_.query(boost::geometry::index::nearest(position, 1), std::back_inserter(nearest_neighbors));

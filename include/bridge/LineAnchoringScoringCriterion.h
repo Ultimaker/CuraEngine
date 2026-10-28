@@ -21,7 +21,7 @@ class TransformedShape;
 class LineAnchoringScoringCriterion : public BridgeAngleScoringCriterion
 {
 public:
-    explicit LineAnchoringScoringCriterion(const std::vector<::curaengine::types::AngleDegrees>& candidates, const ::curaengine::geometry::Shape& skin_outline, const ::curaengine::geometry::Shape& supported_regions, const ::curaengine::utils::coord_t line_width);
+    explicit LineAnchoringScoringCriterion(const std::vector<types::AngleDegrees>& candidates, const geometry::Shape& skin_outline, const geometry::Shape& supported_regions, const utils::coord_t line_width);
 
 protected:
     double computeScore(const TransformedShape& transformed_skin, const TransformedShape& transformed_supported_regions) const override;
@@ -41,7 +41,7 @@ private:
      *   - Properly bridging segments, i.e. between two supported areas, add their length to the score
      *   - Hanging segments, i.e. supported on one side but not the other (or not at all), subtract their length from the score
      *   - Segments that lie on a supported area substract part of their length from the score  */
-    static std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> evaluateBridgeLine(const ::curaengine::utils::coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area);
+    static std::tuple<utils::coord_t, utils::coord_t> evaluateBridgeLine(const utils::coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area);
 
     /*!
      * Calculates all the intersections between a horizontal line and the given transformed shape
@@ -49,10 +49,10 @@ private:
      * @param transformed_shape The shape to intersect with
      * @return The list of X coordinates of the intersections, unsorted
      */
-    static std::vector<::curaengine::utils::coord_t> shapeLineIntersections(const ::curaengine::utils::coord_t line_y, const TransformedShape& transformed_shape);
+    static std::vector<utils::coord_t> shapeLineIntersections(const utils::coord_t line_y, const TransformedShape& transformed_shape);
 
 private:
-    const ::curaengine::utils::coord_t line_width_;
+    const utils::coord_t line_width_;
 };
 
 } // namespace curaengine::bridge

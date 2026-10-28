@@ -6,9 +6,11 @@
 
 #include "SliceMeshStorage.h"
 
+using namespace curaengine::types;
+
 namespace curaengine::plugins
 {
-[[nodiscard]] constexpr ::cura::plugins::v0::SpaceFillType gcode_paths_modify_request::getSpaceFillType(const curaengine::SpaceFillType space_fill_type) noexcept
+[[nodiscard]] constexpr ::cura::plugins::v0::SpaceFillType gcode_paths_modify_request::getSpaceFillType(const SpaceFillType space_fill_type) noexcept
 {
     switch (space_fill_type)
     {
@@ -25,7 +27,7 @@ namespace curaengine::plugins
     }
 }
 
-[[nodiscard]] constexpr ::cura::plugins::v0::PrintFeature gcode_paths_modify_request::getPrintFeature(const curaengine::PrintFeatureType print_feature_type) noexcept
+[[nodiscard]] constexpr ::cura::plugins::v0::PrintFeature gcode_paths_modify_request::getPrintFeature(const PrintFeatureType print_feature_type) noexcept
 {
     switch (print_feature_type)
     {
@@ -67,7 +69,7 @@ namespace curaengine::plugins
 }
 
 gcode_paths_modify_request::value_type
-    gcode_paths_modify_request::operator()(const gcode_paths_modify_request::native_value_type& paths, const size_t extruder_nr, const ::curaengine::types::LayerIndex layer_nr) const
+    gcode_paths_modify_request::operator()(const gcode_paths_modify_request::native_value_type& paths, const size_t extruder_nr, const LayerIndex layer_nr) const
 {
     value_type message{};
     message.set_extruder_nr(static_cast<int64_t>(extruder_nr));

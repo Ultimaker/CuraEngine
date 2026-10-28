@@ -14,12 +14,12 @@ class TransformedSegment;
 /*! Helper structure that calculate the basic coordinates data to be used to perform segments overlapping calculation */
 struct SegmentOverlappingData
 {
-    ::curaengine::utils::coord_t y_min;
-    ::curaengine::utils::coord_t y_max;
-    ::curaengine::utils::coord_t this_x_min;
-    ::curaengine::utils::coord_t this_x_max;
-    ::curaengine::utils::coord_t other_x_min;
-    ::curaengine::utils::coord_t other_x_max;
+    utils::coord_t y_min;
+    utils::coord_t y_max;
+    utils::coord_t this_x_min;
+    utils::coord_t this_x_max;
+    utils::coord_t other_x_min;
+    utils::coord_t other_x_max;
 
     /*!
      * Builds the basic segment overlapping data
@@ -33,14 +33,14 @@ struct SegmentOverlappingData
      * @param other_end The actual end position of the tested segment
      */
     SegmentOverlappingData(
-        const ::curaengine::utils::coord_t this_min_y,
-        const ::curaengine::utils::coord_t this_max_y,
-        const ::curaengine::utils::coord_t other_min_y,
-        const ::curaengine::utils::coord_t other_max_y,
-        const ::curaengine::geometry::Point2LL* this_start,
-        const ::curaengine::geometry::Point2LL* this_end,
-        const ::curaengine::geometry::Point2LL& other_start,
-        const ::curaengine::geometry::Point2LL& other_end);
+        const utils::coord_t this_min_y,
+        const utils::coord_t this_max_y,
+        const utils::coord_t other_min_y,
+        const utils::coord_t other_max_y,
+        const geometry::Point2LL* this_start,
+        const geometry::Point2LL* this_end,
+        const geometry::Point2LL& other_start,
+        const geometry::Point2LL& other_end);
 
     /*! Make the cropped segment that is actually overlapping over the original segment, which may be part of all of the initial segment */
     TransformedSegment makeOtherOverlappingPart() const;

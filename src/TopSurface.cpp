@@ -13,6 +13,11 @@
 #include "types/EZSeamCornerPrefType.h"
 #include "types/EZSeamType.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::infill;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
@@ -24,7 +29,7 @@ TopSurface::TopSurface()
 void TopSurface::setAreasFromMeshAndLayerNumber(SliceMeshStorage& mesh, size_t layer_number)
 {
     // The top surface is all parts of the mesh where there's no mesh above it, so find the layer above it first.
-    ::curaengine::geometry::Shape mesh_above;
+    Shape mesh_above;
     if (layer_number < mesh.layers.size() - 1)
     {
         mesh_above = mesh.layers[layer_number + 1].getOutlines();
@@ -53,46 +58,46 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     // Generate the lines to cover the surface.
     const int extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
-    const ::curaengine::types::EFillMethod pattern = mesh.settings.get<::curaengine::types::EFillMethod>("ironing_pattern");
-    const bool zig_zaggify_infill = pattern == ::curaengine::types::EFillMethod::ZIG_ZAG;
+    const EFillMethod pattern = mesh.settings.get<EFillMethod>("ironing_pattern");
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     constexpr bool connect_polygons = false; // midway connections can make the surface less smooth
-    const ::curaengine::utils::coord_t line_spacing = mesh.settings.get<::curaengine::utils::coord_t>("ironing_line_spacing");
-    const ::curaengine::utils::coord_t line_width = line_config.getLineWidth();
+    const coord_t line_spacing = mesh.settings.get<coord_t>("ironing_line_spacing");
+    const coord_t line_width = line_config.getLineWidth();
     const size_t roofing_layer_count = std::min(mesh.settings.get<size_t>("roofing_layer_count"), mesh.settings.get<size_t>("top_layers"));
-    const std::vector<::curaengine::types::AngleDegrees>& top_most_skin_angles = (roofing_layer_count > 0) ? mesh.roofing_angles : mesh.skin_angles;
+    const std::vector<AngleDegrees>& top_most_skin_angles = (roofing_layer_count > 0) ? mesh.roofing_angles : mesh.skin_angles;
     assert(top_most_skin_angles.size() > 0);
-    const ::curaengine::types::AngleDegrees direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + ::curaengine::types::AngleDegrees(90.0); // Always perpendicular to the skin lines.
-    constexpr ::curaengine::utils::coord_t infill_overlap = 0;
+    const AngleDegrees direction = top_most_skin_angles[layer.getLayerNr() % top_most_skin_angles.size()] + AngleDegrees(90.0); // Always perpendicular to the skin lines.
+    constexpr coord_t infill_overlap = 0;
     constexpr int infill_multiplier = 1;
-    constexpr ::curaengine::utils::coord_t shift = 0;
-    const ::curaengine::utils::coord_t max_resolution = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    const ::curaengine::utils::coord_t max_deviation = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
-    const ::curaengine::types::Ratio ironing_flow = mesh.settings.get<::curaengine::types::Ratio>("ironing_flow");
+    constexpr coord_t shift = 0;
+    const coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
+    const Ratio ironing_flow = mesh.settings.get<Ratio>("ironing_flow");
     const bool enforce_monotonic_order = mesh.settings.get<bool>("ironing_monotonic");
     constexpr size_t wall_line_count = 0;
-    const ::curaengine::utils::coord_t small_area_width = 0; // This shouldn't be on for ironing.
-    const ::curaengine::geometry::Point2LL infill_origin = ::curaengine::geometry::Point2LL();
+    const coord_t small_area_width = 0; // This shouldn't be on for ironing.
+    const Point2LL infill_origin = Point2LL();
     const bool skip_line_stitching = enforce_monotonic_order;
 
-    ::curaengine::utils::coord_t ironing_inset = -mesh.settings.get<::curaengine::utils::coord_t>("ironing_inset");
-    if (pattern == ::curaengine::types::EFillMethod::ZIG_ZAG)
+    coord_t ironing_inset = -mesh.settings.get<coord_t>("ironing_inset");
+    if (pattern == EFillMethod::ZIG_ZAG)
     {
         // Compensate for the outline_offset decrease that takes place when using the infill generator to generate ironing with the zigzag pattern
-        const ::curaengine::types::Ratio width_scale = (double)mesh.settings.get<::curaengine::utils::coord_t>("layer_height") / mesh.settings.get<::curaengine::utils::coord_t>("infill_sparse_thickness");
+        const Ratio width_scale = (double)mesh.settings.get<coord_t>("layer_height") / mesh.settings.get<coord_t>("infill_sparse_thickness");
         ironing_inset += width_scale * line_width / 2;
         // Align the edge of the ironing line with the edge of the outer wall
         ironing_inset -= ironing_flow * line_width / 2;
     }
-    else if (pattern == ::curaengine::types::EFillMethod::CONCENTRIC)
+    else if (pattern == EFillMethod::CONCENTRIC)
     {
         // Counteract the outline_offset increase that takes place when using the infill generator to generate ironing with the concentric pattern
         ironing_inset += line_spacing - line_width / 2;
         // Align the edge of the ironing line with the edge of the outer wall
         ironing_inset -= ironing_flow * line_width / 2;
     }
-    ::curaengine::geometry::Shape ironed_areas = areas.offset(ironing_inset);
+    Shape ironed_areas = areas.offset(ironing_inset);
 
-    ::curaengine::infill::Infill infill_generator(
+    Infill infill_generator(
         pattern,
         zig_zaggify_infill,
         connect_polygons,
@@ -110,10 +115,10 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         small_area_width,
         infill_origin,
         skip_line_stitching);
-    std::vector<::curaengine::utils::VariableWidthLines> ironing_paths;
-    ::curaengine::geometry::Shape ironing_polygons;
-    ::curaengine::geometry::OpenLinesSet ironing_lines;
-    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerNr(), ::curaengine::utils::SectionType::IRONING);
+    std::vector<VariableWidthLines> ironing_paths;
+    Shape ironing_polygons;
+    OpenLinesSet ironing_lines;
+    infill_generator.generate(ironing_paths, ironing_polygons, ironing_lines, mesh.settings, layer.getLayerNr(), SectionType::IRONING);
 
     if (ironing_polygons.empty() && ironing_lines.empty() && ironing_paths.empty())
     {
@@ -129,18 +134,18 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
     }
     if (! ironing_lines.empty())
     {
-        if (pattern == ::curaengine::types::EFillMethod::LINES || pattern == ::curaengine::types::EFillMethod::ZIG_ZAG)
+        if (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG)
         {
             // Move to a corner of the area that is perpendicular to the ironing lines, to reduce the number of seams.
-            const ::curaengine::utils::AABB bounding_box(ironed_areas);
-            ::curaengine::geometry::PointMatrix rotate(-direction + 90);
-            const ::curaengine::geometry::Point2LL center = bounding_box.getMiddle();
-            const ::curaengine::geometry::Point2LL far_away = rotate.apply(
-                ::curaengine::geometry::Point2LL(0, ::curaengine::geometry::vSize(bounding_box.max_ - center) * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
+            const AABB bounding_box(ironed_areas);
+            PointMatrix rotate(-direction + 90);
+            const Point2LL center = bounding_box.getMiddle();
+            const Point2LL far_away = rotate.apply(
+                Point2LL(0, geometry::vSize(bounding_box.max_ - center) * 100)); // Some direction very far away in the direction perpendicular to the ironing lines, relative to the centre.
             // Two options to start, both perpendicular to the ironing lines. Which is closer?
-            const ::curaengine::geometry::Point2LL front_side = ::curaengine::utils::PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
-            const ::curaengine::geometry::Point2LL back_side = ::curaengine::utils::PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
-            if (::curaengine::geometry::vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < ::curaengine::geometry::vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
+            const Point2LL front_side = PolygonUtils::findNearestVert(center + far_away, ironed_areas).p();
+            const Point2LL back_side = PolygonUtils::findNearestVert(center - far_away, ironed_areas).p();
+            if (geometry::vSize2(layer.getLastPlannedPositionOrStartingPosition() - front_side) < geometry::vSize2(layer.getLastPlannedPositionOrStartingPosition() - back_side))
             {
                 layer.addTravel(front_side);
             }
@@ -156,16 +161,16 @@ bool TopSurface::ironing(const SliceDataStorage& storage, const SliceMeshStorage
         }
         else
         {
-            const ::curaengine::utils::coord_t max_adjacent_distance
+            const coord_t max_adjacent_distance
                 = line_spacing * 1.1; // Lines are considered adjacent - meaning they need to be printed in monotonic order - if spaced 1 line apart, with 10% extra play.
-            layer.addLinesMonotonic(::curaengine::geometry::Shape(), ironing_lines, line_config, SpaceFillType::PolyLines, ::curaengine::types::AngleRadians(direction), max_adjacent_distance);
+            layer.addLinesMonotonic(Shape(), ironing_lines, line_config, SpaceFillType::PolyLines, AngleRadians(direction), max_adjacent_distance);
         }
         added = true;
     }
     if (! ironing_paths.empty())
     {
-        constexpr ::curaengine::utils::coord_t wipe_dist = 0u;
-        const ::curaengine::types::ZSeamConfig z_seam_config(::curaengine::types::EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
+        constexpr coord_t wipe_dist = 0u;
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
         InsetOrderOptimizer wall_orderer(
             storage,
             layer,

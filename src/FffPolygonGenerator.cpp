@@ -69,13 +69,19 @@
 #include "utils/Simplify.h"
 // clang-format on
 
+using namespace curaengine::geometry;
+using namespace curaengine::infill;
+using namespace curaengine::progress;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
 
-bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, ::curaengine::utils::TimeKeeper& timeKeeper)
+bool FffPolygonGenerator::generateAreas(SliceDataStorage& storage, MeshGroup* meshgroup, TimeKeeper& timeKeeper)
 {
-    ::curaengine::mesh_material_splitter::makePaintingModifierMeshes(meshgroup);
+    mesh_material_splitter::makePaintingModifierMeshes(meshgroup);
 
     if (! sliceModel(meshgroup, timeKeeper, storage))
     {
@@ -94,23 +100,23 @@ size_t FffPolygonGenerator::getDraftShieldLayerCount(const size_t total_layers) 
     {
         return 0;
     }
-    switch (mesh_group_settings.get<::curaengine::types::DraftShieldHeightLimitation>("draft_shield_height_limitation"))
+    switch (mesh_group_settings.get<DraftShieldHeightLimitation>("draft_shield_height_limitation"))
     {
-    case ::curaengine::types::DraftShieldHeightLimitation::FULL:
+    case DraftShieldHeightLimitation::FULL:
         return total_layers;
-    case ::curaengine::types::DraftShieldHeightLimitation::LIMITED:
+    case DraftShieldHeightLimitation::LIMITED:
         return std::max(
-            (::curaengine::utils::coord_t)0,
-            (mesh_group_settings.get<::curaengine::utils::coord_t>("draft_shield_height") - mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height_0")) / mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height") + 1);
+            (coord_t)0,
+            (mesh_group_settings.get<coord_t>("draft_shield_height") - mesh_group_settings.get<coord_t>("layer_height_0")) / mesh_group_settings.get<coord_t>("layer_height") + 1);
     default:
         spdlog::warn("A draft shield height limitation option was added without implementing the new option in getDraftShieldLayerCount.");
         return total_layers;
     }
 }
 
-bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
+bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, TimeKeeper& timeKeeper, SliceDataStorage& storage) /// slices the model
 {
-    ::curaengine::progress::Progress::messageProgressStage(::curaengine::progress::Progress::Stage::SLICING, &timeKeeper);
+    Progress::messageProgressStage(Progress::Stage::SLICING, &timeKeeper);
 
     storage.model_min = meshgroup->min();
     storage.model_max = meshgroup->max();
@@ -124,7 +130,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
     int slice_layer_count = 0; // Use signed int because we need to subtract the initial layer in a calculation temporarily.
 
     // Initial layer height of 0 is not allowed. Negative layer height is nonsense.
-    ::curaengine::utils::coord_t initial_layer_thickness = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height_0");
+    coord_t initial_layer_thickness = mesh_group_settings.get<coord_t>("layer_height_0");
     if (initial_layer_thickness <= 0)
     {
         spdlog::error("Initial layer height {} is disallowed.", initial_layer_thickness);
@@ -132,7 +138,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
     }
 
     // Layer height of 0 is not allowed. Negative layer height is nonsense.
-    const ::curaengine::utils::coord_t layer_thickness = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height");
+    const coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
     if (layer_thickness <= 0)
     {
         spdlog::error("Layer height {} is disallowed.\n", layer_thickness);
@@ -140,17 +146,17 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
     }
 
     // variable layers
-    ::curaengine::types::AdaptiveLayerHeights* adaptive_layer_heights = nullptr;
+    AdaptiveLayerHeights* adaptive_layer_heights = nullptr;
     const bool use_variable_layer_heights = mesh_group_settings.get<bool>("adaptive_layer_height_enabled");
 
     if (use_variable_layer_heights)
     {
         // Calculate adaptive layer heights
-        const auto variable_layer_height_max_variation = mesh_group_settings.get<::curaengine::utils::coord_t>("adaptive_layer_height_variation");
-        const auto variable_layer_height_variation_step = mesh_group_settings.get<::curaengine::utils::coord_t>("adaptive_layer_height_variation_step");
-        const auto adaptive_threshold = mesh_group_settings.get<::curaengine::utils::coord_t>("adaptive_layer_height_threshold");
+        const auto variable_layer_height_max_variation = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation");
+        const auto variable_layer_height_variation_step = mesh_group_settings.get<coord_t>("adaptive_layer_height_variation_step");
+        const auto adaptive_threshold = mesh_group_settings.get<coord_t>("adaptive_layer_height_threshold");
         adaptive_layer_heights
-            = new ::curaengine::types::AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, meshgroup);
+            = new AdaptiveLayerHeights(layer_thickness, variable_layer_height_max_variation, variable_layer_height_variation_step, adaptive_threshold, meshgroup);
 
         // Get the amount of layers
         slice_layer_count = adaptive_layer_heights->getLayerCount();
@@ -164,25 +170,25 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
             {
                 continue;
             }
-            const ::curaengine::utils::coord_t mesh_height = mesh.max().z_;
-            switch (mesh.settings_.get<::curaengine::types::SlicingTolerance>("slicing_tolerance"))
+            const coord_t mesh_height = mesh.max().z_;
+            switch (mesh.settings_.get<SlicingTolerance>("slicing_tolerance"))
             {
-            case ::curaengine::types::SlicingTolerance::MIDDLE:
+            case SlicingTolerance::MIDDLE:
                 if (storage.model_max.z_ < initial_layer_thickness)
                 {
                     slice_layer_count = std::max(slice_layer_count, (mesh_height > initial_layer_thickness / 2) ? 1 : 0); // One layer if higher than half initial layer height.
                 }
                 else
                 {
-                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(::curaengine::utils::round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(utils::round_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
                 }
                 break;
-            case ::curaengine::types::SlicingTolerance::EXCLUSIVE:
+            case SlicingTolerance::EXCLUSIVE:
             {
                 int new_slice_layer_count = 0;
                 if (mesh_height >= initial_layer_thickness) // If less than the initial layer thickness, leave it at 0.
                 {
-                    new_slice_layer_count = static_cast<int>(::curaengine::utils::floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
+                    new_slice_layer_count = static_cast<int>(utils::floor_divide_signed(mesh_height - 1 - initial_layer_thickness, layer_thickness) + 1);
                 }
                 if (new_slice_layer_count > 0) // If there is at least one layer already, then...
                 {
@@ -191,7 +197,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
                 slice_layer_count = std::max(slice_layer_count, new_slice_layer_count);
                 break;
             }
-            case ::curaengine::types::SlicingTolerance::INCLUSIVE:
+            case SlicingTolerance::INCLUSIVE:
                 if (mesh_height < initial_layer_thickness)
                 {
                     slice_layer_count
@@ -199,7 +205,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
                 }
                 else
                 {
-                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(::curaengine::utils::ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
+                    slice_layer_count = std::max(slice_layer_count, static_cast<int>(utils::ceil_divide_signed(mesh_height - initial_layer_thickness, layer_thickness) + 1));
                 }
                 break;
             default:
@@ -219,7 +225,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
     for (unsigned int mesh_idx = 0; mesh_idx < meshgroup->meshes.size(); mesh_idx++)
     {
         // Check if adaptive layers is populated to prevent accessing a method on NULL
-        std::vector<::curaengine::types::AdaptiveLayer>* adaptive_layer_height_values = {};
+        std::vector<AdaptiveLayer>* adaptive_layer_height_values = {};
         if (adaptive_layer_heights != nullptr)
         {
             adaptive_layer_height_values = adaptive_layer_heights->getLayers();
@@ -227,14 +233,14 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
 
         Mesh& mesh = meshgroup->meshes[mesh_idx];
 
-        const ::curaengine::types::SlicingTolerance slicing_tolerance = mesh.settings_.get<::curaengine::types::SlicingTolerance>("slicing_tolerance");
+        const SlicingTolerance slicing_tolerance = mesh.settings_.get<SlicingTolerance>("slicing_tolerance");
 
         Slicer* slicer
             = new Slicer(&mesh, layer_thickness, slice_layer_count, use_variable_layer_heights, adaptive_layer_height_values, slicing_tolerance, initial_layer_thickness);
 
         slicerList.push_back(slicer);
 
-        ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
+        Progress::messageProgress(Progress::Stage::SLICING, mesh_idx + 1, meshgroup->meshes.size());
     }
 
     // Clear the mesh face and vertex data, it is no longer needed after this point, and it saves a lot of memory.
@@ -255,7 +261,7 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
 
     MultiVolumes::carveCuttingMeshes(slicerList, scene.current_mesh_group->meshes);
 
-    ::curaengine::progress::Progress::messageProgressStage(::curaengine::progress::Progress::Stage::PARTS, &timeKeeper);
+    Progress::messageProgressStage(Progress::Stage::PARTS, &timeKeeper);
 
     if (scene.current_mesh_group->settings.get<bool>("carve_multiple_volumes"))
     {
@@ -310,10 +316,10 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
         }
 
         // check one if raft offset is needed
-        const bool has_raft = mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::RAFT;
+        const bool has_raft = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
 
         // calculate the height at which each layer is actually printed (printZ)
-        for (::curaengine::types::LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
+        for (LayerIndex layer_nr = 0; layer_nr < meshStorage.layers.size(); layer_nr++)
         {
             SliceLayer& layer = meshStorage.layers[layer_nr];
             const SlicerLayer& slicer_layer = slicer->layers[layer_nr];
@@ -345,24 +351,24 @@ bool FffPolygonGenerator::sliceModel(MeshGroup* meshgroup, ::curaengine::utils::
             if (has_raft)
             {
                 const ExtruderTrain& train = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr");
-                layer.printZ += Raft::getTotalThickness() + train.settings_.get<::curaengine::utils::coord_t>("raft_airgap")
-                              - train.settings_.get<::curaengine::utils::coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
+                layer.printZ += Raft::getTotalThickness() + train.settings_.get<coord_t>("raft_airgap")
+                              - train.settings_.get<coord_t>("layer_0_z_overlap"); // shift all layers (except 0) down
 
                 if (layer_nr == 0)
                 {
-                    layer.printZ += train.settings_.get<::curaengine::utils::coord_t>("layer_0_z_overlap"); // undo shifting down of first layer
+                    layer.printZ += train.settings_.get<coord_t>("layer_0_z_overlap"); // undo shifting down of first layer
                 }
             }
         }
 
         delete slicerList[meshIdx];
 
-        ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
+        Progress::messageProgress(Progress::Stage::PARTS, meshIdx + 1, slicerList.size());
     }
     return true;
 }
 
-void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, ::curaengine::utils::TimeKeeper& time_keeper)
+void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     // compute layer count and remove first empty layers
     // there is no separate progress stage for removeEmptyFirstLayer (TODO)
@@ -382,9 +388,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, ::curaengin
     {
         mesh_timings.push_back(1.0); // TODO: have a more accurate estimate of the relative time it takes per mesh, based on the height and number of polygons
     }
-    ::curaengine::progress::ProgressStageEstimator inset_skin_progress_estimate(mesh_timings);
+    ProgressStageEstimator inset_skin_progress_estimate(mesh_timings);
 
-    ::curaengine::progress::Progress::messageProgressStage(::curaengine::progress::Progress::Stage::INSET_SKIN, &time_keeper);
+    Progress::messageProgressStage(Progress::Stage::INSET_SKIN, &time_keeper);
     std::vector<size_t> mesh_order;
     { // compute mesh order
         std::multimap<int, size_t> order_to_mesh_indices;
@@ -400,7 +406,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, ::curaengin
     for (size_t mesh_order_idx = 0; mesh_order_idx < mesh_order.size(); ++mesh_order_idx)
     {
         processBasicWallsSkinInfill(storage, mesh_order_idx, mesh_order, inset_skin_progress_estimate);
-        ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
+        Progress::messageProgress(Progress::Stage::INSET_SKIN, mesh_order_idx + 1, storage.meshes.size());
     }
 
     const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
@@ -424,7 +430,7 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, ::curaengin
         return;
     }
 
-    ::curaengine::progress::Progress::messageProgressStage(::curaengine::progress::Progress::Stage::SUPPORT, &time_keeper);
+    Progress::messageProgressStage(Progress::Stage::SUPPORT, &time_keeper);
 
     AreaSupport::generateOverhangAreas(storage);
     AreaSupport::generateSupportAreas(storage);
@@ -464,9 +470,9 @@ void FffPolygonGenerator::slices2polygons(SliceDataStorage& storage, ::curaengin
     AreaSupport::generateSupportInfillFeatures(storage);
 
     // Pre-compute lightning fill
-    if (mesh_group_settings.get<::curaengine::utils::coord_t>("support_line_distance") > 0 && mesh_group_settings.get<::curaengine::types::EFillMethod>("support_pattern") == ::curaengine::types::EFillMethod::LIGHTNING)
+    if (mesh_group_settings.get<coord_t>("support_line_distance") > 0 && mesh_group_settings.get<EFillMethod>("support_pattern") == EFillMethod::LIGHTNING)
     {
-        storage.support.lightning_generator = std::make_shared<::curaengine::infill::LightningGenerator>(storage.support);
+        storage.support.lightning_generator = std::make_shared<LightningGenerator>(storage.support);
     }
 }
 
@@ -474,7 +480,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     SliceDataStorage& storage,
     const size_t mesh_order_idx,
     const std::vector<size_t>& mesh_order,
-    ::curaengine::progress::ProgressStageEstimator& inset_skin_progress_estimate)
+    ProgressStageEstimator& inset_skin_progress_estimate)
 {
     size_t mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
@@ -487,16 +493,16 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     // TODO: make progress more accurate!!
     // note: estimated time for     insets : skins = 22.953 : 48.858
     std::vector<double> walls_vs_skin_timing({ 22.953, 48.858 });
-    ::curaengine::progress::ProgressStageEstimator* mesh_inset_skin_progress_estimator = new ::curaengine::progress::ProgressStageEstimator(walls_vs_skin_timing);
+    ProgressStageEstimator* mesh_inset_skin_progress_estimator = new ProgressStageEstimator(walls_vs_skin_timing);
 
     inset_skin_progress_estimate.nextStage(mesh_inset_skin_progress_estimator); // the stage of this function call
 
-    ::curaengine::progress::ProgressEstimatorLinear* inset_estimator = new ::curaengine::progress::ProgressEstimatorLinear(mesh_layer_count);
+    ProgressEstimatorLinear* inset_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(inset_estimator);
 
     struct
     {
-        ::curaengine::progress::ProgressStageEstimator& progress_estimator;
+        ProgressStageEstimator& progress_estimator;
         std::mutex mutex{};
         std::atomic<size_t> processed_layer_count = 0;
 
@@ -507,7 +513,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
             { // progress estimation is done only in one thread so that no two threads message progress at the same time
                 size_t processed_layer_count_ = processed_layer_count.fetch_add(1, std::memory_order_relaxed);
                 double progress = progress_estimator.progress(processed_layer_count_);
-                ::curaengine::progress::Progress::messageProgress(::curaengine::progress::Progress::Stage::INSET_SKIN, progress * 100, 100);
+                Progress::messageProgress(Progress::Stage::INSET_SKIN, progress * 100, 100);
             }
             else
             {
@@ -521,7 +527,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     } guarded_progress = { inset_skin_progress_estimate };
 
     // walls
-    ::curaengine::utils::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         mesh_layer_count,
         [&](size_t layer_number)
@@ -531,10 +537,10 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
             guarded_progress++;
         });
 
-    ::curaengine::progress::ProgressEstimatorLinear* skin_estimator = new ::curaengine::progress::ProgressEstimatorLinear(mesh_layer_count);
+    ProgressEstimatorLinear* skin_estimator = new ProgressEstimatorLinear(mesh_layer_count);
     mesh_inset_skin_progress_estimator->nextStage(skin_estimator);
 
-    bool process_infill = mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance") > 0;
+    bool process_infill = mesh.settings.get<coord_t>("infill_line_distance") > 0;
     if (! process_infill)
     { // do process infill anyway if it's modified by modifier meshes
         const Scene& scene = Application::getInstance().current_slice_->scene;
@@ -544,8 +550,8 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
             SliceMeshStorage& other_mesh = *storage.meshes[other_mesh_idx];
             if (other_mesh.settings.get<bool>("infill_mesh"))
             {
-                ::curaengine::utils::AABB3D aabb = scene.current_mesh_group->meshes[mesh_idx].getAABB();
-                ::curaengine::utils::AABB3D other_aabb = scene.current_mesh_group->meshes[other_mesh_idx].getAABB();
+                AABB3D aabb = scene.current_mesh_group->meshes[mesh_idx].getAABB();
+                AABB3D other_aabb = scene.current_mesh_group->meshes[other_mesh_idx].getAABB();
                 if (aabb.hit(other_aabb))
                 {
                     process_infill = true;
@@ -564,7 +570,7 @@ void FffPolygonGenerator::processBasicWallsSkinInfill(
     }
 
     guarded_progress.reset();
-    ::curaengine::utils::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         mesh_layer_count,
         [&](size_t layer_number)
@@ -582,20 +588,20 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 {
     size_t mesh_idx = mesh_order[mesh_order_idx];
     SliceMeshStorage& mesh = *storage.meshes[mesh_idx];
-    ::curaengine::utils::coord_t surface_line_width = mesh.settings.get<::curaengine::utils::coord_t>("wall_line_width_0");
+    coord_t surface_line_width = mesh.settings.get<coord_t>("wall_line_width_0");
 
     mesh.layer_nr_max_filled_layer = -1;
-    for (::curaengine::types::LayerIndex layer_idx = 0; layer_idx < ::curaengine::types::LayerIndex(mesh.layers.size()); layer_idx++)
+    for (LayerIndex layer_idx = 0; layer_idx < LayerIndex(mesh.layers.size()); layer_idx++)
     {
         SliceLayer& layer = mesh.layers[layer_idx];
 
-        if (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") == ::curaengine::types::ESurfaceMode::SURFACE)
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
         {
             // break up polygons into polylines
             // they have to be polylines, because they might break up further when doing the cutting
             for (SliceLayerPart& part : layer.parts)
             {
-                for (const ::curaengine::geometry::Polygon& poly : part.outline)
+                for (const Polygon& poly : part.outline)
                 {
                     layer.open_polylines.push_back(poly.toPseudoOpenPolyline());
                 }
@@ -603,8 +609,8 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             layer.parts.clear();
         }
 
-        std::vector<::curaengine::geometry::SingleShape> new_parts;
-        ::curaengine::geometry::OpenLinesSet new_polylines;
+        std::vector<SingleShape> new_parts;
+        OpenLinesSet new_polylines;
 
         for (const size_t other_mesh_idx : mesh_order)
         { // limit the infill mesh's outline to within the infill of all meshes with lower order
@@ -613,7 +619,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                 break; // all previous meshes have been processed
             }
             SliceMeshStorage& other_mesh = *storage.meshes[other_mesh_idx];
-            if (layer_idx >= ::curaengine::types::LayerIndex(other_mesh.layers.size()))
+            if (layer_idx >= LayerIndex(other_mesh.layers.size()))
             { // there can be no interaction between the infill mesh and this other non-infill mesh
                 continue;
             }
@@ -622,7 +628,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
 
             for (SliceLayerPart& other_part : other_layer.parts)
             {
-                if (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::SURFACE)
+                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::SURFACE)
                 {
                     for (SliceLayerPart& part : layer.parts)
                     { // limit the outline of each part of this infill mesh to the infill of parts of the other mesh with lower infill mesh order
@@ -630,17 +636,17 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                         { // early out
                             continue;
                         }
-                        ::curaengine::geometry::Shape new_outline = part.outline.intersection(other_part.getOwnInfillArea());
+                        Shape new_outline = part.outline.intersection(other_part.getOwnInfillArea());
                         if (new_outline.size() == 1)
                         { // we don't have to call splitIntoParts, because a single polygon can only be a single part
-                            ::curaengine::geometry::SingleShape outline_part_here;
+                            SingleShape outline_part_here;
                             outline_part_here.push_back(new_outline[0]);
                             new_parts.push_back(outline_part_here);
                         }
                         else if (new_outline.size() > 1)
                         { // we don't know whether it's a multitude of parts because of newly introduced holes, or because the polygon has been split up
-                            std::vector<::curaengine::geometry::SingleShape> new_parts_here = new_outline.splitIntoParts();
-                            for (::curaengine::geometry::SingleShape& new_part_here : new_parts_here)
+                            std::vector<SingleShape> new_parts_here = new_outline.splitIntoParts();
+                            for (SingleShape& new_part_here : new_parts_here)
                             {
                                 new_parts.push_back(new_part_here);
                             }
@@ -651,10 +657,10 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
                         //       the infill area remains the same for combing
                     }
                 }
-                if (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL)
+                if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
                 {
-                    const ::curaengine::geometry::Shape& own_infill_area = other_part.getOwnInfillArea();
-                    ::curaengine::geometry::OpenLinesSet cut_lines = own_infill_area.intersection(layer.open_polylines);
+                    const Shape& own_infill_area = other_part.getOwnInfillArea();
+                    OpenLinesSet cut_lines = own_infill_area.intersection(layer.open_polylines);
                     new_polylines.push_back(cut_lines);
                     // NOTE: closed polygons will be represented as polylines, which will be closed automatically in the PathOrderOptimizer
                     if (! own_infill_area.empty())
@@ -666,7 +672,7 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
         }
 
         layer.parts.clear();
-        for (::curaengine::geometry::SingleShape& part : new_parts)
+        for (SingleShape& part : new_parts)
         {
             if (part.empty())
             {
@@ -677,12 +683,12 @@ void FffPolygonGenerator::processInfillMesh(SliceDataStorage& storage, const siz
             layer.parts.back().boundaryBox.calculate(part);
         }
 
-        if (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL)
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL)
         {
             layer.open_polylines = new_polylines;
         }
 
-        if (layer.parts.size() > 0 || (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL && layer.open_polylines.size() > 0))
+        if (layer.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.open_polylines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_idx; // last set by the highest non-empty layer
         }
@@ -700,25 +706,25 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
     SkinInfillAreaComputation::generateGradualInfill(mesh);
 
     // SubDivCube Pre-compute Octree
-    if (mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance") > 0 && mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern") == ::curaengine::types::EFillMethod::CUBICSUBDIV)
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CUBICSUBDIV)
     {
-        const ::curaengine::geometry::Point3LL mesh_middle = mesh.bounding_box.getMiddle();
-        const ::curaengine::geometry::Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<::curaengine::utils::coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<::curaengine::utils::coord_t>("infill_offset_y"));
-        ::curaengine::infill::SubDivCube::precomputeOctree(mesh, infill_origin);
+        const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
+        const Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
+        SubDivCube::precomputeOctree(mesh, infill_origin);
     }
 
     // Pre-compute Cross Fractal
-    if (mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance") > 0
-        && (mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern") == ::curaengine::types::EFillMethod::CROSS || mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern") == ::curaengine::types::EFillMethod::CROSS_3D))
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0
+        && (mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS || mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::CROSS_3D))
     {
         const std::string cross_subdivision_spec_image_file = mesh.settings.get<std::string>("cross_infill_density_image");
         std::ifstream cross_fs(cross_subdivision_spec_image_file.c_str());
         if (! cross_subdivision_spec_image_file.empty() && cross_fs.good())
         {
-            mesh.cross_fill_provider = std::make_shared<::curaengine::infill::SierpinskiFillProvider>(
+            mesh.cross_fill_provider = std::make_shared<SierpinskiFillProvider>(
                 mesh.bounding_box,
-                mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance"),
-                mesh.settings.get<::curaengine::utils::coord_t>("infill_line_width"),
+                mesh.settings.get<coord_t>("infill_line_distance"),
+                mesh.settings.get<coord_t>("infill_line_width"),
                 cross_subdivision_spec_image_file);
         }
         else
@@ -728,15 +734,15 @@ void FffPolygonGenerator::processDerivedWallsSkinInfill(SliceMeshStorage& mesh)
                 spdlog::error("Cannot find density image: {}.", cross_subdivision_spec_image_file);
             }
             mesh.cross_fill_provider
-                = std::make_shared<::curaengine::infill::SierpinskiFillProvider>(mesh.bounding_box, mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance"), mesh.settings.get<::curaengine::utils::coord_t>("infill_line_width"));
+                = std::make_shared<SierpinskiFillProvider>(mesh.bounding_box, mesh.settings.get<coord_t>("infill_line_distance"), mesh.settings.get<coord_t>("infill_line_width"));
         }
     }
 
     // Pre-compute lightning fill (aka minfill, aka ribbed support vaults)
-    if (mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance") > 0 && mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern") == ::curaengine::types::EFillMethod::LIGHTNING)
+    if (mesh.settings.get<coord_t>("infill_line_distance") > 0 && mesh.settings.get<EFillMethod>("infill_pattern") == EFillMethod::LIGHTNING)
     {
         // TODO: Make all of these into new type pointers (but the cross fill things need to happen too then, otherwise it'd just look weird).
-        mesh.lightning_generator = std::make_shared<::curaengine::infill::LightningGenerator>(mesh);
+        mesh.lightning_generator = std::make_shared<LightningGenerator>(mesh);
     }
 
     // combine infill
@@ -759,10 +765,10 @@ void FffPolygonGenerator::processWalls(SliceMeshStorage& mesh, size_t layer_nr)
 {
     SliceLayer* layer = &mesh.layers[layer_nr];
     WallsComputation walls_computation(mesh.settings, layer_nr);
-    walls_computation.generateWalls(layer, ::curaengine::utils::SectionType::WALL);
+    walls_computation.generateWalls(layer, SectionType::WALL);
 }
 
-bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const ::curaengine::types::LayerIndex& layer_idx)
+bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const LayerIndex& layer_idx)
 {
     if (storage.support.generated && layer_idx < storage.support.supportLayers.size())
     {
@@ -780,7 +786,7 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const ::curaen
             continue;
         }
         SliceLayer& layer = mesh.layers[layer_idx];
-        if (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL && layer.open_polylines.size() > 0)
+        if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer.open_polylines.size() > 0)
         {
             return false;
         }
@@ -798,14 +804,14 @@ bool FffPolygonGenerator::isEmptyLayer(SliceDataStorage& storage, const ::curaen
 void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size_t& total_layers)
 {
     size_t n_empty_first_layers = 0;
-    ::curaengine::utils::coord_t hightest_empty_layer = 0;
+    coord_t hightest_empty_layer = 0;
     for (size_t layer_idx = 0; layer_idx < total_layers; layer_idx++)
     {
         if (isEmptyLayer(storage, layer_idx))
         {
             n_empty_first_layers++;
 
-            ::curaengine::utils::coord_t layer_highest_z = 0;
+            coord_t layer_highest_z = 0;
             for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
             {
                 const auto& mesh = *mesh_ptr;
@@ -822,7 +828,7 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
     if (n_empty_first_layers > 0)
     {
         spdlog::info("Removing {} layers because they are empty", n_empty_first_layers);
-        const ::curaengine::utils::coord_t layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<::curaengine::utils::coord_t>("layer_height");
+        const coord_t layer_height = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height");
         for (auto& mesh_ptr : storage.meshes)
         {
             auto& mesh = *mesh_ptr;
@@ -856,9 +862,9 @@ void FffPolygonGenerator::removeEmptyFirstLayers(SliceDataStorage& storage, size
  * processSkinsAndInfill read (depend on) mesh.layers[*].parts[*].{insets,boundingBox}.
  *                       write mesh.layers[n].parts[*].{skin_parts,infill_area}.
  */
-void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const ::curaengine::types::LayerIndex layer_nr, bool process_infill)
+void FffPolygonGenerator::processSkinsAndInfill(SliceMeshStorage& mesh, const LayerIndex layer_nr, bool process_infill)
 {
-    if (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") == ::curaengine::types::ESurfaceMode::SURFACE)
+    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE)
     {
         return;
     }
@@ -903,7 +909,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             }
             for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
             {
-                for (::curaengine::types::LayerIndex layer_nr = ::curaengine::types::LayerIndex(mesh.layers.size()) - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
+                for (LayerIndex layer_nr = LayerIndex(mesh.layers.size()) - 1; layer_nr > max_print_height_per_extruder[extruder_nr]; layer_nr--)
                 {
                     if (mesh.getExtruderIsUsed(extruder_nr, layer_nr))
                     {
@@ -928,11 +934,11 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         max_print_height_per_extruder[support_bottom_extruder_nr] = std::max(max_print_height_per_extruder[support_bottom_extruder_nr], storage.support.layer_nr_max_filled_layer);
 
         // Height of where the platform adhesion reaches.
-        const ::curaengine::types::EPlatformAdhesion adhesion_type = mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type");
+        const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
         switch (adhesion_type)
         {
-        case ::curaengine::types::EPlatformAdhesion::SKIRT:
-        case ::curaengine::types::EPlatformAdhesion::BRIM:
+        case EPlatformAdhesion::SKIRT:
+        case EPlatformAdhesion::BRIM:
         {
             const std::vector<ExtruderTrain*> skirt_brim_extruder_trains = mesh_group_settings.get<std::vector<ExtruderTrain*>>("skirt_brim_extruder_nr");
             for (ExtruderTrain* train : skirt_brim_extruder_trains)
@@ -942,7 +948,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
             }
             break;
         }
-        case ::curaengine::types::EPlatformAdhesion::RAFT:
+        case EPlatformAdhesion::RAFT:
         {
             const size_t base_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
             max_print_height_per_extruder[base_extruder_nr] = std::max(-raft_layers, max_print_height_per_extruder[base_extruder_nr]); // Includes the lowest raft layer.
@@ -959,7 +965,7 @@ void FffPolygonGenerator::computePrintHeightStatistics(SliceDataStorage& storage
         }
     }
 
-    storage.max_print_height_order = ::curaengine::utils::order(max_print_height_per_extruder);
+    storage.max_print_height_order = utils::order(max_print_height_per_extruder);
     if (extruder_count >= 2)
     {
         int second_highest_extruder = storage.max_print_height_order[extruder_count - 2];
@@ -980,7 +986,7 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         return;
     }
 
-    const ::curaengine::utils::coord_t ooze_shield_dist = mesh_group_settings.get<::curaengine::utils::coord_t>("ooze_shield_dist");
+    const coord_t ooze_shield_dist = mesh_group_settings.get<coord_t>("ooze_shield_dist");
 
     for (int layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
@@ -989,29 +995,29 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
         storage.ooze_shield.push_back(storage.getLayerOutlines(layer_nr, around_support, around_prime_tower).offset(ooze_shield_dist, ClipperLib::jtRound).getOutsidePolygons());
     }
 
-    const ::curaengine::types::AngleDegrees angle = mesh_group_settings.get<::curaengine::types::AngleDegrees>("ooze_shield_angle");
+    const AngleDegrees angle = mesh_group_settings.get<AngleDegrees>("ooze_shield_angle");
     if (angle <= 89)
     {
-        const ::curaengine::utils::coord_t allowed_angle_offset
-            = tan(mesh_group_settings.get<::curaengine::types::AngleRadians>("ooze_shield_angle")) * mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height"); // Allow for a 60deg angle in the oozeShield.
-        for (::curaengine::types::LayerIndex layer_nr = 1; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
+        const coord_t allowed_angle_offset
+            = tan(mesh_group_settings.get<AngleRadians>("ooze_shield_angle")) * mesh_group_settings.get<coord_t>("layer_height"); // Allow for a 60deg angle in the oozeShield.
+        for (LayerIndex layer_nr = 1; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
             storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].unionPolygons(storage.ooze_shield[layer_nr - 1].offset(-allowed_angle_offset));
         }
-        for (::curaengine::types::LayerIndex layer_nr = storage.max_print_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
+        for (LayerIndex layer_nr = storage.max_print_height_second_to_last_extruder; layer_nr > 0; layer_nr--)
         {
             storage.ooze_shield[layer_nr - 1] = storage.ooze_shield[layer_nr - 1].unionPolygons(storage.ooze_shield[layer_nr].offset(-allowed_angle_offset));
         }
     }
 
     const double largest_printed_area = 1.0; // TODO: make var a parameter, and perhaps even a setting?
-    for (::curaengine::types::LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
+    for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
     {
         storage.ooze_shield[layer_nr].removeSmallAreas(largest_printed_area);
     }
     if (storage.prime_tower_)
     {
-        ::curaengine::utils::coord_t max_line_width = 0;
+        coord_t max_line_width = 0;
         { // compute max_line_width
             const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
             const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
@@ -1019,10 +1025,10 @@ void FffPolygonGenerator::processOozeShield(SliceDataStorage& storage)
             {
                 if (! extruder_is_used[extruder_nr])
                     continue;
-                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings_.get<::curaengine::utils::coord_t>("skirt_brim_line_width"));
+                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings_.get<coord_t>("skirt_brim_line_width"));
             }
         }
-        for (::curaengine::types::LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
+        for (LayerIndex layer_nr = 0; layer_nr <= storage.max_print_height_second_to_last_extruder; layer_nr++)
         {
             storage.ooze_shield[layer_nr] = storage.ooze_shield[layer_nr].difference(storage.prime_tower_->getOccupiedOutline(layer_nr).offset(max_line_width / 2));
         }
@@ -1037,12 +1043,12 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
         return;
     }
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const ::curaengine::utils::coord_t layer_height = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height");
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
 
-    const ::curaengine::types::LayerIndex layer_skip{ 500 / layer_height + 1 };
+    const LayerIndex layer_skip{ 500 / layer_height + 1 };
 
-    ::curaengine::geometry::Shape& draft_shield = storage.draft_protection_shield;
-    for (::curaengine::types::LayerIndex layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
+    Shape& draft_shield = storage.draft_protection_shield;
+    for (LayerIndex layer_nr = 0; layer_nr < storage.print_layer_count && layer_nr < draft_shield_layers; layer_nr += layer_skip)
     {
         constexpr bool around_support = true;
         constexpr bool around_prime_tower = false;
@@ -1050,21 +1056,21 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
     }
 
     draft_shield.makeConvex();
-    const ::curaengine::utils::coord_t draft_shield_dist = mesh_group_settings.get<::curaengine::utils::coord_t>("draft_shield_dist");
+    const coord_t draft_shield_dist = mesh_group_settings.get<coord_t>("draft_shield_dist");
     storage.draft_protection_shield = draft_shield.offset(draft_shield_dist);
 
     // Extra offset has rounded joints, so simplify again.
-    ::curaengine::utils::coord_t maximum_resolution = 0; // Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
-    ::curaengine::utils::coord_t maximum_deviation = std::numeric_limits<::curaengine::utils::coord_t>::max();
+    coord_t maximum_resolution = 0; // Draft shield is printed with every extruder, so resolve with the max() or min() of them to meet the requirements of all extruders.
+    coord_t maximum_deviation = std::numeric_limits<coord_t>::max();
     for (const ExtruderTrain& extruder : Application::getInstance().current_slice_->scene.extruders)
     {
-        maximum_resolution = std::max(maximum_resolution, extruder.settings_.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution"));
-        maximum_deviation = std::min(maximum_deviation, extruder.settings_.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation"));
+        maximum_resolution = std::max(maximum_resolution, extruder.settings_.get<coord_t>("meshfix_maximum_resolution"));
+        maximum_deviation = std::min(maximum_deviation, extruder.settings_.get<coord_t>("meshfix_maximum_deviation"));
     }
-    storage.draft_protection_shield = ::curaengine::utils::Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
+    storage.draft_protection_shield = Simplify(maximum_resolution, maximum_deviation, 0).polygon(storage.draft_protection_shield);
     if (storage.prime_tower_)
     {
-        ::curaengine::utils::coord_t max_line_width = 0;
+        coord_t max_line_width = 0;
         { // compute max_line_width
             const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
             const auto& extruders = Application::getInstance().current_slice_->scene.extruders;
@@ -1072,7 +1078,7 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
             {
                 if (! extruder_is_used[extruder_nr])
                     continue;
-                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings_.get<::curaengine::utils::coord_t>("skirt_brim_line_width"));
+                max_line_width = std::max(max_line_width, extruders[extruder_nr].settings_.get<coord_t>("skirt_brim_line_width"));
             }
         }
         storage.draft_protection_shield = storage.draft_protection_shield.difference(storage.prime_tower_->getOccupiedGroundOutline().offset(max_line_width / 2));
@@ -1082,16 +1088,16 @@ void FffPolygonGenerator::processDraftShield(SliceDataStorage& storage)
 void FffPolygonGenerator::processPlatformAdhesion(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    ::curaengine::types::EPlatformAdhesion adhesion_type = mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type");
+    EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
 
-    if (adhesion_type == ::curaengine::types::EPlatformAdhesion::RAFT)
+    if (adhesion_type == EPlatformAdhesion::RAFT)
     {
         Raft::generate(storage);
         return;
     }
 
     SkirtBrim skirt_brim(storage);
-    if (adhesion_type != ::curaengine::types::EPlatformAdhesion::NONE)
+    if (adhesion_type != EPlatformAdhesion::NONE)
     {
         skirt_brim.generate();
     }
@@ -1107,28 +1113,28 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
         return;
     }
 
-    const ::curaengine::utils::coord_t line_width = mesh.settings.get<::curaengine::utils::coord_t>("line_width");
+    const coord_t line_width = mesh.settings.get<coord_t>("line_width");
     const bool apply_outside_only = mesh.settings.get<bool>("magic_fuzzy_skin_outside_only");
-    const ::curaengine::utils::coord_t fuzziness = mesh.settings.get<::curaengine::utils::coord_t>("magic_fuzzy_skin_thickness");
-    const ::curaengine::utils::coord_t avg_dist_between_points = mesh.settings.get<::curaengine::utils::coord_t>("magic_fuzzy_skin_point_dist");
-    const ::curaengine::utils::coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
-    const ::curaengine::utils::coord_t range_random_point_dist = avg_dist_between_points / 2;
+    const coord_t fuzziness = mesh.settings.get<coord_t>("magic_fuzzy_skin_thickness");
+    const coord_t avg_dist_between_points = mesh.settings.get<coord_t>("magic_fuzzy_skin_point_dist");
+    const coord_t min_dist_between_points = avg_dist_between_points * 3 / 4; // hardcoded: the point distance may vary between 3/4 and 5/4 the supplied value
+    const coord_t range_random_point_dist = avg_dist_between_points / 2;
     unsigned int start_layer_nr
-        = (mesh.settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::BRIM) ? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
+        = (mesh.settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM) ? 1 : 0; // don't make fuzzy skin on first layer if there's a brim
 
-    auto hole_area = ::curaengine::geometry::Shape();
-    std::function<bool(const bool&, const ::curaengine::utils::ExtrusionJunction&)> accumulate_is_in_hole
-        = []([[maybe_unused]] const bool& prev_result, [[maybe_unused]] const ::curaengine::utils::ExtrusionJunction& junction)
+    auto hole_area = Shape();
+    std::function<bool(const bool&, const ExtrusionJunction&)> accumulate_is_in_hole
+        = []([[maybe_unused]] const bool& prev_result, [[maybe_unused]] const ExtrusionJunction& junction)
     {
         return false;
     };
 
-    for (::curaengine::types::LayerIndex layer_nr = start_layer_nr; layer_nr < ::curaengine::types::LayerIndex(mesh.layers.size()); layer_nr++)
+    for (LayerIndex layer_nr = start_layer_nr; layer_nr < LayerIndex(mesh.layers.size()); layer_nr++)
     {
         SliceLayer& layer = mesh.layers[layer_nr];
         for (SliceLayerPart& part : layer.parts)
         {
-            std::vector<::curaengine::utils::VariableWidthLines> result_paths;
+            std::vector<VariableWidthLines> result_paths;
             for (auto& toolpath : part.wall_toolpaths)
             {
                 if (toolpath.front().inset_idx_ != 0)
@@ -1142,7 +1148,7 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                 if (apply_outside_only)
                 {
                     hole_area = part.print_outline.getOutsidePolygons().offset(-line_width);
-                    accumulate_is_in_hole = [&hole_area](const bool& prev_result, const ::curaengine::utils::ExtrusionJunction& junction)
+                    accumulate_is_in_hole = [&hole_area](const bool& prev_result, const ExtrusionJunction& junction)
                     {
                         return prev_result || hole_area.inside(junction.p_);
                     };
@@ -1170,22 +1176,22 @@ void FffPolygonGenerator::processFuzzyWalls(SliceMeshStorage& mesh)
                         }
 
                         // 'a' is the (next) new point between p0 and p1
-                        const ::curaengine::geometry::Point2LL p0p1 = p1.p_ - p0->p_;
-                        const int64_t p0p1_size = ::curaengine::geometry::vSize(p0p1);
+                        const Point2LL p0p1 = p1.p_ - p0->p_;
+                        const int64_t p0p1_size = geometry::vSize(p0p1);
                         int64_t p0pa_dist = dist_left_over;
                         if (p0pa_dist >= p0p1_size)
                         {
-                            const ::curaengine::geometry::Point2LL p = p1.p_ - (p0p1 / 2);
-                            const double width = (p1.w_ * ::curaengine::geometry::vSize(p1.p_ - p) + p0->w_ * ::curaengine::geometry::vSize(p0->p_ - p)) / p0p1_size;
+                            const Point2LL p = p1.p_ - (p0p1 / 2);
+                            const double width = (p1.w_ * geometry::vSize(p1.p_ - p) + p0->w_ * geometry::vSize(p0->p_ - p)) / p0p1_size;
                             result.emplace_back(p, width, p1.perimeter_index_);
                         }
                         for (; p0pa_dist < p0p1_size; p0pa_dist += min_dist_between_points + rand() % range_random_point_dist)
                         {
                             const int r = rand() % (fuzziness * 2) - fuzziness;
-                            const ::curaengine::geometry::Point2LL perp_to_p0p1 = ::curaengine::geometry::turn90CCW(p0p1);
-                            const ::curaengine::geometry::Point2LL fuzz = ::curaengine::geometry::normal(perp_to_p0p1, r);
-                            const ::curaengine::geometry::Point2LL pa = p0->p_ + ::curaengine::geometry::normal(p0p1, p0pa_dist);
-                            const double width = (p1.w_ * ::curaengine::geometry::vSize(p1.p_ - pa) + p0->w_ * ::curaengine::geometry::vSize(p0->p_ - pa)) / p0p1_size;
+                            const Point2LL perp_to_p0p1 = geometry::turn90CCW(p0p1);
+                            const Point2LL fuzz = geometry::normal(perp_to_p0p1, r);
+                            const Point2LL pa = p0->p_ + geometry::normal(p0p1, p0pa_dist);
+                            const double width = (p1.w_ * geometry::vSize(p1.p_ - pa) + p0->w_ * geometry::vSize(p0->p_ - pa)) / p0p1_size;
                             result.emplace_back(pa + fuzz, width, p1.perimeter_index_);
                         }
                         // p0pa_dist > p0p1_size now because we broke out of the for-loop

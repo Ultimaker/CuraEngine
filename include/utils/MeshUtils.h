@@ -25,9 +25,9 @@ class Mesh;
 namespace utils
 {
 
-std::optional<::curaengine::geometry::Point3D> getBarycentricCoordinates(const ::curaengine::geometry::Point3LL& point, const ::curaengine::geometry::Triangle3LL& triangle);
+std::optional<geometry::Point3D> getBarycentricCoordinates(const geometry::Point3LL& point, const geometry::Triangle3LL& triangle);
 
-::curaengine::geometry::Point2F getUVCoordinates(const ::curaengine::geometry::Point3D& barycentric_coordinates, const ::curaengine::geometry::Triangle2F& uv_coordinates);
+geometry::Point2F getUVCoordinates(const geometry::Point3D& barycentric_coordinates, const geometry::Triangle2F& uv_coordinates);
 
 /*!
  * Load texture data from PNG binary data and attach it to a mesh.

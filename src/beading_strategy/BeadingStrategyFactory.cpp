@@ -14,24 +14,27 @@
 #include "beading_strategy/RedistributeBeadingStrategy.h"
 #include "beading_strategy/WideningBeadingStrategy.h"
 
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::beading_strategy
 {
 
 BeadingStrategyPtr BeadingStrategyFactory::makeStrategy(
-    const ::curaengine::utils::coord_t preferred_bead_width_outer,
-    const ::curaengine::utils::coord_t preferred_bead_width_inner,
-    const ::curaengine::utils::coord_t preferred_transition_length,
+    const coord_t preferred_bead_width_outer,
+    const coord_t preferred_bead_width_inner,
+    const coord_t preferred_transition_length,
     const double transitioning_angle,
     const bool print_thin_walls,
-    const ::curaengine::utils::coord_t min_bead_width,
-    const ::curaengine::utils::coord_t min_feature_size,
-    const ::curaengine::types::Ratio wall_split_middle_threshold,
-    const ::curaengine::types::Ratio wall_add_middle_threshold,
-    const ::curaengine::utils::coord_t max_bead_count,
-    const ::curaengine::utils::coord_t outer_wall_offset,
-    const ::curaengine::utils::coord_t inner_wall_offset,
+    const coord_t min_bead_width,
+    const coord_t min_feature_size,
+    const Ratio wall_split_middle_threshold,
+    const Ratio wall_add_middle_threshold,
+    const coord_t max_bead_count,
+    const coord_t outer_wall_offset,
+    const coord_t inner_wall_offset,
     const int inward_distributed_center_wall_count,
-    const ::curaengine::types::Ratio minimum_variable_line_ratio)
+    const Ratio minimum_variable_line_ratio)
 {
     using std::make_unique;
     using std::move;

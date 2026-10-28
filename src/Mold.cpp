@@ -17,6 +17,10 @@
 #include "geometry/Point2LL.h"
 #include "types/Ratio.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
@@ -31,7 +35,7 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             if (mesh.settings_.get<bool>("mold_enabled"))
             {
                 has_any_mold = true;
-                mesh.expandXY(mesh.settings_.get<::curaengine::utils::coord_t>("mold_width"));
+                mesh.expandXY(mesh.settings_.get<coord_t>("mold_width"));
             }
         }
         if (! has_any_mold)
@@ -40,22 +44,22 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
         }
     }
 
-    ::curaengine::types::LayerIndex layer_count = 0;
+    LayerIndex layer_count = 0;
     { // compute layer_count
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
         {
             Slicer& slicer = *slicer_list[mesh_idx];
-            ::curaengine::types::LayerIndex layer_count_here = slicer.layers.size();
+            LayerIndex layer_count_here = slicer.layers.size();
             layer_count = std::max(layer_count, layer_count_here);
         }
     }
 
-    const ::curaengine::utils::coord_t layer_height = scene.current_mesh_group->settings.get<::curaengine::utils::coord_t>("layer_height");
-    std::vector<::curaengine::geometry::Shape> mold_outline_above_per_mesh; // the outer outlines of the layer above without the original model(s) being cut out
+    const coord_t layer_height = scene.current_mesh_group->settings.get<coord_t>("layer_height");
+    std::vector<Shape> mold_outline_above_per_mesh; // the outer outlines of the layer above without the original model(s) being cut out
     mold_outline_above_per_mesh.resize(slicer_list.size());
     for (int layer_nr = layer_count - 1; layer_nr >= 0; layer_nr--)
     {
-        ::curaengine::geometry::Shape all_original_mold_outlines; // outlines of all models for which to generate a mold (insides of all molds)
+        Shape all_original_mold_outlines; // outlines of all models for which to generate a mold (insides of all molds)
 
         // first generate outlines
         for (unsigned int mesh_idx = 0; mesh_idx < slicer_list.size(); mesh_idx++)
@@ -66,22 +70,22 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             {
                 continue;
             }
-            ::curaengine::utils::coord_t width = mesh.settings_.get<::curaengine::utils::coord_t>("mold_width");
-            ::curaengine::utils::coord_t open_polyline_width = mesh.settings_.get<::curaengine::utils::coord_t>("wall_line_width_0");
+            coord_t width = mesh.settings_.get<coord_t>("mold_width");
+            coord_t open_polyline_width = mesh.settings_.get<coord_t>("wall_line_width_0");
             if (layer_nr == 0)
             {
                 const ExtruderTrain& train_wall_0 = mesh.settings_.get<ExtruderTrain&>("wall_0_extruder_nr");
-                open_polyline_width *= train_wall_0.settings_.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
+                open_polyline_width *= train_wall_0.settings_.get<Ratio>("initial_layer_line_width_factor");
             }
-            const ::curaengine::types::AngleDegrees angle = mesh.settings_.get<::curaengine::types::AngleDegrees>("mold_angle");
-            const ::curaengine::utils::coord_t roof_height = mesh.settings_.get<::curaengine::utils::coord_t>("mold_roof_height");
+            const AngleDegrees angle = mesh.settings_.get<AngleDegrees>("mold_angle");
+            const coord_t roof_height = mesh.settings_.get<coord_t>("mold_roof_height");
 
-            const ::curaengine::utils::coord_t inset = tan(angle / 180 * std::numbers::pi) * layer_height;
+            const coord_t inset = tan(angle / 180 * std::numbers::pi) * layer_height;
             const size_t roof_layer_count = roof_height / layer_height;
 
 
             SlicerLayer& layer = slicer.layers[layer_nr];
-            ::curaengine::geometry::Shape model_outlines = layer.polygons_.unionPolygons(layer.open_polylines_.offset(open_polyline_width / 2));
+            Shape model_outlines = layer.polygons_.unionPolygons(layer.open_polylines_.offset(open_polyline_width / 2));
             layer.open_polylines_.clear();
             all_original_mold_outlines.push_back(model_outlines);
 
@@ -91,15 +95,15 @@ void Mold::process(std::vector<Slicer*>& slicer_list)
             }
             else
             {
-                ::curaengine::geometry::Shape& mold_outline_above = mold_outline_above_per_mesh[mesh_idx]; // the outside of the mold on the layer above
+                Shape& mold_outline_above = mold_outline_above_per_mesh[mesh_idx]; // the outside of the mold on the layer above
                 layer.polygons_ = mold_outline_above.offset(-inset).unionPolygons(model_outlines.offset(width, ClipperLib::jtRound));
             }
 
             // add roofs
             if (roof_layer_count > 0 && layer_nr > 0)
             {
-                ::curaengine::types::LayerIndex layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
-                ::curaengine::geometry::Shape roofs = slicer.layers[layer_nr_below].polygons_.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
+                LayerIndex layer_nr_below = std::max(0, static_cast<int>(layer_nr - roof_layer_count));
+                Shape roofs = slicer.layers[layer_nr_below].polygons_.offset(width, ClipperLib::jtRound); // TODO: don't compute offset twice!
                 layer.polygons_ = layer.polygons_.unionPolygons(roofs);
             }
 

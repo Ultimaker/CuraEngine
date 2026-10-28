@@ -12,7 +12,7 @@ namespace curaengine
 class GapCloserResult
 {
 public:
-    ::curaengine::utils::coord_t len = 0;
+    utils::coord_t len = 0;
     size_t polygonIdx = 0;
     size_t pointIdxA = 0;
     size_t pointIdxB = 0;

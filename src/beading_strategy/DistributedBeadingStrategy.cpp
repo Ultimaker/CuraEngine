@@ -4,15 +4,18 @@
 
 #include <numeric>
 
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::beading_strategy
 {
 
 DistributedBeadingStrategy::DistributedBeadingStrategy(
-    const ::curaengine::utils::coord_t optimal_width,
-    const ::curaengine::utils::coord_t default_transition_length,
-    const ::curaengine::types::AngleRadians transitioning_angle,
-    const ::curaengine::types::Ratio wall_split_middle_threshold,
-    const ::curaengine::types::Ratio wall_add_middle_threshold,
+    const coord_t optimal_width,
+    const coord_t default_transition_length,
+    const AngleRadians transitioning_angle,
+    const Ratio wall_split_middle_threshold,
+    const Ratio wall_add_middle_threshold,
     const int distribution_radius)
     : BeadingStrategy(optimal_width, wall_split_middle_threshold, wall_add_middle_threshold, default_transition_length, transitioning_angle)
 {
@@ -27,17 +30,17 @@ DistributedBeadingStrategy::DistributedBeadingStrategy(
     name_ = "DistributedBeadingStrategy";
 }
 
-DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const
+DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
     Beading ret;
 
     ret.total_thickness = thickness;
     if (bead_count > 2)
     {
-        const ::curaengine::utils::coord_t to_be_divided = thickness - bead_count * optimal_width_;
+        const coord_t to_be_divided = thickness - bead_count * optimal_width_;
         const double middle = static_cast<double>(bead_count - 1) / 2;
 
-        const auto getWeight = [middle, this](::curaengine::utils::coord_t bead_idx)
+        const auto getWeight = [middle, this](coord_t bead_idx)
         {
             const double dev_from_middle = bead_idx - middle;
             return std::max(0.0, 1.0 - one_over_distribution_radius_squared_ * dev_from_middle * dev_from_middle);
@@ -45,17 +48,17 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(::curaen
 
         std::vector<double> weights;
         weights.resize(bead_count);
-        for (::curaengine::utils::coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
+        for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
         {
             weights[bead_idx] = getWeight(bead_idx);
         }
 
         const double total_weight = std::accumulate(weights.cbegin(), weights.cend(), 0.0);
-        for (::curaengine::utils::coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
+        for (coord_t bead_idx = 0; bead_idx < bead_count; bead_idx++)
         {
             const double weight_fraction = weights[bead_idx] / total_weight;
-            const ::curaengine::utils::coord_t splitup_left_over_weight = to_be_divided * weight_fraction;
-            const ::curaengine::utils::coord_t width = optimal_width_ + splitup_left_over_weight;
+            const coord_t splitup_left_over_weight = to_be_divided * weight_fraction;
+            const coord_t width = optimal_width_ + splitup_left_over_weight;
             if (bead_idx == 0)
             {
                 ret.toolpath_locations.emplace_back(width / 2);
@@ -70,7 +73,7 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(::curaen
     }
     else if (bead_count == 2)
     {
-        const ::curaengine::utils::coord_t outer_width = thickness / 2;
+        const coord_t outer_width = thickness / 2;
         ret.bead_widths.emplace_back(outer_width);
         ret.bead_widths.emplace_back(outer_width);
         ret.toolpath_locations.emplace_back(outer_width / 2);
@@ -79,7 +82,7 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(::curaen
     }
     else if (bead_count == 1)
     {
-        const ::curaengine::utils::coord_t outer_width = thickness;
+        const coord_t outer_width = thickness;
         ret.bead_widths.emplace_back(outer_width);
         ret.toolpath_locations.emplace_back(outer_width / 2);
         ret.left_over = 0;
@@ -92,11 +95,11 @@ DistributedBeadingStrategy::Beading DistributedBeadingStrategy::compute(::curaen
     return ret;
 }
 
-::curaengine::utils::coord_t DistributedBeadingStrategy::getOptimalBeadCount(::curaengine::utils::coord_t thickness) const
+coord_t DistributedBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
-    const ::curaengine::utils::coord_t naive_count = thickness / optimal_width_; // How many lines we can fit in for sure.
-    const ::curaengine::utils::coord_t remainder = thickness - naive_count * optimal_width_; // Space left after fitting that many lines.
-    const ::curaengine::utils::coord_t minimum_line_width = optimal_width_ * (naive_count % 2 == 1 ? wall_split_middle_threshold_ : wall_add_middle_threshold_);
+    const coord_t naive_count = thickness / optimal_width_; // How many lines we can fit in for sure.
+    const coord_t remainder = thickness - naive_count * optimal_width_; // Space left after fitting that many lines.
+    const coord_t minimum_line_width = optimal_width_ * (naive_count % 2 == 1 ? wall_split_middle_threshold_ : wall_add_middle_threshold_);
     return naive_count + (remainder >= minimum_line_width); // If there's enough space, fit an extra one.
 }
 

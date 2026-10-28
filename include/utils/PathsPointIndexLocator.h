@@ -14,9 +14,9 @@ namespace curaengine::utils
 template<typename Paths>
 struct PathsPointIndexLocator
 {
-    ::curaengine::geometry::Point2LL operator()(const PathsPointIndex<Paths>& val) const
+    geometry::Point2LL operator()(const PathsPointIndex<Paths>& val) const
     {
-        using ::curaengine::geometry::make_point;
+        using geometry::make_point;
         return make_point(val.p());
     }
 };

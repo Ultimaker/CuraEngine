@@ -21,17 +21,17 @@ namespace curaengine::utils::scoring
 class PositionBasedScoringCriterion : public ScoringCriterion
 {
 private:
-    const ::curaengine::geometry::PointsSet& points_;
+    const geometry::PointsSet& points_;
 
 public:
-    explicit PositionBasedScoringCriterion(const ::curaengine::geometry::PointsSet& points);
+    explicit PositionBasedScoringCriterion(const geometry::PointsSet& points);
 
     virtual double computeScore(const size_t candidate_index) const override;
 
-    virtual double computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const;
+    virtual double computeScore(const geometry::Point2LL& candidate_position) const;
 
 protected:
-    const ::curaengine::geometry::PointsSet& getPoints() const
+    const geometry::PointsSet& getPoints() const
     {
         return points_;
     }

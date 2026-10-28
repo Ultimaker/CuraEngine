@@ -21,16 +21,16 @@ struct GCodePathConfig
 {
     static constexpr double FAN_SPEED_DEFAULT = -1.0;
 
-    ::curaengine::utils::coord_t z_offset{}; //<! vertical offset from 'full' layer height, to be applied to the whole path
+    utils::coord_t z_offset{}; //<! vertical offset from 'full' layer height, to be applied to the whole path
     PrintFeatureType type{}; //!< name of the feature type
-    ::curaengine::utils::coord_t line_width{}; //!< width of the line extruded
-    ::curaengine::utils::coord_t layer_thickness{}; //!< current layer height in micron
-    ::curaengine::types::Ratio flow{}; //!< extrusion flow modifier.
-    ::curaengine::path_planning::SpeedDerivatives speed_derivatives{}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
+    utils::coord_t line_width{}; //!< width of the line extruded
+    utils::coord_t layer_thickness{}; //!< current layer height in micron
+    types::Ratio flow{}; //!< extrusion flow modifier.
+    path_planning::SpeedDerivatives speed_derivatives{}; //!< The speed settings (and acceleration and jerk) of the extruded line. May be changed when smoothSpeed is called.
     bool is_bridge_path{ false }; //!< whether current config is used when bridging
     double fan_speed{ FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     double extrusion_mm3_per_mm{ calculateExtrusion() }; //!< current mm^3 filament moved per mm line traversed
-    ::curaengine::types::Temperature temperature_delta;
+    types::Temperature temperature_delta;
 
     [[nodiscard]] constexpr bool operator==(const GCodePathConfig& other) const noexcept = default;
     [[nodiscard]] constexpr auto operator<=>(const GCodePathConfig& other) const = default;
@@ -43,19 +43,19 @@ struct GCodePathConfig
     /*!
      * Get the movement speed in mm/s
      */
-    [[nodiscard]] ::curaengine::types::Velocity getSpeed() const noexcept;
+    [[nodiscard]] types::Velocity getSpeed() const noexcept;
 
     /*!
      * Get the current acceleration of this config
      */
-    [[nodiscard]] ::curaengine::types::Acceleration getAcceleration() const noexcept;
+    [[nodiscard]] types::Acceleration getAcceleration() const noexcept;
 
     /*!
      * Get the current jerk of this config
      */
-    [[nodiscard]] ::curaengine::types::Velocity getJerk() const noexcept;
+    [[nodiscard]] types::Velocity getJerk() const noexcept;
 
-    [[nodiscard]] ::curaengine::utils::coord_t getLineWidth() const noexcept;
+    [[nodiscard]] utils::coord_t getLineWidth() const noexcept;
 
     [[nodiscard]] bool isTravelPath() const noexcept;
 
@@ -63,13 +63,13 @@ struct GCodePathConfig
 
     [[nodiscard]] double getFanSpeed() const noexcept;
 
-    [[nodiscard]] ::curaengine::types::Ratio getFlowRatio() const noexcept;
+    [[nodiscard]] types::Ratio getFlowRatio() const noexcept;
 
-    [[nodiscard]] ::curaengine::utils::coord_t getLayerThickness() const noexcept;
+    [[nodiscard]] utils::coord_t getLayerThickness() const noexcept;
 
     [[nodiscard]] PrintFeatureType getPrintFeatureType() const noexcept;
 
-    [[nodiscard]] const ::curaengine::types::Temperature& getTemperatureDelta() const noexcept;
+    [[nodiscard]] const types::Temperature& getTemperatureDelta() const noexcept;
 
 private:
     [[nodiscard]] double calculateExtrusion() const noexcept;

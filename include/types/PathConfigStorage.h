@@ -65,7 +65,7 @@ public:
     /*!
      * \warning Note that the layer_nr might be below zero for raft (filler) layers
      */
-    PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const ::curaengine::utils::coord_t layer_thickness);
+    PathConfigStorage(const SliceDataStorage& storage, const LayerIndex& layer_nr, const utils::coord_t layer_thickness);
 
 private:
     void handleInitialLayerSpeedup(const SliceDataStorage& storage, const LayerIndex& layer_nr, const size_t initial_speedup_layer_count);

@@ -16,7 +16,7 @@
 namespace curaengine::plugins
 {
 struct infill_generate_response
-    : public details::converter<infill_generate_response, ::cura::plugins::slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<::curaengine::utils::ExtrusionLine>>, ::curaengine::geometry::Shape, ::curaengine::geometry::OpenLinesSet>>
+    : public details::converter<infill_generate_response, ::cura::plugins::slots::infill::v0::generate::CallResponse, std::tuple<std::vector<std::vector<utils::ExtrusionLine>>, geometry::Shape, geometry::OpenLinesSet>>
 {
     native_value_type operator()(const value_type& message) const;
 };

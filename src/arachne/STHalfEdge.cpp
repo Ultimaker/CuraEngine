@@ -8,6 +8,8 @@
 #include "arachne/STHalfEdgeNode.h"
 #include "utils/LinearAlg2D.h"
 
+using namespace curaengine::utils;
+
 namespace curaengine::arachne
 {
 
@@ -56,8 +58,8 @@ bool STHalfEdge::isUpward(const bool strict) const
     }
 
     // Equidistant edge case:
-    std::optional<::curaengine::utils::coord_t> forward_up_dist = this->distToGoUp();
-    std::optional<::curaengine::utils::coord_t> backward_up_dist = twin_->distToGoUp();
+    std::optional<coord_t> forward_up_dist = this->distToGoUp();
+    std::optional<coord_t> backward_up_dist = twin_->distToGoUp();
     if (forward_up_dist && backward_up_dist)
     {
         return forward_up_dist < backward_up_dist;
@@ -75,7 +77,7 @@ bool STHalfEdge::isUpward(const bool strict) const
     return to_->p_ < from_->p_; // Arbitrary ordering, which returns the opposite for the twin edge
 }
 
-std::optional<::curaengine::utils::coord_t> STHalfEdge::distToGoUp() const
+std::optional<coord_t> STHalfEdge::distToGoUp() const
 {
     if (to_->data_.distance_to_boundary_ > from_->data_.distance_to_boundary_)
     {
@@ -83,14 +85,14 @@ std::optional<::curaengine::utils::coord_t> STHalfEdge::distToGoUp() const
     }
     if (to_->data_.distance_to_boundary_ < from_->data_.distance_to_boundary_)
     {
-        return std::optional<::curaengine::utils::coord_t>();
+        return std::optional<coord_t>();
     }
 
     // Edge is between equidistqant verts; recurse!
-    std::optional<::curaengine::utils::coord_t> ret;
+    std::optional<coord_t> ret;
     for (edge_t* outgoing = next_; outgoing != twin_; outgoing = outgoing->twin_->next_)
     {
-        std::optional<::curaengine::utils::coord_t> dist_to_up = outgoing->distToGoUp();
+        std::optional<coord_t> dist_to_up = outgoing->distToGoUp();
         if (dist_to_up)
         {
             if (ret)
@@ -104,14 +106,14 @@ std::optional<::curaengine::utils::coord_t> STHalfEdge::distToGoUp() const
         }
         assert(outgoing->twin_);
         if (! outgoing->twin_)
-            return std::optional<::curaengine::utils::coord_t>();
+            return std::optional<coord_t>();
         assert(outgoing->twin_->next_);
         if (! outgoing->twin_->next_)
             return 0; // This point is on the boundary?! Should never occur
     }
     if (ret)
     {
-        ret = *ret + ::curaengine::geometry::vSize(to_->p_ - from_->p_);
+        ret = *ret + geometry::vSize(to_->p_ - from_->p_);
     }
     return ret;
 }

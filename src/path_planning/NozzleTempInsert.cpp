@@ -5,10 +5,12 @@
 
 #include "gcode_export/GCodeExport.h"
 
+using namespace curaengine::gcode_export;
+
 namespace curaengine::path_planning
 {
 
-void NozzleTempInsert::write(::curaengine::gcode_export::GCodeExport& gcode)
+void NozzleTempInsert::write(GCodeExport& gcode)
 {
     gcode.writeTemperatureCommand(extruder, temperature, wait);
 }

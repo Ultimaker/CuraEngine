@@ -13,6 +13,9 @@
 #include "SliceMeshStorage.h"
 #include "path_planning/SpeedDerivatives.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::path_planning;
+
 namespace curaengine::plugins
 {
 [[nodiscard]] constexpr PrintFeatureType gcode_paths_modify_response::getPrintFeatureType(const ::cura::plugins::v0::PrintFeature feature) noexcept
@@ -82,7 +85,7 @@ namespace curaengine::plugins
         .layer_thickness = path.layer_thickness(),
         .flow = path.flow_ratio(),
         .speed_derivatives
-        = ::curaengine::path_planning::SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
+        = SpeedDerivatives{ .speed = path.speed_derivatives().velocity(), .acceleration = path.speed_derivatives().acceleration(), .jerk = path.speed_derivatives().jerk() },
         .is_bridge_path = path.is_bridge_path(),
         .fan_speed = path.fan_speed(),
         .temperature_delta = path.temperature_delta(),
@@ -92,7 +95,7 @@ namespace curaengine::plugins
 gcode_paths_modify_response::native_value_type
     gcode_paths_modify_response::operator()(gcode_paths_modify_response::native_value_type& original_value, const gcode_paths_modify_response::value_type& message) const
 {
-    std::vector<::curaengine::path_planning::GCodePath> paths;
+    std::vector<GCodePath> paths;
     using map_t = std::unordered_map<std::string, std::shared_ptr<const SliceMeshStorage>>;
     auto meshes = original_value
                 | ranges::views::filter(
@@ -109,7 +112,7 @@ gcode_paths_modify_response::native_value_type
 
     for (const auto& gcode_path_msg : message.gcode_paths())
     {
-        ::curaengine::path_planning::GCodePath path{
+        GCodePath path{
             .z_offset = gcode_path_msg.z_offset(),
             .config = buildConfig(gcode_path_msg),
             .mesh = gcode_path_msg.mesh_name().empty() ? nullptr : meshes.at(gcode_path_msg.mesh_name()),
@@ -132,7 +135,7 @@ gcode_paths_modify_response::native_value_type
                     | ranges::views::transform(
                           [](const auto& point_msg)
                           {
-                              return ::curaengine::geometry::Point3LL{ point_msg.x(), point_msg.y(), point_msg.z() };
+                              return Point3LL{ point_msg.x(), point_msg.y(), point_msg.z() };
                           })
                     | ranges::to_vector;
 

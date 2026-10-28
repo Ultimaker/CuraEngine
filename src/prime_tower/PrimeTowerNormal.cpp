@@ -9,6 +9,9 @@
 #include "Slice.h"
 #include "SliceDataStorage.h"
 
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::prime_tower
 {
 
@@ -23,7 +26,7 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     size_t extruder_nr,
     size_t last_extruder,
     const SliceDataStorage& storage,
-    const ::curaengine::types::LayerIndex& layer_nr) const
+    const LayerIndex& layer_nr) const
 {
     if (extruderRequiresPrime(extruder_is_used_on_this_layer, extruder_nr, last_extruder))
     {
@@ -39,12 +42,12 @@ ExtruderPrime PrimeTowerNormal::getExtruderPrime(
     }
 }
 
-std::map<::curaengine::types::LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNormal::generateToolPaths(const ::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& extruders_use)
+std::map<LayerIndex, std::vector<PrimeTower::ExtruderToolPaths>> PrimeTowerNormal::generateToolPaths(const LayerVector<std::vector<ExtruderUse>>& extruders_use)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-    const ::curaengine::utils::coord_t tower_radius = mesh_group_settings.get<::curaengine::utils::coord_t>("prime_tower_size") / 2;
-    std::map<::curaengine::types::LayerIndex, std::vector<ExtruderToolPaths>> toolpaths;
+    const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
+    std::map<LayerIndex, std::vector<ExtruderToolPaths>> toolpaths;
 
     // First take all the used extruders numbers, unsorted
     std::vector<size_t> extruder_order = used_extruders_;
@@ -55,13 +58,13 @@ std::map<::curaengine::types::LayerIndex, std::vector<PrimeTower::ExtruderToolPa
         extruder_order.end(),
         [&scene](const size_t extruder_nr_a, const size_t extruder_nr_b)
         {
-            const ::curaengine::types::Ratio adhesion_a = scene.extruders[extruder_nr_a].settings_.get<::curaengine::types::Ratio>("material_adhesion_tendency");
-            const ::curaengine::types::Ratio adhesion_b = scene.extruders[extruder_nr_b].settings_.get<::curaengine::types::Ratio>("material_adhesion_tendency");
+            const Ratio adhesion_a = scene.extruders[extruder_nr_a].settings_.get<Ratio>("material_adhesion_tendency");
+            const Ratio adhesion_b = scene.extruders[extruder_nr_b].settings_.get<Ratio>("material_adhesion_tendency");
             return adhesion_a < adhesion_b;
         });
 
     // For each extruder, generate the prime and support patterns, which will always be the same across layers
-    ::curaengine::utils::coord_t current_radius = tower_radius;
+    coord_t current_radius = tower_radius;
     std::map<size_t, ExtruderToolPaths> extruders_prime_toolpaths;
     std::map<size_t, ExtruderToolPaths> extruders_support_toolpaths;
     for (size_t extruder_nr : extruder_order)
@@ -82,7 +85,7 @@ std::map<::curaengine::types::LayerIndex, std::vector<PrimeTower::ExtruderToolPa
     // Now fill the extruders toolpaths according to their use
     for (auto iterator = extruders_use.begin(); iterator != extruders_use.end(); ++iterator)
     {
-        const ::curaengine::types::LayerIndex layer_nr = extruders_use.getLayer(iterator);
+        const LayerIndex layer_nr = extruders_use.getLayer(iterator);
         std::vector<ExtruderUse> extruders_use_at_layer = *iterator;
 
         // Sort to fit the global order, in order to insert the toolpaths in outside to inside order

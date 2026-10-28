@@ -24,7 +24,7 @@ public:
      * \brief Get the height difference between the raft and the bottom of
      * layer 0.
      */
-    static ::curaengine::utils::coord_t getZdiffBetweenRaftAndLayer0();
+    static utils::coord_t getZdiffBetweenRaftAndLayer0();
 
     /*!
      * \brief Get the amount of layers to fill the airgap and initial layer with
@@ -39,12 +39,12 @@ public:
      * \brief Get the layer height of the filler layers in between the raft and
      * layer 1.
      */
-    static ::curaengine::utils::coord_t getFillerLayerHeight();
+    static utils::coord_t getFillerLayerHeight();
 
     /*!
      * \brief Get the total thickness of the raft (without airgap).
      */
-    static ::curaengine::utils::coord_t getTotalThickness();
+    static utils::coord_t getTotalThickness();
 
     /*!
      * \brief Get the total amount of extra layers below zero because there is a
@@ -80,7 +80,7 @@ public:
      * \param layer_index The layer index to get the type of.
      * \return The type of layer at the given layer index.
      */
-    static LayerType getLayerType(::curaengine::types::LayerIndex layer_index);
+    static LayerType getLayerType(types::LayerIndex layer_index);
 
 private:
     /*!

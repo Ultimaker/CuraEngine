@@ -51,7 +51,7 @@ public:
      *
      * If we can go up then the distance includes the length of the \param edge
      */
-    std::optional<::curaengine::utils::coord_t> distToGoUp() const;
+    std::optional<utils::coord_t> distToGoUp() const;
 
     STHalfEdge* getNextUnconnected();
 };

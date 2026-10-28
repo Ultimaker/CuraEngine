@@ -115,7 +115,7 @@ using slots = details::SingletonRegistry<SlotTypes, details::Holder>;
 
 namespace curaengine::plugins::slots
 {
-constexpr ::curaengine::plugins::details::Slots instance() noexcept
+constexpr plugins::details::Slots instance() noexcept
 {
     return {};
 }

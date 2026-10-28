@@ -25,6 +25,10 @@
 #include "utils/LinearAlg2D.h"
 
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::prime_tower
 {
 
@@ -33,29 +37,29 @@ PrimeTower::PrimeTower()
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-    const ::curaengine::utils::coord_t tower_radius = mesh_group_settings.get<::curaengine::utils::coord_t>("prime_tower_size") / 2;
-    const ::curaengine::utils::coord_t x = mesh_group_settings.get<::curaengine::utils::coord_t>("prime_tower_position_x");
-    const ::curaengine::utils::coord_t y = mesh_group_settings.get<::curaengine::utils::coord_t>("prime_tower_position_y");
-    const ::curaengine::utils::coord_t layer_height = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height");
+    const coord_t tower_radius = mesh_group_settings.get<coord_t>("prime_tower_size") / 2;
+    const coord_t x = mesh_group_settings.get<coord_t>("prime_tower_position_x");
+    const coord_t y = mesh_group_settings.get<coord_t>("prime_tower_position_y");
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
     const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    const ::curaengine::utils::coord_t base_extra_radius = scene.settings.get<::curaengine::utils::coord_t>("prime_tower_base_size");
-    const ::curaengine::utils::coord_t base_height = scene.settings.get<::curaengine::utils::coord_t>("prime_tower_base_height");
+    const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
+    const coord_t base_height = scene.settings.get<coord_t>("prime_tower_base_height");
     const double base_curve_magnitude = mesh_group_settings.get<double>("prime_tower_base_curve_magnitude");
 
-    middle_ = ::curaengine::geometry::Point2LL(x - tower_radius, y + tower_radius);
-    outer_poly_ = { ::curaengine::utils::PolygonUtils::makeDisc(middle_, tower_radius, circle_definition_), tower_radius };
-    post_wipe_point_ = ::curaengine::geometry::Point2LL(x - tower_radius, y + tower_radius);
+    middle_ = Point2LL(x - tower_radius, y + tower_radius);
+    outer_poly_ = { PolygonUtils::makeDisc(middle_, tower_radius, circle_definition_), tower_radius };
+    post_wipe_point_ = Point2LL(x - tower_radius, y + tower_radius);
 
     // Generate the base outline
     if (base_enabled && base_extra_radius > 0 && base_height > 0)
     {
         base_occupied_outline_.init(true);
 
-        for (::curaengine::utils::coord_t z = 0; z < base_height; z += layer_height)
+        for (coord_t z = 0; z < base_height; z += layer_height)
         {
-            const ::curaengine::utils::coord_t extra_radius = ::curaengine::utils::LinearAlg2D::getSlopedWidth(base_extra_radius, base_height, base_curve_magnitude, z);
-            const ::curaengine::utils::coord_t total_radius = tower_radius + extra_radius;
-            base_occupied_outline_.push_back(OccupiedOutline{ ::curaengine::utils::PolygonUtils::makeDisc(middle_, total_radius, circle_definition_), total_radius });
+            const coord_t extra_radius = LinearAlg2D::getSlopedWidth(base_extra_radius, base_height, base_curve_magnitude, z);
+            const coord_t total_radius = tower_radius + extra_radius;
+            base_occupied_outline_.push_back(OccupiedOutline{ PolygonUtils::makeDisc(middle_, total_radius, circle_definition_), total_radius });
         }
     }
 }
@@ -65,8 +69,8 @@ void PrimeTower::generateBase()
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
     const bool base_enabled = mesh_group_settings.get<bool>("prime_tower_brim_enable");
-    const ::curaengine::utils::coord_t base_extra_radius = scene.settings.get<::curaengine::utils::coord_t>("prime_tower_base_size");
-    const ::curaengine::utils::coord_t base_height = scene.settings.get<::curaengine::utils::coord_t>("prime_tower_base_height");
+    const coord_t base_extra_radius = scene.settings.get<coord_t>("prime_tower_base_size");
+    const coord_t base_height = scene.settings.get<coord_t>("prime_tower_base_height");
 
     if (base_enabled && base_extra_radius > 0 && base_height > 0)
     {
@@ -83,13 +87,13 @@ void PrimeTower::generateBase()
                 const OccupiedOutline& base_ouline_at_this_layer = *iterator_base_outline;
                 ExtruderToolPaths& first_extruder_toolpaths = toolpaths_at_this_layer.front();
                 const size_t extruder_nr = first_extruder_toolpaths.extruder_nr;
-                const ::curaengine::utils::coord_t line_width = scene.extruders[extruder_nr].settings_.get<::curaengine::utils::coord_t>("prime_tower_line_width");
+                const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
 
-                std::tuple<::curaengine::geometry::ClosedLinesSet, ::curaengine::utils::coord_t> outset
-                    = ::curaengine::utils::PolygonUtils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, circle_definition_);
+                std::tuple<ClosedLinesSet, coord_t> outset
+                    = PolygonUtils::generateCirculatOutset(middle_, first_extruder_toolpaths.outer_radius, base_ouline_at_this_layer.outer_radius, line_width, circle_definition_);
                 first_extruder_toolpaths.toolpaths.push_back(std::get<0>(outset));
 
-                base_extrusion_outline_.push_back(::curaengine::utils::PolygonUtils::makeDisc(middle_, std::get<1>(outset), circle_definition_));
+                base_extrusion_outline_.push_back(PolygonUtils::makeDisc(middle_, std::get<1>(outset), circle_definition_));
             }
         }
     }
@@ -106,29 +110,29 @@ void PrimeTower::generateFirtLayerInset()
             ExtruderToolPaths& last_extruder_toolpaths = toolpaths_first_layer.back();
             const Scene& scene = Application::getInstance().current_slice_->scene;
             const size_t extruder_nr = last_extruder_toolpaths.extruder_nr;
-            const ::curaengine::utils::coord_t line_width = scene.extruders[extruder_nr].settings_.get<::curaengine::utils::coord_t>("prime_tower_line_width");
-            ::curaengine::geometry::ClosedLinesSet pattern = ::curaengine::utils::PolygonUtils::generateCircularInset(middle_, last_extruder_toolpaths.inner_radius, line_width, circle_definition_);
+            const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
+            ClosedLinesSet pattern = PolygonUtils::generateCircularInset(middle_, last_extruder_toolpaths.inner_radius, line_width, circle_definition_);
             last_extruder_toolpaths.toolpaths.push_back(pattern);
         }
     }
 }
 
-std::tuple<::curaengine::geometry::ClosedLinesSet, ::curaengine::utils::coord_t> PrimeTower::generatePrimeToolpaths(const size_t extruder_nr, const ::curaengine::utils::coord_t outer_radius)
+std::tuple<ClosedLinesSet, coord_t> PrimeTower::generatePrimeToolpaths(const size_t extruder_nr, const coord_t outer_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& mesh_group_settings = scene.current_mesh_group->settings;
-    const ::curaengine::utils::coord_t layer_height = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height");
-    const ::curaengine::utils::coord_t line_width = scene.extruders[extruder_nr].settings_.get<::curaengine::utils::coord_t>("prime_tower_line_width");
+    const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+    const coord_t line_width = scene.extruders[extruder_nr].settings_.get<coord_t>("prime_tower_line_width");
     const double required_volume = scene.extruders[extruder_nr].settings_.get<double>("prime_tower_min_volume") * 1000000000;
-    const ::curaengine::types::Ratio flow = scene.extruders[extruder_nr].settings_.get<::curaengine::types::Ratio>("prime_tower_flow");
-    const ::curaengine::utils::coord_t semi_line_width = line_width / 2;
+    const Ratio flow = scene.extruders[extruder_nr].settings_.get<Ratio>("prime_tower_flow");
+    const coord_t semi_line_width = line_width / 2;
 
     double current_volume = 0;
-    ::curaengine::utils::coord_t current_outer_radius = outer_radius - semi_line_width;
-    ::curaengine::geometry::ClosedLinesSet toolpaths;
+    coord_t current_outer_radius = outer_radius - semi_line_width;
+    ClosedLinesSet toolpaths;
     while (current_volume < required_volume && current_outer_radius >= semi_line_width)
     {
-        ::curaengine::geometry::ClosedPolyline circle = ::curaengine::utils::PolygonUtils::makeCircle(middle_, current_outer_radius, circle_definition_);
+        ClosedPolyline circle = PolygonUtils::makeCircle(middle_, current_outer_radius, circle_definition_);
         toolpaths.push_back(circle);
         current_volume += static_cast<double>(circle.length() * line_width * layer_height) * flow;
         current_outer_radius -= line_width;
@@ -137,40 +141,40 @@ std::tuple<::curaengine::geometry::ClosedLinesSet, ::curaengine::utils::coord_t>
     return { toolpaths, current_outer_radius + semi_line_width };
 }
 
-::curaengine::geometry::ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const ::curaengine::utils::coord_t outer_radius, const ::curaengine::utils::coord_t inner_radius)
+ClosedLinesSet PrimeTower::generateSupportToolpaths(const size_t extruder_nr, const coord_t outer_radius, const coord_t inner_radius)
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const Settings& extruder_settings = scene.extruders[extruder_nr].settings_;
-    const ::curaengine::utils::coord_t line_width = extruder_settings.get<::curaengine::utils::coord_t>("prime_tower_line_width");
-    const double max_bridging_distance = static_cast<double>(std::max(extruder_settings.get<::curaengine::utils::coord_t>("prime_tower_max_bridging_distance"), line_width));
-    const ::curaengine::utils::coord_t radius_delta = outer_radius - inner_radius;
-    const ::curaengine::utils::coord_t semi_line_width = line_width / 2;
+    const coord_t line_width = extruder_settings.get<coord_t>("prime_tower_line_width");
+    const double max_bridging_distance = static_cast<double>(std::max(extruder_settings.get<coord_t>("prime_tower_max_bridging_distance"), line_width));
+    const coord_t radius_delta = outer_radius - inner_radius;
+    const coord_t semi_line_width = line_width / 2;
 
-    ::curaengine::geometry::ClosedLinesSet toolpaths;
+    ClosedLinesSet toolpaths;
     // Split annuli according to max bridging distance
-    const ::curaengine::utils::coord_t nb_annuli = static_cast<::curaengine::utils::coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
-    const ::curaengine::utils::coord_t nb_circles = radius_delta / line_width;
+    const coord_t nb_annuli = static_cast<coord_t>(std::ceil(static_cast<double>(radius_delta) / max_bridging_distance));
+    const coord_t nb_circles = radius_delta / line_width;
 
     if (nb_circles <= nb_annuli)
     {
         // Bridging distance is too small for a proper wheel pattern; use solid concentric circles instead.
-        for (::curaengine::utils::coord_t i = 0; i < nb_circles; ++i)
+        for (coord_t i = 0; i < nb_circles; ++i)
         {
-            toolpaths.push_back(::curaengine::utils::PolygonUtils::makeCircle(middle_, outer_radius - semi_line_width - i * line_width, circle_definition_));
+            toolpaths.push_back(PolygonUtils::makeCircle(middle_, outer_radius - semi_line_width - i * line_width, circle_definition_));
         }
     }
     else if (nb_annuli > 0)
     {
-        const ::curaengine::utils::coord_t actual_radius_step = radius_delta / nb_annuli;
+        const coord_t actual_radius_step = radius_delta / nb_annuli;
 
-        for (::curaengine::utils::coord_t i = 0; i < nb_annuli; ++i)
+        for (coord_t i = 0; i < nb_annuli; ++i)
         {
-            const ::curaengine::utils::coord_t annulus_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
-            const ::curaengine::utils::coord_t annulus_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
+            const coord_t annulus_inner_radius = (inner_radius + i * actual_radius_step) + semi_line_width;
+            const coord_t annulus_outer_radius = (inner_radius + (i + 1) * actual_radius_step) - semi_line_width;
 
             const size_t semi_nb_spokes = static_cast<size_t>(std::ceil((std::numbers::pi * static_cast<double>(annulus_outer_radius)) / max_bridging_distance));
 
-            toolpaths.push_back(::curaengine::utils::PolygonUtils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, arc_definition_));
+            toolpaths.push_back(PolygonUtils::makeWheel(middle_, annulus_inner_radius, annulus_outer_radius, semi_nb_spokes, arc_definition_));
         }
     }
 
@@ -189,7 +193,7 @@ void PrimeTower::addToGcode(
         return;
     }
 
-    const ::curaengine::types::LayerIndex layer_nr = gcode_layer.getLayerNr();
+    const LayerIndex layer_nr = gcode_layer.getLayerNr();
     if (layer_nr > storage.max_print_height_second_to_last_extruder + 1)
     {
         return;
@@ -217,7 +221,7 @@ void PrimeTower::addToGcode(
         return;
     }
 
-    const ::curaengine::geometry::ClosedLinesSet* toolpaths = nullptr;
+    const ClosedLinesSet* toolpaths = nullptr;
     auto iterator_layer = toolpaths_.find(layer_nr);
     if (iterator_layer != toolpaths_.end())
     {
@@ -250,14 +254,14 @@ void PrimeTower::addToGcode(
     {
         // Make sure we wipe the old extruder on the prime tower.
         const Settings& previous_settings = Application::getInstance().current_slice_->scene.extruders[prev_extruder_nr].settings_;
-        const ::curaengine::geometry::Point2LL previous_nozzle_offset = ::curaengine::geometry::Point2LL(previous_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), previous_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"));
+        const Point2LL previous_nozzle_offset = Point2LL(previous_settings.get<coord_t>("machine_nozzle_offset_x"), previous_settings.get<coord_t>("machine_nozzle_offset_y"));
         const Settings& new_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder_nr].settings_;
-        const ::curaengine::geometry::Point2LL new_nozzle_offset = ::curaengine::geometry::Point2LL(new_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), new_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"));
+        const Point2LL new_nozzle_offset = Point2LL(new_settings.get<coord_t>("machine_nozzle_offset_x"), new_settings.get<coord_t>("machine_nozzle_offset_y"));
         gcode_layer.addTravel(post_wipe_point_ - previous_nozzle_offset + new_nozzle_offset);
     }
 }
 
-const ::curaengine::geometry::Polygon& PrimeTower::getOccupiedOutline(const ::curaengine::types::LayerIndex& layer_nr) const
+const Polygon& PrimeTower::getOccupiedOutline(const LayerIndex& layer_nr) const
 {
     auto iterator = base_occupied_outline_.iterator_at(layer_nr);
     if (iterator != base_occupied_outline_.end())
@@ -270,7 +274,7 @@ const ::curaengine::geometry::Polygon& PrimeTower::getOccupiedOutline(const ::cu
     }
 }
 
-const ::curaengine::geometry::Polygon& PrimeTower::getOccupiedGroundOutline() const
+const Polygon& PrimeTower::getOccupiedGroundOutline() const
 {
     if (! base_extrusion_outline_.empty())
     {
@@ -282,7 +286,7 @@ const ::curaengine::geometry::Polygon& PrimeTower::getOccupiedGroundOutline() co
     }
 }
 
-const ::curaengine::geometry::Polygon& PrimeTower::getExtrusionOutline(const ::curaengine::types::LayerIndex& layer_nr) const
+const Polygon& PrimeTower::getExtrusionOutline(const LayerIndex& layer_nr) const
 {
     auto iterator = base_extrusion_outline_.iterator_at(layer_nr);
     if (iterator != base_extrusion_outline_.end())
@@ -299,15 +303,15 @@ void PrimeTower::subtractFromSupport(SliceDataStorage& storage)
 {
     for (size_t layer = 0; static_cast<int>(layer) <= storage.max_print_height_second_to_last_extruder + 1 && layer < storage.support.supportLayers.size(); layer++)
     {
-        const ::curaengine::geometry::Polygon& outside_polygon = getOccupiedOutline(layer);
-        ::curaengine::utils::AABB outside_polygon_boundary_box(outside_polygon);
+        const Polygon& outside_polygon = getOccupiedOutline(layer);
+        AABB outside_polygon_boundary_box(outside_polygon);
         SupportLayer& support_layer = storage.support.supportLayers[layer];
         // take the differences of the support infill parts and the prime tower area
-        support_layer.excludeAreasFromSupportInfillAreas(::curaengine::geometry::Shape(outside_polygon), outside_polygon_boundary_box);
+        support_layer.excludeAreasFromSupportInfillAreas(Shape(outside_polygon), outside_polygon_boundary_box);
     }
 }
 
-void PrimeTower::processExtrudersUse(::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder)
+void PrimeTower::processExtrudersUse(LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder)
 {
     polishExtrudersUses(extruders_use, start_extruder);
     toolpaths_ = generateToolPaths(extruders_use);
@@ -331,17 +335,17 @@ PrimeTower* PrimeTower::createPrimeTower(SliceDataStorage& storage)
         }
     }
 
-    if (used_extruders_nrs.size() > 1 && settings.get<bool>("prime_tower_enable") && settings.get<::curaengine::utils::coord_t>("prime_tower_min_volume") > 10
-        && settings.get<::curaengine::utils::coord_t>("prime_tower_size") > 10 && storage.max_print_height_second_to_last_extruder >= -static_cast<int>(raft_total_extra_layers))
+    if (used_extruders_nrs.size() > 1 && settings.get<bool>("prime_tower_enable") && settings.get<coord_t>("prime_tower_min_volume") > 10
+        && settings.get<coord_t>("prime_tower_size") > 10 && storage.max_print_height_second_to_last_extruder >= -static_cast<int>(raft_total_extra_layers))
     {
-        const ::curaengine::types::PrimeTowerMode method = settings.get<::curaengine::types::PrimeTowerMode>("prime_tower_mode");
+        const PrimeTowerMode method = settings.get<PrimeTowerMode>("prime_tower_mode");
 
         switch (method)
         {
-        case ::curaengine::types::PrimeTowerMode::NORMAL:
+        case PrimeTowerMode::NORMAL:
             prime_tower = new PrimeTowerNormal(used_extruders_nrs);
             break;
-        case ::curaengine::types::PrimeTowerMode::INTERLEAVED:
+        case PrimeTowerMode::INTERLEAVED:
             prime_tower = new PrimeTowerInterleaved();
             break;
         }
@@ -362,10 +366,10 @@ bool PrimeTower::extruderRequiresPrime(const std::vector<bool>& extruder_is_used
 
 void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder_nr) const
 {
-    ::curaengine::types::LayerIndex layer_nr = gcode_layer.getLayerNr();
-    if (layer_nr != -::curaengine::types::LayerIndex(Raft::getTotalExtraLayers()))
+    LayerIndex layer_nr = gcode_layer.getLayerNr();
+    if (layer_nr != -LayerIndex(Raft::getTotalExtraLayers()))
     {
-        ::curaengine::utils::coord_t wipe_radius;
+        coord_t wipe_radius;
         auto iterator = base_occupied_outline_.iterator_at(gcode_layer.getLayerNr());
         if (iterator != base_occupied_outline_.end())
         {
@@ -377,7 +381,7 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder
         }
 
         const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-        wipe_radius += train.settings_.get<::curaengine::utils::coord_t>("machine_nozzle_size") * 2;
+        wipe_radius += train.settings_.get<coord_t>("machine_nozzle_size") * 2;
 
         // Layer number may be negative, make it positive (or null) before using modulo operator
         while (layer_nr < 0)
@@ -386,8 +390,8 @@ void PrimeTower::gotoStartLocation(LayerPlan& gcode_layer, const size_t extruder
         }
 
         size_t current_start_location_idx = ((extruder_nr + 1) * static_cast<size_t>(layer_nr)) % number_of_prime_tower_start_locations_;
-        const ::curaengine::types::AngleRadians angle = start_locations_step_ * current_start_location_idx;
-        const ::curaengine::geometry::Point2LL prime_start = ::curaengine::utils::PolygonUtils::makeCirclePoint(middle_, wipe_radius, angle);
+        const AngleRadians angle = start_locations_step_ * current_start_location_idx;
+        const Point2LL prime_start = PolygonUtils::makeCirclePoint(middle_, wipe_radius, angle);
 
         gcode_layer.addTravel(prime_start);
     }

@@ -45,7 +45,7 @@ public:
     std::optional<Point2D> vNormalized() const
     {
         const double size = vSize();
-        if (::curaengine::utils::is_zero(size))
+        if (utils::is_zero(size))
         {
             return std::nullopt;
         }

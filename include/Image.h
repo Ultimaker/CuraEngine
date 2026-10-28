@@ -52,13 +52,13 @@ public:
         return result;
     }
 
-    std::pair<size_t, size_t> getPixelCoordinates(const ::curaengine::geometry::Point2F& uv_coordinates) const
+    std::pair<size_t, size_t> getPixelCoordinates(const geometry::Point2F& uv_coordinates) const
     {
         return { std::clamp(static_cast<size_t>(uv_coordinates.x_ * width_), static_cast<size_t>(0), width_ - 1),
                  std::clamp(static_cast<size_t>(uv_coordinates.y_ * height_), static_cast<size_t>(0), height_ - 1) };
     }
 
-    uint32_t getPixel(const ::curaengine::geometry::Point2F& uv_coordinates) const
+    uint32_t getPixel(const geometry::Point2F& uv_coordinates) const
     {
         return getPixel(getPixelCoordinates(uv_coordinates));
     }

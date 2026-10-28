@@ -28,9 +28,9 @@ public:
 
     explicit PointMatrix(double rotation);
 
-    explicit PointMatrix(const ::curaengine::types::AngleDegrees& rotation);
+    explicit PointMatrix(const types::AngleDegrees& rotation);
 
-    explicit PointMatrix(const ::curaengine::types::AngleRadians& rotation);
+    explicit PointMatrix(const types::AngleRadians& rotation);
 
     explicit PointMatrix(const Point2LL& p);
 

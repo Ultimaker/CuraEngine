@@ -24,6 +24,6 @@ enum class PrintSegmentAttribute : uint8_t
     // clang-format on
 };
 
-using PrintSegmentAttributes = ::curaengine::utils::Flags<PrintSegmentAttribute>;
+using PrintSegmentAttributes = utils::Flags<PrintSegmentAttribute>;
 
 } // namespace curaengine

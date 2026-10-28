@@ -34,23 +34,23 @@ namespace curaengine::path_planning
  */
 struct GCodePath
 {
-    ::curaengine::utils::coord_t z_offset{}; //<! Actual vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
+    utils::coord_t z_offset{}; //<! Actual vertical offset from 'full' layer height, applied to the whole path (can be different from the one in the config)
     GCodePathConfig config{}; //!< The configuration settings of the path.
     std::shared_ptr<const SliceMeshStorage> mesh; //!< Which mesh this path belongs to, if any. If it's not part of any mesh, the mesh should be nullptr;
     SpaceFillType space_fill_type{}; //!< The type of space filling of which this path is a part
-    ::curaengine::types::Ratio flow{}; //!< A type-independent flow configuration
-    ::curaengine::types::Ratio width_factor{}; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.
+    types::Ratio flow{}; //!< A type-independent flow configuration
+    types::Ratio width_factor{}; //!< Adjustment to the line width. Similar to flow, but causes the speed_back_pressure_factor to be adjusted.
     bool spiralize{}; //!< Whether to gradually increment the z position during the printing of this path. A sequence of spiralized paths should start at the given layer height and
                       //!< end in one layer higher.
-    ::curaengine::types::Ratio speed_factor{ 1.0 }; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
-    ::curaengine::types::Ratio speed_back_pressure_factor{ 1.0 }; // <! The factor the (non-travel) speed should be multiplied with as a consequence of back pressure compensation.
+    types::Ratio speed_factor{ 1.0 }; //!< A speed factor that is multiplied with the travel speed. This factor can be used to change the travel speed.
+    types::Ratio speed_back_pressure_factor{ 1.0 }; // <! The factor the (non-travel) speed should be multiplied with as a consequence of back pressure compensation.
     bool retract{ false }; //!< Whether the path is a move path preceded by a retraction move; whether the path is a retracted move path.
     bool retract_for_nozzle_switch{ false }; //! Also retract to prepare for a nozzle switch
     bool unretract_before_last_travel_move{ false }; //!< Whether the last move of the path should be preceded by an unretraction. Used to unretract in the last travel move before
                                                      //!< an outer wall
     bool perform_z_hop{ false }; //!< Whether to perform a z_hop in this path, which is assumed to be a travel path.
     bool perform_prime{ false }; //!< Whether this path is preceded by a prime (blob)
-    std::vector<::curaengine::geometry::Point3LL> points{}; //!< The points constituting this path. The Z coordinate is an offset relative to the actual layer height, added to the global z_offset.
+    std::vector<geometry::Point3LL> points{}; //!< The points constituting this path. The Z coordinate is an offset relative to the actual layer height, added to the global z_offset.
     bool done{ false }; //!< Path is finished, no more moves should be added, and a new path should be started instead of any appending done to this one.
     double fan_speed{ GCodePathConfig::FAN_SPEED_DEFAULT }; //!< fan speed override for this path, value should be within range 0-100 (inclusive) and ignored otherwise
     TimeMaterialEstimates estimates{}; //!< Naive time and material estimates
@@ -77,7 +77,7 @@ struct GCodePath
      * Get the actual line width (modulated by the flow)
      * \return the actual line width as shown in layer view
      */
-    [[nodiscard]] ::curaengine::utils::coord_t getLineWidthForLayerView() const noexcept;
+    [[nodiscard]] utils::coord_t getLineWidthForLayerView() const noexcept;
 
     /*!
      * Set fan_speed

@@ -16,9 +16,13 @@
 #include "types/InfillStartEndPreference.h"
 
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
-using ::curaengine::types::operator""_r;
+using types::operator""_r;
 
 
 
@@ -26,7 +30,7 @@ InfillOrderOptimizer::InfillOrderOptimizer()
 {
 }
 
-void InfillOrderOptimizer::addPart(InfillPartArea part_area, ::curaengine::geometry::OpenLinesSet& lines)
+void InfillOrderOptimizer::addPart(InfillPartArea part_area, OpenLinesSet& lines)
 {
     if (! lines.empty())
     {
@@ -34,7 +38,7 @@ void InfillOrderOptimizer::addPart(InfillPartArea part_area, ::curaengine::geome
     }
 }
 
-void InfillOrderOptimizer::addPart(InfillPartArea part_area, const ::curaengine::geometry::Shape& polygons)
+void InfillOrderOptimizer::addPart(InfillPartArea part_area, const Shape& polygons)
 {
     if (! polygons.empty())
     {
@@ -42,17 +46,17 @@ void InfillOrderOptimizer::addPart(InfillPartArea part_area, const ::curaengine:
     }
 }
 
-void InfillOrderOptimizer::addPart(InfillPartArea part_area, const std::vector<std::vector<::curaengine::utils::VariableWidthLines>>& walls)
+void InfillOrderOptimizer::addPart(InfillPartArea part_area, const std::vector<std::vector<VariableWidthLines>>& walls)
 {
     const bool has_walls = ranges::any_of(
         walls,
-        [](const std::vector<::curaengine::utils::VariableWidthLines>& tp)
+        [](const std::vector<VariableWidthLines>& tp)
         {
             return ! (
                 tp.empty()
                 || ranges::all_of(
                     tp,
-                    [](const ::curaengine::utils::VariableWidthLines& vwl)
+                    [](const VariableWidthLines& vwl)
                     {
                         return vwl.empty();
                     }));
@@ -63,7 +67,7 @@ void InfillOrderOptimizer::addPart(InfillPartArea part_area, const std::vector<s
     }
 }
 
-void InfillOrderOptimizer::optimize(const bool skin_support_interlace_lines, const std::optional<::curaengine::geometry::Point2LL>& near_end_location)
+void InfillOrderOptimizer::optimize(const bool skin_support_interlace_lines, const std::optional<Point2LL>& near_end_location)
 {
     if (infill_parts_.empty())
     {
@@ -82,7 +86,7 @@ void InfillOrderOptimizer::optimize(const bool skin_support_interlace_lines, con
     // Find the infill part that should be printed at last
     auto closest_infill_part_iterator = infill_parts_.end();
     std::optional<std::pair<size_t, size_t>> closest_line_point;
-    ::curaengine::utils::coord_t closest_distance_squared;
+    coord_t closest_distance_squared;
     const auto walls_iterator = ranges::find_if(
         infill_parts_,
         [](const InfillPart& infill_part)
@@ -155,18 +159,18 @@ void InfillOrderOptimizer::optimize(const bool skin_support_interlace_lines, con
 bool InfillOrderOptimizer::addToLayer(
     LayerPlan& layer_plan,
     const Settings& settings,
-    const std::optional<::curaengine::geometry::Point2LL>& near_end_location,
-    const ::curaengine::types::EFillMethod infill_pattern,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const std::optional<Point2LL>& near_end_location,
+    const EFillMethod infill_pattern,
+    const MeshPathConfigs& mesh_config,
     const SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::utils::coord_t start_move_inwards_length,
-    const ::curaengine::utils::coord_t end_move_inwards_length,
-    const ::curaengine::geometry::Shape& infill_inner_contour,
-    const ::curaengine::utils::coord_t skin_support_line_distance,
-    const ::curaengine::geometry::Shape& infill_below_skin,
-    const ::curaengine::types::AngleDegrees& skin_support_angle) const
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length,
+    const Shape& infill_inner_contour,
+    const coord_t skin_support_line_distance,
+    const Shape& infill_below_skin,
+    const AngleDegrees& skin_support_angle) const
 {
     if (infill_parts_.empty())
     {
@@ -174,8 +178,8 @@ bool InfillOrderOptimizer::addToLayer(
     }
 
     layer_plan.setIsInside(true); // going to print stuff inside print object
-    std::optional<::curaengine::geometry::Point2LL> near_start_location;
-    if (settings.get<::curaengine::types::InfillStartEndPreference>("infill_start_end_preference") == ::curaengine::types::InfillStartEndPreference::START_RANDOM)
+    std::optional<Point2LL> near_start_location;
+    if (settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::START_RANDOM)
     {
         srand(layer_plan.getLayerNr());
         const InfillPart& first_part = infill_parts_.front();
@@ -188,13 +192,13 @@ bool InfillOrderOptimizer::addToLayer(
                 break;
             case InfillPartType::Polygons:
             {
-                const ::curaengine::geometry::Polygon& start_poly = first_part.paths.polygons->at(rand() % first_part.paths.polygons->size());
+                const Polygon& start_poly = first_part.paths.polygons->at(rand() % first_part.paths.polygons->size());
                 near_start_location = start_poly[rand() % start_poly.size()];
                 break;
             }
             case InfillPartType::ExtrusionLines:
             {
-                const std::vector<::curaengine::utils::VariableWidthLines>* start_paths;
+                const std::vector<VariableWidthLines>* start_paths;
                 do
                 {
                     start_paths = &first_part.paths.extrusion_lines->at(rand() % first_part.paths.extrusion_lines->size());
@@ -207,7 +211,7 @@ bool InfillOrderOptimizer::addToLayer(
         }
     }
 
-    ::curaengine::geometry::MixedLinesSet all_infill_lines;
+    MixedLinesSet all_infill_lines;
 
     for (const auto& [part_index, part] : infill_parts_ | ranges::views::enumerate)
     {
@@ -215,7 +219,7 @@ bool InfillOrderOptimizer::addToLayer(
         const bool is_last = part_index == infill_parts_.size() - 1;
 
         bool reverse_print_direction = false;
-        std::optional<::curaengine::geometry::Point2LL> near_start_location_here;
+        std::optional<Point2LL> near_start_location_here;
         if (is_last && near_end_location.has_value())
         {
             near_start_location_here = near_end_location;
@@ -269,24 +273,24 @@ void InfillOrderOptimizer::addToLayer(
     const InfillPart& part,
     LayerPlan& layer_plan,
     const Settings& settings,
-    const std::optional<::curaengine::geometry::Point2LL>& near_start_location,
+    const std::optional<Point2LL>& near_start_location,
     const bool reverse_print_direction,
-    const ::curaengine::types::EFillMethod infill_pattern,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const EFillMethod infill_pattern,
+    const MeshPathConfigs& mesh_config,
     const SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::utils::coord_t start_move_inwards_length,
-    const ::curaengine::utils::coord_t end_move_inwards_length,
-    const ::curaengine::geometry::Shape& infill_inner_contour,
-    const ::curaengine::utils::coord_t skin_support_line_distance,
-    const ::curaengine::geometry::Shape& infill_below_skin,
-    const ::curaengine::types::AngleDegrees& skin_support_angle) const
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length,
+    const Shape& infill_inner_contour,
+    const coord_t skin_support_line_distance,
+    const Shape& infill_below_skin,
+    const AngleDegrees& skin_support_angle) const
 {
     const bool enable_travel_optimization = settings.get<bool>("infill_enable_travel_optimization");
-    constexpr ::curaengine::types::Ratio flow_ratio = 1.0_r;
+    constexpr Ratio flow_ratio = 1.0_r;
     constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
-    const std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*> order_requirements = PathOrderOptimizer<const ::curaengine::geometry::Polyline*>::no_order_requirements_;
+    const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
     switch (part.area)
     {
@@ -315,7 +319,7 @@ void InfillOrderOptimizer::addToLayer(
 
         case InfillPartType::Polygons:
         {
-            ::curaengine::geometry::OpenLinesSet remaining_lines;
+            OpenLinesSet remaining_lines;
             layer_plan.addInfillPolygonsByOptimizer(
                 *part.paths.polygons,
                 remaining_lines,
@@ -347,10 +351,10 @@ void InfillOrderOptimizer::addToLayer(
 
         case InfillPartType::ExtrusionLines:
         {
-            for (const std::vector<::curaengine::utils::VariableWidthLines>& tool_paths : *part.paths.extrusion_lines)
+            for (const std::vector<VariableWidthLines>& tool_paths : *part.paths.extrusion_lines)
             {
-                constexpr ::curaengine::utils::coord_t wipe_dist = 0;
-                const ::curaengine::types::ZSeamConfig z_seam_config(::curaengine::types::EZSeamType::USER_SPECIFIED, near_start_location.value_or(mesh.getZSeamHint()));
+                constexpr coord_t wipe_dist = 0;
+                const ZSeamConfig z_seam_config(EZSeamType::USER_SPECIFIED, near_start_location.value_or(mesh.getZSeamHint()));
                 InsetOrderOptimizer wall_orderer(
                     storage,
                     layer_plan,
@@ -401,7 +405,7 @@ void InfillOrderOptimizer::addToLayer(
 
         case InfillPartType::Polygons:
         {
-            ::curaengine::geometry::OpenLinesSet remaining_lines;
+            OpenLinesSet remaining_lines;
             constexpr bool extra_inwards_move = false;
             layer_plan.addInfillPolygonsByOptimizer(*part.paths.polygons, remaining_lines, mesh_config.skin_support_config, settings, extra_inwards_move, near_start_location);
             if (! remaining_lines.empty())
@@ -430,33 +434,33 @@ void InfillOrderOptimizer::addToLayer(
 }
 
 void InfillOrderOptimizer::addInfillLinesToLayer(
-    const ::curaengine::geometry::OpenLinesSet& lines,
+    const OpenLinesSet& lines,
     LayerPlan& layer_plan,
     const Settings& settings,
-    const std::optional<::curaengine::geometry::Point2LL>& near_start_location,
+    const std::optional<Point2LL>& near_start_location,
     const bool reverse_print_direction,
-    const ::curaengine::types::EFillMethod infill_pattern,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
-    const ::curaengine::utils::coord_t start_move_inwards_length,
-    const ::curaengine::utils::coord_t end_move_inwards_length,
-    const ::curaengine::geometry::Shape& infill_inner_contour,
+    const EFillMethod infill_pattern,
+    const MeshPathConfigs& mesh_config,
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length,
+    const Shape& infill_inner_contour,
     const bool enable_travel_optimization,
-    const ::curaengine::types::Ratio& flow_ratio,
+    const Ratio& flow_ratio,
     const double fan_speed,
-    const std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*>& order_requirements) const
+    const std::unordered_multimap<const Polyline*, const Polyline*>& order_requirements) const
 {
     SpaceFillType space_fill_type;
-    ::curaengine::utils::coord_t wipe_dist;
-    if (infill_pattern == ::curaengine::types::EFillMethod::GRID || infill_pattern == ::curaengine::types::EFillMethod::LINES || infill_pattern == ::curaengine::types::EFillMethod::TRIANGLES || infill_pattern == ::curaengine::types::EFillMethod::CUBIC
-        || infill_pattern == ::curaengine::types::EFillMethod::TETRAHEDRAL || infill_pattern == ::curaengine::types::EFillMethod::QUARTER_CUBIC || infill_pattern == ::curaengine::types::EFillMethod::CUBICSUBDIV
-        || infill_pattern == ::curaengine::types::EFillMethod::LIGHTNING)
+    coord_t wipe_dist;
+    if (infill_pattern == EFillMethod::GRID || infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::TRIANGLES || infill_pattern == EFillMethod::CUBIC
+        || infill_pattern == EFillMethod::TETRAHEDRAL || infill_pattern == EFillMethod::QUARTER_CUBIC || infill_pattern == EFillMethod::CUBICSUBDIV
+        || infill_pattern == EFillMethod::LIGHTNING)
     {
         space_fill_type = SpaceFillType::Lines;
-        wipe_dist = settings.get<::curaengine::utils::coord_t>("infill_wipe_dist");
+        wipe_dist = settings.get<coord_t>("infill_wipe_dist");
     }
     else
     {
-        space_fill_type = (infill_pattern == ::curaengine::types::EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+        space_fill_type = (infill_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
         wipe_dist = 0;
     }
 
@@ -475,35 +479,35 @@ void InfillOrderOptimizer::addInfillLinesToLayer(
         order_requirements,
         start_move_inwards_length,
         end_move_inwards_length,
-        ::curaengine::geometry::MendedShape(&settings, ::curaengine::utils::SectionType::INFILL, &infill_inner_contour));
+        MendedShape(&settings, SectionType::INFILL, &infill_inner_contour));
 }
 
 void InfillOrderOptimizer::addSkinSupportLinesToLayer(
-    const ::curaengine::geometry::OpenLinesSet& lines,
+    const OpenLinesSet& lines,
     LayerPlan& layer_plan,
     const Settings& settings,
-    const std::optional<::curaengine::geometry::Point2LL>& near_start_location,
+    const std::optional<Point2LL>& near_start_location,
     const bool reverse_print_direction,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
-    const ::curaengine::utils::coord_t skin_support_line_distance,
-    const ::curaengine::geometry::Shape& infill_below_skin,
-    const ::curaengine::types::AngleDegrees& skin_support_angle,
+    const MeshPathConfigs& mesh_config,
+    const coord_t skin_support_line_distance,
+    const Shape& infill_below_skin,
+    const AngleDegrees& skin_support_angle,
     const bool enable_travel_optimization,
-    const ::curaengine::types::Ratio& flow_ratio) const
+    const Ratio& flow_ratio) const
 {
     const auto skin_support_fan_speed = settings.get<bool>("cool_fan_enabled") ? settings.get<double>("skin_support_fan_speed") : GCodePathConfig::FAN_SPEED_DEFAULT;
     constexpr SpaceFillType skin_support_space_fill_type = SpaceFillType::Lines;
-    constexpr ::curaengine::utils::coord_t skin_support_wipe_dist = 0;
+    constexpr coord_t skin_support_wipe_dist = 0;
     constexpr OverrideAreas override_areas;
     const auto skin_support_interlace_lines = settings.get<bool>("skin_support_interlace_lines");
     if (skin_support_interlace_lines)
     {
-        const ::curaengine::utils::coord_t max_adjacent_distance = skin_support_line_distance * 1.1;
-        constexpr ::curaengine::utils::coord_t exclude_distance = 0;
+        const coord_t max_adjacent_distance = skin_support_line_distance * 1.1;
+        constexpr coord_t exclude_distance = 0;
         constexpr bool skin_support_interlaced = true;
 
         // You really want to avoid combing because it adds a backwards travel move that prevents the bridging lines to stick to their anchors
-        const ::curaengine::utils::coord_t max_distance_ignore_combing = max_adjacent_distance * 4;
+        const coord_t max_distance_ignore_combing = max_adjacent_distance * 4;
 
         layer_plan.addLinesMonotonic(
             infill_below_skin,
@@ -551,16 +555,16 @@ bool InfillOrderOptimizer::shouldPrintBefore(const InfillPart& part1, const Infi
 template<class LinesSetType>
 bool InfillOrderOptimizer::isCloserTo(
     const LinesSetType& line_set,
-    const ::curaengine::geometry::Point2LL& location,
+    const Point2LL& location,
     std::optional<std::pair<size_t, size_t>>& closest_point,
-    ::curaengine::utils::coord_t& closest_distance_squared)
+    coord_t& closest_distance_squared)
 {
     bool closer_found = false;
     for (const auto& [line_index, line] : line_set | ranges::views::enumerate)
     {
         for (const auto& [point_index, point] : line | ranges::views::enumerate)
         {
-            const ::curaengine::utils::coord_t distance_squared = ::curaengine::geometry::vSize2(point - location);
+            const coord_t distance_squared = geometry::vSize2(point - location);
             if (! closest_point.has_value() || distance_squared < closest_distance_squared)
             {
                 closer_found = true;

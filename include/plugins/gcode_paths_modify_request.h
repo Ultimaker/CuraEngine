@@ -13,11 +13,11 @@
 
 namespace curaengine::plugins
 {
-struct gcode_paths_modify_request : public details::converter<gcode_paths_modify_request, ::cura::plugins::slots::gcode_paths::v0::modify::CallRequest, std::vector<::curaengine::path_planning::GCodePath>>
+struct gcode_paths_modify_request : public details::converter<gcode_paths_modify_request, ::cura::plugins::slots::gcode_paths::v0::modify::CallRequest, std::vector<path_planning::GCodePath>>
 {
     [[nodiscard]] static constexpr ::cura::plugins::v0::SpaceFillType getSpaceFillType(const SpaceFillType space_fill_type) noexcept;
     [[nodiscard]] static constexpr ::cura::plugins::v0::PrintFeature getPrintFeature(const PrintFeatureType print_feature_type) noexcept;
-    value_type operator()(const native_value_type& gcode, const size_t extruder_nr, const ::curaengine::types::LayerIndex layer_nr) const;
+    value_type operator()(const native_value_type& gcode, const size_t extruder_nr, const types::LayerIndex layer_nr) const;
 };
 } // namespace curaengine::plugins
 #endif // ENABLE_PLUGINS

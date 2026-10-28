@@ -7,13 +7,16 @@
 #include "utils/OBJ.h"
 
 
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
 TreeSupportElement::TreeSupportElement(
-    ::curaengine::utils::coord_t distance_to_top,
+    coord_t distance_to_top,
     size_t target_height,
-    ::curaengine::geometry::Point2LL target_position,
+    Point2LL target_position,
     bool to_buildplate,
     bool to_model_gracious,
     bool use_min_xy_dist,
@@ -23,7 +26,7 @@ TreeSupportElement::TreeSupportElement(
     bool force_tips_to_roof,
     bool skip_ovalisation,
     bool influence_area_limit_active,
-    ::curaengine::utils::coord_t influence_area_limit_range)
+    coord_t influence_area_limit_range)
     : target_height_(target_height)
     , target_position_(target_position)
     , next_position_(target_position)
@@ -50,7 +53,7 @@ TreeSupportElement::TreeSupportElement(
     RecreateInfluenceLimitArea();
 }
 
-TreeSupportElement::TreeSupportElement(const TreeSupportElement::Ptr& elem, ::curaengine::geometry::Shape* newArea)
+TreeSupportElement::TreeSupportElement(const TreeSupportElement::Ptr& elem, Shape* newArea)
     : // copy constructor with possibility to set a new area
     target_height_(elem->target_height_)
     , target_position_(elem->target_position_)
@@ -87,7 +90,7 @@ TreeSupportElement::TreeSupportElement(const TreeSupportElement::Ptr& element_ab
     , to_buildplate_(element_above->to_buildplate_)
     , distance_to_top_(element_above->distance_to_top_ + 1)
     , area_(element_above->area_)
-    , result_on_layer_(::curaengine::geometry::Point2LL(-1, -1))
+    , result_on_layer_(Point2LL(-1, -1))
     , // set to invalid as we are a new node on a new layer
     increased_to_model_radius_(element_above->increased_to_model_radius_)
     , to_model_gracious_(element_above->to_model_gracious_)
@@ -110,11 +113,11 @@ TreeSupportElement::TreeSupportElement(
     const TreeSupportElement::Ptr& first,
     const TreeSupportElement::Ptr& second,
     size_t next_height,
-    ::curaengine::geometry::Point2LL next_position,
-    ::curaengine::utils::coord_t increased_to_model_radius,
-    const std::function<::curaengine::utils::coord_t(size_t, double)>& getRadius,
+    Point2LL next_position,
+    coord_t increased_to_model_radius,
+    const std::function<coord_t(size_t, double)>& getRadius,
     double diameter_scale_bp_radius,
-    ::curaengine::utils::coord_t branch_radius,
+    coord_t branch_radius,
     double diameter_angle_scale_factor)
     : next_position_(next_position)
     , next_height_(next_height)
@@ -146,7 +149,7 @@ TreeSupportElement::TreeSupportElement(
     buildplate_radius_increases_ = 0;
     if (diameter_scale_bp_radius > 0)
     {
-        const ::curaengine::utils::coord_t foot_increase_radius = std::abs(
+        const coord_t foot_increase_radius = std::abs(
             std::max(
                 getRadius(second->effective_radius_height_, second->buildplate_radius_increases_),
                 getRadius(first->effective_radius_height_, first->buildplate_radius_increases_))
@@ -191,10 +194,10 @@ void TreeSupportElement::RecreateInfluenceLimitArea()
     {
         influence_area_limit_area_.clear();
 
-        for (::curaengine::geometry::Point2LL p : all_tips_)
+        for (Point2LL p : all_tips_)
         {
-            ::curaengine::geometry::Polygon circle;
-            for (::curaengine::geometry::Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
+            Polygon circle;
+            for (Point2LL corner : TreeSupportBaseCircle::getBaseCircle())
             {
                 circle.push_back(p + corner * influence_area_limit_range_ / double(TreeSupportBaseCircle::base_radius));
             }
@@ -228,11 +231,11 @@ void TreeSupportElement::setToBuildplateForAllParents(bool new_value)
     }
 }
 
-void TreeSupportElement::saveToObj(::curaengine::utils::OBJ& obj, const ::curaengine::utils::coord_t z, const ::curaengine::utils::coord_t layer_height) const
+void TreeSupportElement::saveToObj(OBJ& obj, const coord_t z, const coord_t layer_height) const
 {
     if (area_)
     {
-        obj.write(*area_, z, layer_height, to_model_gracious_ ? ::curaengine::utils::SVG::Color::BLUE : ::curaengine::utils::SVG::Color::RED);
+        obj.write(*area_, z, layer_height, to_model_gracious_ ? SVG::Color::BLUE : SVG::Color::RED);
     }
 }
 
@@ -243,7 +246,7 @@ TreeSupportElement::Ptr TreeSupportElement::makeFromElementAbove(const TreeSuppo
     return element;
 }
 
-TreeSupportElement::Ptr TreeSupportElement::makeCopy(const TreeSupportElement::Ptr& elem, ::curaengine::geometry::Shape* newArea)
+TreeSupportElement::Ptr TreeSupportElement::makeCopy(const TreeSupportElement::Ptr& elem, Shape* newArea)
 {
     std::shared_ptr<TreeSupportElement> element(new TreeSupportElement(elem, newArea));
     element->addParents(elem->getParents());
@@ -254,11 +257,11 @@ TreeSupportElement::Ptr TreeSupportElement::makeMerged(
     const TreeSupportElement::Ptr& first,
     const TreeSupportElement::Ptr& second,
     size_t next_height,
-    ::curaengine::geometry::Point2LL next_position,
-    ::curaengine::utils::coord_t increased_to_model_radius,
-    const std::function<::curaengine::utils::coord_t(size_t, double)>& getRadius,
+    Point2LL next_position,
+    coord_t increased_to_model_radius,
+    const std::function<coord_t(size_t, double)>& getRadius,
     double diameter_scale_bp_radius,
-    ::curaengine::utils::coord_t branch_radius,
+    coord_t branch_radius,
     double diameter_angle_scale_factor)
 {
     std::shared_ptr<TreeSupportElement> element(new TreeSupportElement(

@@ -29,7 +29,7 @@ public:
     };
 
 private:
-    const ::curaengine::geometry::Point2LL& target_pos_;
+    const geometry::Point2LL& target_pos_;
     const DistanceType distance_type_;
 
     /*!
@@ -40,12 +40,12 @@ private:
 
 public:
     explicit DistanceScoringCriterion(
-        const ::curaengine::geometry::PointsSet& points,
-        const ::curaengine::geometry::Point2LL& target_pos,
+        const geometry::PointsSet& points,
+        const geometry::Point2LL& target_pos,
         DistanceType distance_type = DistanceType::Euclidian,
         const double distance_divider = 20.0);
 
-    virtual double computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const override;
+    virtual double computeScore(const geometry::Point2LL& candidate_position) const override;
 };
 
 } // namespace curaengine::utils::scoring

@@ -14,19 +14,19 @@ public:
     /*!
      * Height of the layer in microns.
      */
-    ::curaengine::utils::coord_t layer_height_;
+    utils::coord_t layer_height_;
 
     /*!
      * The absolute z position of the layer.
      */
-    ::curaengine::utils::coord_t z_position_;
+    utils::coord_t z_position_;
 
     /*!
      * Temperature to use for this layer.
      */
     int temperature_;
 
-    explicit AdaptiveLayer(const ::curaengine::utils::coord_t layer_height);
+    explicit AdaptiveLayer(const utils::coord_t layer_height);
 };
 
 } // namespace curaengine::types

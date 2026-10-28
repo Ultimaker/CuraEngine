@@ -11,12 +11,14 @@
 #include "utils/AABB3D.h"
 
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
 VoxelGrid::VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution)
 {
-    origin_ = ::curaengine::geometry::Point3D(bounding_box.min_.x_, bounding_box.min_.y_, bounding_box.min_.z_);
+    origin_ = Point3D(bounding_box.min_.x_, bounding_box.min_.y_, bounding_box.min_.z_);
 
     auto set_resolution = [&max_resolution](coord_t& slices_count, double& resolution, const double span)
     {
@@ -29,9 +31,9 @@ VoxelGrid::VoxelGrid(const AABB3D& bounding_box, const coord_t max_resolution)
     set_resolution(slices_count_.z_, resolution_.z_, bounding_box.spanZ());
 }
 
-::curaengine::geometry::Point3D VoxelGrid::toGlobalCoordinates(const LocalCoordinates& position, const bool at_center) const
+Point3D VoxelGrid::toGlobalCoordinates(const LocalCoordinates& position, const bool at_center) const
 {
-    return ::curaengine::geometry::Point3D(toGlobalX(position.position.x, at_center), toGlobalY(position.position.y, at_center), toGlobalZ(position.position.z, at_center));
+    return Point3D(toGlobalX(position.position.x, at_center), toGlobalY(position.position.y, at_center), toGlobalZ(position.position.z, at_center));
 }
 
 void VoxelGrid::setOccupation(const LocalCoordinates& position, const uint8_t extruder_nr)
@@ -113,7 +115,7 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getVoxelsAround(const LocalC
     return voxels_around;
 }
 
-VoxelGrid::LocalCoordinates VoxelGrid::toLocalCoordinates(const ::curaengine::geometry::Point3D& position) const
+VoxelGrid::LocalCoordinates VoxelGrid::toLocalCoordinates(const Point3D& position) const
 {
     return LocalCoordinates(toLocalX(position.x_), toLocalY(position.y_), toLocalZ(position.z_));
 }
@@ -148,15 +150,15 @@ double VoxelGrid::toGlobalZ(const uint16_t z, const bool at_center) const
     return (z * resolution_.z_) + origin_.z_ + (at_center ? resolution_.z_ / 2.0 : 0.0);
 }
 
-std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const ::curaengine::geometry::Triangle3LL& triangle) const
+std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const Triangle3LL& triangle) const
 {
     std::vector<LocalCoordinates> traversed_voxels;
 
-    const ::curaengine::geometry::Segment3LL s1(triangle[0], triangle[1]);
-    const ::curaengine::geometry::Segment3LL s2(triangle[1], triangle[2]);
-    const ::curaengine::geometry::Segment3LL s3(triangle[2], triangle[0]);
+    const Segment3LL s1(triangle[0], triangle[1]);
+    const Segment3LL s2(triangle[1], triangle[2]);
+    const Segment3LL s3(triangle[2], triangle[0]);
 
-    const ::curaengine::geometry::PlanarPolygon3LL polygon({ s1, s2, s3 });
+    const PlanarPolygon3LL polygon({ s1, s2, s3 });
 
     std::tuple<coord_t, coord_t> minmax_x = polygon.minmaxX();
     const uint16_t min_x = toLocalX(std::get<0>(minmax_x));
@@ -167,7 +169,7 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const ::c
         const double layer_start_x = toGlobalX(x, false);
         const double layer_end_x = toGlobalX(x + 1, false);
 
-        const std::optional<::curaengine::geometry::PlanarPolygon3LL> polygon_cropped_x = polygon.intersectionWithXLayer(layer_start_x, layer_end_x);
+        const std::optional<PlanarPolygon3LL> polygon_cropped_x = polygon.intersectionWithXLayer(layer_start_x, layer_end_x);
         if (! polygon_cropped_x.has_value())
         {
             continue;
@@ -182,7 +184,7 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const ::c
             const double layer_start_y = toGlobalY(y, false);
             const double layer_end_y = toGlobalY(y + 1, false);
 
-            const std::optional<::curaengine::geometry::PlanarPolygon3LL> polygon_cropped_xy = polygon_cropped_x->intersectionWithYLayer(layer_start_y, layer_end_y);
+            const std::optional<PlanarPolygon3LL> polygon_cropped_xy = polygon_cropped_x->intersectionWithYLayer(layer_start_y, layer_end_y);
             if (! polygon_cropped_xy.has_value())
             {
                 continue;
@@ -197,7 +199,7 @@ std::vector<VoxelGrid::LocalCoordinates> VoxelGrid::getTraversedVoxels(const ::c
                 const double layer_start_z = toGlobalZ(z, false);
                 const double layer_end_z = toGlobalZ(z + 1, false);
 
-                const std::optional<::curaengine::geometry::PlanarPolygon3LL> polygon_cropped_xyz = polygon_cropped_xy->intersectionWithZLayer(layer_start_z, layer_end_z);
+                const std::optional<PlanarPolygon3LL> polygon_cropped_xyz = polygon_cropped_xy->intersectionWithZLayer(layer_start_z, layer_end_z);
                 if (polygon_cropped_xyz.has_value())
                 {
                     traversed_voxels.push_back(LocalCoordinates(x, y, z));

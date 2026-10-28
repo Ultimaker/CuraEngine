@@ -27,7 +27,7 @@ public:
      * \param settings The per-mesh settings object to get setting values from.
      * \param layer_nr The layer index that these walls are generated for.
      */
-    WallsComputation(const Settings& settings, const ::curaengine::types::LayerIndex layer_nr);
+    WallsComputation(const Settings& settings, const types::LayerIndex layer_nr);
 
     /*!
      * \brief Generates the walls / inner area for all parts in a layer.
@@ -36,7 +36,7 @@ public:
      *
      * \param layer The layer for which to generate the walls and inner area.
      */
-    void generateWalls(SliceLayer* layer, ::curaengine::utils::SectionType section);
+    void generateWalls(SliceLayer* layer, utils::SectionType section);
 
 private:
     /*!
@@ -49,14 +49,14 @@ private:
     /*!
      * \brief The layer that these walls are generated for.
      */
-    const ::curaengine::types::LayerIndex layer_nr_;
+    const types::LayerIndex layer_nr_;
 
     /*!
      * Generates the walls / inner area for a single layer part.
      *
      * \param part The part for which to generate the insets.
      */
-    void generateWalls(SliceLayerPart* part, ::curaengine::utils::SectionType section);
+    void generateWalls(SliceLayerPart* part, utils::SectionType section);
 
     /*!
      * Generates the outer inset / perimeter used in spiralize mode for a single layer part. The spiral inset is
@@ -68,6 +68,6 @@ private:
      * \param recompute_outline_based_on_outer_wall Whether we need to recompute the print outline according to the
      *        generated spiral inset.
      */
-    void generateSpiralInsets(SliceLayerPart* part, ::curaengine::utils::coord_t line_width_0, ::curaengine::utils::coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
+    void generateSpiralInsets(SliceLayerPart* part, utils::coord_t line_width_0, utils::coord_t wall_0_inset, bool recompute_outline_based_on_outer_wall);
 };
 } // namespace curaengine

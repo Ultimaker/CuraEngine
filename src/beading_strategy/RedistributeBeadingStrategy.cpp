@@ -6,10 +6,13 @@
 #include <algorithm>
 #include <numeric>
 
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::beading_strategy
 {
 
-RedistributeBeadingStrategy::RedistributeBeadingStrategy(const ::curaengine::utils::coord_t optimal_width_outer, const ::curaengine::types::Ratio minimum_variable_line_ratio, BeadingStrategyPtr parent)
+RedistributeBeadingStrategy::RedistributeBeadingStrategy(const coord_t optimal_width_outer, const Ratio minimum_variable_line_ratio, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)
     , parent_(std::move(parent))
     , optimal_width_outer_(optimal_width_outer)
@@ -18,14 +21,14 @@ RedistributeBeadingStrategy::RedistributeBeadingStrategy(const ::curaengine::uti
     name_ = "RedistributeBeadingStrategy";
 }
 
-::curaengine::utils::coord_t RedistributeBeadingStrategy::getOptimalThickness(::curaengine::utils::coord_t bead_count) const
+coord_t RedistributeBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
-    const ::curaengine::utils::coord_t inner_bead_count = std::max(static_cast<::curaengine::utils::coord_t>(0), bead_count - 2);
-    const ::curaengine::utils::coord_t outer_bead_count = bead_count - inner_bead_count;
+    const coord_t inner_bead_count = std::max(static_cast<coord_t>(0), bead_count - 2);
+    const coord_t outer_bead_count = bead_count - inner_bead_count;
     return parent_->getOptimalThickness(inner_bead_count) + optimal_width_outer_ * outer_bead_count;
 }
 
-::curaengine::utils::coord_t RedistributeBeadingStrategy::getTransitionThickness(::curaengine::utils::coord_t lower_bead_count) const
+coord_t RedistributeBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     switch (lower_bead_count)
     {
@@ -38,7 +41,7 @@ RedistributeBeadingStrategy::RedistributeBeadingStrategy(const ::curaengine::uti
     }
 }
 
-::curaengine::utils::coord_t RedistributeBeadingStrategy::getOptimalBeadCount(::curaengine::utils::coord_t thickness) const
+coord_t RedistributeBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     if (thickness < minimum_variable_line_ratio_ * optimal_width_outer_)
     {
@@ -51,12 +54,12 @@ RedistributeBeadingStrategy::RedistributeBeadingStrategy(const ::curaengine::uti
     return parent_->getOptimalBeadCount(thickness - 2 * optimal_width_outer_) + 2;
 }
 
-::curaengine::utils::coord_t RedistributeBeadingStrategy::getTransitioningLength(::curaengine::utils::coord_t lower_bead_count) const
+coord_t RedistributeBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
     return parent_->getTransitioningLength(lower_bead_count);
 }
 
-double RedistributeBeadingStrategy::getTransitionAnchorPos(::curaengine::utils::coord_t lower_bead_count) const
+double RedistributeBeadingStrategy::getTransitionAnchorPos(coord_t lower_bead_count) const
 {
     return parent_->getTransitionAnchorPos(lower_bead_count);
 }
@@ -66,7 +69,7 @@ std::string RedistributeBeadingStrategy::toString() const
     return toString() + parent_->toString();
 }
 
-BeadingStrategy::Beading RedistributeBeadingStrategy::compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const
+BeadingStrategy::Beading RedistributeBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
     Beading ret;
 
@@ -79,8 +82,8 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(::curaengine::util
     }
 
     // Compute the beadings of the inner walls, if any:
-    const ::curaengine::utils::coord_t inner_bead_count = bead_count - 2;
-    const ::curaengine::utils::coord_t inner_thickness = thickness - 2 * optimal_width_outer_;
+    const coord_t inner_bead_count = bead_count - 2;
+    const coord_t inner_thickness = thickness - 2 * optimal_width_outer_;
     if (inner_bead_count > 0 && inner_thickness > 0)
     {
         ret = parent_->compute(inner_thickness, inner_bead_count);
@@ -91,7 +94,7 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(::curaengine::util
     }
 
     // Insert the outer wall(s) around the previously computed inner wall(s), which may be empty:
-    const ::curaengine::utils::coord_t actual_outer_thickness = bead_count > 2 ? std::min(thickness / 2, optimal_width_outer_) : thickness / bead_count;
+    const coord_t actual_outer_thickness = bead_count > 2 ? std::min(thickness / 2, optimal_width_outer_) : thickness / bead_count;
     ret.bead_widths.insert(ret.bead_widths.begin(), actual_outer_thickness);
     ret.toolpath_locations.insert(ret.toolpath_locations.begin(), actual_outer_thickness / 2);
     if (bead_count > 1)
@@ -102,7 +105,7 @@ BeadingStrategy::Beading RedistributeBeadingStrategy::compute(::curaengine::util
 
     // Ensure correct total and left over thickness.
     ret.total_thickness = thickness;
-    ret.left_over = thickness - std::accumulate(ret.bead_widths.cbegin(), ret.bead_widths.cend(), static_cast<::curaengine::utils::coord_t>(0));
+    ret.left_over = thickness - std::accumulate(ret.bead_widths.cbegin(), ret.bead_widths.cend(), static_cast<coord_t>(0));
     return ret;
 }
 

@@ -10,6 +10,9 @@
 #include "utils/SparsePointGridInclusive.h"
 #include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
@@ -109,7 +112,7 @@ void PathOrderMonotonic<PathType>::optimize()
 }
 
 template<typename PathType>
-std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<PathType>::findPolylineString(Path* polyline, const ::curaengine::utils::SparsePointGridInclusive<Path*>& line_bucket_grid)
+std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<PathType>::findPolylineString(Path* polyline, const SparsePointGridInclusive<Path*>& line_bucket_grid)
 {
     std::deque<Path*> result;
     if (polyline->converted_->empty())
@@ -120,21 +123,21 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
     // Find the two endpoints of the polyline string, on either side.
     result.push_back(polyline);
     polyline->start_vertex_ = 0;
-    ::curaengine::geometry::Point2LL first_endpoint = polyline->converted_->front();
-    ::curaengine::geometry::Point2LL last_endpoint = polyline->converted_->back();
-    std::vector<::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance_);
+    Point2LL first_endpoint = polyline->converted_->front();
+    Point2LL last_endpoint = polyline->converted_->back();
+    std::vector<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*>> lines_before = line_bucket_grid.getNearby(first_endpoint, coincident_point_distance_);
     auto close_line_before = std::find_if(
         lines_before.begin(),
         lines_before.end(),
-        [first_endpoint](::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
+        [first_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
         {
             return canConnectToPolyline(first_endpoint, found_path);
         });
-    std::vector<::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance_);
+    std::vector<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*>> lines_after = line_bucket_grid.getNearby(last_endpoint, coincident_point_distance_);
     auto close_line_after = std::find_if(
         lines_after.begin(),
         lines_after.end(),
-        [last_endpoint](::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
+        [last_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
         {
             return canConnectToPolyline(last_endpoint, found_path);
         });
@@ -151,7 +154,7 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
         close_line_before = std::find_if(
             lines_before.begin(),
             lines_before.end(),
-            [first_endpoint](::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
+            [first_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
             {
                 return canConnectToPolyline(first_endpoint, found_path);
             });
@@ -168,7 +171,7 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
         close_line_after = std::find_if(
             lines_after.begin(),
             lines_after.end(),
-            [last_endpoint](::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
+            [last_endpoint](utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Path*> found_path)
             {
                 return canConnectToPolyline(last_endpoint, found_path);
             });
@@ -198,9 +201,9 @@ std::deque<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Path
 template<typename PathType>
 std::vector<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<PathType>::getOverlappingLines(
     const typename std::vector<Path*>::const_iterator& polyline_it,
-    const ::curaengine::geometry::Point2D& perpendicular,
+    const Point2D& perpendicular,
     const std::vector<Path*>& polylines,
-    const ::curaengine::utils::coord_t max_adjacent_distance)
+    const coord_t max_adjacent_distance)
 {
     // How far this extends in the monotonic direction, to make sure we only go up to max_adjacent_distance in that direction.
     const double start_monotonic = projectToMonotonicVector((*polyline_it)->converted_->front());
@@ -253,13 +256,13 @@ std::vector<typename PathOrderMonotonic<PathType>::Path*> PathOrderMonotonic<Pat
 }
 
 template<typename PathType>
-std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<PathType>::makeOrderedPath(const std::vector<Path*>& polylines, const ::curaengine::utils::coord_t max_adjacent_distance)
+std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<PathType>::makeOrderedPath(const std::vector<Path*>& polylines, const coord_t max_adjacent_distance)
 {
     std::vector<Path> reordered; // To store the result in. At the end, we'll std::swap with the real paths.
     reordered.reserve(polylines.size());
 
     // Create a bucket grid to be able to find adjacent lines quickly.
-    ::curaengine::utils::SparsePointGridInclusive<Path*> line_bucket_grid(MM2INT(2)); // Grid size of 2mm.
+    SparsePointGridInclusive<Path*> line_bucket_grid(MM2INT(2)); // Grid size of 2mm.
     for (Path* polyline : polylines)
     {
         if (! polyline->converted_->empty())
@@ -281,7 +284,7 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
     // The ``starting_lines`` set indicates possible locations to start from. Each starting line represents one "sequence", which is either a set of adjacent line segments or a
     // string of polylines. The ``connections`` map indicates, starting from each starting segment, the sequence of line segments to print in order. Note that for performance
     // reasons, the ``connections`` map will sometimes link the end of one segment to the start of the next segment. This link should be ignored.
-    const ::curaengine::geometry::Point2D perpendicular = monotonic_vector_.rotated90CCW(); // To project on to detect adjacent lines.
+    const Point2D perpendicular = monotonic_vector_.rotated90CCW(); // To project on to detect adjacent lines.
 
     std::unordered_set<Path*> connected_lines; // Lines that are reachable from one of the starting lines through its connections.
     std::unordered_set<Path*> starting_lines; // Starting points of a linearly connected segment.
@@ -353,13 +356,13 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
 
     struct LineProjections
     {
-        ::curaengine::utils::coord_t min;
-        ::curaengine::utils::coord_t max;
+        coord_t min;
+        coord_t max;
 
-        explicit LineProjections(Path* path, const ::curaengine::geometry::Point2D& monotonic_vector)
+        explicit LineProjections(Path* path, const Point2D& monotonic_vector)
         {
-            const ::curaengine::utils::coord_t start_projection = std::llround(projectToVector(path->converted_->front(), monotonic_vector) / precision_factor);
-            const ::curaengine::utils::coord_t end_projection = std::llround(projectToVector(path->converted_->back(), monotonic_vector) / precision_factor);
+            const coord_t start_projection = std::llround(projectToVector(path->converted_->front(), monotonic_vector) / precision_factor);
+            const coord_t end_projection = std::llround(projectToVector(path->converted_->back(), monotonic_vector) / precision_factor);
             std::tie(min, max) = std::minmax(start_projection, end_projection);
         }
 
@@ -377,20 +380,20 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
     }
 
     // Now order the lines, by finding the closest line from the current position in the current bucket (row)
-    ::curaengine::geometry::Point2LL current_pos = this->start_point_;
+    Point2LL current_pos = this->start_point_;
     while (! pre_ordered_lines.empty())
     {
         const LineProjections first_projection_key = pre_ordered_lines.begin()->first;
         auto lines_on_row_range = pre_ordered_lines.equal_range(first_projection_key);
 
-        ::curaengine::utils::coord_t closest_distance = std::numeric_limits<::curaengine::utils::coord_t>::max();
+        coord_t closest_distance = std::numeric_limits<coord_t>::max();
         auto closest_next_line_iterator = lines_on_row_range.second;
         bool closest_backwards = false;
         for (auto iterator = lines_on_row_range.first; iterator != lines_on_row_range.second; ++iterator)
         {
             const Path* path = iterator->second;
-            const ::curaengine::utils::coord_t dist_start = ::curaengine::geometry::vSize2(current_pos - path->converted_->front());
-            const ::curaengine::utils::coord_t dist_end = ::curaengine::geometry::vSize2(current_pos - path->converted_->back());
+            const coord_t dist_start = geometry::vSize2(current_pos - path->converted_->front());
+            const coord_t dist_end = geometry::vSize2(current_pos - path->converted_->back());
             if (dist_start < closest_distance)
             {
                 closest_next_line_iterator = iterator;
@@ -434,7 +437,7 @@ std::vector<typename PathOrderMonotonic<PathType>::Path> PathOrderMonotonic<Path
 }
 
 // Template functions instantiations
-template void PathOrderMonotonic<const ::curaengine::geometry::Polyline*>::optimize();
-template void PathOrderMonotonic<const ::curaengine::geometry::OpenPolyline*>::optimize();
+template void PathOrderMonotonic<const Polyline*>::optimize();
+template void PathOrderMonotonic<const OpenPolyline*>::optimize();
 
 } // namespace curaengine

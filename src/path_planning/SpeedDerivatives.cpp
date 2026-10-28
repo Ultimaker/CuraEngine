@@ -3,10 +3,12 @@
 
 #include "path_planning/SpeedDerivatives.h"
 
+using namespace curaengine::types;
+
 namespace curaengine::path_planning
 {
 
-void SpeedDerivatives::smoothSpeed(const SpeedDerivatives& first_layer_config, const ::curaengine::types::LayerIndex layer_nr, const ::curaengine::types::LayerIndex max_speed_layer_nr)
+void SpeedDerivatives::smoothSpeed(const SpeedDerivatives& first_layer_config, const LayerIndex layer_nr, const LayerIndex max_speed_layer_nr)
 {
     const auto max_speed_layer = static_cast<double>(max_speed_layer_nr);
     const auto first_layer_speed = std::min(speed, first_layer_config.speed);

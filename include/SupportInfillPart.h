@@ -25,22 +25,22 @@ namespace curaengine
  */
 struct SupportInfillPart
 {
-    ::curaengine::geometry::SingleShape outline_; //!< The outline of the support infill area
-    std::optional<::curaengine::geometry::Shape> base_outside_contour_; //!< Outline contour including the outer base
-    std::optional<::curaengine::geometry::Shape> base_inside_contour_; //!< If an inside base is generated, contains the inner contour
-    ::curaengine::utils::AABB outline_boundary_box_; //!< The boundary box for the infill area
-    ::curaengine::utils::coord_t support_line_width_; //!< The support line width
-    ::curaengine::utils::coord_t inset_width_to_generate_; //!< The width of insets need to be generated from the outline. This is not the actual insets that will be generated.
-    std::vector<std::vector<::curaengine::geometry::Shape>> infill_area_per_combine_per_density_; //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
+    geometry::SingleShape outline_; //!< The outline of the support infill area
+    std::optional<geometry::Shape> base_outside_contour_; //!< Outline contour including the outer base
+    std::optional<geometry::Shape> base_inside_contour_; //!< If an inside base is generated, contains the inner contour
+    utils::AABB outline_boundary_box_; //!< The boundary box for the infill area
+    utils::coord_t support_line_width_; //!< The support line width
+    utils::coord_t inset_width_to_generate_; //!< The width of insets need to be generated from the outline. This is not the actual insets that will be generated.
+    std::vector<std::vector<geometry::Shape>> infill_area_per_combine_per_density_; //!< a list of separated sub-areas which requires different infill densities and combined thicknesses
                                                                           //   for infill_areas[x][n], x means the density level and n means the thickness
-    std::vector<::curaengine::utils::VariableWidthLines> wall_toolpaths_; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
+    std::vector<utils::VariableWidthLines> wall_toolpaths_; //!< Any walls go here, not in the areas, where they could be combined vertically (don't combine walls). Binned by inset_idx.
 
-    ::curaengine::utils::coord_t custom_line_distance_; //!< The distance between support infill lines. 0 means use the default line distance instead.
+    utils::coord_t custom_line_distance_; //!< The distance between support infill lines. 0 means use the default line distance instead.
     bool use_fractional_config_; //!< Request to use the configuration used to fill a partial layer height here, instead of the normal full layer height configuration.
 
-    SupportInfillPart(const ::curaengine::geometry::SingleShape& outline, ::curaengine::utils::coord_t support_line_width, bool use_fractional_config, ::curaengine::utils::coord_t inset_width_to_generate = 0, ::curaengine::utils::coord_t custom_line_distance = 0);
+    SupportInfillPart(const geometry::SingleShape& outline, utils::coord_t support_line_width, bool use_fractional_config, utils::coord_t inset_width_to_generate = 0, utils::coord_t custom_line_distance = 0);
 
-    const ::curaengine::geometry::Shape& getInfillArea() const;
+    const geometry::Shape& getInfillArea() const;
 };
 
 } // namespace curaengine

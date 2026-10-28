@@ -14,7 +14,7 @@ struct simplify_default
 {
     auto operator()(auto&& arg, auto&&... args)
     {
-        const ::curaengine::utils::Simplify simplify{ std::forward<decltype(args)>(args)... };
+        const utils::Simplify simplify{ std::forward<decltype(args)>(args)... };
         return simplify.polygon(std::forward<decltype(arg)>(arg));
     }
 };

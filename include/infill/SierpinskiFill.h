@@ -209,24 +209,24 @@ public:
     /*!
      * Basic constructor
      */
-    SierpinskiFill(const DensityProvider& density_provider, const ::curaengine::utils::AABB aabb, int max_depth, const ::curaengine::utils::coord_t line_width, bool dithering);
+    SierpinskiFill(const DensityProvider& density_provider, const utils::AABB aabb, int max_depth, const utils::coord_t line_width, bool dithering);
 
     ~SierpinskiFill();
 
     /*!
      * Generate the cross pattern curve
      */
-    ::curaengine::geometry::Polygon generateCross() const;
+    geometry::Polygon generateCross() const;
 
     /*!
      * Generate the Sierpinski space filling curve
      */
-    ::curaengine::geometry::Polygon generateCross(::curaengine::utils::coord_t z, ::curaengine::utils::coord_t min_dist_to_side, ::curaengine::utils::coord_t pocket_size) const;
+    geometry::Polygon generateCross(utils::coord_t z, utils::coord_t min_dist_to_side, utils::coord_t pocket_size) const;
 
     /*!
      * Output the triangles to a canvas
      */
-    void debugOutput(::curaengine::utils::SVG& svg);
+    void debugOutput(utils::SVG& svg);
 
 protected:
     /*!
@@ -234,7 +234,7 @@ protected:
      */
     struct Edge
     {
-        ::curaengine::geometry::Point2LL l, r; //!< The points left, resp. right of the curve.
+        geometry::Point2LL l, r; //!< The points left, resp. right of the curve.
     };
     /*!
      * A node in the tree of all triangles.
@@ -259,9 +259,9 @@ protected:
             AC_TO_BC,
             AB_TO_BC
         };
-        const ::curaengine::geometry::Point2LL straight_corner_; //!< C, the 90* corner of the triangle
-        const ::curaengine::geometry::Point2LL a_; //!< The corner closer to the start of the space filling curve
-        const ::curaengine::geometry::Point2LL b_; //!< The corner closer to the end of the space filling curve
+        const geometry::Point2LL straight_corner_; //!< C, the 90* corner of the triangle
+        const geometry::Point2LL a_; //!< The corner closer to the start of the space filling curve
+        const geometry::Point2LL b_; //!< The corner closer to the end of the space filling curve
         const SierpinskiDirection dir_; //!< The (order in which) edges being crossed by the Sierpinski curve.
         const bool straight_corner_is_left_; //!< Whether the \ref straight_corner is left of the curve, rather than right. I.e. whether triangle ABC is counter-clockwise
         const int depth_; //!< The recursion depth at which this triangle is generated. Root is zero.
@@ -273,7 +273,7 @@ protected:
         double error_left_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the left / obtained by giving value to the triangle to the left.
         double error_right_; //!< Extra value modulating the \ref requested_length obtained from the triangle on the right / obtained by giving value to the triangle to the right.
 
-        SierpinskiTriangle(::curaengine::geometry::Point2LL straight_corner, ::curaengine::geometry::Point2LL a, ::curaengine::geometry::Point2LL b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
+        SierpinskiTriangle(geometry::Point2LL straight_corner, geometry::Point2LL a, geometry::Point2LL b, SierpinskiDirection dir, bool straight_corner_is_left, int depth)
             : straight_corner_(straight_corner)
             , a_(a)
             , b_(b)
@@ -288,9 +288,9 @@ protected:
         }
         //! Constructor for the root node.
         SierpinskiTriangle()
-            : straight_corner_(::curaengine::geometry::no_point)
-            , a_(::curaengine::geometry::no_point)
-            , b_(::curaengine::geometry::no_point)
+            : straight_corner_(geometry::no_point)
+            , a_(geometry::no_point)
+            , b_(geometry::no_point)
             , dir_(SierpinskiDirection::AB_TO_BC)
             , straight_corner_is_left_(false)
             , depth_(0)
@@ -337,8 +337,8 @@ protected:
 
 
     const DensityProvider& density_provider_; //!< function which determines the requested infill density of a triangle defined by two consecutive edges.
-    ::curaengine::utils::AABB aabb_; //!< The square which is the basis of the subdivision of the area on which the curve is based.
-    ::curaengine::utils::coord_t line_width_; //!< The line width of the fill lines
+    utils::AABB aabb_; //!< The square which is the basis of the subdivision of the area on which the curve is based.
+    utils::coord_t line_width_; //!< The line width of the fill lines
     int max_depth_; //!< Maximum recursion depth of the fractal
 
     SierpinskiTriangle root_; //! The (root of the) tree containing all possible triangles of the subdivision.

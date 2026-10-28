@@ -23,7 +23,7 @@ namespace curaengine::utils::actions
 
 namespace details
 {
-template<::curaengine::types::nodeable Node, ::curaengine::types::graphable Graph>
+template<types::nodeable Node, types::graphable Graph>
 std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](const Node current_node, const Graph& graph)
 {
     const auto& [neighbour_begin, neighbour_end] = graph.equal_range(current_node);
@@ -37,7 +37,7 @@ std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](c
 };
 } // namespace curaengine::utils::actions::details
 
-template<::curaengine::types::nodeable Node, typename State, ::curaengine::types::graphable Graph>
+template<types::nodeable Node, typename State, types::graphable Graph>
 constexpr void
     dfs(const Node& current_node,
         const Graph& graph,
@@ -60,7 +60,7 @@ constexpr void
     }
 }
 
-template<::curaengine::types::nodeable Node, ::curaengine::types::graphable Graph>
+template<types::nodeable Node, types::graphable Graph>
 constexpr void dfs_parent_state(const Node& current_node, const Graph& graph, std::function<void(const Node, const Node)> handle_node)
 {
     const std::function<Node(const Node, const Node)> parent_view = [handle_node](auto node, auto parent_node)
@@ -73,7 +73,7 @@ constexpr void dfs_parent_state(const Node& current_node, const Graph& graph, st
     dfs(current_node, graph, parent_view, visited);
 }
 
-template<::curaengine::types::nodeable Node, ::curaengine::types::graphable Graph>
+template<types::nodeable Node, types::graphable Graph>
 constexpr void dfs_depth_state(const Node& current_node, const Graph& graph, std::function<void(const Node, const unsigned int)> handle_node)
 {
     const std::function<unsigned int(const Node, const unsigned int)> depth_view = [handle_node](auto node, auto depth)

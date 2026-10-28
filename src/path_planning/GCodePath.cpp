@@ -3,6 +3,8 @@
 
 #include "path_planning/GCodePath.h"
 
+using namespace curaengine::utils;
+
 namespace curaengine::path_planning
 {
 
@@ -16,9 +18,9 @@ namespace curaengine::path_planning
     return flow * width_factor * config.getExtrusionMM3perMM();
 }
 
-[[nodiscard]] ::curaengine::utils::coord_t GCodePath::getLineWidthForLayerView() const noexcept
+[[nodiscard]] coord_t GCodePath::getLineWidthForLayerView() const noexcept
 {
-    return static_cast<::curaengine::utils::coord_t>(flow * width_factor * static_cast<double>(config.getLineWidth()) * config.getFlowRatio());
+    return static_cast<coord_t>(flow * width_factor * static_cast<double>(config.getLineWidth()) * config.getFlowRatio());
 }
 
 void GCodePath::setFanSpeed(const double fanspeed) noexcept

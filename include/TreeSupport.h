@@ -51,13 +51,13 @@ constexpr auto SUPPORT_TREE_MINIMUM_FAKE_ROOF_LAYERS = 1;
 constexpr auto SUPPORT_TREE_MINIMUM_ROOF_AREA_HARD_LIMIT = false;
 constexpr auto SUPPORT_TREE_ONLY_GRACIOUS_TO_MODEL = false;
 constexpr auto SUPPORT_TREE_AVOID_SUPPORT_BLOCKER = true;
-constexpr ::curaengine::utils::coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
+constexpr utils::coord_t SUPPORT_TREE_EXPONENTIAL_THRESHOLD = 1000;
 constexpr auto SUPPORT_TREE_EXPONENTIAL_FACTOR = 1.5;
 constexpr size_t SUPPORT_TREE_PRE_EXPONENTIAL_STEPS = 1;
-constexpr ::curaengine::utils::coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
+constexpr utils::coord_t SUPPORT_TREE_COLLISION_RESOLUTION = 500; // Only has an effect if SUPPORT_TREE_USE_EXPONENTIAL_COLLISION_RESOLUTION is false
 
-using PropertyAreasUnordered = std::unordered_map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>;
-using PropertyAreas = std::map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>;
+using PropertyAreasUnordered = std::unordered_map<TreeSupportElement::Ptr, geometry::Shape>;
+using PropertyAreas = std::map<TreeSupportElement::Ptr, geometry::Shape>;
 
 /*!
  * \brief Generates a tree structure to support your models.
@@ -91,7 +91,7 @@ private:
      * \param time_keeper The object used to record the duration of the sub-steps
      * \return Uppermost layer precalculated. -1 if no layer were precalculated as no overhang is present.
      */
-    ::curaengine::types::LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, ::curaengine::utils::TimeKeeper& time_keeper);
+    types::LayerIndex precalculate(const SliceDataStorage& storage, std::vector<size_t> currently_processing_meshes, utils::TimeKeeper& time_keeper);
 
 
     /*!
@@ -123,8 +123,8 @@ private:
      * of avoidance) \param erase[out] Elements that should be deleted from the above dictionaries. \param layer_idx[in] The Index of the current Layer.
      */
     void mergeHelper(
-        std::map<TreeSupportElement::Ptr, ::curaengine::utils::AABB>& reduced_aabb,
-        std::map<TreeSupportElement::Ptr, ::curaengine::utils::AABB>& input_aabb,
+        std::map<TreeSupportElement::Ptr, utils::AABB>& reduced_aabb,
+        std::map<TreeSupportElement::Ptr, utils::AABB>& input_aabb,
         const PropertyAreasUnordered& to_bp_areas,
         const PropertyAreas& to_model_areas,
         const PropertyAreas& influence_areas,
@@ -132,7 +132,7 @@ private:
         PropertyAreasUnordered& insert_model_areas,
         PropertyAreasUnordered& insert_influence,
         std::vector<TreeSupportElement::Ptr>& erase,
-        const ::curaengine::types::LayerIndex layer_idx);
+        const types::LayerIndex layer_idx);
 
     /*!
      * \brief Merges Influence Areas if possible.
@@ -147,7 +147,7 @@ private:
      * avoidances removed. This is the largest possible influence area for this layer. Value is the influence area where the center of a circle of support may be placed. \param
      * layer_idx[in] The current layer.
      */
-    void mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, PropertyAreas& to_model_areas, PropertyAreas& influence_areas, ::curaengine::types::LayerIndex layer_idx);
+    void mergeInfluenceAreas(PropertyAreasUnordered& to_bp_areas, PropertyAreas& to_model_areas, PropertyAreas& influence_areas, types::LayerIndex layer_idx);
 
     /*!
      * \brief Checks if an influence area contains a valid subsection and returns the corresponding metadata and the new Influence area.
@@ -173,13 +173,13 @@ private:
      */
     TreeSupportElement::Ptr increaseSingleArea(
         AreaIncreaseSettings settings,
-        ::curaengine::types::LayerIndex layer_idx,
+        types::LayerIndex layer_idx,
         TreeSupportElement::Ptr parent,
-        const ::curaengine::geometry::Shape& relevant_offset,
-        ::curaengine::geometry::Shape& to_bp_data,
-        ::curaengine::geometry::Shape& to_model_data,
-        ::curaengine::geometry::Shape& increased,
-        const ::curaengine::utils::coord_t overspeed,
+        const geometry::Shape& relevant_offset,
+        geometry::Shape& to_bp_data,
+        geometry::Shape& to_model_data,
+        geometry::Shape& increased,
+        const utils::coord_t overspeed,
         const bool mergelayer);
 
     /*!
@@ -207,7 +207,7 @@ private:
         PropertyAreas& influence_areas,
         std::vector<TreeSupportElement::Ptr>& bypass_merge_areas,
         const std::vector<TreeSupportElement::Ptr>& last_layer,
-        const ::curaengine::types::LayerIndex layer_idx,
+        const types::LayerIndex layer_idx,
         const bool mergelayer);
 
     /*!
@@ -216,7 +216,7 @@ private:
      * \param move_bounds[in,out] All currently existing influence areas
      * \param time_keeper The object used to record the duration of the sub-steps
      */
-    void createLayerPathing(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, ::curaengine::utils::TimeKeeper& time_keeper);
+    void createLayerPathing(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, utils::TimeKeeper& time_keeper);
 
 
     /*!
@@ -234,7 +234,7 @@ private:
      * \param layer_idx[in] The current layer.
      * \return Should elem be deleted.
      */
-    bool setToModelContact(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, TreeSupportElement::Ptr first_elem, const ::curaengine::types::LayerIndex layer_idx);
+    bool setToModelContact(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, TreeSupportElement::Ptr first_elem, const types::LayerIndex layer_idx);
 
     /*!
      * \brief Set the result_on_layer point for all influence areas
@@ -252,8 +252,8 @@ private:
      * corresponding branch area in layer_tree_polygons. \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
     void generateBranchAreas(
-        std::vector<std::pair<::curaengine::types::LayerIndex, TreeSupportElement::Ptr>>& linear_data,
-        std::vector<std::unordered_map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>>& layer_tree_polygons,
+        std::vector<std::pair<types::LayerIndex, TreeSupportElement::Ptr>>& linear_data,
+        std::vector<std::unordered_map<TreeSupportElement::Ptr, geometry::Shape>>& layer_tree_polygons,
         const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order);
 
     /*!
@@ -261,7 +261,7 @@ private:
      *
      * \param layer_tree_polygons[in,out] Resulting branch areas with the layerindex they appear on.
      */
-    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>>& layer_tree_polygons);
+    void smoothBranchAreas(std::vector<std::unordered_map<TreeSupportElement::Ptr, geometry::Shape>>& layer_tree_polygons);
 
     /*!
      * Smoothes the skeleton of the tree structure according to the smoothing factor
@@ -278,15 +278,15 @@ private:
      * \param inverse_tree_order[in] A mapping that returns the child of every influence area.
      */
     void dropNonGraciousAreas(
-        std::vector<std::unordered_map<TreeSupportElement::Ptr, ::curaengine::geometry::Shape>>& layer_tree_polygons,
-        const std::vector<std::pair<::curaengine::types::LayerIndex, TreeSupportElement::Ptr>>& linear_data,
-        std::vector<std::vector<std::pair<::curaengine::types::LayerIndex, ::curaengine::geometry::Shape>>>& dropped_down_areas,
+        std::vector<std::unordered_map<TreeSupportElement::Ptr, geometry::Shape>>& layer_tree_polygons,
+        const std::vector<std::pair<types::LayerIndex, TreeSupportElement::Ptr>>& linear_data,
+        std::vector<std::vector<std::pair<types::LayerIndex, geometry::Shape>>>& dropped_down_areas,
         const std::map<TreeSupportElement::Ptr, TreeSupportElement::Ptr>& inverse_tree_order);
 
 
-    void filterFloatingLines(std::vector<::curaengine::geometry::Shape>& support_layer_storage);
+    void filterFloatingLines(std::vector<geometry::Shape>& support_layer_storage);
 
-    using CenterGrid = std::vector<std::unique_ptr<::curaengine::utils::SparsePointGridInclusive<std::pair<::curaengine::utils::coord_t, float>>>>;
+    using CenterGrid = std::vector<std::unique_ptr<utils::SparsePointGridInclusive<std::pair<utils::coord_t, float>>>>;
     /*!
      * \brief Generates Support Floor, ensures Support Roof can not cut of branches, and saves the branches as support to storage
      *
@@ -295,9 +295,9 @@ private:
      * \param storage[in,out] The storage where the support should be stored.
      */
     void finalizeInterfaceAndSupportAreas(
-        std::vector<::curaengine::geometry::Shape>& support_layer_storage,
-        std::vector<::curaengine::geometry::Shape>& support_roof_storage,
-        std::vector<::curaengine::geometry::Shape>& support_layer_storage_fractional,
+        std::vector<geometry::Shape>& support_layer_storage,
+        std::vector<geometry::Shape>& support_roof_storage,
+        std::vector<geometry::Shape>& support_layer_storage_fractional,
         const CenterGrid& center_locator_per_layer,
         SliceDataStorage& storage);
 
@@ -308,13 +308,13 @@ private:
      * \param storage[in,out] The storage where the support should be stored.
      * \param time_keeper The object used to record the duration of the sub-steps
      */
-    void drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, ::curaengine::utils::TimeKeeper& time_keeper);
+    void drawAreas(std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, SliceDataStorage& storage, utils::TimeKeeper& time_keeper);
 
     /*!
      * Saves the influence areas and the resulting positions of all the given elements to a 3D object
      * @para move_bounds The elements to be saved, sorted per layer
      */
-    void saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, ::curaengine::utils::OBJ& obj) const;
+    void saveToObj(const std::vector<std::set<TreeSupportElement::Ptr>>& move_bounds, utils::OBJ& obj) const;
 
     /*!
      * \brief Settings with the indexes of meshes that use these settings.
@@ -324,7 +324,7 @@ private:
     /*!
      * \brief Areas that should have been support roof, but where the roof settings would not allow any lines to be generated.
      */
-    std::vector<::curaengine::geometry::Shape> additional_required_support_area;
+    std::vector<geometry::Shape> additional_required_support_area;
 
     /*!
      * \brief Areas that use a higher density pattern of regular support to support the model (fake_roof).

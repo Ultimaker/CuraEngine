@@ -7,9 +7,11 @@
 
 #include <range/v3/view/drop.hpp>
 
+using namespace curaengine::utils;
+
 namespace curaengine::beading_strategy
 {
-InnerWallInsetBeadingStrategy::InnerWallInsetBeadingStrategy(::curaengine::utils::coord_t inner_wall_offset, BeadingStrategyPtr parent)
+InnerWallInsetBeadingStrategy::InnerWallInsetBeadingStrategy(coord_t inner_wall_offset, BeadingStrategyPtr parent)
     : BeadingStrategy(*parent)
     , parent_(std::move(parent))
     , inner_wall_offset_(inner_wall_offset)
@@ -18,22 +20,22 @@ InnerWallInsetBeadingStrategy::InnerWallInsetBeadingStrategy(::curaengine::utils
 }
 
 
-::curaengine::utils::coord_t InnerWallInsetBeadingStrategy::getOptimalThickness(::curaengine::utils::coord_t bead_count) const
+coord_t InnerWallInsetBeadingStrategy::getOptimalThickness(coord_t bead_count) const
 {
     return parent_->getOptimalThickness(bead_count);
 }
 
-::curaengine::utils::coord_t InnerWallInsetBeadingStrategy::getTransitionThickness(::curaengine::utils::coord_t lower_bead_count) const
+coord_t InnerWallInsetBeadingStrategy::getTransitionThickness(coord_t lower_bead_count) const
 {
     return parent_->getTransitionThickness(lower_bead_count);
 }
 
-::curaengine::utils::coord_t InnerWallInsetBeadingStrategy::getOptimalBeadCount(::curaengine::utils::coord_t thickness) const
+coord_t InnerWallInsetBeadingStrategy::getOptimalBeadCount(coord_t thickness) const
 {
     return parent_->getOptimalBeadCount(thickness);
 }
 
-::curaengine::utils::coord_t InnerWallInsetBeadingStrategy::getTransitioningLength(::curaengine::utils::coord_t lower_bead_count) const
+coord_t InnerWallInsetBeadingStrategy::getTransitioningLength(coord_t lower_bead_count) const
 {
     return parent_->getTransitioningLength(lower_bead_count);
 }
@@ -43,7 +45,7 @@ std::string InnerWallInsetBeadingStrategy::toString() const
     return std::string("InnerWallInsetBeadingStrategy+") + parent_->toString();
 }
 
-BeadingStrategy::Beading InnerWallInsetBeadingStrategy::compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const
+BeadingStrategy::Beading InnerWallInsetBeadingStrategy::compute(coord_t thickness, coord_t bead_count) const
 {
     Beading ret = parent_->compute(thickness, bead_count);
 
@@ -51,7 +53,7 @@ BeadingStrategy::Beading InnerWallInsetBeadingStrategy::compute(::curaengine::ut
     bead_count = std::count_if(
         ret.bead_widths.begin(),
         ret.bead_widths.end(),
-        [](const ::curaengine::utils::coord_t width)
+        [](const coord_t width)
         {
             return width > 0;
         });

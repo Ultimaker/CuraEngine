@@ -46,7 +46,7 @@ public:
      * to.
      * \param meshgroup The meshgroup to process.
      */
-    AdaptiveLayerHeights(const ::curaengine::utils::coord_t base_layer_height, const ::curaengine::utils::coord_t variation, const ::curaengine::utils::coord_t step_size, const ::curaengine::utils::coord_t threshold, const MeshGroup* meshgroup);
+    AdaptiveLayerHeights(const utils::coord_t base_layer_height, const utils::coord_t variation, const utils::coord_t step_size, const utils::coord_t threshold, const MeshGroup* meshgroup);
 
 private:
     /*!
@@ -57,28 +57,28 @@ private:
     /*!
      * Stores the allowed layer heights in microns.
      */
-    std::vector<::curaengine::utils::coord_t> allowed_layer_heights_;
+    std::vector<utils::coord_t> allowed_layer_heights_;
 
     /**
      * The base layer height.
      */
-    ::curaengine::utils::coord_t base_layer_height_;
+    utils::coord_t base_layer_height_;
 
     /**
      * The maximum deviation from the base layer height.
      */
-    ::curaengine::utils::coord_t max_variation_;
+    utils::coord_t max_variation_;
 
     /**
      * The layer height change per step to try between min and max deviation from the base layer height.
      */
-    ::curaengine::utils::coord_t step_size_;
+    utils::coord_t step_size_;
 
     /*!
      * Target topography size. Adaptive layers will try to keep the horizontal
      * distance the same.
      */
-    ::curaengine::utils::coord_t threshold_;
+    utils::coord_t threshold_;
 
     /*!
      * Stores the found slopes of each face using the same index.

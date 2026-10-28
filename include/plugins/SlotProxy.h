@@ -30,7 +30,7 @@ namespace curaengine::plugins
  * @tparam ResponseTp The gRPC convertible response type.
  * @tparam Default The default behavior when no plugin is available.
  */
-template<plugins::v0::SlotID SlotID, ::curaengine::types::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
+template<plugins::v0::SlotID SlotID, types::CharRangeLiteral SlotVersion, class Stub, class ValidatorTp, class RequestTp, class ResponseTp, class Default>
 class SlotProxy
 {
     Default default_process{};

@@ -25,7 +25,7 @@ public:
     /*!
      * \return the approximate required density of a cube
      */
-    virtual double operator()(const ::curaengine::utils::AABB3D& aabb) const = 0;
+    virtual double operator()(const utils::AABB3D& aabb) const = 0;
     virtual ~DensityProvider()
     {
     }

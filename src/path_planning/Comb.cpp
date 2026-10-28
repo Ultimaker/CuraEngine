@@ -16,19 +16,23 @@
 #include "utils/LinearAlg2D.h"
 #include "utils/PathsPointIndex.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::path_planning
 {
 
-::curaengine::utils::LocToLineGrid& Comb::getOutsideLocToLine(const ExtruderTrain& train)
+LocToLineGrid& Comb::getOutsideLocToLine(const ExtruderTrain& train)
 {
     if (outside_loc_to_line_[train.extruder_nr_] == nullptr)
     {
-        outside_loc_to_line_[train.extruder_nr_] = ::curaengine::utils::PolygonUtils::createLocToLineGrid(getBoundaryOutside(train), offset_from_inside_to_outside_ * 3 / 2);
+        outside_loc_to_line_[train.extruder_nr_] = PolygonUtils::createLocToLineGrid(getBoundaryOutside(train), offset_from_inside_to_outside_ * 3 / 2);
     }
     return *outside_loc_to_line_[train.extruder_nr_];
 }
 
-::curaengine::geometry::Shape& Comb::getBoundaryOutside(const ExtruderTrain& train)
+Shape& Comb::getBoundaryOutside(const ExtruderTrain& train)
 {
     if (boundary_outside_[train.extruder_nr_].empty())
     {
@@ -38,7 +42,7 @@ namespace curaengine::path_planning
     return boundary_outside_[train.extruder_nr_];
 }
 
-::curaengine::geometry::Shape& Comb::getModelBoundary(const ExtruderTrain& train)
+Shape& Comb::getModelBoundary(const ExtruderTrain& train)
 {
     if (model_boundary_[train.extruder_nr_].empty())
     {
@@ -48,23 +52,23 @@ namespace curaengine::path_planning
     return boundary_outside_[train.extruder_nr_];
 }
 
-::curaengine::utils::LocToLineGrid& Comb::getModelBoundaryLocToLine(const ExtruderTrain& train)
+LocToLineGrid& Comb::getModelBoundaryLocToLine(const ExtruderTrain& train)
 {
     if (model_boundary_loc_to_line_[train.extruder_nr_] == nullptr)
     {
-        model_boundary_loc_to_line_[train.extruder_nr_] = ::curaengine::utils::PolygonUtils::createLocToLineGrid(getModelBoundary(train), offset_from_inside_to_outside_ * 3 / 2);
+        model_boundary_loc_to_line_[train.extruder_nr_] = PolygonUtils::createLocToLineGrid(getModelBoundary(train), offset_from_inside_to_outside_ * 3 / 2);
     }
     return *model_boundary_loc_to_line_[train.extruder_nr_];
 }
 
 Comb::Comb(
     const SliceDataStorage& storage,
-    const ::curaengine::types::LayerIndex layer_nr,
-    const ::curaengine::geometry::Shape& comb_boundary_inside_minimum,
-    const ::curaengine::geometry::Shape& comb_boundary_inside_optimal,
-    ::curaengine::utils::coord_t comb_boundary_offset,
-    ::curaengine::utils::coord_t travel_avoid_distance,
-    ::curaengine::utils::coord_t move_inside_distance)
+    const LayerIndex layer_nr,
+    const Shape& comb_boundary_inside_minimum,
+    const Shape& comb_boundary_inside_optimal,
+    coord_t comb_boundary_offset,
+    coord_t travel_avoid_distance,
+    coord_t move_inside_distance)
     : storage_(storage)
     , layer_nr_(layer_nr)
     , travel_avoid_distance_(travel_avoid_distance)
@@ -79,8 +83,8 @@ Comb::Comb(
     , boundary_inside_optimal_(comb_boundary_inside_optimal) // copy the boundary, because the partsView_inside will reorder the polygons
     , parts_view_inside_minimum_(boundary_inside_minimum_.splitIntoPartsView()) // WARNING !! changes the order of boundary_inside !!
     , parts_view_inside_optimal_(boundary_inside_optimal_.splitIntoPartsView()) // WARNING !! changes the order of boundary_inside !!
-    , inside_loc_to_line_minimum_(::curaengine::utils::PolygonUtils::createLocToLineGrid(boundary_inside_minimum_, comb_boundary_offset))
-    , inside_loc_to_line_optimal_(::curaengine::utils::PolygonUtils::createLocToLineGrid(boundary_inside_optimal_, comb_boundary_offset))
+    , inside_loc_to_line_minimum_(PolygonUtils::createLocToLineGrid(boundary_inside_minimum_, comb_boundary_offset))
+    , inside_loc_to_line_optimal_(PolygonUtils::createLocToLineGrid(boundary_inside_optimal_, comb_boundary_offset))
     , move_inside_distance_(move_inside_distance)
 {
 }
@@ -89,20 +93,20 @@ bool Comb::calc(
     bool perform_z_hops,
     bool perform_z_hops_only_when_collides,
     const ExtruderTrain& train, // NOTE: USe for travel settings and 'extruder-nr' only, don't use for z-hop/retraction/wipe settings, as that should also be settable per mesh!
-    ::curaengine::geometry::Point2LL start_point,
-    ::curaengine::geometry::Point2LL end_point,
+    Point2LL start_point,
+    Point2LL end_point,
     CombPaths& comb_paths,
     bool _start_inside,
     bool _end_inside,
-    ::curaengine::utils::coord_t max_comb_distance_ignored,
+    coord_t max_comb_distance_ignored,
     bool& unretract_before_last_travel_move,
     bool& do_retracted_move)
 {
-    if (::curaengine::geometry::shorterThen(end_point - start_point, max_comb_distance_ignored))
+    if (geometry::shorterThen(end_point - start_point, max_comb_distance_ignored))
     {
         return true;
     }
-    const ::curaengine::geometry::Point2LL travel_end_point_before_combing = end_point;
+    const Point2LL travel_end_point_before_combing = end_point;
     // Move start and end point inside the optimal comb boundary
     size_t start_inside_poly = NO_INDEX;
     const bool start_inside = moveInside(boundary_inside_optimal_, _start_inside, inside_loc_to_line_optimal_.get(), start_point, start_inside_poly);
@@ -120,7 +124,7 @@ bool Comb::calc(
     // normal combing within part using optimal comb boundary
     if (start_inside && end_inside && start_part_idx == end_part_idx)
     {
-        ::curaengine::geometry::SingleShape part = parts_view_inside_optimal_.assemblePart(start_part_idx);
+        SingleShape part = parts_view_inside_optimal_.assemblePart(start_part_idx);
         comb_paths.emplace_back();
         const bool combing_succeeded = LinePolygonsCrossings::comb(
             part,
@@ -159,7 +163,7 @@ bool Comb::calc(
 
     if (start_inside_optimal && end_inside_optimal && start_part_idx_optimal == end_part_idx_optimal)
     {
-        ::curaengine::geometry::SingleShape part = parts_view_inside_optimal_.assemblePart(start_part_idx_optimal);
+        SingleShape part = parts_view_inside_optimal_.assemblePart(start_part_idx_optimal);
         comb_paths.emplace_back();
 
         comb_result = LinePolygonsCrossings::comb(
@@ -194,7 +198,7 @@ bool Comb::calc(
     // normal combing within part using minimum comb boundary
     if (start_inside_min && end_inside_min && start_part_idx_min == end_part_idx_min)
     {
-        ::curaengine::geometry::SingleShape part = parts_view_inside_minimum_.assemblePart(start_part_idx_min);
+        SingleShape part = parts_view_inside_minimum_.assemblePart(start_part_idx_min);
         comb_paths.emplace_back();
 
         comb_result = LinePolygonsCrossings::comb(
@@ -238,7 +242,7 @@ bool Comb::calc(
     }
 
     bool skip_avoid_other_parts_path = false;
-    if (::curaengine::geometry::vSize2(start_crossing.in_or_mid_ - end_crossing.in_or_mid_) < offset_from_inside_to_outside_ * offset_from_inside_to_outside_ * 4)
+    if (geometry::vSize2(start_crossing.in_or_mid_ - end_crossing.in_or_mid_) < offset_from_inside_to_outside_ * offset_from_inside_to_outside_ * 4)
     { // parts are next to each other, i.e. the direct crossing will always be smaller than two crossings via outside
         skip_avoid_other_parts_path = true;
     }
@@ -303,8 +307,8 @@ bool Comb::calc(
     {
         comb_paths.emplace_back();
         comb_paths.throughAir = true;
-        if (::curaengine::geometry::vSize(start_crossing.in_or_mid_ - end_crossing.in_or_mid_)
-            < ::curaengine::geometry::vSize(start_crossing.in_or_mid_ - start_crossing.out_) + ::curaengine::geometry::vSize(end_crossing.in_or_mid_ - end_crossing.out_))
+        if (geometry::vSize(start_crossing.in_or_mid_ - end_crossing.in_or_mid_)
+            < geometry::vSize(start_crossing.in_or_mid_ - start_crossing.out_) + geometry::vSize(end_crossing.in_or_mid_ - end_crossing.out_))
         { // via outside is moving more over the in-between zone
             comb_paths.back().push_back(start_crossing.in_or_mid_);
             comb_paths.back().push_back(end_crossing.in_or_mid_);
@@ -359,11 +363,11 @@ bool Comb::calc(
         {
             if (start_inside)
             { // both start and end are inside
-                comb_paths.back().cross_boundary = ::curaengine::utils::PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, *inside_loc_to_line_optimal_);
+                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, *inside_loc_to_line_optimal_);
             }
             else
             { // both start and end are outside
-                comb_paths.back().cross_boundary = ::curaengine::utils::PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train));
+                comb_paths.back().cross_boundary = PolygonUtils::polygonCollidesWithLineSegment(start_point, end_point, getModelBoundaryLocToLine(train));
             }
         }
         else
@@ -415,10 +419,10 @@ bool Comb::calc(
 }
 
 // Try to move comb_path_input points inside by the amount of `move_inside_distance` and see if the points are still in boundary_inside_optimal, add result in comb_path_output
-void Comb::moveCombPathInside(const ::curaengine::geometry::Shape& boundary_inside, const ::curaengine::geometry::Shape& boundary_inside_optimal, const CombPath& comb_path_input, CombPath& comb_path_output)
+void Comb::moveCombPathInside(const Shape& boundary_inside, const Shape& boundary_inside_optimal, const CombPath& comb_path_input, CombPath& comb_path_output)
 {
-    const ::curaengine::utils::coord_t dist = move_inside_distance_;
-    const ::curaengine::utils::coord_t dist2 = dist * dist;
+    const coord_t dist = move_inside_distance_;
+    const coord_t dist2 = dist * dist;
 
     if (comb_path_input.size() == 0)
     {
@@ -427,8 +431,8 @@ void Comb::moveCombPathInside(const ::curaengine::geometry::Shape& boundary_insi
     comb_path_output.push_back(comb_path_input[0]);
     for (unsigned int point_idx = 1; point_idx < comb_path_input.size() - 1; point_idx++)
     {
-        ::curaengine::geometry::Point2LL new_point = ::curaengine::geometry::Point2LL(comb_path_input[point_idx]);
-        ::curaengine::utils::PolygonUtils::moveInside(boundary_inside, new_point, dist, dist2);
+        Point2LL new_point = Point2LL(comb_path_input[point_idx]);
+        PolygonUtils::moveInside(boundary_inside, new_point, dist, dist2);
 
         if (boundary_inside_optimal.inside(new_point))
         {
@@ -446,12 +450,12 @@ void Comb::moveCombPathInside(const ::curaengine::geometry::Shape& boundary_insi
 }
 
 Comb::Crossing::Crossing(
-    const ::curaengine::geometry::Point2LL& dest_point,
+    const Point2LL& dest_point,
     const bool dest_is_inside,
     const unsigned int dest_part_idx,
     const unsigned int dest_part_boundary_crossing_poly_idx,
-    const ::curaengine::geometry::Shape& boundary_inside,
-    const ::curaengine::utils::LocToLineGrid& inside_loc_to_line)
+    const Shape& boundary_inside,
+    const LocToLineGrid& inside_loc_to_line)
     : dest_is_inside_(dest_is_inside)
     , boundary_inside_(boundary_inside)
     , inside_loc_to_line_(inside_loc_to_line)
@@ -466,16 +470,16 @@ Comb::Crossing::Crossing(
 }
 
 bool Comb::moveInside(
-    ::curaengine::geometry::Shape& boundary_inside,
+    Shape& boundary_inside,
     bool is_inside,
-    ::curaengine::utils::LocToLineGrid* inside_loc_to_line,
-    ::curaengine::geometry::Point2LL& dest_point,
+    LocToLineGrid* inside_loc_to_line,
+    Point2LL& dest_point,
     size_t& inside_poly,
-    const std::optional<::curaengine::utils::coord_t>& max_move_inside_distance_squared)
+    const std::optional<coord_t>& max_move_inside_distance_squared)
 {
     if (is_inside)
     {
-        ::curaengine::utils::ClosestPointPolygon cpp = ::curaengine::utils::PolygonUtils::ensureInsideOrOutside(
+        ClosestPointPolygon cpp = PolygonUtils::ensureInsideOrOutside(
             boundary_inside,
             dest_point,
             offset_extra_start_end_,
@@ -495,53 +499,53 @@ bool Comb::moveInside(
     return false;
 }
 
-void Comb::Crossing::findCrossingInOrMid(const ::curaengine::geometry::PartsView& partsView_inside, const ::curaengine::geometry::Point2LL close_to)
+void Comb::Crossing::findCrossingInOrMid(const PartsView& partsView_inside, const Point2LL close_to)
 {
     if (dest_is_inside_)
     { // in-case
         // find the point on the start inside-polygon closest to the endpoint, but also kind of close to the start point
-        ::curaengine::geometry::Point2LL _dest_point(dest_point_); // copy to local variable for lambda capture
-        std::function<int(::curaengine::geometry::Point2LL)> close_towards_start_penalty_function(
-            [_dest_point](::curaengine::geometry::Point2LL candidate)
+        Point2LL _dest_point(dest_point_); // copy to local variable for lambda capture
+        std::function<int(Point2LL)> close_towards_start_penalty_function(
+            [_dest_point](Point2LL candidate)
             {
-                return ::curaengine::geometry::vSize2((candidate - _dest_point) / 10);
+                return geometry::vSize2((candidate - _dest_point) / 10);
             });
         dest_part_ = partsView_inside.assemblePart(dest_part_idx_);
 
-        ::curaengine::utils::ClosestPointPolygon boundary_crossing_point;
+        ClosestPointPolygon boundary_crossing_point;
         { // set [result] to a point on the destination part closest to close_to (but also a bit close to _dest_point)
             std::unordered_set<unsigned int> dest_part_poly_indices;
             for (unsigned int poly_idx : partsView_inside[dest_part_idx_])
             {
                 dest_part_poly_indices.emplace(poly_idx);
             }
-            ::curaengine::utils::coord_t dist2_score = std::numeric_limits<::curaengine::utils::coord_t>::max();
-            std::function<bool(const ::curaengine::utils::PolygonsPointIndex&)> line_processor
-                = [close_to, _dest_point, &boundary_crossing_point, &dist2_score, &dest_part_poly_indices](const ::curaengine::utils::PolygonsPointIndex& boundary_segment)
+            coord_t dist2_score = std::numeric_limits<coord_t>::max();
+            std::function<bool(const PolygonsPointIndex&)> line_processor
+                = [close_to, _dest_point, &boundary_crossing_point, &dist2_score, &dest_part_poly_indices](const PolygonsPointIndex& boundary_segment)
             {
                 if (dest_part_poly_indices.find(boundary_segment.poly_idx_) == dest_part_poly_indices.end())
                 { // we're not looking at a polygon from the dest_part
                     return true; // a.k.a. continue;
                 }
-                ::curaengine::geometry::Point2LL closest_here = ::curaengine::utils::LinearAlg2D::getClosestOnLineSegment(close_to, boundary_segment.p(), boundary_segment.next().p());
-                ::curaengine::utils::coord_t dist2_score_here = ::curaengine::geometry::vSize2(close_to - closest_here) + ::curaengine::geometry::vSize2(_dest_point - closest_here) / 10;
+                Point2LL closest_here = LinearAlg2D::getClosestOnLineSegment(close_to, boundary_segment.p(), boundary_segment.next().p());
+                coord_t dist2_score_here = geometry::vSize2(close_to - closest_here) + geometry::vSize2(_dest_point - closest_here) / 10;
                 if (dist2_score_here < dist2_score)
                 {
                     dist2_score = dist2_score_here;
-                    boundary_crossing_point = ::curaengine::utils::ClosestPointPolygon(closest_here, boundary_segment.point_idx_, &boundary_segment.getPolygon(), boundary_segment.poly_idx_);
+                    boundary_crossing_point = ClosestPointPolygon(closest_here, boundary_segment.point_idx_, &boundary_segment.getPolygon(), boundary_segment.poly_idx_);
                 }
                 return true;
             };
             inside_loc_to_line_.processLine(std::make_pair(dest_point_, close_to), line_processor);
         }
 
-        ::curaengine::geometry::Point2LL result(boundary_crossing_point.p()); // the inside point of the crossing
+        Point2LL result(boundary_crossing_point.p()); // the inside point of the crossing
         if (! boundary_crossing_point.isValid())
         { // no point has been found in the sparse grid
             result = dest_point_;
         }
 
-        ::curaengine::utils::ClosestPointPolygon crossing_1_in_cp = ::curaengine::utils::PolygonUtils::ensureInsideOrOutside(
+        ClosestPointPolygon crossing_1_in_cp = PolygonUtils::ensureInsideOrOutside(
             dest_part_,
             result,
             boundary_crossing_point,
@@ -565,39 +569,39 @@ void Comb::Crossing::findCrossingInOrMid(const ::curaengine::geometry::PartsView
     }
 }
 
-bool Comb::Crossing::findOutside(const ExtruderTrain& train, const ::curaengine::geometry::Shape& outside, const ::curaengine::geometry::Point2LL close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
+bool Comb::Crossing::findOutside(const ExtruderTrain& train, const Shape& outside, const Point2LL close_to, const bool fail_on_unavoidable_obstacles, Comb& comber)
 {
     out_ = in_or_mid_;
     if (dest_is_inside_ || outside.inside(in_or_mid_, true)) // start in_between
     { // move outside
-        ::curaengine::geometry::Point2LL preferred_crossing_1_out = in_or_mid_ + ::curaengine::geometry::normal(close_to - in_or_mid_, comber.offset_from_inside_to_outside_);
-        std::function<int(::curaengine::geometry::Point2LL)> close_to_penalty_function(
-            [preferred_crossing_1_out](::curaengine::geometry::Point2LL candidate)
+        Point2LL preferred_crossing_1_out = in_or_mid_ + geometry::normal(close_to - in_or_mid_, comber.offset_from_inside_to_outside_);
+        std::function<int(Point2LL)> close_to_penalty_function(
+            [preferred_crossing_1_out](Point2LL candidate)
             {
-                return ::curaengine::geometry::vSize2((candidate - preferred_crossing_1_out) / 2);
+                return geometry::vSize2((candidate - preferred_crossing_1_out) / 2);
             });
-        std::optional<::curaengine::utils::ClosestPointPolygon> crossing_1_out_cpp = ::curaengine::utils::PolygonUtils::findClose(in_or_mid_, outside, comber.getOutsideLocToLine(train), close_to_penalty_function);
+        std::optional<ClosestPointPolygon> crossing_1_out_cpp = PolygonUtils::findClose(in_or_mid_, outside, comber.getOutsideLocToLine(train), close_to_penalty_function);
         if (crossing_1_out_cpp)
         {
-            out_ = ::curaengine::utils::PolygonUtils::moveOutside(*crossing_1_out_cpp, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
+            out_ = PolygonUtils::moveOutside(*crossing_1_out_cpp, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
         }
         else
         {
-            ::curaengine::utils::PolygonUtils::moveOutside(outside, out_, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
+            PolygonUtils::moveOutside(outside, out_, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
         }
     }
-    int64_t in_out_dist2_1 = ::curaengine::geometry::vSize2(out_ - in_or_mid_);
+    int64_t in_out_dist2_1 = geometry::vSize2(out_ - in_or_mid_);
     if (dest_is_inside_ && in_out_dist2_1 > comber.max_crossing_dist2_) // moveInside moved too far
     { // if move is too far over in_between
         // find crossing closer by
         assert(dest_crossing_poly_ && "destination crossing poly should have been instantiated!");
-        std::shared_ptr<std::pair<::curaengine::utils::ClosestPointPolygon, ::curaengine::utils::ClosestPointPolygon>> best = findBestCrossing(train, outside, **dest_crossing_poly_, dest_point_, close_to, comber);
+        std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> best = findBestCrossing(train, outside, **dest_crossing_poly_, dest_point_, close_to, comber);
         if (best)
         {
-            in_or_mid_ = ::curaengine::utils::PolygonUtils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
-            out_ = ::curaengine::utils::PolygonUtils::moveOutside(best->second, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
+            in_or_mid_ = PolygonUtils::moveInside(best->first, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
+            out_ = PolygonUtils::moveOutside(best->second, comber.offset_dist_to_get_from_on_the_polygon_to_outside_);
         }
-        if (fail_on_unavoidable_obstacles && ::curaengine::geometry::vSize2(out_ - in_or_mid_) > comber.max_crossing_dist2_) // moveInside moved still too far
+        if (fail_on_unavoidable_obstacles && geometry::vSize2(out_ - in_or_mid_) > comber.max_crossing_dist2_) // moveInside moved still too far
         {
             return false;
         }
@@ -606,32 +610,32 @@ bool Comb::Crossing::findOutside(const ExtruderTrain& train, const ::curaengine:
 }
 
 
-std::shared_ptr<std::pair<::curaengine::utils::ClosestPointPolygon, ::curaengine::utils::ClosestPointPolygon>> Comb::Crossing::findBestCrossing(
+std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> Comb::Crossing::findBestCrossing(
     const ExtruderTrain& train,
-    const ::curaengine::geometry::Shape& outside,
-    const ::curaengine::geometry::Polygon& from,
-    const ::curaengine::geometry::Point2LL estimated_start,
-    const ::curaengine::geometry::Point2LL estimated_end,
+    const Shape& outside,
+    const Polygon& from,
+    const Point2LL estimated_start,
+    const Point2LL estimated_end,
     Comb& comber)
 {
-    ::curaengine::utils::ClosestPointPolygon* best_in = nullptr;
-    ::curaengine::utils::ClosestPointPolygon* best_out = nullptr;
-    ::curaengine::utils::coord_t best_detour_score = std::numeric_limits<::curaengine::utils::coord_t>::max();
-    ::curaengine::utils::coord_t best_crossing_dist2;
-    std::vector<std::pair<::curaengine::utils::ClosestPointPolygon, ::curaengine::utils::ClosestPointPolygon>> crossing_out_candidates = ::curaengine::utils::PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine(train));
+    ClosestPointPolygon* best_in = nullptr;
+    ClosestPointPolygon* best_out = nullptr;
+    coord_t best_detour_score = std::numeric_limits<coord_t>::max();
+    coord_t best_crossing_dist2;
+    std::vector<std::pair<ClosestPointPolygon, ClosestPointPolygon>> crossing_out_candidates = PolygonUtils::findClose(from, outside, comber.getOutsideLocToLine(train));
     bool seen_close_enough_connection = false;
-    for (std::pair<::curaengine::utils::ClosestPointPolygon, ::curaengine::utils::ClosestPointPolygon>& crossing_candidate : crossing_out_candidates)
+    for (std::pair<ClosestPointPolygon, ClosestPointPolygon>& crossing_candidate : crossing_out_candidates)
     {
-        const ::curaengine::utils::coord_t crossing_dist2 = ::curaengine::geometry::vSize2(crossing_candidate.first.location_ - crossing_candidate.second.location_);
+        const coord_t crossing_dist2 = geometry::vSize2(crossing_candidate.first.location_ - crossing_candidate.second.location_);
         if (crossing_dist2 > comber.max_crossing_dist2_ * 2)
         { // preliminary filtering
             continue;
         }
 
-        const ::curaengine::utils::coord_t dist_to_start = ::curaengine::geometry::vSize(crossing_candidate.second.location_ - estimated_start); // use outside location, so that the crossing direction is taken into account
-        const ::curaengine::utils::coord_t dist_to_end = ::curaengine::geometry::vSize(crossing_candidate.second.location_ - estimated_end);
-        const ::curaengine::utils::coord_t detour_dist = dist_to_start + dist_to_end;
-        const ::curaengine::utils::coord_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour
+        const coord_t dist_to_start = geometry::vSize(crossing_candidate.second.location_ - estimated_start); // use outside location, so that the crossing direction is taken into account
+        const coord_t dist_to_end = geometry::vSize(crossing_candidate.second.location_ - estimated_end);
+        const coord_t detour_dist = dist_to_start + dist_to_end;
+        const coord_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour
         // The detour distance is generally large compared to the crossing distance.
         // While the crossing is generally about 1mm across,
         // the distance between an arbitrary point and the boundary may well be a couple of centimetres.
@@ -653,20 +657,20 @@ std::shared_ptr<std::pair<::curaengine::utils::ClosestPointPolygon, ::curaengine
             best_crossing_dist2 = crossing_dist2;
         }
     }
-    if (best_detour_score == std::numeric_limits<::curaengine::utils::coord_t>::max())
+    if (best_detour_score == std::numeric_limits<coord_t>::max())
     { // i.e. if best_in == nullptr or if best_out == nullptr
-        return std::shared_ptr<std::pair<::curaengine::utils::ClosestPointPolygon, ::curaengine::utils::ClosestPointPolygon>>();
+        return std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>>();
     }
     if (best_crossing_dist2 > comber.max_crossing_dist2_)
     { // find closer point on line segments, rather than moving between vertices of the polygons only
-        ::curaengine::utils::PolygonUtils::walkToNearestSmallestConnection(*best_in, *best_out);
-        best_crossing_dist2 = ::curaengine::geometry::vSize2(best_in->location_ - best_out->location_);
+        PolygonUtils::walkToNearestSmallestConnection(*best_in, *best_out);
+        best_crossing_dist2 = geometry::vSize2(best_in->location_ - best_out->location_);
         if (best_crossing_dist2 > comber.max_crossing_dist2_)
         {
-            return std::shared_ptr<std::pair<::curaengine::utils::ClosestPointPolygon, ::curaengine::utils::ClosestPointPolygon>>();
+            return std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>>();
         }
     }
-    return std::make_shared<std::pair<::curaengine::utils::ClosestPointPolygon, ::curaengine::utils::ClosestPointPolygon>>(*best_in, *best_out);
+    return std::make_shared<std::pair<ClosestPointPolygon, ClosestPointPolygon>>(*best_in, *best_out);
 }
 
 } // namespace curaengine::path_planning

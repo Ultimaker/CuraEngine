@@ -11,6 +11,8 @@
 #include "geometry/Segment3LL.h"
 
 
+using namespace curaengine::utils;
+
 namespace curaengine::geometry
 {
 
@@ -25,16 +27,16 @@ PlanarPolygon3LL::PlanarPolygon3LL(const std::initializer_list<Segment3LL>& segm
 }
 
 std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithLayer(
-    const ::curaengine::utils::coord_t layer_start,
-    const ::curaengine::utils::coord_t layer_end,
-    const std::function<std::optional<Segment3LL>(const Segment3LL&, const ::curaengine::utils::coord_t, const ::curaengine::utils::coord_t)>& function_intersect_with_layer) const
+    const coord_t layer_start,
+    const coord_t layer_end,
+    const std::function<std::optional<Segment3LL>(const Segment3LL&, const coord_t, const coord_t)>& function_intersect_with_layer) const
 {
     std::vector<Segment3LL> new_segments;
 
     const auto join_segments = [&new_segments](const Segment3LL& next_segment)
     {
-        const ::curaengine::utils::coord_t join_distance = (new_segments.back().end() - next_segment.start()).vSize2();
-        if (join_distance > ::curaengine::utils::EPSILON * ::curaengine::utils::EPSILON)
+        const coord_t join_distance = (new_segments.back().end() - next_segment.start()).vSize2();
+        if (join_distance > EPSILON * EPSILON)
         {
             // Segments are not joined, add a transition segment
             new_segments.push_back(Segment3LL(new_segments.back().end(), next_segment.start()));
@@ -70,22 +72,22 @@ std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithLayer(
     return PlanarPolygon3LL(std::move(new_segments));
 }
 
-std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithXLayer(const ::curaengine::utils::coord_t layer_start_x, const ::curaengine::utils::coord_t layer_end_x) const
+std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithXLayer(const coord_t layer_start_x, const coord_t layer_end_x) const
 {
     return intersectionWithLayer(layer_start_x, layer_end_x, &Segment3LL::intersectionWithXLayer);
 }
 
-std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithYLayer(const ::curaengine::utils::coord_t layer_start_y, const ::curaengine::utils::coord_t layer_end_y) const
+std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithYLayer(const coord_t layer_start_y, const coord_t layer_end_y) const
 {
     return intersectionWithLayer(layer_start_y, layer_end_y, &Segment3LL::intersectionWithYLayer);
 }
 
-std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithZLayer(const ::curaengine::utils::coord_t layer_start_z, const ::curaengine::utils::coord_t layer_end_z) const
+std::optional<PlanarPolygon3LL> PlanarPolygon3LL::intersectionWithZLayer(const coord_t layer_start_z, const coord_t layer_end_z) const
 {
     return intersectionWithLayer(layer_start_z, layer_end_z, &Segment3LL::intersectionWithZLayer);
 }
 
-std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> PlanarPolygon3LL::minmaxX() const
+std::tuple<coord_t, coord_t> PlanarPolygon3LL::minmaxX() const
 {
     return minmax(
         [](const Segment3LL& segment)
@@ -94,7 +96,7 @@ std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> PlanarPol
         });
 }
 
-std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> PlanarPolygon3LL::minmaxY() const
+std::tuple<coord_t, coord_t> PlanarPolygon3LL::minmaxY() const
 {
     return minmax(
         [](const Segment3LL& segment)
@@ -103,7 +105,7 @@ std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> PlanarPol
         });
 }
 
-std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> PlanarPolygon3LL::minmaxZ() const
+std::tuple<coord_t, coord_t> PlanarPolygon3LL::minmaxZ() const
 {
     return minmax(
         [](const Segment3LL& segment)
@@ -112,7 +114,7 @@ std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> PlanarPol
         });
 }
 
-std::tuple<::curaengine::utils::coord_t, ::curaengine::utils::coord_t> PlanarPolygon3LL::minmax(const std::function<::curaengine::utils::coord_t(const Segment3LL& segment)>& get_coordinate) const
+std::tuple<coord_t, coord_t> PlanarPolygon3LL::minmax(const std::function<coord_t(const Segment3LL& segment)>& get_coordinate) const
 {
     const auto segments_coordinates = segments_ | ranges::views::transform(get_coordinate);
     auto result = ranges::minmax_element(segments_coordinates);

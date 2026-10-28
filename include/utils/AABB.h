@@ -28,18 +28,18 @@ namespace curaengine::utils
 class AABB
 {
 public:
-    ::curaengine::geometry::Point2LL min_, max_;
+    geometry::Point2LL min_, max_;
 
     AABB(); //!< initializes with invalid min and max
-    AABB(const ::curaengine::geometry::Point2LL& min, const ::curaengine::geometry::Point2LL& max); //!< initializes with given min and max
-    AABB(const std::initializer_list<::curaengine::geometry::Point2LL>& points); //!< initializes with given points
-    AABB(const ::curaengine::geometry::Shape& shape); //!< Computes the boundary box for the given shape
-    AABB(const ::curaengine::geometry::OpenLinesSet& lines); //!< Computes the boundary box for the given lines
-    AABB(const ::curaengine::geometry::PointsSet& poly); //!< Computes the boundary box for the given polygons
+    AABB(const geometry::Point2LL& min, const geometry::Point2LL& max); //!< initializes with given min and max
+    AABB(const std::initializer_list<geometry::Point2LL>& points); //!< initializes with given points
+    AABB(const geometry::Shape& shape); //!< Computes the boundary box for the given shape
+    AABB(const geometry::OpenLinesSet& lines); //!< Computes the boundary box for the given lines
+    AABB(const geometry::PointsSet& poly); //!< Computes the boundary box for the given polygons
 
-    void calculate(const ::curaengine::geometry::Shape& shape); //!< Calculates the aabb for the given shape (throws away old min and max data of this aabb)
-    void calculate(const ::curaengine::geometry::OpenLinesSet& lines); //!< Calculates the aabb for the given lines (throws away old min and max data of this aabb)
-    void calculate(const ::curaengine::geometry::PointsSet& poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
+    void calculate(const geometry::Shape& shape); //!< Calculates the aabb for the given shape (throws away old min and max data of this aabb)
+    void calculate(const geometry::OpenLinesSet& lines); //!< Calculates the aabb for the given lines (throws away old min and max data of this aabb)
+    void calculate(const geometry::PointsSet& poly); //!< Calculates the aabb for the given polygon (throws away old min and max data of this aabb)
 
     /*!
      * Whether the bounding box contains the specified point.
@@ -47,7 +47,7 @@ public:
      * \return ``true`` if the bounding box contains the specified point, or
      * ``false`` otherwise.
      */
-    bool contains(const ::curaengine::geometry::Point2LL& point) const;
+    bool contains(const geometry::Point2LL& point) const;
 
     /*!
      * Whether this bounding box contains the other bounding box.
@@ -63,12 +63,12 @@ public:
     /*!
      * Get the middle of the bounding box.
      */
-    ::curaengine::geometry::Point2LL getMiddle() const;
+    geometry::Point2LL getMiddle() const;
 
     /*!
      * If point outside of bounding box: positive distance-squared to the bounding box edges, otherwise negative.
      */
-    coord_t distanceSquared(const ::curaengine::geometry::Point2LL& p) const;
+    coord_t distanceSquared(const geometry::Point2LL& p) const;
 
     /*!
      * If other aabb outside of this bounding box: positive distance-squared to the bounding box edges,
@@ -93,9 +93,9 @@ public:
      *
      * \param point The point to include in the bounding box.
      */
-    void include(const ::curaengine::geometry::Point2LL& point);
+    void include(const geometry::Point2LL& point);
 
-    void include(const ::curaengine::geometry::PointsSet& polygon);
+    void include(const geometry::PointsSet& polygon);
 
     /*!
      * \brief Includes the specified bounding box in the bounding box.
@@ -119,7 +119,7 @@ public:
      * Generate a square polygon which coincides with this aabb
      * \return the polygon of this aabb
      */
-    ::curaengine::geometry::Polygon toPolygon() const;
+    geometry::Polygon toPolygon() const;
 
     [[nodiscard]] coord_t width() const;
 
@@ -133,7 +133,7 @@ public:
      * * @param shape The input points (assumed to be the convex hull for optimal performance).
      * @return A tuple containing the local AABB (extents) and the rotation angle.
      */
-    static std::tuple<AABB, ::curaengine::types::AngleRadians> minimumAreaOrientedBoundingBox(const ::curaengine::geometry::Shape& shape);
+    static std::tuple<AABB, types::AngleRadians> minimumAreaOrientedBoundingBox(const geometry::Shape& shape);
 };
 
 } // namespace curaengine::utils

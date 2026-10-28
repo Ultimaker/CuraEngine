@@ -10,6 +10,6 @@
 namespace curaengine::utils
 {
 
-using OpenPolylineStitcher = PolylineStitcher<::curaengine::geometry::OpenLinesSet, ::curaengine::geometry::Shape, ::curaengine::geometry::OpenPolyline, ::curaengine::geometry::Point2LL>;
+using OpenPolylineStitcher = PolylineStitcher<geometry::OpenLinesSet, geometry::Shape, geometry::OpenPolyline, geometry::Point2LL>;
 
 } // namespace curaengine::utils

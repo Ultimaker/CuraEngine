@@ -44,6 +44,11 @@
 
 namespace cfe = CuraFormulaeEngine;
 
+using namespace curaengine::communication;
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine::gcode_export
 {
 
@@ -68,7 +73,7 @@ GCodeExport::GCodeExport()
     current_e_value_ = 0;
     current_extruder_ = 0;
 
-    total_print_times_ = std::vector<::curaengine::types::Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
+    total_print_times_ = std::vector<Duration>(static_cast<unsigned char>(PrintFeatureType::NumPrintFeatureTypes), 0.0);
 
     current_speed_ = 1.0;
     current_print_acceleration_ = -1.0;
@@ -76,7 +81,7 @@ GCodeExport::GCodeExport()
     current_jerk_ = -1.0;
 
     is_z_hopped_ = 0;
-    setFlavor(::curaengine::types::EGCodeFlavor::MARLIN);
+    setFlavor(EGCodeFlavor::MARLIN);
     initial_bed_temp_ = 0;
     bed_temperature_ = 0;
     build_volume_temperature_ = 0;
@@ -88,7 +93,7 @@ GCodeExport::GCodeExport()
     relative_extrusion_ = false;
     new_line_ = "\n";
 
-    total_bounding_box_ = ::curaengine::utils::AABB3D();
+    total_bounding_box_ = AABB3D();
 
     prepareNewFixedGCodePart();
 }
@@ -103,7 +108,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
     std::vector<MeshGroup>::iterator mesh_group = scene.current_mesh_group;
-    setFlavor(mesh_group->settings.get<::curaengine::types::EGCodeFlavor>("machine_gcode_flavor"));
+    setFlavor(mesh_group->settings.get<EGCodeFlavor>("machine_gcode_flavor"));
     use_extruder_offset_to_offset_coords_ = mesh_group->settings.get<bool>("machine_use_extruder_offset_to_offset_coords");
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
     ppr_enable_ = mesh_group->settings.get<bool>("ppr_enable");
@@ -111,10 +116,10 @@ void GCodeExport::preSetup(const size_t start_extruder)
     for (size_t extruder_nr = 0; extruder_nr < extruder_count; extruder_nr++)
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];
-        setFilamentDiameter(extruder_nr, train.settings_.get<::curaengine::utils::coord_t>("material_diameter"));
+        setFilamentDiameter(extruder_nr, train.settings_.get<coord_t>("material_diameter"));
 
         extruder_attr_[extruder_nr].last_retraction_prime_speed_
-            = train.settings_.get<::curaengine::types::Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
+            = train.settings_.get<Velocity>("retraction_prime_speed"); // the alternative would be switch_extruder_prime_speed, but dual extrusion might not even be configured...
         extruder_attr_[extruder_nr].fan_number_ = train.settings_.get<size_t>("machine_extruder_cooling_fan_number");
         fans_count_ = std::max(fans_count_, extruder_attr_[extruder_nr].fan_number_ + 1);
 
@@ -123,11 +128,11 @@ void GCodeExport::preSetup(const size_t start_extruder)
         if (use_extruder_offset_to_offset_coords_)
         {
             extruder_attr_[extruder_nr].nozzle_offset_
-                = ::curaengine::geometry::Point2LL(extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_x"), extruder_settings.get<::curaengine::utils::coord_t>("machine_nozzle_offset_y"));
+                = Point2LL(extruder_settings.get<coord_t>("machine_nozzle_offset_x"), extruder_settings.get<coord_t>("machine_nozzle_offset_y"));
         }
         else
         {
-            extruder_attr_[extruder_nr].nozzle_offset_ = ::curaengine::geometry::Point2LL(0, 0);
+            extruder_attr_[extruder_nr].nozzle_offset_ = Point2LL(0, 0);
         }
         extruder_attr_[extruder_nr].machine_firmware_retract_ = extruder_settings.get<bool>("machine_firmware_retract");
     }
@@ -137,7 +142,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     relative_extrusion_ = mesh_group->settings.get<bool>("relative_extrusion");
     always_write_active_tool_ = mesh_group->settings.get<bool>("machine_always_write_active_tool");
 
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::BFB)
+    if (flavor_ == EGCodeFlavor::BFB)
     {
         new_line_ = "\r\n";
     }
@@ -153,7 +158,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
         if (! scene.current_mesh_group->settings.get<bool>("material_bed_temp_prepend"))
         {
             // Current bed temperature is the one of the first layer (has already been set in header)
-            bed_temperature_ = scene.current_mesh_group->settings.get<::curaengine::types::Temperature>("material_bed_temperature_layer_0");
+            bed_temperature_ = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
         }
         else
         {
@@ -163,7 +168,7 @@ void GCodeExport::preSetup(const size_t start_extruder)
     else
     {
         // Current bed temperature is the one of the previous group
-        bed_temperature_ = (scene.current_mesh_group - 1)->settings.get<::curaengine::types::Temperature>("material_bed_temperature");
+        bed_temperature_ = (scene.current_mesh_group - 1)->settings.get<Temperature>("material_bed_temperature");
     }
 }
 
@@ -175,49 +180,49 @@ void GCodeExport::setInitialAndBuildVolumeTemps(const unsigned int start_extrude
     {
         const ExtruderTrain& train = scene.extruders[extruder_nr];
 
-        const ::curaengine::types::Temperature print_temp_0 = train.settings_.get<::curaengine::types::Temperature>("material_print_temperature_layer_0");
-        const ::curaengine::types::Temperature print_temp_here = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<::curaengine::types::Temperature>("material_print_temperature");
-        const ::curaengine::types::Temperature temp = (extruder_nr == start_extruder_nr) ? print_temp_here : train.settings_.get<::curaengine::types::Temperature>("material_standby_temperature");
+        const Temperature print_temp_0 = train.settings_.get<Temperature>("material_print_temperature_layer_0");
+        const Temperature print_temp_here = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<Temperature>("material_print_temperature");
+        const Temperature temp = (extruder_nr == start_extruder_nr) ? print_temp_here : train.settings_.get<Temperature>("material_standby_temperature");
         setInitialTemp(extruder_nr, temp);
     }
 
-    initial_bed_temp_ = scene.current_mesh_group->settings.get<::curaengine::types::Temperature>("material_bed_temperature_layer_0");
+    initial_bed_temp_ = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
     machine_heated_build_volume_ = scene.current_mesh_group->settings.get<bool>("machine_heated_build_volume");
-    build_volume_temperature_ = machine_heated_build_volume_ ? scene.current_mesh_group->settings.get<::curaengine::types::Temperature>("build_volume_temperature") : ::curaengine::types::Temperature(0);
+    build_volume_temperature_ = machine_heated_build_volume_ ? scene.current_mesh_group->settings.get<Temperature>("build_volume_temperature") : Temperature(0);
 }
 
 void GCodeExport::setInitialTemp(int extruder_nr, double temp)
 {
     extruder_attr_[extruder_nr].initial_temp_ = temp;
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::GRIFFIN || flavor_ == ::curaengine::types::EGCodeFlavor::CHEETAH || flavor_ == ::curaengine::types::EGCodeFlavor::ULTIGCODE)
+    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH || flavor_ == EGCodeFlavor::ULTIGCODE)
     {
         extruder_attr_[extruder_nr].current_temperature_ = temp;
     }
 }
 
-std::string GCodeExport::flavorToString(const ::curaengine::types::EGCodeFlavor& flavor)
+std::string GCodeExport::flavorToString(const EGCodeFlavor& flavor)
 {
     switch (flavor)
     {
-    case ::curaengine::types::EGCodeFlavor::BFB:
+    case EGCodeFlavor::BFB:
         return "BFB";
-    case ::curaengine::types::EGCodeFlavor::MACH3:
+    case EGCodeFlavor::MACH3:
         return "Mach3";
-    case ::curaengine::types::EGCodeFlavor::MAKERBOT:
+    case EGCodeFlavor::MAKERBOT:
         return "Makerbot";
-    case ::curaengine::types::EGCodeFlavor::ULTIGCODE:
+    case EGCodeFlavor::ULTIGCODE:
         return "UltiGCode";
-    case ::curaengine::types::EGCodeFlavor::MARLIN_VOLUMATRIC:
+    case EGCodeFlavor::MARLIN_VOLUMATRIC:
         return "Marlin(Volumetric)";
-    case ::curaengine::types::EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::GRIFFIN:
         return "Griffin";
-    case ::curaengine::types::EGCodeFlavor::CHEETAH:
+    case EGCodeFlavor::CHEETAH:
         return "Cheetah";
-    case ::curaengine::types::EGCodeFlavor::REPETIER:
+    case EGCodeFlavor::REPETIER:
         return "Repetier";
-    case ::curaengine::types::EGCodeFlavor::REPRAP:
+    case EGCodeFlavor::REPRAP:
         return "RepRap";
-    case ::curaengine::types::EGCodeFlavor::MARLIN:
+    case EGCodeFlavor::MARLIN:
     default:
         return "Marlin";
     }
@@ -228,19 +233,19 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
     std::ostringstream prefix;
 
     const size_t extruder_count = Application::getInstance().current_slice_->scene.extruders.size();
-    const ::curaengine::types::Duration print_time = getSumTotalPrintTimes();
+    const Duration print_time = getSumTotalPrintTimes();
 
     switch (flavor_)
     {
-    case ::curaengine::types::EGCodeFlavor::GRIFFIN:
-    case ::curaengine::types::EGCodeFlavor::CHEETAH:
+    case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
     {
         prefix << ";START_OF_HEADER" << new_line_;
         prefix << ";HEADER_VERSION:0.1" << new_line_;
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
         prefix << ";GENERATOR.NAME:Cura_SteamEngine" << new_line_;
         prefix << ";GENERATOR.VERSION:" << CURA_ENGINE_VERSION << new_line_;
-        prefix << ";GENERATOR.BUILD_DATE:" << ::curaengine::utils::Date::getDate().toStringDashed() << new_line_;
+        prefix << ";GENERATOR.BUILD_DATE:" << Date::getDate().toStringDashed() << new_line_;
         prefix << ";TARGET_MACHINE.NAME:" << transliterate(machine_name_) << new_line_;
 
         for (size_t extr_nr = 0; extr_nr < extruder_count; extr_nr++)
@@ -275,8 +280,8 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
         if (total_bounding_box_.min_.x_ > total_bounding_box_.max_.x_) // We haven't encountered any movement (yet). This probably means we're command-line slicing.
         {
             // Put some small default in there.
-            total_bounding_box_.min_ = ::curaengine::geometry::Point3LL(0, 0, 0);
-            total_bounding_box_.max_ = ::curaengine::geometry::Point3LL(10, 10, 10);
+            total_bounding_box_.min_ = Point3LL(0, 0, 0);
+            total_bounding_box_.max_ = Point3LL(10, 10, 10);
         }
         prefix << ";PRINT.SIZE.MIN.X:" << INT2MM(total_bounding_box_.min_.x_) << new_line_;
         prefix << ";PRINT.SIZE.MIN.Y:" << INT2MM(total_bounding_box_.min_.y_) << new_line_;
@@ -313,14 +318,14 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
     default:
         prefix << ";FLAVOR:" << flavorToString(flavor_) << new_line_;
         prefix << ";TIME:" << static_cast<int>(print_time) << new_line_;
-        if (flavor_ == ::curaengine::types::EGCodeFlavor::ULTIGCODE)
+        if (flavor_ == EGCodeFlavor::ULTIGCODE)
         {
             prefix << ";MATERIAL:" << ((filament_used.size() >= 1) ? static_cast<int>(filament_used[0]) : 6666) << new_line_;
             prefix << ";MATERIAL2:" << ((filament_used.size() >= 2) ? static_cast<int>(filament_used[1]) : 0) << new_line_;
 
             prefix << ";NOZZLE_DIAMETER:" << Application::getInstance().current_slice_->scene.extruders[0].settings_.get<double>("machine_nozzle_size") << new_line_;
         }
-        else if (flavor_ == ::curaengine::types::EGCodeFlavor::REPRAP || flavor_ == ::curaengine::types::EGCodeFlavor::MARLIN || flavor_ == ::curaengine::types::EGCodeFlavor::MARLIN_VOLUMATRIC)
+        else if (flavor_ == EGCodeFlavor::REPRAP || flavor_ == EGCodeFlavor::MARLIN || flavor_ == EGCodeFlavor::MARLIN_VOLUMATRIC)
         {
             prefix << ";Filament used: ";
             if (filament_used.size() > 0)
@@ -331,7 +336,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
                     {
                         prefix << ", ";
                     }
-                    if (flavor_ != ::curaengine::types::EGCodeFlavor::MARLIN_VOLUMATRIC)
+                    if (flavor_ != EGCodeFlavor::MARLIN_VOLUMATRIC)
                     {
                         prefix << filament_used[i] / (1000 * extruder_attr_[i].filament_area_) << "m";
                     }
@@ -359,7 +364,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 
 #ifdef ENABLE_PLUGINS
     std::vector<std::pair<std::string, std::string>> plugins; // For each plugin: slot name, plugin name
-    ::curaengine::plugins::slots::instance().forEachPlugin(
+    plugins::slots::instance().forEachPlugin(
         [&plugins](const plugins::slot_metadata& slot, const plugins::plugin_metadata& plugin)
         {
             plugins.push_back(std::make_pair(::cura::plugins::v0::SlotID_Name(slot.slot_id), plugin.plugin_name));
@@ -378,7 +383,7 @@ std::string GCodeExport::getFileHeader(const std::vector<bool>& extruder_is_used
 }
 
 
-void GCodeExport::setLayerNr(const ::curaengine::types::LayerIndex& layer_nr)
+void GCodeExport::setLayerNr(const LayerIndex& layer_nr)
 {
     layer_nr_ = layer_nr;
 
@@ -393,20 +398,20 @@ bool GCodeExport::getExtruderIsUsed(const int extruder_nr) const
     return extruder_attr_[extruder_nr].is_used_;
 }
 
-::curaengine::geometry::Point2LL GCodeExport::getGcodePos(const ::curaengine::utils::coord_t x, const ::curaengine::utils::coord_t y, const int extruder_train) const
+Point2LL GCodeExport::getGcodePos(const coord_t x, const coord_t y, const int extruder_train) const
 {
-    return ::curaengine::geometry::Point2LL(x, y) - getNozzleOffset(extruder_train);
+    return Point2LL(x, y) - getNozzleOffset(extruder_train);
 }
 
-::curaengine::geometry::Point2LL GCodeExport::getNozzleOffset(const int extruder_train) const
+Point2LL GCodeExport::getNozzleOffset(const int extruder_train) const
 {
     return extruder_attr_[extruder_train].nozzle_offset_;
 }
 
-void GCodeExport::setFlavor(::curaengine::types::EGCodeFlavor flavor)
+void GCodeExport::setFlavor(EGCodeFlavor flavor)
 {
     this->flavor_ = flavor;
-    if (flavor == ::curaengine::types::EGCodeFlavor::MACH3)
+    if (flavor == EGCodeFlavor::MACH3)
     {
         for (int n = 0; n < MAX_EXTRUDERS; n++)
         {
@@ -420,7 +425,7 @@ void GCodeExport::setFlavor(::curaengine::types::EGCodeFlavor flavor)
             extruder_attr_[n].extruder_character_ = 'E';
         }
     }
-    if (flavor == ::curaengine::types::EGCodeFlavor::ULTIGCODE || flavor == ::curaengine::types::EGCodeFlavor::MARLIN_VOLUMATRIC)
+    if (flavor == EGCodeFlavor::ULTIGCODE || flavor == EGCodeFlavor::MARLIN_VOLUMATRIC)
     {
         is_volumetric_ = true;
     }
@@ -430,7 +435,7 @@ void GCodeExport::setFlavor(::curaengine::types::EGCodeFlavor flavor)
     }
 }
 
-::curaengine::types::EGCodeFlavor GCodeExport::getFlavor() const
+EGCodeFlavor GCodeExport::getFlavor() const
 {
     return flavor_;
 }
@@ -451,16 +456,16 @@ void GCodeExport::setFlowRateExtrusionSettings(double max_extrusion_offset, doub
     this->extrusion_offset_factor_ = extrusion_offset_factor;
 }
 
-const ::curaengine::geometry::Point3LL& GCodeExport::getPosition() const
+const Point3LL& GCodeExport::getPosition() const
 {
     return current_position_;
 }
-::curaengine::geometry::Point2LL GCodeExport::getPositionXY() const
+Point2LL GCodeExport::getPositionXY() const
 {
     return current_position_.toPoint2LL();
 }
 
-::curaengine::utils::coord_t GCodeExport::getPositionZ() const
+coord_t GCodeExport::getPositionZ() const
 {
     return current_position_.z_;
 }
@@ -470,7 +475,7 @@ size_t GCodeExport::getExtruderNr() const
     return current_extruder_;
 }
 
-void GCodeExport::setFilamentDiameter(const size_t extruder, const ::curaengine::utils::coord_t diameter)
+void GCodeExport::setFilamentDiameter(const size_t extruder, const coord_t diameter)
 {
     const double r = INT2MM(diameter) / 2.0;
     const double area = std::numbers::pi * r * r;
@@ -516,7 +521,7 @@ void GCodeExport::setZHopPrimeLeftover(const ZHopAntiOozing& z_hop_prime_leftove
 
 bool GCodeExport::machineHandlesRetraction() const
 {
-    return extruder_attr_[0].machine_firmware_retract_ || flavor_ == ::curaengine::types::EGCodeFlavor::BFB;
+    return extruder_attr_[0].machine_firmware_retract_ || flavor_ == EGCodeFlavor::BFB;
 }
 
 double GCodeExport::mm3ToE(double mm3) const
@@ -590,7 +595,7 @@ void GCodeExport::resetTotalPrintTimeAndFilament()
 
 void GCodeExport::updateTotalPrintTime()
 {
-    std::vector<::curaengine::types::Duration> estimates = estimate_calculator_.calculate();
+    std::vector<Duration> estimates = estimate_calculator_.calculate();
     for (size_t i = 0; i < estimates.size(); i++)
     {
         total_print_times_[i] += estimates[i];
@@ -618,7 +623,7 @@ void GCodeExport::writeComment(const std::string& unsanitized_comment)
     *output_stream_ << new_line_;
 }
 
-void GCodeExport::writeTimeComment(const ::curaengine::types::Duration time)
+void GCodeExport::writeTimeComment(const Duration time)
 {
     *output_stream_ << ";TIME_ELAPSED:" << time << new_line_;
 }
@@ -667,7 +672,7 @@ void GCodeExport::writeTypeComment(const PrintFeatureType& type)
 }
 
 
-void GCodeExport::writeLayerComment(const ::curaengine::types::LayerIndex layer_nr)
+void GCodeExport::writeLayerComment(const LayerIndex layer_nr)
 {
     *output_stream_ << ";LAYER:" << layer_nr << new_line_;
 }
@@ -689,7 +694,7 @@ void GCodeExport::writeRaw(const std::string& gcode)
 
 void GCodeExport::resetExtrusionMode()
 {
-    const bool set_relative_extrusion_mode = getFlavor() == ::curaengine::types::EGCodeFlavor::REPRAP;
+    const bool set_relative_extrusion_mode = getFlavor() == EGCodeFlavor::REPRAP;
     writeExtrusionMode(set_relative_extrusion_mode);
 }
 
@@ -737,7 +742,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
         writeResolvableGCode(machine_start_gcode, DynamicExtruderContext::Initial);
     }
 
-    if (getFlavor() == ::curaengine::types::EGCodeFlavor::GRIFFIN || getFlavor() == ::curaengine::types::EGCodeFlavor::CHEETAH)
+    if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     {
         std::ostringstream tmp;
         tmp << "T" << start_extruder_nr;
@@ -765,24 +770,24 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
 
     if (mesh_group_settings.get<bool>("machine_heated_build_volume"))
     {
-        writeBuildVolumeTemperatureCommand(mesh_group_settings.get<::curaengine::types::Temperature>("build_volume_temperature"));
+        writeBuildVolumeTemperatureCommand(mesh_group_settings.get<Temperature>("build_volume_temperature"));
     }
 
     Application::getInstance().communication_->sendCurrentPosition(getPositionXY());
     startExtruder(start_extruder_nr);
 
-    if (getFlavor() == ::curaengine::types::EGCodeFlavor::BFB)
+    if (getFlavor() == EGCodeFlavor::BFB)
     {
         writeComment("enable auto-retraction");
         std::ostringstream tmp;
-        tmp << "M227 S" << (mesh_group_settings.get<::curaengine::utils::coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<::curaengine::utils::coord_t>("retraction_amount") * 2560 / 1000);
+        tmp << "M227 S" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000) << " P" << (mesh_group_settings.get<coord_t>("retraction_amount") * 2560 / 1000);
         writeLine(tmp.str());
     }
-    else if (getFlavor() == ::curaengine::types::EGCodeFlavor::GRIFFIN || getFlavor() == ::curaengine::types::EGCodeFlavor::CHEETAH)
+    else if (getFlavor() == EGCodeFlavor::GRIFFIN || getFlavor() == EGCodeFlavor::CHEETAH)
     { // initialize extruder trains
         ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[start_extruder_nr];
         processInitialLayerTemperature(storage, start_extruder_nr);
-        writePrimeTrain(train.settings_.get<::curaengine::types::Velocity>("speed_travel"));
+        writePrimeTrain(train.settings_.get<Velocity>("speed_travel"));
         should_prime_extruder = false;
         const RetractionConfig& retraction_config = storage.retraction_wipe_config_per_extruder[start_extruder_nr].retraction_config;
         writeRetraction(retraction_config);
@@ -792,7 +797,7 @@ bool GCodeExport::initializeExtruderTrains(const SliceDataStorage& storage, cons
     {
         writeExtrusionMode(true);
     }
-    if (getFlavor() != ::curaengine::types::EGCodeFlavor::GRIFFIN && getFlavor() != ::curaengine::types::EGCodeFlavor::CHEETAH)
+    if (getFlavor() != EGCodeFlavor::GRIFFIN && getFlavor() != EGCodeFlavor::CHEETAH)
     {
         if (mesh_group_settings.get<bool>("retraction_enable"))
         {
@@ -811,7 +816,7 @@ void GCodeExport::processInitialLayerBedTemperature()
 {
     const Scene& scene = Application::getInstance().current_slice_->scene;
     const bool heated = scene.current_mesh_group->settings.get<bool>("machine_heated_bed");
-    const ::curaengine::types::Temperature bed_temp = scene.current_mesh_group->settings.get<::curaengine::types::Temperature>("material_bed_temperature_layer_0");
+    const Temperature bed_temp = scene.current_mesh_group->settings.get<Temperature>("material_bed_temperature_layer_0");
     if (heated && bed_temp != 0)
     {
         writeBedTemperatureCommand(bed_temp, scene.current_mesh_group->settings.get<bool>("material_bed_temp_wait"));
@@ -833,7 +838,7 @@ void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorag
     struct ExtruderInitialize
     {
         size_t nr;
-        ::curaengine::types::Temperature temperature;
+        Temperature temperature;
     };
 
     std::vector<ExtruderInitialize> all_extruders;
@@ -843,15 +848,15 @@ void GCodeExport::processInitialLayerExtrudersTemperatures(const SliceDataStorag
         if (extruders_used[extruder_nr])
         {
             const ExtruderTrain& train = scene.extruders[extruder_nr];
-            ::curaengine::types::Temperature extruder_temp;
+            Temperature extruder_temp;
             if (extruder_nr == start_extruder_nr)
             {
-                const ::curaengine::types::Temperature print_temp_0 = train.settings_.get<::curaengine::types::Temperature>("material_print_temperature_layer_0");
-                extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<::curaengine::types::Temperature>("material_print_temperature");
+                const Temperature print_temp_0 = train.settings_.get<Temperature>("material_print_temperature_layer_0");
+                extruder_temp = (print_temp_0 != 0) ? print_temp_0 : train.settings_.get<Temperature>("material_print_temperature");
             }
             else
             {
-                extruder_temp = train.settings_.get<::curaengine::types::Temperature>("material_standby_temperature");
+                extruder_temp = train.settings_.get<Temperature>("material_standby_temperature");
             }
 
             all_extruders.push_back({ extruder_nr, extruder_temp });
@@ -880,7 +885,7 @@ void GCodeExport::writeRawRetract(const RetractionAmounts& retraction_amounts)
 
     current_e_value_ += retraction_amounts.diff_e;
     const double output_e = (relative_extrusion_) ? retraction_amounts.diff_e : current_e_value_;
-    *output_stream_ << " " << extr_attr.extruder_character_ << ::curaengine::utils::PrecisionedDouble{ 5, output_e };
+    *output_stream_ << " " << extr_attr.extruder_character_ << PrecisionedDouble{ 5, output_e };
     extr_attr.retraction_e_amount_current_ = retraction_amounts.new_e;
 }
 
@@ -904,14 +909,14 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
 
     switch (getFlavor())
     {
-    case ::curaengine::types::EGCodeFlavor::ULTIGCODE:
+    case EGCodeFlavor::ULTIGCODE:
         return;
-    case ::curaengine::types::EGCodeFlavor::GRIFFIN:
-    case ::curaengine::types::EGCodeFlavor::CHEETAH:
+    case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
         wait_start_extruder = true;
         break;
     default:
-        if (used_extruders > 1 || getFlavor() == ::curaengine::types::EGCodeFlavor::REPRAP || ! extruders_used[0])
+        if (used_extruders > 1 || getFlavor() == EGCodeFlavor::REPRAP || ! extruders_used[0])
         {
             std::ostringstream tmp;
             tmp << "T" << start_extruder_nr;
@@ -922,7 +927,7 @@ void GCodeExport::processInitialLayerTemperature(const SliceDataStorage& storage
 
     if (scene.settings.get<size_t>("build_volume_fan_nr") != 0)
     {
-        const auto fan_speed = scene.settings.get<::curaengine::types::Ratio>("build_volume_fan_speed_0") * 100.0;
+        const auto fan_speed = scene.settings.get<Ratio>("build_volume_fan_speed_0") * 100.0;
         writeSpecificFanCommand(fan_speed, scene.settings.get<size_t>("build_volume_fan_nr"));
     }
 
@@ -934,8 +939,8 @@ bool GCodeExport::needPrimeBlob() const
 {
     switch (getFlavor())
     {
-    case ::curaengine::types::EGCodeFlavor::GRIFFIN:
-    case ::curaengine::types::EGCodeFlavor::CHEETAH:
+    case EGCodeFlavor::GRIFFIN:
+    case EGCodeFlavor::CHEETAH:
         return true;
     default:
         // TODO: change this once priming for other firmware types is implemented
@@ -943,24 +948,24 @@ bool GCodeExport::needPrimeBlob() const
     }
 }
 
-void GCodeExport::writeDelay(const ::curaengine::types::Duration& time_amount)
+void GCodeExport::writeDelay(const Duration& time_amount)
 {
     *output_stream_ << "G4 P" << int(time_amount * 1000) << new_line_;
     estimate_calculator_.addTime(time_amount);
 }
 
-void GCodeExport::writeTravel(const ::curaengine::geometry::Point2LL& p, const ::curaengine::types::Velocity& speed)
+void GCodeExport::writeTravel(const Point2LL& p, const Velocity& speed)
 {
-    writeTravel(::curaengine::geometry::Point3LL(p.X, p.Y, current_layer_z_), speed);
+    writeTravel(Point3LL(p.X, p.Y, current_layer_z_), speed);
 }
-void GCodeExport::writeExtrusion(const ::curaengine::geometry::Point2LL& p, const ::curaengine::types::Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const Point2LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
-    writeExtrusion(::curaengine::geometry::Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
+    writeExtrusion(Point3LL(p.X, p.Y, current_layer_z_), speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
-void GCodeExport::writeTravel(const ::curaengine::geometry::Point3LL& p, const ::curaengine::types::Velocity& speed, const std::optional<double> retract_distance)
+void GCodeExport::writeTravel(const Point3LL& p, const Velocity& speed, const std::optional<double> retract_distance)
 {
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::BFB)
+    if (flavor_ == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x_, p.y_, p.z_ + is_z_hopped_, speed, 0.0, PrintFeatureType::MoveUnretracted);
         return;
@@ -968,9 +973,9 @@ void GCodeExport::writeTravel(const ::curaengine::geometry::Point3LL& p, const :
     writeTravel(p.x_, p.y_, p.z_ + is_z_hopped_, speed, retract_distance);
 }
 
-void GCodeExport::writeExtrusion(const ::curaengine::geometry::Point3LL& p, const ::curaengine::types::Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
+void GCodeExport::writeExtrusion(const Point3LL& p, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature, bool update_extrusion_offset)
 {
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::BFB)
+    if (flavor_ == EGCodeFlavor::BFB)
     {
         writeMoveBFB(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature);
         return;
@@ -978,7 +983,7 @@ void GCodeExport::writeExtrusion(const ::curaengine::geometry::Point3LL& p, cons
     writeExtrusion(p.x_, p.y_, p.z_, speed, extrusion_mm3_per_mm, feature, update_extrusion_offset);
 }
 
-void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const ::curaengine::types::Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
+void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const Velocity& speed, double extrusion_mm3_per_mm, PrintFeatureType feature)
 {
     if (std::isinf(extrusion_mm3_per_mm))
     {
@@ -995,7 +1000,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const ::cu
 
     double extrusion_per_mm = mm3ToE(extrusion_mm3_per_mm);
 
-    ::curaengine::geometry::Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
+    Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
 
     // For Bits From Bytes machines, we need to handle this completely differently. As they do not use E values but RPM values.
     double fspeed = speed * 60;
@@ -1010,7 +1015,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const ::cu
             {
                 // fprintf(f, "; %f e-per-mm %d mm-width %d mm/s\n", extrusion_per_mm, lineWidth, speed);
                 // fprintf(f, "M108 S%0.1f\r\n", rpm);
-                *output_stream_ << "M108 S" << ::curaengine::utils::PrecisionedDouble{ 1, rpm } << new_line_;
+                *output_stream_ << "M108 S" << PrecisionedDouble{ 1, rpm } << new_line_;
                 current_speed_ = double(rpm);
             }
             // Add M101 or M201 to enable the proper extruder.
@@ -1022,7 +1027,7 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const ::cu
         fspeed *= (rpm / (roundf(rpm * 100) / 100));
 
         // Increase the extrusion amount to calculate the amount of filament used.
-        ::curaengine::geometry::Point3LL diff = ::curaengine::geometry::Point3LL(x, y, z) - getPosition();
+        Point3LL diff = Point3LL(x, y, z) - getPosition();
 
         current_e_value_ += extrusion_per_mm * diff.vSizeMM();
     }
@@ -1036,17 +1041,17 @@ void GCodeExport::writeMoveBFB(const int x, const int y, const int z, const ::cu
                 = 1.0; // 1.0 used as stub; BFB doesn't use the actual retraction amount; it performs retraction on the firmware automatically
         }
     }
-    *output_stream_ << "G1 X" << ::curaengine::utils::MMtoStream{ gcode_pos.X } << " Y" << ::curaengine::utils::MMtoStream{ gcode_pos.Y } << " Z" << ::curaengine::utils::MMtoStream{ z };
-    *output_stream_ << " F" << ::curaengine::utils::PrecisionedDouble{ 1, fspeed } << new_line_;
+    *output_stream_ << "G1 X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y } << " Z" << MMtoStream{ z };
+    *output_stream_ << " F" << PrecisionedDouble{ 1, fspeed } << new_line_;
 
-    current_position_ = ::curaengine::geometry::Point3LL(x, y, z);
+    current_position_ = Point3LL(x, y, z);
     estimate_calculator_.plan(
         TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
         speed,
         feature);
 }
 
-void GCodeExport::writeTravel(const ::curaengine::utils::coord_t x, const ::curaengine::utils::coord_t y, const ::curaengine::utils::coord_t z, const ::curaengine::types::Velocity& speed, const std::optional<double> retract_distance)
+void GCodeExport::writeTravel(const coord_t x, const coord_t y, const coord_t z, const Velocity& speed, const std::optional<double> retract_distance)
 {
     const ExtruderTrainAttributes& extruder_attr = extruder_attr_[current_extruder_];
     std::optional<RetractionAmounts> retraction_amounts
@@ -1059,22 +1064,22 @@ void GCodeExport::writeTravel(const ::curaengine::utils::coord_t x, const ::cura
 
 #ifdef ASSERT_INSANE_OUTPUT
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
-    assert(current_position_ != ::curaengine::geometry::no_point3);
-    assert(::curaengine::geometry::Point3LL(x, y, z) != ::curaengine::geometry::no_point3);
-    assert((::curaengine::geometry::Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
+    assert(current_position_ != no_point3);
+    assert(Point3LL(x, y, z) != no_point3);
+    assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
 #endif // ASSERT_INSANE_OUTPUT
 
-    const PrintFeatureType travel_move_type = sendTravel(::curaengine::geometry::Point3LL(x, y, z), speed, extruder_attr, retraction_amounts);
+    const PrintFeatureType travel_move_type = sendTravel(Point3LL(x, y, z), speed, extruder_attr, retraction_amounts);
 
     *output_stream_ << "G0";
     writeFXYZE(speed, x, y, z, current_e_value_, travel_move_type, retraction_amounts);
 }
 
 void GCodeExport::writeExtrusion(
-    const ::curaengine::utils::coord_t x,
-    const ::curaengine::utils::coord_t y,
-    const ::curaengine::utils::coord_t z,
-    const ::curaengine::types::Velocity& speed,
+    const coord_t x,
+    const coord_t y,
+    const coord_t z,
+    const Velocity& speed,
     const double extrusion_mm3_per_mm,
     const PrintFeatureType& feature,
     const bool update_extrusion_offset)
@@ -1086,9 +1091,9 @@ void GCodeExport::writeExtrusion(
 
 #ifdef ASSERT_INSANE_OUTPUT
     assert(speed < 1000 && speed > 1); // normal F values occurring in UM2 gcode (this code should not be compiled for release)
-    assert(current_position_ != ::curaengine::geometry::no_point3);
-    assert(::curaengine::geometry::Point3LL(x, y, z) != ::curaengine::geometry::no_point3);
-    assert((::curaengine::geometry::Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
+    assert(current_position_ != no_point3);
+    assert(Point3LL(x, y, z) != no_point3);
+    assert((Point3LL(x, y, z) - current_position_).vSize() < MM2INT(1000)); // no crazy positions (this code should not be compiled for release)
     assert(extrusion_mm3_per_mm >= 0.0);
 #endif // ASSERT_INSANE_OUTPUT
 #ifdef DEBUG
@@ -1119,7 +1124,7 @@ void GCodeExport::writeExtrusion(
         writeZhopEnd();
     }
 
-    const ::curaengine::geometry::Point3LL diff = ::curaengine::geometry::Point3LL(x, y, z) - current_position_;
+    const Point3LL diff = Point3LL(x, y, z) - current_position_;
     const double diff_length = diff.vSizeMM();
 
     writeUnretractionAndPrime();
@@ -1149,10 +1154,10 @@ void GCodeExport::writeExtrusion(
 }
 
 void GCodeExport::writeFXYZE(
-    const ::curaengine::types::Velocity& speed,
-    const ::curaengine::utils::coord_t x,
-    const ::curaengine::utils::coord_t y,
-    const ::curaengine::utils::coord_t z,
+    const Velocity& speed,
+    const coord_t x,
+    const coord_t y,
+    const coord_t z,
     const double e,
     const PrintFeatureType& feature,
     const std::optional<RetractionAmounts>& retraction_amounts)
@@ -1162,25 +1167,25 @@ void GCodeExport::writeFXYZE(
     if (current_speed_ != speed)
     {
         any_written = true;
-        *output_stream_ << " F" << ::curaengine::utils::PrecisionedDouble{ 1, speed * 60 };
+        *output_stream_ << " F" << PrecisionedDouble{ 1, speed * 60 };
         current_speed_ = speed;
     }
 
-    ::curaengine::geometry::Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
-    total_bounding_box_.include(::curaengine::geometry::Point3LL(gcode_pos.X, gcode_pos.Y, z));
+    Point2LL gcode_pos = getGcodePos(x, y, current_extruder_);
+    total_bounding_box_.include(Point3LL(gcode_pos.X, gcode_pos.Y, z));
 
     // This is done intentionally to include both X and Y in case of a change in either of them.
     // To prevent any potential issues with machines with custom FW or processing scripts that require both X and Y to be present for a move, even if only one of them is changing.
     if (x != current_position_.x_ || y != current_position_.y_)
     {
         any_written = true;
-        *output_stream_ << " X" << ::curaengine::utils::MMtoStream{ gcode_pos.X } << " Y" << ::curaengine::utils::MMtoStream{ gcode_pos.Y };
+        *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
     }
 
     if (z != current_position_.z_)
     {
         any_written = true;
-        *output_stream_ << " Z" << ::curaengine::utils::MMtoStream{ z };
+        *output_stream_ << " Z" << MMtoStream{ z };
     }
 
     if (retraction_amounts.has_value())
@@ -1195,19 +1200,19 @@ void GCodeExport::writeFXYZE(
     {
         any_written = true;
         const double output_e = (relative_extrusion_) ? e + current_e_offset_ - current_e_value_ : e + current_e_offset_;
-        *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << ::curaengine::utils::PrecisionedDouble{ 5, output_e };
+        *output_stream_ << " " << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e };
         current_e_value_ = e;
     }
 
     if (! any_written)
     {
         // Just write XY in case absolutely nothing else changed.
-        *output_stream_ << " X" << ::curaengine::utils::MMtoStream{ gcode_pos.X } << " Y" << ::curaengine::utils::MMtoStream{ gcode_pos.Y };
+        *output_stream_ << " X" << MMtoStream{ gcode_pos.X } << " Y" << MMtoStream{ gcode_pos.Y };
         spdlog::warn("No axis-value (F,X,Y,Z,E) changed, but write-move requested; outputting XY anyway.\n");
     }
     *output_stream_ << new_line_;
 
-    current_position_ = ::curaengine::geometry::Point3LL(x, y, z);
+    current_position_ = Point3LL(x, y, z);
     estimate_calculator_.plan(TimeEstimateCalculator::Position(INT2MM(x), INT2MM(y), INT2MM(z), eToMm(e)), speed, feature);
 }
 
@@ -1225,8 +1230,8 @@ void GCodeExport::writeUnretractionAndPrime()
             if (prime_volume != 0)
             {
                 const double output_e = (relative_extrusion_) ? prime_volume_e : current_e_value_;
-                *output_stream_ << "G1 F" << ::curaengine::utils::PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
-                                << extruder_attr_[current_extruder_].extruder_character_ << ::curaengine::utils::PrecisionedDouble{ 5, output_e } << new_line_;
+                *output_stream_ << "G1 F" << PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
+                                << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e } << new_line_;
                 current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
             }
             estimate_calculator_.plan(
@@ -1238,8 +1243,8 @@ void GCodeExport::writeUnretractionAndPrime()
         {
             current_e_value_ += extruder_attr_[current_extruder_].retraction_e_amount_current_;
             const double output_e = (relative_extrusion_) ? extruder_attr_[current_extruder_].retraction_e_amount_current_ + prime_volume_e : current_e_value_;
-            *output_stream_ << "G1 F" << ::curaengine::utils::PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
-                            << extruder_attr_[current_extruder_].extruder_character_ << ::curaengine::utils::PrecisionedDouble{ 5, output_e } << new_line_;
+            *output_stream_ << "G1 F" << PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
+                            << extruder_attr_[current_extruder_].extruder_character_ << PrecisionedDouble{ 5, output_e } << new_line_;
             current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
             estimate_calculator_.plan(
                 TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
@@ -1250,9 +1255,9 @@ void GCodeExport::writeUnretractionAndPrime()
     else if (prime_volume != 0.0)
     {
         const double output_e = (relative_extrusion_) ? prime_volume_e : current_e_value_;
-        *output_stream_ << "G1 F" << ::curaengine::utils::PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
+        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, extruder_attr_[current_extruder_].last_retraction_prime_speed_ * 60 } << " "
                         << extruder_attr_[current_extruder_].extruder_character_;
-        *output_stream_ << ::curaengine::utils::PrecisionedDouble{ 5, output_e } << new_line_;
+        *output_stream_ << PrecisionedDouble{ 5, output_e } << new_line_;
         current_speed_ = extruder_attr_[current_extruder_].last_retraction_prime_speed_;
         estimate_calculator_.plan(
             TimeEstimateCalculator::Position(INT2MM(current_position_.x_), INT2MM(current_position_.y_), INT2MM(current_position_.z_), eToMm(current_e_value_)),
@@ -1261,8 +1266,8 @@ void GCodeExport::writeUnretractionAndPrime()
     }
     extruder_attr_[current_extruder_].prime_volume_ = 0.0;
 
-    if (getCurrentExtrudedVolume() > 10000.0 && flavor_ != ::curaengine::types::EGCodeFlavor::BFB
-        && flavor_ != ::curaengine::types::EGCodeFlavor::MAKERBOT) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it
+    if (getCurrentExtrudedVolume() > 10000.0 && flavor_ != EGCodeFlavor::BFB
+        && flavor_ != EGCodeFlavor::MAKERBOT) // According to https://github.com/Ultimaker/CuraEngine/issues/14 having more then 21m of extrusion causes inaccuracies. So reset it
                                               // every 10m, just to be sure.
     {
         resetExtrusionValue();
@@ -1277,7 +1282,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
 {
     ExtruderTrainAttributes& extr_attr = extruder_attr_[current_extruder_];
 
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::BFB) // BitsFromBytes does automatic retraction.
+    if (flavor_ == EGCodeFlavor::BFB) // BitsFromBytes does automatic retraction.
     {
         if (extruder_switch)
         {
@@ -1328,7 +1333,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
             return true;
         }
         *output_stream_ << "G10";
-        if (extruder_switch && flavor_ == ::curaengine::types::EGCodeFlavor::REPETIER)
+        if (extruder_switch && flavor_ == EGCodeFlavor::REPETIER)
         {
             *output_stream_ << " S1";
         }
@@ -1348,7 +1353,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     else
     {
         const double speed = ((retraction_amounts.diff_e < 0.0) ? config.speed : extr_attr.last_retraction_prime_speed_);
-        *output_stream_ << "G1 F" << ::curaengine::utils::PrecisionedDouble{ 1, speed * 60 };
+        *output_stream_ << "G1 F" << PrecisionedDouble{ 1, speed * 60 };
         writeRawRetract(retraction_amounts);
         *output_stream_ << new_line_;
         current_speed_ = speed;
@@ -1364,7 +1369,7 @@ bool GCodeExport::writeRetraction(const RetractionConfig& config, bool force, bo
     return true;
 }
 
-void GCodeExport::writeZhopStart(const ::curaengine::utils::coord_t hop_height, ::curaengine::types::Velocity speed /*= 0*/, const std::optional<double> retract_distance, const ::curaengine::types::Ratio& retract_ratio)
+void GCodeExport::writeZhopStart(const coord_t hop_height, Velocity speed /*= 0*/, const std::optional<double> retract_distance, const Ratio& retract_ratio)
 {
     if (retract_distance.has_value() && retract_ratio > 0.0 && retract_ratio < 1.0)
     {
@@ -1380,7 +1385,7 @@ void GCodeExport::writeZhopStart(const ::curaengine::utils::coord_t hop_height, 
     }
 }
 
-void GCodeExport::writeZhopEnd(::curaengine::types::Velocity speed /*= 0*/, const ::curaengine::utils::coord_t height, const std::optional<double> prime_distance, const ::curaengine::types::Ratio& prime_ratio)
+void GCodeExport::writeZhopEnd(Velocity speed /*= 0*/, const coord_t height, const std::optional<double> prime_distance, const Ratio& prime_ratio)
 {
     if (z_hop_prime_leftover_.has_value())
     {
@@ -1404,12 +1409,12 @@ void GCodeExport::writeZhopEnd(::curaengine::types::Velocity speed /*= 0*/, cons
     }
 }
 
-void GCodeExport::writeZhop(::curaengine::types::Velocity speed /*= 0*/, const ::curaengine::utils::coord_t height, const std::optional<double> retract_distance)
+void GCodeExport::writeZhop(Velocity speed /*= 0*/, const coord_t height, const std::optional<double> retract_distance)
 {
     if (speed == 0)
     {
         const ExtruderTrain& extruder = Application::getInstance().current_slice_->scene.extruders[current_extruder_];
-        speed = extruder.settings_.get<::curaengine::types::Velocity>("speed_z_hop");
+        speed = extruder.settings_.get<Velocity>("speed_z_hop");
     }
 
     const ExtruderTrainAttributes extruder_attr = extruder_attr_[current_extruder_];
@@ -1420,9 +1425,9 @@ void GCodeExport::writeZhop(::curaengine::types::Velocity speed /*= 0*/, const :
     }
 
     is_z_hopped_ = height;
-    const ::curaengine::utils::coord_t target_z = current_layer_z_ + is_z_hopped_;
+    const coord_t target_z = current_layer_z_ + is_z_hopped_;
 
-    const PrintFeatureType travel_move_type = sendTravel(::curaengine::geometry::Point3LL(current_position_.x_, current_position_.y_, target_z), speed, extruder_attr, retraction_amounts);
+    const PrintFeatureType travel_move_type = sendTravel(Point3LL(current_position_.x_, current_position_.y_, target_z), speed, extruder_attr, retraction_amounts);
 
     *output_stream_ << "G1";
     writeFXYZE(speed, current_position_.x_, current_position_.y_, target_z, current_e_value_, travel_move_type, retraction_amounts);
@@ -1432,7 +1437,7 @@ void GCodeExport::writeZhop(::curaengine::types::Velocity speed /*= 0*/, const :
 }
 
 PrintFeatureType
-    GCodeExport::sendTravel(const ::curaengine::geometry::Point3LL& p, const ::curaengine::types::Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts)
+    GCodeExport::sendTravel(const Point3LL& p, const Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts)
 {
     PrintFeatureType travel_move_type;
     if (retraction_amounts.has_value() && retraction_amounts.value().has_retraction())
@@ -1500,8 +1505,8 @@ void GCodeExport::sendFinalGCode()
         gcode_parts_.push_back(end_part);
     }
 
-    std::shared_ptr<::curaengine::communication::Communication> communication = Application::getInstance().communication_;
-    ::curaengine::utils::run_multiple_producers_ordered_consumer(
+    std::shared_ptr<Communication> communication = Application::getInstance().communication_;
+    utils::run_multiple_producers_ordered_consumer(
         0,
         gcode_parts_.size(),
         [this](int gcode_part_index)
@@ -1543,7 +1548,7 @@ std::vector<std::optional<ExtruderPrintInformation>> GCodeExport::calculateMater
         extruder_info.material_name = extruder_settings.get<std::string>("material_name");
         extruder_info.material_guid = extruder_settings.get<std::string>("material_guid");
         extruder_info.filament_amount = getTotalFilamentUsed(extruder_nr);
-        extruder_info.filament_length = (extruder_info.filament_amount / (std::numbers::pi * ::curaengine::utils::square(material_radius))) / 1000;
+        extruder_info.filament_length = (extruder_info.filament_amount / (std::numbers::pi * utils::square(material_radius))) / 1000;
         extruder_info.filament_weight = extruder_info.filament_amount * material_density / 1000.0;
 
         extruder_info.filament_cost = 0.0;
@@ -1566,8 +1571,8 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     const auto extruder_settings = Application::getInstance().current_slice_->scene.extruders[new_extruder].settings_;
     const auto prestart_code = extruder_settings.get<std::string>("machine_extruder_prestart_code");
     const auto start_code = extruder_settings.get<std::string>("machine_extruder_start_code");
-    const auto start_code_duration = extruder_settings.get<::curaengine::types::Duration>("machine_extruder_start_code_duration");
-    const auto extruder_change_duration = extruder_settings.get<::curaengine::types::Duration>("machine_extruder_change_duration");
+    const auto start_code_duration = extruder_settings.get<Duration>("machine_extruder_start_code_duration");
+    const auto extruder_change_duration = extruder_settings.get<Duration>("machine_extruder_change_duration");
 
     // Be nice to be able to calculate the extruder change time verses time
     // to heat and run this so it's run before the change call. **Future note**
@@ -1579,7 +1584,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     extruder_attr_[new_extruder].is_used_ = true;
     if (new_extruder != current_extruder_) // wouldn't be the case on the very first extruder start if it's extruder 0
     {
-        if (flavor_ == ::curaengine::types::EGCodeFlavor::MAKERBOT)
+        if (flavor_ == EGCodeFlavor::MAKERBOT)
         {
             *output_stream_ << "M135 T" << new_extruder << new_line_;
         }
@@ -1610,7 +1615,7 @@ void GCodeExport::startExtruder(const size_t new_extruder)
     current_position_.z_ += 1;
 }
 
-void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, ::curaengine::utils::coord_t perform_z_hop /*= 0*/)
+void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& retraction_config_old_extruder, coord_t perform_z_hop /*= 0*/)
 {
     if (current_extruder_ == new_extruder)
     {
@@ -1641,7 +1646,7 @@ void GCodeExport::switchExtruder(size_t new_extruder, const RetractionConfig& re
         writeCodeWithAbsoluteExtrusion(end_code, current_extruder_, extra_settings);
     }
 
-    const auto end_code_duration = old_extruder_settings.get<::curaengine::types::Duration>("machine_extruder_end_code_duration");
+    const auto end_code_duration = old_extruder_settings.get<Duration>("machine_extruder_end_code_duration");
     estimate_calculator_.addTime(end_code_duration);
 
     startExtruder(new_extruder);
@@ -1681,7 +1686,7 @@ void GCodeExport::resetExtruderToPrimed(const size_t extruder, const double init
     extruder_attr_[extruder].retraction_e_amount_current_ = initial_retraction;
 }
 
-void GCodeExport::writePrimeTrain(const ::curaengine::types::Velocity& travel_speed)
+void GCodeExport::writePrimeTrain(const Velocity& travel_speed)
 {
     if (extruder_attr_[current_extruder_].is_primed_)
     { // extruder is already primed once!
@@ -1693,19 +1698,19 @@ void GCodeExport::writePrimeTrain(const ::curaengine::types::Velocity& travel_sp
         // ideally the prime position would be respected whether we do a blob or not,
         // but the frontend currently doesn't support a value function of an extruder setting depending on an fdmprinter setting,
         // which is needed to automatically ignore the prime position for the printer when blob is disabled
-        ::curaengine::geometry::Point3LL prime_pos(
-            extruder_settings.get<::curaengine::utils::coord_t>("extruder_prime_pos_x"),
-            extruder_settings.get<::curaengine::utils::coord_t>("extruder_prime_pos_y"),
-            extruder_settings.get<::curaengine::utils::coord_t>("extruder_prime_pos_z"));
+        Point3LL prime_pos(
+            extruder_settings.get<coord_t>("extruder_prime_pos_x"),
+            extruder_settings.get<coord_t>("extruder_prime_pos_y"),
+            extruder_settings.get<coord_t>("extruder_prime_pos_z"));
         if (! extruder_settings.get<bool>("extruder_prime_pos_abs"))
         {
             // currentPosition.z can be already z hopped
-            prime_pos += ::curaengine::geometry::Point3LL(current_position_.x_, current_position_.y_, current_layer_z_);
+            prime_pos += Point3LL(current_position_.x_, current_position_.y_, current_layer_z_);
         }
         writeTravel(prime_pos, travel_speed);
     }
 
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::GRIFFIN || flavor_ == ::curaengine::types::EGCodeFlavor::CHEETAH)
+    if (flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
     {
         bool should_correct_z = false;
 
@@ -1725,7 +1730,7 @@ void GCodeExport::writePrimeTrain(const ::curaengine::types::Velocity& travel_sp
         {
             // Can't output via 'writeTravel', since if this is needed, the value saved for 'current height' will not be correct.
             // For similar reasons, this isn't written to the front-end via command-socket.
-            *output_stream_ << "G0 Z" << ::curaengine::utils::MMtoStream{ getPositionZ() } << new_line_;
+            *output_stream_ << "G0 Z" << MMtoStream{ getPositionZ() } << new_line_;
         }
     }
     else
@@ -1749,7 +1754,7 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
     const auto iterator = current_fans_speeds_.find(fan_number);
     const std::optional<double> current_fan_speed = (iterator != current_fans_speeds_.end()) ? std::optional<double>(iterator->second) : std::nullopt;
 
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::MAKERBOT)
+    if (flavor_ == EGCodeFlavor::MAKERBOT)
     {
         // Makerbot cannot PWM the fan speed, only turn it on or off
 
@@ -1781,7 +1786,7 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
             return { (should_scale_zero_to_one ? static_cast<uint8_t>(2) : static_cast<uint8_t>(1)), (should_scale_zero_to_one ? value : value * 255.0) / 100.0 };
         };
         const auto num_new_val = scale_zero_to_one_optional(speed);
-        if (! (current_fan_speed.has_value() && ::curaengine::utils::PrecisionedDouble::equalGivenPrecision(scale_zero_to_one_optional(current_fan_speed.value()), num_new_val)))
+        if (! (current_fan_speed.has_value() && PrecisionedDouble::equalGivenPrecision(scale_zero_to_one_optional(current_fan_speed.value()), num_new_val)))
         {
             if (num_new_val.wouldWriteZero())
             {
@@ -1805,7 +1810,7 @@ void GCodeExport::writeSpecificFanCommand(double speed, size_t fan_number)
     current_fans_speeds_[fan_number] = speed;
 }
 
-void GCodeExport::writeTemperatureCommand(const size_t extruder, const ::curaengine::types::Temperature& temperature, const bool wait, const bool force_write_on_equal)
+void GCodeExport::writeTemperatureCommand(const size_t extruder, const Temperature& temperature, const bool wait, const bool force_write_on_equal)
 {
     const ExtruderTrain& extruder_train = Application::getInstance().current_slice_->scene.extruders[extruder];
 
@@ -1846,9 +1851,9 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const ::curaeng
         return;
     }
 
-    if (wait && flavor_ != ::curaengine::types::EGCodeFlavor::MAKERBOT)
+    if (wait && flavor_ != EGCodeFlavor::MAKERBOT)
     {
-        if (flavor_ == ::curaengine::types::EGCodeFlavor::MARLIN)
+        if (flavor_ == EGCodeFlavor::MARLIN)
         {
             *output_stream_ << "M105" << new_line_; // get temperatures from the last update, the M109 will not let get the target temperature
         }
@@ -1867,13 +1872,13 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const ::curaeng
 #ifdef ASSERT_INSANE_OUTPUT
     assert(temperature >= 0);
 #endif // ASSERT_INSANE_OUTPUT
-    *output_stream_ << " S" << ::curaengine::utils::PrecisionedDouble{ 1, temperature } << new_line_;
+    *output_stream_ << " S" << PrecisionedDouble{ 1, temperature } << new_line_;
     if (extruder != current_extruder_ && always_write_active_tool_)
     {
         // Some firmwares (ie Smoothieware) change tools every time a "T" command is read - even on a M104 line, so we need to switch back to the active tool.
         *output_stream_ << "T" << current_extruder_ << new_line_;
     }
-    if (wait && flavor_ == ::curaengine::types::EGCodeFlavor::MAKERBOT)
+    if (wait && flavor_ == EGCodeFlavor::MAKERBOT)
     {
         // Makerbot doesn't use M109 for heat-and-wait. Instead, use M104 and then wait using M116.
         *output_stream_ << "M116" << new_line_;
@@ -1881,9 +1886,9 @@ void GCodeExport::writeTemperatureCommand(const size_t extruder, const ::curaeng
     extruder_attr_[extruder].current_temperature_ = temperature;
 }
 
-void GCodeExport::writeBedTemperatureCommand(const ::curaengine::types::Temperature& temperature, const bool wait)
+void GCodeExport::writeBedTemperatureCommand(const Temperature& temperature, const bool wait)
 {
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::ULTIGCODE)
+    if (flavor_ == EGCodeFlavor::ULTIGCODE)
     { // The UM2 family doesn't support temperature commands (they are fixed in the firmware)
         return;
     }
@@ -1892,10 +1897,10 @@ void GCodeExport::writeBedTemperatureCommand(const ::curaengine::types::Temperat
     {
         if (wait)
         {
-            if (flavor_ == ::curaengine::types::EGCodeFlavor::MARLIN)
+            if (flavor_ == EGCodeFlavor::MARLIN)
             {
                 *output_stream_ << "M140 S"; // set the temperature, it will be used as target temperature from M105
-                *output_stream_ << ::curaengine::utils::PrecisionedDouble{ 1, temperature } << new_line_;
+                *output_stream_ << PrecisionedDouble{ 1, temperature } << new_line_;
                 *output_stream_ << "M105" << new_line_;
             }
             *output_stream_ << "M190 S";
@@ -1905,15 +1910,15 @@ void GCodeExport::writeBedTemperatureCommand(const ::curaengine::types::Temperat
             *output_stream_ << "M140 S";
         }
 
-        *output_stream_ << ::curaengine::utils::PrecisionedDouble{ 1, temperature } << new_line_;
+        *output_stream_ << PrecisionedDouble{ 1, temperature } << new_line_;
 
         bed_temperature_ = temperature;
     }
 }
 
-void GCodeExport::writeBuildVolumeTemperatureCommand(const ::curaengine::types::Temperature& temperature, const bool wait)
+void GCodeExport::writeBuildVolumeTemperatureCommand(const Temperature& temperature, const bool wait)
 {
-    if (flavor_ == ::curaengine::types::EGCodeFlavor::ULTIGCODE || flavor_ == ::curaengine::types::EGCodeFlavor::GRIFFIN || flavor_ == ::curaengine::types::EGCodeFlavor::CHEETAH)
+    if (flavor_ == EGCodeFlavor::ULTIGCODE || flavor_ == EGCodeFlavor::GRIFFIN || flavor_ == EGCodeFlavor::CHEETAH)
     {
         // UltiMaker printers don't support build volume temperature commands.
         return;
@@ -1926,30 +1931,30 @@ void GCodeExport::writeBuildVolumeTemperatureCommand(const ::curaengine::types::
     {
         *output_stream_ << "M141 S";
     }
-    *output_stream_ << ::curaengine::utils::PrecisionedDouble{ 1, temperature } << new_line_;
+    *output_stream_ << PrecisionedDouble{ 1, temperature } << new_line_;
 }
 
-void GCodeExport::writePrintAcceleration(const ::curaengine::types::Acceleration& acceleration)
+void GCodeExport::writePrintAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
     {
-    case ::curaengine::types::EGCodeFlavor::REPETIER:
+    case EGCodeFlavor::REPETIER:
         if (current_print_acceleration_ != acceleration)
         {
-            *output_stream_ << "M201 X" << ::curaengine::utils::PrecisionedDouble{ 0, acceleration } << " Y" << ::curaengine::utils::PrecisionedDouble{ 0, acceleration } << new_line_;
+            *output_stream_ << "M201 X" << PrecisionedDouble{ 0, acceleration } << " Y" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
-    case ::curaengine::types::EGCodeFlavor::REPRAP:
+    case EGCodeFlavor::REPRAP:
         if (current_print_acceleration_ != acceleration)
         {
-            *output_stream_ << "M204 P" << ::curaengine::utils::PrecisionedDouble{ 0, acceleration } << new_line_;
+            *output_stream_ << "M204 P" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
     default:
         // MARLIN, etc. only have one acceleration for both print and travel
         if (current_print_acceleration_ != acceleration)
         {
-            *output_stream_ << "M204 S" << ::curaengine::utils::PrecisionedDouble{ 0, acceleration } << new_line_;
+            *output_stream_ << "M204 S" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
     }
@@ -1957,20 +1962,20 @@ void GCodeExport::writePrintAcceleration(const ::curaengine::types::Acceleration
     estimate_calculator_.setAcceleration(acceleration);
 }
 
-void GCodeExport::writeTravelAcceleration(const ::curaengine::types::Acceleration& acceleration)
+void GCodeExport::writeTravelAcceleration(const Acceleration& acceleration)
 {
     switch (getFlavor())
     {
-    case ::curaengine::types::EGCodeFlavor::REPETIER:
+    case EGCodeFlavor::REPETIER:
         if (current_travel_acceleration_ != acceleration)
         {
-            *output_stream_ << "M202 X" << ::curaengine::utils::PrecisionedDouble{ 0, acceleration } << " Y" << ::curaengine::utils::PrecisionedDouble{ 0, acceleration } << new_line_;
+            *output_stream_ << "M202 X" << PrecisionedDouble{ 0, acceleration } << " Y" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
-    case ::curaengine::types::EGCodeFlavor::REPRAP:
+    case EGCodeFlavor::REPRAP:
         if (current_travel_acceleration_ != acceleration)
         {
-            *output_stream_ << "M204 T" << ::curaengine::utils::PrecisionedDouble{ 0, acceleration } << new_line_;
+            *output_stream_ << "M204 T" << PrecisionedDouble{ 0, acceleration } << new_line_;
         }
         break;
     default:
@@ -1982,28 +1987,28 @@ void GCodeExport::writeTravelAcceleration(const ::curaengine::types::Acceleratio
     estimate_calculator_.setAcceleration(acceleration);
 }
 
-void GCodeExport::writeJerk(const ::curaengine::types::Velocity& jerk)
+void GCodeExport::writeJerk(const Velocity& jerk)
 {
     if (current_jerk_ != jerk)
     {
         switch (getFlavor())
         {
-        case ::curaengine::types::EGCodeFlavor::REPETIER:
-            *output_stream_ << "M207 X" << ::curaengine::utils::PrecisionedDouble{ 2, jerk } << new_line_;
+        case EGCodeFlavor::REPETIER:
+            *output_stream_ << "M207 X" << PrecisionedDouble{ 2, jerk } << new_line_;
             break;
-        case ::curaengine::types::EGCodeFlavor::REPRAP:
-            *output_stream_ << "M566 X" << ::curaengine::utils::PrecisionedDouble{ 2, jerk * 60 } << " Y" << ::curaengine::utils::PrecisionedDouble{ 2, jerk * 60 } << new_line_;
+        case EGCodeFlavor::REPRAP:
+            *output_stream_ << "M566 X" << PrecisionedDouble{ 2, jerk * 60 } << " Y" << PrecisionedDouble{ 2, jerk * 60 } << new_line_;
             break;
-        case ::curaengine::types::EGCodeFlavor::CHEETAH:
-            *output_stream_ << "M215 X" << ::curaengine::utils::PrecisionedDouble{ 2, jerk * 1000 } << " Y" << ::curaengine::utils::PrecisionedDouble{ 2, jerk * 1000 } << new_line_;
+        case EGCodeFlavor::CHEETAH:
+            *output_stream_ << "M215 X" << PrecisionedDouble{ 2, jerk * 1000 } << " Y" << PrecisionedDouble{ 2, jerk * 1000 } << new_line_;
             break;
         default:
-            *output_stream_ << "M205 X" << ::curaengine::utils::PrecisionedDouble{ 2, jerk } << " Y" << ::curaengine::utils::PrecisionedDouble{ 2, jerk } << new_line_;
+            *output_stream_ << "M205 X" << PrecisionedDouble{ 2, jerk } << " Y" << PrecisionedDouble{ 2, jerk } << new_line_;
             break;
         }
         current_jerk_ = jerk;
 
-        if (getFlavor() == ::curaengine::types::EGCodeFlavor::CHEETAH)
+        if (getFlavor() == EGCodeFlavor::CHEETAH)
         {
             estimate_calculator_.setMaxXyJerk(jerk / 200);
         }
@@ -2062,7 +2067,7 @@ void GCodeExport::finalize(const std::string& end_code, PrintInformation& print_
     extra_global_settings.emplace("filament_weight", filaments_weights);
     extra_global_settings.emplace("filament_cost", filaments_costs);
 
-    const ::curaengine::utils::AABB& initial_layer_bb = print_info.initial_layer_bb;
+    const AABB& initial_layer_bb = print_info.initial_layer_bb;
     extra_global_settings.emplace("initial_layer_bb_min_x", INT2MM(initial_layer_bb.min_.X));
     extra_global_settings.emplace("initial_layer_bb_max_x", INT2MM(initial_layer_bb.max_.X));
     extra_global_settings.emplace("initial_layer_bb_min_y", INT2MM(initial_layer_bb.min_.Y));
@@ -2143,7 +2148,7 @@ void GCodeExport::ResetLastEValueAfterWipe(size_t extruder)
 
 void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 {
-    const ::curaengine::geometry::Point3LL prev_position = current_position_;
+    const Point3LL prev_position = current_position_;
     writeComment("WIPE_SCRIPT_BEGIN");
 
     if (wipe_config.retraction_enable)
@@ -2156,11 +2161,11 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
         writeZhopStart(wipe_config.hop_amount, wipe_config.hop_speed);
     }
 
-    writeTravel(::curaengine::geometry::Point2LL(wipe_config.brush_pos_x, current_position_.y_), wipe_config.move_speed);
+    writeTravel(Point2LL(wipe_config.brush_pos_x, current_position_.y_), wipe_config.move_speed);
     for (size_t i = 0; i < wipe_config.repeat_count; ++i)
     {
-        ::curaengine::utils::coord_t x = current_position_.x_ + (i % 2 ? -wipe_config.move_distance : wipe_config.move_distance);
-        writeTravel(::curaengine::geometry::Point2LL(x, current_position_.y_), wipe_config.move_speed);
+        coord_t x = current_position_.x_ + (i % 2 ? -wipe_config.move_distance : wipe_config.move_distance);
+        writeTravel(Point2LL(x, current_position_.y_), wipe_config.move_speed);
     }
 
     writeTravel(prev_position, wipe_config.move_speed);
@@ -2186,16 +2191,16 @@ void GCodeExport::insertWipeScript(const WipeScriptConfig& wipe_config)
 void GCodeExport::writePrepareFansForNozzleSwitch()
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
-    const auto cool_during_switch = settings.get<::curaengine::types::CoolDuringExtruderSwitch>("cool_during_extruder_switch");
+    const auto cool_during_switch = settings.get<CoolDuringExtruderSwitch>("cool_during_extruder_switch");
 
-    if (cool_during_switch != ::curaengine::types::CoolDuringExtruderSwitch::UNCHANGED)
+    if (cool_during_switch != CoolDuringExtruderSwitch::UNCHANGED)
     {
         const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
 
         for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
         {
             double fan_speed;
-            if (cool_during_switch == ::curaengine::types::CoolDuringExtruderSwitch::ALL_FANS || fan_number == current_extruder_fan_number)
+            if (cool_during_switch == CoolDuringExtruderSwitch::ALL_FANS || fan_number == current_extruder_fan_number)
             {
                 fan_speed = 100.0;
             }
@@ -2212,7 +2217,7 @@ void GCodeExport::writePrepareFansForNozzleSwitch()
 void GCodeExport::writePrepareFansForExtrusion(double current_extruder_new_speed)
 {
     const Settings& settings = Application::getInstance().current_slice_->scene.settings;
-    const auto cool_during_switch = settings.get<::curaengine::types::CoolDuringExtruderSwitch>("cool_during_extruder_switch");
+    const auto cool_during_switch = settings.get<CoolDuringExtruderSwitch>("cool_during_extruder_switch");
     const size_t current_extruder_fan_number = extruder_attr_[current_extruder_].fan_number_;
 
     for (size_t fan_number = 0; fan_number < fans_count_; ++fan_number)
@@ -2222,7 +2227,7 @@ void GCodeExport::writePrepareFansForExtrusion(double current_extruder_new_speed
         {
             new_fan_speed = current_extruder_new_speed;
         }
-        else if (cool_during_switch == ::curaengine::types::CoolDuringExtruderSwitch::UNCHANGED)
+        else if (cool_during_switch == CoolDuringExtruderSwitch::UNCHANGED)
         {
             continue;
         }

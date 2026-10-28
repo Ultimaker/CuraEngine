@@ -25,23 +25,23 @@ class TransformedSegment
 public:
     TransformedSegment() = default;
 
-    TransformedSegment(const ::curaengine::geometry::Point2LL& transformed_start, const ::curaengine::geometry::Point2LL& transformed_end)
+    TransformedSegment(const geometry::Point2LL& transformed_start, const geometry::Point2LL& transformed_end)
         : start_(transformed_start)
         , end_(transformed_end)
     {
         updateMinMax();
     }
 
-    TransformedSegment(const ::curaengine::geometry::Point2LL& start, const ::curaengine::geometry::Point2LL& end, const ::curaengine::geometry::PointMatrix& matrix);
+    TransformedSegment(const geometry::Point2LL& start, const geometry::Point2LL& end, const geometry::PointMatrix& matrix);
 
-    void setStart(const ::curaengine::geometry::Point2LL& transformed_start)
+    void setStart(const geometry::Point2LL& transformed_start)
     {
         start_ = transformed_start;
         updateMinMax();
         length_.reset();
     }
 
-    void setEnd(const ::curaengine::geometry::Point2LL& transformed_end)
+    void setEnd(const geometry::Point2LL& transformed_end)
     {
         end_ = transformed_end;
         updateMinMax();
@@ -50,31 +50,31 @@ public:
 
     void updateMinMax();
 
-    ::curaengine::utils::coord_t minY() const
+    utils::coord_t minY() const
     {
         return min_y_;
     }
 
-    ::curaengine::utils::coord_t maxY() const
+    utils::coord_t maxY() const
     {
         return max_y_;
     }
 
-    const ::curaengine::geometry::Point2LL& getStart() const
+    const geometry::Point2LL& getStart() const
     {
         return start_;
     }
 
-    const ::curaengine::geometry::Point2LL& getEnd() const
+    const geometry::Point2LL& getEnd() const
     {
         return end_;
     }
 
-    const ::curaengine::utils::coord_t length() const
+    const utils::coord_t length() const
     {
         if (! length_.has_value())
         {
-            const_cast<TransformedSegment*>(this)->length_ = ::curaengine::geometry::vSize(end_ - start_);
+            const_cast<TransformedSegment*>(this)->length_ = geometry::vSize(end_ - start_);
         }
 
         return length_.value();
@@ -90,20 +90,20 @@ public:
     std::optional<SegmentOverlapping> calculateOverlapping(const TransformedSegment& other, const int8_t expand_direction) const;
 
     /*! Move the segment maximum Y coordinate down, actually cropping it */
-    void cropTop(const ::curaengine::utils::coord_t new_max_y);
+    void cropTop(const utils::coord_t new_max_y);
 
     /*! Move the segment minimum Y coordinate up, actually cropping it */
-    void cropBottom(const ::curaengine::utils::coord_t new_min_y);
+    void cropBottom(const utils::coord_t new_min_y);
 
     /*! Calculate an overlapping type, given whether the segments overlap on the top, bottom or both. Only in case there is no segment intersection. */
     static SegmentOverlappingType makeNonIntersectingOverlapping(const bool overlap_top, const bool overlap_bottom);
 
 private:
-    ::curaengine::geometry::Point2LL start_;
-    ::curaengine::geometry::Point2LL end_;
-    ::curaengine::utils::coord_t min_y_{ 0 };
-    ::curaengine::utils::coord_t max_y_{ 0 };
-    std::optional<::curaengine::utils::coord_t> length_;
+    geometry::Point2LL start_;
+    geometry::Point2LL end_;
+    utils::coord_t min_y_{ 0 };
+    utils::coord_t max_y_{ 0 };
+    std::optional<utils::coord_t> length_;
 };
 
 } // namespace curaengine::bridge

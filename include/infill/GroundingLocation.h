@@ -16,7 +16,7 @@ using LightningTreeNodeSPtr = std::shared_ptr<LightningTreeNode>;
 struct GroundingLocation
 {
     LightningTreeNodeSPtr tree_node; //!< not null if the gounding location is on a tree
-    std::optional<::curaengine::utils::ClosestPointPolygon> boundary_location; //!< in case the gounding location is on the boundary
-    ::curaengine::geometry::Point2LL p() const;
+    std::optional<utils::ClosestPointPolygon> boundary_location; //!< in case the gounding location is on the boundary
+    geometry::Point2LL p() const;
 };
 } // namespace curaengine::infill

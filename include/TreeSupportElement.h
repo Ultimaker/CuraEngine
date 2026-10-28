@@ -27,9 +27,9 @@ public:
     using Ptr = std::shared_ptr<TreeSupportElement>;
 
     TreeSupportElement(
-        ::curaengine::utils::coord_t distance_to_top,
+        utils::coord_t distance_to_top,
         size_t target_height,
-        ::curaengine::geometry::Point2LL target_position,
+        geometry::Point2LL target_position,
         bool to_buildplate,
         bool to_model_gracious,
         bool use_min_xy_dist,
@@ -39,7 +39,7 @@ public:
         bool force_tips_to_roof,
         bool skip_ovalisation,
         bool influence_area_limit_active,
-        ::curaengine::utils::coord_t influence_area_limit_range);
+        utils::coord_t influence_area_limit_range);
 
     /*! \brief Gets the list of parent elements, which are those above the current element */
     const std::vector<TreeSupportElement::Ptr>& getParents() const
@@ -62,7 +62,7 @@ public:
 
     inline bool isResultOnLayerSet() const
     {
-        return result_on_layer_ != ::curaengine::geometry::Point2LL(-1, -1);
+        return result_on_layer_ != geometry::Point2LL(-1, -1);
     }
 
     /*!
@@ -71,43 +71,43 @@ public:
      * @param z The Z at which the area is placed
      * @param layer_height The layer height at which to extrude the influence area
      */
-    void saveToObj(::curaengine::utils::OBJ& obj, const ::curaengine::utils::coord_t z, const ::curaengine::utils::coord_t layer_height) const;
+    void saveToObj(utils::OBJ& obj, const utils::coord_t z, const utils::coord_t layer_height) const;
 
     static TreeSupportElement::Ptr makeFromElementAbove(const TreeSupportElement::Ptr& element_above);
 
-    static TreeSupportElement::Ptr makeCopy(const TreeSupportElement::Ptr& elem, ::curaengine::geometry::Shape* newArea = nullptr);
+    static TreeSupportElement::Ptr makeCopy(const TreeSupportElement::Ptr& elem, geometry::Shape* newArea = nullptr);
 
     static TreeSupportElement::Ptr makeMerged(
         const TreeSupportElement::Ptr& first,
         const TreeSupportElement::Ptr& second,
         size_t next_height,
-        ::curaengine::geometry::Point2LL next_position,
-        ::curaengine::utils::coord_t increased_to_model_radius,
-        const std::function<::curaengine::utils::coord_t(size_t, double)>& getRadius,
+        geometry::Point2LL next_position,
+        utils::coord_t increased_to_model_radius,
+        const std::function<utils::coord_t(size_t, double)>& getRadius,
         double diameter_scale_bp_radius,
-        ::curaengine::utils::coord_t branch_radius,
+        utils::coord_t branch_radius,
         double diameter_angle_scale_factor);
 
     /*!
      * \brief The layer this support elements wants reach
      */
-    ::curaengine::types::LayerIndex target_height_;
+    types::LayerIndex target_height_;
 
     /*!
      * \brief The position this support elements wants to support on layer=target_height
      */
-    ::curaengine::geometry::Point2LL target_position_;
+    geometry::Point2LL target_position_;
 
     /*!
      * \brief The next position this support elements wants to reach. NOTE: This is mainly a suggestion regarding direction inside the influence area.
      */
-    ::curaengine::geometry::Point2LL next_position_;
+    geometry::Point2LL next_position_;
 
 
     /*!
      * \brief The next height this support elements wants to reach
      */
-    ::curaengine::types::LayerIndex next_height_;
+    types::LayerIndex next_height_;
 
     /*!
      * \brief The Effective distance to top of this element regarding radius increases and collision calculations.
@@ -130,17 +130,17 @@ public:
      * \brief The resulting influence area.
      * Will only be set in the results of createLayerPathing, and will be nullptr inside!
      */
-    ::curaengine::geometry::Shape* area_;
+    geometry::Shape* area_;
 
     /*!
      * \brief The resulting center point around which a circle will be drawn later.
      * Will be set by setPointsOnAreas
      */
-    ::curaengine::geometry::Point2LL result_on_layer_ = ::curaengine::geometry::Point2LL(-1, -1);
+    geometry::Point2LL result_on_layer_ = geometry::Point2LL(-1, -1);
     /*!
      * \brief The amount of extra radius we got from merging branches that could have reached the buildplate, but merged with ones that can not.
      */
-    ::curaengine::utils::coord_t increased_to_model_radius_; // how much to model we increased only relevant for merging
+    utils::coord_t increased_to_model_radius_; // how much to model we increased only relevant for merging
     /*!
      * \brief Will the branch be able to rest completely on a flat surface, be it buildplate or model ?
      */
@@ -189,7 +189,7 @@ public:
     /*!
      * \brief The coordinates of all tips supported by this branch.
      */
-    std::vector<::curaengine::geometry::Point2LL> all_tips_;
+    std::vector<geometry::Point2LL> all_tips_;
 
     /*!
      * \brief Whether the range of an influence area is limited
@@ -199,17 +199,17 @@ public:
     /*!
      * \brief Maximum distance (x/y) the influence area should be from each tip.
      */
-    ::curaengine::utils::coord_t influence_area_limit_range_;
+    utils::coord_t influence_area_limit_range_;
 
     /*!
      * \brief Area that influence area has to be inside to conform to influence_area_limit_range.
      */
-    ::curaengine::geometry::Shape influence_area_limit_area_;
+    geometry::Shape influence_area_limit_area_;
 
     /*!
      * \brief Additional locations that the tip should reach
      */
-    std::vector<::curaengine::geometry::Point2LL> additional_ovalization_targets_;
+    std::vector<geometry::Point2LL> additional_ovalization_targets_;
 
 private:
     /*!
@@ -217,18 +217,18 @@ private:
      */
     explicit TreeSupportElement(const TreeSupportElement::Ptr& element_above);
 
-    TreeSupportElement(const TreeSupportElement::Ptr& elem, ::curaengine::geometry::Shape* newArea);
+    TreeSupportElement(const TreeSupportElement::Ptr& elem, geometry::Shape* newArea);
 
     // ONLY to be called in merge as it assumes a few assurances made by it.
     TreeSupportElement(
         const TreeSupportElement::Ptr& first,
         const TreeSupportElement::Ptr& second,
         size_t next_height,
-        ::curaengine::geometry::Point2LL next_position,
-        ::curaengine::utils::coord_t increased_to_model_radius,
-        const std::function<::curaengine::utils::coord_t(size_t, double)>& getRadius,
+        geometry::Point2LL next_position,
+        utils::coord_t increased_to_model_radius,
+        const std::function<utils::coord_t(size_t, double)>& getRadius,
         double diameter_scale_bp_radius,
-        ::curaengine::utils::coord_t branch_radius,
+        utils::coord_t branch_radius,
         double diameter_angle_scale_factor);
 
     /*!

@@ -28,7 +28,7 @@ struct ZSeamConfig
      * When using a user-specified position for the seam, this is the position
      * that the user specified.
      */
-    ::curaengine::geometry::Point2LL pos_;
+    geometry::Point2LL pos_;
 
     /*!
      * Corner preference type, if using the sharpest corner strategy.
@@ -40,7 +40,7 @@ struct ZSeamConfig
      * by simplifying the polygon that the corners are detected on by this ammount.
      * This does _not_ influence the path, the simplified polygon is a temporary constructed within the algorithm.
      */
-    ::curaengine::utils::coord_t simplify_curvature_;
+    utils::coord_t simplify_curvature_;
 
     /*!
      * Create a seam configuration with a custom configuration.
@@ -51,9 +51,9 @@ struct ZSeamConfig
      */
     ZSeamConfig(
         const EZSeamType type = EZSeamType::SHORTEST,
-        const ::curaengine::geometry::Point2LL pos = ::curaengine::geometry::Point2LL(0, 0),
+        const geometry::Point2LL pos = geometry::Point2LL(0, 0),
         const EZSeamCornerPrefType corner_pref = EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
-        const ::curaengine::utils::coord_t simplify_curvature = 0);
+        const utils::coord_t simplify_curvature = 0);
 };
 
 } // namespace curaengine::types

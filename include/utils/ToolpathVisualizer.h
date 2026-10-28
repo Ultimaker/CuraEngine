@@ -19,11 +19,11 @@ public:
     {
     }
 
-    void outline(const ::curaengine::geometry::Shape& input);
+    void outline(const geometry::Shape& input);
     void toolpaths(const std::vector<ExtrusionSegment>& all_segments, bool rounded_visualization = true);
-    void underfill(const ::curaengine::geometry::Shape& underfills);
-    void overfill(const ::curaengine::geometry::Shape& overfills, const ::curaengine::geometry::Shape& double_overfills = ::curaengine::geometry::Shape());
-    void width_legend(const ::curaengine::geometry::Shape& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization);
+    void underfill(const geometry::Shape& underfills);
+    void overfill(const geometry::Shape& overfills, const geometry::Shape& double_overfills = geometry::Shape());
+    void width_legend(const geometry::Shape& input, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization);
     void widths(const std::vector<ExtrusionSegment>& all_segments, coord_t nozzle_size, coord_t max_dev, coord_t min_w, bool rounded_visualization, bool exaggerate_widths = false);
 
 private:

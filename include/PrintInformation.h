@@ -18,7 +18,7 @@ struct PrintInformation
 {
     std::vector<std::optional<ExtruderPrintInformation>> extruders_info; // One per extruder, but no value if the extruder is unused
     std::optional<size_t> initial_extruder_nr;
-    ::curaengine::utils::AABB initial_layer_bb;
+    utils::AABB initial_layer_bb;
 
     /*!
      * Update the print information with the given processed layer

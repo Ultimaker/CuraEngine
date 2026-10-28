@@ -37,7 +37,7 @@ protected:
     struct FractalConfig
     {
         int depth; //!< max recursion depth
-        ::curaengine::utils::AABB aabb; //!< The bounding box of the initial Triangles in the Sierpinski curve
+        utils::AABB aabb; //!< The bounding box of the initial Triangles in the Sierpinski curve
     };
 
 public:
@@ -45,11 +45,11 @@ public:
     DensityProvider* density_provider; //!< The object which determines the requested density at each region
     std::optional<SierpinskiFill> fill_pattern_for_all_layers; //!< The fill pattern if one and the same pattern is used on all layers
 
-    SierpinskiFillProvider(const ::curaengine::utils::AABB3D aabb_3d, ::curaengine::utils::coord_t min_line_distance, const ::curaengine::utils::coord_t line_width);
+    SierpinskiFillProvider(const utils::AABB3D aabb_3d, utils::coord_t min_line_distance, const utils::coord_t line_width);
 
-    SierpinskiFillProvider(const ::curaengine::utils::AABB3D aabb_3d, ::curaengine::utils::coord_t min_line_distance, ::curaengine::utils::coord_t line_width, std::string cross_subdisivion_spec_image_file);
+    SierpinskiFillProvider(const utils::AABB3D aabb_3d, utils::coord_t min_line_distance, utils::coord_t line_width, std::string cross_subdisivion_spec_image_file);
 
-    ::curaengine::geometry::Polygon generate(::curaengine::types::EFillMethod pattern, ::curaengine::utils::coord_t z, ::curaengine::utils::coord_t line_width, ::curaengine::utils::coord_t pocket_size) const;
+    geometry::Polygon generate(types::EFillMethod pattern, utils::coord_t z, utils::coord_t line_width, utils::coord_t pocket_size) const;
 
     ~SierpinskiFillProvider();
 
@@ -57,6 +57,6 @@ protected:
     /*!
      * Get the parameters with which to generate a sierpinski fractal for this object
      */
-    FractalConfig getFractalConfig(const ::curaengine::utils::AABB3D aabb_3d, ::curaengine::utils::coord_t min_line_distance);
+    FractalConfig getFractalConfig(const utils::AABB3D aabb_3d, utils::coord_t min_line_distance);
 };
 } // namespace curaengine::infill

@@ -29,12 +29,12 @@ class MinimumSpanningTree
         /**
          * The point at which this edge starts.
          */
-        const ::curaengine::geometry::Point2LL start;
+        const geometry::Point2LL start;
 
         /**
          * The point at which this edge ends.
          */
-        const ::curaengine::geometry::Point2LL end;
+        const geometry::Point2LL end;
     };
 
 public:
@@ -42,28 +42,28 @@ public:
     /*!
      * \brief Constructs a minimum spanning tree that spans all given vertices.
      */
-    MinimumSpanningTree(std::vector<::curaengine::geometry::Point2LL> vertices);
+    MinimumSpanningTree(std::vector<geometry::Point2LL> vertices);
 
     /*!
      * \brief Gets the nodes that are adjacent to the specified node.
      * \return A list of nodes that are adjacent.
      */
-    std::vector<::curaengine::geometry::Point2LL> adjacentNodes(::curaengine::geometry::Point2LL node) const;
+    std::vector<geometry::Point2LL> adjacentNodes(geometry::Point2LL node) const;
 
     /*!
      * \brief Gets the leaves of the tree.
      * \return A list of nodes that are all leaves of the tree.
      */
-    std::vector<::curaengine::geometry::Point2LL> leaves() const;
+    std::vector<geometry::Point2LL> leaves() const;
 
     /*!
      * \brief Gets all vertices of the tree.
      * \return A list of vertices of the tree.
      */
-    std::vector<::curaengine::geometry::Point2LL> vertices() const;
+    std::vector<geometry::Point2LL> vertices() const;
 
 private:
-    using AdjacencyGraph_t = std::unordered_map<::curaengine::geometry::Point2LL, std::vector<Edge>>;
+    using AdjacencyGraph_t = std::unordered_map<geometry::Point2LL, std::vector<Edge>>;
     AdjacencyGraph_t adjacency_graph;
 
     /*!
@@ -73,7 +73,7 @@ private:
      * \param vertices The vertices to span.
      * \return An adjacency graph with for each point one or more edges.
      */
-    AdjacencyGraph_t prim(std::vector<::curaengine::geometry::Point2LL> vertices) const;
+    AdjacencyGraph_t prim(std::vector<geometry::Point2LL> vertices) const;
 };
 
 } // namespace curaengine::utils

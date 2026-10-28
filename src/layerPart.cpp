@@ -28,14 +28,18 @@ And all every bit inside a single part can be printed without the nozzle leaving
 It's also the first step that stores the result in the "data storage" so all other steps can access it.
 */
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
 void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, SlicerLayer* layer)
 {
-    ::curaengine::utils::OpenPolylineStitcher::stitch(layer->open_polylines_, storageLayer.open_polylines, layer->polygons_, settings.get<::curaengine::utils::coord_t>("wall_line_width_0"));
+    OpenPolylineStitcher::stitch(layer->open_polylines_, storageLayer.open_polylines, layer->polygons_, settings.get<coord_t>("wall_line_width_0"));
 
-    storageLayer.open_polylines = ::curaengine::utils::Simplify(settings).polyline(storageLayer.open_polylines);
+    storageLayer.open_polylines = Simplify(settings).polyline(storageLayer.open_polylines);
 
     const bool union_all_remove_holes = settings.get<bool>("meshfix_union_all_remove_holes");
     if (union_all_remove_holes)
@@ -47,13 +51,13 @@ void createLayerWithParts(const Settings& settings, SliceLayer& storageLayer, Sl
         }
     }
 
-    std::vector<::curaengine::geometry::SingleShape> result;
+    std::vector<SingleShape> result;
     const bool union_layers = settings.get<bool>("meshfix_union_all");
-    const ::curaengine::types::ESurfaceMode surface_only = settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode");
-    if (surface_only == ::curaengine::types::ESurfaceMode::SURFACE && ! union_layers)
+    const ESurfaceMode surface_only = settings.get<ESurfaceMode>("magic_mesh_surface_mode");
+    if (surface_only == ESurfaceMode::SURFACE && ! union_layers)
     { // Don't do anything with overlapping areas; no union nor xor
         result.reserve(layer->polygons_.size());
-        for (const ::curaengine::geometry::Polygon& poly : layer->polygons_)
+        for (const Polygon& poly : layer->polygons_)
         {
             if (poly.empty())
             {
@@ -89,7 +93,7 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
     const auto total_layers = slicer->layers.size();
     assert(mesh.layers.size() == total_layers);
 
-    ::curaengine::utils::parallel_for<size_t>(
+    utils::parallel_for<size_t>(
         0,
         total_layers,
         [slicer, &mesh](size_t layer_nr)
@@ -99,10 +103,10 @@ void createLayerParts(SliceMeshStorage& mesh, Slicer* slicer)
             createLayerWithParts(mesh.settings, layer_storage, &slice_layer);
         });
 
-    for (::curaengine::types::LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
+    for (LayerIndex layer_nr = total_layers - 1; layer_nr >= 0; layer_nr--)
     {
         SliceLayer& layer_storage = mesh.layers[layer_nr];
-        if (layer_storage.parts.size() > 0 || (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL && layer_storage.open_polylines.size() > 0))
+        if (layer_storage.parts.size() > 0 || (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && layer_storage.open_polylines.size() > 0))
         {
             mesh.layer_nr_max_filled_layer = layer_nr; // last set by the highest non-empty layer
             break;

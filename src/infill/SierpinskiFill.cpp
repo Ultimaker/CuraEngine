@@ -16,6 +16,9 @@
 #include "utils/AABB3D.h"
 #include "utils/SVG.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::utils;
+
 namespace curaengine::infill
 {
 
@@ -26,7 +29,7 @@ static constexpr double allowed_length_error = 0.01;
 
 static constexpr bool deep_debug_checking = false;
 
-SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const ::curaengine::utils::AABB aabb, int max_depth, const ::curaengine::utils::coord_t line_width, bool dithering)
+SierpinskiFill::SierpinskiFill(const DensityProvider& density_provider, const AABB aabb, int max_depth, const coord_t line_width, bool dithering)
     : dithering_(dithering)
     , constraint_error_diffusion_(dithering)
     , density_provider_(density_provider)
@@ -66,8 +69,8 @@ SierpinskiFill::~SierpinskiFill()
 
 void SierpinskiFill::createTree()
 {
-    ::curaengine::geometry::Point2LL lt = ::curaengine::geometry::Point2LL(aabb_.min_.X, aabb_.max_.Y);
-    ::curaengine::geometry::Point2LL rb = ::curaengine::geometry::Point2LL(aabb_.max_.X, aabb_.min_.Y);
+    Point2LL lt = Point2LL(aabb_.min_.X, aabb_.max_.Y);
+    Point2LL rb = Point2LL(aabb_.max_.X, aabb_.min_.Y);
 
     bool root_straight_corner_is_left = false;
     int root_depth = 1;
@@ -89,7 +92,7 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
     if (sub_root.depth_ < max_depth_) // We need to subdivide.
     {
         SierpinskiTriangle& t = sub_root;
-        ::curaengine::geometry::Point2LL middle = (t.a_ + t.b_) / 2;
+        Point2LL middle = (t.a_ + t.b_) / 2;
         // At each subdivision we divide the triangle in two.
         // Figure out which sort of triangle each child will be:
         SierpinskiTriangle::SierpinskiDirection first_dir, second_dir;
@@ -119,10 +122,10 @@ void SierpinskiFill::createTree(SierpinskiTriangle& sub_root)
 }
 void SierpinskiFill::createTreeStatistics(SierpinskiTriangle& triangle)
 {
-    ::curaengine::geometry::Point2LL ac = triangle.straight_corner_ - triangle.a_;
-    double area = 0.5 * INT2MM2(::curaengine::geometry::vSize2(ac));
-    double short_length = .5 * ::curaengine::geometry::vSizeMM(ac);
-    double long_length = .5 * ::curaengine::geometry::vSizeMM(triangle.b_ - triangle.a_);
+    Point2LL ac = triangle.straight_corner_ - triangle.a_;
+    double area = 0.5 * INT2MM2(geometry::vSize2(ac));
+    double short_length = .5 * geometry::vSizeMM(ac);
+    double long_length = .5 * geometry::vSizeMM(triangle.b_ - triangle.a_);
     triangle.area_ = area;
     triangle.realized_length_ = (triangle.dir_ == SierpinskiTriangle::SierpinskiDirection::AC_TO_BC) ? long_length : short_length;
     for (SierpinskiTriangle& child : triangle.children)
@@ -136,11 +139,11 @@ void SierpinskiFill::createTreeRequestedLengths(SierpinskiTriangle& triangle)
 {
     if (triangle.children.empty())
     { // set requested_length of leaves
-        ::curaengine::utils::AABB triangle_aabb;
+        AABB triangle_aabb;
         triangle_aabb.include(triangle.a_);
         triangle_aabb.include(triangle.b_);
         triangle_aabb.include(triangle.straight_corner_);
-        ::curaengine::utils::AABB3D triangle_aabb3d(::curaengine::geometry::Point3LL(triangle_aabb.min_.X, triangle_aabb.min_.Y, 0), ::curaengine::geometry::Point3LL(triangle_aabb.max_.X, triangle_aabb.max_.Y, 1));
+        AABB3D triangle_aabb3d(Point3LL(triangle_aabb.min_.X, triangle_aabb.min_.Y, 0), Point3LL(triangle_aabb.max_.X, triangle_aabb.max_.Y, 1));
         double density = density_provider_(triangle_aabb3d); // The density of the square around the triangle is a rough estimate of the density of the triangle.
         triangle.requested_length_ = density * triangle.area_ / INT2MM(line_width_);
     }
@@ -618,17 +621,17 @@ double SierpinskiFill::getSubdivisionError(std::list<SierpinskiTriangle*>::itera
 }
 
 
-void SierpinskiFill::debugOutput(::curaengine::utils::SVG& svg)
+void SierpinskiFill::debugOutput(SVG& svg)
 {
-    svg.write(aabb_.toPolygon(), { .surface = { ::curaengine::utils::SVG::Color::RED } });
+    svg.write(aabb_.toPolygon(), { .surface = { SVG::Color::RED } });
 
     // draw triangles
     for (SierpinskiTriangle* node : sequence_)
     {
         SierpinskiTriangle& triangle = *node;
-        svg.write(triangle.a_, triangle.b_, { .line = { ::curaengine::utils::SVG::Color::GRAY } });
-        svg.write(triangle.a_, triangle.straight_corner_, { .line = { ::curaengine::utils::SVG::Color::GRAY } });
-        svg.write(triangle.b_, triangle.straight_corner_, { .line = { ::curaengine::utils::SVG::Color::GRAY } });
+        svg.write(triangle.a_, triangle.b_, { .line = { SVG::Color::GRAY } });
+        svg.write(triangle.a_, triangle.straight_corner_, { .line = { SVG::Color::GRAY } });
+        svg.write(triangle.b_, triangle.straight_corner_, { .line = { SVG::Color::GRAY } });
     }
 }
 
@@ -698,14 +701,14 @@ double SierpinskiFill::SierpinskiTriangle::getValueError()
 }
 
 
-::curaengine::geometry::Polygon SierpinskiFill::generateCross() const
+Polygon SierpinskiFill::generateCross() const
 {
-    ::curaengine::geometry::Polygon ret;
+    Polygon ret;
 
     for (SierpinskiTriangle* max_level_it : sequence_)
     {
         SierpinskiTriangle& triangle = *max_level_it;
-        ::curaengine::geometry::Point2LL edge_middle = triangle.a_ + triangle.b_ + triangle.straight_corner_;
+        Point2LL edge_middle = triangle.a_ + triangle.b_ + triangle.straight_corner_;
         switch (triangle.dir_)
         {
         case SierpinskiTriangle::SierpinskiDirection::AB_TO_BC:
@@ -728,21 +731,21 @@ double SierpinskiFill::SierpinskiTriangle::getValueError()
     return ret;
 }
 
-::curaengine::geometry::Polygon SierpinskiFill::generateCross(::curaengine::utils::coord_t z, ::curaengine::utils::coord_t min_dist_to_side, ::curaengine::utils::coord_t pocket_size) const
+Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord_t pocket_size) const
 {
-    ::curaengine::geometry::Polygon ret;
+    Polygon ret;
 
-    std::function<::curaengine::geometry::Point2LL(int, Edge)> get_edge_crossing_location = [z, min_dist_to_side](const ::curaengine::utils::coord_t period, const Edge e)
+    std::function<Point2LL(int, Edge)> get_edge_crossing_location = [z, min_dist_to_side](const coord_t period, const Edge e)
     {
-        ::curaengine::utils::coord_t from_l = z % (period * 2);
+        coord_t from_l = z % (period * 2);
         if (from_l > period)
         {
             from_l = period * 2 - from_l;
         }
-        from_l = from_l * ::curaengine::geometry::vSize(e.l - e.r) / period;
+        from_l = from_l * geometry::vSize(e.l - e.r) / period;
         from_l = std::max(min_dist_to_side, from_l);
-        from_l = std::min(::curaengine::geometry::vSize(e.l - e.r) - min_dist_to_side, from_l);
-        return e.l + ::curaengine::geometry::normal(e.r - e.l, from_l);
+        from_l = std::min(geometry::vSize(e.l - e.r) - min_dist_to_side, from_l);
+        return e.l + geometry::normal(e.r - e.l, from_l);
     };
 
     SierpinskiTriangle* last_triangle = nullptr;
@@ -758,13 +761,13 @@ double SierpinskiFill::SierpinskiTriangle::getValueError()
         Cross pattern because the other side is sliding along the straight
         sides. The steeper overhang is then only in the corner, which is deemed
         acceptable since the corners are never too sharp. */
-        const ::curaengine::utils::coord_t period = ::curaengine::geometry::vSize(triangle.straight_corner_ - triangle.a_);
+        const coord_t period = geometry::vSize(triangle.straight_corner_ - triangle.a_);
         ret.push_back(get_edge_crossing_location(period, triangle.getFromEdge()));
 
         last_triangle = &triangle;
     }
     assert(last_triangle);
-    const ::curaengine::utils::coord_t period = ::curaengine::geometry::vSize(last_triangle->straight_corner_ - last_triangle->a_);
+    const coord_t period = geometry::vSize(last_triangle->straight_corner_ - last_triangle->a_);
     ret.push_back(get_edge_crossing_location(period, last_triangle->getToEdge()));
 
     if (pocket_size > 10)
@@ -774,27 +777,27 @@ double SierpinskiFill::SierpinskiTriangle::getValueError()
         //  \    /  ==>  \____/
         //   \  /}\       ^^^^--pocket_size / 2
         //    \/} / pocket_size_side
-        ::curaengine::utils::coord_t pocket_size_side = pocket_size * std::numbers::sqrt2 / 2;
+        coord_t pocket_size_side = pocket_size * std::numbers::sqrt2 / 2;
 
-        ::curaengine::geometry::Polygon pocketed;
+        Polygon pocketed;
         pocketed.reserve(ret.size() * 3 / 2);
 
-        ::curaengine::geometry::Point2LL p0 = ret.back();
+        Point2LL p0 = ret.back();
         for (size_t poly_idx = 0; poly_idx < ret.size(); poly_idx++)
         {
-            ::curaengine::geometry::Point2LL p1 = ret[poly_idx];
-            ::curaengine::geometry::Point2LL p2 = ret[(poly_idx + 1) % ret.size()];
-            ::curaengine::geometry::Point2LL v0 = p0 - p1;
-            ::curaengine::geometry::Point2LL v1 = p2 - p1;
+            Point2LL p1 = ret[poly_idx];
+            Point2LL p2 = ret[(poly_idx + 1) % ret.size()];
+            Point2LL v0 = p0 - p1;
+            Point2LL v1 = p2 - p1;
 
-            ::curaengine::utils::coord_t prod = std::abs(::curaengine::geometry::dot(v0, v1));
-            bool is_straight_corner = prod < sqrt(::curaengine::geometry::vSize(v0) * ::curaengine::geometry::vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
+            coord_t prod = std::abs(geometry::dot(v0, v1));
+            bool is_straight_corner = prod < sqrt(geometry::vSize(v0) * geometry::vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
             if (is_straight_corner)
             {
-                ::curaengine::utils::coord_t pocket_rounding
-                    = std::min(std::min(pocket_size_side, ::curaengine::geometry::vSize(v0) / 3), ::curaengine::geometry::vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
-                pocketed.push_back(p1 + ::curaengine::geometry::normal(v0, pocket_rounding));
-                pocketed.push_back(p1 + ::curaengine::geometry::normal(v1, pocket_rounding));
+                coord_t pocket_rounding
+                    = std::min(std::min(pocket_size_side, geometry::vSize(v0) / 3), geometry::vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
+                pocketed.push_back(p1 + geometry::normal(v0, pocket_rounding));
+                pocketed.push_back(p1 + geometry::normal(v1, pocket_rounding));
             }
             else
             {

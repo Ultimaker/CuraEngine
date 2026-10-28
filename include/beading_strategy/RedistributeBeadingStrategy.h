@@ -32,17 +32,17 @@ public:
      *                                    average of the outer and inner walls at that bead count.
      * /param minimum_variable_line_ratio Minimum factor that the variable line might deviate from the optimal width.
      */
-    RedistributeBeadingStrategy(const ::curaengine::utils::coord_t optimal_width_outer, const ::curaengine::types::Ratio minimum_variable_line_ratio, BeadingStrategyPtr parent);
+    RedistributeBeadingStrategy(const utils::coord_t optimal_width_outer, const types::Ratio minimum_variable_line_ratio, BeadingStrategyPtr parent);
 
     virtual ~RedistributeBeadingStrategy() override = default;
 
-    Beading compute(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t bead_count) const override;
+    Beading compute(utils::coord_t thickness, utils::coord_t bead_count) const override;
 
-    ::curaengine::utils::coord_t getOptimalThickness(::curaengine::utils::coord_t bead_count) const override;
-    ::curaengine::utils::coord_t getTransitionThickness(::curaengine::utils::coord_t lower_bead_count) const override;
-    ::curaengine::utils::coord_t getOptimalBeadCount(::curaengine::utils::coord_t thickness) const override;
-    ::curaengine::utils::coord_t getTransitioningLength(::curaengine::utils::coord_t lower_bead_count) const override;
-    double getTransitionAnchorPos(::curaengine::utils::coord_t lower_bead_count) const override;
+    utils::coord_t getOptimalThickness(utils::coord_t bead_count) const override;
+    utils::coord_t getTransitionThickness(utils::coord_t lower_bead_count) const override;
+    utils::coord_t getOptimalBeadCount(utils::coord_t thickness) const override;
+    utils::coord_t getTransitioningLength(utils::coord_t lower_bead_count) const override;
+    double getTransitionAnchorPos(utils::coord_t lower_bead_count) const override;
 
     std::string toString() const override;
 
@@ -64,14 +64,14 @@ protected:
      * \param minimum_width_inner Inner bead width times the minimum variable line width.
      * \return The outer bead width.
      */
-    static ::curaengine::utils::coord_t getOptimalOuterBeadWidth(::curaengine::utils::coord_t thickness, ::curaengine::utils::coord_t optimal_width_outer, ::curaengine::utils::coord_t minimum_width_inner);
+    static utils::coord_t getOptimalOuterBeadWidth(utils::coord_t thickness, utils::coord_t optimal_width_outer, utils::coord_t minimum_width_inner);
 
     /*!
      * Moves the beads towards the outer edges of thickness and ensures that the outer walls are locked in location
      * \param beading The beading instance.
      * \param thickness The thickness of the bead.
      */
-    static void resetToolPathLocations(Beading& beading, ::curaengine::utils::coord_t thickness);
+    static void resetToolPathLocations(Beading& beading, utils::coord_t thickness);
 
     /*!
      * Filters and validates the beads, to ensure that all inner beads are at least the minimum bead width.
@@ -80,11 +80,11 @@ protected:
      * \param minimum_width_inner Inner bead width times the minimum variable line width.
      * \return true if beads are removed.
      */
-    static bool validateInnerBeadWidths(Beading& beading, ::curaengine::utils::coord_t minimum_width_inner);
+    static bool validateInnerBeadWidths(Beading& beading, utils::coord_t minimum_width_inner);
 
     BeadingStrategyPtr parent_;
-    ::curaengine::utils::coord_t optimal_width_outer_;
-    ::curaengine::types::Ratio minimum_variable_line_ratio_;
+    utils::coord_t optimal_width_outer_;
+    types::Ratio minimum_variable_line_ratio_;
 };
 
 } // namespace curaengine::beading_strategy

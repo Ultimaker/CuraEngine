@@ -10,9 +10,13 @@
 #include "Settings.h"
 #include "utils/AABB.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
-void SupportLayer::excludeAreasFromSupportInfillAreas(const ::curaengine::geometry::Shape& exclude_polygons, const ::curaengine::utils::AABB& exclude_polygons_boundary_box)
+void SupportLayer::excludeAreasFromSupportInfillAreas(const Shape& exclude_polygons, const AABB& exclude_polygons_boundary_box)
 {
     // record the indexes that need to be removed and do that after
     std::list<size_t> to_remove_part_indices; // LIFO for removing
@@ -28,7 +32,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const ::curaengine::geomet
             continue;
         }
 
-        ::curaengine::geometry::Shape result_polygons = support_infill_part.outline_.difference(exclude_polygons);
+        Shape result_polygons = support_infill_part.outline_.difference(exclude_polygons);
 
         // if no smaller parts get generated, this mean this part should be removed.
         if (result_polygons.empty())
@@ -37,7 +41,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const ::curaengine::geomet
             continue;
         }
 
-        std::vector<::curaengine::geometry::SingleShape> smaller_support_islands = result_polygons.splitIntoParts();
+        std::vector<SingleShape> smaller_support_islands = result_polygons.splitIntoParts();
 
         if (smaller_support_islands.empty())
         { // extra safety guard in case result_polygons consists of too small polygons which are automatically removed in splitIntoParts
@@ -52,7 +56,7 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const ::curaengine::geomet
 
         for (size_t support_island_idx = 1; support_island_idx < smaller_support_islands.size(); ++support_island_idx)
         {
-            const ::curaengine::geometry::SingleShape& smaller_island = smaller_support_islands[support_island_idx];
+            const SingleShape& smaller_island = smaller_support_islands[support_island_idx];
             support_infill_parts
                 .emplace_back(smaller_island, support_infill_part.support_line_width_, support_infill_part.use_fractional_config_, support_infill_part.inset_width_to_generate_);
         }
@@ -76,21 +80,21 @@ void SupportLayer::excludeAreasFromSupportInfillAreas(const ::curaengine::geomet
 }
 
 void SupportLayer::fillInfillParts(
-    const ::curaengine::types::LayerIndex layer_nr,
-    const std::vector<::curaengine::geometry::Shape>& support_fill_per_layer,
-    const ::curaengine::utils::coord_t infill_layer_height,
+    const LayerIndex layer_nr,
+    const std::vector<Shape>& support_fill_per_layer,
+    const coord_t infill_layer_height,
     const std::vector<std::shared_ptr<SliceMeshStorage>>& meshes,
-    const ::curaengine::utils::coord_t support_line_width,
-    const ::curaengine::utils::coord_t wall_thickness,
-    const ::curaengine::utils::coord_t grow_layer_above /*has default 0*/,
+    const coord_t support_line_width,
+    const coord_t wall_thickness,
+    const coord_t grow_layer_above /*has default 0*/,
     const bool unionAll /*has default false*/,
-    const ::curaengine::utils::coord_t custom_line_distance /*has default 0*/)
+    const coord_t custom_line_distance /*has default 0*/)
 {
     // Find the model exactly z-distance above the support layer.
-    ::curaengine::geometry::Shape overhang_z_dist_above;
+    Shape overhang_z_dist_above;
     for (const auto& mesh : meshes)
     {
-        const ::curaengine::utils::coord_t mesh_z_distance_top = mesh->settings.get<::curaengine::utils::coord_t>("support_top_distance");
+        const coord_t mesh_z_distance_top = mesh->settings.get<coord_t>("support_top_distance");
         const size_t overhang_layer_nr = layer_nr + (mesh_z_distance_top / infill_layer_height) + 1;
         if (overhang_layer_nr < mesh->overhang_areas.size())
         {
@@ -105,7 +109,7 @@ void SupportLayer::fillInfillParts(
     bool use_fractional_config = true;
     for (auto& support_areas : all_support_areas_in_layer)
     {
-        for (const ::curaengine::geometry::SingleShape& island_outline : support_areas.splitIntoParts(unionAll))
+        for (const SingleShape& island_outline : support_areas.splitIntoParts(unionAll))
         {
             support_infill_parts.emplace_back(island_outline, support_line_width, use_fractional_config, wall_thickness, custom_line_distance);
         }

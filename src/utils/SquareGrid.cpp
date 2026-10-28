@@ -5,6 +5,8 @@
 
 #include "utils/LinearAlg2D.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
@@ -16,9 +18,9 @@ SquareGrid::SquareGrid(coord_t cell_size)
 }
 
 
-SquareGrid::GridPoint SquareGrid::toGridPoint(const ::curaengine::geometry::Point2LL& point) const
+SquareGrid::GridPoint SquareGrid::toGridPoint(const Point2LL& point) const
 {
-    return ::curaengine::geometry::Point2LL(toGridCoord(point.X), toGridCoord(point.Y));
+    return Point2LL(toGridCoord(point.X), toGridCoord(point.Y));
 }
 
 
@@ -34,9 +36,9 @@ SquareGrid::grid_coord_t SquareGrid::toGridCoord(const coord_t& coord) const
 }
 
 
-::curaengine::geometry::Point2LL SquareGrid::toLowerCorner(const GridPoint& location) const
+Point2LL SquareGrid::toLowerCorner(const GridPoint& location) const
 {
-    return ::curaengine::geometry::Point2LL(toLowerCoord(location.X), toLowerCoord(location.Y));
+    return Point2LL(toLowerCoord(location.X), toLowerCoord(location.Y));
 }
 
 
@@ -52,16 +54,16 @@ coord_t SquareGrid::toLowerCoord(const grid_coord_t& grid_coord) const
 }
 
 
-bool SquareGrid::processLineCells(const std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> line, const std::function<bool(GridPoint)>& process_cell_func)
+bool SquareGrid::processLineCells(const std::pair<Point2LL, Point2LL> line, const std::function<bool(GridPoint)>& process_cell_func)
 {
     return static_cast<const SquareGrid*>(this)->processLineCells(line, process_cell_func);
 }
 
 
-bool SquareGrid::processLineCells(const std::pair<::curaengine::geometry::Point2LL, ::curaengine::geometry::Point2LL> line, const std::function<bool(GridPoint)>& process_cell_func) const
+bool SquareGrid::processLineCells(const std::pair<Point2LL, Point2LL> line, const std::function<bool(GridPoint)>& process_cell_func) const
 {
-    ::curaengine::geometry::Point2LL start = line.first;
-    ::curaengine::geometry::Point2LL end = line.second;
+    Point2LL start = line.first;
+    Point2LL end = line.second;
     if (end.X < start.X)
     { // make sure X increases between start and end
         std::swap(start, end);
@@ -119,10 +121,10 @@ bool SquareGrid::processLineCells(const std::pair<::curaengine::geometry::Point2
     return false;
 }
 
-bool SquareGrid::processAxisAlignedTriangle(const ::curaengine::geometry::Point2LL from, const ::curaengine::geometry::Point2LL to, bool to_the_right, const std::function<bool(GridPoint)>& process_cell_func) const
+bool SquareGrid::processAxisAlignedTriangle(const Point2LL from, const Point2LL to, bool to_the_right, const std::function<bool(GridPoint)>& process_cell_func) const
 {
-    ::curaengine::geometry::Point2LL a = from;
-    ::curaengine::geometry::Point2LL b = to;
+    Point2LL a = from;
+    Point2LL b = to;
     if ((a.X < b.X == a.Y < b.Y) != to_the_right)
     {
         std::swap(a, b);
@@ -130,7 +132,7 @@ bool SquareGrid::processAxisAlignedTriangle(const ::curaengine::geometry::Point2
     return processAxisAlignedTriangle(a, b, process_cell_func);
 }
 
-bool SquareGrid::processAxisAlignedTriangle(const ::curaengine::geometry::Point2LL from, const ::curaengine::geometry::Point2LL to, const std::function<bool(GridPoint)>& process_cell_func) const
+bool SquareGrid::processAxisAlignedTriangle(const Point2LL from, const Point2LL to, const std::function<bool(GridPoint)>& process_cell_func) const
 {
     GridPoint last;
     GridPoint grid_to = toGridPoint(to);
@@ -161,10 +163,10 @@ bool SquareGrid::processAxisAlignedTriangle(const ::curaengine::geometry::Point2
         });
 }
 
-bool SquareGrid::processNearby(const ::curaengine::geometry::Point2LL& query_pt, coord_t radius, const std::function<bool(const GridPoint&)>& process_func) const
+bool SquareGrid::processNearby(const Point2LL& query_pt, coord_t radius, const std::function<bool(const GridPoint&)>& process_func) const
 {
-    const ::curaengine::geometry::Point2LL min_loc(query_pt.X - radius, query_pt.Y - radius);
-    const ::curaengine::geometry::Point2LL max_loc(query_pt.X + radius, query_pt.Y + radius);
+    const Point2LL min_loc(query_pt.X - radius, query_pt.Y - radius);
+    const Point2LL max_loc(query_pt.X + radius, query_pt.Y + radius);
 
     GridPoint min_grid = toGridPoint(min_loc);
     GridPoint max_grid = toGridPoint(max_loc);

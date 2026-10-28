@@ -6,31 +6,33 @@
 #include "geometry/Shape.h"
 
 
+using namespace curaengine::geometry;
+
 namespace curaengine::bridge
 {
 
-TransformedShape::TransformedShape(const ::curaengine::geometry::PointMatrix& matrix)
+TransformedShape::TransformedShape(const PointMatrix& matrix)
     : matrix_(matrix)
 {
 }
 
-TransformedShape::TransformedShape(const ::curaengine::geometry::Shape& shape, const ::curaengine::geometry::PointMatrix& matrix)
+TransformedShape::TransformedShape(const Shape& shape, const PointMatrix& matrix)
     : TransformedShape(matrix)
 {
     addShape(shape);
 }
 
-TransformedShape::TransformedShape(const ::curaengine::geometry::Polygon& polygon, const ::curaengine::geometry::PointMatrix& matrix)
+TransformedShape::TransformedShape(const Polygon& polygon, const PointMatrix& matrix)
     : TransformedShape(matrix)
 {
     addPolygon(polygon);
 }
 
-void TransformedShape::addShape(const ::curaengine::geometry::Shape& shape, const bool filter_out_horizontal)
+void TransformedShape::addShape(const Shape& shape, const bool filter_out_horizontal)
 {
     segments_.reserve(segments_.size() + shape.pointCount());
 
-    for (const ::curaengine::geometry::Polygon& polygon : shape)
+    for (const Polygon& polygon : shape)
     {
         constexpr bool reserve_size = false;
         addPolygon(polygon, filter_out_horizontal, reserve_size);
@@ -38,7 +40,7 @@ void TransformedShape::addShape(const ::curaengine::geometry::Shape& shape, cons
 }
 
 
-void TransformedShape::addPolygon(const ::curaengine::geometry::Polygon& polygon, const bool filter_out_horizontal, const bool reserve_size)
+void TransformedShape::addPolygon(const Polygon& polygon, const bool filter_out_horizontal, const bool reserve_size)
 {
     if (reserve_size)
     {
@@ -51,10 +53,10 @@ void TransformedShape::addPolygon(const ::curaengine::geometry::Polygon& polygon
     }
 }
 
-void TransformedShape::addSegment(const ::curaengine::geometry::Point2LL& start, const ::curaengine::geometry::Point2LL& end, const bool filter_out_horizontal)
+void TransformedShape::addSegment(const Point2LL& start, const Point2LL& end, const bool filter_out_horizontal)
 {
     TransformedSegment segment(start, end, matrix_);
-    if (filter_out_horizontal && ::curaengine::utils::fuzzy_equal(segment.minY(), segment.maxY()))
+    if (filter_out_horizontal && utils::fuzzy_equal(segment.minY(), segment.maxY()))
     {
         return;
     }

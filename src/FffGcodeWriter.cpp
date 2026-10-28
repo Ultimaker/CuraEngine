@@ -61,9 +61,15 @@
 #include "utils/ThreadPool.h"
 #include "utils/math.h"
 
+using namespace curaengine::geometry;
+using namespace curaengine::infill;
+using namespace curaengine::progress;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
-using ::curaengine::types::operator""_r;
+using types::operator""_r;
 
 
 
@@ -85,7 +91,7 @@ FffGcodeWriter::FffGcodeWriter()
     }
 }
 
-void FffGcodeWriter::writeGCode(SliceDataStorage& storage, ::curaengine::utils::TimeKeeper& time_keeper)
+void FffGcodeWriter::writeGCode(SliceDataStorage& storage, TimeKeeper& time_keeper)
 {
     const size_t start_extruder_nr = getStartExtruder(storage);
     gcode.preSetup(start_extruder_nr);
@@ -153,8 +159,8 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, ::curaengine::utils::
     if (! extruder_settings.get<bool>("prime_blob_enable") and ! (extruder_settings.get<std::string>("print_sequence") == "one_at_a_time"))
     {
         // Setting first travel move of the first extruder to the machine start position
-        ::curaengine::geometry::Point3LL p(extruder_settings.get<::curaengine::utils::coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<::curaengine::utils::coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
-        gcode.writeTravel(p, extruder_settings.get<::curaengine::types::Velocity>("speed_travel"));
+        Point3LL p(extruder_settings.get<coord_t>("machine_extruder_start_pos_x"), extruder_settings.get<coord_t>("machine_extruder_start_pos_y"), gcode.getPositionZ());
+        gcode.writeTravel(p, extruder_settings.get<Velocity>("speed_travel"));
     }
 
     calculateExtruderOrderPerLayer(storage);
@@ -166,7 +172,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, ::curaengine::utils::
     }
 
     int process_layer_starting_layer_nr = 0;
-    const bool has_raft = scene.current_mesh_group->settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::RAFT;
+    const bool has_raft = scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT;
     if (has_raft)
     {
         processRaft(storage);
@@ -182,7 +188,7 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, ::curaengine::utils::
         }
     }
 
-    ::curaengine::utils::run_multiple_producers_ordered_consumer(
+    utils::run_multiple_producers_ordered_consumer(
         process_layer_starting_layer_nr,
         total_layers,
         [&storage, total_layers, this](int layer_nr)
@@ -192,14 +198,14 @@ void FffGcodeWriter::writeGCode(SliceDataStorage& storage, ::curaengine::utils::
         [this, total_layers](std::optional<ProcessLayerResult> result_opt)
         {
             const ProcessLayerResult& result = result_opt.value();
-            ::curaengine::progress::Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.time_keeper);
+            Progress::messageProgressLayer(result.layer_plan->getLayerNr(), total_layers, result.time_keeper);
             layer_plan_buffer.handle(*result.layer_plan, gcode);
             print_info_.updateWithLayer(result.layer_plan);
         });
 
     layer_plan_buffer.flush();
 
-    ::curaengine::progress::Progress::messageProgressStage(::curaengine::progress::Progress::Stage::FINISH, &time_keeper);
+    Progress::messageProgressStage(Progress::Stage::FINISH, &time_keeper);
 
     // Store the object height for when we are printing multiple objects, as we need to clear every one of them when moving to the next position.
     max_object_height = std::max(max_object_height, storage.model_max.z_);
@@ -219,49 +225,49 @@ unsigned int FffGcodeWriter::findSpiralizedLayerSeamVertexIndex(const SliceDataS
         // If the user has specified a z-seam location, use the vertex closest to that location for the seam vertex
         // in the first layer that has a part with insets. This allows the user to alter the seam start location which
         // could be useful if the spiralization has a problem with a particular seam path.
-        ::curaengine::geometry::Point2LL seam_pos(0, 0);
-        if (mesh.settings.get<::curaengine::types::EZSeamType>("z_seam_type") == ::curaengine::types::EZSeamType::USER_SPECIFIED)
+        Point2LL seam_pos(0, 0);
+        if (mesh.settings.get<EZSeamType>("z_seam_type") == EZSeamType::USER_SPECIFIED)
         {
             seam_pos = mesh.getZSeamHint();
         }
-        return ::curaengine::utils::PolygonUtils::findClosest(seam_pos, layer.parts[0].spiral_wall[0]).point_idx_;
+        return PolygonUtils::findClosest(seam_pos, layer.parts[0].spiral_wall[0]).point_idx_;
     }
     else
     {
         // note that the code below doesn't assume that last_layer_nr is one less than layer_nr but the print is going
         // to come out pretty weird if that isn't true as it implies that there are empty layers
 
-        const ::curaengine::geometry::Polygon& last_wall = (*storage.spiralize_wall_outlines[last_layer_nr])[0];
+        const Polygon& last_wall = (*storage.spiralize_wall_outlines[last_layer_nr])[0];
         // Even though this is just one (contiguous) part, the spiralize wall may still be multiple parts if the part is somewhere thinner than 1 line width.
         // This case is so rare that we don't bother with finding the best polygon to start with. Just start with the first polygon (`spiral_wall[0]`).
-        const ::curaengine::geometry::Polygon& wall = layer.parts[0].spiral_wall[0];
+        const Polygon& wall = layer.parts[0].spiral_wall[0];
         const size_t n_points = wall.size();
-        const ::curaengine::geometry::Point2LL last_wall_seam_vertex = last_wall[storage.spiralize_seam_vertex_indices[last_layer_nr]];
+        const Point2LL last_wall_seam_vertex = last_wall[storage.spiralize_seam_vertex_indices[last_layer_nr]];
 
         // seam_vertex_idx is going to be the index of the seam vertex in the current wall polygon
         // initially we choose the vertex that is closest to the seam vertex in the last spiralized layer processed
 
-        int seam_vertex_idx = ::curaengine::utils::PolygonUtils::findNearestVert(last_wall_seam_vertex, wall);
+        int seam_vertex_idx = PolygonUtils::findNearestVert(last_wall_seam_vertex, wall);
 
         // now we check that the vertex following the seam vertex is to the left of the seam vertex in the last layer
         // and if it isn't, we move forward
 
-        if (::curaengine::geometry::vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution"))
+        if (geometry::vSize(last_wall_seam_vertex - wall[seam_vertex_idx]) >= mesh.settings.get<coord_t>("meshfix_maximum_resolution"))
         {
             // get the inward normal of the last layer seam vertex
-            ::curaengine::geometry::Point2LL last_wall_seam_vertex_inward_normal = ::curaengine::utils::PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
+            Point2LL last_wall_seam_vertex_inward_normal = PolygonUtils::getVertexInwardNormal(last_wall, storage.spiralize_seam_vertex_indices[last_layer_nr]);
 
             // create a vector from the normal so that we can then test the vertex following the candidate seam vertex to make sure it is on the correct side
-            ::curaengine::geometry::Point2LL last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
+            Point2LL last_wall_seam_vertex_vector = last_wall_seam_vertex + last_wall_seam_vertex_inward_normal;
 
             // now test the vertex following the candidate seam vertex and if it lies to the left of the vector, it's good to use
-            double a = ::curaengine::utils::LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+            double a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
 
             if (a <= 0 || a >= std::numbers::pi)
             {
                 // the vertex was not on the left of the vector so move the seam vertex on
                 seam_vertex_idx = (seam_vertex_idx + 1) % n_points;
-                a = ::curaengine::utils::LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
+                a = LinearAlg2D::getAngleLeft(last_wall_seam_vertex_vector, last_wall_seam_vertex, wall[(seam_vertex_idx + 1) % n_points]);
             }
         }
 
@@ -321,15 +327,15 @@ void FffGcodeWriter::setConfigFanSpeedLayerTime()
     {
         fan_speed_layer_time_settings_per_extruder.emplace_back();
         FanSpeedLayerTimeSettings& fan_speed_layer_time_settings = fan_speed_layer_time_settings_per_extruder.back();
-        fan_speed_layer_time_settings.cool_min_layer_time = train.settings_.get<::curaengine::types::Duration>("cool_min_layer_time");
-        fan_speed_layer_time_settings.cool_min_layer_time_overhang = train.settings_.get<::curaengine::types::Duration>("cool_min_layer_time_overhang");
-        fan_speed_layer_time_settings.cool_min_layer_time_overhang_min_segment_length = train.settings_.get<::curaengine::utils::coord_t>("cool_min_layer_time_overhang_min_segment_length");
-        fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = train.settings_.get<::curaengine::types::Duration>("cool_min_layer_time_fan_speed_max");
-        fan_speed_layer_time_settings.cool_fan_speed_0 = train.settings_.get<::curaengine::types::Ratio>("cool_fan_speed_0") * 100.0;
-        fan_speed_layer_time_settings.cool_fan_speed_min = train.settings_.get<::curaengine::types::Ratio>("cool_fan_speed_min") * 100.0;
-        fan_speed_layer_time_settings.cool_fan_speed_max = train.settings_.get<::curaengine::types::Ratio>("cool_fan_speed_max") * 100.0;
-        fan_speed_layer_time_settings.cool_min_speed = train.settings_.get<::curaengine::types::Velocity>("cool_min_speed");
-        fan_speed_layer_time_settings.cool_fan_full_layer = train.settings_.get<::curaengine::types::LayerIndex>("cool_fan_full_layer");
+        fan_speed_layer_time_settings.cool_min_layer_time = train.settings_.get<Duration>("cool_min_layer_time");
+        fan_speed_layer_time_settings.cool_min_layer_time_overhang = train.settings_.get<Duration>("cool_min_layer_time_overhang");
+        fan_speed_layer_time_settings.cool_min_layer_time_overhang_min_segment_length = train.settings_.get<coord_t>("cool_min_layer_time_overhang_min_segment_length");
+        fan_speed_layer_time_settings.cool_min_layer_time_fan_speed_max = train.settings_.get<Duration>("cool_min_layer_time_fan_speed_max");
+        fan_speed_layer_time_settings.cool_fan_speed_0 = train.settings_.get<Ratio>("cool_fan_speed_0") * 100.0;
+        fan_speed_layer_time_settings.cool_fan_speed_min = train.settings_.get<Ratio>("cool_fan_speed_min") * 100.0;
+        fan_speed_layer_time_settings.cool_fan_speed_max = train.settings_.get<Ratio>("cool_fan_speed_max") * 100.0;
+        fan_speed_layer_time_settings.cool_min_speed = train.settings_.get<Velocity>("cool_min_speed");
+        fan_speed_layer_time_settings.cool_fan_full_layer = train.settings_.get<LayerIndex>("cool_fan_full_layer");
         if (! train.settings_.get<bool>("cool_fan_enabled"))
         {
             fan_speed_layer_time_settings.cool_fan_speed_0 = 0;
@@ -343,14 +349,14 @@ static void retractionAndWipeConfigFromSettings(const Settings& settings, Retrac
 {
     RetractionConfig& retraction_config = config->retraction_config;
     retraction_config.distance = (settings.get<bool>("retraction_enable")) ? settings.get<double>("retraction_amount") : 0; // Retraction distance in mm.
-    retraction_config.retract_during_travel = settings.get<::curaengine::types::Ratio>("retraction_during_travel_ratio");
+    retraction_config.retract_during_travel = settings.get<Ratio>("retraction_during_travel_ratio");
     retraction_config.keep_retracting_during_travel = settings.get<bool>("keep_retracting_during_travel");
-    retraction_config.prime_during_travel = settings.get<::curaengine::types::Ratio>("prime_during_travel_ratio");
+    retraction_config.prime_during_travel = settings.get<Ratio>("prime_during_travel_ratio");
     retraction_config.prime_volume = settings.get<double>("retraction_extra_prime_amount"); // Extra prime volume in mm^3.
-    retraction_config.speed = settings.get<::curaengine::types::Velocity>("retraction_retract_speed");
-    retraction_config.primeSpeed = settings.get<::curaengine::types::Velocity>("retraction_prime_speed");
-    retraction_config.zHop = settings.get<::curaengine::utils::coord_t>("retraction_hop");
-    retraction_config.retraction_min_travel_distance = settings.get<::curaengine::utils::coord_t>("retraction_min_travel");
+    retraction_config.speed = settings.get<Velocity>("retraction_retract_speed");
+    retraction_config.primeSpeed = settings.get<Velocity>("retraction_prime_speed");
+    retraction_config.zHop = settings.get<coord_t>("retraction_hop");
+    retraction_config.retraction_min_travel_distance = settings.get<coord_t>("retraction_min_travel");
     retraction_config.retraction_extrusion_window = settings.get<double>("retraction_extrusion_window"); // Window to count retractions in in mm of extruded filament.
     retraction_config.retraction_count_max = settings.get<size_t>("retraction_count_max");
 
@@ -359,9 +365,9 @@ static void retractionAndWipeConfigFromSettings(const Settings& settings, Retrac
     RetractionConfig& switch_retraction_config = config->extruder_switch_retraction_config;
     switch_retraction_config.distance = settings.get<double>("switch_extruder_retraction_amount"); // Retraction distance in mm.
     switch_retraction_config.prime_volume = 0.0;
-    switch_retraction_config.speed = settings.get<::curaengine::types::Velocity>("switch_extruder_retraction_speed");
-    switch_retraction_config.primeSpeed = settings.get<::curaengine::types::Velocity>("switch_extruder_prime_speed");
-    switch_retraction_config.zHop = settings.get<::curaengine::utils::coord_t>("retraction_hop_after_extruder_switch_height");
+    switch_retraction_config.speed = settings.get<Velocity>("switch_extruder_retraction_speed");
+    switch_retraction_config.primeSpeed = settings.get<Velocity>("switch_extruder_prime_speed");
+    switch_retraction_config.zHop = settings.get<coord_t>("retraction_hop_after_extruder_switch_height");
     switch_retraction_config.retraction_min_travel_distance = 0; // No limitation on travel distance for an extruder switch retract.
     switch_retraction_config.retraction_extrusion_window
         = 99999.9; // So that extruder switch retractions won't affect the retraction buffer (extruded_volume_at_previous_n_retractions).
@@ -371,23 +377,23 @@ static void retractionAndWipeConfigFromSettings(const Settings& settings, Retrac
 
     wipe_config.retraction_enable = settings.get<bool>("wipe_retraction_enable");
     wipe_config.retraction_config.distance = settings.get<double>("wipe_retraction_amount");
-    wipe_config.retraction_config.speed = settings.get<::curaengine::types::Velocity>("wipe_retraction_retract_speed");
-    wipe_config.retraction_config.primeSpeed = settings.get<::curaengine::types::Velocity>("wipe_retraction_prime_speed");
+    wipe_config.retraction_config.speed = settings.get<Velocity>("wipe_retraction_retract_speed");
+    wipe_config.retraction_config.primeSpeed = settings.get<Velocity>("wipe_retraction_prime_speed");
     wipe_config.retraction_config.prime_volume = settings.get<double>("wipe_retraction_extra_prime_amount");
     wipe_config.retraction_config.retraction_min_travel_distance = 0;
     wipe_config.retraction_config.retraction_extrusion_window = std::numeric_limits<double>::max();
     wipe_config.retraction_config.retraction_count_max = std::numeric_limits<size_t>::max();
 
-    wipe_config.pause = settings.get<::curaengine::types::Duration>("wipe_pause");
+    wipe_config.pause = settings.get<Duration>("wipe_pause");
 
     wipe_config.hop_enable = settings.get<bool>("wipe_hop_enable");
-    wipe_config.hop_amount = settings.get<::curaengine::utils::coord_t>("wipe_hop_amount");
-    wipe_config.hop_speed = settings.get<::curaengine::types::Velocity>("wipe_hop_speed");
+    wipe_config.hop_amount = settings.get<coord_t>("wipe_hop_amount");
+    wipe_config.hop_speed = settings.get<Velocity>("wipe_hop_speed");
 
-    wipe_config.brush_pos_x = settings.get<::curaengine::utils::coord_t>("wipe_brush_pos_x");
+    wipe_config.brush_pos_x = settings.get<coord_t>("wipe_brush_pos_x");
     wipe_config.repeat_count = settings.get<size_t>("wipe_repeat_count");
-    wipe_config.move_distance = settings.get<::curaengine::utils::coord_t>("wipe_move_distance");
-    wipe_config.move_speed = settings.get<::curaengine::types::Velocity>("speed_travel");
+    wipe_config.move_distance = settings.get<coord_t>("wipe_move_distance");
+    wipe_config.move_speed = settings.get<Velocity>("speed_travel");
     wipe_config.max_extrusion_mm3 = settings.get<double>("max_extrusion_before_wipe");
     wipe_config.clean_between_layers = settings.get<bool>("clean_between_layers");
 }
@@ -410,24 +416,24 @@ size_t FffGcodeWriter::getStartExtruder(const SliceDataStorage& storage) const
 {
     const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     const Settings& mesh_group_settings = mesh_group->settings;
-    const ::curaengine::types::EPlatformAdhesion adhesion_type = mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type");
+    const EPlatformAdhesion adhesion_type = mesh_group_settings.get<EPlatformAdhesion>("adhesion_type");
     const int skirt_brim_extruder_nr = mesh_group_settings.get<int>("skirt_brim_extruder_nr");
     const ExtruderTrain* skirt_brim_extruder = (skirt_brim_extruder_nr < 0) ? nullptr : &mesh_group_settings.get<ExtruderTrain&>("skirt_brim_extruder_nr");
 
     size_t start_extruder_nr;
-    if (adhesion_type == ::curaengine::types::EPlatformAdhesion::SKIRT && skirt_brim_extruder
-        && (skirt_brim_extruder->settings_.get<int>("skirt_line_count") > 0 || skirt_brim_extruder->settings_.get<::curaengine::utils::coord_t>("skirt_brim_minimal_length") > 0))
+    if (adhesion_type == EPlatformAdhesion::SKIRT && skirt_brim_extruder
+        && (skirt_brim_extruder->settings_.get<int>("skirt_line_count") > 0 || skirt_brim_extruder->settings_.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
         start_extruder_nr = skirt_brim_extruder->extruder_nr_;
     }
 
     else if (
-        (adhesion_type == ::curaengine::types::EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable")) && skirt_brim_extruder
-        && (skirt_brim_extruder->settings_.get<int>("brim_line_count") > 0 || skirt_brim_extruder->settings_.get<::curaengine::utils::coord_t>("skirt_brim_minimal_length") > 0))
+        (adhesion_type == EPlatformAdhesion::BRIM || mesh_group_settings.get<bool>("prime_tower_brim_enable")) && skirt_brim_extruder
+        && (skirt_brim_extruder->settings_.get<int>("brim_line_count") > 0 || skirt_brim_extruder->settings_.get<coord_t>("skirt_brim_minimal_length") > 0))
     {
         start_extruder_nr = skirt_brim_extruder->extruder_nr_;
     }
-    else if (adhesion_type == ::curaengine::types::EPlatformAdhesion::RAFT && skirt_brim_extruder)
+    else if (adhesion_type == EPlatformAdhesion::RAFT && skirt_brim_extruder)
     {
         start_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").extruder_nr_;
     }
@@ -458,19 +464,19 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 {
     if (mesh.infill_angles.size() == 0)
     {
-        mesh.infill_angles = mesh.settings.get<std::vector<::curaengine::types::AngleDegrees>>("infill_angles");
+        mesh.infill_angles = mesh.settings.get<std::vector<AngleDegrees>>("infill_angles");
         if (mesh.infill_angles.size() == 0)
         {
             // user has not specified any infill angles so use defaults
-            const ::curaengine::types::EFillMethod infill_pattern = mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern");
-            if (infill_pattern == ::curaengine::types::EFillMethod::CROSS || infill_pattern == ::curaengine::types::EFillMethod::CROSS_3D)
+            const EFillMethod infill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+            if (infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
             {
                 mesh.infill_angles.push_back(22); // put most infill lines in between 45 and 0 degrees
             }
             else
             {
                 mesh.infill_angles.push_back(45); // generally all infill patterns use 45 degrees
-                if (infill_pattern == ::curaengine::types::EFillMethod::LINES || infill_pattern == ::curaengine::types::EFillMethod::ZIG_ZAG)
+                if (infill_pattern == EFillMethod::LINES || infill_pattern == EFillMethod::ZIG_ZAG)
                 {
                     // lines and zig zag patterns default to also using 135 degrees
                     mesh.infill_angles.push_back(135);
@@ -481,7 +487,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 
     if (mesh.roofing_angles.size() == 0)
     {
-        mesh.roofing_angles = mesh.settings.get<std::vector<::curaengine::types::AngleDegrees>>("roofing_angles");
+        mesh.roofing_angles = mesh.settings.get<std::vector<AngleDegrees>>("roofing_angles");
         if (mesh.roofing_angles.size() == 0)
         {
             // user has not specified any infill angles so use defaults
@@ -492,7 +498,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 
     if (mesh.flooring_angles.size() == 0)
     {
-        mesh.flooring_angles = mesh.settings.get<std::vector<::curaengine::types::AngleDegrees>>("flooring_angles");
+        mesh.flooring_angles = mesh.settings.get<std::vector<AngleDegrees>>("flooring_angles");
         if (mesh.flooring_angles.size() == 0)
         {
             // user has not specified any infill angles so use defaults
@@ -503,7 +509,7 @@ void FffGcodeWriter::setInfillAndSkinAngles(SliceMeshStorage& mesh)
 
     if (mesh.skin_angles.size() == 0)
     {
-        mesh.skin_angles = mesh.settings.get<std::vector<::curaengine::types::AngleDegrees>>("skin_angles");
+        mesh.skin_angles = mesh.settings.get<std::vector<AngleDegrees>>("skin_angles");
         if (mesh.skin_angles.size() == 0)
         {
             // user has not specified any infill angles so use defaults
@@ -517,30 +523,30 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
     const ExtruderTrain& support_infill_extruder = mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr");
-    storage.support.support_infill_angles = support_infill_extruder.settings_.get<std::vector<::curaengine::types::AngleDegrees>>("support_infill_angles");
+    storage.support.support_infill_angles = support_infill_extruder.settings_.get<std::vector<AngleDegrees>>("support_infill_angles");
     if (storage.support.support_infill_angles.empty())
     {
         storage.support.support_infill_angles.push_back(0);
     }
 
     const ExtruderTrain& support_extruder_nr_layer_0 = mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0");
-    storage.support.support_infill_angles_layer_0 = support_extruder_nr_layer_0.settings_.get<std::vector<::curaengine::types::AngleDegrees>>("support_infill_angles");
+    storage.support.support_infill_angles_layer_0 = support_extruder_nr_layer_0.settings_.get<std::vector<AngleDegrees>>("support_infill_angles");
     if (storage.support.support_infill_angles_layer_0.empty())
     {
         storage.support.support_infill_angles_layer_0.push_back(0);
     }
 
     auto getInterfaceAngles
-        = [&storage](const ExtruderTrain& extruder, const std::string& interface_angles_setting, const ::curaengine::types::EFillMethod pattern, const std::string& interface_height_setting)
+        = [&storage](const ExtruderTrain& extruder, const std::string& interface_angles_setting, const EFillMethod pattern, const std::string& interface_height_setting)
     {
-        std::vector<::curaengine::types::AngleDegrees> angles = extruder.settings_.get<std::vector<::curaengine::types::AngleDegrees>>(interface_angles_setting);
+        std::vector<AngleDegrees> angles = extruder.settings_.get<std::vector<AngleDegrees>>(interface_angles_setting);
         if (angles.empty())
         {
-            if (pattern == ::curaengine::types::EFillMethod::CONCENTRIC)
+            if (pattern == EFillMethod::CONCENTRIC)
             {
                 angles.push_back(0); // Concentric has no rotation.
             }
-            else if (pattern == ::curaengine::types::EFillMethod::TRIANGLES)
+            else if (pattern == EFillMethod::TRIANGLES)
             {
                 angles.push_back(90); // Triangular support interface shouldn't alternate every layer.
             }
@@ -548,8 +554,8 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
             {
                 for (const auto& mesh : storage.meshes)
                 {
-                    if (mesh->settings.get<::curaengine::utils::coord_t>(interface_height_setting)
-                        >= 2 * Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<::curaengine::utils::coord_t>("layer_height"))
+                    if (mesh->settings.get<coord_t>(interface_height_setting)
+                        >= 2 * Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<coord_t>("layer_height"))
                     {
                         // Some roofs are quite thick.
                         // Alternate between the two kinds of diagonal: / and \ .
@@ -568,11 +574,11 @@ void FffGcodeWriter::setSupportAngles(SliceDataStorage& storage)
 
     const ExtruderTrain& roof_extruder = mesh_group_settings.get<ExtruderTrain&>("support_roof_extruder_nr");
     storage.support.support_roof_angles
-        = getInterfaceAngles(roof_extruder, "support_roof_angles", roof_extruder.settings_.get<::curaengine::types::EFillMethod>("support_roof_pattern"), "support_roof_height");
+        = getInterfaceAngles(roof_extruder, "support_roof_angles", roof_extruder.settings_.get<EFillMethod>("support_roof_pattern"), "support_roof_height");
 
     const ExtruderTrain& bottom_extruder = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr");
     storage.support.support_bottom_angles
-        = getInterfaceAngles(bottom_extruder, "support_bottom_angles", bottom_extruder.settings_.get<::curaengine::types::EFillMethod>("support_bottom_pattern"), "support_bottom_height");
+        = getInterfaceAngles(bottom_extruder, "support_bottom_angles", bottom_extruder.settings_.get<EFillMethod>("support_bottom_pattern"), "support_bottom_height");
 }
 
 void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
@@ -581,9 +587,9 @@ void FffGcodeWriter::processNextMeshGroupCode(const SliceDataStorage& storage)
     gcode.setZ(max_object_height + MM2INT(5));
 
     Application::getInstance().communication_->sendCurrentPosition(gcode.getPositionXY());
-    gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<::curaengine::types::Velocity>("speed_z_hop"));
-    ::curaengine::geometry::Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
-    gcode.writeTravel(start_pos, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<::curaengine::types::Velocity>("speed_travel"));
+    gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_z_hop"));
+    Point2LL start_pos(storage.model_min.x_, storage.model_min.y_);
+    gcode.writeTravel(start_pos, Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_travel"));
 
     gcode.processInitialLayerTemperature(storage, gcode.getExtruderNr());
 }
@@ -595,8 +601,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     const size_t interface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").extruder_nr_;
     const size_t surface_extruder_nr = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").extruder_nr_;
 
-    ::curaengine::utils::coord_t z = 0;
-    const ::curaengine::types::LayerIndex initial_raft_layer_nr = -::curaengine::types::LayerIndex(Raft::getTotalExtraLayers());
+    coord_t z = 0;
+    const LayerIndex initial_raft_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
     const Settings& interface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_interface_extruder_nr").settings_;
     const size_t num_interface_layers = interface_settings.get<size_t>("raft_interface_layers");
     const Settings& surface_settings = mesh_group_settings.get<ExtruderTrain&>("raft_surface_extruder_nr").settings_;
@@ -606,68 +612,68 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     constexpr int infill_multiplier = 1; // rafts use single lines
     constexpr int extra_infill_shift = 0;
     constexpr bool fill_gaps = true;
-    constexpr ::curaengine::utils::coord_t wipe_dist = 0;
+    constexpr coord_t wipe_dist = 0;
 
-    ::curaengine::geometry::Shape raft_polygons;
-    std::optional<::curaengine::geometry::Point2LL> last_planned_position = std::optional<::curaengine::geometry::Point2LL>();
+    Shape raft_polygons;
+    std::optional<Point2LL> last_planned_position = std::optional<Point2LL>();
 
     size_t current_extruder_nr = base_extruder_nr;
 
     { // raft base layer
         const Settings& base_settings = mesh_group_settings.get<ExtruderTrain&>("raft_base_extruder_nr").settings_;
-        ::curaengine::types::LayerIndex layer_nr = initial_raft_layer_nr;
-        const ::curaengine::utils::coord_t layer_height = base_settings.get<::curaengine::utils::coord_t>("raft_base_thickness");
+        LayerIndex layer_nr = initial_raft_layer_nr;
+        const coord_t layer_height = base_settings.get<coord_t>("raft_base_thickness");
         z += layer_height;
-        const ::curaengine::utils::coord_t comb_offset = std::max(base_settings.get<::curaengine::utils::coord_t>("raft_base_line_spacing"), base_settings.get<::curaengine::utils::coord_t>("raft_base_line_width"));
+        const coord_t comb_offset = std::max(base_settings.get<coord_t>("raft_base_line_spacing"), base_settings.get<coord_t>("raft_base_line_width"));
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_base
             = fan_speed_layer_time_settings_per_extruder; // copy so that we change only the local copy
         for (FanSpeedLayerTimeSettings& fan_speed_layer_time_settings : fan_speed_layer_time_settings_per_extruder_raft_base)
         {
-            double regular_fan_speed = base_settings.get<::curaengine::types::Ratio>("raft_base_fan_speed") * 100.0;
+            double regular_fan_speed = base_settings.get<Ratio>("raft_base_fan_speed") * 100.0;
             fan_speed_layer_time_settings.cool_fan_speed_min = regular_fan_speed;
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        const ::curaengine::utils::coord_t line_width = base_settings.get<::curaengine::utils::coord_t>("raft_base_line_width");
-        const ::curaengine::utils::coord_t avoid_distance = base_settings.get<::curaengine::utils::coord_t>("travel_avoid_distance");
+        const coord_t line_width = base_settings.get<coord_t>("raft_base_line_width");
+        const coord_t avoid_distance = base_settings.get<coord_t>("travel_avoid_distance");
         LayerPlan& gcode_layer
             = *new LayerPlan(storage, layer_nr, z, layer_height, base_extruder_nr, fan_speed_layer_time_settings_per_extruder_raft_base, comb_offset, line_width, avoid_distance);
         gcode_layer.setIsInside(true);
 
         Application::getInstance().communication_->sendLayerComplete(layer_nr, z, layer_height);
 
-        ::curaengine::geometry::OpenLinesSet raft_lines;
-        ::curaengine::types::AngleDegrees fill_angle = (num_surface_layers + num_interface_layers) % 2 ? 45 : 135; // 90 degrees rotated from the interface layer.
+        OpenLinesSet raft_lines;
+        AngleDegrees fill_angle = (num_surface_layers + num_interface_layers) % 2 ? 45 : 135; // 90 degrees rotated from the interface layer.
         constexpr bool zig_zaggify_infill = false;
         constexpr bool connect_polygons = true; // causes less jerks, so better adhesion
 
         const size_t wall_line_count = base_settings.get<size_t>("raft_base_wall_count");
-        const ::curaengine::utils::coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
-        const ::curaengine::utils::coord_t line_spacing = base_settings.get<::curaengine::utils::coord_t>("raft_base_line_spacing");
-        const ::curaengine::utils::coord_t infill_overlap = base_settings.get<::curaengine::utils::coord_t>("raft_base_infill_overlap_mm");
-        const ::curaengine::utils::coord_t line_spacing_prime_tower = base_settings.get<::curaengine::utils::coord_t>("prime_tower_raft_base_line_spacing");
-        const ::curaengine::geometry::Point2LL& infill_origin = ::curaengine::geometry::Point2LL();
+        const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
+        const coord_t line_spacing = base_settings.get<coord_t>("raft_base_line_spacing");
+        const coord_t infill_overlap = base_settings.get<coord_t>("raft_base_infill_overlap_mm");
+        const coord_t line_spacing_prime_tower = base_settings.get<coord_t>("prime_tower_raft_base_line_spacing");
+        const Point2LL& infill_origin = Point2LL();
         constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
         constexpr bool skip_some_zags = false;
         constexpr int zag_skip_count = 0;
-        constexpr ::curaengine::utils::coord_t pocket_size = 0;
-        const ::curaengine::utils::coord_t max_resolution = base_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-        const ::curaengine::utils::coord_t max_deviation = base_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
+        constexpr coord_t pocket_size = 0;
+        const coord_t max_resolution = base_settings.get<coord_t>("meshfix_maximum_resolution");
+        const coord_t max_deviation = base_settings.get<coord_t>("meshfix_maximum_deviation");
 
         struct ParameterizedRaftPath
         {
-            ::curaengine::utils::coord_t line_spacing;
-            ::curaengine::geometry::Shape outline;
+            coord_t line_spacing;
+            Shape outline;
         };
 
         std::vector<ParameterizedRaftPath> raft_outline_paths;
         raft_outline_paths.emplace_back(ParameterizedRaftPath{ line_spacing, storage.raft_base_outline });
         if (storage.prime_tower_)
         {
-            const ::curaengine::geometry::Shape raft_outline_prime_tower = ::curaengine::geometry::Shape(storage.prime_tower_->getExtrusionOutline(layer_nr));
+            const Shape raft_outline_prime_tower = Shape(storage.prime_tower_->getExtrusionOutline(layer_nr));
             if (line_spacing_prime_tower == line_spacing)
             {
                 // Base layer is shared with prime tower base
@@ -683,8 +689,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         for (const ParameterizedRaftPath& raft_outline_path : raft_outline_paths)
         {
-            ::curaengine::infill::Infill infill_comp(
-                ::curaengine::types::EFillMethod::LINES,
+            Infill infill_comp(
+                EFillMethod::LINES,
                 zig_zaggify_infill,
                 connect_polygons,
                 raft_outline_path.outline,
@@ -707,15 +713,15 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 skip_some_zags,
                 zag_skip_count,
                 pocket_size);
-            std::vector<::curaengine::utils::VariableWidthLines> raft_paths;
-            infill_comp.generate(raft_paths, raft_polygons, raft_lines, base_settings, layer_nr, ::curaengine::utils::SectionType::ADHESION);
+            std::vector<VariableWidthLines> raft_paths;
+            infill_comp.generate(raft_paths, raft_polygons, raft_lines, base_settings, layer_nr, SectionType::ADHESION);
             if (! raft_paths.empty())
             {
                 const GCodePathConfig& config = gcode_layer.configs_storage_.raft_base_config;
-                const ::curaengine::types::ZSeamConfig z_seam_config(
-                    ::curaengine::types::EZSeamType::SHORTEST,
+                const ZSeamConfig z_seam_config(
+                    EZSeamType::SHORTEST,
                     gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
+                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
                     false);
                 InsetOrderOptimizer wall_orderer(
                     storage,
@@ -762,7 +768,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 gcode_layer.configs_storage_.raft_base_config,
                 mesh_group_settings,
                 override_areas,
-                ::curaengine::types::ZSeamConfig(),
+                ZSeamConfig(),
                 wipe_dist,
                 spiralize,
                 flow_ratio,
@@ -779,21 +785,21 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         layer_plan_buffer.handle(gcode_layer, gcode);
     }
 
-    const ::curaengine::utils::coord_t interface_layer_height = interface_settings.get<::curaengine::utils::coord_t>("raft_interface_thickness");
-    const ::curaengine::utils::coord_t interface_line_spacing = interface_settings.get<::curaengine::utils::coord_t>("raft_interface_line_spacing");
-    const ::curaengine::types::Ratio interface_fan_speed = interface_settings.get<::curaengine::types::Ratio>("raft_interface_fan_speed");
-    const ::curaengine::utils::coord_t interface_line_width = interface_settings.get<::curaengine::utils::coord_t>("raft_interface_line_width");
-    const ::curaengine::utils::coord_t interface_infill_overlap = interface_settings.get<::curaengine::utils::coord_t>("raft_interface_infill_overlap_mm");
-    const ::curaengine::utils::coord_t interface_avoid_distance = interface_settings.get<::curaengine::utils::coord_t>("travel_avoid_distance");
-    const ::curaengine::utils::coord_t interface_max_resolution = interface_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    const ::curaengine::utils::coord_t interface_max_deviation = interface_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
-    const ::curaengine::utils::coord_t raft_interface_z_offset = interface_settings.get<::curaengine::utils::coord_t>("raft_interface_z_offset");
+    const coord_t interface_layer_height = interface_settings.get<coord_t>("raft_interface_thickness");
+    const coord_t interface_line_spacing = interface_settings.get<coord_t>("raft_interface_line_spacing");
+    const Ratio interface_fan_speed = interface_settings.get<Ratio>("raft_interface_fan_speed");
+    const coord_t interface_line_width = interface_settings.get<coord_t>("raft_interface_line_width");
+    const coord_t interface_infill_overlap = interface_settings.get<coord_t>("raft_interface_infill_overlap_mm");
+    const coord_t interface_avoid_distance = interface_settings.get<coord_t>("travel_avoid_distance");
+    const coord_t interface_max_resolution = interface_settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t interface_max_deviation = interface_settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t raft_interface_z_offset = interface_settings.get<coord_t>("raft_interface_z_offset");
 
     z += raft_interface_z_offset;
 
-    for (::curaengine::types::LayerIndex raft_interface_layer = 1; raft_interface_layer <= ::curaengine::types::LayerIndex(num_interface_layers); ++raft_interface_layer)
+    for (LayerIndex raft_interface_layer = 1; raft_interface_layer <= LayerIndex(num_interface_layers); ++raft_interface_layer)
     { // raft interface layer
-        const ::curaengine::types::LayerIndex layer_nr = initial_raft_layer_nr + raft_interface_layer;
+        const LayerIndex layer_nr = initial_raft_layer_nr + raft_interface_layer;
         z += interface_layer_height;
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_interface
@@ -805,7 +811,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        const ::curaengine::utils::coord_t comb_offset = std::max(interface_line_spacing, interface_line_width);
+        const coord_t comb_offset = std::max(interface_line_spacing, interface_line_width);
         LayerPlan& gcode_layer = *new LayerPlan(
             storage,
             layer_nr,
@@ -823,26 +829,26 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Application::getInstance().communication_->sendLayerComplete(layer_nr, z, interface_layer_height);
 
-        ::curaengine::geometry::Shape raft_outline_path;
-        const ::curaengine::utils::coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
+        Shape raft_outline_path;
+        const coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path = storage.raft_interface_outline.offset(-small_offset);
-        raft_outline_path = ::curaengine::utils::Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
-        const ::curaengine::utils::coord_t infill_outline_width = gcode_layer.configs_storage_.raft_interface_config.getLineWidth();
-        ::curaengine::geometry::OpenLinesSet raft_lines;
-        ::curaengine::types::AngleDegrees fill_angle = (num_surface_layers + num_interface_layers - raft_interface_layer) % 2 ? 45 : 135; // 90 degrees rotated from the first top layer.
+        raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
+        const coord_t infill_outline_width = gcode_layer.configs_storage_.raft_interface_config.getLineWidth();
+        OpenLinesSet raft_lines;
+        AngleDegrees fill_angle = (num_surface_layers + num_interface_layers - raft_interface_layer) % 2 ? 45 : 135; // 90 degrees rotated from the first top layer.
         constexpr bool zig_zaggify_infill = true;
         constexpr bool connect_polygons = true; // why not?
 
         const size_t wall_line_count = interface_settings.get<size_t>("raft_interface_wall_count");
-        const ::curaengine::utils::coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
-        const ::curaengine::geometry::Point2LL infill_origin = ::curaengine::geometry::Point2LL();
+        const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
+        const Point2LL infill_origin = Point2LL();
         constexpr bool skip_stitching = false;
         constexpr bool connected_zigzags = false;
         constexpr bool use_endpieces = true;
         constexpr bool skip_some_zags = false;
         constexpr int zag_skip_count = 0;
-        constexpr ::curaengine::utils::coord_t pocket_size = 0;
+        constexpr coord_t pocket_size = 0;
 
         if (storage.prime_tower_)
         {
@@ -850,8 +856,8 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getExtrusionOutline(layer_nr));
         }
 
-        ::curaengine::infill::Infill infill_comp(
-            ::curaengine::types::EFillMethod::ZIG_ZAG,
+        Infill infill_comp(
+            EFillMethod::ZIG_ZAG,
             zig_zaggify_infill,
             connect_polygons,
             raft_outline_path,
@@ -874,12 +880,12 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             skip_some_zags,
             zag_skip_count,
             pocket_size);
-        std::vector<::curaengine::utils::VariableWidthLines> raft_paths;
-        infill_comp.generate(raft_paths, raft_polygons, raft_lines, interface_settings, layer_nr, ::curaengine::utils::SectionType::ADHESION);
+        std::vector<VariableWidthLines> raft_paths;
+        infill_comp.generate(raft_paths, raft_polygons, raft_lines, interface_settings, layer_nr, SectionType::ADHESION);
         if (! raft_paths.empty())
         {
             const GCodePathConfig& config = gcode_layer.configs_storage_.raft_interface_config;
-            const ::curaengine::types::ZSeamConfig z_seam_config(::curaengine::types::EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
+            const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
             InsetOrderOptimizer wall_orderer(
                 storage,
                 gcode_layer,
@@ -925,7 +931,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             gcode_layer.configs_storage_.raft_interface_config,
             mesh_group_settings,
             override_areas,
-            ::curaengine::types::ZSeamConfig(),
+            ZSeamConfig(),
             wipe_dist,
             spiralize,
             flow_ratio,
@@ -942,22 +948,22 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         last_planned_position = gcode_layer.getLastPlannedPositionOrStartingPosition();
     }
 
-    const ::curaengine::utils::coord_t surface_layer_height = surface_settings.get<::curaengine::utils::coord_t>("raft_surface_thickness");
-    const ::curaengine::utils::coord_t surface_line_spacing = surface_settings.get<::curaengine::utils::coord_t>("raft_surface_line_spacing");
-    const ::curaengine::utils::coord_t surface_max_resolution = surface_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    const ::curaengine::utils::coord_t surface_max_deviation = surface_settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
-    const ::curaengine::utils::coord_t surface_line_width = surface_settings.get<::curaengine::utils::coord_t>("raft_surface_line_width");
-    const ::curaengine::utils::coord_t surface_infill_overlap = surface_settings.get<::curaengine::utils::coord_t>("raft_surface_infill_overlap_mm");
-    const ::curaengine::utils::coord_t surface_avoid_distance = surface_settings.get<::curaengine::utils::coord_t>("travel_avoid_distance");
-    const ::curaengine::types::Ratio surface_fan_speed = surface_settings.get<::curaengine::types::Ratio>("raft_surface_fan_speed");
+    const coord_t surface_layer_height = surface_settings.get<coord_t>("raft_surface_thickness");
+    const coord_t surface_line_spacing = surface_settings.get<coord_t>("raft_surface_line_spacing");
+    const coord_t surface_max_resolution = surface_settings.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t surface_max_deviation = surface_settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t surface_line_width = surface_settings.get<coord_t>("raft_surface_line_width");
+    const coord_t surface_infill_overlap = surface_settings.get<coord_t>("raft_surface_infill_overlap_mm");
+    const coord_t surface_avoid_distance = surface_settings.get<coord_t>("travel_avoid_distance");
+    const Ratio surface_fan_speed = surface_settings.get<Ratio>("raft_surface_fan_speed");
     const bool surface_monotonic = surface_settings.get<bool>("raft_surface_monotonic");
-    const ::curaengine::utils::coord_t raft_surface_z_offset = interface_settings.get<::curaengine::utils::coord_t>("raft_surface_z_offset");
+    const coord_t raft_surface_z_offset = interface_settings.get<coord_t>("raft_surface_z_offset");
 
     z += raft_surface_z_offset;
 
-    for (::curaengine::types::LayerIndex raft_surface_layer = 1; raft_surface_layer <= ::curaengine::types::LayerIndex(num_surface_layers); raft_surface_layer++)
+    for (LayerIndex raft_surface_layer = 1; raft_surface_layer <= LayerIndex(num_surface_layers); raft_surface_layer++)
     { // raft surface layers
-        const ::curaengine::types::LayerIndex layer_nr = initial_raft_layer_nr + 1 + num_interface_layers + raft_surface_layer - 1; // +1: 1 base layer
+        const LayerIndex layer_nr = initial_raft_layer_nr + 1 + num_interface_layers + raft_surface_layer - 1; // +1: 1 base layer
         z += surface_layer_height;
 
         std::vector<FanSpeedLayerTimeSettings> fan_speed_layer_time_settings_per_extruder_raft_surface
@@ -969,7 +975,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             fan_speed_layer_time_settings.cool_fan_speed_0 = regular_fan_speed; // ignore initial layer fan speed stuff
         }
 
-        const ::curaengine::utils::coord_t comb_offset = std::max(surface_line_spacing, surface_line_width);
+        const coord_t comb_offset = std::max(surface_line_spacing, surface_line_width);
         LayerPlan& gcode_layer = *new LayerPlan(
             storage,
             layer_nr,
@@ -988,20 +994,20 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
         Application::getInstance().communication_->sendLayerComplete(layer_nr, z, surface_layer_height);
 
-        ::curaengine::geometry::Shape raft_outline_path;
-        const ::curaengine::utils::coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
+        Shape raft_outline_path;
+        const coord_t small_offset = gcode_layer.configs_storage_.raft_interface_config.getLineWidth()
                                    / 2; // Do this manually because of micron-movement created in corners when insetting a polygon that was offset with round joint type.
         raft_outline_path = storage.raft_surface_outline.offset(-small_offset);
-        raft_outline_path = ::curaengine::utils::Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
-        const ::curaengine::utils::coord_t infill_outline_width = gcode_layer.configs_storage_.raft_surface_config.getLineWidth();
-        ::curaengine::geometry::OpenLinesSet raft_lines;
-        ::curaengine::types::AngleDegrees fill_angle
+        raft_outline_path = Simplify(interface_settings).polygon(raft_outline_path); // Remove those micron-movements.
+        const coord_t infill_outline_width = gcode_layer.configs_storage_.raft_surface_config.getLineWidth();
+        OpenLinesSet raft_lines;
+        AngleDegrees fill_angle
             = (num_surface_layers - raft_surface_layer) % 2 ? 45 : 135; // Alternate between -45 and +45 degrees, ending up 90 degrees rotated from the default skin angle.
         constexpr bool zig_zaggify_infill = true;
 
         const size_t wall_line_count = surface_settings.get<size_t>("raft_surface_wall_count");
-        const ::curaengine::utils::coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
-        const ::curaengine::geometry::Point2LL& infill_origin = ::curaengine::geometry::Point2LL();
+        const coord_t small_area_width = 0; // A raft never has a small region due to the large horizontal expansion.
+        const Point2LL& infill_origin = Point2LL();
         const GCodePathConfig& config = gcode_layer.configs_storage_.raft_surface_config;
         const bool monotonic = (raft_surface_layer == num_surface_layers && surface_monotonic);
         const bool skip_stitching = monotonic;
@@ -1010,7 +1016,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
         constexpr bool use_endpieces = true;
         constexpr bool skip_some_zags = false;
         constexpr size_t zag_skip_count = 0;
-        constexpr ::curaengine::utils::coord_t pocket_size = 0;
+        constexpr coord_t pocket_size = 0;
 
         if (storage.prime_tower_)
         {
@@ -1018,10 +1024,10 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
             raft_outline_path = raft_outline_path.difference(storage.prime_tower_->getExtrusionOutline(layer_nr));
         }
 
-        for (const ::curaengine::geometry::Shape& raft_island : raft_outline_path.splitIntoParts())
+        for (const Shape& raft_island : raft_outline_path.splitIntoParts())
         {
-            ::curaengine::infill::Infill infill_comp(
-                ::curaengine::types::EFillMethod::ZIG_ZAG,
+            Infill infill_comp(
+                EFillMethod::ZIG_ZAG,
                 zig_zaggify_infill,
                 connect_polygons,
                 raft_island,
@@ -1045,15 +1051,15 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                 zag_skip_count,
                 pocket_size);
 
-            std::vector<::curaengine::utils::VariableWidthLines> raft_paths;
-            infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, ::curaengine::utils::SectionType::ADHESION);
+            std::vector<VariableWidthLines> raft_paths;
+            infill_comp.generate(raft_paths, raft_polygons, raft_lines, surface_settings, layer_nr, SectionType::ADHESION);
 
             if (! raft_paths.empty())
             {
-                const ::curaengine::types::ZSeamConfig z_seam_config(
-                    ::curaengine::types::EZSeamType::SHORTEST,
+                const ZSeamConfig z_seam_config(
+                    EZSeamType::SHORTEST,
                     gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
+                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
                     false);
                 InsetOrderOptimizer wall_orderer(
                     storage,
@@ -1088,9 +1094,9 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
 
             if (monotonic)
             {
-                const ::curaengine::types::AngleRadians monotonic_direction = fill_angle;
+                const AngleRadians monotonic_direction = fill_angle;
                 constexpr SpaceFillType space_fill_type = SpaceFillType::PolyLines;
-                const ::curaengine::utils::coord_t max_adjacent_distance = surface_line_spacing;
+                const coord_t max_adjacent_distance = surface_line_spacing;
 
                 gcode_layer.addLinesMonotonic(raft_island, raft_lines, config, space_fill_type, monotonic_direction, max_adjacent_distance);
             }
@@ -1110,7 +1116,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
                     gcode_layer.configs_storage_.raft_surface_config,
                     mesh_group_settings,
                     override_areas,
-                    ::curaengine::types::ZSeamConfig(),
+                    ZSeamConfig(),
                     wipe_dist,
                     spiralize,
                     flow_ratio,
@@ -1130,7 +1136,7 @@ void FffGcodeWriter::processRaft(const SliceDataStorage& storage)
     }
 }
 
-void FffGcodeWriter::startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const ::curaengine::types::LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder)
+void FffGcodeWriter::startRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t layer_extruder, size_t& current_extruder)
 {
     // If required, fill prime tower with previous extruder
     setExtruder_addPrime(storage, gcode_layer, current_extruder);
@@ -1143,7 +1149,7 @@ void FffGcodeWriter::startRaftLayer(const SliceDataStorage& storage, LayerPlan& 
     }
 }
 
-void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const ::curaengine::types::LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower)
+void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gcode_layer, const LayerIndex layer_nr, size_t& current_extruder, const bool append_to_prime_tower)
 {
     // If required, fill prime tower with current extruder
     setExtruder_addPrime(storage, gcode_layer, current_extruder, append_to_prime_tower);
@@ -1159,19 +1165,19 @@ void FffGcodeWriter::endRaftLayer(const SliceDataStorage& storage, LayerPlan& gc
     }
 }
 
-FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataStorage& storage, ::curaengine::types::LayerIndex layer_nr, const size_t total_layers) const
+FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataStorage& storage, LayerIndex layer_nr, const size_t total_layers) const
 {
     spdlog::debug("GcodeWriter processing layer {} of {}", layer_nr, total_layers);
-    ::curaengine::utils::TimeKeeper time_keeper;
+    TimeKeeper time_keeper;
 
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    ::curaengine::utils::coord_t layer_thickness = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height");
-    ::curaengine::utils::coord_t z;
+    coord_t layer_thickness = mesh_group_settings.get<coord_t>("layer_height");
+    coord_t z;
     bool include_helper_parts = true;
     if (layer_nr < 0)
     {
 #ifdef DEBUG
-        assert(mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
+        assert(mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT && "negative layer_number means post-raft, pre-model layer!");
 #endif // DEBUG
         const int filler_layer_count = Raft::getFillerLayerCount();
         layer_thickness = Raft::getFillerLayerHeight();
@@ -1193,7 +1199,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             break;
         }
 
-        if (layer_nr < 0 && mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::RAFT)
+        if (layer_nr < 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::RAFT)
         {
             include_helper_parts = false;
         }
@@ -1201,8 +1207,8 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 
     const Scene& scene = Application::getInstance().current_slice_->scene;
 
-    ::curaengine::utils::coord_t comb_offset_from_outlines = 0;
-    ::curaengine::utils::coord_t avoid_distance = 0; // minimal avoid distance is zero
+    coord_t comb_offset_from_outlines = 0;
+    coord_t avoid_distance = 0; // minimal avoid distance is zero
     const std::vector<bool> extruder_is_used = storage.getExtrudersUsed();
     for (size_t extruder_nr = 0; extruder_nr < scene.extruders.size(); extruder_nr++)
     {
@@ -1212,22 +1218,22 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 
             if (extruder.settings_.get<bool>("travel_avoid_other_parts"))
             {
-                avoid_distance = std::max(avoid_distance, extruder.settings_.get<::curaengine::utils::coord_t>("travel_avoid_distance"));
+                avoid_distance = std::max(avoid_distance, extruder.settings_.get<coord_t>("travel_avoid_distance"));
             }
 
-            comb_offset_from_outlines = std::max(comb_offset_from_outlines, extruder.settings_.get<::curaengine::utils::coord_t>("retraction_combing_avoid_distance"));
+            comb_offset_from_outlines = std::max(comb_offset_from_outlines, extruder.settings_.get<coord_t>("retraction_combing_avoid_distance"));
         }
     }
 
-    ::curaengine::utils::coord_t max_inner_wall_width = 0;
+    coord_t max_inner_wall_width = 0;
     for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         const auto& mesh = *mesh_ptr;
-        ::curaengine::utils::coord_t mesh_inner_wall_width = mesh.settings.get<::curaengine::utils::coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
+        coord_t mesh_inner_wall_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (layer_nr == 0)
         {
             const ExtruderTrain& train = mesh.settings.get<ExtruderTrain&>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_0_extruder_nr" : "wall_x_extruder_nr");
-            mesh_inner_wall_width *= train.settings_.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
+            mesh_inner_wall_width *= train.settings_.get<Ratio>("initial_layer_line_width_factor");
         }
         max_inner_wall_width = std::max(max_inner_wall_width, mesh_inner_wall_width);
     }
@@ -1236,7 +1242,7 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
 
     const std::vector<ExtruderUse> extruder_order = extruder_order_per_layer.get(layer_nr);
 
-    const ::curaengine::utils::coord_t first_outer_wall_line_width = scene.extruders[first_extruder].settings_.get<::curaengine::utils::coord_t>("wall_line_width_0");
+    const coord_t first_outer_wall_line_width = scene.extruders[first_extruder].settings_.get<coord_t>("wall_line_width_0");
     LayerPlan& gcode_layer = *new LayerPlan(
         storage,
         layer_nr,
@@ -1295,8 +1301,8 @@ FffGcodeWriter::ProcessLayerResult FffGcodeWriter::processLayer(const SliceDataS
             for (size_t mesh_idx : mesh_order)
             {
                 const std::shared_ptr<SliceMeshStorage>& mesh = storage.meshes[mesh_idx];
-                const ::curaengine::types::MeshPathConfigs& mesh_config = gcode_layer.configs_storage_.mesh_configs[mesh_idx];
-                if (mesh->settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") == ::curaengine::types::ESurfaceMode::SURFACE
+                const MeshPathConfigs& mesh_config = gcode_layer.configs_storage_.mesh_configs[mesh_idx];
+                if (mesh->settings.get<ESurfaceMode>("magic_mesh_surface_mode") == ESurfaceMode::SURFACE
                     && extruder_nr
                            == mesh->settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ // mesh surface mode should always only be printed with the outer wall extruder!
                 )
@@ -1342,11 +1348,11 @@ bool FffGcodeWriter::getExtruderNeedPrimeBlobDuringFirstLayer(const SliceDataSto
     return need_prime_blob;
 }
 
-void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const ::curaengine::types::LayerIndex layer_nr) const
+void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr) const
 {
     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
     const int skirt_height = train.settings_.get<int>("skirt_height");
-    const bool is_skirt = train.settings_.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::SKIRT;
+    const bool is_skirt = train.settings_.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::SKIRT;
     // only create a multilayer SkirtBrim for a skirt for the height of skirt_height
     if (layer_nr != 0 && (layer_nr >= skirt_height || ! is_skirt))
     {
@@ -1365,11 +1371,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     }
 
     // Start brim close to the prime location
-    ::curaengine::geometry::Point2LL start_close_to;
+    Point2LL start_close_to;
     if (train.settings_.get<bool>("prime_blob_enable"))
     {
         const auto prime_pos_is_abs = train.settings_.get<bool>("extruder_prime_pos_abs");
-        const auto prime_pos = ::curaengine::geometry::Point2LL(train.settings_.get<::curaengine::utils::coord_t>("extruder_prime_pos_x"), train.settings_.get<::curaengine::utils::coord_t>("extruder_prime_pos_y"));
+        const auto prime_pos = Point2LL(train.settings_.get<coord_t>("extruder_prime_pos_x"), train.settings_.get<coord_t>("extruder_prime_pos_y"));
         start_close_to = prime_pos_is_abs ? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos;
     }
     else
@@ -1381,11 +1387,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     struct BrimLineReference
     {
         const size_t inset_idx;
-        const ::curaengine::geometry::Polyline* poly;
+        const Polyline* poly;
     };
 
     size_t total_line_count = 0;
-    for (const ::curaengine::geometry::MixedLinesSet& lines : storage.skirt_brim[extruder_nr])
+    for (const MixedLinesSet& lines : storage.skirt_brim[extruder_nr])
     {
         total_line_count += lines.size();
 
@@ -1396,23 +1402,23 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         }
     }
 
-    ::curaengine::geometry::MixedLinesSet all_brim_lines;
+    MixedLinesSet all_brim_lines;
     all_brim_lines.reserve(total_line_count);
 
-    const ::curaengine::utils::coord_t line_w = train.settings_.get<::curaengine::utils::coord_t>("skirt_brim_line_width") * train.settings_.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
-    const ::curaengine::utils::coord_t searching_radius = line_w * 2;
-    using GridT = ::curaengine::utils::SparsePointGridInclusive<BrimLineReference>;
+    const coord_t line_w = train.settings_.get<coord_t>("skirt_brim_line_width") * train.settings_.get<Ratio>("initial_layer_line_width_factor");
+    const coord_t searching_radius = line_w * 2;
+    using GridT = SparsePointGridInclusive<BrimLineReference>;
     GridT grid(searching_radius);
 
     for (size_t inset_idx = 0; inset_idx < storage.skirt_brim[extruder_nr].size(); inset_idx++)
     {
-        const ::curaengine::geometry::MixedLinesSet& offset = storage.skirt_brim[extruder_nr][inset_idx];
-        for (const ::curaengine::geometry::PolylinePtr& line : offset)
+        const MixedLinesSet& offset = storage.skirt_brim[extruder_nr][inset_idx];
+        for (const PolylinePtr& line : offset)
         {
             if (line->segmentsCount() > 0)
             {
                 all_brim_lines.push_back(line);
-                for (const ::curaengine::geometry::Point2LL& p : *line)
+                for (const Point2LL& p : *line)
                 {
                     grid.insert(p, BrimLineReference{ inset_idx, line.get() });
                 }
@@ -1426,12 +1432,12 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
         }
     }
 
-    const auto smart_brim_ordering = train.settings_.get<bool>("brim_smart_ordering") && train.settings_.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::BRIM;
-    std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*> order_requirements;
-    for (const std::pair<::curaengine::utils::SquareGrid::GridPoint, ::curaengine::utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
+    const auto smart_brim_ordering = train.settings_.get<bool>("brim_smart_ordering") && train.settings_.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM;
+    std::unordered_multimap<const Polyline*, const Polyline*> order_requirements;
+    for (const std::pair<SquareGrid::GridPoint, utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<BrimLineReference>>& p : grid)
     {
         const BrimLineReference& here = p.second.val;
-        ::curaengine::geometry::Point2LL loc_here = p.second.point;
+        Point2LL loc_here = p.second.point;
         std::vector<BrimLineReference> nearby_verts = grid.getNearbyVals(loc_here, searching_radius);
         for (const BrimLineReference& nearby : nearby_verts)
         {
@@ -1476,8 +1482,8 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
     assert(all_brim_lines.size() == total_line_count); // Otherwise pointers would have gotten invalidated
 
     constexpr bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
-    constexpr ::curaengine::utils::coord_t wipe_dist = 0u;
-    constexpr ::curaengine::types::Ratio flow_ratio = 1.0;
+    constexpr coord_t wipe_dist = 0u;
+    constexpr Ratio flow_ratio = 1.0;
     constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
     constexpr bool reverse_print_direction = false;
 
@@ -1493,11 +1499,11 @@ void FffGcodeWriter::processSkirtBrim(const SliceDataStorage& storage, LayerPlan
             start_close_to,
             fan_speed,
             reverse_print_direction,
-            layer_nr == 0 ? order_requirements : PathOrderOptimizer<const ::curaengine::geometry::Polyline*>::no_order_requirements_);
+            layer_nr == 0 ? order_requirements : PathOrderOptimizer<const Polyline*>::no_order_requirements_);
     }
 }
 
-void FffGcodeWriter::processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const ::curaengine::types::LayerIndex layer_nr)
+void FffGcodeWriter::processSupportBrim(const SliceDataStorage& storage, LayerPlan& gcode_layer, const unsigned int extruder_nr, const LayerIndex layer_nr)
 {
     // Add the support brim after the skirt_brim to gcode_layer
     // Support brim is only added in layer 0
@@ -1509,11 +1515,11 @@ void FffGcodeWriter::processSupportBrim(const SliceDataStorage& storage, LayerPl
     }
 
     constexpr bool enable_travel_optimization = true; // Use the combing outline while deciding in which order to print the lines. Can't hurt for only one layer.
-    constexpr ::curaengine::utils::coord_t wipe_dist = 0u;
-    constexpr ::curaengine::types::Ratio flow_ratio = 1.0;
+    constexpr coord_t wipe_dist = 0u;
+    constexpr Ratio flow_ratio = 1.0;
     constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
     constexpr bool reverse_print_direction = false;
-    const ::curaengine::geometry::Point2LL start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
+    const Point2LL start_close_to = gcode_layer.getLastPlannedPositionOrStartingPosition();
 
     gcode_layer.addLinesByOptimizer(
         storage.support_brim,
@@ -1529,9 +1535,9 @@ void FffGcodeWriter::processSupportBrim(const SliceDataStorage& storage, LayerPl
 
 void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
 {
-    ::curaengine::types::LayerIndex layer_nr = std::max(::curaengine::types::LayerIndex{ 0 }, gcode_layer.getLayerNr());
+    LayerIndex layer_nr = std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr());
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    if (layer_nr == 0 && mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::BRIM)
+    if (layer_nr == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
     {
         return; // ooze shield already generated by brim
     }
@@ -1544,7 +1550,7 @@ void FffGcodeWriter::processOozeShield(const SliceDataStorage& storage, LayerPla
 void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
-    const ::curaengine::types::LayerIndex layer_nr = std::max(::curaengine::types::LayerIndex{ 0 }, gcode_layer.getLayerNr());
+    const LayerIndex layer_nr = std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr());
     if (storage.draft_protection_shield.size() == 0)
     {
         return;
@@ -1553,17 +1559,17 @@ void FffGcodeWriter::processDraftShield(const SliceDataStorage& storage, LayerPl
     {
         return;
     }
-    if (layer_nr == 0 && Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") == ::curaengine::types::EPlatformAdhesion::BRIM)
+    if (layer_nr == 0 && Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<EPlatformAdhesion>("adhesion_type") == EPlatformAdhesion::BRIM)
     {
         return; // draft shield already generated by brim
     }
 
-    if (mesh_group_settings.get<::curaengine::types::DraftShieldHeightLimitation>("draft_shield_height_limitation") == ::curaengine::types::DraftShieldHeightLimitation::LIMITED)
+    if (mesh_group_settings.get<DraftShieldHeightLimitation>("draft_shield_height_limitation") == DraftShieldHeightLimitation::LIMITED)
     {
-        const ::curaengine::utils::coord_t draft_shield_height = mesh_group_settings.get<::curaengine::utils::coord_t>("draft_shield_height");
-        const ::curaengine::utils::coord_t layer_height_0 = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height_0");
-        const ::curaengine::utils::coord_t layer_height = mesh_group_settings.get<::curaengine::utils::coord_t>("layer_height");
-        const ::curaengine::types::LayerIndex max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
+        const coord_t draft_shield_height = mesh_group_settings.get<coord_t>("draft_shield_height");
+        const coord_t layer_height_0 = mesh_group_settings.get<coord_t>("layer_height_0");
+        const coord_t layer_height = mesh_group_settings.get<coord_t>("layer_height");
+        const LayerIndex max_screen_layer = (draft_shield_height - layer_height_0) / layer_height + 1;
         if (layer_nr > max_screen_layer)
         {
             return;
@@ -1592,7 +1598,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
     extruder_order_per_layer.init(true, storage.print_layer_count);
 
     const std::vector<bool> extruders_used = storage.getExtrudersUsed();
-    for (::curaengine::types::LayerIndex layer_nr = -::curaengine::types::LayerIndex(Raft::getTotalExtraLayers()); layer_nr < ::curaengine::types::LayerIndex(storage.print_layer_count); layer_nr++)
+    for (LayerIndex layer_nr = -LayerIndex(Raft::getTotalExtraLayers()); layer_nr < LayerIndex(storage.print_layer_count); layer_nr++)
     {
         std::vector<ExtruderUse> extruder_order = getUsedExtrudersOnLayer(storage, last_extruder, layer_nr, extruders_used);
         extruder_order_per_layer.push_back(extruder_order);
@@ -1611,7 +1617,7 @@ void FffGcodeWriter::calculateExtruderOrderPerLayer(const SliceDataStorage& stor
 
 void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& storage)
 {
-    ::curaengine::types::LayerIndex first_print_layer = -::curaengine::types::LayerIndex(Raft::getTotalExtraLayers());
+    LayerIndex first_print_layer = -LayerIndex(Raft::getTotalExtraLayers());
     for (size_t extruder_nr = 0; extruder_nr < MAX_EXTRUDERS; ++extruder_nr)
     {
         if (getExtruderNeedPrimeBlobDuringFirstLayer(storage, extruder_nr))
@@ -1621,7 +1627,7 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
         }
     }
 
-    for (::curaengine::types::LayerIndex layer_nr = first_print_layer; layer_nr < ::curaengine::types::LayerIndex(storage.print_layer_count); ++layer_nr)
+    for (LayerIndex layer_nr = first_print_layer; layer_nr < LayerIndex(storage.print_layer_count); ++layer_nr)
     {
         const std::vector<bool> used_extruders = storage.getExtrudersUsed(layer_nr);
         for (size_t extruder_nr = 0; extruder_nr < used_extruders.size(); ++extruder_nr)
@@ -1637,7 +1643,7 @@ void FffGcodeWriter::calculatePrimeLayerPerExtruder(const SliceDataStorage& stor
 std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     const SliceDataStorage& storage,
     const size_t start_extruder,
-    const ::curaengine::types::LayerIndex& layer_nr,
+    const LayerIndex& layer_nr,
     const std::vector<bool>& global_extruders_used) const
 {
     const Settings& mesh_group_settings = Application::getInstance().current_slice_->scene.current_mesh_group->settings;
@@ -1645,7 +1651,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
     assert(static_cast<int>(extruder_count) > 0);
     std::vector<ExtruderUse> ret;
     std::vector<bool> extruder_is_used_on_this_layer = storage.getExtrudersUsed(layer_nr);
-    const ::curaengine::types::LayerIndex raft_base_layer_nr = -::curaengine::types::LayerIndex(Raft::getTotalExtraLayers());
+    const LayerIndex raft_base_layer_nr = -LayerIndex(Raft::getTotalExtraLayers());
     Raft::LayerType layer_type = Raft::getLayerType(layer_nr);
 
     if (layer_type == Raft::RaftBase)
@@ -1717,7 +1723,7 @@ std::vector<ExtruderUse> FffGcodeWriter::getUsedExtrudersOnLayer(
 
 std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& storage, const size_t extruder_nr) const
 {
-    ::curaengine::utils::OrderOptimizer<size_t> mesh_idx_order_optimizer;
+    OrderOptimizer<size_t> mesh_idx_order_optimizer;
 
     std::vector<MeshGroup>::iterator mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     for (unsigned int mesh_idx = 0; mesh_idx < storage.meshes.size(); mesh_idx++)
@@ -1726,12 +1732,12 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
         if (mesh.getExtruderIsUsed(extruder_nr))
         {
             const Mesh& mesh_data = mesh_group->meshes[mesh_idx];
-            const ::curaengine::geometry::Point3LL middle = (mesh_data.getAABB().min_ + mesh_data.getAABB().max_) / 2;
-            mesh_idx_order_optimizer.addItem(::curaengine::geometry::Point2LL(middle.x_, middle.y_), mesh_idx);
+            const Point3LL middle = (mesh_data.getAABB().min_ + mesh_data.getAABB().max_) / 2;
+            mesh_idx_order_optimizer.addItem(Point2LL(middle.x_, middle.y_), mesh_idx);
         }
     }
     const ExtruderTrain& train = Application::getInstance().current_slice_->scene.extruders[extruder_nr];
-    const ::curaengine::geometry::Point2LL layer_start_position(train.settings_.get<::curaengine::utils::coord_t>("layer_start_x"), train.settings_.get<::curaengine::utils::coord_t>("layer_start_y"));
+    const Point2LL layer_start_position(train.settings_.get<coord_t>("layer_start_x"), train.settings_.get<coord_t>("layer_start_y"));
     std::list<size_t> mesh_indices_order = mesh_idx_order_optimizer.optimize(layer_start_position);
 
     std::vector<size_t> ret;
@@ -1745,7 +1751,7 @@ std::vector<size_t> FffGcodeWriter::calculateMeshOrder(const SliceDataStorage& s
     return ret;
 }
 
-void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const ::curaengine::types::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
 {
     if (gcode_layer.getLayerNr() > mesh.layer_nr_max_filled_layer)
     {
@@ -1760,7 +1766,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
 
 
-    ::curaengine::geometry::Shape polygons;
+    Shape polygons;
     for (const SliceLayerPart& part : layer->parts)
     {
         if (! part.outline.empty())
@@ -1769,18 +1775,18 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
         }
     }
 
-    polygons = ::curaengine::utils::Simplify(mesh.settings).polygon(polygons);
+    polygons = Simplify(mesh.settings).polygon(polygons);
 
-    ::curaengine::types::ZSeamConfig z_seam_config(
-        mesh.settings.get<::curaengine::types::EZSeamType>("z_seam_type"),
+    ZSeamConfig z_seam_config(
+        mesh.settings.get<EZSeamType>("z_seam_type"),
         mesh.getZSeamHint(),
-        mesh.settings.get<::curaengine::types::EZSeamCornerPrefType>("z_seam_corner"),
-        mesh.settings.get<::curaengine::utils::coord_t>("wall_line_width_0") * 2);
+        mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
+        mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     const bool spiralize = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize");
-    constexpr ::curaengine::types::Ratio flow_ratio = 1.0;
+    constexpr Ratio flow_ratio = 1.0;
     constexpr auto always_retract = ForceRetract::AUTOMATIC;
     constexpr bool reverse_order = false;
-    const std::optional<::curaengine::geometry::Point2LL> start_near_location = std::nullopt;
+    const std::optional<Point2LL> start_near_location = std::nullopt;
     constexpr bool scarf_seam = true;
     constexpr bool smooth_speed = true;
     constexpr OverrideAreas override_areas;
@@ -1791,7 +1797,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
         mesh.settings,
         override_areas,
         z_seam_config,
-        mesh.settings.get<::curaengine::utils::coord_t>("wall_0_wipe_dist"),
+        mesh.settings.get<coord_t>("wall_0_wipe_dist"),
         spiralize,
         flow_ratio,
         always_retract,
@@ -1804,7 +1810,7 @@ void FffGcodeWriter::addMeshLayerToGCode_meshSurfaceMode(const SliceMeshStorage&
     addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
 }
 
-void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const ::curaengine::types::MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
+void FffGcodeWriter::addMeshOpenPolyLinesToGCode(const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, LayerPlan& gcode_layer) const
 {
     const SliceLayer* layer = &mesh.layers[gcode_layer.getLayerNr()];
 
@@ -1815,7 +1821,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     const SliceDataStorage& storage,
     const std::shared_ptr<SliceMeshStorage>& mesh_ptr,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     LayerPlan& gcode_layer) const
 {
     auto& mesh = *mesh_ptr;
@@ -1838,14 +1844,14 @@ void FffGcodeWriter::addMeshLayerToGCode(
 
     gcode_layer.setMesh(mesh_ptr);
 
-    ::curaengine::types::ZSeamConfig z_seam_config;
+    ZSeamConfig z_seam_config;
     if (mesh.isPrinted()) //"normal" meshes with walls, skin, infill, etc. get the traditional part ordering based on the z-seam settings.
     {
-        z_seam_config = ::curaengine::types::ZSeamConfig(
-            mesh.settings.get<::curaengine::types::EZSeamType>("z_seam_type"),
+        z_seam_config = ZSeamConfig(
+            mesh.settings.get<EZSeamType>("z_seam_type"),
             mesh.getZSeamHint(),
-            mesh.settings.get<::curaengine::types::EZSeamCornerPrefType>("z_seam_corner"),
-            mesh.settings.get<::curaengine::utils::coord_t>("wall_line_width_0") * 2);
+            mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
+            mesh.settings.get<coord_t>("wall_line_width_0") * 2);
     }
     PathOrderOptimizer<SliceLayerPart*> part_order_optimizer(gcode_layer.getLastPlannedPositionOrStartingPosition(), z_seam_config);
     for (SliceLayerPart& part : layer.parts)
@@ -1869,7 +1875,7 @@ void FffGcodeWriter::addMeshLayerToGCode(
     {
         processIroning(storage, mesh, layer, mesh_config.ironing_config, gcode_layer);
     }
-    if (mesh.settings.get<::curaengine::types::ESurfaceMode>("magic_mesh_surface_mode") != ::curaengine::types::ESurfaceMode::NORMAL && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
+    if (mesh.settings.get<ESurfaceMode>("magic_mesh_surface_mode") != ESurfaceMode::NORMAL && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
     {
         addMeshOpenPolyLinesToGCode(mesh, mesh_config, gcode_layer);
     }
@@ -1880,7 +1886,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     const SliceDataStorage& storage,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     SliceLayerPart& part,
     LayerPlan& gcode_layer) const
 {
@@ -1889,7 +1895,7 @@ void FffGcodeWriter::addMeshPartToGCode(
     bool added_something = false;
 
     const bool end_infill_close_to_seam
-        = infill_before_walls && mesh.settings.get<::curaengine::types::InfillStartEndPreference>("infill_start_end_preference") == ::curaengine::types::InfillStartEndPreference::END_CLOSE_TO_SEAM;
+        = infill_before_walls && mesh.settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::END_CLOSE_TO_SEAM;
 
     const OverrideAreas overhang_areas = makeLayerMasks(storage, gcode_layer, mesh, mesh_config, part);
 
@@ -1899,7 +1905,7 @@ void FffGcodeWriter::addMeshPartToGCode(
 
     if (infill_before_walls)
     {
-        std::optional<::curaengine::geometry::Point2LL> near_end_location;
+        std::optional<Point2LL> near_end_location;
         if (end_infill_close_to_seam && insets_preprocess_result.has_value() && insets_preprocess_result->walls_optimizer)
         {
             near_end_location = insets_preprocess_result->walls_optimizer->getStartPosition();
@@ -1920,12 +1926,12 @@ void FffGcodeWriter::addMeshPartToGCode(
     added_something = added_something | processSkin(storage, gcode_layer, mesh, extruder_nr, mesh_config, part);
 
     // After a layer part, make sure the nozzle is inside the comb boundary, so we do not retract on the perimeter.
-    if (added_something && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < ::curaengine::types::LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))))
+    if (added_something && (! mesh_group_settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() < LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"))))
     {
-        ::curaengine::utils::coord_t innermost_wall_line_width = mesh.settings.get<::curaengine::utils::coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
+        coord_t innermost_wall_line_width = mesh.settings.get<coord_t>((mesh.settings.get<size_t>("wall_line_count") > 1) ? "wall_line_width_x" : "wall_line_width_0");
         if (gcode_layer.getLayerNr() == 0)
         {
-            innermost_wall_line_width *= mesh.settings.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
+            innermost_wall_line_width *= mesh.settings.get<Ratio>("initial_layer_line_width_factor");
         }
         gcode_layer.moveInsideCombBoundary(innermost_wall_line_width, part);
     }
@@ -1938,17 +1944,17 @@ bool FffGcodeWriter::processInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const std::optional<::curaengine::geometry::Point2LL>& near_end_location) const
+    const std::optional<Point2LL>& near_end_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
         return false;
     }
 
-    const ::curaengine::utils::coord_t infill_start_move_inwards_length = mesh.settings.get<::curaengine::utils::coord_t>("infill_start_move_inwards_length");
-    const ::curaengine::utils::coord_t infill_end_move_inwards_length = mesh.settings.get<::curaengine::utils::coord_t>("infill_end_move_inwards_length");
+    const coord_t infill_start_move_inwards_length = mesh.settings.get<coord_t>("infill_start_move_inwards_length");
+    const coord_t infill_end_move_inwards_length = mesh.settings.get<coord_t>("infill_end_move_inwards_length");
 
     const bool added_something
         = processMultiLayerInfill(gcode_layer, mesh, extruder_nr, mesh_config, part, infill_start_move_inwards_length, infill_end_move_inwards_length, near_end_location)
@@ -1960,61 +1966,61 @@ bool FffGcodeWriter::processMultiLayerInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const ::curaengine::utils::coord_t start_move_inwards_length,
-    const ::curaengine::utils::coord_t end_move_inwards_length,
-    const std::optional<::curaengine::geometry::Point2LL>& near_end_location,
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length,
+    const std::optional<Point2LL>& near_end_location,
     const bool split_near_end_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
         return false;
     }
-    const ::curaengine::utils::coord_t infill_line_distance = mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance");
+    const coord_t infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
     if (infill_line_distance <= 0)
     {
         return false;
     }
-    ::curaengine::utils::coord_t max_resolution = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    ::curaengine::utils::coord_t max_deviation = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
-    ::curaengine::types::AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
+    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
+    AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
     if (! mesh.infill_angles.empty())
     {
         const size_t combined_infill_layers
-            = std::max(uint64_t(1), ::curaengine::utils::round_divide(mesh.settings.get<::curaengine::utils::coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<::curaengine::utils::coord_t>("layer_height"), ::curaengine::utils::coord_t(1))));
+            = std::max(uint64_t(1), utils::round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = mesh.infill_angles.at((gcode_layer.getLayerNr() / combined_infill_layers) % mesh.infill_angles.size());
     }
-    const ::curaengine::geometry::Point3LL mesh_middle = mesh.bounding_box.getMiddle();
-    const ::curaengine::geometry::Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<::curaengine::utils::coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<::curaengine::utils::coord_t>("infill_offset_y"));
+    const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
+    const Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
 
     // Print the thicker infill lines first. (double or more layer thickness, infill combined with previous layers)
     bool added_something = false;
     for (unsigned int combine_idx = 1; combine_idx < part.infill_area_per_combine_per_density[0].size(); combine_idx++)
     {
-        const ::curaengine::utils::coord_t infill_line_width = mesh_config.infill_config[combine_idx].getLineWidth();
-        const ::curaengine::types::EFillMethod infill_pattern = mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern");
-        const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || infill_pattern == ::curaengine::types::EFillMethod::ZIG_ZAG;
+        const coord_t infill_line_width = mesh_config.infill_config[combine_idx].getLineWidth();
+        const EFillMethod infill_pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+        const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || infill_pattern == EFillMethod::ZIG_ZAG;
         const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
         const size_t infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
-        const ::curaengine::utils::coord_t minimum_infill_line_length = mesh.settings.get<::curaengine::utils::coord_t>("minimum_infill_line_length");
-        ::curaengine::geometry::Shape infill_polygons;
-        ::curaengine::geometry::OpenLinesSet infill_lines;
-        std::vector<::curaengine::utils::VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
-        ::curaengine::geometry::Shape infill_inner_contour;
+        const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("minimum_infill_line_length");
+        Shape infill_polygons;
+        OpenLinesSet infill_lines;
+        std::vector<VariableWidthLines> infill_paths = part.infill_wall_toolpaths;
+        Shape infill_inner_contour;
         for (size_t density_idx = part.infill_area_per_combine_per_density.size() - 1; (int)density_idx >= 0; density_idx--)
         { // combine different density infill areas (for gradual infill)
             size_t density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-            ::curaengine::utils::coord_t infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
-            ::curaengine::utils::coord_t infill_shift = infill_line_distance_here / 2;
-            if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == ::curaengine::types::EFillMethod::CROSS || infill_pattern == ::curaengine::types::EFillMethod::CROSS_3D)
+            coord_t infill_line_distance_here = infill_line_distance * density_factor; // the highest density infill combines with the next to create a grid with density_factor 1
+            coord_t infill_shift = infill_line_distance_here / 2;
+            if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || infill_pattern == EFillMethod::CROSS || infill_pattern == EFillMethod::CROSS_3D)
             {
                 infill_line_distance_here /= 2;
             }
 
             constexpr size_t wall_line_count = 0; // wall toolpaths are when gradual infill areas are determined
-            const ::curaengine::utils::coord_t small_area_width = 0;
-            const ::curaengine::utils::coord_t infill_overlap = mesh.settings.get<::curaengine::utils::coord_t>("infill_overlap_mm");
+            const coord_t small_area_width = 0;
+            const coord_t infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
             constexpr bool skip_stitching = false;
             constexpr bool connected_zigzags = false;
             constexpr bool use_endpieces = true;
@@ -2022,12 +2028,12 @@ bool FffGcodeWriter::processMultiLayerInfill(
             constexpr size_t zag_skip_count = 0;
             const bool fill_gaps = density_idx == 0; // Only fill gaps for the lowest density.
 
-            std::shared_ptr<::curaengine::infill::LightningLayer> lightning_layer = nullptr;
+            std::shared_ptr<LightningLayer> lightning_layer = nullptr;
             if (mesh.lightning_generator)
             {
-                lightning_layer = std::make_shared<::curaengine::infill::LightningLayer>(mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
+                lightning_layer = std::make_shared<LightningLayer>(mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
             }
-            ::curaengine::infill::Infill infill_comp(
+            Infill infill_comp(
                 infill_pattern,
                 zig_zaggify_infill,
                 connect_polygons,
@@ -2050,18 +2056,18 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 use_endpieces,
                 skip_some_zags,
                 zag_skip_count,
-                mesh.settings.get<::curaengine::utils::coord_t>("cross_infill_pocket_size"));
+                mesh.settings.get<coord_t>("cross_infill_pocket_size"));
             infill_comp.generate(
                 infill_paths,
                 infill_polygons,
                 infill_lines,
                 mesh.settings,
                 gcode_layer.getLayerNr(),
-                ::curaengine::utils::SectionType::INFILL,
+                SectionType::INFILL,
                 mesh.cross_fill_provider,
                 lightning_layer,
                 &mesh,
-                ::curaengine::geometry::Shape(),
+                Shape(),
                 minimum_infill_line_length);
             if (start_move_inwards_length > 0 || end_move_inwards_length > 0)
             {
@@ -2085,9 +2091,9 @@ bool FffGcodeWriter::processMultiLayerInfill(
 
             if (! infill_lines.empty())
             {
-                std::optional<::curaengine::geometry::Point2LL> near_start_location;
+                std::optional<Point2LL> near_start_location;
                 bool reverse_print_direction = false;
-                if (mesh.settings.get<::curaengine::types::InfillStartEndPreference>("infill_start_end_preference") == ::curaengine::types::InfillStartEndPreference::START_RANDOM)
+                if (mesh.settings.get<InfillStartEndPreference>("infill_start_end_preference") == InfillStartEndPreference::START_RANDOM)
                 {
                     srand(gcode_layer.getLayerNr());
                     near_start_location = infill_lines[rand() % infill_lines.size()][0];
@@ -2099,12 +2105,12 @@ bool FffGcodeWriter::processMultiLayerInfill(
                 }
                 // The InfillStartEndPreference::START_CLOSEST case leaves the near_start_location empty, so that current location will be used
 
-                constexpr ::curaengine::utils::coord_t wipe_dist = 0;
+                constexpr coord_t wipe_dist = 0;
                 const bool enable_travel_optimization = mesh.settings.get<bool>("infill_enable_travel_optimization");
-                constexpr ::curaengine::types::Ratio flow_ratio = 1.0_r;
+                constexpr Ratio flow_ratio = 1.0_r;
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
                 constexpr OverrideAreas override_areas;
-                const std::unordered_multimap<const ::curaengine::geometry::Polyline*, const ::curaengine::geometry::Polyline*> order_requirements = PathOrderOptimizer<const ::curaengine::geometry::Polyline*>::no_order_requirements_;
+                const std::unordered_multimap<const Polyline*, const Polyline*> order_requirements = PathOrderOptimizer<const Polyline*>::no_order_requirements_;
 
                 gcode_layer.addLinesByOptimizer(
                     infill_lines,
@@ -2120,23 +2126,23 @@ bool FffGcodeWriter::processMultiLayerInfill(
                     order_requirements,
                     start_move_inwards_length,
                     end_move_inwards_length,
-                    ::curaengine::geometry::MendedShape(&mesh.settings, ::curaengine::utils::SectionType::INFILL, &infill_inner_contour));
+                    MendedShape(&mesh.settings, SectionType::INFILL, &infill_inner_contour));
             }
         }
     }
     return added_something;
 }
 
-void wall_tool_paths2lines(const std::vector<std::vector<::curaengine::utils::VariableWidthLines>>& wall_tool_paths, ::curaengine::geometry::OpenLinesSet& result)
+void wall_tool_paths2lines(const std::vector<std::vector<VariableWidthLines>>& wall_tool_paths, OpenLinesSet& result)
 {
     // We just want to grab all lines out of this datastructure
     for (const auto& a : wall_tool_paths)
     {
-        for (const ::curaengine::utils::VariableWidthLines& b : a)
+        for (const VariableWidthLines& b : a)
         {
-            for (const ::curaengine::utils::ExtrusionLine& c : b)
+            for (const ExtrusionLine& c : b)
             {
-                const ::curaengine::geometry::Polygon poly = c.toPolygon();
+                const Polygon poly = c.toPolygon();
                 if (c.is_closed_)
                 {
                     result.push_back(poly.toPseudoOpenPolyline());
@@ -2151,71 +2157,71 @@ bool FffGcodeWriter::processSingleLayerInfill(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
-    const ::curaengine::utils::coord_t start_move_inwards_length,
-    const ::curaengine::utils::coord_t end_move_inwards_length,
-    const std::optional<::curaengine::geometry::Point2LL>& near_end_location,
+    const coord_t start_move_inwards_length,
+    const coord_t end_move_inwards_length,
+    const std::optional<Point2LL>& near_end_location,
     const bool split_near_end_location) const
 {
     if (extruder_nr != mesh.settings.get<ExtruderTrain&>("infill_extruder_nr").extruder_nr_)
     {
         return false;
     }
-    const auto infill_line_distance = mesh.settings.get<::curaengine::utils::coord_t>("infill_line_distance");
+    const auto infill_line_distance = mesh.settings.get<coord_t>("infill_line_distance");
     if (infill_line_distance == 0 || part.infill_area_per_combine_per_density[0].empty())
     {
         return false;
     }
-    const ::curaengine::utils::coord_t infill_line_width = mesh_config.infill_config[0].getLineWidth();
+    const coord_t infill_line_width = mesh_config.infill_config[0].getLineWidth();
 
     // Combine the 1 layer thick infill with the top/bottom skin and print that as one thing.
-    ::curaengine::geometry::Shape infill_polygons;
-    std::vector<std::vector<::curaengine::utils::VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
-    ::curaengine::geometry::OpenLinesSet infill_lines;
-    ::curaengine::geometry::OpenLinesSet skin_support_lines;
-    ::curaengine::geometry::Shape skin_support_polygons;
+    Shape infill_polygons;
+    std::vector<std::vector<VariableWidthLines>> wall_tool_paths; // All wall toolpaths binned by inset_idx (inner) and by density_idx (outer)
+    OpenLinesSet infill_lines;
+    OpenLinesSet skin_support_lines;
+    Shape skin_support_polygons;
 
-    const auto pattern = mesh.settings.get<::curaengine::types::EFillMethod>("infill_pattern");
-    const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == ::curaengine::types::EFillMethod::ZIG_ZAG;
+    const auto pattern = mesh.settings.get<EFillMethod>("infill_pattern");
+    const bool zig_zaggify_infill = mesh.settings.get<bool>("zig_zaggify_infill") || pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_infill_polygons");
-    const auto infill_overlap = mesh.settings.get<::curaengine::utils::coord_t>("infill_overlap_mm");
+    const auto infill_overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
     const auto infill_multiplier = mesh.settings.get<size_t>("infill_multiplier");
     const auto wall_line_count = mesh.settings.get<size_t>("infill_wall_line_count");
     const size_t last_idx = part.infill_area_per_combine_per_density.size() - 1;
-    const auto max_resolution = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    const auto max_deviation = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
-    const ::curaengine::utils::coord_t overlap = mesh.settings.get<::curaengine::utils::coord_t>("infill_overlap_mm");
-    const auto skin_support_density = mesh.settings.get<::curaengine::types::Ratio>("skin_support_density");
-    const ::curaengine::utils::coord_t minimum_infill_line_length = mesh.settings.get<::curaengine::utils::coord_t>("minimum_infill_line_length");
-    const ::curaengine::utils::coord_t skin_support_line_distance = skin_support_density > 0.0 ? (infill_line_width / skin_support_density) : 0;
-    ::curaengine::types::AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
+    const auto max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    const auto max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
+    const coord_t overlap = mesh.settings.get<coord_t>("infill_overlap_mm");
+    const auto skin_support_density = mesh.settings.get<Ratio>("skin_support_density");
+    const coord_t minimum_infill_line_length = mesh.settings.get<coord_t>("minimum_infill_line_length");
+    const coord_t skin_support_line_distance = skin_support_density > 0.0 ? (infill_line_width / skin_support_density) : 0;
+    AngleDegrees infill_angle = 45; // Original default. This will get updated to an element from mesh->infill_angles.
     if (! mesh.infill_angles.empty())
     {
         const size_t combined_infill_layers
-            = std::max(uint64_t(1), ::curaengine::utils::round_divide(mesh.settings.get<::curaengine::utils::coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<::curaengine::utils::coord_t>("layer_height"), ::curaengine::utils::coord_t(1))));
+            = std::max(uint64_t(1), utils::round_divide(mesh.settings.get<coord_t>("infill_sparse_thickness"), std::max(mesh.settings.get<coord_t>("layer_height"), coord_t(1))));
         infill_angle = mesh.infill_angles.at((static_cast<size_t>(gcode_layer.getLayerNr()) / combined_infill_layers) % mesh.infill_angles.size());
     }
-    const ::curaengine::geometry::Point3LL mesh_middle = mesh.bounding_box.getMiddle();
-    const ::curaengine::geometry::Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<::curaengine::utils::coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<::curaengine::utils::coord_t>("infill_offset_y"));
+    const Point3LL mesh_middle = mesh.bounding_box.getMiddle();
+    const Point2LL infill_origin(mesh_middle.x_ + mesh.settings.get<coord_t>("infill_offset_x"), mesh_middle.y_ + mesh.settings.get<coord_t>("infill_offset_y"));
 
-    auto get_cut_offset = [](const bool zig_zaggify, const ::curaengine::utils::coord_t line_width, const size_t line_count)
+    auto get_cut_offset = [](const bool zig_zaggify, const coord_t line_width, const size_t line_count)
     {
         if (zig_zaggify)
         {
-            return -line_width / 2 - static_cast<::curaengine::utils::coord_t>(line_count) * line_width - 5;
+            return -line_width / 2 - static_cast<coord_t>(line_count) * line_width - 5;
         }
-        return -static_cast<::curaengine::utils::coord_t>(line_count) * line_width;
+        return -static_cast<coord_t>(line_count) * line_width;
     };
 
-    ::curaengine::geometry::Shape sparse_in_outline = part.infill_area_per_combine_per_density[last_idx][0];
+    Shape sparse_in_outline = part.infill_area_per_combine_per_density[last_idx][0];
 
     // if infill walls are required below the boundaries of skin regions above, partition the infill along the
     // boundary edge
-    ::curaengine::geometry::Shape infill_below_skin;
-    ::curaengine::geometry::Shape infill_not_below_skin;
-    ::curaengine::geometry::Shape infill_sandwiched;
-    ::curaengine::types::AngleDegrees skin_support_angle;
+    Shape infill_below_skin;
+    Shape infill_not_below_skin;
+    Shape infill_sandwiched;
+    AngleDegrees skin_support_angle;
     if (gcode_layer.getLayerNr() > 0)
     {
         partitionInfillBySkinAbove(infill_below_skin, infill_not_below_skin, infill_sandwiched, gcode_layer, mesh, part, infill_line_width);
@@ -2223,22 +2229,22 @@ bool FffGcodeWriter::processSingleLayerInfill(
 
     if (! infill_below_skin.empty())
     {
-        const auto infill_wall_line_count = static_cast<::curaengine::utils::coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
-        const ::curaengine::utils::coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
-        const ::curaengine::geometry::Shape infill_contour = part.infill_area.offset(infill_overlap + infill_wall_offset);
+        const auto infill_wall_line_count = static_cast<coord_t>(mesh.settings.get<size_t>("infill_wall_line_count"));
+        const coord_t infill_wall_offset = -infill_wall_line_count * infill_line_width;
+        const Shape infill_contour = part.infill_area.offset(infill_overlap + infill_wall_offset);
         const LayerPlan* completed_layer_below = layer_plan_buffer.getCompletedLayerPlan(gcode_layer.getLayerNr() - 1);
         std::tie(infill_below_skin, skin_support_angle)
-            = ::curaengine::bridge::makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
+            = bridge::makeBridgeOverInfillPrintable(infill_contour.difference(infill_sandwiched), infill_below_skin, mesh, completed_layer_below, gcode_layer.getLayerNr());
         infill_not_below_skin = infill_not_below_skin.difference(infill_below_skin);
     }
 
-    const auto pocket_size = mesh.settings.get<::curaengine::utils::coord_t>("cross_infill_pocket_size");
+    const auto pocket_size = mesh.settings.get<coord_t>("cross_infill_pocket_size");
     constexpr bool skip_stitching = false;
     constexpr bool connected_zigzags = false;
     const bool use_endpieces = part.infill_area_per_combine_per_density.size() == 1; // Only use endpieces when not using gradual infill, since they will then overlap.
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
-    ::curaengine::geometry::Shape infill_inner_contour;
+    Shape infill_inner_contour;
 
     for (size_t density_idx = last_idx; static_cast<int>(density_idx) >= 0; density_idx--)
     {
@@ -2248,8 +2254,8 @@ bool FffGcodeWriter::processSingleLayerInfill(
             continue;
         }
 
-        ::curaengine::geometry::OpenLinesSet infill_lines_here;
-        ::curaengine::geometry::Shape infill_polygons_here;
+        OpenLinesSet infill_lines_here;
+        Shape infill_polygons_here;
 
         // the highest density infill combines with the next to create a grid with density_factor 1
         int infill_line_distance_here = infill_line_distance << (density_idx + 1);
@@ -2272,7 +2278,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
          */
 
         // All of that doesn't hold for the Cross patterns; they should just always be multiplied by 2.
-        if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == ::curaengine::types::EFillMethod::CROSS || pattern == ::curaengine::types::EFillMethod::CROSS_3D)
+        if (density_idx == part.infill_area_per_combine_per_density.size() - 1 || pattern == EFillMethod::CROSS || pattern == EFillMethod::CROSS_3D)
         {
             /* the least dense infill should fill up all remaining gaps
              :       |       :       |       :       |       :       |       :  > furthest from top
@@ -2290,29 +2296,29 @@ bool FffGcodeWriter::processSingleLayerInfill(
             infill_line_distance_here /= 2;
         }
 
-        ::curaengine::geometry::Shape in_outline = part.infill_area_per_combine_per_density[density_idx][0];
+        Shape in_outline = part.infill_area_per_combine_per_density[density_idx][0];
 
-        std::shared_ptr<::curaengine::infill::LightningLayer> lightning_layer;
+        std::shared_ptr<LightningLayer> lightning_layer;
         if (mesh.lightning_generator)
         {
-            lightning_layer = std::make_shared<::curaengine::infill::LightningLayer>(mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
+            lightning_layer = std::make_shared<LightningLayer>(mesh.lightning_generator->getTreesForLayer(gcode_layer.getLayerNr()));
         }
 
         const bool fill_gaps = density_idx == 0; // Only fill gaps in the lowest infill density pattern.
         if (! infill_below_skin.empty())
         {
             // infill region with skin above has to be printed bridge-like
-            constexpr ::curaengine::types::EFillMethod skin_support_pattern = ::curaengine::types::EFillMethod::LINES;
+            constexpr EFillMethod skin_support_pattern = EFillMethod::LINES;
             constexpr bool skin_support_zig_zaggify = false;
             constexpr bool skin_support_connect_polygons = false;
             constexpr size_t skin_support_infill_multiplier = 1;
             constexpr size_t min_skin_support_wall_count = 0;
             constexpr size_t skin_support_wall_count = 0;
-            constexpr ::curaengine::utils::coord_t small_area_width = 0;
-            wall_tool_paths.emplace_back(std::vector<::curaengine::utils::VariableWidthLines>());
-            constexpr ::curaengine::utils::coord_t skin_support_overlap = 0;
-            constexpr ::curaengine::utils::coord_t skin_support_infill_shift = 0;
-            ::curaengine::infill::Infill infill_comp(
+            constexpr coord_t small_area_width = 0;
+            wall_tool_paths.emplace_back(std::vector<VariableWidthLines>());
+            constexpr coord_t skin_support_overlap = 0;
+            constexpr coord_t skin_support_infill_shift = 0;
+            Infill infill_comp(
                 skin_support_pattern,
                 skin_support_zig_zaggify,
                 skin_support_connect_polygons,
@@ -2342,14 +2348,14 @@ bool FffGcodeWriter::processSingleLayerInfill(
                 skin_support_lines,
                 mesh.settings,
                 gcode_layer.getLayerNr(),
-                ::curaengine::utils::SectionType::INFILL,
+                SectionType::INFILL,
                 mesh.cross_fill_provider,
                 lightning_layer,
                 &mesh);
             if (density_idx < last_idx)
             {
-                const ::curaengine::utils::coord_t cut_offset = get_cut_offset(skin_support_zig_zaggify, infill_line_width, min_skin_support_wall_count);
-                ::curaengine::geometry::Shape tool = infill_below_skin.offset(static_cast<int>(cut_offset));
+                const coord_t cut_offset = get_cut_offset(skin_support_zig_zaggify, infill_line_width, min_skin_support_wall_count);
+                Shape tool = infill_below_skin.offset(static_cast<int>(cut_offset));
                 infill_lines_here = tool.intersection(infill_lines_here);
             }
             skin_support_lines.push_back(infill_lines_here);
@@ -2362,7 +2368,7 @@ bool FffGcodeWriter::processSingleLayerInfill(
             }
         }
 
-        const ::curaengine::utils::coord_t circumference = in_outline.length();
+        const coord_t circumference = in_outline.length();
         // Originally an area of 0.4*0.4*2 (2 line width squares) was found to be a good threshold for removal.
         // However we found that this doesn't scale well with polygons with larger circumference (https://github.com/Ultimaker/Cura/issues/3992).
         // Given that the original test worked for approximately 2x2cm models, this scaling by circumference should make it work for any size.
@@ -2374,10 +2380,10 @@ bool FffGcodeWriter::processSingleLayerInfill(
         in_outline.removeSmallAreas(minimum_small_area);
 
         constexpr size_t wall_line_count_here = 0; // Wall toolpaths were generated in generateGradualInfill for the sparsest density, denser parts don't have walls by default
-        const ::curaengine::utils::coord_t small_area_width = 0;
+        const coord_t small_area_width = 0;
 
         wall_tool_paths.emplace_back();
-        ::curaengine::infill::Infill infill_comp(
+        Infill infill_comp(
             pattern,
             zig_zaggify_infill,
             connect_polygons,
@@ -2407,16 +2413,16 @@ bool FffGcodeWriter::processSingleLayerInfill(
             infill_lines,
             mesh.settings,
             gcode_layer.getLayerNr(),
-            ::curaengine::utils::SectionType::INFILL,
+            SectionType::INFILL,
             mesh.cross_fill_provider,
             lightning_layer,
             &mesh,
-            ::curaengine::geometry::Shape(),
+            Shape(),
             minimum_infill_line_length);
         if (density_idx < last_idx)
         {
-            const ::curaengine::utils::coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
-            ::curaengine::geometry::Shape tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
+            const coord_t cut_offset = get_cut_offset(zig_zaggify_infill, infill_line_width, wall_line_count);
+            Shape tool = sparse_in_outline.offset(static_cast<int>(cut_offset));
             infill_lines_here = tool.intersection(infill_lines_here);
         }
         infill_lines.push_back(infill_lines_here);
@@ -2460,9 +2466,9 @@ bool FffGcodeWriter::processSingleLayerInfill(
     return added_something;
 }
 
-void FffGcodeWriter::getCombinedSkinForSkinSupport(::curaengine::geometry::Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr)
+void FffGcodeWriter::getCombinedSkinForSkinSupport(Shape& skin_combined, const SliceMeshStorage& mesh, const SliceLayerPart& part, int skin_layer_nr)
 {
-    constexpr ::curaengine::utils::coord_t tiny_infill_offset = 20;
+    constexpr coord_t tiny_infill_offset = 20;
 
     if (skin_layer_nr >= mesh.layers.size() || skin_layer_nr < 1)
     {
@@ -2474,12 +2480,12 @@ void FffGcodeWriter::getCombinedSkinForSkinSupport(::curaengine::geometry::Shape
         for (const SkinPart& skin_part : part_i.skin_parts)
         {
             // Limit considered areas to the ones that should have infill underneath at the current layer.
-            const ::curaengine::geometry::Shape relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
+            const Shape relevant_outline = skin_part.outline.intersection(part.getOwnInfillArea());
 
             if (! skin_combined.empty())
             {
                 // does this skin part overlap with any of the skin parts on the layers above?
-                const ::curaengine::geometry::Shape overlap = skin_combined.intersection(relevant_outline);
+                const Shape overlap = skin_combined.intersection(relevant_outline);
                 if (! overlap.empty())
                 {
                     // yes, it overlaps, need to leave a gap between this skin part and the others
@@ -2515,13 +2521,13 @@ void FffGcodeWriter::getCombinedSkinForSkinSupport(::curaengine::geometry::Shape
 }
 
 void FffGcodeWriter::partitionInfillBySkinAbove(
-    ::curaengine::geometry::Shape& infill_below_skin,
-    ::curaengine::geometry::Shape& infill_not_below_skin,
-    ::curaengine::geometry::Shape& infill_sandwiched,
+    Shape& infill_below_skin,
+    Shape& infill_not_below_skin,
+    Shape& infill_sandwiched,
     const LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const SliceLayerPart& part,
-    ::curaengine::utils::coord_t infill_line_width)
+    coord_t infill_line_width)
 {
     const bool skin_support = mesh.settings.get<bool>("skin_support");
 
@@ -2530,10 +2536,10 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
         return;
     }
 
-    ::curaengine::geometry::Shape skin_above_combined; // skin regions on the layers above combined with small gaps between
-    ::curaengine::geometry::Shape skin_below_combined; // same for the skin below (to check if we're sandwiching only 1 layer of infill, in which case we shouldn't do the support)
+    Shape skin_above_combined; // skin regions on the layers above combined with small gaps between
+    Shape skin_below_combined; // same for the skin below (to check if we're sandwiching only 1 layer of infill, in which case we shouldn't do the support)
     getCombinedSkinForSkinSupport(skin_above_combined, mesh, part, gcode_layer.getLayerNr() + 1);
-    getCombinedSkinForSkinSupport(skin_below_combined, mesh, part, std::max(::curaengine::types::LayerIndex{ 1 }, gcode_layer.getLayerNr()) - 1);
+    getCombinedSkinForSkinSupport(skin_below_combined, mesh, part, std::max(LayerIndex{ 1 }, gcode_layer.getLayerNr()) - 1);
     infill_sandwiched = skin_above_combined.intersection(skin_below_combined);
 
     // the shrink/expand here is to remove regions of infill below skin that are narrower than the width of the infill walls otherwise the infill walls could merge and form
@@ -2553,7 +2559,7 @@ void FffGcodeWriter::partitionInfillBySkinAbove(
     infill_not_below_skin.removeSmallAreas(min_area);
 }
 
-size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, const ::curaengine::types::LayerIndex& layer_nr, bool last) const
+size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, const LayerIndex& layer_nr, bool last) const
 {
     const std::vector<ExtruderUse> extruder_use = extruder_order_per_layer.get(layer_nr);
 
@@ -2561,7 +2567,7 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
     {
         return last ? extruder_use.back().extruder_nr : extruder_use.front().extruder_nr;
     }
-    else if (layer_nr <= -::curaengine::types::LayerIndex(Raft::getTotalExtraLayers()))
+    else if (layer_nr <= -LayerIndex(Raft::getTotalExtraLayers()))
     {
         // Asking for extruder use below first layer, give first extruder
         return getStartExtruder(storage);
@@ -2576,7 +2582,7 @@ size_t FffGcodeWriter::findUsedExtruderIndex(const SliceDataStorage& storage, co
 void FffGcodeWriter::processSpiralizedWall(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part,
     const SliceMeshStorage& mesh) const
 {
@@ -2585,7 +2591,7 @@ void FffGcodeWriter::processSpiralizedWall(
         // wall doesn't have usable outline
         return;
     }
-    const ::curaengine::geometry::Polygon* last_wall_outline = &(part.spiral_wall[0]); // default to current wall outline
+    const Polygon* last_wall_outline = &(part.spiral_wall[0]); // default to current wall outline
     int last_seam_vertex_idx = -1; // last layer seam vertex index
     int layer_nr = gcode_layer.getLayerNr();
     if (layer_nr > 0)
@@ -2598,11 +2604,11 @@ void FffGcodeWriter::processSpiralizedWall(
             last_seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr - 1];
         }
     }
-    const bool is_bottom_layer = (layer_nr == mesh.settings.get<::curaengine::types::LayerIndex>("initial_bottom_layers"));
+    const bool is_bottom_layer = (layer_nr == mesh.settings.get<LayerIndex>("initial_bottom_layers"));
     const bool is_top_layer = ((size_t)layer_nr == (storage.spiralize_wall_outlines.size() - 1) || storage.spiralize_wall_outlines[layer_nr + 1] == nullptr);
     const int seam_vertex_idx = storage.spiralize_seam_vertex_indices[layer_nr]; // use pre-computed seam vertex index for current layer
     // output a wall slice that is interpolated between the last and current walls
-    for (const ::curaengine::geometry::Polygon& wall_outline : part.spiral_wall)
+    for (const Polygon& wall_outline : part.spiral_wall)
     {
         gcode_layer.spiralizeWallSlice(mesh_config.inset0_config, wall_outline, *last_wall_outline, seam_vertex_idx, last_seam_vertex_idx, is_top_layer, is_bottom_layer);
     }
@@ -2613,7 +2619,7 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     SliceLayerPart& part,
     const bool end_infill_close_to_seam) const
 {
@@ -2629,7 +2635,7 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
     InsetsPreprocessResult result;
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize"))
     {
-        const auto initial_bottom_layers = ::curaengine::types::LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
+        const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
         const auto layer_nr = gcode_layer.getLayerNr();
         if ((layer_nr < initial_bottom_layers && part.wall_toolpaths.empty()) // The bottom layers in spiralize mode are generated using the variable width paths
             || (layer_nr >= initial_bottom_layers && part.spiral_wall.empty())) // The rest of the layers in spiralize mode are using the spiral wall
@@ -2646,13 +2652,13 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
     if (! result.spiralize || extruder_nr != mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_ || part.spiral_wall.empty())
     {
         // Main case: Optimize the insets with the InsetOrderOptimizer.
-        const ::curaengine::utils::coord_t wall_x_wipe_dist = 0;
-        const ::curaengine::types::ZSeamConfig z_seam_config(
-            mesh.settings.get<::curaengine::types::EZSeamType>("z_seam_type"),
+        const coord_t wall_x_wipe_dist = 0;
+        const ZSeamConfig z_seam_config(
+            mesh.settings.get<EZSeamType>("z_seam_type"),
             mesh.getZSeamHint(),
-            mesh.settings.get<::curaengine::types::EZSeamCornerPrefType>("z_seam_corner"),
-            mesh.settings.get<::curaengine::utils::coord_t>("wall_line_width_0") * 2);
-        const ::curaengine::geometry::Shape disallowed_areas_for_seams;
+            mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
+            mesh.settings.get<coord_t>("wall_line_width_0") * 2);
+        const Shape disallowed_areas_for_seams;
         constexpr bool scarf_seam = true;
         constexpr bool smooth_speed = true;
 
@@ -2669,7 +2675,7 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
             mesh_config.insetX_flooring_config,
             mesh_config.bridge_inset0_config,
             mesh_config.bridge_insetX_config,
-            mesh.settings.get<::curaengine::utils::coord_t>("wall_0_wipe_dist"),
+            mesh.settings.get<coord_t>("wall_0_wipe_dist"),
             wall_x_wipe_dist,
             mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_,
             mesh.settings.get<ExtruderTrain&>("wall_x_extruder_nr").extruder_nr_,
@@ -2689,14 +2695,14 @@ std::optional<FffGcodeWriter::InsetsPreprocessResult> FffGcodeWriter::preProcess
 }
 
 OverrideAreas
-    FffGcodeWriter::makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const ::curaengine::types::MeshPathConfigs& mesh_config, SliceLayerPart& part)
+    FffGcodeWriter::makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const MeshPathConfigs& mesh_config, SliceLayerPart& part)
         const
 {
     // Start by clearing all the masks since this is done per-mesh
-    gcode_layer.setBridgeWallMask(::curaengine::geometry::Shape());
-    gcode_layer.setSeamOverhangMask(::curaengine::geometry::Shape());
-    gcode_layer.setRoofingMask(::curaengine::geometry::Shape());
-    gcode_layer.setFlooringMask(::curaengine::geometry::Shape());
+    gcode_layer.setBridgeWallMask(Shape());
+    gcode_layer.setSeamOverhangMask(Shape());
+    gcode_layer.setRoofingMask(Shape());
+    gcode_layer.setFlooringMask(Shape());
 
     if (Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<bool>("magic_spiralize") || gcode_layer.getLayerNr() == 0)
     {
@@ -2705,8 +2711,8 @@ OverrideAreas
 
     // accumulate the outlines of all the parts that are on the layer below
 
-    ::curaengine::geometry::Shape outlines_below;
-    ::curaengine::utils::AABB boundaryBox(part.outline);
+    Shape outlines_below;
+    AABB boundaryBox(part.outline);
     for (const std::shared_ptr<SliceMeshStorage>& mesh_ptr : storage.meshes)
     {
         const auto& mesh_below = *mesh_ptr;
@@ -2722,15 +2728,15 @@ OverrideAreas
         }
     }
 
-    const ::curaengine::geometry::Shape mesh_outlines_below = outlines_below;
-    const ::curaengine::utils::coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+    const Shape mesh_outlines_below = outlines_below;
+    const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
 
     // If support is enabled, add the support outlines also so we don't generate bridges over support.
     const auto& mesh_group = Application::getInstance().current_slice_->scene.current_mesh_group;
     const Settings& mesh_group_settings = mesh_group->settings;
     if (mesh_group_settings.get<bool>("support_enable") || mesh_group->has_painted_support)
     {
-        const ::curaengine::utils::coord_t z_distance_top = mesh.settings.get<::curaengine::utils::coord_t>("support_top_distance");
+        const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
         const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
         const int support_layer_nr = gcode_layer.getLayerNr() - z_distance_top_layers;
 
@@ -2740,7 +2746,7 @@ OverrideAreas
 
             if (! support_layer.support_roof.empty())
             {
-                ::curaengine::utils::AABB support_roof_bb(support_layer.support_roof);
+                AABB support_roof_bb(support_layer.support_roof);
                 if (boundaryBox.hit(support_roof_bb))
                 {
                     outlines_below.push_back(support_layer.support_roof);
@@ -2750,7 +2756,7 @@ OverrideAreas
             {
                 for (const SupportInfillPart& support_part : support_layer.support_infill_parts)
                 {
-                    ::curaengine::utils::AABB support_part_bb(support_part.outline_);
+                    AABB support_part_bb(support_part.outline_);
                     if (boundaryBox.hit(support_part_bb))
                     {
                         outlines_below.push_back(support_part.outline_);
@@ -2760,8 +2766,8 @@ OverrideAreas
         }
     }
 
-    const ::curaengine::utils::coord_t outer_wall_width = mesh_config.inset0_config.getLineWidth();
-    const ::curaengine::utils::coord_t half_outer_wall_width = outer_wall_width / 2;
+    const coord_t outer_wall_width = mesh_config.inset0_config.getLineWidth();
+    const coord_t half_outer_wall_width = outer_wall_width / 2;
 
     // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
 
@@ -2773,31 +2779,31 @@ OverrideAreas
             // max_air_gap is the max allowed width of the unsupported region below the wall line
             // if the unsupported region is wider than max_air_gap, the wall line will be printed using bridge settings
 
-            const ::curaengine::utils::coord_t overhang_width = layer_height * ::curaengine::types::boundedTan(mesh.settings.get<::curaengine::types::AngleRadians>("wall_overhang_angle"));
-            const ::curaengine::utils::coord_t max_air_gap = std::clamp(overhang_width, half_outer_wall_width, outer_wall_width);
+            const coord_t overhang_width = layer_height * types::boundedTan(mesh.settings.get<AngleRadians>("wall_overhang_angle"));
+            const coord_t max_air_gap = std::clamp(overhang_width, half_outer_wall_width, outer_wall_width);
 
             // subtract the outlines of the parts below this part to give the shapes of the unsupported regions and then
             // shrink those shapes so that any that are narrower than two times max_air_gap will be removed
 
-            const ::curaengine::geometry::Shape compressed_air = part.outline.difference(outlines_below).offset(-max_air_gap);
+            const Shape compressed_air = part.outline.difference(outlines_below).offset(-max_air_gap);
 
             // now expand the air regions by the same amount as they were shrunk (completing the morphological opening operation)
             // also, if the bridge-flow is light enough, compensate for the fact that the wall-vertices aren't exactly on the outline
             // (otherwise we can assume that the bridge-walls are solid/wide enough that they can partly overlap,
             //  which negates the need for compensation, and can make it harmful w.r.t. flow-buildup)
 
-            const ::curaengine::utils::coord_t compensate_outline_distance = (mesh_config.bridge_inset0_config.flow < 1.0) ? half_outer_wall_width : 0;
-            ::curaengine::geometry::Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance).difference(outlines_below);
+            const coord_t compensate_outline_distance = (mesh_config.bridge_inset0_config.flow < 1.0) ? half_outer_wall_width : 0;
+            Shape bridge_mask = compressed_air.offset(max_air_gap + compensate_outline_distance).difference(outlines_below);
             gcode_layer.setBridgeWallMask(bridge_mask);
         }
     }
 
-    ::curaengine::geometry::Shape model_supported_region = mesh_outlines_below.offset(-half_outer_wall_width);
+    Shape model_supported_region = mesh_outlines_below.offset(-half_outer_wall_width);
     // remove those parts of the layer below that are narrower than a wall line width as they will not be printed
     model_supported_region = model_supported_region.offset(-half_outer_wall_width).offset(half_outer_wall_width);
 
 
-    const auto get_supported_region = [&model_supported_region, &layer_height](const ::curaengine::types::AngleDegrees& overhang_angle) -> Shape
+    const auto get_supported_region = [&model_supported_region, &layer_height](const AngleDegrees& overhang_angle) -> Shape
     {
         // the overhang mask is set to the area of the current part's outline minus the region that is considered to be supported
         // the supported region is made up of those areas that are supported by the model on the layer below
@@ -2805,38 +2811,38 @@ OverrideAreas
         // considered to be
         if (overhang_angle < 90.0)
         {
-            const ::curaengine::utils::coord_t overhang_width = layer_height * std::tan(::curaengine::types::AngleRadians(overhang_angle));
+            const coord_t overhang_width = layer_height * std::tan(AngleRadians(overhang_angle));
             return model_supported_region.offset(overhang_width + 10);
         }
 
-        return ::curaengine::geometry::Shape();
+        return Shape();
     };
 
     // Build supported regions for all the overhang speeds. For a visual explanation of the result, see doc/gradual_overhang_speed.svg
     OverrideAreas overhang_areas;
     { // Overhang masks
-        const auto overhang_speed_factors = mesh.settings.get<std::vector<::curaengine::types::Ratio>>("wall_overhang_speed_factors");
+        const auto overhang_speed_factors = mesh.settings.get<std::vector<Ratio>>("wall_overhang_speed_factors");
         const size_t overhang_angles_count = overhang_speed_factors.size();
-        const auto wall_overhang_angle = mesh.settings.get<::curaengine::types::AngleDegrees>("wall_overhang_angle");
+        const auto wall_overhang_angle = mesh.settings.get<AngleDegrees>("wall_overhang_angle");
         if (overhang_angles_count > 0 && wall_overhang_angle < 90.0)
         {
             struct SpeedRegion
             {
-                ::curaengine::types::AngleDegrees overhang_angle;
-                ::curaengine::types::Ratio speed_factor;
+                AngleDegrees overhang_angle;
+                Ratio speed_factor;
                 bool chunk = true;
             };
 
             // Create raw speed regions
-            const ::curaengine::geometry::Shape full_buildplate = storage.getRawMachineBorder();
-            const ::curaengine::types::AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
+            const Shape full_buildplate = storage.getRawMachineBorder();
+            const AngleDegrees overhang_step = (90.0 - wall_overhang_angle) / static_cast<double>(overhang_angles_count);
             std::vector<SpeedRegion> speed_regions;
             speed_regions.reserve(overhang_angles_count + 2);
 
             for (size_t angle_index = 0; angle_index < overhang_angles_count; ++angle_index)
             {
-                const ::curaengine::types::AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
-                const ::curaengine::types::Ratio speed_factor = overhang_speed_factors[angle_index];
+                const AngleDegrees actual_wall_overhang_angle = wall_overhang_angle + static_cast<double>(angle_index) * overhang_step;
+                const Ratio speed_factor = overhang_speed_factors[angle_index];
 
                 speed_regions.emplace_back(actual_wall_overhang_angle, speed_factor);
             }
@@ -2855,7 +2861,7 @@ OverrideAreas
                 for (const auto& regions : merged_regions)
                 {
                     const SpeedRegion& last_region = *ranges::prev(regions.end());
-                    const ::curaengine::geometry::Shape overhang_region = full_buildplate.difference(get_supported_region(last_region.overhang_angle));
+                    const Shape overhang_region = full_buildplate.difference(get_supported_region(last_region.overhang_angle));
                     overhang_areas.emplace_back(overhang_region, PrintSegmentAttribute::Overhanging, nullptr, last_region.speed_factor);
                 }
             }
@@ -2865,7 +2871,7 @@ OverrideAreas
     { // Seam overhang mask
         // the seam overhang mask is set to the area of the current part's outline minus the region that is considered to be supported,
         // which will then be empty if everything is considered supported i.r.t. the angle
-        const ::curaengine::types::AngleDegrees seam_overhang_angle = mesh.settings.get<::curaengine::types::AngleDegrees>("seam_overhang_angle");
+        const AngleDegrees seam_overhang_angle = mesh.settings.get<AngleDegrees>("seam_overhang_angle");
         if (seam_overhang_angle < 90.0)
         {
             const auto seam_overhang_mask
@@ -2874,7 +2880,7 @@ OverrideAreas
         }
     }
 
-    const auto wall_line_width_0 = mesh.settings.get<::curaengine::utils::coord_t>("wall_line_width_0");
+    const auto wall_line_width_0 = mesh.settings.get<coord_t>("wall_line_width_0");
 
     { // Roofing mask
         const auto roofing_mask_fn = [&]() -> Shape
@@ -2936,21 +2942,21 @@ bool FffGcodeWriter::endProcessInsets(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     SliceLayerPart& part,
     const bool infill_added) const
 {
     if (preprocess_result.spiralize)
     {
         bool added_something = false;
-        const auto initial_bottom_layers = ::curaengine::types::LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
+        const auto initial_bottom_layers = LayerIndex(mesh.settings.get<size_t>("initial_bottom_layers"));
 
         if (gcode_layer.getLayerNr() == initial_bottom_layers && extruder_nr == mesh.settings.get<ExtruderTrain&>("wall_0_extruder_nr").extruder_nr_)
         { // on the last normal layer first make the outer wall normally and then start a second outer wall from the same hight, but gradually moving upward
             added_something = true;
             gcode_layer.setIsInside(true); // going to print stuff inside print object
             // start this first wall at the same vertex the spiral starts
-            const ::curaengine::geometry::Polygon& spiral_inset = part.spiral_wall[0];
+            const Polygon& spiral_inset = part.spiral_wall[0];
             const size_t spiral_start_vertex = storage.spiralize_seam_vertex_indices[static_cast<size_t>(initial_bottom_layers.value)];
             if (spiral_start_vertex < spiral_inset.size())
             {
@@ -2982,10 +2988,10 @@ bool FffGcodeWriter::endProcessInsets(
     }
     else if (preprocess_result.walls_optimizer != nullptr)
     {
-        auto travel_retract_before_outer_wall = mesh.settings.get<::curaengine::types::RetractBeforeOuterWall>("travel_retract_before_outer_wall");
-        if (travel_retract_before_outer_wall == ::curaengine::types::RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL && ! infill_added)
+        auto travel_retract_before_outer_wall = mesh.settings.get<RetractBeforeOuterWall>("travel_retract_before_outer_wall");
+        if (travel_retract_before_outer_wall == RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL && ! infill_added)
         {
-            travel_retract_before_outer_wall = ::curaengine::types::RetractBeforeOuterWall::AUTOMATIC;
+            travel_retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
         }
 
         return preprocess_result.walls_optimizer->addToLayer(travel_retract_before_outer_wall, overhang_areas);
@@ -2994,36 +3000,36 @@ bool FffGcodeWriter::endProcessInsets(
     return false;
 }
 
-std::optional<::curaengine::geometry::Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const ::curaengine::geometry::Shape& filling_part, int filling_angle, ::curaengine::geometry::Point2LL last_position) const
+std::optional<Point2LL> FffGcodeWriter::getSeamAvoidingLocation(const Shape& filling_part, int filling_angle, Point2LL last_position) const
 {
     if (filling_part.empty())
     {
-        return std::optional<::curaengine::geometry::Point2LL>();
+        return std::optional<Point2LL>();
     }
     // start with the BB of the outline
-    ::curaengine::utils::AABB skin_part_bb(filling_part);
-    ::curaengine::geometry::PointMatrix rot((double)((-filling_angle + 90) % 360)); // create a matrix to rotate a vector so that it is normal to the skin angle
-    const ::curaengine::geometry::Point2LL bb_middle = skin_part_bb.getMiddle();
+    AABB skin_part_bb(filling_part);
+    PointMatrix rot((double)((-filling_angle + 90) % 360)); // create a matrix to rotate a vector so that it is normal to the skin angle
+    const Point2LL bb_middle = skin_part_bb.getMiddle();
     // create a vector from the middle of the BB whose length is such that it can be rotated
     // around the middle of the BB and the end will always be a long way outside of the part's outline
     // and rotate the vector so that it is normal to the skin angle
-    const ::curaengine::geometry::Point2LL vec = rot.apply(::curaengine::geometry::Point2LL(0, ::curaengine::geometry::vSize(skin_part_bb.max_ - bb_middle) * 100));
+    const Point2LL vec = rot.apply(Point2LL(0, geometry::vSize(skin_part_bb.max_ - bb_middle) * 100));
     // find the vertex in the outline that is closest to the end of the rotated vector
-    const ::curaengine::utils::PolygonsPointIndex pa = ::curaengine::utils::PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
+    const PolygonsPointIndex pa = PolygonUtils::findNearestVert(bb_middle + vec, filling_part);
     // and find another outline vertex, this time using the vector + 180 deg
-    const ::curaengine::utils::PolygonsPointIndex pb = ::curaengine::utils::PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
+    const PolygonsPointIndex pb = PolygonUtils::findNearestVert(bb_middle - vec, filling_part);
     if (! pa.initialized() || ! pb.initialized())
     {
-        return std::optional<::curaengine::geometry::Point2LL>();
+        return std::optional<Point2LL>();
     }
     // now go to whichever of those vertices that is closest to where we are now
-    if (::curaengine::geometry::vSize2(pa.p() - last_position) < ::curaengine::geometry::vSize2(pb.p() - last_position))
+    if (geometry::vSize2(pa.p() - last_position) < geometry::vSize2(pb.p() - last_position))
     {
-        return std::optional<::curaengine::geometry::Point2LL>(std::in_place, pa.p());
+        return std::optional<Point2LL>(std::in_place, pa.p());
     }
     else
     {
-        return std::optional<::curaengine::geometry::Point2LL>(std::in_place, pb.p());
+        return std::optional<Point2LL>(std::in_place, pb.p());
     }
 }
 
@@ -3032,7 +3038,7 @@ bool FffGcodeWriter::processSkin(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SliceLayerPart& part) const
 {
     const size_t top_bottom_extruder_nr = mesh.settings.get<ExtruderTrain&>("top_bottom_extruder_nr").extruder_nr_;
@@ -3070,7 +3076,7 @@ bool FffGcodeWriter::processSkinPart(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const SkinPart& skin_part) const
 {
     bool added_something = false;
@@ -3121,10 +3127,10 @@ void FffGcodeWriter::processTopBottom(
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
     const RoofingFlooringSettingsNames& settings_names,
-    const ::curaengine::types::MeshPathConfigs& mesh_config,
+    const MeshPathConfigs& mesh_config,
     const GCodePathConfig& default_config,
-    const std::vector<::curaengine::types::AngleDegrees>& angles,
-    const ::curaengine::geometry::Shape& skin_fill,
+    const std::vector<AngleDegrees>& angles,
+    const Shape& skin_fill,
     const bool is_roofing_flooring,
     bool& added_something) const
 {
@@ -3142,9 +3148,9 @@ void FffGcodeWriter::processTopBottom(
 
     const size_t layer_nr = gcode_layer.getLayerNr();
 
-    ::curaengine::types::EFillMethod pattern = (layer_nr == 0) ? mesh.settings.get<::curaengine::types::EFillMethod>(settings_names.pattern_0) : mesh.settings.get<::curaengine::types::EFillMethod>(settings_names.pattern_x);
+    EFillMethod pattern = (layer_nr == 0) ? mesh.settings.get<EFillMethod>(settings_names.pattern_0) : mesh.settings.get<EFillMethod>(settings_names.pattern_x);
 
-    ::curaengine::types::AngleDegrees skin_angle = 45;
+    AngleDegrees skin_angle = 45;
     if (angles.size() > 0)
     {
         skin_angle = angles.at(layer_nr % angles.size());
@@ -3153,14 +3159,14 @@ void FffGcodeWriter::processTopBottom(
     // generate skin_polygons and skin_lines
     const GCodePathConfig* skin_config = &default_config;
     const GCodePathConfig* bridge_config = nullptr;
-    ::curaengine::types::Ratio skin_density = 1.0;
-    constexpr ::curaengine::utils::coord_t skin_overlap = 0; // Skin overlap offset is applied in skin.cpp more overlap might be beneficial for curved bridges, but makes it worse in general.
+    Ratio skin_density = 1.0;
+    constexpr coord_t skin_overlap = 0; // Skin overlap offset is applied in skin.cpp more overlap might be beneficial for curved bridges, but makes it worse in general.
     const bool bridge_settings_enabled = mesh.settings.get<bool>("bridge_settings_enabled");
     const bool bridge_enable_more_layers = bridge_settings_enabled && mesh.settings.get<bool>("bridge_enable_more_layers");
-    const ::curaengine::types::Ratio support_threshold = bridge_settings_enabled ? mesh.settings.get<::curaengine::types::Ratio>("bridge_skin_support_threshold") : 0.0_r;
+    const Ratio support_threshold = bridge_settings_enabled ? mesh.settings.get<Ratio>("bridge_skin_support_threshold") : 0.0_r;
     const size_t bottom_layers = mesh.settings.get<size_t>("bottom_layers");
     const auto support_enable = mesh_group_settings.get<bool>("support_enable");
-    std::optional<::curaengine::utils::coord_t> forced_small_area_width;
+    std::optional<coord_t> forced_small_area_width;
     OverrideAreas bridging_areas;
 
     int support_layer_nr = -1;
@@ -3168,8 +3174,8 @@ void FffGcodeWriter::processTopBottom(
 
     if (support_enable || mesh_group->has_painted_support)
     {
-        const ::curaengine::utils::coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
-        const ::curaengine::utils::coord_t z_distance_top = mesh.settings.get<::curaengine::utils::coord_t>("support_top_distance");
+        const coord_t layer_height = mesh_config.inset0_config.getLayerThickness();
+        const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
         const size_t z_distance_top_layers = (z_distance_top / layer_height) + 1;
         support_layer_nr = layer_nr - z_distance_top_layers;
     }
@@ -3183,9 +3189,9 @@ void FffGcodeWriter::processTopBottom(
             support_layer = &storage.support.supportLayers[support_layer_nr - (bridge_layer - 1)];
         }
 
-        ::curaengine::geometry::Shape bridging_area;
+        Shape bridging_area;
 
-        const std::optional<::curaengine::types::AngleDegrees> bridge_angle = ::curaengine::bridge::bridgeAngle(mesh, skin_fill, storage, layer_nr, bridge_layer, support_layer, bridging_area);
+        const std::optional<AngleDegrees> bridge_angle = bridge::bridgeAngle(mesh, skin_fill, storage, layer_nr, bridge_layer, support_layer, bridging_area);
 
         if (bridge_angle.has_value())
         {
@@ -3216,7 +3222,7 @@ void FffGcodeWriter::processTopBottom(
             }
 
             forced_small_area_width = 0;
-            pattern = ::curaengine::types::EFillMethod::LINES; // force lines pattern when bridging
+            pattern = EFillMethod::LINES; // force lines pattern when bridging
             bridging_areas.emplace_back(bridging_area, PrintSegmentAttribute::Bridging, config);
             bridge_config = config;
             skin_density = density;
@@ -3229,15 +3235,15 @@ void FffGcodeWriter::processTopBottom(
     bool is_bridge_skin = false;
     if (layer_nr > 0)
     {
-        is_bridge_skin = handle_bridge_skin(1, &mesh_config.bridge_skin_config, mesh.settings.get<::curaengine::types::Ratio>("bridge_skin_density"));
+        is_bridge_skin = handle_bridge_skin(1, &mesh_config.bridge_skin_config, mesh.settings.get<Ratio>("bridge_skin_density"));
     }
     if (bridge_enable_more_layers && ! is_bridge_skin && layer_nr > 1 && bottom_layers > 1)
     {
-        is_bridge_skin = handle_bridge_skin(2, &mesh_config.bridge_skin_config2, mesh.settings.get<::curaengine::types::Ratio>("bridge_skin_density_2"));
+        is_bridge_skin = handle_bridge_skin(2, &mesh_config.bridge_skin_config2, mesh.settings.get<Ratio>("bridge_skin_density_2"));
 
         if (! is_bridge_skin && layer_nr > 2 && bottom_layers > 2)
         {
-            is_bridge_skin = handle_bridge_skin(3, &mesh_config.bridge_skin_config3, mesh.settings.get<::curaengine::types::Ratio>("bridge_skin_density_3"));
+            is_bridge_skin = handle_bridge_skin(3, &mesh_config.bridge_skin_config3, mesh.settings.get<Ratio>("bridge_skin_density_3"));
         }
     }
 
@@ -3247,7 +3253,7 @@ void FffGcodeWriter::processTopBottom(
     {
         // skin isn't a bridge but is it above support and we need to modify the fan speed?
 
-        ::curaengine::utils::AABB skin_bb(skin_fill);
+        AABB skin_bb(skin_fill);
 
         support_layer = &storage.support.supportLayers[support_layer_nr];
 
@@ -3255,7 +3261,7 @@ void FffGcodeWriter::processTopBottom(
 
         if (! support_layer->support_roof.empty())
         {
-            ::curaengine::utils::AABB support_roof_bb(support_layer->support_roof);
+            AABB support_roof_bb(support_layer->support_roof);
             if (skin_bb.hit(support_roof_bb))
             {
                 supported = ! skin_fill.intersection(support_layer->support_roof).empty();
@@ -3265,7 +3271,7 @@ void FffGcodeWriter::processTopBottom(
         {
             for (auto support_part : support_layer->support_infill_parts)
             {
-                ::curaengine::utils::AABB support_part_bb(support_part.outline_);
+                AABB support_part_bb(support_part.outline_);
                 if (skin_bb.hit(support_part_bb))
                 {
                     supported = ! skin_fill.intersection(support_part.outline_).empty();
@@ -3280,7 +3286,7 @@ void FffGcodeWriter::processTopBottom(
 
         if (supported)
         {
-            fan_speed = mesh.settings.get<::curaengine::types::Ratio>("support_supported_skin_fan_speed") * 100.0;
+            fan_speed = mesh.settings.get<Ratio>("support_supported_skin_fan_speed") * 100.0;
         }
     }
 
@@ -3323,47 +3329,47 @@ void FffGcodeWriter::processSkinPrintFeature(
     LayerPlan& gcode_layer,
     const SliceMeshStorage& mesh,
     const size_t extruder_nr,
-    const ::curaengine::geometry::Shape& area,
+    const Shape& area,
     const GCodePathConfig& config,
     const GCodePathConfig* bridge_config,
-    ::curaengine::types::EFillMethod pattern,
-    const ::curaengine::types::AngleDegrees skin_angle,
-    const ::curaengine::utils::coord_t skin_overlap,
-    const ::curaengine::types::Ratio skin_density,
+    EFillMethod pattern,
+    const AngleDegrees skin_angle,
+    const coord_t skin_overlap,
+    const Ratio skin_density,
     const LinesOrderingMethod ordering,
     const bool is_roofing_flooring,
     bool& added_something,
     double fan_speed,
-    std::optional<::curaengine::utils::coord_t> forced_small_area_width,
+    std::optional<coord_t> forced_small_area_width,
     const OverrideAreas& override_areas) const
 {
-    ::curaengine::geometry::Shape skin_polygons;
-    ::curaengine::geometry::OpenLinesSet skin_lines;
-    std::vector<::curaengine::utils::VariableWidthLines> skin_paths;
+    Shape skin_polygons;
+    OpenLinesSet skin_lines;
+    std::vector<VariableWidthLines> skin_paths;
 
     constexpr int infill_multiplier = 1;
     constexpr int extra_infill_shift = 0;
     const size_t wall_line_count = mesh.settings.get<size_t>("skin_outline_count");
-    const bool zig_zaggify_infill = pattern == ::curaengine::types::EFillMethod::ZIG_ZAG;
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = mesh.settings.get<bool>("connect_skin_polygons");
-    ::curaengine::utils::coord_t max_resolution = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    ::curaengine::utils::coord_t max_deviation = mesh.settings.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
-    const ::curaengine::geometry::Point2LL infill_origin;
+    coord_t max_resolution = mesh.settings.get<coord_t>("meshfix_maximum_resolution");
+    coord_t max_deviation = mesh.settings.get<coord_t>("meshfix_maximum_deviation");
+    const Point2LL infill_origin;
     const bool skip_line_stitching = ordering == LinesOrderingMethod::Monotonic || ordering == LinesOrderingMethod::Interlaced;
     constexpr bool fill_gaps = true;
     constexpr bool connected_zigzags = false;
     constexpr bool use_endpieces = true;
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
-    constexpr ::curaengine::utils::coord_t pocket_size = 0;
+    constexpr coord_t pocket_size = 0;
     const bool small_areas_on_surface = mesh.settings.get<bool>("small_skin_on_surface");
-    const ::curaengine::utils::coord_t line_width = config.getLineWidth();
-    const ::curaengine::utils::coord_t small_area_width
-        = forced_small_area_width.value_or((small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<::curaengine::utils::coord_t>("small_skin_width") : line_width / 4);
+    const coord_t line_width = config.getLineWidth();
+    const coord_t small_area_width
+        = forced_small_area_width.value_or((small_areas_on_surface || ! is_roofing_flooring) ? mesh.settings.get<coord_t>("small_skin_width") : line_width / 4);
     const auto& current_layer = mesh.layers[gcode_layer.getLayerNr()];
     const auto& exposed_to_air = current_layer.top_surface.areas.unionPolygons(current_layer.bottom_surface);
 
-    ::curaengine::infill::Infill infill_comp(
+    Infill infill_comp(
         pattern,
         zig_zaggify_infill,
         connect_polygons,
@@ -3393,11 +3399,11 @@ void FffGcodeWriter::processSkinPrintFeature(
         skin_lines,
         mesh.settings,
         gcode_layer.getLayerNr(),
-        ::curaengine::utils::SectionType::SKIN,
+        SectionType::SKIN,
         nullptr,
         nullptr,
         nullptr,
-        small_areas_on_surface ? ::curaengine::geometry::Shape() : exposed_to_air);
+        small_areas_on_surface ? Shape() : exposed_to_air);
 
     // add paths
     if (! skin_polygons.empty() || ! skin_lines.empty() || ! skin_paths.empty())
@@ -3407,12 +3413,12 @@ void FffGcodeWriter::processSkinPrintFeature(
         if (! skin_paths.empty())
         {
             // Add skin-walls a.k.a. skin-perimeters, skin-insets.
-            constexpr ::curaengine::utils::coord_t wipe_dist = 0;
-            constexpr ::curaengine::types::RetractBeforeOuterWall retract_before_outer_wall = ::curaengine::types::RetractBeforeOuterWall::AUTOMATIC;
-            const ::curaengine::types::ZSeamConfig z_seam_config(
-                mesh.settings.get<::curaengine::types::EZSeamType>("z_seam_type"),
+            constexpr coord_t wipe_dist = 0;
+            constexpr RetractBeforeOuterWall retract_before_outer_wall = RetractBeforeOuterWall::AUTOMATIC;
+            const ZSeamConfig z_seam_config(
+                mesh.settings.get<EZSeamType>("z_seam_type"),
                 mesh.getZSeamHint(),
-                mesh.settings.get<::curaengine::types::EZSeamCornerPrefType>("z_seam_corner"),
+                mesh.settings.get<EZSeamCornerPrefType>("z_seam_corner"),
                 config.getLineWidth() * 2);
             InsetOrderOptimizer wall_orderer(
                 storage,
@@ -3444,15 +3450,15 @@ void FffGcodeWriter::processSkinPrintFeature(
 
         if (ordering == LinesOrderingMethod::Monotonic || ordering == LinesOrderingMethod::Interlaced)
         {
-            const ::curaengine::utils::coord_t exclude_distance = config.getLineWidth() * 0.8;
+            const coord_t exclude_distance = config.getLineWidth() * 0.8;
             const bool interlaced = ordering == LinesOrderingMethod::Interlaced;
-            const ::curaengine::types::AngleRadians monotonic_direction = ::curaengine::types::AngleRadians(skin_angle);
-            constexpr ::curaengine::types::Ratio flow = 1.0_r;
-            const ::curaengine::utils::coord_t max_adjacent_distance
+            const AngleRadians monotonic_direction = AngleRadians(skin_angle);
+            constexpr Ratio flow = 1.0_r;
+            const coord_t max_adjacent_distance
                 = infill_comp.getLineDistance()
                 * 1.1; // Lines are considered adjacent if they are 1 line width apart, with 10% extra play. The monotonic order is enforced if they are adjacent.
-            if (pattern == ::curaengine::types::EFillMethod::GRID || pattern == ::curaengine::types::EFillMethod::LINES || pattern == ::curaengine::types::EFillMethod::TRIANGLES || pattern == ::curaengine::types::EFillMethod::CUBIC
-                || pattern == ::curaengine::types::EFillMethod::TETRAHEDRAL || pattern == ::curaengine::types::EFillMethod::QUARTER_CUBIC || pattern == ::curaengine::types::EFillMethod::CUBICSUBDIV || pattern == ::curaengine::types::EFillMethod::LIGHTNING)
+            if (pattern == EFillMethod::GRID || pattern == EFillMethod::LINES || pattern == EFillMethod::TRIANGLES || pattern == EFillMethod::CUBIC
+                || pattern == EFillMethod::TETRAHEDRAL || pattern == EFillMethod::QUARTER_CUBIC || pattern == EFillMethod::CUBICSUBDIV || pattern == EFillMethod::LIGHTNING)
             {
                 gcode_layer.addLinesMonotonic(
                     area,
@@ -3462,7 +3468,7 @@ void FffGcodeWriter::processSkinPrintFeature(
                     monotonic_direction,
                     max_adjacent_distance,
                     exclude_distance,
-                    mesh.settings.get<::curaengine::utils::coord_t>("infill_wipe_dist"),
+                    mesh.settings.get<coord_t>("infill_wipe_dist"),
                     flow,
                     fan_speed,
                     interlaced,
@@ -3470,8 +3476,8 @@ void FffGcodeWriter::processSkinPrintFeature(
             }
             else
             {
-                const SpaceFillType space_fill_type = (pattern == ::curaengine::types::EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
-                constexpr ::curaengine::utils::coord_t wipe_dist = 0;
+                const SpaceFillType space_fill_type = (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+                constexpr coord_t wipe_dist = 0;
                 gcode_layer.addLinesMonotonic(
                     area,
                     skin_lines,
@@ -3489,26 +3495,26 @@ void FffGcodeWriter::processSkinPrintFeature(
         }
         else
         {
-            std::optional<::curaengine::geometry::Point2LL> near_start_location;
-            const ::curaengine::types::EFillMethod actual_pattern
-                = (gcode_layer.getLayerNr() == 0) ? mesh.settings.get<::curaengine::types::EFillMethod>("top_bottom_pattern_0") : mesh.settings.get<::curaengine::types::EFillMethod>("top_bottom_pattern");
-            if (actual_pattern == ::curaengine::types::EFillMethod::LINES || actual_pattern == ::curaengine::types::EFillMethod::ZIG_ZAG)
+            std::optional<Point2LL> near_start_location;
+            const EFillMethod actual_pattern
+                = (gcode_layer.getLayerNr() == 0) ? mesh.settings.get<EFillMethod>("top_bottom_pattern_0") : mesh.settings.get<EFillMethod>("top_bottom_pattern");
+            if (actual_pattern == EFillMethod::LINES || actual_pattern == EFillMethod::ZIG_ZAG)
             { // update near_start_location to a location which tries to avoid seams in skin
                 near_start_location = getSeamAvoidingLocation(area, skin_angle, gcode_layer.getLastPlannedPositionOrStartingPosition());
             }
 
             constexpr bool enable_travel_optimization = false;
             constexpr double flow = 1.0;
-            if (actual_pattern == ::curaengine::types::EFillMethod::GRID || actual_pattern == ::curaengine::types::EFillMethod::LINES || actual_pattern == ::curaengine::types::EFillMethod::TRIANGLES || actual_pattern == ::curaengine::types::EFillMethod::CUBIC
-                || actual_pattern == ::curaengine::types::EFillMethod::TETRAHEDRAL || actual_pattern == ::curaengine::types::EFillMethod::QUARTER_CUBIC || actual_pattern == ::curaengine::types::EFillMethod::CUBICSUBDIV
-                || actual_pattern == ::curaengine::types::EFillMethod::LIGHTNING)
+            if (actual_pattern == EFillMethod::GRID || actual_pattern == EFillMethod::LINES || actual_pattern == EFillMethod::TRIANGLES || actual_pattern == EFillMethod::CUBIC
+                || actual_pattern == EFillMethod::TETRAHEDRAL || actual_pattern == EFillMethod::QUARTER_CUBIC || actual_pattern == EFillMethod::CUBICSUBDIV
+                || actual_pattern == EFillMethod::LIGHTNING)
             {
                 gcode_layer.addLinesByOptimizer(
                     skin_lines,
                     config,
                     SpaceFillType::Lines,
                     enable_travel_optimization,
-                    mesh.settings.get<::curaengine::utils::coord_t>("infill_wipe_dist"),
+                    mesh.settings.get<coord_t>("infill_wipe_dist"),
                     flow,
                     near_start_location,
                     fan_speed,
@@ -3516,8 +3522,8 @@ void FffGcodeWriter::processSkinPrintFeature(
             }
             else
             {
-                SpaceFillType space_fill_type = (actual_pattern == ::curaengine::types::EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
-                constexpr ::curaengine::utils::coord_t wipe_dist = 0;
+                SpaceFillType space_fill_type = (actual_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines;
+                constexpr coord_t wipe_dist = 0;
                 gcode_layer.addLinesByOptimizer(skin_lines, config, space_fill_type, enable_travel_optimization, wipe_dist, flow, near_start_location, fan_speed, override_areas);
             }
         }
@@ -3561,7 +3567,7 @@ bool FffGcodeWriter::addSupportToGCode(const SliceDataStorage& storage, LayerPla
     size_t support_infill_extruder_nr = (gcode_layer.getLayerNr() <= 0) ? mesh_group_settings.get<ExtruderTrain&>("support_extruder_nr_layer_0").extruder_nr_
                                                                         : mesh_group_settings.get<ExtruderTrain&>("support_infill_extruder_nr").extruder_nr_;
 
-    const SupportLayer& support_layer = storage.support.supportLayers[std::max(::curaengine::types::LayerIndex{ 0 }, gcode_layer.getLayerNr())];
+    const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
     if (support_layer.support_bottom.empty() && support_layer.support_roof.empty() && support_layer.support_infill_parts.empty())
     {
         return support_added;
@@ -3595,7 +3601,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 {
     bool added_something = false;
     const SupportLayer& support_layer
-        = storage.support.supportLayers[std::max(::curaengine::types::LayerIndex{ 0 }, gcode_layer.getLayerNr())]; // account for negative layer numbers for raft filler layers
+        = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())]; // account for negative layer numbers for raft filler layers
 
     if (gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer || support_layer.support_infill_parts.empty())
     {
@@ -3609,15 +3615,15 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
     gcode_layer.addLinesByOptimizer(support_layer.base, gcode_layer.configs_storage_.support_infill_config[0], SpaceFillType::PolyLines);
 
-    ::curaengine::utils::coord_t default_support_line_distance = infill_extruder.settings_.get<::curaengine::utils::coord_t>("support_line_distance");
+    coord_t default_support_line_distance = infill_extruder.settings_.get<coord_t>("support_line_distance");
 
     // To improve adhesion for the "support initial layer" the first layer might have different properties
     if (gcode_layer.getLayerNr() == 0)
     {
-        default_support_line_distance = infill_extruder.settings_.get<::curaengine::utils::coord_t>("support_initial_layer_line_distance");
+        default_support_line_distance = infill_extruder.settings_.get<coord_t>("support_initial_layer_line_distance");
     }
 
-    const ::curaengine::utils::coord_t default_support_infill_overlap = infill_extruder.settings_.get<::curaengine::utils::coord_t>("infill_overlap_mm");
+    const coord_t default_support_infill_overlap = infill_extruder.settings_.get<coord_t>("infill_overlap_mm");
 
     // Helper to get the support infill angle
     const auto get_support_infill_angle = [](const SupportStorage& support_storage, const int layer_nr)
@@ -3631,7 +3637,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         }
         return support_storage.support_infill_angles.at(static_cast<size_t>(layer_nr) % support_storage.support_infill_angles.size());
     };
-    const ::curaengine::types::AngleDegrees support_infill_angle = get_support_infill_angle(storage.support, gcode_layer.getLayerNr());
+    const AngleDegrees support_infill_angle = get_support_infill_angle(storage.support, gcode_layer.getLayerNr());
 
     const auto infill_multiplier = mesh_group_settings.get<size_t>("support_infill_multiplier");
     size_t infill_density_multiplier = 1;
@@ -3641,24 +3647,24 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     }
 
     const size_t wall_thickness = infill_extruder.settings_.get<size_t>("support_wall_thickness");
-    const ::curaengine::utils::coord_t max_resolution = infill_extruder.settings_.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    const ::curaengine::utils::coord_t max_deviation = infill_extruder.settings_.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
-    ::curaengine::utils::coord_t default_support_line_width = infill_extruder.settings_.get<::curaengine::utils::coord_t>("support_line_width");
-    if (gcode_layer.getLayerNr() == 0 && mesh_group_settings.get<::curaengine::types::EPlatformAdhesion>("adhesion_type") != ::curaengine::types::EPlatformAdhesion::RAFT)
+    const coord_t max_resolution = infill_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = infill_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
+    coord_t default_support_line_width = infill_extruder.settings_.get<coord_t>("support_line_width");
+    if (gcode_layer.getLayerNr() == 0 && mesh_group_settings.get<EPlatformAdhesion>("adhesion_type") != EPlatformAdhesion::RAFT)
     {
-        default_support_line_width *= infill_extruder.settings_.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
+        default_support_line_width *= infill_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
     }
 
     // Helper to get the support pattern
-    const auto get_support_pattern = [](const ::curaengine::types::EFillMethod pattern, const int layer_nr)
+    const auto get_support_pattern = [](const EFillMethod pattern, const int layer_nr)
     {
-        if (layer_nr <= 0 && (pattern == ::curaengine::types::EFillMethod::LINES || pattern == ::curaengine::types::EFillMethod::ZIG_ZAG))
+        if (layer_nr <= 0 && (pattern == EFillMethod::LINES || pattern == EFillMethod::ZIG_ZAG))
         {
-            return ::curaengine::types::EFillMethod::GRID;
+            return EFillMethod::GRID;
         }
         return pattern;
     };
-    const ::curaengine::types::EFillMethod support_pattern = get_support_pattern(infill_extruder.settings_.get<::curaengine::types::EFillMethod>("support_pattern"), gcode_layer.getLayerNr());
+    const EFillMethod support_pattern = get_support_pattern(infill_extruder.settings_.get<EFillMethod>("support_pattern"), gcode_layer.getLayerNr());
 
     const auto zig_zaggify_infill = infill_extruder.settings_.get<bool>("zig_zaggify_support");
     const auto skip_some_zags = infill_extruder.settings_.get<bool>("support_skip_some_zags");
@@ -3675,11 +3681,11 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
     island_order_optimizer.optimize();
 
     const auto support_connect_zigzags = infill_extruder.settings_.get<bool>("support_connect_zigzags");
-    const auto support_structure = infill_extruder.settings_.get<::curaengine::types::ESupportStructure>("support_structure");
-    const ::curaengine::geometry::Point2LL infill_origin;
+    const auto support_structure = infill_extruder.settings_.get<ESupportStructure>("support_structure");
+    const Point2LL infill_origin;
 
     constexpr bool use_endpieces = true;
-    constexpr ::curaengine::utils::coord_t pocket_size = 0;
+    constexpr coord_t pocket_size = 0;
     constexpr bool connect_polygons = false; // polygons are too distant to connect for sparse support
     bool need_travel_to_end_of_last_spiral = true;
 
@@ -3693,16 +3699,16 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
         const int current_support_infill_overlap = (part.inset_width_to_generate_ > 0) ? default_support_infill_overlap : 0;
 
         // The support infill walls were generated separately, first. Always add them, regardless of how many densities we have.
-        std::vector<::curaengine::utils::VariableWidthLines> wall_toolpaths = part.wall_toolpaths_;
+        std::vector<VariableWidthLines> wall_toolpaths = part.wall_toolpaths_;
 
         if (! wall_toolpaths.empty())
         {
             const GCodePathConfig& config = configs[0];
-            constexpr ::curaengine::utils::coord_t wipe_dist = 0;
-            const ::curaengine::types::LayerIndex layer_nr = gcode_layer.getLayerNr();
-            ::curaengine::types::ZSeamConfig z_seam_config
-                = ::curaengine::types::ZSeamConfig(::curaengine::types::EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
-            ::curaengine::geometry::Shape disallowed_area_for_seams{};
+            constexpr coord_t wipe_dist = 0;
+            const LayerIndex layer_nr = gcode_layer.getLayerNr();
+            ZSeamConfig z_seam_config
+                = ZSeamConfig(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
+            Shape disallowed_area_for_seams{};
             if (infill_extruder.settings_.get<bool>("support_z_seam_away_from_model") && (layer_nr >= 0))
             {
                 for (std::shared_ptr<SliceMeshStorage> mesh_ptr : storage.meshes)
@@ -3715,7 +3721,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
                 if (! disallowed_area_for_seams.empty())
                 {
-                    ::curaengine::utils::coord_t min_distance = infill_extruder.settings_.get<::curaengine::utils::coord_t>("support_z_seam_min_distance");
+                    coord_t min_distance = infill_extruder.settings_.get<coord_t>("support_z_seam_min_distance");
                     disallowed_area_for_seams = disallowed_area_for_seams.offset(min_distance, ClipperLib::jtRound);
                 }
             }
@@ -3751,11 +3757,11 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 
         for (unsigned int combine_idx = 0; combine_idx < part.infill_area_per_combine_per_density_[0].size(); ++combine_idx)
         {
-            const ::curaengine::utils::coord_t support_line_width = default_support_line_width * (combine_idx + 1);
+            const coord_t support_line_width = default_support_line_width * (combine_idx + 1);
 
-            ::curaengine::geometry::Shape support_polygons;
-            std::vector<::curaengine::utils::VariableWidthLines> wall_toolpaths_here;
-            ::curaengine::geometry::OpenLinesSet support_lines;
+            Shape support_polygons;
+            std::vector<VariableWidthLines> wall_toolpaths_here;
+            OpenLinesSet support_lines;
             const size_t max_density_idx = part.infill_area_per_combine_per_density_.size() - 1;
             for (size_t density_idx = max_density_idx; (density_idx + 1) > 0; --density_idx)
             {
@@ -3765,7 +3771,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                 }
 
                 const unsigned int density_factor = 2 << density_idx; // == pow(2, density_idx + 1)
-                ::curaengine::utils::coord_t support_line_distance_here
+                coord_t support_line_distance_here
                     = (part.custom_line_distance_ > 0
                            ? part.custom_line_distance_
                            : default_support_line_distance * density_factor); // the highest density infill combines with the next to create a grid with density_factor 1
@@ -3775,23 +3781,23 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_line_distance_here = std::max(support_line_distance_here, support_line_width);
                 }
                 const int support_shift = support_line_distance_here / 2;
-                if (part.custom_line_distance_ == 0 && (density_idx == max_density_idx || support_pattern == ::curaengine::types::EFillMethod::CROSS || support_pattern == ::curaengine::types::EFillMethod::CROSS_3D))
+                if (part.custom_line_distance_ == 0 && (density_idx == max_density_idx || support_pattern == EFillMethod::CROSS || support_pattern == EFillMethod::CROSS_3D))
                 {
                     support_line_distance_here /= 2;
                 }
-                const ::curaengine::geometry::Shape& area = ::curaengine::utils::Simplify(infill_extruder.settings_).polygon(part.infill_area_per_combine_per_density_[density_idx][combine_idx]);
+                const Shape& area = Simplify(infill_extruder.settings_).polygon(part.infill_area_per_combine_per_density_[density_idx][combine_idx]);
 
-                std::shared_ptr<::curaengine::infill::LightningLayer> lightning_layer;
+                std::shared_ptr<LightningLayer> lightning_layer;
                 if (storage.support.lightning_generator)
                 {
-                    lightning_layer = std::make_shared<::curaengine::infill::LightningLayer>(storage.support.lightning_generator->getTreesForLayer(std::max(::curaengine::types::LayerIndex{ 0 }, gcode_layer.getLayerNr())));
+                    lightning_layer = std::make_shared<LightningLayer>(storage.support.lightning_generator->getTreesForLayer(std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())));
                 }
 
                 constexpr size_t wall_count = 0; // Walls are generated somewhere else, so their layers aren't vertically combined.
-                const ::curaengine::utils::coord_t small_area_width = 0;
+                const coord_t small_area_width = 0;
                 constexpr bool skip_stitching = false;
                 const bool fill_gaps = density_idx == 0; // Only fill gaps for one of the densities.
-                ::curaengine::infill::Infill infill_comp(
+                Infill infill_comp(
                     support_pattern,
                     zig_zaggify_infill,
                     connect_polygons,
@@ -3821,7 +3827,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                     support_lines,
                     infill_extruder.settings_,
                     gcode_layer.getLayerNr(),
-                    ::curaengine::utils::SectionType::SUPPORT,
+                    SectionType::SUPPORT,
                     storage.support.cross_fill_provider,
                     lightning_layer);
             }
@@ -3837,7 +3843,7 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
                         // to the start of the support does not go through the model we have to tell the slicer what the current location of the nozzle is
                         // by adding a travel move to the end vertex of the last spiral. Of course, if the slicer could track the final location on the previous
                         // layer then this wouldn't be necessary but that's not done due to the multi-threading.
-                        const ::curaengine::geometry::Shape* last_wall_outline = storage.spiralize_wall_outlines[layer_nr - 1];
+                        const Shape* last_wall_outline = storage.spiralize_wall_outlines[layer_nr - 1];
                         if (last_wall_outline != nullptr)
                         {
                             gcode_layer.addTravel((*last_wall_outline)[0][storage.spiralize_seam_vertex_indices[layer_nr - 1]]);
@@ -3857,12 +3863,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             {
                 gcode_layer.addTravel(support_polygons[0][0]);
 
-                const ::curaengine::types::ZSeamConfig& z_seam_config = ::curaengine::types::ZSeamConfig();
-                constexpr ::curaengine::utils::coord_t wall_0_wipe_dist = 0;
+                const ZSeamConfig& z_seam_config = ZSeamConfig();
+                constexpr coord_t wall_0_wipe_dist = 0;
                 constexpr bool spiralize = false;
-                constexpr ::curaengine::types::Ratio flow_ratio = 1.0_r;
+                constexpr Ratio flow_ratio = 1.0_r;
                 constexpr auto always_retract = ForceRetract::AUTOMATIC;
-                const std::optional<::curaengine::geometry::Point2LL> start_near_location = std::optional<::curaengine::geometry::Point2LL>();
+                const std::optional<Point2LL> start_near_location = std::optional<Point2LL>();
 
                 gcode_layer.addPolygonsByOptimizer(
                     support_polygons,
@@ -3882,15 +3888,15 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             if (! support_lines.empty())
             {
                 constexpr bool enable_travel_optimization = false;
-                constexpr ::curaengine::utils::coord_t wipe_dist = 0;
-                constexpr ::curaengine::types::Ratio flow_ratio = 1.0;
-                const std::optional<::curaengine::geometry::Point2LL> near_start_location = std::optional<::curaengine::geometry::Point2LL>();
+                constexpr coord_t wipe_dist = 0;
+                constexpr Ratio flow_ratio = 1.0;
+                const std::optional<Point2LL> near_start_location = std::optional<Point2LL>();
                 constexpr double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT;
 
                 gcode_layer.addLinesByOptimizer(
                     support_lines,
                     configs[combine_idx],
-                    (support_pattern == ::curaengine::types::EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines,
+                    (support_pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines,
                     enable_travel_optimization,
                     wipe_dist,
                     flow_ratio,
@@ -3907,12 +3913,12 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
             if (wall_thickness == 0 || ! wall_toolpaths_here.empty())
             {
                 const GCodePathConfig& config = configs[0];
-                constexpr ::curaengine::utils::coord_t wipe_dist = 0;
-                constexpr ::curaengine::utils::coord_t simplify_curvature = 0;
-                const ::curaengine::types::ZSeamConfig z_seam_config(
-                    ::curaengine::types::EZSeamType::SHORTEST,
+                constexpr coord_t wipe_dist = 0;
+                constexpr coord_t simplify_curvature = 0;
+                const ZSeamConfig z_seam_config(
+                    EZSeamType::SHORTEST,
                     gcode_layer.getLastPlannedPositionOrStartingPosition(),
-                    ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
+                    EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER,
                     simplify_curvature);
                 InsetOrderOptimizer wall_orderer(
                     storage,
@@ -3943,10 +3949,10 @@ bool FffGcodeWriter::processSupportInfill(const SliceDataStorage& storage, Layer
 }
 
 
-bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, const ::curaengine::geometry::Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer)
+bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, const Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer)
     const
 {
-    const SupportLayer& support_layer = storage.support.supportLayers[std::max(::curaengine::types::LayerIndex{ 0 }, gcode_layer.getLayerNr())];
+    const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
 
     if (! storage.support.generated || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer || support_layer.support_roof.empty())
     {
@@ -3956,8 +3962,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
     const size_t roof_extruder_nr = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_roof_extruder_nr").extruder_nr_;
     const ExtruderTrain& roof_extruder = Application::getInstance().current_slice_->scene.extruders[roof_extruder_nr];
 
-    const ::curaengine::types::EFillMethod pattern = roof_extruder.settings_.get<::curaengine::types::EFillMethod>("support_roof_pattern");
-    ::curaengine::types::AngleDegrees fill_angle = 0;
+    const EFillMethod pattern = roof_extruder.settings_.get<EFillMethod>("support_roof_pattern");
+    AngleDegrees fill_angle = 0;
     if (! storage.support.support_roof_angles.empty())
     {
         // handle negative layer numbers
@@ -3965,42 +3971,42 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
         int index = ((gcode_layer.getLayerNr() % divisor) + divisor) % divisor;
         fill_angle = storage.support.support_roof_angles.at(index);
     }
-    const bool zig_zaggify_infill = pattern == ::curaengine::types::EFillMethod::ZIG_ZAG;
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     const bool connect_polygons = false; // connections might happen in mid air in between the infill lines
-    constexpr ::curaengine::utils::coord_t support_roof_overlap = 0; // the roofs should never be expanded outwards
+    constexpr coord_t support_roof_overlap = 0; // the roofs should never be expanded outwards
     constexpr size_t infill_multiplier = 1;
-    constexpr ::curaengine::utils::coord_t extra_infill_shift = 0;
+    constexpr coord_t extra_infill_shift = 0;
     const auto wall_line_count = roof_extruder.settings_.get<size_t>("support_roof_wall_count");
-    const ::curaengine::utils::coord_t small_area_width = roof_extruder.settings_.get<::curaengine::utils::coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
-    const ::curaengine::geometry::Point2LL infill_origin;
+    const coord_t small_area_width = roof_extruder.settings_.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+    const Point2LL infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
     constexpr bool skip_some_zags = false;
     constexpr size_t zag_skip_count = 0;
-    constexpr ::curaengine::utils::coord_t pocket_size = 0;
-    const ::curaengine::utils::coord_t max_resolution = roof_extruder.settings_.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    const ::curaengine::utils::coord_t max_deviation = roof_extruder.settings_.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
+    constexpr coord_t pocket_size = 0;
+    const coord_t max_resolution = roof_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = roof_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
 
-    ::curaengine::utils::coord_t support_roof_line_distance = roof_extruder.settings_.get<::curaengine::utils::coord_t>("support_roof_line_distance");
-    const ::curaengine::utils::coord_t support_roof_line_width = roof_extruder.settings_.get<::curaengine::utils::coord_t>("support_roof_line_width");
+    coord_t support_roof_line_distance = roof_extruder.settings_.get<coord_t>("support_roof_line_distance");
+    const coord_t support_roof_line_width = roof_extruder.settings_.get<coord_t>("support_roof_line_width");
     if (gcode_layer.getLayerNr() == 0 && support_roof_line_distance < 2 * support_roof_line_width)
     { // if roof is dense
-        support_roof_line_distance *= roof_extruder.settings_.get<::curaengine::types::Ratio>("initial_layer_line_width_factor");
+        support_roof_line_distance *= roof_extruder.settings_.get<Ratio>("initial_layer_line_width_factor");
     }
 
-    ::curaengine::geometry::Shape infill_outline = support_roof_outlines;
-    ::curaengine::geometry::Shape wall;
+    Shape infill_outline = support_roof_outlines;
+    Shape wall;
     // make sure there is a wall if this is on the first layer
     if (gcode_layer.getLayerNr() == 0)
     {
         wall = support_roof_outlines.offset(-support_roof_line_width / 2);
         infill_outline = wall.offset(-support_roof_line_width / 2);
     }
-    infill_outline = ::curaengine::utils::Simplify(roof_extruder.settings_).polygon(infill_outline);
+    infill_outline = Simplify(roof_extruder.settings_).polygon(infill_outline);
 
-    ::curaengine::infill::Infill roof_computation(
+    Infill roof_computation(
         pattern,
         zig_zaggify_infill,
         connect_polygons,
@@ -4024,10 +4030,10 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
         skip_some_zags,
         zag_skip_count,
         pocket_size);
-    ::curaengine::geometry::Shape roof_polygons;
-    std::vector<::curaengine::utils::VariableWidthLines> roof_paths;
-    ::curaengine::geometry::OpenLinesSet roof_lines;
-    roof_computation.generate(roof_paths, roof_polygons, roof_lines, roof_extruder.settings_, gcode_layer.getLayerNr(), ::curaengine::utils::SectionType::SUPPORT);
+    Shape roof_polygons;
+    std::vector<VariableWidthLines> roof_paths;
+    OpenLinesSet roof_lines;
+    roof_computation.generate(roof_paths, roof_polygons, roof_lines, roof_extruder.settings_, gcode_layer.getLayerNr(), SectionType::SUPPORT);
     if ((gcode_layer.getLayerNr() == 0 && wall.empty()) || (gcode_layer.getLayerNr() > 0 && roof_paths.empty() && roof_polygons.empty() && roof_lines.empty()))
     {
         return false; // We didn't create any support roof.
@@ -4045,8 +4051,8 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
     if (! roof_paths.empty())
     {
         const GCodePathConfig& config = current_roof_config;
-        constexpr ::curaengine::utils::coord_t wipe_dist = 0;
-        const ::curaengine::types::ZSeamConfig z_seam_config(::curaengine::types::EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
+        constexpr coord_t wipe_dist = 0;
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
         InsetOrderOptimizer wall_orderer(
             storage,
@@ -4070,13 +4076,13 @@ bool FffGcodeWriter::addSupportRoofsToGCode(const SliceDataStorage& storage, con
             storage.getModelBoundingBox().flatten().getMiddle());
         wall_orderer.addToLayer();
     }
-    gcode_layer.addLinesByOptimizer(roof_lines, current_roof_config, (pattern == ::curaengine::types::EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+    gcode_layer.addLinesByOptimizer(roof_lines, current_roof_config, (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
 }
 
 bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, LayerPlan& gcode_layer) const
 {
-    const SupportLayer& support_layer = storage.support.supportLayers[std::max(::curaengine::types::LayerIndex{ 0 }, gcode_layer.getLayerNr())];
+    const SupportLayer& support_layer = storage.support.supportLayers[std::max(LayerIndex{ 0 }, gcode_layer.getLayerNr())];
 
     if (! storage.support.generated || gcode_layer.getLayerNr() > storage.support.layer_nr_max_filled_layer || support_layer.support_bottom.empty())
     {
@@ -4086,8 +4092,8 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     const size_t bottom_extruder_nr = Application::getInstance().current_slice_->scene.current_mesh_group->settings.get<ExtruderTrain&>("support_bottom_extruder_nr").extruder_nr_;
     const ExtruderTrain& bottom_extruder = Application::getInstance().current_slice_->scene.extruders[bottom_extruder_nr];
 
-    const ::curaengine::types::EFillMethod pattern = bottom_extruder.settings_.get<::curaengine::types::EFillMethod>("support_bottom_pattern");
-    ::curaengine::types::AngleDegrees fill_angle = 0;
+    const EFillMethod pattern = bottom_extruder.settings_.get<EFillMethod>("support_bottom_pattern");
+    AngleDegrees fill_angle = 0;
     if (! storage.support.support_bottom_angles.empty())
     {
         // handle negative layer numbers
@@ -4095,28 +4101,28 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         int index = ((gcode_layer.getLayerNr() % divisor) + divisor) % divisor;
         fill_angle = storage.support.support_bottom_angles.at(index);
     }
-    const bool zig_zaggify_infill = pattern == ::curaengine::types::EFillMethod::ZIG_ZAG;
+    const bool zig_zaggify_infill = pattern == EFillMethod::ZIG_ZAG;
     constexpr bool connect_polygons = false; // Keep the same as roof, also does make a bit less sense when support infill is < 100% or support walls are set to > 0.
-    constexpr ::curaengine::utils::coord_t support_bottom_overlap = 0; // the bottoms should never be expanded outwards
+    constexpr coord_t support_bottom_overlap = 0; // the bottoms should never be expanded outwards
     constexpr size_t infill_multiplier = 1;
-    constexpr ::curaengine::utils::coord_t extra_infill_shift = 0;
+    constexpr coord_t extra_infill_shift = 0;
     const auto wall_line_count = bottom_extruder.settings_.get<size_t>("support_bottom_wall_count");
-    const ::curaengine::utils::coord_t small_area_width = bottom_extruder.settings_.get<::curaengine::utils::coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
+    const coord_t small_area_width = bottom_extruder.settings_.get<coord_t>("min_even_wall_line_width") * 2; // Maximum width of a region that can still be filled with one wall.
 
-    const ::curaengine::geometry::Point2LL infill_origin;
+    const Point2LL infill_origin;
     constexpr bool skip_stitching = false;
     constexpr bool fill_gaps = true;
     constexpr bool use_endpieces = true;
     constexpr bool connected_zigzags = false;
     constexpr bool skip_some_zags = false;
     constexpr int zag_skip_count = 0;
-    constexpr ::curaengine::utils::coord_t pocket_size = 0;
-    const ::curaengine::utils::coord_t max_resolution = bottom_extruder.settings_.get<::curaengine::utils::coord_t>("meshfix_maximum_resolution");
-    const ::curaengine::utils::coord_t max_deviation = bottom_extruder.settings_.get<::curaengine::utils::coord_t>("meshfix_maximum_deviation");
+    constexpr coord_t pocket_size = 0;
+    const coord_t max_resolution = bottom_extruder.settings_.get<coord_t>("meshfix_maximum_resolution");
+    const coord_t max_deviation = bottom_extruder.settings_.get<coord_t>("meshfix_maximum_deviation");
 
-    const ::curaengine::utils::coord_t support_bottom_line_distance = bottom_extruder.settings_.get<::curaengine::utils::coord_t>(
+    const coord_t support_bottom_line_distance = bottom_extruder.settings_.get<coord_t>(
         "support_bottom_line_distance"); // note: no need to apply initial line width factor; support bottoms cannot exist on the first layer
-    ::curaengine::infill::Infill bottom_computation(
+    Infill bottom_computation(
         pattern,
         zig_zaggify_infill,
         connect_polygons,
@@ -4140,10 +4146,10 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
         skip_some_zags,
         zag_skip_count,
         pocket_size);
-    ::curaengine::geometry::Shape bottom_polygons;
-    std::vector<::curaengine::utils::VariableWidthLines> bottom_paths;
-    ::curaengine::geometry::OpenLinesSet bottom_lines;
-    bottom_computation.generate(bottom_paths, bottom_polygons, bottom_lines, bottom_extruder.settings_, gcode_layer.getLayerNr(), ::curaengine::utils::SectionType::SUPPORT);
+    Shape bottom_polygons;
+    std::vector<VariableWidthLines> bottom_paths;
+    OpenLinesSet bottom_lines;
+    bottom_computation.generate(bottom_paths, bottom_polygons, bottom_lines, bottom_extruder.settings_, gcode_layer.getLayerNr(), SectionType::SUPPORT);
     if (bottom_paths.empty() && bottom_polygons.empty() && bottom_lines.empty())
     {
         return false;
@@ -4157,8 +4163,8 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     if (! bottom_paths.empty())
     {
         const GCodePathConfig& config = gcode_layer.configs_storage_.support_bottom_config;
-        constexpr ::curaengine::utils::coord_t wipe_dist = 0;
-        const ::curaengine::types::ZSeamConfig z_seam_config(::curaengine::types::EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
+        constexpr coord_t wipe_dist = 0;
+        const ZSeamConfig z_seam_config(EZSeamType::SHORTEST, gcode_layer.getLastPlannedPositionOrStartingPosition(), EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER, false);
 
         InsetOrderOptimizer wall_orderer(
             storage,
@@ -4185,7 +4191,7 @@ bool FffGcodeWriter::addSupportBottomsToGCode(const SliceDataStorage& storage, L
     gcode_layer.addLinesByOptimizer(
         bottom_lines,
         gcode_layer.configs_storage_.support_bottom_config,
-        (pattern == ::curaengine::types::EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
+        (pattern == EFillMethod::ZIG_ZAG) ? SpaceFillType::PolyLines : SpaceFillType::Lines);
     return true;
 }
 
@@ -4205,7 +4211,7 @@ void FffGcodeWriter::setExtruder_addPrime(const SliceDataStorage& storage, Layer
             if (train.settings_.get<bool>("prime_blob_enable")) // Don't travel to the prime-blob position if not enabled though.
             {
                 bool prime_pos_is_abs = train.settings_.get<bool>("extruder_prime_pos_abs");
-                ::curaengine::geometry::Point2LL prime_pos = ::curaengine::geometry::Point2LL(train.settings_.get<::curaengine::utils::coord_t>("extruder_prime_pos_x"), train.settings_.get<::curaengine::utils::coord_t>("extruder_prime_pos_y"));
+                Point2LL prime_pos = Point2LL(train.settings_.get<coord_t>("extruder_prime_pos_x"), train.settings_.get<coord_t>("extruder_prime_pos_y"));
                 gcode_layer.addTravel(prime_pos_is_abs ? prime_pos : gcode_layer.getLastPlannedPositionOrStartingPosition() + prime_pos);
                 gcode_layer.planPrime();
             }
@@ -4236,7 +4242,7 @@ void FffGcodeWriter::addPrimeTower(const SliceDataStorage& storage, LayerPlan& g
         return;
     }
 
-    const ::curaengine::types::LayerIndex layer_nr = gcode_layer.getLayerNr();
+    const LayerIndex layer_nr = gcode_layer.getLayerNr();
     const std::vector<ExtruderUse> extruder_order = extruder_order_per_layer.get(layer_nr);
     storage.prime_tower_->addToGcode(storage, gcode_layer, extruder_order, prev_extruder, gcode_layer.getExtruder());
 }
@@ -4250,7 +4256,7 @@ void FffGcodeWriter::finalize()
     {
         gcode.setZ(max_object_height + MM2INT(5));
         Application::getInstance().communication_->sendCurrentPosition(gcode.getPosition());
-        gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<::curaengine::types::Velocity>("speed_z_hop"));
+        gcode.writeTravel(gcode.getPositionXY(), Application::getInstance().current_slice_->scene.extruders[gcode.getExtruderNr()].settings_.get<Velocity>("speed_z_hop"));
     }
     // Write the current extruder's end G-code
     const Scene& scene = Application::getInstance().current_slice_->scene;
@@ -4267,7 +4273,7 @@ void FffGcodeWriter::finalize()
         gcode.writeBedTemperatureCommand(0); // Cool down the bed (M140).
         // Nozzles are cooled down automatically after the last time they are used (which might be earlier than the end of the print).
     }
-    if (mesh_group_settings.get<bool>("machine_heated_build_volume") && mesh_group_settings.get<::curaengine::types::Temperature>("build_volume_temperature") != 0)
+    if (mesh_group_settings.get<bool>("machine_heated_build_volume") && mesh_group_settings.get<Temperature>("build_volume_temperature") != 0)
     {
         gcode.writeBuildVolumeTemperatureCommand(0); // Cool down the build volume.
     }
@@ -4275,12 +4281,12 @@ void FffGcodeWriter::finalize()
     Application::getInstance().communication_->sendSliceUUID(slice_uuid);
     if (mesh_group_settings.get<bool>("acceleration_enabled"))
     {
-        gcode.writePrintAcceleration(mesh_group_settings.get<::curaengine::types::Acceleration>("machine_acceleration"));
-        gcode.writeTravelAcceleration(mesh_group_settings.get<::curaengine::types::Acceleration>("machine_acceleration"));
+        gcode.writePrintAcceleration(mesh_group_settings.get<Acceleration>("machine_acceleration"));
+        gcode.writeTravelAcceleration(mesh_group_settings.get<Acceleration>("machine_acceleration"));
     }
     if (mesh_group_settings.get<bool>("jerk_enabled"))
     {
-        gcode.writeJerk(mesh_group_settings.get<::curaengine::types::Velocity>("machine_max_jerk_xy"));
+        gcode.writeJerk(mesh_group_settings.get<Velocity>("machine_max_jerk_xy"));
     }
 
     // Replace the setting tokens in start and end g-code.

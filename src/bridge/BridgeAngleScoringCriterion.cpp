@@ -7,10 +7,13 @@
 #include "geometry/PointMatrix.h"
 
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+
 namespace curaengine::bridge
 {
 
-BridgeAngleScoringCriterion::BridgeAngleScoringCriterion(const std::vector<::curaengine::types::AngleDegrees>& candidates, const ::curaengine::geometry::Shape& skin_outline, const ::curaengine::geometry::Shape& supported_regions)
+BridgeAngleScoringCriterion::BridgeAngleScoringCriterion(const std::vector<AngleDegrees>& candidates, const Shape& skin_outline, const Shape& supported_regions)
     : candidates_(candidates)
     , skin_outline_(skin_outline)
     , supported_regions_(supported_regions)
@@ -19,8 +22,8 @@ BridgeAngleScoringCriterion::BridgeAngleScoringCriterion(const std::vector<::cur
 
 double BridgeAngleScoringCriterion::computeScore(const size_t candidate_index) const
 {
-    const ::curaengine::types::AngleDegrees& angle = candidates_[candidate_index];
-    const ::curaengine::geometry::PointMatrix matrix(angle);
+    const AngleDegrees& angle = candidates_[candidate_index];
+    const PointMatrix matrix(angle);
     const TransformedShape transformed_skin(skin_outline_, matrix);
     const TransformedShape transformed_supported_regions(supported_regions_, matrix);
 

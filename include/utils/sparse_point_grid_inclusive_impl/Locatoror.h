@@ -12,7 +12,7 @@ namespace curaengine::utils::sparse_point_grid_inclusive_impl
 template<class T>
 struct Locatoror
 {
-    ::curaengine::geometry::Point2LL operator()(const SparsePointGridInclusiveElem<T>& elem)
+    geometry::Point2LL operator()(const SparsePointGridInclusiveElem<T>& elem)
     {
         return elem.point;
     }

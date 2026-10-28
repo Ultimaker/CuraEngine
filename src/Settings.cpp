@@ -55,6 +55,10 @@
 #include "utils/Escaped.h"
 #include "types/string_switch.h" //For string switch.
 
+using namespace curaengine::geometry;
+using namespace curaengine::types;
+using namespace curaengine::utils;
+
 namespace curaengine
 {
 
@@ -169,84 +173,84 @@ std::vector<ExtruderTrain*> Settings::get<std::vector<ExtruderTrain*>>(const std
 }
 
 template<>
-::curaengine::types::LayerIndex Settings::get<::curaengine::types::LayerIndex>(const std::string& key) const
+LayerIndex Settings::get<LayerIndex>(const std::string& key) const
 {
     // For the user we display layer numbers starting from 1, but we start counting from 0. Still it may be negative for Raft layers.
     return std::atoi(get<std::string>(key).c_str()) - 1;
 }
 
 template<>
-::curaengine::utils::coord_t Settings::get<::curaengine::utils::coord_t>(const std::string& key) const
+coord_t Settings::get<coord_t>(const std::string& key) const
 {
     return MM2INT(get<double>(key)); // The settings are all in millimetres, but we need to interpret them as microns.
 }
 
 template<>
-::curaengine::types::AngleRadians Settings::get<::curaengine::types::AngleRadians>(const std::string& key) const
+AngleRadians Settings::get<AngleRadians>(const std::string& key) const
 {
     return get<double>(key) * std::numbers::pi / 180; // The settings are all in degrees, but we need to interpret them as radians.
 }
 
 template<>
-::curaengine::types::AngleDegrees Settings::get<::curaengine::types::AngleDegrees>(const std::string& key) const
+AngleDegrees Settings::get<AngleDegrees>(const std::string& key) const
 {
     return get<double>(key);
 }
 
 template<>
-::curaengine::types::Temperature Settings::get<::curaengine::types::Temperature>(const std::string& key) const
+Temperature Settings::get<Temperature>(const std::string& key) const
 {
     return get<double>(key);
 }
 
 template<>
-::curaengine::types::Velocity Settings::get<::curaengine::types::Velocity>(const std::string& key) const
+Velocity Settings::get<Velocity>(const std::string& key) const
 {
     return get<double>(key);
 }
 
 template<>
-::curaengine::types::Acceleration Settings::get<::curaengine::types::Acceleration>(const std::string& key) const
+Acceleration Settings::get<Acceleration>(const std::string& key) const
 {
     return get<double>(key);
 }
 
 template<>
-::curaengine::types::Ratio Settings::get<::curaengine::types::Ratio>(const std::string& key) const
+Ratio Settings::get<Ratio>(const std::string& key) const
 {
     return get<double>(key) / 100.0; // The settings are all in percentages, but we need to interpret them as ratios.
 }
 
 template<>
-::curaengine::types::Duration Settings::get<::curaengine::types::Duration>(const std::string& key) const
+Duration Settings::get<Duration>(const std::string& key) const
 {
     return get<double>(key);
 }
 
 template<>
-::curaengine::types::DraftShieldHeightLimitation Settings::get<::curaengine::types::DraftShieldHeightLimitation>(const std::string& key) const
+DraftShieldHeightLimitation Settings::get<DraftShieldHeightLimitation>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "full"_sw:
-        return ::curaengine::types::DraftShieldHeightLimitation::FULL;
+        return DraftShieldHeightLimitation::FULL;
     case "limited"_sw:
-        return ::curaengine::types::DraftShieldHeightLimitation::LIMITED;
+        return DraftShieldHeightLimitation::LIMITED;
     case "plugin"_sw:
-        return ::curaengine::types::DraftShieldHeightLimitation::PLUGIN;
+        return DraftShieldHeightLimitation::PLUGIN;
     default:
-        return ::curaengine::types::DraftShieldHeightLimitation::FULL;
+        return DraftShieldHeightLimitation::FULL;
     }
 }
 
 template<>
-::curaengine::geometry::Shape Settings::get<::curaengine::geometry::Shape>(const std::string& key) const
+Shape Settings::get<Shape>(const std::string& key) const
 {
     std::string value_string = get<std::string>(key);
 
-    ::curaengine::geometry::Shape result;
+    Shape result;
     if (value_string.empty())
     {
         return result; // Empty at this point.
@@ -272,7 +276,7 @@ template<>
         {
             std::string polygon_str = *polygon_match_iter++;
 
-            ::curaengine::geometry::Polygon& poly = result.newLine();
+            Polygon& poly = result.newLine();
 
             std::regex point2D_regex(R"(\[([^,\[]*),([^,\]]*)\])"); // matches to a list of exactly two things
 
@@ -303,11 +307,11 @@ template<>
 }
 
 template<>
-::curaengine::geometry::Matrix4x3D Settings::get<::curaengine::geometry::Matrix4x3D>(const std::string& key) const
+Matrix4x3D Settings::get<Matrix4x3D>(const std::string& key) const
 {
     const std::string value_string = get<std::string>(key);
 
-    ::curaengine::geometry::Matrix4x3D result;
+    Matrix4x3D result;
     if (value_string.empty())
     {
         return result; // Standard matrix ([[1,0,0], [0,1,0], [0,0,1]]).
@@ -344,412 +348,412 @@ template<>
 }
 
 template<>
-::curaengine::types::EGCodeFlavor Settings::get<::curaengine::types::EGCodeFlavor>(const std::string& key) const
+EGCodeFlavor Settings::get<EGCodeFlavor>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "Marlin"_sw:
-        return ::curaengine::types::EGCodeFlavor::MARLIN;
+        return EGCodeFlavor::MARLIN;
     case "Griffin"_sw:
-        return ::curaengine::types::EGCodeFlavor::GRIFFIN;
+        return EGCodeFlavor::GRIFFIN;
     case "Cheetah"_sw:
-        return ::curaengine::types::EGCodeFlavor::CHEETAH;
+        return EGCodeFlavor::CHEETAH;
     case "UltiGCode"_sw:
-        return ::curaengine::types::EGCodeFlavor::ULTIGCODE;
+        return EGCodeFlavor::ULTIGCODE;
     case "Makerbot"_sw:
-        return ::curaengine::types::EGCodeFlavor::MAKERBOT;
+        return EGCodeFlavor::MAKERBOT;
     case "BFB"_sw:
-        return ::curaengine::types::EGCodeFlavor::BFB;
+        return EGCodeFlavor::BFB;
     case "MACH3"_sw:
-        return ::curaengine::types::EGCodeFlavor::MACH3;
+        return EGCodeFlavor::MACH3;
     case "RepRap (Volumetric)"_sw:
-        return ::curaengine::types::EGCodeFlavor::MARLIN_VOLUMATRIC;
+        return EGCodeFlavor::MARLIN_VOLUMATRIC;
     case "Repetier"_sw:
-        return ::curaengine::types::EGCodeFlavor::REPETIER;
+        return EGCodeFlavor::REPETIER;
     case "RepRap (RepRap)"_sw:
-        return ::curaengine::types::EGCodeFlavor::REPRAP;
+        return EGCodeFlavor::REPRAP;
     case "plugin"_sw:
-        return ::curaengine::types::EGCodeFlavor::PLUGIN;
+        return EGCodeFlavor::PLUGIN;
     default:
-        return ::curaengine::types::EGCodeFlavor::MARLIN;
+        return EGCodeFlavor::MARLIN;
     }
 }
 
 template<>
-::curaengine::types::EFillMethod Settings::get<::curaengine::types::EFillMethod>(const std::string& key) const
+EFillMethod Settings::get<EFillMethod>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "none"_sw:
-        return ::curaengine::types::EFillMethod::NONE;
+        return EFillMethod::NONE;
     case "lines"_sw:
-        return ::curaengine::types::EFillMethod::LINES;
+        return EFillMethod::LINES;
     case "grid"_sw:
-        return ::curaengine::types::EFillMethod::GRID;
+        return EFillMethod::GRID;
     case "cubic"_sw:
-        return ::curaengine::types::EFillMethod::CUBIC;
+        return EFillMethod::CUBIC;
     case "cubicsubdiv"_sw:
-        return ::curaengine::types::EFillMethod::CUBICSUBDIV;
+        return EFillMethod::CUBICSUBDIV;
     case "tetrahedral"_sw:
-        return ::curaengine::types::EFillMethod::TETRAHEDRAL;
+        return EFillMethod::TETRAHEDRAL;
     case "quarter_cubic"_sw:
-        return ::curaengine::types::EFillMethod::QUARTER_CUBIC;
+        return EFillMethod::QUARTER_CUBIC;
     case "triangles"_sw:
-        return ::curaengine::types::EFillMethod::TRIANGLES;
+        return EFillMethod::TRIANGLES;
     case "trihexagon"_sw:
-        return ::curaengine::types::EFillMethod::TRIHEXAGON;
+        return EFillMethod::TRIHEXAGON;
     case "concentric"_sw:
-        return ::curaengine::types::EFillMethod::CONCENTRIC;
+        return EFillMethod::CONCENTRIC;
     case "zigzag"_sw:
-        return ::curaengine::types::EFillMethod::ZIG_ZAG;
+        return EFillMethod::ZIG_ZAG;
     case "cross"_sw:
-        return ::curaengine::types::EFillMethod::CROSS;
+        return EFillMethod::CROSS;
     case "cross_3d"_sw:
-        return ::curaengine::types::EFillMethod::CROSS_3D;
+        return EFillMethod::CROSS_3D;
     case "gyroid"_sw:
-        return ::curaengine::types::EFillMethod::GYROID;
+        return EFillMethod::GYROID;
     case "lightning"_sw:
-        return ::curaengine::types::EFillMethod::LIGHTNING;
+        return EFillMethod::LIGHTNING;
     case "honeycomb"_sw:
-        return ::curaengine::types::EFillMethod::HONEYCOMB;
+        return EFillMethod::HONEYCOMB;
     case "octagon"_sw:
-        return ::curaengine::types::EFillMethod::OCTAGON;
+        return EFillMethod::OCTAGON;
     case "plugin"_sw:
-        return ::curaengine::types::EFillMethod::PLUGIN;
+        return EFillMethod::PLUGIN;
     default:
-        return ::curaengine::types::EFillMethod::NONE;
+        return EFillMethod::NONE;
     }
 }
 
 template<>
-::curaengine::types::EPlatformAdhesion Settings::get<::curaengine::types::EPlatformAdhesion>(const std::string& key) const
+EPlatformAdhesion Settings::get<EPlatformAdhesion>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "skirt"_sw:
-        return ::curaengine::types::EPlatformAdhesion::SKIRT;
+        return EPlatformAdhesion::SKIRT;
     case "brim"_sw:
-        return ::curaengine::types::EPlatformAdhesion::BRIM;
+        return EPlatformAdhesion::BRIM;
     case "raft"_sw:
-        return ::curaengine::types::EPlatformAdhesion::RAFT;
+        return EPlatformAdhesion::RAFT;
     case "none"_sw:
-        return ::curaengine::types::EPlatformAdhesion::NONE;
+        return EPlatformAdhesion::NONE;
     case "plugin"_sw:
-        return ::curaengine::types::EPlatformAdhesion::PLUGIN;
+        return EPlatformAdhesion::PLUGIN;
     default:
-        return ::curaengine::types::EPlatformAdhesion::SKIRT;
+        return EPlatformAdhesion::SKIRT;
     }
 }
 
 template<>
-::curaengine::types::ESupportType Settings::get<::curaengine::types::ESupportType>(const std::string& key) const
+ESupportType Settings::get<ESupportType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "none"_sw:
-        return ::curaengine::types::ESupportType::NONE;
+        return ESupportType::NONE;
     case "everywhere"_sw:
-        return ::curaengine::types::ESupportType::EVERYWHERE;
+        return ESupportType::EVERYWHERE;
     case "buildplate"_sw:
-        return ::curaengine::types::ESupportType::PLATFORM_ONLY;
+        return ESupportType::PLATFORM_ONLY;
     case "plugin"_sw:
-        return ::curaengine::types::ESupportType::PLUGIN;
+        return ESupportType::PLUGIN;
     default:
-        return ::curaengine::types::ESupportType::NONE;
+        return ESupportType::NONE;
     }
 }
 
 template<>
-::curaengine::types::ESupportStructure Settings::get<::curaengine::types::ESupportStructure>(const std::string& key) const
+ESupportStructure Settings::get<ESupportStructure>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "normal"_sw:
-        return ::curaengine::types::ESupportStructure::NORMAL;
+        return ESupportStructure::NORMAL;
     case "tree"_sw:
-        return ::curaengine::types::ESupportStructure::TREE;
+        return ESupportStructure::TREE;
     case "plugin"_sw:
-        return ::curaengine::types::ESupportStructure::PLUGIN;
+        return ESupportStructure::PLUGIN;
     default:
-        return ::curaengine::types::ESupportStructure::NORMAL;
+        return ESupportStructure::NORMAL;
     }
 }
 
 
 template<>
-::curaengine::types::EZSeamType Settings::get<::curaengine::types::EZSeamType>(const std::string& key) const
+EZSeamType Settings::get<EZSeamType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "shortest"_sw:
-        return ::curaengine::types::EZSeamType::SHORTEST;
+        return EZSeamType::SHORTEST;
     case "random"_sw:
-        return ::curaengine::types::EZSeamType::RANDOM;
+        return EZSeamType::RANDOM;
     case "back"_sw:
-        return ::curaengine::types::EZSeamType::USER_SPECIFIED;
+        return EZSeamType::USER_SPECIFIED;
     case "sharpest_corner"_sw:
-        return ::curaengine::types::EZSeamType::SHARPEST_CORNER;
+        return EZSeamType::SHARPEST_CORNER;
     case "plugin"_sw:
-        return ::curaengine::types::EZSeamType::PLUGIN;
+        return EZSeamType::PLUGIN;
     default:
-        return ::curaengine::types::EZSeamType::SHORTEST;
+        return EZSeamType::SHORTEST;
     }
 }
 
 template<>
-::curaengine::types::EZSeamCornerPrefType Settings::get<::curaengine::types::EZSeamCornerPrefType>(const std::string& key) const
+EZSeamCornerPrefType Settings::get<EZSeamCornerPrefType>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "z_seam_corner_outer"_sw:
-        return ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER;
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_OUTER;
     case "z_seam_corner_any"_sw:
-        return ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY;
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_ANY;
     case "z_seam_corner_weighted"_sw:
-        return ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED;
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_WEIGHTED;
     case "plugin"_sw:
-        return ::curaengine::types::EZSeamCornerPrefType::PLUGIN;
+        return EZSeamCornerPrefType::PLUGIN;
     case "z_seam_corner_inner"_sw:
     default:
-        return ::curaengine::types::EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
+        return EZSeamCornerPrefType::Z_SEAM_CORNER_PREF_INNER;
     }
 }
 
 template<>
-::curaengine::types::ESurfaceMode Settings::get<::curaengine::types::ESurfaceMode>(const std::string& key) const
+ESurfaceMode Settings::get<ESurfaceMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "normal"_sw:
-        return ::curaengine::types::ESurfaceMode::NORMAL;
+        return ESurfaceMode::NORMAL;
     case "surface"_sw:
-        return ::curaengine::types::ESurfaceMode::SURFACE;
+        return ESurfaceMode::SURFACE;
     case "both"_sw:
-        return ::curaengine::types::ESurfaceMode::BOTH;
+        return ESurfaceMode::BOTH;
     case "plugin"_sw:
-        return ::curaengine::types::ESurfaceMode::PLUGIN;
+        return ESurfaceMode::PLUGIN;
     default:
-        return ::curaengine::types::ESurfaceMode::NORMAL;
+        return ESurfaceMode::NORMAL;
     }
 }
 
 template<>
-::curaengine::types::FillPerimeterGapMode Settings::get<::curaengine::types::FillPerimeterGapMode>(const std::string& key) const
+FillPerimeterGapMode Settings::get<FillPerimeterGapMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "nowhere"_sw:
-        return ::curaengine::types::FillPerimeterGapMode::NOWHERE;
+        return FillPerimeterGapMode::NOWHERE;
     case "everywhere"_sw:
-        return ::curaengine::types::FillPerimeterGapMode::EVERYWHERE;
+        return FillPerimeterGapMode::EVERYWHERE;
     case "plugin"_sw:
-        return ::curaengine::types::FillPerimeterGapMode::PLUGIN;
+        return FillPerimeterGapMode::PLUGIN;
     default:
-        return ::curaengine::types::FillPerimeterGapMode::NOWHERE;
+        return FillPerimeterGapMode::NOWHERE;
     }
 }
 
 template<>
-::curaengine::types::BuildPlateShape Settings::get<::curaengine::types::BuildPlateShape>(const std::string& key) const
+BuildPlateShape Settings::get<BuildPlateShape>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "rectangular"_sw:
-        return ::curaengine::types::BuildPlateShape::RECTANGULAR;
+        return BuildPlateShape::RECTANGULAR;
     case "elliptic"_sw:
-        return ::curaengine::types::BuildPlateShape::ELLIPTIC;
+        return BuildPlateShape::ELLIPTIC;
     case "plugin"_sw:
-        return ::curaengine::types::BuildPlateShape::PLUGIN;
+        return BuildPlateShape::PLUGIN;
     default:
-        return ::curaengine::types::BuildPlateShape::RECTANGULAR;
+        return BuildPlateShape::RECTANGULAR;
     }
 }
 
 template<>
-::curaengine::types::CombingMode Settings::get<::curaengine::types::CombingMode>(const std::string& key) const
+CombingMode Settings::get<CombingMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "all"_sw:
-        return ::curaengine::types::CombingMode::ALL;
+        return CombingMode::ALL;
     case "off"_sw:
-        return ::curaengine::types::CombingMode::OFF;
+        return CombingMode::OFF;
     case "noskin"_sw:
-        return ::curaengine::types::CombingMode::NO_SKIN;
+        return CombingMode::NO_SKIN;
     case "no_outer_surfaces"_sw:
-        return ::curaengine::types::CombingMode::NO_OUTER_SURFACES;
+        return CombingMode::NO_OUTER_SURFACES;
     case "infill"_sw:
-        return ::curaengine::types::CombingMode::INFILL;
+        return CombingMode::INFILL;
     case "plugin"_sw:
-        return ::curaengine::types::CombingMode::PLUGIN;
+        return CombingMode::PLUGIN;
     default:
-        return ::curaengine::types::CombingMode::ALL;
+        return CombingMode::ALL;
     }
 }
 
 template<>
-::curaengine::types::SupportDistPriority Settings::get<::curaengine::types::SupportDistPriority>(const std::string& key) const
+SupportDistPriority Settings::get<SupportDistPriority>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "xy_overrides_z"_sw:
-        return ::curaengine::types::SupportDistPriority::XY_OVERRIDES_Z;
+        return SupportDistPriority::XY_OVERRIDES_Z;
     case "z_overrides_xy"_sw:
-        return ::curaengine::types::SupportDistPriority::Z_OVERRIDES_XY;
+        return SupportDistPriority::Z_OVERRIDES_XY;
     case "plugin"_sw:
-        return ::curaengine::types::SupportDistPriority::PLUGIN;
+        return SupportDistPriority::PLUGIN;
     default:
-        return ::curaengine::types::SupportDistPriority::XY_OVERRIDES_Z;
+        return SupportDistPriority::XY_OVERRIDES_Z;
     }
 }
 
 template<>
-::curaengine::types::SlicingTolerance Settings::get<::curaengine::types::SlicingTolerance>(const std::string& key) const
+SlicingTolerance Settings::get<SlicingTolerance>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "middle"_sw:
-        return ::curaengine::types::SlicingTolerance::MIDDLE;
+        return SlicingTolerance::MIDDLE;
     case "inclusive"_sw:
-        return ::curaengine::types::SlicingTolerance::INCLUSIVE;
+        return SlicingTolerance::INCLUSIVE;
     case "exclusive"_sw:
-        return ::curaengine::types::SlicingTolerance::EXCLUSIVE;
+        return SlicingTolerance::EXCLUSIVE;
     case "plugin"_sw:
-        return ::curaengine::types::SlicingTolerance::PLUGIN;
+        return SlicingTolerance::PLUGIN;
     default:
-        return ::curaengine::types::SlicingTolerance::MIDDLE;
+        return SlicingTolerance::MIDDLE;
     }
 }
 
 template<>
-::curaengine::types::InsetDirection Settings::get<::curaengine::types::InsetDirection>(const std::string& key) const
+InsetDirection Settings::get<InsetDirection>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
-    using curaengine::types::operator""_sw;
+    using types::operator""_sw;
     switch (types::hash_enum(value))
     {
     case "inside_out"_sw:
-        return ::curaengine::types::InsetDirection::INSIDE_OUT;
+        return InsetDirection::INSIDE_OUT;
     case "outside_in"_sw:
-        return ::curaengine::types::InsetDirection::OUTSIDE_IN;
+        return InsetDirection::OUTSIDE_IN;
     case "plugin"_sw:
-        return ::curaengine::types::InsetDirection::PLUGIN;
+        return InsetDirection::PLUGIN;
     default:
-        return ::curaengine::types::InsetDirection::INSIDE_OUT;
+        return InsetDirection::INSIDE_OUT;
     }
 }
 
 template<>
-::curaengine::types::PrimeTowerMode Settings::get<::curaengine::types::PrimeTowerMode>(const std::string& key) const
+PrimeTowerMode Settings::get<PrimeTowerMode>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "interleaved")
     {
-        return ::curaengine::types::PrimeTowerMode::INTERLEAVED;
+        return PrimeTowerMode::INTERLEAVED;
     }
 
-    return ::curaengine::types::PrimeTowerMode::NORMAL;
+    return PrimeTowerMode::NORMAL;
 }
 
 template<>
-::curaengine::types::BrimLocation Settings::get<::curaengine::types::BrimLocation>(const std::string& key) const
+BrimLocation Settings::get<BrimLocation>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "everywhere")
     {
-        return ::curaengine::types::BrimLocation::EVERYWHERE;
+        return BrimLocation::EVERYWHERE;
     }
     else if (value == "inside")
     {
-        return ::curaengine::types::BrimLocation::INSIDE;
+        return BrimLocation::INSIDE;
     }
     else // Default.
     {
-        return ::curaengine::types::BrimLocation::OUTSIDE;
+        return BrimLocation::OUTSIDE;
     }
 }
 
 template<>
-::curaengine::types::CoolDuringExtruderSwitch Settings::get<::curaengine::types::CoolDuringExtruderSwitch>(const std::string& key) const
+CoolDuringExtruderSwitch Settings::get<CoolDuringExtruderSwitch>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "all_fans")
     {
-        return ::curaengine::types::CoolDuringExtruderSwitch::ALL_FANS;
+        return CoolDuringExtruderSwitch::ALL_FANS;
     }
     else if (value == "only_last_extruder")
     {
-        return ::curaengine::types::CoolDuringExtruderSwitch::ONLY_LAST_EXTRUDER;
+        return CoolDuringExtruderSwitch::ONLY_LAST_EXTRUDER;
     }
     else // Default.
     {
-        return ::curaengine::types::CoolDuringExtruderSwitch::UNCHANGED;
+        return CoolDuringExtruderSwitch::UNCHANGED;
     }
 }
 
 template<>
-::curaengine::types::InfillStartEndPreference Settings::get<::curaengine::types::InfillStartEndPreference>(const std::string& key) const
+InfillStartEndPreference Settings::get<InfillStartEndPreference>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "end_close_to_seam")
     {
-        return ::curaengine::types::InfillStartEndPreference::END_CLOSE_TO_SEAM;
+        return InfillStartEndPreference::END_CLOSE_TO_SEAM;
     }
     else if (value == "start_random")
     {
-        return ::curaengine::types::InfillStartEndPreference::START_RANDOM;
+        return InfillStartEndPreference::START_RANDOM;
     }
     else // Default.
     {
-        return ::curaengine::types::InfillStartEndPreference::START_CLOSEST;
+        return InfillStartEndPreference::START_CLOSEST;
     }
 }
 
 template<>
-::curaengine::types::RetractBeforeOuterWall Settings::get<::curaengine::types::RetractBeforeOuterWall>(const std::string& key) const
+RetractBeforeOuterWall Settings::get<RetractBeforeOuterWall>(const std::string& key) const
 {
     const std::string& value = get<std::string>(key);
     if (value == "force_retracted")
     {
-        return ::curaengine::types::RetractBeforeOuterWall::RETRACTED;
+        return RetractBeforeOuterWall::RETRACTED;
     }
     else if (value == "force_not_retracted")
     {
-        return ::curaengine::types::RetractBeforeOuterWall::NOT_RETRACTED;
+        return RetractBeforeOuterWall::NOT_RETRACTED;
     }
     else if (value == "force_not_retracted_from_infill")
     {
-        return ::curaengine::types::RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL;
+        return RetractBeforeOuterWall::NOT_RETRACTED_FROM_INFILL;
     }
     else // Default.
     {
-        return ::curaengine::types::RetractBeforeOuterWall::AUTOMATIC;
+        return RetractBeforeOuterWall::AUTOMATIC;
     }
 }
 
@@ -796,12 +800,12 @@ std::vector<double> Settings::get<std::vector<double>>(const std::string& key) c
 }
 
 template<>
-std::vector<::curaengine::types::Ratio> Settings::get<std::vector<::curaengine::types::Ratio>>(const std::string& key) const
+std::vector<Ratio> Settings::get<std::vector<Ratio>>(const std::string& key) const
 {
     auto values_double = get<std::vector<double>>(key);
 
     // The settings are all in percentages, but we need to interpret them as ratios.
-    std::vector<::curaengine::types::Ratio> result;
+    std::vector<Ratio> result;
     result.reserve(values_double.size());
     for (const auto& value_double : values_double)
     {
@@ -825,10 +829,10 @@ std::vector<int> Settings::get<std::vector<int>>(const std::string& key) const
 }
 
 template<>
-std::vector<::curaengine::types::AngleDegrees> Settings::get<std::vector<::curaengine::types::AngleDegrees>>(const std::string& key) const
+std::vector<AngleDegrees> Settings::get<std::vector<AngleDegrees>>(const std::string& key) const
 {
     std::vector<double> values_doubles = get<std::vector<double>>(key);
-    return std::vector<::curaengine::types::AngleDegrees>(values_doubles.begin(), values_doubles.end()); // Cast them to AngleDegrees.
+    return std::vector<AngleDegrees>(values_doubles.begin(), values_doubles.end()); // Cast them to AngleDegrees.
 }
 
 const std::string Settings::getAllSettingsString() const
@@ -837,7 +841,7 @@ const std::string Settings::getAllSettingsString() const
     for (const std::pair<std::string, std::string> pair : settings)
     {
         char buffer[4096];
-        snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), ::curaengine::utils::Escaped{ pair.second.c_str() }.str);
+        snprintf(buffer, 4096, " -s %s=\"%s\"", pair.first.c_str(), Escaped{ pair.second.c_str() }.str);
         sstream << buffer;
     }
     return sstream.str();

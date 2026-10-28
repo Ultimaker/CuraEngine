@@ -6,6 +6,8 @@
 #include "utils/AABB.h"
 #include "utils/LinearAlg2D.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
@@ -14,9 +16,9 @@ PolygonConnector::PolygonConnector(const coord_t line_width)
 {
 }
 
-void PolygonConnector::add(const ::curaengine::geometry::Shape& input)
+void PolygonConnector::add(const Shape& input)
 {
-    for (const ::curaengine::geometry::Polygon& poly : input)
+    for (const Polygon& poly : input)
     {
         input_polygons_.push_back(poly);
     }
@@ -33,10 +35,10 @@ void PolygonConnector::add(const std::vector<VariableWidthLines>& input)
     }
 }
 
-void PolygonConnector::connect(::curaengine::geometry::Shape& output_polygons, std::vector<VariableWidthLines>& output_paths)
+void PolygonConnector::connect(Shape& output_polygons, std::vector<VariableWidthLines>& output_paths)
 {
-    std::vector<::curaengine::geometry::Polygon> result_polygons = connectGroup(input_polygons_);
-    for (const ::curaengine::geometry::Polygon& polygon : result_polygons)
+    std::vector<Polygon> result_polygons = connectGroup(input_polygons_);
+    for (const Polygon& polygon : result_polygons)
     {
         output_polygons.push_back(polygon);
     }
@@ -45,17 +47,17 @@ void PolygonConnector::connect(::curaengine::geometry::Shape& output_polygons, s
     output_paths.push_back(result_paths);
 }
 
-::curaengine::geometry::Point2LL PolygonConnector::getPosition(const ::curaengine::geometry::Point2LL& vertex) const
+Point2LL PolygonConnector::getPosition(const Point2LL& vertex) const
 {
     return vertex;
 }
 
-::curaengine::geometry::Point2LL PolygonConnector::getPosition(const ExtrusionJunction& junction) const
+Point2LL PolygonConnector::getPosition(const ExtrusionJunction& junction) const
 {
     return junction.p_;
 }
 
-coord_t PolygonConnector::getWidth(const ::curaengine::geometry::Point2LL&) const
+coord_t PolygonConnector::getWidth(const Point2LL&) const
 {
     return line_width_;
 }
@@ -65,17 +67,17 @@ coord_t PolygonConnector::getWidth(const ExtrusionJunction& junction) const
     return junction.w_;
 }
 
-void PolygonConnector::addVertex(::curaengine::geometry::Polygon& polygonal, const ::curaengine::geometry::Point2LL& position, const coord_t) const
+void PolygonConnector::addVertex(Polygon& polygonal, const Point2LL& position, const coord_t) const
 {
     polygonal.push_back(position);
 }
 
-void PolygonConnector::addVertex(::curaengine::geometry::Polygon& polygonal, const ::curaengine::geometry::Point2LL& vertex) const
+void PolygonConnector::addVertex(Polygon& polygonal, const Point2LL& vertex) const
 {
     polygonal.push_back(vertex);
 }
 
-void PolygonConnector::addVertex(ExtrusionLine& polygonal, const ::curaengine::geometry::Point2LL& position, const coord_t width) const
+void PolygonConnector::addVertex(ExtrusionLine& polygonal, const Point2LL& position, const coord_t width) const
 {
     polygonal.emplace_back(position, width, 1); // Perimeter indices don't make sense any more once perimeters are merged. Use 1 as placeholder, being the first "normal" wall.
 }
@@ -85,14 +87,14 @@ void PolygonConnector::addVertex(ExtrusionLine& polygonal, const ExtrusionJuncti
     polygonal.emplace_back(vertex);
 }
 
-bool PolygonConnector::isClosed(::curaengine::geometry::Polygon&) const
+bool PolygonConnector::isClosed(Polygon&) const
 {
     return true;
 }
 
 bool PolygonConnector::isClosed(ExtrusionLine& polygonal) const
 {
-    return ::curaengine::geometry::vSize2(polygonal.front() - polygonal.back()) < 25;
+    return geometry::vSize2(polygonal.front() - polygonal.back()) < 25;
 }
 
 template<>

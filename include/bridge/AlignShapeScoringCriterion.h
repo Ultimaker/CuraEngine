@@ -22,13 +22,13 @@ namespace curaengine::bridge
 class AlignShapeScoringCriterion : public BridgeAngleScoringCriterion
 {
 public:
-    explicit AlignShapeScoringCriterion(const std::vector<::curaengine::types::AngleDegrees>& candidates, const ::curaengine::geometry::Shape& skin_outline, const ::curaengine::geometry::Shape& supported_regions);
+    explicit AlignShapeScoringCriterion(const std::vector<types::AngleDegrees>& candidates, const geometry::Shape& skin_outline, const geometry::Shape& supported_regions);
 
 protected:
     double computeScore(const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area) const override;
 
 private:
-    std::optional<::curaengine::utils::coord_t> total_segments_length_;
+    std::optional<utils::coord_t> total_segments_length_;
 };
 
 } // namespace curaengine::bridge

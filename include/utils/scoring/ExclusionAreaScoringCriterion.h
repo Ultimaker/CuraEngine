@@ -23,12 +23,12 @@ namespace curaengine::utils::scoring
 class ExclusionAreaScoringCriterion : public PositionBasedScoringCriterion
 {
 private:
-    const ::curaengine::geometry::Shape& exclusion_area_;
+    const geometry::Shape& exclusion_area_;
 
 public:
-    explicit ExclusionAreaScoringCriterion(const ::curaengine::geometry::PointsSet& points, const ::curaengine::geometry::Shape& exclusion_area);
+    explicit ExclusionAreaScoringCriterion(const geometry::PointsSet& points, const geometry::Shape& exclusion_area);
 
-    virtual double computeScore(const ::curaengine::geometry::Point2LL& candidate_position) const override;
+    virtual double computeScore(const geometry::Point2LL& candidate_position) const override;
 };
 
 } // namespace curaengine::utils::scoring

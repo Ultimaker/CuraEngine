@@ -15,6 +15,8 @@
 #include "geometry/Point3D.h"
 #include "utils/VoxelGrid.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
@@ -32,14 +34,14 @@ OBJ::~OBJ()
     out << "mltlib " << material_filename << std::endl;
     out << std::fixed << std::setprecision(9);
 
-    std::vector<::curaengine::geometry::Point3D> ordered_vertices;
-    std::map<::curaengine::geometry::Point3D, size_t> vertices_ids;
-    std::vector<::curaengine::geometry::Point2F> ordered_uv_coordinates;
-    std::map<::curaengine::geometry::Point2F, size_t> uv_coordinates_ids;
+    std::vector<Point3D> ordered_vertices;
+    std::map<Point3D, size_t> vertices_ids;
+    std::vector<Point2F> ordered_uv_coordinates;
+    std::map<Point2F, size_t> uv_coordinates_ids;
 
     for (const Triangle& triangle : triangles_)
     {
-        for (const ::curaengine::geometry::Point3D& vertex : { triangle.p0, triangle.p1, triangle.p2 })
+        for (const Point3D& vertex : { triangle.p0, triangle.p1, triangle.p2 })
         {
             if (! vertices_ids.contains(vertex))
             {
@@ -47,7 +49,7 @@ OBJ::~OBJ()
                 ordered_vertices.push_back(vertex);
             }
         }
-        for (const std::optional<::curaengine::geometry::Point2F>& uv : { triangle.uv0, triangle.uv1, triangle.uv2 })
+        for (const std::optional<Point2F>& uv : { triangle.uv0, triangle.uv1, triangle.uv2 })
         {
             if (uv.has_value())
             {
@@ -60,17 +62,17 @@ OBJ::~OBJ()
         }
     }
 
-    for (const ::curaengine::geometry::Point3D& vertex : ordered_vertices)
+    for (const Point3D& vertex : ordered_vertices)
     {
         out << "v " << vertex.x_ << " " << vertex.y_ << " " << vertex.z_ << "\n";
     }
 
-    for (const ::curaengine::geometry::Point2F& uv_coordinate : ordered_uv_coordinates)
+    for (const Point2F& uv_coordinate : ordered_uv_coordinates)
     {
         out << "vt " << uv_coordinate.x_ << " " << uv_coordinate.y_ << "\n";
     }
 
-    const auto export_vertex = [&vertices_ids, &uv_coordinates_ids](const ::curaengine::geometry::Point3D& vertex, const std::optional<::curaengine::geometry::Point2F>& uv_coordinate)
+    const auto export_vertex = [&vertices_ids, &uv_coordinates_ids](const Point3D& vertex, const std::optional<Point2F>& uv_coordinate)
     {
         const size_t vertex_id = vertices_ids.find(vertex)->second;
         const size_t uv_id = uv_coordinate.has_value() ? uv_coordinates_ids.find(uv_coordinate.value())->second : 0;
@@ -103,9 +105,9 @@ OBJ::~OBJ()
     }
 }
 
-void OBJ::writeSphere(const ::curaengine::geometry::Point3D& position, const double radius, const SVG::Color color, const size_t latitude_segments, const size_t longitude_segments)
+void OBJ::writeSphere(const Point3D& position, const double radius, const SVG::Color color, const size_t latitude_segments, const size_t longitude_segments)
 {
-    std::vector<std::vector<::curaengine::geometry::Point3D>> vertices(latitude_segments + 1);
+    std::vector<std::vector<Point3D>> vertices(latitude_segments + 1);
     for (size_t i = 0; i <= latitude_segments; ++i)
     {
         const double theta = std::numbers::pi * i / latitude_segments;
@@ -120,7 +122,7 @@ void OBJ::writeSphere(const ::curaengine::geometry::Point3D& position, const dou
             const double x = radius * sin_theta * cos_phi;
             const double y = radius * sin_theta * sin_phi;
             const double z = radius * cos_theta;
-            vertices[i][j] = ::curaengine::geometry::Point3D(x, y, z) + position;
+            vertices[i][j] = Point3D(x, y, z) + position;
         }
     }
 
@@ -128,10 +130,10 @@ void OBJ::writeSphere(const ::curaengine::geometry::Point3D& position, const dou
     {
         for (size_t j = 0; j < longitude_segments; ++j)
         {
-            const ::curaengine::geometry::Point3D& v00 = vertices[i][j];
-            const ::curaengine::geometry::Point3D& v01 = vertices[i][j + 1];
-            const ::curaengine::geometry::Point3D& v10 = vertices[i + 1][j];
-            const ::curaengine::geometry::Point3D& v11 = vertices[i + 1][j + 1];
+            const Point3D& v00 = vertices[i][j];
+            const Point3D& v01 = vertices[i][j + 1];
+            const Point3D& v10 = vertices[i + 1][j];
+            const Point3D& v11 = vertices[i + 1][j + 1];
 
             if (i != 0)
             {
@@ -146,13 +148,13 @@ void OBJ::writeSphere(const ::curaengine::geometry::Point3D& position, const dou
 }
 
 void OBJ::writeTriangle(
-    const ::curaengine::geometry::Point3D& p0,
-    const ::curaengine::geometry::Point3D& p1,
-    const ::curaengine::geometry::Point3D& p2,
+    const Point3D& p0,
+    const Point3D& p1,
+    const Point3D& p2,
     const SVG::Color color,
-    const std::optional<::curaengine::geometry::Point2F>& uv0,
-    const std::optional<::curaengine::geometry::Point2F>& uv1,
-    const std::optional<::curaengine::geometry::Point2F>& uv2)
+    const std::optional<Point2F>& uv0,
+    const std::optional<Point2F>& uv1,
+    const std::optional<Point2F>& uv2)
 {
     triangles_.push_back(Triangle{ scalePosition(p0), scalePosition(p1), scalePosition(p2), color, uv0, uv1, uv2 });
 }
@@ -163,9 +165,9 @@ void OBJ::write(const Mesh& mesh, const SVG::Color color)
     for (const MeshFace& face : mesh.faces_)
     {
         writeTriangle(
-            ::curaengine::geometry::Point3D(mesh.vertices_[face.vertex_index_[0]].p_, scale),
-            ::curaengine::geometry::Point3D(mesh.vertices_[face.vertex_index_[1]].p_, scale),
-            ::curaengine::geometry::Point3D(mesh.vertices_[face.vertex_index_[2]].p_, scale),
+            Point3D(mesh.vertices_[face.vertex_index_[0]].p_, scale),
+            Point3D(mesh.vertices_[face.vertex_index_[1]].p_, scale),
+            Point3D(mesh.vertices_[face.vertex_index_[2]].p_, scale),
             color,
             face.uv_coordinates_[0],
             face.uv_coordinates_[1],
@@ -186,29 +188,29 @@ void OBJ::write(const VoxelGrid& voxel_grid)
         });
 }
 
-void OBJ::write(const ::curaengine::geometry::Polyline& polyline, const coord_t z, const coord_t height, const SVG::Color color)
+void OBJ::write(const Polyline& polyline, const coord_t z, const coord_t height, const SVG::Color color)
 {
     constexpr double scale = 1.0;
-    const ::curaengine::geometry::Point3D extrusion(0.0, 0.0, height);
+    const Point3D extrusion(0.0, 0.0, height);
     for (auto iterator = polyline.beginSegments(); iterator != polyline.endSegments(); ++iterator)
     {
-        const ::curaengine::geometry::Point3D start(::curaengine::geometry::Point3LL((*iterator).start, z), scale);
-        const ::curaengine::geometry::Point3D end(::curaengine::geometry::Point3LL((*iterator).end, z), scale);
+        const Point3D start(Point3LL((*iterator).start, z), scale);
+        const Point3D end(Point3LL((*iterator).end, z), scale);
 
         writeTriangle(start, end, end + extrusion, color);
         writeTriangle(start, end + extrusion, start + extrusion, color);
     }
 }
 
-void OBJ::write(const ::curaengine::geometry::Shape& shape, const coord_t z, const coord_t height, const SVG::Color color)
+void OBJ::write(const Shape& shape, const coord_t z, const coord_t height, const SVG::Color color)
 {
-    for (const ::curaengine::geometry::Polygon& polygon : shape)
+    for (const Polygon& polygon : shape)
     {
         write(polygon, z, height, color);
     }
 }
 
-::curaengine::geometry::Point3D OBJ::scalePosition(const ::curaengine::geometry::Point3D& p) const
+Point3D OBJ::scalePosition(const Point3D& p) const
 {
     return p * scale_;
 }

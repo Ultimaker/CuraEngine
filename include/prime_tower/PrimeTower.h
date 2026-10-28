@@ -44,40 +44,40 @@ class PrimeTower
 protected:
     struct OccupiedOutline
     {
-        ::curaengine::geometry::Polygon outline;
-        ::curaengine::utils::coord_t outer_radius;
+        geometry::Polygon outline;
+        utils::coord_t outer_radius;
     };
 
     struct ExtruderToolPaths
     {
         size_t extruder_nr;
-        ::curaengine::geometry::ClosedLinesSet toolpaths;
-        ::curaengine::utils::coord_t outer_radius;
-        ::curaengine::utils::coord_t inner_radius;
+        geometry::ClosedLinesSet toolpaths;
+        utils::coord_t outer_radius;
+        utils::coord_t inner_radius;
     };
 
 private:
     bool wipe_from_middle_; //!< Whether to wipe on the inside of the hollow prime tower
-    ::curaengine::geometry::Point2LL middle_; //!< The middle of the prime tower
+    geometry::Point2LL middle_; //!< The middle of the prime tower
 
-    ::curaengine::geometry::Point2LL post_wipe_point_; //!< Location to post-wipe the unused nozzle off on
+    geometry::Point2LL post_wipe_point_; //!< Location to post-wipe the unused nozzle off on
 
     static constexpr size_t number_of_prime_tower_start_locations_ = 21; //!< The required size of \ref PrimeTower::wipe_locations
-    inline static const ::curaengine::types::AngleRadians start_locations_step_ = (std::numbers::pi * 2.0) / number_of_prime_tower_start_locations_;
+    inline static const types::AngleRadians start_locations_step_ = (std::numbers::pi * 2.0) / number_of_prime_tower_start_locations_;
 
     /*
      *  The map index is the layer number
      *  For each layer, the list contains the extruders moves to be processed. This list is sorted from outer annuli to inner
      *  annuli, which is not the printing chronological order, but the physical arrangement.
      */
-    std::map<::curaengine::types::LayerIndex, std::vector<ExtruderToolPaths>> toolpaths_;
+    std::map<types::LayerIndex, std::vector<ExtruderToolPaths>> toolpaths_;
 
     OccupiedOutline outer_poly_; //!< The outline of the prime tower, not including the base
 
     //!< This is the exact outline of the extrusions lines of each layer, for layers having extra width for the base
-    ::curaengine::utils::LayerVector<::curaengine::geometry::Polygon> base_extrusion_outline_;
+    utils::LayerVector<geometry::Polygon> base_extrusion_outline_;
     //!< This is the approximate outline of the area filled at each layer, for layers having extra width for the base
-    ::curaengine::utils::LayerVector<OccupiedOutline> base_occupied_outline_;
+    utils::LayerVector<OccupiedOutline> base_occupied_outline_;
 
     static constexpr size_t circle_definition_{ 32 }; // The number of vertices in each circle.
     static constexpr size_t arc_definition_{ 4 }; // The number of segments in each arc of a wheel
@@ -113,14 +113,14 @@ public:
      *       Use this method only if you need to get the exclusion area of the prime tower. Otherwise use getExtrusionOutline().
      *       This method exists because this approximate area can be calculated as soon as the prime tower is initialized.
      */
-    const ::curaengine::geometry::Polygon& getOccupiedOutline(const ::curaengine::types::LayerIndex& layer_nr) const;
+    const geometry::Polygon& getOccupiedOutline(const types::LayerIndex& layer_nr) const;
 
     /*!
      * Get the occupied outline of the prime tower at the first layer
      *
      * \note @sa getOccupiedOutline()
      */
-    const ::curaengine::geometry::Polygon& getOccupiedGroundOutline() const;
+    const geometry::Polygon& getOccupiedGroundOutline() const;
 
     /*!
      * Get the extrusion outline of the prime tower at the given layer
@@ -131,7 +131,7 @@ public:
      *       touching the prime tower. Otherwise use getExtrusionOutline(). This method will return the valid result only after
      *       processExtrudersUse() has been called, which is "late" is the global slicing operation.
      */
-    const ::curaengine::geometry::Polygon& getExtrusionOutline(const ::curaengine::types::LayerIndex& layer_nr) const;
+    const geometry::Polygon& getExtrusionOutline(const types::LayerIndex& layer_nr) const;
 
     /*!
      * \brief Get the required priming for the given extruder at the given layer
@@ -147,7 +147,7 @@ public:
         size_t extruder_nr,
         size_t last_extruder,
         const SliceDataStorage& storage,
-        const ::curaengine::types::LayerIndex& layer_nr) const
+        const types::LayerIndex& layer_nr) const
         = 0;
 
     /*!
@@ -157,7 +157,7 @@ public:
      *                      the prime tower can be properly printed.
      * \param start_extruder The very first used extruder
      */
-    void processExtrudersUse(::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder);
+    void processExtrudersUse(utils::LayerVector<std::vector<ExtruderUse>>& extruders_use, const size_t start_extruder);
 
     /*!
      * \brief Create the proper prime tower object according to the current settings
@@ -174,7 +174,7 @@ protected:
      * \param extruders_use The calculated extruders uses at each layer
      * \param start_extruder The very first used extruder
      */
-    virtual void polishExtrudersUses(::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const size_t /*start_extruder*/)
+    virtual void polishExtrudersUses(utils::LayerVector<std::vector<ExtruderUse>>& /*extruders_use*/, const size_t /*start_extruder*/)
     {
         // Default behavior is to keep the extruders uses as they were calculated
     }
@@ -185,7 +185,7 @@ protected:
      * \return A map of extruders toolpaths per layer. The inner list is sorted from outer annuli to inner
      *         annuli, which is not the printing chronological order, but the physical arrangement. @sa toolpaths_
      */
-    virtual std::map<::curaengine::types::LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const ::curaengine::utils::LayerVector<std::vector<ExtruderUse>>& extruders_use) = 0;
+    virtual std::map<types::LayerIndex, std::vector<ExtruderToolPaths>> generateToolPaths(const utils::LayerVector<std::vector<ExtruderUse>>& extruders_use) = 0;
 
     /*!
      * \brief Generate the actual priming toolpaths for the given extruder, starting at the given outer circle radius
@@ -193,7 +193,7 @@ protected:
      * \param outer_radius The radius of the starting outer circle
      * \return A tuple containing the newly generated toolpaths, and the inner radius of the newly generated annulus
      */
-    std::tuple<::curaengine::geometry::ClosedLinesSet, ::curaengine::utils::coord_t> generatePrimeToolpaths(const size_t extruder_nr, const ::curaengine::utils::coord_t outer_radius);
+    std::tuple<geometry::ClosedLinesSet, utils::coord_t> generatePrimeToolpaths(const size_t extruder_nr, const utils::coord_t outer_radius);
 
     /*!
      * \brief Generate support toolpaths using the wheel pattern applied on an annulus
@@ -202,7 +202,7 @@ protected:
      * \param inner_radius The annulis inner radius
      * \return
      */
-    ::curaengine::geometry::ClosedLinesSet generateSupportToolpaths(const size_t extruder_nr, const ::curaengine::utils::coord_t outer_radius, const ::curaengine::utils::coord_t inner_radius);
+    geometry::ClosedLinesSet generateSupportToolpaths(const size_t extruder_nr, const utils::coord_t outer_radius, const utils::coord_t inner_radius);
 
     /*!
      * \brief Calculates whether an extruder requires priming at a specific layer

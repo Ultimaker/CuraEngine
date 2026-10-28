@@ -5,12 +5,14 @@
 
 #include "utils/PolygonUtils.h"
 
+using namespace curaengine::geometry;
+
 namespace curaengine::utils
 {
 
-bool VoxelUtils::walkLine(::curaengine::geometry::Point3LL start, ::curaengine::geometry::Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkLine(Point3LL start, Point3LL end, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    ::curaengine::geometry::Point3LL diff = end - start;
+    Point3LL diff = end - start;
 
     const GridPoint3 start_cell = toGridPoint(start);
     const GridPoint3 end_cell = toGridPoint(end);
@@ -19,7 +21,7 @@ bool VoxelUtils::walkLine(::curaengine::geometry::Point3LL start, ::curaengine::
         return process_cell_func(start_cell);
     }
 
-    ::curaengine::geometry::Point3LL current_cell = start_cell;
+    Point3LL current_cell = start_cell;
     while (true)
     {
         bool continue_ = process_cell_func(current_cell);
@@ -57,14 +59,14 @@ bool VoxelUtils::walkLine(::curaengine::geometry::Point3LL start, ::curaengine::
 }
 
 
-bool VoxelUtils::walkPolygons(const ::curaengine::geometry::Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkPolygons(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    for (const ::curaengine::geometry::Polygon& poly : polys)
+    for (const Polygon& poly : polys)
     {
-        ::curaengine::geometry::Point2LL last = poly.back();
-        for (::curaengine::geometry::Point2LL p : poly)
+        Point2LL last = poly.back();
+        for (Point2LL p : poly)
         {
-            bool continue_ = walkLine(::curaengine::geometry::Point3LL(last.X, last.Y, z), ::curaengine::geometry::Point3LL(p.X, p.Y, z), process_cell_func);
+            bool continue_ = walkLine(Point3LL(last.X, last.Y, z), Point3LL(p.X, p.Y, z), process_cell_func);
             if (! continue_)
             {
                 return false;
@@ -75,34 +77,34 @@ bool VoxelUtils::walkPolygons(const ::curaengine::geometry::Shape& polys, coord_
     return true;
 }
 
-bool VoxelUtils::walkDilatedPolygons(const ::curaengine::geometry::Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkDilatedPolygons(const Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    ::curaengine::geometry::Shape translated = polys;
-    const ::curaengine::geometry::Point3LL translation = (::curaengine::geometry::Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2;
+    Shape translated = polys;
+    const Point3LL translation = (Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2;
     if (translation.x_ && translation.y_)
     {
-        translated.translate(::curaengine::geometry::Point2LL(translation.x_, translation.y_));
+        translated.translate(Point2LL(translation.x_, translation.y_));
     }
     return walkPolygons(translated, z + translation.z_, dilate(kernel, process_cell_func));
 }
 
-bool VoxelUtils::walkAreas(const ::curaengine::geometry::Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    ::curaengine::geometry::Shape translated = polys;
-    const ::curaengine::geometry::Point3LL translation = -cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
+    Shape translated = polys;
+    const Point3LL translation = -cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x_ && translation.y_)
     {
-        translated.translate(::curaengine::geometry::Point2LL(translation.x_, translation.y_));
+        translated.translate(Point2LL(translation.x_, translation.y_));
     }
     return _walkAreas(translated, z, process_cell_func);
 }
 
-bool VoxelUtils::_walkAreas(const ::curaengine::geometry::Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::_walkAreas(const Shape& polys, coord_t z, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    std::vector<::curaengine::geometry::Point2LL> skin_points = PolygonUtils::spreadDotsArea(polys, ::curaengine::geometry::Point2LL(cell_size_.x_, cell_size_.y_));
-    for (::curaengine::geometry::Point2LL p : skin_points)
+    std::vector<Point2LL> skin_points = PolygonUtils::spreadDotsArea(polys, Point2LL(cell_size_.x_, cell_size_.y_));
+    for (Point2LL p : skin_points)
     {
-        bool continue_ = process_cell_func(toGridPoint(::curaengine::geometry::Point3LL(p.X + cell_size_.x_ / 2, p.Y + cell_size_.y_ / 2, z)));
+        bool continue_ = process_cell_func(toGridPoint(Point3LL(p.X + cell_size_.x_ / 2, p.Y + cell_size_.y_ / 2, z)));
         if (! continue_)
         {
             return false;
@@ -111,14 +113,14 @@ bool VoxelUtils::_walkAreas(const ::curaengine::geometry::Shape& polys, coord_t 
     return true;
 }
 
-bool VoxelUtils::walkDilatedAreas(const ::curaengine::geometry::Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
+bool VoxelUtils::walkDilatedAreas(const Shape& polys, coord_t z, const DilationKernel& kernel, const std::function<bool(GridPoint3)>& process_cell_func) const
 {
-    ::curaengine::geometry::Shape translated = polys;
-    const ::curaengine::geometry::Point3LL translation = (::curaengine::geometry::Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2 // offset half a cell when using a n even kernel
+    Shape translated = polys;
+    const Point3LL translation = (Point3LL(1, 1, 1) - kernel.kernel_size_ % 2) * cell_size_ / 2 // offset half a cell when using a n even kernel
                                - cell_size_ / 2; // offset half a cell so that the dots of spreadDotsArea are centered on the middle of the cell isntead of the lower corners.
     if (translation.x_ && translation.y_)
     {
-        translated.translate(::curaengine::geometry::Point2LL(translation.x_, translation.y_));
+        translated.translate(Point2LL(translation.x_, translation.y_));
     }
     return _walkAreas(translated, z + translation.z_, dilate(kernel, process_cell_func));
 }
