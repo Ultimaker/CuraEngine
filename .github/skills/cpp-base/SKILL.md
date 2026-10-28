@@ -28,10 +28,11 @@ These rules apply both when writing and when reviewing C++ code in CuraEngine. T
 
 ## Naming and readability
 
-* Types should be using UpperCamelCase, e.g. `GCodeExport`.
-* Variables should be using snake_case, e.g. `calculated_deviation`.
+* Types should be using `UpperCamelCase`, e.g. `GCodeExport`.
+* Functions should be using `lowerCamelCase`, e.g. `processCalculation`
+* Variables should be using `snake_case, e.g. `calculated_deviation`.
 * Private variable should have a `_` postfix, e.g. `line_width_`.
-* Namsepaces should be using snake_case.
+* Namsepaces should be using `snake_case`, and should preferably contain a single word.
 * All variables and functions should have explicit names, no abbreviations.
 * Prefer explicit types over `auto`; `auto` is acceptable when it is clearly more readable.
 * Prefer `for` loops over `while` loops when possible and if readability is not significantly reduced.
