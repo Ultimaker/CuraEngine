@@ -11,6 +11,7 @@
 #include "geometry/Point3D.h"
 
 using namespace curaengine::geometry;
+using namespace curaengine::utils;
 
 namespace curaengine
 {

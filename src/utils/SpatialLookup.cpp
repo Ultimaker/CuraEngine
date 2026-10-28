@@ -6,9 +6,9 @@
 #include "utils/VoxelGrid.h"
 
 
-BOOST_GEOMETRY_REGISTER_POINT_3D(Point3D, double, boost::geometry::cs::cartesian, x_, y_, z_)
-
 using namespace curaengine::geometry;
+
+BOOST_GEOMETRY_REGISTER_POINT_3D(Point3D, double, boost::geometry::cs::cartesian, x_, y_, z_)
 
 namespace curaengine::utils
 {
