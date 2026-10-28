@@ -34,7 +34,7 @@ public:
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_3.txt").string(),
                                                          std::filesystem::path(__FILE__).parent_path().append("tests/resources/slice_polygon_4.txt").string() };
 
-    std::vector<::curaengine::geometry::Shape> shapes;
+    std::vector<geometry::Shape> shapes;
 
     void SetUp(const ::benchmark::State& state)
     {
@@ -48,10 +48,10 @@ public:
 
 BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_local)(benchmark::State& st)
 {
-    ::curaengine::utils::Simplify simplify(MM2INT(0.25), MM2INT(0.025), 50000);
+    utils::Simplify simplify(MM2INT(0.25), MM2INT(0.025), 50000);
     for (auto _ : st)
     {
-        ::curaengine::geometry::Shape simplified;
+        geometry::Shape simplified;
         for (const auto& polys : shapes)
         {
             benchmark::DoNotOptimize(simplified = simplify.polygon(polys));
@@ -66,10 +66,10 @@ BENCHMARK_DEFINE_F(SimplifyTestFixture, simplify_slot_noplugin)(benchmark::State
 {
     for (auto _ : st)
     {
-        ::curaengine::geometry::Shape simplified;
+        geometry::Shape simplified;
         for (const auto& polys : shapes)
         {
-            benchmark::DoNotOptimize(simplified = ::curaengine::plugins::slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
+            benchmark::DoNotOptimize(simplified = plugins::slots::instance().modify<plugins::v0::SlotID::SIMPLIFY_MODIFY>(polys, MM2INT(0.25), MM2INT(0.025), 50000));
         }
     }
 }

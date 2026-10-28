@@ -27,9 +27,9 @@ class WallTestFixture : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    WallsComputation walls_computation{ settings, ::curaengine::types::LayerIndex(100) };
-    ::curaengine::geometry::Shape square_shape;
-    ::curaengine::geometry::Shape ff_holes;
+    WallsComputation walls_computation{ settings, types::LayerIndex(100) };
+    geometry::Shape square_shape;
+    geometry::Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -99,9 +99,9 @@ class HolesWallTestFixture : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    WallsComputation walls_computation{ settings, ::curaengine::types::LayerIndex(100) };
-    ::curaengine::geometry::Shape shape;
-    ::curaengine::geometry::Shape ff_holes;
+    WallsComputation walls_computation{ settings, types::LayerIndex(100) };
+    geometry::Shape shape;
+    geometry::Shape ff_holes;
     bool outer_to_inner;
     SliceLayer layer;
 
@@ -115,7 +115,7 @@ public:
         buffer << file.rdbuf();
         const auto wkt = buffer.str();
 
-        const auto shape = ::curaengine::geometry::Shape::fromWkt(buffer.str());
+        const auto shape = geometry::Shape::fromWkt(buffer.str());
 
         // Settings for a simple 2 walls, about as basic as possible.
         settings.add("alternate_extra_perimeter", "false");
@@ -161,7 +161,7 @@ BENCHMARK_DEFINE_F(WallTestFixture, generateWalls)(benchmark::State& st)
 {
     for (auto _ : st)
     {
-        walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
+        walls_computation.generateWalls(&layer, utils::SectionType::WALL);
     }
 }
 
@@ -169,8 +169,8 @@ BENCHMARK_REGISTER_F(WallTestFixture, generateWalls)->Arg(3)->Arg(15)->Arg(9999)
 
 BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
-    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
-    std::vector<::curaengine::utils::ExtrusionLine> all_paths;
+    walls_computation.generateWalls(&layer, utils::SectionType::WALL);
+    std::vector<utils::ExtrusionLine> all_paths;
     for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
@@ -185,8 +185,8 @@ BENCHMARK_REGISTER_F(WallTestFixture, InsetOrderOptimizer_getRegionOrder)->Arg(3
 
 BENCHMARK_DEFINE_F(WallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
 {
-    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
-    std::vector<::curaengine::utils::ExtrusionLine> all_paths;
+    walls_computation.generateWalls(&layer, utils::SectionType::WALL);
+    std::vector<utils::ExtrusionLine> all_paths;
     for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
@@ -203,7 +203,7 @@ BENCHMARK_DEFINE_F(HolesWallTestFixture, generateWalls)(benchmark::State& st)
 {
     for (auto _ : st)
     {
-        walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
+        walls_computation.generateWalls(&layer, utils::SectionType::WALL);
     }
 }
 
@@ -211,8 +211,8 @@ BENCHMARK_REGISTER_F(HolesWallTestFixture, generateWalls)->Arg(3)->Arg(15)->Arg(
 
 BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getRegionOrder)(benchmark::State& st)
 {
-    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
-    std::vector<::curaengine::utils::ExtrusionLine> all_paths;
+    walls_computation.generateWalls(&layer, utils::SectionType::WALL);
+    std::vector<utils::ExtrusionLine> all_paths;
     for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);
@@ -227,8 +227,8 @@ BENCHMARK_REGISTER_F(HolesWallTestFixture, InsetOrderOptimizer_getRegionOrder)->
 
 BENCHMARK_DEFINE_F(HolesWallTestFixture, InsetOrderOptimizer_getInsetOrder)(benchmark::State& st)
 {
-    walls_computation.generateWalls(&layer, ::curaengine::utils::SectionType::WALL);
-    std::vector<::curaengine::utils::ExtrusionLine> all_paths;
+    walls_computation.generateWalls(&layer, utils::SectionType::WALL);
+    std::vector<utils::ExtrusionLine> all_paths;
     for (auto& line : layer.parts.back().wall_toolpaths | ranges::views::join)
     {
         all_paths.emplace_back(line);

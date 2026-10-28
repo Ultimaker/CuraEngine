@@ -17,27 +17,27 @@ class InfillTest : public benchmark::Fixture
 {
 public:
     Settings settings{};
-    ::curaengine::geometry::Shape square_shape;
-    ::curaengine::geometry::Shape ff_holes;
+    geometry::Shape square_shape;
+    geometry::Shape ff_holes;
 
 
-    std::vector<::curaengine::utils::ExtrusionLine> all_paths;
+    std::vector<utils::ExtrusionLine> all_paths;
 
 
-    ::curaengine::geometry::Shape outline_polygons;
-    ::curaengine::types::EFillMethod pattern{ ::curaengine::types::EFillMethod::LINES };
+    geometry::Shape outline_polygons;
+    types::EFillMethod pattern{ types::EFillMethod::LINES };
     bool zig_zagify{ true };
     bool connect_polygons{ true };
-    ::curaengine::utils::coord_t line_distance{ 800 };
+    utils::coord_t line_distance{ 800 };
 
-    ::curaengine::utils::coord_t INFILL_LINE_WIDTH = 350;
-    ::curaengine::utils::coord_t INFILL_OVERLAP = 0;
+    utils::coord_t INFILL_LINE_WIDTH = 350;
+    utils::coord_t INFILL_OVERLAP = 0;
     size_t INFILL_MULTIPLIER = 1;
-    ::curaengine::types::AngleDegrees FILL_ANGLE = 0.;
-    ::curaengine::utils::coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
-    ::curaengine::utils::coord_t SHIFT = 0;
-    ::curaengine::utils::coord_t MAX_RESOLUTION = 10;
-    ::curaengine::utils::coord_t MAX_DEVIATION = 5;
+    types::AngleDegrees FILL_ANGLE = 0.;
+    utils::coord_t Z = 100; // Future improvement: Also take an uneven layer, so we get the alternate.
+    utils::coord_t SHIFT = 0;
+    utils::coord_t MAX_RESOLUTION = 10;
+    utils::coord_t MAX_DEVIATION = 5;
 
     void SetUp(const ::benchmark::State& state)
     {
@@ -97,7 +97,7 @@ public:
 
 BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 {
-    ::curaengine::infill::Infill infill(
+    infill::Infill infill(
         pattern,
         zig_zagify,
         connect_polygons,
@@ -114,10 +114,10 @@ BENCHMARK_DEFINE_F(InfillTest, Infill_generate_connect)(benchmark::State& st)
 
     for (auto _ : st)
     {
-        std::vector<::curaengine::utils::VariableWidthLines> result_paths;
-        ::curaengine::geometry::Shape result_polygons;
-        ::curaengine::geometry::OpenLinesSet result_lines;
-        infill.generate(result_paths, result_polygons, result_lines, settings, 0, ::curaengine::utils::SectionType::INFILL, nullptr, nullptr);
+        std::vector<utils::VariableWidthLines> result_paths;
+        geometry::Shape result_polygons;
+        geometry::OpenLinesSet result_lines;
+        infill.generate(result_paths, result_polygons, result_lines, settings, 0, utils::SectionType::INFILL, nullptr, nullptr);
     }
 }
 
