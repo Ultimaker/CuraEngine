@@ -22,7 +22,7 @@ namespace curaengine::types
 {
 class AngleDegrees;
 struct MeshPathConfigs;
-}
+} // namespace curaengine::types
 
 namespace curaengine::geometry
 {
@@ -31,7 +31,6 @@ class Shape;
 
 namespace curaengine
 {
-
 
 
 class SkinPart;
@@ -304,7 +303,8 @@ private:
      * \return The order of extruders for a layer beginning with \p current_extruder
      */
     std::vector<ExtruderUse>
-        getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const types::LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used) const;
+        getUsedExtrudersOnLayer(const SliceDataStorage& storage, const size_t start_extruder, const types::LayerIndex& layer_nr, const std::vector<bool>& global_extruders_used)
+            const;
 
     /*!
      * Calculate in which order to plan the meshes of a specific extruder
@@ -469,7 +469,8 @@ private:
         const bool end_infill_close_to_seam) const;
 
     OverrideAreas
-        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, SliceLayerPart& part) const;
+        makeLayerMasks(const SliceDataStorage& storage, LayerPlan& gcode_layer, const SliceMeshStorage& mesh, const types::MeshPathConfigs& mesh_config, SliceLayerPart& part)
+            const;
 
     /*!
      * Inserts the previously processed insets
@@ -502,9 +503,12 @@ private:
      * \param part The part for which to create gcode
      * \param mesh The mesh for which to add to the layer plan \p gcodeLayer.
      */
-    void
-        processSpiralizedWall(const SliceDataStorage& storage, LayerPlan& gcode_layer, const types::MeshPathConfigs& mesh_config, const SliceLayerPart& part, const SliceMeshStorage& mesh)
-            const;
+    void processSpiralizedWall(
+        const SliceDataStorage& storage,
+        LayerPlan& gcode_layer,
+        const types::MeshPathConfigs& mesh_config,
+        const SliceLayerPart& part,
+        const SliceMeshStorage& mesh) const;
 
     /*!
      * Add the gcode of the top/bottom skin of the given part and of the perimeter gaps.
@@ -687,7 +691,8 @@ private:
      * \param gcodeLayer The initial planning of the g-code of the layer.
      * \return Whether any support skin was added to the layer plan.
      */
-    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const geometry::Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer) const;
+    bool addSupportRoofsToGCode(const SliceDataStorage& storage, const geometry::Shape& support_roof_outlines, const GCodePathConfig& current_roof_config, LayerPlan& gcode_layer)
+        const;
 
     /*!
      * Add the support bottoms to the layer plan \p gcodeLayer of the current

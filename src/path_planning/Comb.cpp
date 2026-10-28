@@ -632,7 +632,8 @@ std::shared_ptr<std::pair<ClosestPointPolygon, ClosestPointPolygon>> Comb::Cross
             continue;
         }
 
-        const coord_t dist_to_start = geometry::vSize(crossing_candidate.second.location_ - estimated_start); // use outside location, so that the crossing direction is taken into account
+        const coord_t dist_to_start
+            = geometry::vSize(crossing_candidate.second.location_ - estimated_start); // use outside location, so that the crossing direction is taken into account
         const coord_t dist_to_end = geometry::vSize(crossing_candidate.second.location_ - estimated_end);
         const coord_t detour_dist = dist_to_start + dist_to_end;
         const coord_t detour_score = crossing_dist2 + detour_dist * detour_dist / 1000; // prefer a closest connection over a detour

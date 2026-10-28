@@ -16,7 +16,6 @@ namespace curaengine::utils
 {
 
 
-
 class LinearAlg2D
 {
 public:
@@ -85,10 +84,12 @@ public:
      *
      * \return Whether the two line segments intersect.
      */
-    static bool segmentSegmentIntersection(const geometry::Point2LL& p1, const geometry::Point2LL& p2, const geometry::Point2LL& p3, const geometry::Point2LL& p4, float& t, float& u);
+    static bool
+        segmentSegmentIntersection(const geometry::Point2LL& p1, const geometry::Point2LL& p2, const geometry::Point2LL& p3, const geometry::Point2LL& p4, float& t, float& u);
     static bool lineLineIntersection(const geometry::Point2LL& p1, const geometry::Point2LL& p2, const geometry::Point2LL& p3, const geometry::Point2LL& p4, float& t, float& u);
 
-    static bool lineLineIntersection(const geometry::Point2LL& a, const geometry::Point2LL& b, const geometry::Point2LL& c, const geometry::Point2LL& d, geometry::Point2LL& output);
+    static bool
+        lineLineIntersection(const geometry::Point2LL& a, const geometry::Point2LL& b, const geometry::Point2LL& c, const geometry::Point2LL& d, geometry::Point2LL& output);
 
     /*!
      * Computes the intersection between a line and a horizontal line
@@ -282,7 +283,8 @@ public:
      * \param d Another end point of the second line segment
      * \param max_dist The maximal distance between the two line segments for which this function will return true.
      */
-    static bool lineSegmentsAreCloserThan(const geometry::Point2LL& a, const geometry::Point2LL& b, const geometry::Point2LL& c, const geometry::Point2LL& d, const coord_t max_dist)
+    static bool
+        lineSegmentsAreCloserThan(const geometry::Point2LL& a, const geometry::Point2LL& b, const geometry::Point2LL& c, const geometry::Point2LL& d, const coord_t max_dist)
     {
         const coord_t max_dist2 = max_dist * max_dist;
 
@@ -318,7 +320,11 @@ public:
      * \param b_from_transformed The transformed to location of line b
      * \return Whether the two line segments collide
      */
-    static bool lineSegmentsCollide(const geometry::Point2LL& a_from_transformed, const geometry::Point2LL& a_to_transformed, geometry::Point2LL b_from_transformed, geometry::Point2LL b_to_transformed);
+    static bool lineSegmentsCollide(
+        const geometry::Point2LL& a_from_transformed,
+        const geometry::Point2LL& a_to_transformed,
+        geometry::Point2LL b_from_transformed,
+        geometry::Point2LL b_to_transformed);
 
     /*!
      * Compute the angle between two consecutive line segments.

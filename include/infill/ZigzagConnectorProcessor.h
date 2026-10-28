@@ -14,15 +14,10 @@ class OpenPolyline;
 class PointMatrix;
 class Polygon;
 class Shape;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::infill
 {
-
-
-
-
-
 
 
 /*!
@@ -124,7 +119,13 @@ public:
      * \param skip_some_zags Whether to skip some zags
      * \param zag_skip_count Skip 1 zag in every N zags
      */
-    ZigzagConnectorProcessor(const geometry::PointMatrix& rotation_matrix, geometry::OpenLinesSet& result, bool use_endpieces, bool connected_endpieces, bool skip_some_zags, int zag_skip_count)
+    ZigzagConnectorProcessor(
+        const geometry::PointMatrix& rotation_matrix,
+        geometry::OpenLinesSet& result,
+        bool use_endpieces,
+        bool connected_endpieces,
+        bool skip_some_zags,
+        int zag_skip_count)
         : rotation_matrix_(rotation_matrix)
         , result_(result)
         , use_endpieces_(use_endpieces)

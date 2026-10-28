@@ -16,7 +16,6 @@ namespace curaengine
 {
 
 
-
 Duration Preheat::getTimeToGoFromTempToTemp(const size_t extruder, const Temperature& temp_before, const Temperature& temp_after, const bool during_printing)
 {
     const Settings& extruder_settings = Application::getInstance().current_slice_->scene.extruders[extruder].settings_;

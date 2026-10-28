@@ -25,7 +25,6 @@ namespace curaengine
 using types::operator""_r;
 
 
-
 InfillOrderOptimizer::InfillOrderOptimizer()
 {
 }

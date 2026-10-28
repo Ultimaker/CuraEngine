@@ -27,8 +27,6 @@ namespace curaengine
 using types::operator""_s;
 
 
-
-
 constexpr Duration LayerPlanBuffer::extra_preheat_time_;
 
 void LayerPlanBuffer::handle(LayerPlan& layer_plan, GCodeExport& gcode)

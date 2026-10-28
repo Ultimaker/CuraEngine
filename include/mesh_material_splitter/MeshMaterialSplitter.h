@@ -18,6 +18,6 @@ namespace mesh_material_splitter
  */
 void makePaintingModifierMeshes(MeshGroup* meshgroup);
 
-} // namespace curaengine::mesh_material_splitter
+} // namespace mesh_material_splitter
 
 } // namespace curaengine

@@ -13,7 +13,7 @@ namespace curaengine::geometry
 {
 class Polygon;
 class Shape;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine
 {
@@ -22,7 +22,6 @@ class Settings;
 class SliceDataStorage;
 class SliceMeshStorage;
 class Slicer;
-
 
 
 class AreaSupport
@@ -87,7 +86,10 @@ private:
      * \param global_support_areas_per_layer the global support areas per layer
      * \param total_layer_count total number of layers
      */
-    static void splitGlobalSupportAreasIntoSupportInfillParts(SliceDataStorage& storage, const std::vector<geometry::Shape>& global_support_areas_per_layer, unsigned int total_layer_count);
+    static void splitGlobalSupportAreasIntoSupportInfillParts(
+        SliceDataStorage& storage,
+        const std::vector<geometry::Shape>& global_support_areas_per_layer,
+        unsigned int total_layer_count);
 
     /*!
      * Generate gradual support on the already generated support areas. This must be called after generateSupportAreas().
@@ -284,7 +286,8 @@ private:
      * \param layer_idx The layer for which to compute the overhang.
      * \return A pair of basic overhang and full overhang.
      */
-    static std::pair<geometry::Shape, geometry::Shape> computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const types::LayerIndex& layer_idx);
+    static std::pair<geometry::Shape, geometry::Shape>
+        computeBasicAndFullOverhang(const SliceDataStorage& storage, const SliceMeshStorage& mesh, const types::LayerIndex& layer_idx);
 
     /*!
      * \brief Adds tower pieces to the current support layer.

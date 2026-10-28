@@ -109,7 +109,8 @@ public:
      * \todo This should technically return a MixedLinesSet, because it can definitely contain open and closed polylines, but that is a heavy change
      */
     template<class LineType>
-    OpenLinesSet intersection(const LinesSet<LineType>& polylines, bool restitch = true, const utils::coord_t max_stitch_distance = 10_mu, const bool split_into_segments = true) const;
+    OpenLinesSet
+        intersection(const LinesSet<LineType>& polylines, bool restitch = true, const utils::coord_t max_stitch_distance = 10_mu, const bool split_into_segments = true) const;
 
     [[nodiscard]] Shape xorPolygons(const Shape& other, ClipperLib::PolyFillType pft = ClipperLib::pftEvenOdd) const;
 

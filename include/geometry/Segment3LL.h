@@ -101,7 +101,8 @@ private:
         const utils::coord_t end_coordinate,
         const utils::coord_t layer_start,
         const utils::coord_t layer_end,
-        const std::function<Point3LL(const Point3LL& point, const LayerLocation insideness, const utils::coord_t layer_start, const utils::coord_t layer_end)>& function_crop_point) const;
+        const std::function<Point3LL(const Point3LL& point, const LayerLocation insideness, const utils::coord_t layer_start, const utils::coord_t layer_end)>& function_crop_point)
+        const;
 
     /*!
      * Crops an extremity of the segment so that it ends inside the given layer

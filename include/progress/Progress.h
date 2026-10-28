@@ -18,7 +18,6 @@ namespace curaengine::progress
 {
 
 
-
 static constexpr size_t N_PROGRESS_STAGES = 8;
 
 /*!
@@ -98,7 +97,11 @@ public:
      * \param skip_threshold The time threshold under which we consider that the full layer time reporting should be skipped
      *                       because it is not relevant
      */
-    static void messageProgressLayer(const types::LayerIndex layer_nr, const size_t total_layers, const utils::TimeKeeper& time_keeper, const std::chrono::milliseconds skip_threshold = 100ms);
+    static void messageProgressLayer(
+        const types::LayerIndex layer_nr,
+        const size_t total_layers,
+        const utils::TimeKeeper& time_keeper,
+        const std::chrono::milliseconds skip_threshold = 100ms);
 };
 
 

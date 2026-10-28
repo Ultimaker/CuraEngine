@@ -11,8 +11,8 @@
 #include <type_traits> // for operations on any arithmetic number type
 
 #include "geometry/Point2LL.h"
-#include "utils/Coord_t.h"
 #include "types/generic.h"
+#include "utils/Coord_t.h"
 
 
 namespace curaengine::geometry

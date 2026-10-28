@@ -21,7 +21,6 @@ namespace curaengine::geometry
 class Shape;
 
 
-
 /*!
  * \brief A Polygon is a specific type of polyline, for which we consider that the "inside" part of
  *        the line forms a surface

@@ -3,9 +3,9 @@
 
 #pragma once
 
+#include "Settings.h"
 #include "WallToolPathGenerator.h"
 #include "geometry/Polygon.h"
-#include "Settings.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/SectionType.h"
 
@@ -140,13 +140,15 @@ private:
 private:
     const geometry::Shape& outline_; //<! A reference to the outline polygon that is the designated area
     utils::coord_t bead_width_0_; //<! The nominal or first extrusion line width with which libArachne generates its walls
-    utils::coord_t bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
-                           // this is the same as bead_width_0
+    utils::coord_t
+        bead_width_x_; //<! The subsequently extrusion line width with which libArachne generates its walls if WallToolPaths was called with the nominal_bead_width Constructor
+                       // this is the same as bead_width_0
     size_t inset_count_; //<! The maximum number of walls to generate
     utils::coord_t wall_0_inset_; //<! How far to inset the outer wall. Should only be applied when printing the actual walls, not extra infill/skin/support walls.
     utils::coord_t wall_x_inset_; //<! How far to inset the inner walls
     bool print_thin_walls_; //<! Whether to enable the widening beading meta-strategy for thin features
-    utils::coord_t min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
+    utils::coord_t
+        min_feature_size_; //<! The minimum size of the features that can be widened by the widening beading meta-strategy. Features thinner than that will not be printed
     const types::AngleRadians wall_transition_angle_;
     const utils::coord_t wall_transition_length_;
     const double min_even_wall_line_width_;

@@ -32,12 +32,11 @@ class ArcusCommunicationTest_FlushGCodeTest_Test;
 class ArcusCommunicationTest_HasSlice_Test;
 class ArcusCommunicationTest_SendLayerComplete_Test;
 class ArcusCommunicationTest_SendProgress_Test;
-}
+} // namespace curaengine
 #endif
 
 namespace curaengine::communication
 {
-
 
 
 /*

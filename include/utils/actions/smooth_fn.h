@@ -14,14 +14,14 @@
 #include <range/v3/view/take.hpp>
 #include <spdlog/spdlog.h>
 
-#include "geometry/Point2LL.h"
 #include "Settings.h"
+#include "geometry/Point2LL.h"
 #include "types/AngleRadians.h"
-#include "utils/Coord_t.h"
 #include "types/arachne.h"
 #include "types/generic.h"
 #include "types/geometry.h"
 #include "types/get.h"
+#include "utils/Coord_t.h"
 
 namespace curaengine
 {

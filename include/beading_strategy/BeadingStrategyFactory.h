@@ -13,7 +13,6 @@ namespace curaengine::beading_strategy
 using types::operator""_r;
 
 
-
 class BeadingStrategyFactory
 {
 public:

@@ -11,12 +11,12 @@
 #include "MeshGroup.h"
 #include "PrintFeatureType.h"
 #include "Raft.h"
+#include "Settings.h" // MAX_INFILL_COMBINE
 #include "Slice.h"
 #include "SliceDataStorage.h" // SliceDataStorage
 #include "SliceMeshStorage.h"
-#include "types/EPlatformAdhesion.h"
-#include "Settings.h" // MAX_INFILL_COMBINE
 #include "types/Acceleration.h"
+#include "types/EPlatformAdhesion.h"
 #include "types/Velocity.h"
 
 using namespace curaengine::path_planning;

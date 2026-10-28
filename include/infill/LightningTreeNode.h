@@ -223,7 +223,8 @@ protected:
      * \param max_remove_colinear_dist2 Maximum distance _squared_ of the (compound) line-segment from which a co-linear point may be removed.
      * \return the total distance along the tree from the last junction above to the first next junction below and the location of the next junction below
      */
-    RectilinearJunction straighten(const utils::coord_t magnitude, const geometry::Point2LL& junction_above, const utils::coord_t accumulated_dist, const utils::coord_t max_remove_colinear_dist2);
+    RectilinearJunction
+        straighten(const utils::coord_t magnitude, const geometry::Point2LL& junction_above, const utils::coord_t accumulated_dist, const utils::coord_t max_remove_colinear_dist2);
 
     /*! Prune the tree from the extremeties (leaf-nodes) until the pruning distance is reached.
      * \return The distance that has been pruned. If less than \p distance, then the whole tree was puned away.

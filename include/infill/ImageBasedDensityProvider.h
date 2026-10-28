@@ -17,7 +17,6 @@ namespace curaengine::infill
 {
 
 
-
 class ImageBasedDensityProvider : public DensityProvider
 {
 public:

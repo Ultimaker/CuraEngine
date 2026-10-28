@@ -25,7 +25,6 @@
 #include "InsetOrderOptimizer.h"
 #include "LayerPlan.h"
 #include "Mesh.h"
-#include "prime_tower/PrimeTower.h"
 #include "Raft.h"
 #include "RetractionAndWipeConfig.h"
 #include "SkinPart.h"
@@ -42,7 +41,9 @@
 #include "geometry/OpenPolyline.h"
 #include "geometry/PointMatrix.h"
 #include "infill/Infill.h"
+#include "prime_tower/PrimeTower.h"
 #include "progress/Progress.h"
+#include "types/Acceleration.h"
 #include "types/DraftShieldHeightLimitation.h"
 #include "types/EFillMethod.h"
 #include "types/EPlatformAdhesion.h"
@@ -52,14 +53,13 @@
 #include "types/EZSeamType.h"
 #include "types/InfillStartEndPreference.h"
 #include "types/RetractBeforeOuterWall.h"
-#include "types/Acceleration.h"
 #include "utils/LinearAlg2D.h"
 #include "utils/OrderOptimizer.h"
 #include "utils/PolygonUtils.h"
 #include "utils/Simplify.h" //Removing micro-segments created by offsetting.
-#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 #include "utils/ThreadPool.h"
 #include "utils/math.h"
+#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
 using namespace curaengine::geometry;
 using namespace curaengine::infill;
@@ -70,7 +70,6 @@ using namespace curaengine::utils;
 namespace curaengine
 {
 using types::operator""_r;
-
 
 
 const FffGcodeWriter::RoofingFlooringSettingsNames FffGcodeWriter::roofing_settings_names

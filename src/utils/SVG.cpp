@@ -563,10 +563,13 @@ void SVG::write(const ExtrusionLine& line, const SurfaceAttributes& visual_attri
         const Point2LL direction_vector = end_vertex.p_ - start_vertex.p_;
         const Point2LL direction_left = geometry::turn90CCW(direction_vector);
         const Point2LL direction_right = -direction_left; // Opposite of left.
-        const Point2D start_left = transformF(start_vertex.p_ + geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
-        const Point2D start_right = transformF(start_vertex.p_ + geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D start_left
+            = transformF(start_vertex.p_ + geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
+        const Point2D start_right
+            = transformF(start_vertex.p_ + geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(start_vertex.w_) / 2.0))));
         const Point2D end_left = transformF(end_vertex.p_ + geometry::normal(direction_left, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
-        const Point2D end_right = transformF(end_vertex.p_ + geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
+        const Point2D end_right
+            = transformF(end_vertex.p_ + geometry::normal(direction_right, std::llrint(std::max(minimum_line_width, static_cast<double>(end_vertex.w_) / 2.0))));
 
         fprintf(out_, "<polygon ");
         write(visual_attributes);

@@ -99,7 +99,8 @@ void SGI_THIS::debugHTML(std::string filename)
         // doesn't draw cells at x = 0 or y = 0 correctly (should be double size)
         geometry::Point2LL lb = SparseGrid<ElemT>::toLowerCorner(cell.first);
         geometry::Point2LL lt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(0, SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
-        geometry::Point2LL rt = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
+        geometry::Point2LL rt
+            = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), SparseGrid<ElemT>::nonzero_sign(cell.first.Y)));
         geometry::Point2LL rb = SparseGrid<ElemT>::toLowerCorner(cell.first + GridPoint(SparseGrid<ElemT>::nonzero_sign(cell.first.X), 0));
         if (lb.X == 0)
         {

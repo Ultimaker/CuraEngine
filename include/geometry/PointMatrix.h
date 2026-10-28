@@ -11,12 +11,10 @@ namespace curaengine::types
 {
 class AngleDegrees;
 class AngleRadians;
-}
+} // namespace curaengine::types
 
 namespace curaengine::geometry
 {
-
-
 
 
 class PointMatrix

@@ -11,8 +11,8 @@
 
 #include "MeshFace.h"
 #include "MeshVertex.h"
-#include "TextureBitField.h"
 #include "Settings.h"
+#include "TextureBitField.h"
 #include "utils/AABB3D.h"
 
 namespace curaengine::geometry

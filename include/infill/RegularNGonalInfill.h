@@ -33,7 +33,8 @@ protected:
      * @param line_width The line width at which the infill will be printed.
      * @return The raw parallel lines to be included.
      */
-    geometry::OpenLinesSet generateParallelLines(const utils::coord_t line_distance, const utils::AABB& bounding_box, const utils::coord_t z, const utils::coord_t line_width) const override;
+    geometry::OpenLinesSet
+        generateParallelLines(const utils::coord_t line_distance, const utils::AABB& bounding_box, const utils::coord_t z, const utils::coord_t line_width) const override;
 
 private:
     struct SegmentsPattern

@@ -305,7 +305,8 @@ size_t PolygonUtils::moveInside(const Shape& polygons, Point2LL& from, int dista
                         }
                         else
                         {
-                            Point2LL inward_dir = geometry::turn90CCW(geometry::normal(ab, MM2INT(10.0)) + geometry::normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
+                            Point2LL inward_dir = geometry::turn90CCW(
+                                geometry::normal(ab, MM2INT(10.0)) + geometry::normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
                             // MM2INT(10.0) to retain precision for the eventual normalization
                             ret = x + geometry::normal(inward_dir, distance);
                             is_already_on_correct_side_of_boundary = geometry::dot(inward_dir, p - x) * distance >= 0;
@@ -430,7 +431,8 @@ unsigned int PolygonUtils::moveInside(const ClosedPolyline& polygon, Point2LL& f
                     }
                     else
                     {
-                        Point2LL inward_dir = geometry::turn90CCW(geometry::normal(ab, MM2INT(10.0)) + geometry::normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
+                        Point2LL inward_dir = geometry::turn90CCW(
+                            geometry::normal(ab, MM2INT(10.0)) + geometry::normal(p1 - p0, MM2INT(10.0))); // inward direction irrespective of sign of [distance]
                         // MM2INT(10.0) to retain precision for the eventual normalization
                         ret = x + geometry::normal(inward_dir, distance);
                         is_already_on_correct_side_of_boundary = geometry::dot(inward_dir, p - x) * distance >= 0;

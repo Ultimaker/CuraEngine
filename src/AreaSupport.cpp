@@ -38,14 +38,14 @@
 #include "infill/SierpinskiFillProvider.h"
 #include "infill/UniformDensityProvider.h"
 #include "progress/Progress.h"
+#include "types/AngleRadians.h" //To compute overhang distance from the angle.
 #include "types/BuildPlateShape.h"
 #include "types/EFillMethod.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/ESupportStructure.h"
 #include "types/ESupportType.h"
-#include "types/SupportDistPriority.h" //For EFillMethod.
-#include "types/AngleRadians.h" //To compute overhang distance from the angle.
 #include "types/Ratio.h"
+#include "types/SupportDistPriority.h" //For EFillMethod.
 #include "utils/LinearAlg2D.h"
 #include "utils/Simplify.h"
 #include "utils/ThreadPool.h"
@@ -385,8 +385,9 @@ void AreaSupport::generateGradualSupport(SliceDataStorage& storage)
 
     // no early-out for this function; it needs to initialize the [infill_area_per_combine_per_density]
     double layer_skip_count{ 8.0 }; // skip every so many layers as to ignore small gaps in the model making computation more easy
-    size_t gradual_support_step_layer_count
-        = utils::round_divide(gradual_support_step_height, mesh_group_settings.get<coord_t>("layer_height")); // The difference in layer count between consecutive density infill areas.
+    size_t gradual_support_step_layer_count = utils::round_divide(
+        gradual_support_step_height,
+        mesh_group_settings.get<coord_t>("layer_height")); // The difference in layer count between consecutive density infill areas.
 
     // make gradual_support_step_height divisable by layer_skip_count
     const auto n_skip_steps_per_gradual_step
@@ -1908,7 +1909,8 @@ void AreaSupport::generateSupportBottom(SliceDataStorage& storage, const SliceMe
     {
         return;
     }
-    const coord_t z_distance_bottom = utils::round_up_divide(mesh.settings.get<coord_t>("support_bottom_distance"), layer_height); // Number of layers between support bottom and model.
+    const coord_t z_distance_bottom
+        = utils::round_up_divide(mesh.settings.get<coord_t>("support_bottom_distance"), layer_height); // Number of layers between support bottom and model.
     const coord_t bottom_line_width = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_line_width");
     const coord_t bottom_outline_offset = mesh_group_settings.get<ExtruderTrain&>("support_bottom_extruder_nr").settings_.get<coord_t>("support_bottom_offset");
 

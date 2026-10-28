@@ -14,7 +14,6 @@ namespace curaengine::infill
 {
 
 
-
 class UniformDensityProvider : public DensityProvider
 {
 public:

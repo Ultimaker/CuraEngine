@@ -9,10 +9,10 @@
 
 #include <boost/polygon/voronoi.hpp>
 
-#include "beading_strategy/BeadingStrategy.h"
 #include "SkeletalTrapezoidationEdge.h"
 #include "SkeletalTrapezoidationGraph.h"
 #include "SkeletalTrapezoidationJoint.h"
+#include "beading_strategy/BeadingStrategy.h"
 #include "geometry/MendedShape.h"
 #include "types/Ratio.h"
 #include "utils/ExtrusionJunction.h"
@@ -374,7 +374,8 @@ protected:
      * optimum.
      * \return Whether the origin transition should be dissolved.
      */
-    std::list<TransitionMidRef> dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, utils::coord_t traveled_dist, utils::coord_t max_dist, bool going_up);
+    std::list<TransitionMidRef>
+        dissolveNearbyTransitions(edge_t* edge_to_start, TransitionMiddle& origin_transition, utils::coord_t traveled_dist, utils::coord_t max_dist, bool going_up);
 
     /*!
      * Spread a certain bead count over a region in the graph.

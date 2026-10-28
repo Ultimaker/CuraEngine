@@ -15,26 +15,26 @@
 #include "cura/plugins/slots/postprocess/v0/modify.grpc.pb.h"
 #include "cura/plugins/slots/simplify/v0/modify.grpc.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/v0/SlotID.h"
-#include "plugins/details/Holder.h"
-#include "plugins/details/SingletonRegistry.h"
 #include "plugins/SlotProxy.h"
-#include "plugins/details/Typelist.h"
 #include "plugins/Validator.h"
 #include "plugins/broadcast_settings_request.h"
+#include "plugins/details/Holder.h"
+#include "plugins/details/SingletonRegistry.h"
+#include "plugins/details/Typelist.h"
 #include "plugins/details/default_process.h"
+#include "plugins/details/infill_generate_default.h"
+#include "plugins/details/simplify_default.h"
 #include "plugins/empty.h"
 #include "plugins/gcode_paths_modify_request.h"
 #include "plugins/gcode_paths_modify_response.h"
-#include "plugins/details/infill_generate_default.h"
 #include "plugins/infill_generate_request.h"
 #include "plugins/infill_generate_response.h"
 #include "plugins/postprocess_request.h"
 #include "plugins/postprocess_response.h"
-#include "plugins/details/simplify_default.h"
 #include "plugins/simplify_request.h"
 #include "plugins/simplify_response.h"
 #include "plugins/types.h"
+#include "plugins/v0/SlotID.h"
 
 namespace curaengine
 {
@@ -50,8 +50,14 @@ namespace details
  * @tparam Default The default behavior when no plugin is registered.
  */
 template<class Default = default_process>
-using slot_simplify_
-    = SlotProxy<v0::SlotID::SIMPLIFY_MODIFY, "0.1.0-alpha", ::cura::plugins::slots::simplify::v0::modify::SimplifyModifyService::Stub, Validator, simplify_request, simplify_response, Default>;
+using slot_simplify_ = SlotProxy<
+    v0::SlotID::SIMPLIFY_MODIFY,
+    "0.1.0-alpha",
+    ::cura::plugins::slots::simplify::v0::modify::SimplifyModifyService::Stub,
+    Validator,
+    simplify_request,
+    simplify_response,
+    Default>;
 
 template<class Default = default_process>
 using slot_infill_generate_ = SlotProxy<
@@ -81,8 +87,14 @@ using slot_postprocess_ = SlotProxy<
     Default>;
 
 template<class Default = default_process>
-using slot_settings_broadcast_
-    = SlotProxy<v0::SlotID::SETTINGS_BROADCAST, "0.1.0-alpha", ::cura::plugins::slots::broadcast::v0::BroadcastService::Stub, Validator, broadcast_settings_request, empty, Default>;
+using slot_settings_broadcast_ = SlotProxy<
+    v0::SlotID::SETTINGS_BROADCAST,
+    "0.1.0-alpha",
+    ::cura::plugins::slots::broadcast::v0::BroadcastService::Stub,
+    Validator,
+    broadcast_settings_request,
+    empty,
+    Default>;
 
 template<class Default = default_process>
 using slot_gcode_paths_modify_ = SlotProxy<
@@ -94,7 +106,7 @@ using slot_gcode_paths_modify_ = SlotProxy<
     gcode_paths_modify_response,
     Default>;
 
-} // namespace curaengine::plugins::details
+} // namespace details
 
 using slot_gcode_paths_modify = details::slot_gcode_paths_modify_<>;
 using slot_infill_generate = details::slot_infill_generate_<details::infill_generate_default>;
@@ -106,7 +118,7 @@ using SlotTypes = details::Typelist<slot_gcode_paths_modify, slot_infill_generat
 
 using slots = details::SingletonRegistry<SlotTypes, details::Holder>;
 
-} // namespace curaengine::plugins
+} // namespace plugins
 
 } // namespace curaengine
 

@@ -13,7 +13,6 @@ namespace curaengine::infill
 {
 
 
-
 /*!
  * Parent class of function objects which return the density required for a given region.
  *

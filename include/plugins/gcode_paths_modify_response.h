@@ -13,7 +13,8 @@
 
 namespace curaengine::plugins
 {
-struct gcode_paths_modify_response : public details::converter<gcode_paths_modify_response, ::cura::plugins::slots::gcode_paths::v0::modify::CallResponse, std::vector<path_planning::GCodePath>>
+struct gcode_paths_modify_response
+    : public details::converter<gcode_paths_modify_response, ::cura::plugins::slots::gcode_paths::v0::modify::CallResponse, std::vector<path_planning::GCodePath>>
 {
     [[nodiscard]] static constexpr PrintFeatureType getPrintFeatureType(const ::cura::plugins::v0::PrintFeature feature) noexcept;
     [[nodiscard]] static GCodePathConfig buildConfig(const ::cura::plugins::v0::GCodePath& path);

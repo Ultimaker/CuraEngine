@@ -9,11 +9,10 @@ namespace curaengine::geometry
 {
 class PointsSet;
 class Shape;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::utils::scoring
 {
-
 
 
 /*!

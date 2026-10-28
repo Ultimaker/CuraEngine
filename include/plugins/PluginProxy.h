@@ -24,12 +24,12 @@
 #include "cura/plugins/slots/handshake/v0/handshake.grpc.pb.h"
 #include "cura/plugins/slots/handshake/v0/handshake.pb.h"
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/v0/SlotID.h"
+#include "plugins/details/broadcast_rpc.h"
 #include "plugins/exceptions/RemoteException.h"
 #include "plugins/exceptions/ValidatorException.h"
-#include "plugins/details/broadcast_rpc.h"
 #include "plugins/handshake_request.h"
 #include "plugins/handshake_response.h"
+#include "plugins/v0/SlotID.h"
 #include "types/CharRangeLiteral.h"
 #if __has_include(<coroutine>)
 #include <coroutine>

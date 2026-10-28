@@ -59,5 +59,5 @@ struct segment_traits<curaengine::CSegment>
 };
 
 
-} // namespace boost::polygon
+} // namespace polygon
 } // namespace boost

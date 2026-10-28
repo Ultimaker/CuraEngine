@@ -17,7 +17,6 @@ namespace curaengine::types
 {
 
 
-
 /**
  * Adaptive layer heights calculates the desired layer heights depending mesh.
  */
@@ -46,7 +45,12 @@ public:
      * to.
      * \param meshgroup The meshgroup to process.
      */
-    AdaptiveLayerHeights(const utils::coord_t base_layer_height, const utils::coord_t variation, const utils::coord_t step_size, const utils::coord_t threshold, const MeshGroup* meshgroup);
+    AdaptiveLayerHeights(
+        const utils::coord_t base_layer_height,
+        const utils::coord_t variation,
+        const utils::coord_t step_size,
+        const utils::coord_t threshold,
+        const MeshGroup* meshgroup);
 
 private:
     /*!

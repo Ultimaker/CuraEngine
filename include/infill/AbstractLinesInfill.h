@@ -20,14 +20,10 @@ namespace curaengine::geometry
 {
 class OpenLinesSet;
 class Shape;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::infill
 {
-
-
-
-
 
 
 /*!
@@ -73,7 +69,9 @@ protected:
      * @return A set containing the raw parallel lines to be included. Each line of the set should be a complete line on a column, even if goes out of the model
      *         one or multiple times.
      */
-    virtual geometry::OpenLinesSet generateParallelLines(const utils::coord_t line_distance, const utils::AABB& bounding_box, const utils::coord_t z, const utils::coord_t line_width) const = 0;
+    virtual geometry::OpenLinesSet
+        generateParallelLines(const utils::coord_t line_distance, const utils::AABB& bounding_box, const utils::coord_t z, const utils::coord_t line_width) const
+        = 0;
 
 private:
     /*! Helper structure that contain data about the split lines to be joined */

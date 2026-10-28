@@ -10,12 +10,10 @@ namespace curaengine::geometry
 {
 class Polygon;
 class Shape;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::bridge
 {
-
-
 
 
 class TransformedShape

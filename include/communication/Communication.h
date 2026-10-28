@@ -13,13 +13,13 @@ namespace curaengine
 {
 enum class PrintFeatureType : unsigned char;
 class ExtruderTrain;
-}
+} // namespace curaengine
 
 namespace curaengine::geometry
 {
 class Shape;
 class Polygon;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::types
 {
@@ -29,10 +29,6 @@ struct Duration;
 namespace curaengine::communication
 {
 // Some forward declarations to increase compilation speed.
-
-
-
-
 
 
 /*

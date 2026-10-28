@@ -13,18 +13,16 @@ namespace curaengine::types
 {
 enum class EFillMethod;
 struct MeshPathConfigs;
-}
+} // namespace curaengine::types
 
 namespace curaengine::geometry
 {
 class OpenLinesSet;
 class Shape;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine
 {
-
-
 
 
 class LayerPlan;
@@ -119,7 +117,11 @@ private:
      * @return Whether we have found a vertex in the lines set closer to the given location than the actual closest location
      */
     template<class LinesSetType>
-    bool isCloserTo(const LinesSetType& line_set, const geometry::Point2LL& location, std::optional<std::pair<size_t, size_t>>& closest_point, utils::coord_t& closest_distance_squared);
+    bool isCloserTo(
+        const LinesSetType& line_set,
+        const geometry::Point2LL& location,
+        std::optional<std::pair<size_t, size_t>>& closest_point,
+        utils::coord_t& closest_distance_squared);
 
     /*! Add the given part to the layer plan using the given settings */
     void addToLayer(

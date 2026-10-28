@@ -28,9 +28,9 @@ public:
     std::vector<SupportInfillPart> support_infill_parts; //!< a list of support infill parts
     geometry::Shape support_bottom; //!< Piece of support below the support and above the model. This must not overlap with any of the support_infill_parts or support_roof.
     geometry::Shape support_roof; //!< Piece of support above the support and below the model. This must not overlap with any of the support_infill_parts or support_bottom.
-                        //   NOTE: This is _all_ of the support_roof, and as such, overlaps with support_fractional_roof!
+                                  //   NOTE: This is _all_ of the support_roof, and as such, overlaps with support_fractional_roof!
     geometry::Shape support_fractional_roof; //!< If the support distance is not exactly a multiple of the layer height,
-                                   //   the first part of support just underneath the model needs to be printed at a fracional layer height.
+                                             //   the first part of support just underneath the model needs to be printed at a fracional layer height.
     geometry::Shape support_mesh_drop_down; //!< Areas from support meshes which should be supported by more support
     geometry::Shape support_mesh; //!< Areas from support meshes which should NOT be supported by more support
     geometry::Shape anti_overhang; //!< Areas where no overhang should be detected.

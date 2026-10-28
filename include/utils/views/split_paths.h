@@ -18,7 +18,7 @@ constexpr auto path_sep = ';';
 #else
 constexpr auto path_sep = ':';
 #endif
-} // namespace curaengine::utils::views::details
+} // namespace details
 
 inline static constexpr auto split_paths = ranges::views::split(details::path_sep)
                                          | ranges::views::transform(

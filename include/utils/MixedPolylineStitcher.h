@@ -11,14 +11,10 @@ class MixedLinesSet;
 class OpenPolyline;
 class OpenLinesSet;
 class ClosedLinesSet;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::utils
 {
-
-
-
-
 
 
 class MixedPolylineStitcher : public PolylineStitcher<geometry::OpenLinesSet, geometry::ClosedLinesSet, geometry::OpenPolyline, geometry::Point2LL>

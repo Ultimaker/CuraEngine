@@ -7,8 +7,8 @@
 #include <vector>
 
 #include "GCodePathConfig.h"
-#include "types/MeshPathConfigs.h"
 #include "types/LayerIndex.h"
+#include "types/MeshPathConfigs.h"
 #include "types/Ratio.h"
 #include "utils/Coord_t.h"
 
@@ -17,13 +17,10 @@ namespace curaengine
 class ExtruderTrain;
 class SliceDataStorage;
 class SliceMeshStorage;
-}
+} // namespace curaengine
 
 namespace curaengine::types
 {
-
-
-
 
 
 /*!

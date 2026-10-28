@@ -23,18 +23,17 @@
 #include "types/ZSeamConfig.h" //To read the seam configuration.
 #include "utils/PolygonUtils.h"
 #include "utils/SparsePointGridInclusive.h"
+#include "utils/actions/dfs.h"
 #include "utils/scoring/BestElementFinder.h"
 #include "utils/scoring/CornerScoringCriterion.h"
 #include "utils/scoring/DistanceScoringCriterion.h"
 #include "utils/scoring/ExclusionAreaScoringCriterion.h"
 #include "utils/scoring/RandomScoringCriterion.h"
 #include "utils/scoring/TextureScoringCriterion.h"
-#include "utils/actions/dfs.h"
 
 namespace curaengine
 {
 using utils::operator""_mu;
-
 
 
 /*!
@@ -790,7 +789,8 @@ protected:
             // Use a much smaller distance divider because we want points around the forced points to be filtered out very easily
             constexpr double distance_divider = 1.0;
             constexpr auto distance_type = utils::scoring::DistanceScoringCriterion::DistanceType::Euclidian;
-            main_criterion.criterion = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
+            main_criterion.criterion
+                = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, points.at(path.force_start_index_.value()), distance_type, distance_divider);
         }
         else if (path.seam_config_.type_ == types::EZSeamType::SHORTEST || path.seam_config_.type_ == types::EZSeamType::USER_SPECIFIED)
         {
@@ -831,13 +831,15 @@ protected:
             const utils::AABB path_bounding_box(points);
 
             { // First fallback strategy is to take points on the back-most position
-                auto fallback_criterion = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, path_bounding_box.max_, utils::scoring::DistanceScoringCriterion::DistanceType::YOnly);
+                auto fallback_criterion
+                    = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, path_bounding_box.max_, utils::scoring::DistanceScoringCriterion::DistanceType::YOnly);
                 constexpr double outsider_delta_threshold = 0.01;
                 best_candidate_finder.appendSingleCriterionPass(fallback_criterion, outsider_delta_threshold);
             }
 
             { // Second fallback strategy, in case we still have multiple points that are aligned on Y (e.g. cube), take the right-most point
-                auto fallback_criterion = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, path_bounding_box.max_, utils::scoring::DistanceScoringCriterion::DistanceType::XOnly);
+                auto fallback_criterion
+                    = std::make_shared<utils::scoring::DistanceScoringCriterion>(points, path_bounding_box.max_, utils::scoring::DistanceScoringCriterion::DistanceType::XOnly);
                 best_candidate_finder.appendSingleCriterionPass(fallback_criterion);
             }
         }

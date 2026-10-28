@@ -223,7 +223,7 @@ LayerIndex TreeSupport::precalculate(const SliceDataStorage& storage, std::vecto
         const coord_t layer_height = mesh.settings.get<coord_t>("layer_height");
         const coord_t z_distance_top = mesh.settings.get<coord_t>("support_top_distance");
         const size_t z_distance_top_layers = utils::round_up_divide(z_distance_top,
-                                                             layer_height) + 1; // Support must always be 1 layer below overhang.
+                                                                    layer_height) + 1; // Support must always be 1 layer below overhang.
         if (mesh.overhang_areas.size() <= z_distance_top_layers)
         {
             continue;

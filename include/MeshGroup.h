@@ -21,8 +21,6 @@ namespace curaengine
 {
 
 
-
-
 /*!
  * A MeshGroup is a collection with 1 or more 3D meshes.
  *

@@ -9,10 +9,10 @@
 #include <utility>
 
 #include "cura/plugins/v0/slot_id.pb.h"
-#include "plugins/v0/SlotID.h"
 #include "plugins/details/Typelist.h"
 #include "plugins/plugin_metadata.h"
 #include "plugins/slot_metadata.h"
+#include "plugins/v0/SlotID.h"
 
 namespace curaengine::plugins::details
 {

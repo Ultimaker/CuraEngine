@@ -21,7 +21,11 @@ class TransformedShape;
 class LineAnchoringScoringCriterion : public BridgeAngleScoringCriterion
 {
 public:
-    explicit LineAnchoringScoringCriterion(const std::vector<types::AngleDegrees>& candidates, const geometry::Shape& skin_outline, const geometry::Shape& supported_regions, const utils::coord_t line_width);
+    explicit LineAnchoringScoringCriterion(
+        const std::vector<types::AngleDegrees>& candidates,
+        const geometry::Shape& skin_outline,
+        const geometry::Shape& supported_regions,
+        const utils::coord_t line_width);
 
 protected:
     double computeScore(const TransformedShape& transformed_skin, const TransformedShape& transformed_supported_regions) const override;
@@ -41,7 +45,8 @@ private:
      *   - Properly bridging segments, i.e. between two supported areas, add their length to the score
      *   - Hanging segments, i.e. supported on one side but not the other (or not at all), subtract their length from the score
      *   - Segments that lie on a supported area substract part of their length from the score  */
-    static std::tuple<utils::coord_t, utils::coord_t> evaluateBridgeLine(const utils::coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area);
+    static std::tuple<utils::coord_t, utils::coord_t>
+        evaluateBridgeLine(const utils::coord_t line_y, const TransformedShape& transformed_skin_area, const TransformedShape& transformed_supported_area);
 
     /*!
      * Calculates all the intersections between a horizontal line and the given transformed shape

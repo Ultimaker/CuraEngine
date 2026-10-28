@@ -41,7 +41,6 @@ namespace curaengine
 using types::operator""_r;
 
 
-
 InsetOrderOptimizer::InsetOrderOptimizer(
     const SliceDataStorage& storage,
     LayerPlan& gcode_layer,

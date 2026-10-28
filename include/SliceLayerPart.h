@@ -23,12 +23,12 @@ class SliceLayerPart
 {
 public:
     utils::AABB boundaryBox; //!< The boundaryBox is an axis-aligned boundary box which is used to quickly check for possible
-                      //!< collision between different parts on different layers. It's an optimization used during
-                      //!< skin calculations.
+                             //!< collision between different parts on different layers. It's an optimization used during
+                             //!< skin calculations.
     geometry::SingleShape outline; //!< The outline is the first member that is filled, and it's filled with polygons that match
-                         //!< a cross-section of the 3D model.
+                                   //!< a cross-section of the 3D model.
     geometry::Shape print_outline; //!< An approximation to the outline of what's actually printed, based on the outer wall.
-                         //!< Too small parts will be omitted compared to the outline.
+                                   //!< Too small parts will be omitted compared to the outline.
     geometry::Shape spiral_wall; //!< The centerline of the wall used by spiralize mode. Only computed if spiralize mode is enabled.
     geometry::Shape inner_area; //!< The area of the outline, minus the walls. This will be filled with either skin or infill.
     std::vector<SkinPart> skin_parts; //!< The skin parts which are filled for 100% with lines and/or insets.

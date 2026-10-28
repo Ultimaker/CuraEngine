@@ -21,11 +21,11 @@
 #include "geometry/Polygon.h"
 #include "types/EFillMethod.h"
 #include "types/Ratio.h"
+#include "types/geometry.h"
 #include "utils/AABB.h"
 #include "utils/LinearAlg2D.h"
 #include "utils/math.h"
 #include "utils/scoring/BestElementFinder.h"
-#include "types/geometry.h"
 
 
 using namespace curaengine::geometry;

@@ -13,12 +13,10 @@ namespace curaengine::geometry
 {
 class Polygon;
 class Shape;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::utils
 {
-
-
 
 
 using ListPolygon = std::list<geometry::Point2LL>; //!< A polygon represented by a linked list instead of a vector

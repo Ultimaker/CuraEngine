@@ -14,11 +14,10 @@ namespace curaengine
 {
 class Mesh;
 class ArcusCommunicationPrivateTest;
-}
+} // namespace curaengine
 
 namespace curaengine::communication
 {
-
 
 
 class ArcusCommunication::Private

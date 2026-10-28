@@ -13,11 +13,10 @@ namespace curaengine::infill
 {
 class LightningGenerator;
 class SierpinskiFillProvider;
-}
+} // namespace curaengine::infill
 
 namespace curaengine
 {
-
 
 
 class SupportStorage

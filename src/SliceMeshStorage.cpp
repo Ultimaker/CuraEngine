@@ -7,8 +7,8 @@
 
 #include "ExtruderTrain.h"
 #include "Mesh.h"
-#include "types/ESurfaceMode.h"
 #include "Settings.h"
+#include "types/ESurfaceMode.h"
 
 using namespace curaengine::geometry;
 using namespace curaengine::types;

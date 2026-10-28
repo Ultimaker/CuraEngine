@@ -71,7 +71,8 @@ private:
      * @param uv2 The UV coordinates at point 2 of the triangle
      * @return The interpolated UV coordinates at the given position
      */
-    static geometry::Point2F interpolateUV(const geometry::Point3D& barycentric_coordinates, const geometry::Point2F& uv0, const geometry::Point2F& uv1, const geometry::Point2F& uv2);
+    static geometry::Point2F
+        interpolateUV(const geometry::Point3D& barycentric_coordinates, const geometry::Point2F& uv0, const geometry::Point2F& uv1, const geometry::Point2F& uv2);
 
     /*!
      * Get the barycentric coordinates of the given point in the given triangle
@@ -81,7 +82,8 @@ private:
      * @param p2 The coordinates of point 2 of the triangle
      * @return The barycentric coordinates of the given point
      */
-    static std::optional<geometry::Point3D> getBarycentricCoordinates(const geometry::Point3LL& point, const geometry::Point3LL& p0, const geometry::Point3LL& p1, const geometry::Point3LL& p2);
+    static std::optional<geometry::Point3D>
+        getBarycentricCoordinates(const geometry::Point3LL& point, const geometry::Point3LL& p0, const geometry::Point3LL& p1, const geometry::Point3LL& p2);
 
     /*!
      * \brief Project a triangle onto a 2D layer.
@@ -141,8 +143,11 @@ private:
      * \param[in] slicing_tolderance Slicing tolerance in order to figure out what happens when vertices are exactly on the slicing boundary.
      * \param[in, out] layers The segments are created here.
      */
-    static void
-        buildSegments(const Mesh& mesh, const std::vector<std::pair<int32_t, int32_t>>& zbboxes, const types::SlicingTolerance& slicing_tolerance, std::vector<SlicerLayer>& layers);
+    static void buildSegments(
+        const Mesh& mesh,
+        const std::vector<std::pair<int32_t, int32_t>>& zbboxes,
+        const types::SlicingTolerance& slicing_tolerance,
+        std::vector<SlicerLayer>& layers);
 };
 
 } // namespace curaengine

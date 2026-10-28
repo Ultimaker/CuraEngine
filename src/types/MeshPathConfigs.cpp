@@ -7,8 +7,8 @@
 
 #include "ExtruderTrain.h"
 #include "PrintFeatureType.h"
-#include "SliceMeshStorage.h"
 #include "Settings.h"
+#include "SliceMeshStorage.h"
 #include "types/Acceleration.h"
 #include "types/Velocity.h"
 

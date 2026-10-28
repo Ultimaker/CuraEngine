@@ -116,7 +116,8 @@ public:
         constexpr size_t infill_multiplier = 1;
         const int support_shift = roof ? 0 : support_infill_distance / 2;
         const utils::coord_t wall_line_count
-            = include_walls ? (! roof ? config.support_wall_thickness : static_cast<utils::coord_t>(config.support_roof_wall_count) * config.support_roof_line_width) : utils::coord_t{ 0 };
+            = include_walls ? (! roof ? config.support_wall_thickness : static_cast<utils::coord_t>(config.support_roof_wall_count) * config.support_roof_line_width)
+                            : utils::coord_t{ 0 };
         constexpr utils::coord_t narrow_area_width = 0;
         const geometry::Point2LL infill_origin;
         constexpr bool skip_stitching = false;

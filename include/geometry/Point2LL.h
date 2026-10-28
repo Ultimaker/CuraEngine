@@ -15,8 +15,8 @@ Integer points are used to avoid floating point rounding errors, and because Cli
 
 #include "types/AngleDegrees.h"
 #include "types/AngleRadians.h"
-#include "utils/Coord_t.h"
 #include "types/generic.h"
+#include "utils/Coord_t.h"
 
 #ifdef __GNUC__
 #define DEPRECATED(func) func __attribute__((deprecated))

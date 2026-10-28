@@ -30,7 +30,6 @@ namespace curaengine
 {
 
 
-
 WallsComputation::WallsComputation(const Settings& settings, const LayerIndex layer_nr)
     : settings_(settings)
     , layer_nr_(layer_nr)

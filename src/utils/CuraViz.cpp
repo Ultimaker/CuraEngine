@@ -17,13 +17,13 @@
 #include <range/v3/view/map.hpp>
 
 #include "Application.h"
+#include "Settings.h"
 #include "Slice.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/OpenLinesSet.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "Settings.h"
 
 using namespace curaengine::geometry;
 

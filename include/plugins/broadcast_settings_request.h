@@ -10,7 +10,8 @@
 
 namespace curaengine::plugins
 {
-struct broadcast_settings_request : public details::converter<broadcast_settings_request, ::cura::plugins::slots::broadcast::v0::BroadcastServiceSettingsRequest, ::cura::proto::Slice>
+struct broadcast_settings_request
+    : public details::converter<broadcast_settings_request, ::cura::plugins::slots::broadcast::v0::BroadcastServiceSettingsRequest, ::cura::proto::Slice>
 {
     value_type operator()(const native_value_type& slice_message) const;
 };

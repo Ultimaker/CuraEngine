@@ -85,7 +85,8 @@ public:
      *
      * The command line doesn't show any layer view so this is ignored.
      */
-    void sendLineTo(const PrintFeatureType&, const geometry::Point3LL&, const utils::coord_t&, const utils::coord_t&, const types::Velocity&, const PrintSegmentAttributes&) override;
+    void sendLineTo(const PrintFeatureType&, const geometry::Point3LL&, const utils::coord_t&, const utils::coord_t&, const types::Velocity&, const PrintSegmentAttributes&)
+        override;
 
     /*
      * \brief Complete a layer to show it in layer view.

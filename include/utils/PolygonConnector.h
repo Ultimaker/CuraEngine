@@ -23,7 +23,7 @@ class PolygonConnectorTest_getBridgeAdjacentSquares_Test;
 class PolygonConnectorTest_getBridgeClosest_Test;
 class PolygonConnectorTest_getBridgeTooFar_Test;
 class PolygonConnectorTest_getBridgeTooNarrow_Test;
-}
+} // namespace curaengine
 #endif
 
 namespace curaengine::utils
@@ -117,8 +117,8 @@ protected:
     std::vector<geometry::Polygon> input_polygons_; //!< The polygons assembled by calls to \ref PolygonConnector::add.
     std::vector<ExtrusionLine> input_paths_; //!< The paths assembled by calls to \ref PolygonConnector::add.
 
-    constexpr static types::Ratio max_gap_ = 0.5; //!< The maximum allowed gap between lines that get connected, in multiples of the local line width. Allows connections inside corners
-                                           //!< where the endpoints are slightly apart.
+    constexpr static types::Ratio max_gap_ = 0.5; //!< The maximum allowed gap between lines that get connected, in multiples of the local line width. Allows connections inside
+                                                  //!< corners where the endpoints are slightly apart.
 
     /*!
      * Line segment to connect two polygons, with all the necessary information
@@ -178,7 +178,13 @@ protected:
          * \param to_point The precise location at the destination of the
          * connection.
          */
-        PolygonConnection(Polygonal* from_poly, const size_t from_segment, const geometry::Point2LL from_point, Polygonal* to_poly, const size_t to_segment, const geometry::Point2LL to_point)
+        PolygonConnection(
+            Polygonal* from_poly,
+            const size_t from_segment,
+            const geometry::Point2LL from_point,
+            Polygonal* to_poly,
+            const size_t to_segment,
+            const geometry::Point2LL to_point)
             : from_poly_(from_poly)
             , from_segment_(from_segment)
             , from_point_(from_point)
@@ -570,8 +576,13 @@ protected:
      * ``std::nullopt``.
      */
     template<typename Polygonal>
-    std::optional<std::pair<geometry::Point2LL, size_t>>
-        walkUntilDistanceFromLine(const Polygonal& poly, const size_t start_index, const coord_t distance, const geometry::Point2LL& line_a, const geometry::Point2LL& line_b, const short direction)
+    std::optional<std::pair<geometry::Point2LL, size_t>> walkUntilDistanceFromLine(
+        const Polygonal& poly,
+        const size_t start_index,
+        const coord_t distance,
+        const geometry::Point2LL& line_a,
+        const geometry::Point2LL& line_b,
+        const short direction)
     {
         const size_t poly_size = poly.size();
         const coord_t line_magnitude = geometry::vSize(line_b - line_a); // Pre-compute, used for line distance calculation.

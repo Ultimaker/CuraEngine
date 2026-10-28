@@ -15,8 +15,8 @@
 #include "MeshVertex.h"
 #include "Slice.h"
 #include "geometry/Point3D.h"
-#include "types/SlicingTolerance.h"
 #include "types/AngleRadians.h"
+#include "types/SlicingTolerance.h"
 
 using namespace curaengine::geometry;
 using namespace curaengine::utils;

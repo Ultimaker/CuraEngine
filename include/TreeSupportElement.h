@@ -20,7 +20,6 @@ namespace curaengine
 {
 
 
-
 class TreeSupportElement : public std::enable_shared_from_this<TreeSupportElement>
 {
 public:

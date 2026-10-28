@@ -13,14 +13,14 @@
 #include <stdio.h>
 
 #include "PrintInformation.h"
+#include "Settings.h" //For MAX_EXTRUDERS.
 #include "TimeEstimateCalculator.h"
 #include "ZHopAntiOozing.h"
 #include "gcode_export/DynamicExtruderContext.h"
 #include "gcode_export/GCodePartType.h"
 #include "geometry/Point2LL.h"
-#include "types/EGCodeFlavor.h"
-#include "Settings.h" //For MAX_EXTRUDERS.
 #include "types/Acceleration.h"
+#include "types/EGCodeFlavor.h"
 #include "types/LayerIndex.h"
 #include "types/Temperature.h" //Bed temperature.
 #include "types/Velocity.h"
@@ -68,18 +68,15 @@ class GCodeExportTest_insertWipeScriptOptionalDelay_Test;
 class GCodeExportTest_insertWipeScriptRetractionEnable_Test;
 class GCodeExportTest_insertWipeScriptHopEnable_Test;
 #endif
-}
+} // namespace curaengine
 
 namespace curaengine::gcode_export
 {
 using types::operator""_r;
 
 
-
-
 class GCodePart;
 class GcodeTemplateResolver;
-
 
 
 // The GCodeExport class writes the actual GCode. This is the only class that knows how GCode looks and feels.
@@ -199,11 +196,11 @@ private:
     double max_extrusion_offset_; //!< 0 to turn it off, normally 4
     double extrusion_offset_factor_; //!< default 1
 
-    geometry::Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder offset is
-                                //!< encoded in the gcode)
+    geometry::Point3LL current_position_; //!< The last build plate coordinates written to gcode (which might be different from actually written gcode coordinates when the extruder
+                                          //!< offset is encoded in the gcode)
     types::Velocity current_speed_; //!< The current speed (F values / 60) in mm/s
-    types::Acceleration current_print_acceleration_; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have separate
-                                              //!< travel acceleration)
+    types::Acceleration current_print_acceleration_; //!< The current acceleration (in mm/s^2) used for print moves (and also for travel moves if the gcode flavor doesn't have
+                                                     //!< separate travel acceleration)
     types::Acceleration
         current_travel_acceleration_; //!< The current acceleration (in mm/s^2) used for travel moves for those gcode flavors that have separate print and travel accelerations
     types::Velocity current_jerk_; //!< The current jerk in the XY direction (in mm/s^3)
@@ -218,8 +215,8 @@ private:
      * \note After GCodeExport::writeExtrusion(Point, double, double) has been called currentPosition.z coincides with this value
      */
     utils::coord_t current_layer_z_;
-    utils::coord_t is_z_hopped_; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid collision with
-                          //!< other layer parts)
+    utils::coord_t is_z_hopped_; //!< The amount by which the print head is currently z hopped, or zero if it is not z hopped. (A z hop is used during travel moves to avoid
+                                 //!< collision with other layer parts)
     std::optional<ZHopAntiOozing> z_hop_prime_leftover_; //!< The leftover priming from a previous travel move that should be processed while z-hopping down
 
     size_t current_extruder_;
@@ -506,7 +503,12 @@ private:
      * \param speed movement speed
      * \param retract_distance The absolute retraction distance to be reached during this travel, or nullopt to leave it unchanged
      */
-    void writeTravel(const utils::coord_t x, const utils::coord_t y, const utils::coord_t z, const types::Velocity& speed, const std::optional<double> retract_distance = std::nullopt);
+    void writeTravel(
+        const utils::coord_t x,
+        const utils::coord_t y,
+        const utils::coord_t z,
+        const types::Velocity& speed,
+        const std::optional<double> retract_distance = std::nullopt);
 
     /*!
      * Perform un-z-hop
@@ -597,8 +599,11 @@ private:
      */
     void writeZhop(types::Velocity speed = 0.0, const utils::coord_t height = 0, const std::optional<double> retract_distance = std::nullopt);
 
-    static PrintFeatureType
-        sendTravel(const geometry::Point3LL& p, const types::Velocity& speed, const ExtruderTrainAttributes& extruder_attr, const std::optional<RetractionAmounts>& retraction_amounts);
+    static PrintFeatureType sendTravel(
+        const geometry::Point3LL& p,
+        const types::Velocity& speed,
+        const ExtruderTrainAttributes& extruder_attr,
+        const std::optional<RetractionAmounts>& retraction_amounts);
 
     /*! \brief Calculates the end-of-print data about material consumption */
     std::vector<std::optional<ExtruderPrintInformation>> calculateMaterialPrintInformation() const;
@@ -633,7 +638,11 @@ public:
      * \param retract_ratio This is the ratio of the complete z-hop move that should be used to process the retraction. If >0 and <1 then the z-hop move
      *                      will actually be split in two part, one with retraction and one without.
      */
-    void writeZhopStart(const utils::coord_t hop_height, types::Velocity speed = 0.0, std::optional<double> retract_distance = std::nullopt, const types::Ratio& retract_ratio = 0.0_r);
+    void writeZhopStart(
+        const utils::coord_t hop_height,
+        types::Velocity speed = 0.0,
+        std::optional<double> retract_distance = std::nullopt,
+        const types::Ratio& retract_ratio = 0.0_r);
 
     /*!
      * End a z hop: go back to the layer height
@@ -643,7 +652,11 @@ public:
      * \param prime_ratio This is the ratio of the complete z-hop move that should be used to process the priming. If >0 and <1 then the z-hop move
      *                    will actually be split in two part, one without priming and one with.
      */
-    void writeZhopEnd(types::Velocity speed = 0.0, const utils::coord_t height = 0, const std::optional<double> prime_distance = std::nullopt, const types::Ratio& prime_ratio = 0.0_r);
+    void writeZhopEnd(
+        types::Velocity speed = 0.0,
+        const utils::coord_t height = 0,
+        const std::optional<double> prime_distance = std::nullopt,
+        const types::Ratio& prime_ratio = 0.0_r);
 
     /*!
      * Start the new_extruder:

@@ -14,7 +14,7 @@ namespace curaengine::geometry
 {
 class OpenLinesSet;
 class Polygon;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine
 {
@@ -23,9 +23,6 @@ class SliceMeshStorage;
 
 namespace curaengine::infill
 {
-
-
-
 
 
 class SubDivCube

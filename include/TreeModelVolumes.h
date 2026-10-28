@@ -254,7 +254,8 @@ private:
         calculateCollisionHolefree(std::deque<RadiusLayerPair>{ RadiusLayerPair(key) });
     }
 
-    geometry::Shape safeOffset(const geometry::Shape& me, utils::coord_t distance, ClipperLib::JoinType jt, utils::coord_t max_safe_step_distance, const geometry::Shape& collision) const;
+    geometry::Shape
+        safeOffset(const geometry::Shape& me, utils::coord_t distance, ClipperLib::JoinType jt, utils::coord_t max_safe_step_distance, const geometry::Shape& collision) const;
 
     /*!
      * \brief Creates the areas that have to be avoided by the tree's branches to prevent collision with the model.

@@ -12,9 +12,9 @@
 #include <range/v3/view/transform.hpp>
 #include <scripta/logger.h>
 
-#include "beading_strategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "arachne/SkeletalTrapezoidation.h"
+#include "beading_strategy/BeadingStrategyFactory.h"
 #include "utils/ExtrusionLineStitcher.h"
 #include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"

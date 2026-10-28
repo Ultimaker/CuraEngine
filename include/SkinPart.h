@@ -16,8 +16,8 @@ namespace curaengine
 class SkinPart
 {
 public:
-    geometry::SingleShape outline; //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module. Includes both
-                         //!< roofing and non-roofing.
+    geometry::SingleShape outline; //!< The skinOutline is the area which needs to be 100% filled to generate a proper top&bottom filling. It's filled by the "skin" module.
+                                   //!< Includes both roofing and non-roofing.
     geometry::Shape skin_fill; //!< The part of the skin which is not roofing.
     geometry::Shape roofing_fill; //!< The inner infill which has air directly above
     geometry::Shape flooring_fill; //!< The inner infill which has air directly below

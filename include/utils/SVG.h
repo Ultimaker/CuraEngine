@@ -17,22 +17,17 @@ namespace curaengine::geometry
 {
 class Point2D;
 class MixedLinesSet;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::arachne
 {
 class SkeletalTrapezoidationGraph;
 class STHalfEdge;
 class STHalfEdgeNode;
-}
+} // namespace curaengine::arachne
 
 namespace curaengine::utils
 {
-
-
-
-
-
 
 
 class SVG : NoCopy
@@ -319,7 +314,11 @@ public:
 
     void write(const arachne::SkeletalTrapezoidationGraph& graph, const STVisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void write(const arachne::STHalfEdge& edge, const STVisualAttributes& visual_attributes, const bool flush = true, const std::set<const arachne::STHalfEdgeNode*>& drawn_nodes = {}) const;
+    void write(
+        const arachne::STHalfEdge& edge,
+        const STVisualAttributes& visual_attributes,
+        const bool flush = true,
+        const std::set<const arachne::STHalfEdgeNode*>& drawn_nodes = {}) const;
 
     template<typename T>
     void write(const boost::polygon::voronoi_diagram<T>& voronoi_diagram, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
@@ -330,7 +329,8 @@ public:
     template<typename T>
     void write(const boost::polygon::voronoi_cell<T>& cell, const DiagramVisualAttributes& visual_attributes, const bool flush = true) const;
 
-    void writeArrow(const geometry::Point2LL& a, const geometry::Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0) const;
+    void writeArrow(const geometry::Point2LL& a, const geometry::Point2LL& b, const ColorObject color = Color::BLACK, const double stroke_width = 1.0, const double head_size = 5.0)
+        const;
 
     template<typename... Args>
     void printf(const char* txt, Args&&... args) const;

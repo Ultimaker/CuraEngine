@@ -3,9 +3,9 @@
 
 #pragma once
 
-#include "path_planning/CombPath.h"
 #include "geometry/PointMatrix.h"
 #include "geometry/Polygon.h"
+#include "path_planning/CombPath.h"
 #include "utils/PolygonUtils.h"
 
 namespace curaengine::path_planning
@@ -57,9 +57,9 @@ private:
 
     geometry::PointMatrix transformation_matrix_; //!< The transformation which rotates everything such that the scanline is aligned with the x-axis.
     geometry::Point2LL transformed_start_point_; //!< The LinePolygonsCrossings::startPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
-                                       //!< transformed_endPoint
+                                                 //!< transformed_endPoint
     geometry::Point2LL transformed_end_point_; //!< The LinePolygonsCrossings::endPoint as transformed by Comb::transformation_matrix such that it has (roughly) the same Y as
-                                     //!< transformed_startPoint
+                                               //!< transformed_startPoint
 
 
     /*!
@@ -124,7 +124,12 @@ private:
      * \param end the end point
      * \param dist_to_move_boundary_point_outside Distance used to move a point from a boundary so that it doesn't intersect with it anymore. (Precision issue)
      */
-    LinePolygonsCrossings(const geometry::Shape& boundary, utils::LocToLineGrid& loc_to_line_grid, geometry::Point2LL& start, geometry::Point2LL& end, int64_t dist_to_move_boundary_point_outside)
+    LinePolygonsCrossings(
+        const geometry::Shape& boundary,
+        utils::LocToLineGrid& loc_to_line_grid,
+        geometry::Point2LL& start,
+        geometry::Point2LL& end,
+        int64_t dist_to_move_boundary_point_outside)
         : boundary_(boundary)
         , loc_to_line_grid_(loc_to_line_grid)
         , start_point_(start)

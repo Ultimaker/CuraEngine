@@ -387,7 +387,8 @@ private:
      *     the order of a polyline.
      * \return The stitches that are allowed in order from best to worst.
      */
-    std::priority_queue<PossibleStitch> findPossibleStitches(const geometry::OpenLinesSet& open_polylines, utils::coord_t max_dist, utils::coord_t cell_size, bool allow_reverse) const;
+    std::priority_queue<PossibleStitch>
+        findPossibleStitches(const geometry::OpenLinesSet& open_polylines, utils::coord_t max_dist, utils::coord_t cell_size, bool allow_reverse) const;
 
     /*! Plans the best way to perform a stitch.
      *

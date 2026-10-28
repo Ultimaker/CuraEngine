@@ -46,7 +46,6 @@ namespace curaengine::geometry
 using utils::operator""_mu;
 
 
-
 Shape::Shape(ClipperLib::Paths&& paths, bool explicitely_closed)
 {
     emplace_back(std::move(paths), explicitely_closed);

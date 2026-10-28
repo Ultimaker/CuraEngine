@@ -23,7 +23,7 @@ namespace env
 {
 class Environment;
 class LocalEnvironment;
-} // namespace CuraFormulaeEngine::env
+} // namespace env
 
 } // namespace CuraFormulaeEngine
 

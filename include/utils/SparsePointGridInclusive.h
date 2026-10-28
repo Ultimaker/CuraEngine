@@ -7,10 +7,10 @@
 #include <unordered_map>
 #include <vector>
 
-#include "utils/sparse_point_grid_inclusive_impl/Locatoror.h"
 #include "SparsePointGrid.h"
-#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 #include "geometry/Point2LL.h"
+#include "utils/sparse_point_grid_inclusive_impl/Locatoror.h"
+#include "utils/sparse_point_grid_inclusive_impl/SparsePointGridInclusiveElem.h"
 
 namespace curaengine::utils
 {
@@ -21,7 +21,8 @@ namespace curaengine::utils
  * \tparam Val The value type to store.
  */
 template<class Val>
-class SparsePointGridInclusive : public SparsePointGrid<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>
+class SparsePointGridInclusive
+    : public SparsePointGrid<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>
 {
 public:
     using Base = SparsePointGrid<utils::sparse_point_grid_inclusive_impl::SparsePointGridInclusiveElem<Val>, utils::sparse_point_grid_inclusive_impl::Locatoror<Val>>;

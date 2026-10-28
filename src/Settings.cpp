@@ -18,17 +18,21 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To get the extruders.
-#include "beading_strategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "Slice.h"
+#include "beading_strategy/BeadingStrategyFactory.h"
 #include "geometry/Matrix4x3D.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
+#include "types/Acceleration.h"
+#include "types/AngleDegrees.h"
+#include "types/AngleRadians.h"
 #include "types/BrimLocation.h"
 #include "types/BuildPlateShape.h"
 #include "types/CombingMode.h"
 #include "types/CoolDuringExtruderSwitch.h"
 #include "types/DraftShieldHeightLimitation.h"
+#include "types/Duration.h" //For duration and time settings.
 #include "types/EFillMethod.h"
 #include "types/EGCodeFlavor.h"
 #include "types/EPlatformAdhesion.h"
@@ -40,20 +44,16 @@
 #include "types/FillPerimeterGapMode.h"
 #include "types/InfillStartEndPreference.h"
 #include "types/InsetDirection.h"
+#include "types/LayerIndex.h" //For layer index settings.
 #include "types/PrimeTowerMode.h"
+#include "types/Ratio.h" //For ratio settings and percentages.
 #include "types/RetractBeforeOuterWall.h"
 #include "types/SlicingTolerance.h"
 #include "types/SupportDistPriority.h"
-#include "types/Acceleration.h"
-#include "types/AngleDegrees.h"
-#include "types/AngleRadians.h"
-#include "types/Duration.h" //For duration and time settings.
-#include "types/LayerIndex.h" //For layer index settings.
-#include "types/Ratio.h" //For ratio settings and percentages.
 #include "types/Temperature.h" //For temperature settings.
 #include "types/Velocity.h" //For velocity settings.
-#include "utils/Escaped.h"
 #include "types/string_switch.h" //For string switch.
+#include "utils/Escaped.h"
 
 using namespace curaengine::geometry;
 using namespace curaengine::types;

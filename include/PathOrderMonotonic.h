@@ -21,7 +21,6 @@ namespace curaengine
 {
 
 
-
 /*!
  * Class that orders paths monotonically.
  *
@@ -52,7 +51,11 @@ public:
     using Path = PathOrdering<PathType>;
     using PathOrder<PathType>::coincident_point_distance_;
 
-    PathOrderMonotonic(const types::AngleRadians& monotonic_direction, const utils::coord_t max_adjacent_distance, const geometry::Point2LL& start_point, const bool interlaced = false)
+    PathOrderMonotonic(
+        const types::AngleRadians& monotonic_direction,
+        const utils::coord_t max_adjacent_distance,
+        const geometry::Point2LL& start_point,
+        const bool interlaced = false)
         : PathOrder<PathType>(start_point)
         // The monotonic vector needs to rotate clockwise instead of counter-clockwise, the same as how the infill patterns are generated.
         , monotonic_vector_(-std::cos(monotonic_direction), std::sin(monotonic_direction))

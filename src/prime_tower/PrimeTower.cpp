@@ -12,8 +12,6 @@
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
 #include "LayerPlan.h"
-#include "prime_tower/PrimeTowerInterleaved.h"
-#include "prime_tower/PrimeTowerNormal.h"
 #include "Raft.h"
 #include "Scene.h"
 #include "Slice.h"
@@ -21,6 +19,8 @@
 #include "SupportLayer.h"
 #include "gcode_export/GCodeExport.h"
 #include "infill/Infill.h"
+#include "prime_tower/PrimeTowerInterleaved.h"
+#include "prime_tower/PrimeTowerNormal.h"
 #include "types/PrimeTowerMode.h"
 #include "utils/LinearAlg2D.h"
 

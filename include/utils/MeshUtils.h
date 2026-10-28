@@ -60,6 +60,6 @@ bool loadTextureFromFile(Mesh& mesh, const std::filesystem::path& texture_filena
  */
 void loadTextureFromString(const std::string& texture_str, Mesh& mesh);
 
-} // namespace curaengine::utils
+} // namespace utils
 
 } // namespace curaengine

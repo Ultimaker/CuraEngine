@@ -16,9 +16,9 @@
 #include "geometry/Polygon.h"
 #include "path_planning/GCodePath.h"
 #include "path_planning/NozzleTempInsert.h"
-#include "types/PathConfigStorage.h"
 #include "types/Acceleration.h"
 #include "types/LayerIndex.h"
+#include "types/PathConfigStorage.h"
 
 #ifdef BUILD_TESTS
 #include <gtest/gtest_prod.h> //Friend tests, so that they can inspect the privates.
@@ -45,7 +45,6 @@ class STHalfEdge;
 namespace curaengine
 {
 using types::operator""_r;
-
 
 
 class SliceDataStorage;
@@ -162,14 +161,16 @@ private:
 
     std::optional<geometry::Point2LL> first_travel_destination_; //!< The destination of the first (travel) move (if this layer is not empty)
     bool first_travel_destination_is_inside_; //!< Whether the destination of the first planned travel move is inside a layer part
-    std::optional<std::pair<types::Acceleration, types::Velocity>> first_extrusion_acc_jerk_; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
+    std::optional<std::pair<types::Acceleration, types::Velocity>>
+        first_extrusion_acc_jerk_; //!< The acceleration and jerk rates of the first extruded move (if this layer is not empty).
     std::optional<std::pair<types::Acceleration, types::Velocity>> next_layer_acc_jerk_; //!< If there is a next layer, the first acceleration and jerk it starts with.
     bool was_inside_; //!< Whether the last planned (extrusion) move was inside a layer part
     bool is_inside_; //!< Whether the destination of the next planned travel move is inside a layer part
     geometry::Shape comb_boundary_minimum_; //!< The minimum boundary within which to comb, or to move into when performing a retraction.
     geometry::Shape comb_boundary_preferred_; //!< The boundary preferably within which to comb, or to move into when performing a retraction.
     path_planning::Comb* comb_;
-    utils::coord_t comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
+    utils::coord_t
+        comb_move_inside_distance_; //!< Whenever using the minimum boundary for combing it tries to move the coordinates inside by this distance after calculating the combing.
     geometry::Shape bridge_wall_mask_; //!< The regions of a layer part that are not supported, used for bridging
     utils::AABB bridge_wall_mask_bb_; //!< Cached bounding box for the above value.
     geometry::Shape seam_overhang_mask_; //!< The regions of a layer part where the walls overhang, specifically as defined for the seam
@@ -791,7 +792,8 @@ public:
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const OverrideAreas& override_areas = {},
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<const geometry::Polyline*, const geometry::Polyline*>& order_requirements = PathOrderOptimizer<const geometry::Polyline*>::no_order_requirements_,
+        const std::unordered_multimap<const geometry::Polyline*, const geometry::Polyline*>& order_requirements
+        = PathOrderOptimizer<const geometry::Polyline*>::no_order_requirements_,
         const utils::coord_t extra_inwards_start_move_length = 0,
         const utils::coord_t extra_inwards_end_move_length = 0,
         const geometry::MendedShape& extra_inwards_move_contour = geometry::MendedShape(),
@@ -820,7 +822,8 @@ public:
         const std::optional<geometry::Point2LL> near_start_location = std::optional<geometry::Point2LL>(),
         const double fan_speed = GCodePathConfig::FAN_SPEED_DEFAULT,
         const bool reverse_print_direction = false,
-        const std::unordered_multimap<const geometry::Polyline*, const geometry::Polyline*>& order_requirements = PathOrderOptimizer<const geometry::Polyline*>::no_order_requirements_);
+        const std::unordered_multimap<const geometry::Polyline*, const geometry::Polyline*>& order_requirements
+        = PathOrderOptimizer<const geometry::Polyline*>::no_order_requirements_);
 
     /*!
      * Add lines to the g-code with monotonic order.
@@ -1051,7 +1054,11 @@ private:
      *  @param position The start position (which is not included in the path points)
      *  @param extrude_speed The actual used extrusion speed
      */
-    void sendLineTo(const path_planning::GCodePath& path, const geometry::Point3LL& position, const double extrude_speed, const std::optional<utils::coord_t>& line_thickness = std::nullopt);
+    void sendLineTo(
+        const path_planning::GCodePath& path,
+        const geometry::Point3LL& position,
+        const double extrude_speed,
+        const std::optional<utils::coord_t>& line_thickness = std::nullopt);
 
     /*!
      *  @brief Write a travel move and properly apply the various Z offsets
@@ -1218,7 +1225,12 @@ private:
      * \param last_path_position The actual last position of the extruder, which may be slightly forwards on the last printed segment
      */
     template<class PathType>
-    void addWipeTravel(const PathAdapter<PathType>& path, const utils::coord_t wipe_distance, const bool backwards, const size_t start_index, const geometry::Point2LL& last_path_position);
+    void addWipeTravel(
+        const PathAdapter<PathType>& path,
+        const utils::coord_t wipe_distance,
+        const bool backwards,
+        const size_t start_index,
+        const geometry::Point2LL& last_path_position);
 
     /*!
      * Pre-calculates the coasting to be applied on the paths
@@ -1228,7 +1240,8 @@ private:
      * \param current_position The last position set in the gcode writer
      * \return The list of coasting settings to be applied on the paths. It will always have the same size as paths.
      */
-    std::vector<PathCoasting> calculatePathsCoasting(const Settings& extruder_settings, const std::vector<path_planning::GCodePath>& paths, const geometry::Point3LL& current_position) const;
+    std::vector<PathCoasting>
+        calculatePathsCoasting(const Settings& extruder_settings, const std::vector<path_planning::GCodePath>& paths, const geometry::Point3LL& current_position) const;
 
     /*!
      * Writes a path to GCode and performs coasting, or returns false if it did nothing.
@@ -1256,10 +1269,11 @@ private:
         ptrdiff_t wall_idx_start;
         ptrdiff_t wall_idx_end;
         utils::coord_t start_dist; // distance from the point indicated by wall_idx_start to the start of the bridge-segment
-        utils::coord_t end_dist; // distance from the point indicated by [wall_idx_end - direction] (which equals wall_idx_start if the bridge is within a single wall-segment) to the
-                          // end of the bridge-segment
+        utils::coord_t end_dist; // distance from the point indicated by [wall_idx_end - direction] (which equals wall_idx_start if the bridge is within a single wall-segment) to
+                                 // the end of the bridge-segment
         utils::coord_t bridge_len; // length of the bridge (which is only the same as end - start distance, in case the start and end wall indices are exactly 1 apart)
-        utils::coord_t backwards_end_dist; // distance from the point indicated by wall_idx_end to the end of the bridge-segment (so, backwards from the last point of the line-segment)
+        utils::coord_t
+            backwards_end_dist; // distance from the point indicated by wall_idx_end to the end of the bridge-segment (so, backwards from the last point of the line-segment)
         utils::coord_t from_start_of_wall; // distance to the start of the bridge segment from the start of the entire wall
     };
 
@@ -1311,7 +1325,8 @@ private:
      * @param z_hop_height The Z-hop height
      * @return The computed path durations
      */
-    static TravelDurations computeTravelDurations(const gcode_export::GCodeExport& gcode, const ExtruderTrain& extruder, const path_planning::GCodePath& path, const utils::coord_t z_hop_height);
+    static TravelDurations
+        computeTravelDurations(const gcode_export::GCodeExport& gcode, const ExtruderTrain& extruder, const path_planning::GCodePath& path, const utils::coord_t z_hop_height);
 
     /*!
      * Compute the anti-ooze (retraction and priming) amounts to be processed during stationary/Z-hop/travel steps
@@ -1379,7 +1394,8 @@ private:
      * @return Extrusion path to be started from the given start point, going further inwards. It may be empty if not possible or if the start point is
      *         already inwards the contour enough.
      */
-    static geometry::OpenPolyline makeInwardsMove(const std::list<arachne::STHalfEdge>& trapezoidal_edges, const geometry::Point2LL& start_point, const utils::coord_t move_inwards_length);
+    static geometry::OpenPolyline
+        makeInwardsMove(const std::list<arachne::STHalfEdge>& trapezoidal_edges, const geometry::Point2LL& start_point, const utils::coord_t move_inwards_length);
 
     static std::vector<PartialExtrusionSegment> splitExtrusionSegment(const geometry::Point3LL& start, const geometry::Point3LL& end, const OverrideAreas& override_areas);
 };

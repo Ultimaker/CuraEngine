@@ -7,14 +7,14 @@
 
 #include "InterfacePreference.h"
 #include "RestPreference.h"
-#include "TreeSupportElement.h"
-#include "types/EFillMethod.h"
-#include "types/ESupportType.h"
 #include "Settings.h"
-#include "types/SupportDistPriority.h"
+#include "TreeSupportElement.h"
 #include "types/AngleDegrees.h"
 #include "types/AngleRadians.h"
+#include "types/EFillMethod.h"
+#include "types/ESupportType.h"
 #include "types/Ratio.h"
+#include "types/SupportDistPriority.h"
 #include "utils/Coord_t.h"
 #include "utils/Simplify.h"
 #include "utils/math.h"
@@ -41,7 +41,8 @@ struct TreeSupportSettings
         max_radius(mesh_group_settings.get<utils::coord_t>("support_tree_max_diameter") / 2)
         , maximum_move_distance((angle < TAU / 4) ? std::llround(tan(angle) * layer_height) : std::numeric_limits<utils::coord_t>::max())
         , maximum_move_distance_slow((angle_slow < TAU / 4) ? std::llround(tan(angle_slow) * layer_height) : std::numeric_limits<utils::coord_t>::max())
-        , support_bottom_layers(mesh_group_settings.get<bool>("support_bottom_enable") ? utils::round_divide(mesh_group_settings.get<utils::coord_t>("support_bottom_height"), layer_height) : 0)
+        , support_bottom_layers(
+              mesh_group_settings.get<bool>("support_bottom_enable") ? utils::round_divide(mesh_group_settings.get<utils::coord_t>("support_bottom_height"), layer_height) : 0)
         , tip_layers(std::max(std::max((branch_radius - min_radius) / (support_line_width / 3), branch_radius / layer_height), 1LL))
         , // Ensure lines always stack nicely even if layer height is large
         diameter_angle_scale_factor(sin(mesh_group_settings.get<types::AngleRadians>("support_tree_branch_diameter_angle")) * layer_height / branch_radius)
@@ -484,11 +485,11 @@ public:
     [[nodiscard]] inline utils::coord_t getRadius(size_t distance_to_top, const double buildplate_radius_increases = 0) const
     {
         utils::coord_t uncapped_radius = (distance_to_top <= tip_layers ?
-                                                                 /* tip  */ min_radius + (branch_radius - min_radius) * distance_to_top / tip_layers
-                                                                 :
-                                                                 /* base */ branch_radius +
-                                                                     /* gradual increase */ branch_radius * (distance_to_top - tip_layers) * diameter_angle_scale_factor)
-                                + branch_radius * buildplate_radius_increases * (std::max(diameter_scale_bp_radius - diameter_angle_scale_factor, 0.0));
+                                                                        /* tip  */ min_radius + (branch_radius - min_radius) * distance_to_top / tip_layers
+                                                                        :
+                                                                        /* base */ branch_radius +
+                                                                            /* gradual increase */ branch_radius * (distance_to_top - tip_layers) * diameter_angle_scale_factor)
+                                       + branch_radius * buildplate_radius_increases * (std::max(diameter_scale_bp_radius - diameter_angle_scale_factor, 0.0));
         return std::min(uncapped_radius, max_radius);
     }
 

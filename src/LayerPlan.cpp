@@ -18,7 +18,6 @@
 #include <spdlog/spdlog.h>
 
 #include "Application.h" //To communicate layer view data.
-#include "beading_strategy/BeadingStrategyFactory.h"
 #include "ExtruderTrain.h"
 #include "FanSpeedLayerTimeSettings.h"
 #include "PathAdapter.h"
@@ -35,6 +34,7 @@
 #include "ZHopAntiOozing.h"
 #include "arachne/SkeletalTrapezoidation.h"
 #include "arachne/SkeletalTrapezoidationGraph.h"
+#include "beading_strategy/BeadingStrategyFactory.h"
 #include "bridge/bridge.h"
 #include "communication/Communication.h"
 #include "geometry/ClosedLinesSet.h"
@@ -65,8 +65,6 @@ namespace curaengine
 {
 using types::operator""_r;
 using types::operator""_s;
-
-
 
 
 constexpr int MINIMUM_LINE_LENGTH = 5; // in uM. Generated lines shorter than this may be discarded
@@ -527,7 +525,8 @@ GCodePath& LayerPlan::addTravel(const Point2LL& p, const ForceRetract force_retr
     // CURA-6675:
     // Retraction Minimal Travel Distance should work for all travel moves. If the travel move is shorter than the
     // Retraction Minimal Travel Distance, retraction should be disabled.
-    if (! is_first_travel_of_layer && last_planned_position_ && geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
+    if (! is_first_travel_of_layer && last_planned_position_
+        && geometry::shorterThen(last_planned_position_.value().toPoint2LL() - p, retraction_config.retraction_min_travel_distance))
     {
         path->retract = false;
         path->perform_z_hop = false;
@@ -1802,8 +1801,9 @@ std::vector<LayerPlan::BridgeLocation> LayerPlan::findBridgingSections(
         // Finally, loop over the intersections to find candidate bridge segments.
         for (const OpenPolyline& intersection_segment : intersections_with_bridge_mask)
         {
-            const auto& [b0, b1] = (geometry::vSize2(intersection_segment[0] - p0.p_) < geometry::vSize2(intersection_segment[1] - p0.p_)) ? std::tie(intersection_segment[0], intersection_segment[1])
-                                                                                                                       : std::tie(intersection_segment[1], intersection_segment[0]);
+            const auto& [b0, b1] = (geometry::vSize2(intersection_segment[0] - p0.p_) < geometry::vSize2(intersection_segment[1] - p0.p_))
+                                     ? std::tie(intersection_segment[0], intersection_segment[1])
+                                     : std::tie(intersection_segment[1], intersection_segment[0]);
 
             if (geometry::vSize2(b1 - b0) < EPSILON_SQUARED)
             {
@@ -2706,7 +2706,17 @@ void LayerPlan::addLinesInGivenOrder(
                 constexpr bool spiralize = false;
                 constexpr Ratio speed_factor = 1.0_r;
                 constexpr bool travel_to_z = true;
-                addExtrusionMove(p1 + geometry::normal(p1 - p0, wipe_dist), config, override_areas, space_fill_type, flow, width_factor, spiralize, speed_factor, fan_speed, travel_to_z);
+                addExtrusionMove(
+                    p1 + geometry::normal(p1 - p0, wipe_dist),
+                    config,
+                    override_areas,
+                    space_fill_type,
+                    flow,
+                    width_factor,
+                    spiralize,
+                    speed_factor,
+                    fan_speed,
+                    travel_to_z);
             }
         }
     }

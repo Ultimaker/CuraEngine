@@ -14,7 +14,6 @@ namespace curaengine
 using types::operator""_r;
 
 
-
 struct GCodePathConfig;
 
 /*! Represents an area where the extrusion line should be printed with specific settings */

@@ -10,13 +10,10 @@ namespace curaengine::geometry
 class OpenPolyline;
 template<class T>
 class LinesSet;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::infill
 {
-
-
-
 
 
 /*!

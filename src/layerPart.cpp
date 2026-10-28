@@ -3,6 +3,7 @@
 
 #include "layerPart.h"
 
+#include "Settings.h"
 #include "SliceDataStorage.h"
 #include "SliceLayer.h"
 #include "SliceMeshStorage.h"
@@ -11,7 +12,6 @@
 #include "geometry/OpenPolyline.h"
 #include "progress/Progress.h"
 #include "types/ESurfaceMode.h" //For ESurfaceMode.
-#include "Settings.h"
 #include "utils/OpenPolylineStitcher.h"
 #include "utils/Simplify.h" //Simplifying the layers after creating them.
 #include "utils/ThreadPool.h"

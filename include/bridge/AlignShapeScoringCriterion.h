@@ -17,7 +17,6 @@ namespace curaengine::bridge
 {
 
 
-
 /*! Scoring criterion for bridge angle candidate that bases the score on whether the angle is aligned with the shape of the surrounding area */
 class AlignShapeScoringCriterion : public BridgeAngleScoringCriterion
 {

@@ -24,7 +24,6 @@ namespace curaengine::infill
 class DensityProvider;
 
 
-
 /*!
  * A class for generating the Cross and Cross 3D infill patterns.
  *

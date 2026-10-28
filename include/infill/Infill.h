@@ -5,14 +5,14 @@
 
 #include <numbers>
 
+#include "Settings.h"
 #include "WallToolPathGenerator.h"
 #include "geometry/LinesSet.h"
 #include "geometry/Point2LL.h"
 #include "infill/LightningGenerator.h"
 #include "infill/ZigzagConnectorProcessor.h"
-#include "types/EFillMethod.h" //For infill types.
-#include "Settings.h"
 #include "types/AngleDegrees.h"
+#include "types/EFillMethod.h" //For infill types.
 #include "utils/AABB.h"
 #include "utils/ExtrusionLine.h"
 #include "utils/SectionType.h"
@@ -21,7 +21,7 @@ namespace curaengine
 {
 class SliceMeshStorage;
 class InfillTest;
-}
+} // namespace curaengine
 
 namespace curaengine::infill
 {
@@ -136,7 +136,8 @@ public:
         , shift_{ shift }
         , max_resolution_{ max_resolution }
         , max_deviation_{ max_deviation }
-        , wall_thickness_{ std::holds_alternative<utils::coord_t>(walls) ? std::get<utils::coord_t>(walls) : static_cast<utils::coord_t>(std::get<size_t>(walls) * infill_line_width) }
+        , wall_thickness_{ std::holds_alternative<utils::coord_t>(walls) ? std::get<utils::coord_t>(walls)
+                                                                         : static_cast<utils::coord_t>(std::get<size_t>(walls) * infill_line_width) }
         , small_area_width_{ small_area_width }
         , infill_origin_{ infill_origin }
         , skip_line_stitching_{ skip_line_stitching }
@@ -180,7 +181,8 @@ public:
         , shift_{ shift }
         , max_resolution_{ max_resolution }
         , max_deviation_{ max_deviation }
-        , wall_thickness_{ std::holds_alternative<utils::coord_t>(walls) ? std::get<utils::coord_t>(walls) : static_cast<utils::coord_t>(std::get<size_t>(walls) * infill_line_width) }
+        , wall_thickness_{ std::holds_alternative<utils::coord_t>(walls) ? std::get<utils::coord_t>(walls)
+                                                                         : static_cast<utils::coord_t>(std::get<size_t>(walls) * infill_line_width) }
         , small_area_width_{ small_area_width }
         , infill_origin_{ infill_origin }
         , skip_line_stitching_{ skip_line_stitching }
@@ -268,7 +270,13 @@ private:
          * \param start Where the line segment starts.
          * \param end Where the line segment ends.
          */
-        InfillLineSegment(const geometry::Point2LL start, const size_t start_segment, const size_t start_polygon, const geometry::Point2LL end, const size_t end_segment, const size_t end_polygon)
+        InfillLineSegment(
+            const geometry::Point2LL start,
+            const size_t start_segment,
+            const size_t start_polygon,
+            const geometry::Point2LL end,
+            const size_t end_segment,
+            const size_t end_polygon)
             : start_(start)
             , altered_start_(start)
             , start_segment_(start_segment)
@@ -526,7 +534,11 @@ private:
      * \param[out] result_polygons The resulting polygons
      * \param[out] result_lines The resulting lines
      */
-    void generateCrossInfill(const geometry::Shape& outline, const SierpinskiFillProvider& cross_fill_provider, geometry::Shape& result_polygons, geometry::OpenLinesSet& result_lines);
+    void generateCrossInfill(
+        const geometry::Shape& outline,
+        const SierpinskiFillProvider& cross_fill_provider,
+        geometry::Shape& result_polygons,
+        geometry::OpenLinesSet& result_lines);
 
     /*!
      * Convert a mapping from scanline to line_segment-scanline-intersections (\p cut_list) into line segments, using the even-odd rule
@@ -675,7 +687,13 @@ private:
      * \param a The first line-segment.
      * \param b The second line-segment.
      */
-    void resolveIntersection(const utils::coord_t at_distance, const geometry::Point2LL& intersect, geometry::Point2LL& connect_start, geometry::Point2LL& connect_end, InfillLineSegment* a, InfillLineSegment* b);
+    void resolveIntersection(
+        const utils::coord_t at_distance,
+        const geometry::Point2LL& intersect,
+        geometry::Point2LL& connect_start,
+        geometry::Point2LL& connect_end,
+        InfillLineSegment* a,
+        InfillLineSegment* b);
 
     /*!
      * Connects infill lines together so that they form polylines.
@@ -696,7 +714,11 @@ private:
      * \param minimum_line_length The minimum total length for the generated lines
      * \return True if the lines should be included, false to discard them
      */
-    bool includeLines(const std::vector<utils::VariableWidthLines>& toolpaths, const geometry::Shape& result_polygons, const geometry::OpenLinesSet& result_lines, const utils::coord_t minimum_line_length);
+    bool includeLines(
+        const std::vector<utils::VariableWidthLines>& toolpaths,
+        const geometry::Shape& result_polygons,
+        const geometry::OpenLinesSet& result_lines,
+        const utils::coord_t minimum_line_length);
 };
 
 static_assert(concepts::semiregular<Infill>, "Infill should be semiregular");

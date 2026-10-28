@@ -17,12 +17,10 @@ namespace curaengine
 {
 class SliceDataStorage;
 class LayerPlan;
-}
+} // namespace curaengine
 
 namespace curaengine::prime_tower
 {
-
-
 
 
 /*!

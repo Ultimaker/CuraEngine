@@ -35,7 +35,7 @@ std::function<std::vector<Node>(const Node, const Graph&)> get_neighbours = [](c
     }
     return neighbours;
 };
-} // namespace curaengine::utils::actions::details
+} // namespace details
 
 template<types::nodeable Node, typename State, types::graphable Graph>
 constexpr void

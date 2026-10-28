@@ -26,7 +26,6 @@ namespace curaengine::utils
 {
 
 
-
 typedef SparseLineGrid<PolygonsPointIndex, PolygonsPointIndexSegmentLocator> LocToLineGrid;
 
 class PolygonUtils
@@ -304,7 +303,8 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPointPolygon findClosest(const geometry::Point2LL& from, const geometry::Shape& polygons, const std::function<int(geometry::Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPointPolygon
+        findClosest(const geometry::Point2LL& from, const geometry::Shape& polygons, const std::function<int(geometry::Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the point closest to \p from in the polygon \p polygon.
@@ -313,7 +313,8 @@ public:
      *
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      */
-    static ClosestPointPolygon findClosest(const geometry::Point2LL& from, const geometry::Polygon& polygon, const std::function<int(geometry::Point2LL)>& penalty_function = no_penalty_function);
+    static ClosestPointPolygon
+        findClosest(const geometry::Point2LL& from, const geometry::Polygon& polygon, const std::function<int(geometry::Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the nearest vertex to \p from in \p polys
@@ -354,8 +355,11 @@ public:
      * \param penalty_function A function returning a penalty term on the squared distance score of a candidate point.
      * \return The nearest point on the polygon if the polygon was within a distance equal to the cell_size of the SparsePointGridInclusive
      */
-    static std::optional<ClosestPointPolygon>
-        findClose(geometry::Point2LL from, const geometry::Shape& polygons, const LocToLineGrid& loc_to_line, const std::function<int(geometry::Point2LL)>& penalty_function = no_penalty_function);
+    static std::optional<ClosestPointPolygon> findClose(
+        geometry::Point2LL from,
+        const geometry::Shape& polygons,
+        const LocToLineGrid& loc_to_line,
+        const std::function<int(geometry::Point2LL)>& penalty_function = no_penalty_function);
 
     /*!
      * Find the line segment closest to any point on \p from within cell-blocks of a size defined in the SparsePointGridInclusive \p destination_loc_to_line
@@ -405,7 +409,8 @@ public:
      * \param forward Whether to look forward from \p start in the direction of the polygon, or go in the other direction.
      * \return The earliest point on the polygon in the given direction which crosses a line parallel to the given one at the distance \p dist - if any
      */
-    static std::optional<ClosestPointPolygon> getNextParallelIntersection(const ClosestPointPolygon& start, const geometry::Point2LL& line_to, const coord_t dist, const bool forward);
+    static std::optional<ClosestPointPolygon>
+        getNextParallelIntersection(const ClosestPointPolygon& start, const geometry::Point2LL& line_to, const coord_t dist, const bool forward);
 
     /*!
      * Checks whether a given line segment collides with polygons as given in a loc_to_line grid.
@@ -421,7 +426,11 @@ public:
      * \param[out] collision_result (optional) The polygons segment intersecting with the line segment
      * \return whether the line segment collides with the boundary of the polygons
      */
-    static bool polygonCollidesWithLineSegment(const geometry::Point2LL& from, const geometry::Point2LL& to, const LocToLineGrid& loc_to_line, PolygonsPointIndex* collision_result = nullptr);
+    static bool polygonCollidesWithLineSegment(
+        const geometry::Point2LL& from,
+        const geometry::Point2LL& to,
+        const LocToLineGrid& loc_to_line,
+        PolygonsPointIndex* collision_result = nullptr);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -466,8 +475,11 @@ public:
      * \param[in] possible_adjacent_polys The vector of polygons we are testing.
      * \param[in] max_gap Polygons must be closer together than this distance to be considered adjacent.
      */
-    static void
-        findAdjacentPolygons(std::vector<unsigned>& adjacent_poly_indices, const geometry::Polygon& poly, const std::vector<const geometry::Polygon*>& possible_adjacent_polys, const coord_t max_gap);
+    static void findAdjacentPolygons(
+        std::vector<unsigned>& adjacent_poly_indices,
+        const geometry::Polygon& poly,
+        const std::vector<const geometry::Polygon*>& possible_adjacent_polys,
+        const coord_t max_gap);
 
     /*!
      * Calculate the Hamming Distance between two polygons relative to their own
@@ -542,7 +554,8 @@ public:
      * \param arc_angle_resolution The number of segments on each arc.
      * \return A new Polyline containing the circle.
      */
-    static geometry::ClosedPolyline makeWheel(const geometry::Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution);
+    static geometry::ClosedPolyline
+        makeWheel(const geometry::Point2LL& mid, const coord_t inner_radius, const coord_t outer_radius, const size_t semi_nb_spokes, const size_t arc_angle_resolution);
 
     /*!
      * Connect all polygons to their holes using zero widths hole channels, so that the polygons and their outlines are connected together
@@ -664,8 +677,11 @@ private:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool
-        polygonCollidesWithLineSegment(const geometry::Polygon& poly, const geometry::Point2LL& transformed_startPoint, const geometry::Point2LL& transformed_endPoint, const geometry::PointMatrix& transformation_matrix);
+    static bool polygonCollidesWithLineSegment(
+        const geometry::Polygon& poly,
+        const geometry::Point2LL& transformed_startPoint,
+        const geometry::Point2LL& transformed_endPoint,
+        const geometry::PointMatrix& transformation_matrix);
 
     /*!
      * Checks whether a given line segment collides with a given polygon(s).
@@ -687,8 +703,11 @@ private:
      * \return whether the line segment collides with the boundary of the
      * polygon(s)
      */
-    static bool
-        polygonCollidesWithLineSegment(const geometry::Shape& polys, const geometry::Point2LL& transformed_startPoint, const geometry::Point2LL& transformed_endPoint, const geometry::PointMatrix& transformation_matrix);
+    static bool polygonCollidesWithLineSegment(
+        const geometry::Shape& polys,
+        const geometry::Point2LL& transformed_startPoint,
+        const geometry::Point2LL& transformed_endPoint,
+        const geometry::PointMatrix& transformation_matrix);
 };
 
 } // namespace curaengine::utils

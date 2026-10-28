@@ -15,7 +15,6 @@ namespace curaengine::types
 {
 
 
-
 /*!
  * Adapter class used to expose the engine settings stack to the formulae engine resolving system
  */

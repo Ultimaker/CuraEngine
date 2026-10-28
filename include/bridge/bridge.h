@@ -13,7 +13,7 @@ namespace curaengine::utils
 {
 class AABB;
 struct ExtrusionLine;
-}
+} // namespace curaengine::utils
 
 namespace curaengine::geometry
 {
@@ -29,27 +29,16 @@ class LayerPlan;
 template<class PathType>
 class PathAdapter;
 class Settings;
-}
+} // namespace curaengine
 
 namespace curaengine::types
 {
 class AngleDegrees;
 struct MeshPathConfigs;
-}
+} // namespace curaengine::types
 
 namespace curaengine::bridge
 {
-
-
-
-
-
-
-
-
-
-
-
 
 
 /*!

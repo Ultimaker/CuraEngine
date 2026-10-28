@@ -794,8 +794,9 @@ Polygon SierpinskiFill::generateCross(coord_t z, coord_t min_dist_to_side, coord
             bool is_straight_corner = prod < sqrt(geometry::vSize(v0) * geometry::vSize(v1)) * min_dist_to_side; // allow for rounding errors of up to min_dist_to_side
             if (is_straight_corner)
             {
-                coord_t pocket_rounding
-                    = std::min(std::min(pocket_size_side, geometry::vSize(v0) / 3), geometry::vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
+                coord_t pocket_rounding = std::min(
+                    std::min(pocket_size_side, geometry::vSize(v0) / 3),
+                    geometry::vSize(v1) / 3); // a third so that if a line segment is shortened on both sides the middle remains
                 pocketed.push_back(p1 + geometry::normal(v0, pocket_rounding));
                 pocketed.push_back(p1 + geometry::normal(v1, pocket_rounding));
             }

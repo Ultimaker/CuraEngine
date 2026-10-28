@@ -133,7 +133,7 @@ private:
 
     std::vector<std::vector<const geometry::Polygon*>> inset_polys_; // vector of vectors holding the inset polygons
     geometry::Shape retraction_region_; // After printing an outer wall, move into this region so that retractions do not leave visible blobs. Calculated lazily if needed (see
-                              // retraction_region_calculated).
+                                        // retraction_region_calculated).
 
     /*!
      * Given a closed polygon, insert a seam point at the point where the seam should be placed.

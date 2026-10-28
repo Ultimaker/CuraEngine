@@ -25,15 +25,10 @@ class MixedLinesSet;
 class Shape;
 class Polyline;
 class Point3LL;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::utils
 {
-
-
-
-
-
 
 
 /*!

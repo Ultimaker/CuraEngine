@@ -6,10 +6,10 @@
 #ifdef ENABLE_PLUGINS
 #include <string>
 
+#include "Settings.h"
 #include "cura/plugins/slots/infill/v0/generate.pb.h"
 #include "geometry/Shape.h"
 #include "plugins/details/converter.h"
-#include "Settings.h"
 
 namespace curaengine::plugins
 {

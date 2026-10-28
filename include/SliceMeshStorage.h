@@ -20,14 +20,13 @@ namespace curaengine::infill
 class LightningGenerator;
 class SierpinskiFillProvider;
 class SubDivCube;
-}
+} // namespace curaengine::infill
 
 namespace curaengine
 {
 
 class Mesh;
 class Settings;
-
 
 
 class SliceMeshStorage
@@ -44,10 +43,10 @@ public:
     std::vector<types::AngleDegrees> flooring_angles; //!< a list of angle values which is cycled through to determine the flooring angle of each layer
     std::vector<types::AngleDegrees> skin_angles; //!< a list of angle values which is cycled through to determine the skin angle of each layer
     std::vector<geometry::Shape> overhang_areas; //!< For each layer the areas that are classified as overhang on this mesh.
-    std::vector<geometry::Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins the
-                                            //!< areas of the next layers.
-    std::vector<std::vector<geometry::Shape>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface area,
-                                                     //!< such as a corner pointing downwards.
+    std::vector<geometry::Shape> full_overhang_areas; //!< For each layer the full overhang without the tangent of the overhang angle removed, such that the overhang area adjoins
+                                                      //!< the areas of the next layers.
+    std::vector<std::vector<geometry::Shape>> overhang_points; //!< For each layer a list of points where point-overhang is detected. This is overhang that hasn't got any surface
+                                                               //!< area, such as a corner pointing downwards.
     utils::AABB3D bounding_box; //!< the mesh's bounding box
 
     std::shared_ptr<infill::SubDivCube> base_subdiv_cube;

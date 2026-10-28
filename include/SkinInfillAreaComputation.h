@@ -187,7 +187,8 @@ protected:
     utils::coord_t bottom_skin_expand_distance_; //!< The distance by which the bottom skins should be larger than the original bottom skins.
 
 private:
-    static utils::coord_t getSkinLineWidth(const SliceMeshStorage& mesh, const types::LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
+    static utils::coord_t
+        getSkinLineWidth(const SliceMeshStorage& mesh, const types::LayerIndex& layer_nr); //!< Compute the skin line width, which might be different for the first layer.
 
     /*!
      * Helper function to get the outline of each part which might intersect

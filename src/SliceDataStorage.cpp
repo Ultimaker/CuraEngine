@@ -7,11 +7,11 @@
 
 #include "Application.h" //To get settings.
 #include "ExtruderTrain.h"
-#include "prime_tower/PrimeTower.h"
 #include "Raft.h"
 #include "Slice.h"
 #include "SliceMeshStorage.h"
 #include "geometry/OpenPolyline.h"
+#include "prime_tower/PrimeTower.h"
 #include "types/BuildPlateShape.h"
 #include "types/EPlatformAdhesion.h"
 #include "types/ESurfaceMode.h"

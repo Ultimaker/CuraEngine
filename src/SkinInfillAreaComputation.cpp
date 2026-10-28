@@ -19,8 +19,8 @@
 #include "SliceMeshStorage.h"
 #include "WallToolPaths.h"
 #include "infill/Infill.h"
-#include "types/EFillMethod.h" //For EFillMethod.
 #include "types/AngleRadians.h" //For the infill support angle.
+#include "types/EFillMethod.h" //For EFillMethod.
 #include "types/Ratio.h"
 #include "utils/PolygonUtils.h"
 #include "utils/Simplify.h"

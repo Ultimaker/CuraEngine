@@ -22,11 +22,10 @@ namespace curaengine::utils
 class OBJ;
 class AABB;
 class TimeKeeper;
-}
+} // namespace curaengine::utils
 
 namespace curaengine
 {
-
 
 
 class SliceDataStorage;

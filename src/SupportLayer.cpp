@@ -6,8 +6,8 @@
 #include <list>
 #include <utility>
 
-#include "SliceMeshStorage.h"
 #include "Settings.h"
+#include "SliceMeshStorage.h"
 #include "utils/AABB.h"
 
 using namespace curaengine::geometry;

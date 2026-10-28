@@ -14,14 +14,10 @@ class OpenLinesSet;
 class PointsSet;
 class Polygon;
 class Shape;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine::utils
 {
-
-
-
-
 
 
 /* Axis aligned boundary box */

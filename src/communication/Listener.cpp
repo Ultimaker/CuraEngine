@@ -3,10 +3,10 @@
 
 #ifdef ARCUS
 
+#include "communication/Listener.h"
+
 #include <Arcus/Error.h> //To process error codes.
 #include <spdlog/spdlog.h>
-
-#include "communication/Listener.h"
 
 namespace curaengine::communication
 {

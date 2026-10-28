@@ -12,7 +12,13 @@ struct AreaIncreaseSettings
 {
     AreaIncreaseSettings() = default;
 
-    AreaIncreaseSettings(const AvoidanceType type, const utils::coord_t increase_speed, const bool increase_radius, const bool simplify, const bool use_min_distance, const bool move)
+    AreaIncreaseSettings(
+        const AvoidanceType type,
+        const utils::coord_t increase_speed,
+        const bool increase_radius,
+        const bool simplify,
+        const bool use_min_distance,
+        const bool move)
         : type_(type)
         , increase_speed_(increase_speed)
         , increase_radius_(increase_radius)

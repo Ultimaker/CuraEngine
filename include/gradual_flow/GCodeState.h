@@ -8,9 +8,9 @@
 #include <list>
 #include <vector>
 
-#include "gradual_flow/utils/Direction.h"
 #include "gradual_flow/FlowLimitedPath.h"
 #include "gradual_flow/FlowState.h"
+#include "gradual_flow/utils/Direction.h"
 
 namespace curaengine::gradual_flow
 {

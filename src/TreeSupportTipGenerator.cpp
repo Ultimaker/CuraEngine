@@ -862,8 +862,9 @@ void TreeSupportTipGenerator::generateTips(
 {
     std::vector<std::set<TreeSupportElement::Ptr>> new_tips(move_bounds.size());
 
-    const coord_t circle_length_to_half_linewidth_change
-        = config_.min_radius < config_.support_line_width ? config_.min_radius / 2 : sqrt(utils::square(config_.min_radius) - utils::square(config_.min_radius - config_.support_line_width / 2));
+    const coord_t circle_length_to_half_linewidth_change = config_.min_radius < config_.support_line_width
+                                                             ? config_.min_radius / 2
+                                                             : sqrt(utils::square(config_.min_radius) - utils::square(config_.min_radius - config_.support_line_width / 2));
     // ^^^ As r*r=x*x+y*y (circle equation): If a circle with center at (0,0) the top most point is at (0,r) as in y=r. This calculates how far one has to move on the x-axis so
     // that y=r-support_line_width/2.
     //     In other words how far does one need to move on the x-axis to be support_line_width/2 away from the circle line. As a circle is round this length is identical for every

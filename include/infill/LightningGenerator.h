@@ -12,11 +12,10 @@ namespace curaengine
 {
 class SliceMeshStorage;
 class SupportStorage;
-}
+} // namespace curaengine
 
 namespace curaengine::infill
 {
-
 
 
 /*!

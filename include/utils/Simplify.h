@@ -17,7 +17,7 @@ class Polygon;
 class OpenPolyline;
 class ClosedPolyline;
 class Polyline;
-}
+} // namespace curaengine::geometry
 
 namespace curaengine
 {
@@ -30,12 +30,6 @@ namespace curaengine::utils
 
 struct ExtrusionLine;
 struct ExtrusionJunction;
-
-
-
-
-
-
 
 
 /*!

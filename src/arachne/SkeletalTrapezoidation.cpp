@@ -37,7 +37,6 @@ namespace curaengine::arachne
 using types::operator""_r;
 
 
-
 SkeletalTrapezoidation::node_t& SkeletalTrapezoidation::makeNode(vd_t::vertex_type& vd_node, Point2LL p)
 {
     auto he_node_it = vd_node_to_he_node_.find(&vd_node);
@@ -829,7 +828,8 @@ void SkeletalTrapezoidation::updateBeadCount()
                 edge_t* edge = node.incident_edge_;
                 do
                 {
-                    node.data_.distance_to_boundary_ = std::min(node.data_.distance_to_boundary_, edge->to_->data_.distance_to_boundary_ + geometry::vSize(edge->from_->p_ - edge->to_->p_));
+                    node.data_.distance_to_boundary_
+                        = std::min(node.data_.distance_to_boundary_, edge->to_->data_.distance_to_boundary_ + geometry::vSize(edge->from_->p_ - edge->to_->p_));
                 } while (edge = edge->twin_->next_, edge != node.incident_edge_);
             }
             coord_t bead_count = beading_strategy_.getOptimalBeadCount(node.data_.distance_to_boundary_ * 2);

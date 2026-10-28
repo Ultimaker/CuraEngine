@@ -5,8 +5,8 @@
 
 #include <optional>
 
-#include "geometry/Shape.h"
 #include "Settings.h"
+#include "geometry/Shape.h"
 #include "utils/SectionType.h"
 
 namespace curaengine::geometry

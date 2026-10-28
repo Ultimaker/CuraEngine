@@ -50,7 +50,12 @@ public:
 
     static geometry::Point2LL p(const vd_t::vertex_type* node);
 
-    static bool isSourcePoint(const geometry::Point2LL& p, const vd_t::cell_type& cell, const std::vector<geometry::Point2LL>& points, const std::vector<Segment>& segments, coord_t snap_dist = 10);
+    static bool isSourcePoint(
+        const geometry::Point2LL& p,
+        const vd_t::cell_type& cell,
+        const std::vector<geometry::Point2LL>& points,
+        const std::vector<Segment>& segments,
+        coord_t snap_dist = 10);
 
     static coord_t getDistance(const geometry::Point2LL& p, const vd_t::cell_type& cell, const std::vector<geometry::Point2LL>& points, const std::vector<Segment>& segments);
 
@@ -58,8 +63,13 @@ public:
      * Discretize a parabola based on (approximate) step size.
      * The \p approximate_step_size is measured parallel to the \p source_segment, not along the parabola.
      */
-    static std::vector<geometry::Point2LL>
-        discretizeParabola(const geometry::Point2LL& source_point, const Segment& source_segment, geometry::Point2LL start, geometry::Point2LL end, coord_t approximate_step_size, double transitioning_angle);
+    static std::vector<geometry::Point2LL> discretizeParabola(
+        const geometry::Point2LL& source_point,
+        const Segment& source_segment,
+        geometry::Point2LL start,
+        geometry::Point2LL end,
+        coord_t approximate_step_size,
+        double transitioning_angle);
 
 protected:
     /*!

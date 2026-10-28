@@ -7,10 +7,10 @@
 #include <vector>
 
 #include "RetractionAndWipeConfig.h"
+#include "Settings.h" //For MAX_EXTRUDERS.
 #include "SupportStorage.h"
 #include "geometry/MixedLinesSet.h"
 #include "geometry/Shape.h"
-#include "Settings.h" //For MAX_EXTRUDERS.
 #include "types/LayerIndex.h"
 #include "utils/AABB3D.h"
 #include "utils/NoCopy.h"

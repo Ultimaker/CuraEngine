@@ -5,13 +5,13 @@
 
 #include <functional>
 
+#include "Settings.h"
 #include "SliceLayer.h"
 #include "SliceLayerPart.h"
 #include "SliceMeshStorage.h"
 #include "geometry/OpenPolyline.h"
 #include "geometry/Polygon.h"
 #include "geometry/Shape.h"
-#include "Settings.h"
 #include "types/AngleDegrees.h" //For the infill angle.
 #include "utils/PolygonUtils.h"
 #include "utils/math.h"
@@ -42,7 +42,8 @@ void SubDivCube::precomputeOctree(SliceMeshStorage& mesh, const Point2LL& infill
     const AngleDegrees infill_angle = (! infill_angles.empty()) ? infill_angles[0] : AngleDegrees(0);
 
     const coord_t furthest_dist_from_origin = std::sqrt(
-        utils::square(mesh.settings.get<coord_t>("machine_height")) + utils::square(mesh.settings.get<coord_t>("machine_depth") / 2) + utils::square(mesh.settings.get<coord_t>("machine_width") / 2));
+        utils::square(mesh.settings.get<coord_t>("machine_height")) + utils::square(mesh.settings.get<coord_t>("machine_depth") / 2)
+        + utils::square(mesh.settings.get<coord_t>("machine_width") / 2));
     const coord_t max_side_length = furthest_dist_from_origin * 2;
 
     size_t curr_recursion_depth = 0;

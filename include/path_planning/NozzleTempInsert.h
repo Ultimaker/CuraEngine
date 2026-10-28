@@ -15,7 +15,6 @@ namespace curaengine::path_planning
 {
 
 
-
 /*!
  * A gcode command to insert before a specific path.
  *
